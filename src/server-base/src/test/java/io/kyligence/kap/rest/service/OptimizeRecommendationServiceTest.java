@@ -130,7 +130,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
 
         // case of MODIFICATION type
         recommendationManager.updateOptimizeRecommendation(id, optRecomm -> {
-            val aggIndexRecom = optRecomm.getIndexRecommendations().stream().filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
+            val aggIndexRecom = optRecomm.getIndexRecommendations().stream()
+                    .filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
             val updatedIndexRecom = JsonUtil.deepCopyQuietly(aggIndexRecom, IndexRecommendationItem.class);
             updatedIndexRecom.setItemId(optRecomm.getIndexRecommendations().size());
             updatedIndexRecom.setAdd(true);
@@ -155,9 +156,10 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
                 response.getAggIndexRecommendations().size() + response.getTableIndexRecommendations().size(),
                 recommendation.getIndexRecommendations().size() - 1);
         Assert.assertEquals(3, response.getAggIndexRecommendations().size());
-        Assert.assertEquals(1, response.getTableIndexRecommendations().size());
+        Assert.assertEquals(2, response.getTableIndexRecommendations().size());
 
-        val aggIndexRecommResponse = response.getAggIndexRecommendations().stream().filter(aggIndexItem -> aggIndexItem.getId() == 150000L).findFirst().orElse(null);
+        val aggIndexRecommResponse = response.getAggIndexRecommendations().stream()
+                .filter(aggIndexItem -> aggIndexItem.getId() == 150000L).findFirst().orElse(null);
         val aggIndexContent = aggIndexRecommResponse.getContent();
         Assert.assertEquals(RecommendationType.MODIFICATION, aggIndexRecommResponse.getRecommendationType());
         Assert.assertEquals(0, aggIndexRecommResponse.getQueryHitCount());
@@ -184,8 +186,10 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         prepare();
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val aggIndexRecom = recommendation.getIndexRecommendations().stream().filter(IndexRecommendationItem::isAggIndex).findFirst().orElse(null);
-        var aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "", aggIndexRecom.getEntity().getId(), 0, 10);
+        val aggIndexRecom = recommendation.getIndexRecommendations().stream()
+                .filter(IndexRecommendationItem::isAggIndex).findFirst().orElse(null);
+        var aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "",
+                aggIndexRecom.getEntity().getId(), 0, 10);
         Assert.assertEquals(4, aggIndexRecommContent.getSize());
         Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", aggIndexRecommContent.getContent().get(0));
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1", aggIndexRecommContent.getContent().get(1));
@@ -193,17 +197,20 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("COUNT_DISTINCT_SELLER", aggIndexRecommContent.getContent().get(3));
 
         // test fuzzy filer
-        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "trans_id ", aggIndexRecom.getEntity().getId(), 0, 10);
+        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "trans_id ",
+                aggIndexRecom.getEntity().getId(), 0, 10);
         Assert.assertEquals(1, aggIndexRecommContent.getSize());
         Assert.assertEquals(1, aggIndexRecommContent.getContent().size());
         Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", aggIndexRecommContent.getContent().get(0));
 
         // test paging
-        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, null, aggIndexRecom.getEntity().getId(), 0, 2);
+        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, null,
+                aggIndexRecom.getEntity().getId(), 0, 2);
         Assert.assertEquals(4, aggIndexRecommContent.getSize());
         Assert.assertEquals(2, aggIndexRecommContent.getContent().size());
 
-        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "test_kylin_fact", aggIndexRecom.getEntity().getId(), 0, 1);
+        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "test_kylin_fact",
+                aggIndexRecom.getEntity().getId(), 0, 1);
         Assert.assertEquals(2, aggIndexRecommContent.getSize());
         Assert.assertEquals(1, aggIndexRecommContent.getContent().size());
     }
@@ -238,21 +245,25 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         prepare();
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val tableIndexRecom = recommendation.getIndexRecommendations().stream().filter(indexItem -> !indexItem.isAggIndex()).findFirst().orElse(null);
-        var tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "", tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 10);
+        val tableIndexRecom = recommendation.getIndexRecommendations().stream()
+                .filter(indexItem -> !indexItem.isAggIndex()).findFirst().orElse(null);
+        var tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "",
+                tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 10);
         Assert.assertEquals(3, tableIndexRecommContent.getSize());
         Assert.assertEquals("TEST_KYLIN_FACT.LSTG_SITE_ID", tableIndexRecommContent.getColumns().get(0));
         Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", tableIndexRecommContent.getColumns().get(1));
         Assert.assertEquals("TEST_KYLIN_FACT.LEAF_CATEG_ID", tableIndexRecommContent.getColumns().get(2));
 
         // test fuzzy filter
-        tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "lstg ", tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 10);
+        tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "lstg ",
+                tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 10);
         Assert.assertEquals(1, tableIndexRecommContent.getSize());
         Assert.assertEquals(1, tableIndexRecommContent.getColumns().size());
         Assert.assertEquals("TEST_KYLIN_FACT.LSTG_SITE_ID", tableIndexRecommContent.getColumns().get(0));
 
         // test paging
-        tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "T.L ", tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 1);
+        tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "T.L ",
+                tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 1);
         Assert.assertEquals(2, tableIndexRecommContent.getSize());
         Assert.assertEquals(1, tableIndexRecommContent.getColumns().size());
     }
@@ -265,7 +276,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
 
         // case of MODIFICATION type
         recommendationManager.updateOptimizeRecommendation(id, optRecomm -> {
-            val aggIndexRecom = optRecomm.getIndexRecommendations().stream().filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
+            val aggIndexRecom = optRecomm.getIndexRecommendations().stream()
+                    .filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
             val updatedIndexRecom = JsonUtil.deepCopyQuietly(aggIndexRecom, IndexRecommendationItem.class);
             updatedIndexRecom.setItemId(optRecomm.getIndexRecommendations().size());
             updatedIndexRecom.setAdd(true);
@@ -304,8 +316,10 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
                 .map(NDataModel.NamedColumn::getAliasDotColumn).collect(Collectors.toList());
         Assert.assertEquals(expectedDimensions.size(), dimensions.size());
         Assert.assertTrue(dimensions.contains("TEST_KYLIN_FACT.CC_CHANGED"));
-        val optimizedMeasures = optimizedModel.getAllMeasures().stream().map(MeasureDesc::getName).collect(Collectors.toList());
-        val expectedMeasures = expectedModel.getAllMeasures().stream().map(MeasureDesc::getName).collect(Collectors.toList());
+        val optimizedMeasures = optimizedModel.getAllMeasures().stream().map(MeasureDesc::getName)
+                .collect(Collectors.toList());
+        val expectedMeasures = expectedModel.getAllMeasures().stream().map(MeasureDesc::getName)
+                .collect(Collectors.toList());
         Assert.assertEquals(expectedMeasures.size(), optimizedMeasures.size());
         Assert.assertTrue(optimizedMeasures.contains("MEASURE_CHANGED"));
 
@@ -324,23 +338,24 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(3, optimizedIndex.size());
         optimizedIndex.forEach(indexEntity -> {
             switch (String.valueOf(indexEntity.getId())) {
-                case "10000000":
-                    Assert.assertEquals(4, indexEntity.getDimensions().size() + indexEntity.getMeasures().size());
-                    Assert.assertEquals(1, indexEntity.getLayouts().size());
-                    Assert.assertEquals(Lists.newArrayList(0, 16, 100001, 100002), Lists.newArrayList(indexEntity.getLayouts().get(0).getColOrder()));
-                    break;
-                case "150000":
-                    Assert.assertEquals(4, indexEntity.getDimensions().size() + indexEntity.getMeasures().size());
-                    Assert.assertEquals(2, indexEntity.getLayouts().size());
-                    val layoutIds = indexEntity.getLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
-                    Assert.assertTrue(layoutIds.contains(150002L));
-                    Assert.assertTrue(layoutIds.contains(150003L));
-                    break;
-                case "20000000000":
-                    Assert.assertEquals(3, indexEntity.getLayouts().size());
-                    break;
-                default:
-                    break;
+            case "10000000":
+                Assert.assertEquals(4, indexEntity.getDimensions().size() + indexEntity.getMeasures().size());
+                Assert.assertEquals(1, indexEntity.getLayouts().size());
+                Assert.assertEquals(Lists.newArrayList(0, 16, 100001, 100002),
+                        Lists.newArrayList(indexEntity.getLayouts().get(0).getColOrder()));
+                break;
+            case "150000":
+                Assert.assertEquals(4, indexEntity.getDimensions().size() + indexEntity.getMeasures().size());
+                Assert.assertEquals(2, indexEntity.getLayouts().size());
+                val layoutIds = indexEntity.getLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
+                Assert.assertTrue(layoutIds.contains(150002L));
+                Assert.assertTrue(layoutIds.contains(150003L));
+                break;
+            case "20000000000":
+                Assert.assertEquals(4, indexEntity.getLayouts().size());
+                break;
+            default:
+                break;
             }
         });
     }

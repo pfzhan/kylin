@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -43,17 +44,8 @@ import lombok.val;
 public class OptimizeRecommendationVerifier {
     private String id;
 
-    //    private NDataModel model;
-    //    private IndexPlan indexPlan;
-    //    private OptimizeRecommendation recommendation;
-
     private KylinConfig config;
     private String project;
-
-    //    private long maxCCItemId;
-    //    private long maxDimensionItemId;
-    //    private long maxMeasureItemId;
-    //    private long maxIndexItemId;
 
     private Set<Long> passCCItems;
     private Set<Long> failCCItems;
@@ -68,9 +60,6 @@ public class OptimizeRecommendationVerifier {
         this.config = config;
         this.project = project;
         this.id = id;
-        //        this.model = model;
-        //        this.indexPlan = indexPlan;
-        //        this.recommendation = recommendation;
     }
 
     public void verify() {
@@ -78,8 +67,9 @@ public class OptimizeRecommendationVerifier {
         val modelManager = NDataModelManager.getInstance(config, project);
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
 
-        recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
-                recommendationManager.getOptimizeRecommendation(id));
+        Preconditions.checkNotNull(modelManager.getDataModelDesc(id), "model " + id + " not exists");
+        Preconditions.checkNotNull(indexPlanManager.getIndexPlan(id), "index " + id + " not exists");
+
         recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
                 indexPlanManager.copy(indexPlanManager.getIndexPlan(id)),
                 recommendationManager.getOptimizeRecommendation(id));

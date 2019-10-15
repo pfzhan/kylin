@@ -85,11 +85,6 @@ public class OptimizeContext {
     ContextRecommendationItems<MeasureRecommendationItem> measureContextRecommendationItems;
     ContextRecommendationItems<IndexRecommendationItem> indexContextRecommendationItems;
 
-    Set<String> failCCColumn = Sets.newHashSet();
-    Set<Integer> failCCColumnId = Sets.newHashSet();
-    Set<Integer> failDimension = Sets.newHashSet();
-    Set<Integer> failMeasure = Sets.newHashSet();
-
     private int originColumnIndex;
     private int originMeasureIndex;
 
@@ -99,13 +94,11 @@ public class OptimizeContext {
         this.recommendation = recommendation;
         val originCCRecommendations = recommendation.getCcRecommendations().stream()
                 .collect(Collectors.toMap(CCRecommendationItem::getItemId, item -> item));
-        this.ccContextRecommendationItems = new ContextRecommendationItems<>(originCCRecommendations,
-                (id, item) -> this.failCCColumn.add(factTableName + "." + item.getCc().getColumnName()));
+        this.ccContextRecommendationItems = new ContextRecommendationItems<>(originCCRecommendations);
 
         val originDimensionRecommendations = recommendation.getDimensionRecommendations().stream()
                 .collect(Collectors.toMap(DimensionRecommendationItem::getItemId, item -> item));
-        this.dimensionContextRecommendationItems = new ContextRecommendationItems<>(originDimensionRecommendations,
-                (id, item) -> this.failDimension.add(item.getColumn().getId()));
+        this.dimensionContextRecommendationItems = new ContextRecommendationItems<>(originDimensionRecommendations);
 
         val originMeasureRecommendations = recommendation.getMeasureRecommendations().stream()
                 .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
@@ -122,18 +115,19 @@ public class OptimizeContext {
 
         this.allCCNames = allModels.stream().flatMap(m -> m.getComputedColumnDescs().stream())
                 .map(ComputedColumnDesc::getColumnName).collect(Collectors.toSet());
-        this.virtualIdColumnMap = this.model.getAllNamedColumns().stream().collect(Collectors
-                .toMap(NDataModel.NamedColumn::getId, m -> JsonUtil.deepCopyQuietly(m, NDataModel.NamedColumn.class)));
-        this.virtualColumnIdMap = this.model.getAllNamedColumns().stream()
+        this.virtualIdColumnMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getId, m -> m));
+        this.virtualColumnIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-        this.virtualColumnNameIdMap = this.model.getAllNamedColumns().stream()
+        this.virtualColumnNameIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getName, NDataModel.NamedColumn::getId));
 
-        this.realIdColumnMap = this.model.getAllNamedColumns().stream().collect(Collectors
-                .toMap(NDataModel.NamedColumn::getId, m -> JsonUtil.deepCopyQuietly(m, NDataModel.NamedColumn.class)));
-        this.realColumnIdMap = this.model.getAllNamedColumns().stream()
+        this.realIdColumnMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getId,
+                        m -> JsonUtil.deepCopyQuietly(m, NDataModel.NamedColumn.class)));
+        this.realColumnIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-        this.realColumnNameIdMap = this.model.getAllNamedColumns().stream()
+        this.realColumnNameIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getName, NDataModel.NamedColumn::getId));
 
         this.realCCs = this.model.getComputedColumnDescs().stream().map(ComputedColumnDesc::getColumnName)
@@ -167,12 +161,8 @@ public class OptimizeContext {
         this.virtualIndexesMap = indexPlan.getWhiteListIndexesMap();
         this.indexRecommendationItemsMap = Maps.newHashMap();
 
-        //        this.realIndexRecommendationItemsMap = Maps.newHashMap();
-        //        this.virtualIndexRecommendationItemsMap = Maps.newHashMap();
-
     }
 
-    //
     public Map<Long, CCRecommendationItem> getModifiedCCRecommendations() {
         return ccContextRecommendationItems.getModifiedRecommendations();
     }
@@ -189,7 +179,6 @@ public class OptimizeContext {
         return indexContextRecommendationItems.getModifiedRecommendations();
     }
 
-    //
     public Set<Long> getDeletedCCRecommendations() {
         return ccContextRecommendationItems.getDeletedRecommendations();
     }
@@ -220,6 +209,10 @@ public class OptimizeContext {
             this.actionWhenFail = actionWhenFail;
         }
 
+        ContextRecommendationItems(Map<Long, T> originRecommendations) {
+            this(originRecommendations, null);
+        }
+
         T getRecommendationItem(long id) {
             if (deletedRecommendations.contains(id)) {
                 return null;
@@ -247,7 +240,7 @@ public class OptimizeContext {
 
         T copyRecommendationItem(long id) {
             if (deletedRecommendations.contains(id)) {
-                throw new RecommendationItemDeletedException("recommendation item " + id +" already deleted");
+                throw new RecommendationItemDeletedException("recommendation item " + id + " already deleted");
             }
             if (modifiedRecommendations.containsKey(id)) {
                 return modifiedRecommendations.get(id);

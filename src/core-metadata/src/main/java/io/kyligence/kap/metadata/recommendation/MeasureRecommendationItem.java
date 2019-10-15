@@ -127,7 +127,7 @@ public class MeasureRecommendationItem implements Serializable, RecommendationIt
                 val value = context.getMeasureRecommendationItem(itemId).getMeasure().getFunction().getParameters()
                         .get(i).getValue();
                 if (!columns.containsKey(value.toUpperCase())) {
-                    if (!real && context.getFailCCColumn().contains(value)) {
+                    if (!real) {
                         context.failMeasureRecommendationItem(itemId);
                         return;
                     } else {

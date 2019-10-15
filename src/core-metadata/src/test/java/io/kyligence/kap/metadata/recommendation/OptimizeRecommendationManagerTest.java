@@ -37,9 +37,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -84,6 +86,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String baseIndexFile = indexDir + "base_index_plan.json";
     private final String optimizedModelFile = modelDir + "optimized_model.json";
     private final String optimizedIndexPlanFile = indexDir + "optimized_index_plan.json";
+    private final String optimizedIndexPlanTwiceFile = indexDir + "optimized_twice_index_plan.json";
     private final String selfSameCCNameExprModelFile = modelDir + "self_same_name_and_same_expr_model.json";
     private final String selfSameCCNameExprIndexPlanFile = indexDir + "self_same_name_and_same_expr_index_plan.json";
     private final String selfSameCCExprModelFile = modelDir + "self_same_expr_model.json";
@@ -100,8 +103,12 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String selfSameMeasureExprIndexPlanFile = indexDir + "measure_same_expr_index_plan.json";
     private final String selfSameMeasureNameModelFile = modelDir + "measure_same_name_model.json";
     private final String selfSameMeasureNameIndexPlanFile = indexDir + "measure_same_expr_index_plan.json";
+    private final String removeCCBaseModelFile = modelDir + "remove_cc_base_model.json";
+    private final String removeCCOptimizedModelFile = modelDir + "remove_cc_optimized_model.json";
+    private final String removeCCOptimizedIndexPlanFile = indexDir + "remove_cc_optimized_index_plan.json";
 
-    private void prepare(String optimizedModelFile, String optimizedIndexPlanFile) throws IOException {
+    private void prepare(String baseModelFile, String baseIndexFile, String optimizedModelFile,
+            String optimizedIndexPlanFile) throws IOException {
         val originModel = JsonUtil.readValue(new File(baseModelFile), NDataModel.class);
         modelManager.createDataModelDesc(originModel, ownerTest);
         val originIndexPlan = JsonUtil.readValue(new File(baseIndexFile), IndexPlan.class);
@@ -113,6 +120,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
         updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
         recommendationManager.optimize(optimized, indexPlanOptimized);
+    }
+
+    private void prepare(String optimizedModelFile, String optimizedIndexPlanFile) throws IOException {
+        prepare(baseModelFile, baseIndexFile, optimizedModelFile, optimizedIndexPlanFile);
     }
 
     private void prepare() throws IOException {
@@ -140,9 +151,23 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(3, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals("bigint", recommendation.getDimensionRecommendations().get(0).getDataType());
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(2, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(3, recommendation.getIndexRecommendations().size());
         Assert.assertTrue(recommendation.getIndexRecommendations().stream().filter(item -> !item.isAggIndex())
                 .allMatch(item -> item.getEntity().getLayouts().size() == 1));
+
+    }
+
+    @Test
+    public void testOptimizeTwice() throws IOException {
+        testOptimize();
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
+        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanTwiceFile);
+        val appliedModel = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
+                recommendation);
+        recommendationManager.optimize(appliedModel, indexPlanOptimized);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(4, recommendation.getIndexRecommendations().size());
     }
 
     @Test
@@ -152,8 +177,47 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(4, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(5, recommendation.getIndexRecommendations().size());
         Assert.assertEquals(2, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+    }
+
+    private void testRemoveExists(NDataModelManager.NDataModelUpdater updater) {
+        modelManager.updateDataModel(id, updater);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(3, recommendation.getIndexRecommendations().size());
+        recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
+                indexPlanManager.copy(indexPlanManager.getIndexPlan(id)), recommendation);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(2, recommendation.getIndexRecommendations().size());
+        Assert.assertTrue(
+                recommendation.getIndexRecommendations().stream().noneMatch(IndexRecommendationItem::isAggIndex));
+    }
+
+    @Test
+    public void testApply_RemoveDimension() throws IOException {
+        prepare();
+        testRemoveExists(
+                copyForWrite -> copyForWrite.getAllNamedColumns().get(0).setStatus(NDataModel.ColumnStatus.EXIST));
+    }
+
+    @Test
+    public void testApply_RemoveCC() throws IOException {
+        prepare(removeCCBaseModelFile, baseIndexFile, removeCCOptimizedModelFile, removeCCOptimizedIndexPlanFile);
+        testRemoveExists(copyForWrite -> {
+            copyForWrite.setComputedColumnDescs(Lists.newArrayList());
+            copyForWrite.getAllNamedColumns().get(16).setStatus(NDataModel.ColumnStatus.TOMB);
+        });
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(0, recommendation.getCcRecommendations().size());
+        Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
+        Assert.assertEquals(3, recommendation.getMeasureRecommendations().size());
+    }
+
+    @Test
+    public void testApply_RemoveMeasure() throws IOException {
+        prepare();
+        testRemoveExists(
+                copyForWrite -> copyForWrite.setAllMeasures(Lists.newArrayList(copyForWrite.getAllMeasures().get(0))));
     }
 
     @Test
@@ -162,6 +226,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val appliedModel = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
                 recommendation);
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(1).getStatus());
         Assert.assertEquals(10000001, appliedModel.getAllNamedColumns().get(16).getId());
         Assert.assertEquals("CC_AUTO_1", appliedModel.getAllNamedColumns().get(16).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(16).getStatus());
@@ -174,6 +239,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                 indexPlanManager.getIndexPlan(id).copy(), recommendation);
         Assert.assertTrue(
                 appliedIndexPlan.getAllIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == indexId));
+
     }
 
     @Test
@@ -295,7 +361,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(10000002, appliedModel.getAllNamedColumns().get(17).getId());
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", appliedModel.getAllNamedColumns().get(17).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(17).getStatus());
-
     }
 
     @Test
@@ -438,6 +503,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100002));
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(100002)));
+        Assert.assertTrue(updateIndexPlan.getIndexes().stream().filter(IndexEntity::isTableIndex)
+                .allMatch(indexEntity -> indexEntity.getLayouts().size() == 4
+                        && indexEntity.getLastLayout().getId() == 20000000004L));
         Assert.assertEquals(13, updateIndexPlan.getAllIndexes().size());
         Assert.assertTrue(updateIndexPlan.getIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == 150000));
         Assert.assertEquals(1, updateIndexPlan.getIndexes().get(0).getLayouts().size());
@@ -542,7 +610,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                     }
                     return false;
                 })));
-        Assert.assertEquals(1, updateRecommendation.getIndexRecommendations().size());
+        Assert.assertEquals(2, updateRecommendation.getIndexRecommendations().size());
     }
 
     @Test

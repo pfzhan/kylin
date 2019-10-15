@@ -165,13 +165,10 @@ public class OptimizeRecommendationManager {
 
     private Map<Integer, Integer> optimizeModel(NDataModel optimized) {
         Preconditions.checkNotNull(optimized, "optimize model not exists");
-        val manager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val origin = manager.copyForWrite(manager.getDataModelDesc(optimized.getId()));
+        val origin = applyModel(optimized.getId());
+        Preconditions.checkNotNull(origin, "optimize model not exists");
         val factTable = origin.getRootFactTableAlias() != null ? origin.getRootFactTableAlias()
                 : origin.getRootFactTableName().split("\\.")[1];
-        apply(origin, getOptimizeRecommendation(optimized.getId()));
-
-        Preconditions.checkNotNull(origin, "optimize model not exists");
 
         val originNamedColumns = origin.getAllNamedColumns();
         val optimizedNamedColumns = optimized.getAllNamedColumns();
@@ -293,21 +290,20 @@ public class OptimizeRecommendationManager {
         Preconditions.checkNotNull(optimized, "optimize index plan not exists");
 
         val optimizedAllIndexes = optimized.getAllIndexes();
-        val indexManager = NIndexPlanManager.getInstance(config, project);
-        val originIndexPlan = indexManager.getIndexPlan(optimized.getUuid());
+        val originIndexPlan = applyIndexPlan(optimized.getId());
+
+        Preconditions.checkNotNull(originIndexPlan, "index plan " + optimized.getId() + " not exists");
 
         val originAllIndexes = originIndexPlan.getAllIndexes();
 
         val optimizedAllLayouts = optimizedAllIndexes.stream().flatMap(indexEntity -> {
             IndexEntity.IndexIdentifier indexIdentifier = indexEntity.createIndexIdentifier();
-            return indexEntity.getLayouts().stream()
-                    .map(layoutEntity -> new Pair<>(indexIdentifier, layoutEntity));
+            return indexEntity.getLayouts().stream().map(layoutEntity -> new Pair<>(indexIdentifier, layoutEntity));
         }).collect(Collectors.toSet());
 
         val originAllLayouts = originAllIndexes.stream().flatMap(indexEntity -> {
             IndexEntity.IndexIdentifier indexIdentifier = indexEntity.createIndexIdentifier();
-            return indexEntity.getLayouts().stream()
-                    .map(layoutEntity -> new Pair<>(indexIdentifier, layoutEntity));
+            return indexEntity.getLayouts().stream().map(layoutEntity -> new Pair<>(indexIdentifier, layoutEntity));
         }).collect(Collectors.toSet());
 
         val delta = Sets.difference(optimizedAllLayouts, originAllLayouts);
@@ -379,7 +375,7 @@ public class OptimizeRecommendationManager {
 
         private CCRecommendationItem recommendation;
         private OptimizeContext context;
-        private Integer lastCCId;
+        private Long lastCCId;
 
         @Override
         public void handleOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
@@ -426,6 +422,9 @@ public class OptimizeRecommendationManager {
 
     public NDataModel applyModel(OptimizeRecommendation recommendation) {
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
+        if (modelManager.getDataModelDesc(recommendation.getId()) == null) {
+            return null;
+        }
         return apply(modelManager.copyForWrite(modelManager.getDataModelDesc(recommendation.getId())), recommendation);
     }
 
@@ -452,9 +451,7 @@ public class OptimizeRecommendationManager {
         List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = ComputedColumnUtil
                 .getExistingCCs(context.getModel().getId(), context.getAllModels());
 
-        Integer lastCCId = ccRecommendations.isEmpty() ? 0
-                : Integer.parseInt(
-                        ccRecommendations.get(ccRecommendations.size() - 1).getCc().getColumnName().split("_")[2]);
+        Long lastCCId = recommendation.getNextCCRecommendationItemId();
 
         for (val ccRecommendation : ccRecommendations) {
             checkCCConflictAndApply(ccRecommendation, context, lastCCId, existingCCs);
@@ -464,8 +461,8 @@ public class OptimizeRecommendationManager {
 
     }
 
-    private void checkCCConflictAndApply(CCRecommendationItem ccRecommendation, OptimizeContext context,
-            Integer lastCCId, List<Pair<ComputedColumnDesc, NDataModel>> existingCCs) {
+    private void checkCCConflictAndApply(CCRecommendationItem ccRecommendation, OptimizeContext context, Long lastCCId,
+            List<Pair<ComputedColumnDesc, NDataModel>> existingCCs) {
         val itemId = ccRecommendation.getItemId();
         ccRecommendation.translate(context);
         int ccCount = context.getModel().getComputedColumnDescs().size();
@@ -509,7 +506,8 @@ public class OptimizeRecommendationManager {
                     context.getCCRecommendationItem(itemId).getCc(),
                     new NameChangerCCConflictHandler(context.getCCRecommendationItem(itemId), context, lastCCId));
         }
-        context.getCCRecommendationItem(itemId).apply(context);
+        ccRecommendation.checkDependencies(context, false);
+        ccRecommendation.apply(context);
     }
 
     private String newAllName(String name, OptimizeContext context) {
@@ -537,7 +535,8 @@ public class OptimizeRecommendationManager {
                 recommendationItem.getColumn().setName(newName);
             }
             r.translate(context);
-            context.getDimensionRecommendationItem(itemId).apply(context);
+            r.checkDependencies(context, false);
+            r.apply(context);
         });
     }
 
@@ -563,7 +562,8 @@ public class OptimizeRecommendationManager {
                             .setName(newMeasureName(copy.getMeasure().getName(), context.getVirtualMeasures()));
                 }
             }
-            context.getMeasureRecommendationItem(itemId).apply(context);
+            r.checkDependencies(context, false);
+            r.apply(context);
         });
     }
 
@@ -586,6 +586,10 @@ public class OptimizeRecommendationManager {
     public IndexPlan applyIndexPlan(OptimizeRecommendation recommendation) {
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
+        if (modelManager.getDataModelDesc(recommendation.getId()) == null
+                || indexPlanManager.getIndexPlan(recommendation.getId()) == null) {
+            return null;
+        }
         return apply(modelManager.copyForWrite(modelManager.getDataModelDesc(recommendation.getId())),
                 indexPlanManager.copy(indexPlanManager.getIndexPlan(recommendation.getId())), recommendation);
 
@@ -654,7 +658,7 @@ public class OptimizeRecommendationManager {
         return crud.copyBySerialization(recommendation);
     }
 
-    private String newCCName(Integer lastCCId, Set<String> existingCCs) {
+    private String newCCName(Long lastCCId, Set<String> existingCCs) {
         var newName = "CC_AUTO_" + (++lastCCId);
         while (existingCCs.contains(newName)) {
             newName = "CC_AUTO_" + (++lastCCId);

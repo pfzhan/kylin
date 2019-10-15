@@ -36,6 +36,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.var;
 
 public class DimensionRecommendationItem implements Serializable, RecommendationItem<DimensionRecommendationItem> {
     @Getter
@@ -70,12 +71,22 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
     private boolean copy = false;
 
     public void apply(OptimizeContext context, boolean real) {
-        val column = context.getDimensionRecommendationItem(itemId).column;
+        if (context.getDeletedDimensionRecommendations().contains(itemId)) {
+            return;
+        }
+        var item = context.getDimensionRecommendationItem(itemId);
+        val column = item.column;
         Preconditions.checkNotNull(column);
 
         val modelColumn = context.getVirtualIdColumnMap().get(column.getId());
-        Preconditions.checkNotNull(modelColumn);
-        Preconditions.checkArgument(modelColumn.isExist());
+        if (modelColumn == null || !modelColumn.isExist()) {
+            if (!real) {
+                context.deleteDimensionRecommendationItem(itemId);
+                return;
+            } else {
+                throw new PassConflictException("cc item id " + itemId + "column not exists in model");
+            }
+        }
         if (modelColumn.isDimension()) {
             //dimension is already in model
             context.deleteDimensionRecommendationItem(itemId);
@@ -101,10 +112,13 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
 
     @Override
     public void checkDependencies(OptimizeContext context, boolean real) {
+        if (context.getDeletedDimensionRecommendations().contains(itemId)) {
+            return;
+        }
         val recommendation = context.getDimensionRecommendationItem(itemId);
         val columns = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
         if (!columns.containsKey(recommendation.getColumn().getId())) {
-            if (!real && context.getFailCCColumn().contains(recommendation.getColumn().getAliasDotColumn())) {
+            if (!real) {
                 context.failDimensionRecommendationItem(itemId);
             } else {
                 throw new DependencyLostException(String.format(

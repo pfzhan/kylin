@@ -3,6 +3,40 @@
   "last_modified": 1568715458863,
   "version": "2.3.0.20500",
   "description": "test_description",
+  "rule_based_index": {
+    "dimensions": [
+      0,
+      5,
+      13,
+      15
+    ],
+    "measures": [
+      100000,
+      100001
+    ],
+    "aggregation_groups": [
+      {
+        "includes": [
+          0,
+          5,
+          13,
+          15
+        ],
+        "select_rule": {
+          "hierarchy_dims": [
+            [
+              5,
+              13
+            ]
+          ],
+          "mandatory_dims": [],
+          "joint_dims": [],
+          "dim_cap": 5
+        }
+      }
+    ],
+    "storage_type": 20
+  },
   "indexes": [
     {
       "id": 150000,
@@ -25,24 +59,14 @@
             100001
           ],
           "storage_type": 20
-        }
-      ]
-    },{
-      "id": 0,
-      "dimensions": [
-        0,
-        16
-      ],
-      "measures": [
-        100001
-      ],
-      "layouts": [
+        },
         {
-          "id": 1,
+          "id": 150002,
           "auto": true,
           "col_order": [
+            12,
             0,
-            16,
+            100000,
             100001
           ],
           "storage_type": 20
@@ -50,20 +74,98 @@
       ]
     },
     {
-      "id": 10000,
+      "id": 1000000,
       "dimensions": [
-        0
+        0,
+        10000001
       ],
       "measures": [
-        100001
+        100001,
+        10010001
       ],
       "layouts": [
         {
-          "id": 100001,
+          "id": 1000001,
           "auto": true,
           "col_order": [
             0,
-            100001
+            10000001,
+            100001,
+            10010001
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 1000002,
+          "auto": true,
+          "col_order": [
+            10000001,
+            0,
+            100001,
+            10010001
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 20000000000,
+      "dimensions": [
+        0,
+        1,
+        2
+      ],
+      "measures": [],
+      "layouts": [
+        {
+          "id": 20000000001,
+          "auto": true,
+          "col_order": [
+            0,
+            1,
+            2
+          ],
+          "sort_by_columns": [
+            0
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 20000000002,
+          "auto": true,
+          "col_order": [
+            2,
+            1,
+            0
+          ],
+          "shard_by_columns": [
+            2
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 20000000003,
+          "auto": true,
+          "col_order": [
+            2,
+            0,
+            1
+          ],
+          "shard_by_columns": [
+            1
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 20000000004,
+          "auto": true,
+          "col_order": [
+            0,
+            1,
+            2
+          ],
+          "shard_by_columns": [
+            1
           ],
           "storage_type": 20
         }
@@ -76,8 +178,8 @@
       "builder": "org.apache.kylin.dict.NGlobalDictionaryBuilder2"
     }
   ],
-  "next_aggregation_index_id": 20000,
-  "next_table_index_id": 20000000000,
+  "next_aggregation_index_id": 10010000,
+  "next_table_index_id": 20000010000,
   "override_properties": {},
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,

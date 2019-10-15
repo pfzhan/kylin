@@ -81,7 +81,7 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
         for (int i = 0; i < item.entity.getDimensions().size(); i++) {
             val idColumnMap = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
             if (!(idColumnMap.containsKey(item.entity.getDimensions().get(i)))) {
-                if (!real && (context.getFailCCColumnId().contains(item.entity.getDimensions().get(i)))) {
+                if (!real) {
                     context.failIndexRecommendationItem(itemId);
                     return;
                 } else {
@@ -98,8 +98,7 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
             val idColumnMap = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
             if (!(idColumnMap.containsKey(item.entity.getDimensions().get(i))
                     && idColumnMap.get(item.entity.getDimensions().get(i)).isDimension())) {
-                if (!real && (context.getFailCCColumnId().contains(item.entity.getDimensions().get(i)))
-                        || context.getFailDimension().contains(item.entity.getDimensions().get(i))) {
+                if (!real) {
                     context.failIndexRecommendationItem(itemId);
                     return;
                 } else {
@@ -112,7 +111,7 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
         for (int i = 0; i < item.entity.getMeasures().size(); i++) {
             val measures = real ? context.getRealMeasureIds() : context.getVirtualMeasureIds();
             if (!measures.contains(item.entity.getMeasures().get(i))) {
-                if (!real && (context.getFailMeasure().contains(item.entity.getMeasures().get(i)))) {
+                if (!real) {
                     context.failIndexRecommendationItem(itemId);
                     return;
                 } else {
@@ -204,6 +203,10 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
             val indexEntity = context.getVirtualIndexesMap().get(identifier);
             val layouts = item.entity.getLayouts();
             layouts.forEach(layout -> {
+                if (indexEntity.getLayouts().contains(layout)) {
+                    logger.warn("layout " + layout.getColOrder() + " already exists in index.");
+                    return;
+                }
                 layout.setId(indexEntity.getId() + indexEntity.getNextLayoutOffset());
                 indexEntity.setNextLayoutOffset(indexEntity.getNextLayoutOffset() + 1);
                 indexEntity.getLayouts().add(layout);

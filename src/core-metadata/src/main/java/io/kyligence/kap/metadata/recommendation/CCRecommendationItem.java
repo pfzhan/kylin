@@ -59,7 +59,6 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
     @JsonProperty("cc")
     private ComputedColumnDesc cc;
 
-
     @Getter
     @Setter
     @JsonProperty("recommendation_type")
@@ -77,10 +76,10 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
     private boolean isCopy = false;
 
     public void apply(OptimizeContext context, boolean real) {
-        var item = context.getCCRecommendationItem(itemId);
-        if (item == null) {
+        if (context.getDeletedCCRecommendations().contains(itemId)) {
             return;
         }
+        var item = context.getCCRecommendationItem(itemId);
         val cc = item.cc;
         Preconditions.checkNotNull(cc);
 
@@ -124,6 +123,9 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
     }
 
     public void checkDependencies(OptimizeContext context, boolean real) {
+        if (context.getDeletedCCRecommendations().contains(itemId)) {
+            return;
+        }
         new CheckDependenciesVisitor(context, real).visit();
     }
 
@@ -143,8 +145,8 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
             }
             String aliasDotColumn = table + "." + name;
             val columnIdMap = real ? context.getRealColumnIdMap() : context.getVirtualColumnIdMap();
-            if (!columnIdMap.containsKey(aliasDotColumn)) {
-                if (!real && context.getFailCCColumn().contains(aliasDotColumn)) {
+            if (!columnIdMap.containsKey(aliasDotColumn.toUpperCase())) {
+                if (!real) {
                     context.failCCRecommendationItem(itemId);
                     return true;
                 } else {

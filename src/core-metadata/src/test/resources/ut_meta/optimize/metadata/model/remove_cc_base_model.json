@@ -1,0 +1,195 @@
+{
+  "uuid": "25f8bbb7-cddc-4837-873d-f80f994d8a2d",
+  "last_modified": 1568715458863,
+  "create_time": 1568711272331,
+  "version": "4.0.0.0",
+  "alias": "origin",
+  "owner": "ADMIN",
+  "config_last_modifier": null,
+  "config_last_modified": 0,
+  "is_draft": false,
+  "description": "",
+  "fact_table": "DEFAULT.TEST_KYLIN_FACT",
+  "fact_table_alias": null,
+  "management_type": "MODEL_BASED",
+  "join_tables": [
+    {
+      "table": "DEFAULT.TEST_ACCOUNT",
+      "kind": "LOOKUP",
+      "alias": "TEST_ACCOUNT",
+      "join": {
+        "type": "INNER",
+        "primary_key": [
+          "TEST_ACCOUNT.ACCOUNT_ID"
+        ],
+        "foreign_key": [
+          "TEST_KYLIN_FACT.SELLER_ID"
+        ],
+        "non_equi_join_condition": null,
+        "primary_table": null,
+        "foreign_table": null
+      }
+    }
+  ],
+  "filter_condition": "",
+  "partition_desc": null,
+  "capacity": "MEDIUM",
+  "segment_config": {
+    "auto_merge_enabled": null,
+    "auto_merge_time_ranges": null,
+    "volatile_range": null,
+    "retention_range": null
+  },
+  "data_check_desc": null,
+  "semantic_version": 0,
+  "all_named_columns": [
+    {
+      "id": 0,
+      "name": "TEST_KYLIN_FACT_TRANS_ID",
+      "column": "TEST_KYLIN_FACT.TRANS_ID",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 1,
+      "name": "LEAF_CATEG_ID",
+      "column": "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+    },
+    {
+      "id": 2,
+      "name": "LSTG_SITE_ID",
+      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID"
+    },
+    {
+      "id": 3,
+      "name": "ITEM_COUNT",
+      "column": "TEST_KYLIN_FACT.ITEM_COUNT"
+    },
+    {
+      "id": 4,
+      "name": "TEST_KYLIN_FACT_ORDER_ID",
+      "column": "TEST_KYLIN_FACT.ORDER_ID",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 5,
+      "name": "CAL_DT",
+      "column": "TEST_KYLIN_FACT.CAL_DT"
+    },
+    {
+      "id": 6,
+      "name": "LSTG_FORMAT_NAME",
+      "column": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"
+    },
+    {
+      "id": 7,
+      "name": "TEST_COUNT_DISTINCT_BITMAP",
+      "column": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP"
+    },
+    {
+      "id": 8,
+      "name": "SLR_SEGMENT_CD",
+      "column": "TEST_KYLIN_FACT.SLR_SEGMENT_CD"
+    },
+    {
+      "id": 9,
+      "name": "SELLER_ID",
+      "column": "TEST_KYLIN_FACT.SELLER_ID"
+    },
+    {
+      "id": 10,
+      "name": "PRICE",
+      "column": "TEST_KYLIN_FACT.PRICE"
+    },
+    {
+      "id": 11,
+      "name": "ACCOUNT_CONTACT",
+      "column": "TEST_ACCOUNT.ACCOUNT_CONTACT"
+    },
+    {
+      "id": 12,
+      "name": "ACCOUNT_SELLER_LEVEL",
+      "column": "TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 13,
+      "name": "TEST_ACCOUNT_ACCOUNT_ID",
+      "column": "TEST_ACCOUNT.ACCOUNT_ID",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 14,
+      "name": "ACCOUNT_COUNTRY",
+      "column": "TEST_ACCOUNT.ACCOUNT_COUNTRY"
+    },
+    {
+      "id": 15,
+      "name": "TEST_ACCOUNT_ACCOUNT_BUYER_LEVEL",
+      "column": "TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 16,
+      "name": "CC_AUTO_1",
+      "column": "TEST_KYLIN_FACT.CC_AUTO_1"
+    }
+  ],
+  "all_measures": [
+    {
+      "name": "COUNT_ALL",
+      "function": {
+        "expression": "COUNT",
+        "parameters": [
+          {
+            "type": "constant",
+            "value": "1"
+          }
+        ],
+        "returntype": "bigint"
+      },
+      "id": 100000
+    },
+    {
+      "name": "SUM_CONSTANT",
+      "function": {
+        "expression": "SUM",
+        "parameters": [
+          {
+            "type": "constant",
+            "value": "1"
+          }
+        ],
+        "returntype": "bigint"
+      },
+      "id": 100001
+    }
+  ],
+  "column_correlations": [],
+  "multilevel_partition_cols": [],
+  "computed_columns": [{
+    "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+    "tableAlias": "TEST_KYLIN_FACT",
+    "columnName": "CC_AUTO_1",
+    "expression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+    "innerExpression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+    "datatype": "DECIMAL(30,4)",
+    "comment": null
+  }],
+  "canvas": {
+    "coordinate": {
+      "TEST_KYLIN_FACT": {
+        "x": 455.4444376627605,
+        "y": 185.8333333333333,
+        "width": 220,
+        "height": 433.3333333333333
+      },
+      "TEST_ACCOUNT": {
+        "x": 773.2222154405378,
+        "y": 180.27777777777774,
+        "width": 220,
+        "height": 258.88888888888897
+      }
+    },
+    "zoom": 9
+  }
+}
