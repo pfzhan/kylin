@@ -24,8 +24,6 @@
 package io.kyligence.kap.rest.health;
 
 import io.kyligence.kap.rest.SparkContextCanary;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.stereotype.Component;
 
@@ -34,9 +32,7 @@ public class SparkSqlContextHealthIndicator extends AbstractKylinHealthIndicator
 
     @Override
     public Health health() {
-        JavaSparkContext jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
-        jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
-        if (!SparkContextCanary.monitor(jsc)) {
+        if (SparkContextCanary.isError()) {
             return Health.down().build();
         }
 

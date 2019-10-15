@@ -70,14 +70,16 @@ public class SparkContextCanary {
         }
     }
 
-    public static boolean monitor(JavaSparkContext jsc) {
-        boolean health = true;
+    public static boolean isError() {
+        return errorAccumulated >= THRESHOLD_TO_RESTART_SPARK;
+    }
+
+    static void monitor(JavaSparkContext jsc) {
         try {
             // check spark sql context
             if (!SparderEnv.isSparkAvailable()) {
                 logger.info("Spark is unavailable, need to restart immediately.");
                 errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
-                health = false;
             } else {
                 try {
                     long t = System.currentTimeMillis();
@@ -91,17 +93,15 @@ public class SparkContextCanary {
                     errorAccumulated++;
                     logger.error("SparkContextCanary numberCount timeout, didn't return in {} ms, error {} times.",
                             KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(), errorAccumulated);
-                    health = false;
                 } catch (ExecutionException ee) {
                     logger.error("SparkContextCanary numberCount occurs exception, need to restart immediately.", ee);
                     errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
-                    health = false;
                 }
             }
 
             logger.debug("Spark context errorAccumulated:{}", errorAccumulated);
 
-            if (errorAccumulated >= THRESHOLD_TO_RESTART_SPARK) {
+            if (isError()) {
                 try {
                     // Take repair action if error accumulated exceeds threshold
                     logger.warn("Repairing spark context");
@@ -112,16 +112,12 @@ public class SparkContextCanary {
 
                 } catch (Throwable th) {
                     logger.error("Restart spark context failed.", th);
-                    health = false;
                 }
             }
 
         } catch (Throwable th) {
             logger.error("Error when monitoring Spark.", th);
-            health = false;
         }
-
-        return health;
     }
 
     // for canary
