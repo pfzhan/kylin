@@ -141,7 +141,6 @@
       })
       item.validateSameName = hasInValidColumnArr.length > 0
       this.dimensionValidPass = hasInValidColumnArr.length === 0
-      // this.$emit('dimensionNameChange', {type: 'dimension', data: item})
     }
 
     // 通知外部，选中/取消选中所有的行，更变list的isSelect的值

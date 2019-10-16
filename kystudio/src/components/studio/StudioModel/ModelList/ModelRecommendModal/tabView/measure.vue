@@ -207,12 +207,6 @@
       })
       item.validateSameName = hasInValidColumnArr.length > 0
       this.measureValidPass = hasInValidColumnArr.length === 0
-      // this.$emit('measureColumnChange', {type: 'measure', data: item})
-    }
-
-    // 修改度量参数时触发
-    changeParameters (item) {
-      this.$emit('measureColumnChange', {type: 'measure', data: item})
     }
 
     // 通知外部，选中/取消选中所有的行，更变list的isSelect的值

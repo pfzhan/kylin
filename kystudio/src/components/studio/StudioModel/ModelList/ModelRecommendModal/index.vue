@@ -11,31 +11,28 @@
     :close-on-click-modal="false" 
     @close="isShow && closeModal()">
       <div class="recommendations">
-        <el-button class="clearBtn" size="mini" @click="clearRecommendations" :loading="clearBtnLoading" :disabled="clearBtnLoading || btnLoading">{{$t('clearAllRecom')}}</el-button>
-        <el-tabs v-model="activeRecom" type="card" @tab-click="changeTab">
+        <el-button class="clearBtn" size="mini" @click="clearRecommendations" :loading="clearBtnLoading" :disabled="clearBtnLoading || btnLoading || !canClearRecom">{{$t('clearAllRecom')}}</el-button>
+        <el-tabs v-model="activeRecom" type="card">
           <el-tab-pane :label="dimensionTabTitle" name="dimension">
             <Dimension
               ref="dimensionRecom"
               v-if="dialogInfoLoaded"
               v-on:dimensionSelectedChange="refreshSelected"
-              :list="dialogInfo.dimension_recommendations"
-              v-on:dimensionNameChange="refreshTabInfo"></Dimension>
+              :list="dialogInfo.dimension_recommendations"></Dimension>
           </el-tab-pane>
           <el-tab-pane :label="measureTabTitle" name="measure">
             <Measure
               ref="measureRecom"
               v-if="dialogInfoLoaded"
               v-on:measureSelectedChange="refreshSelected"
-              :list="dialogInfo.measure_recommendations"
-              v-on:measureColumnChange="refreshTabInfo"></Measure>
+              :list="dialogInfo.measure_recommendations"></Measure>
           </el-tab-pane>
           <el-tab-pane :label="computedColumnTabTitle" name="computedColumn">
             <ComputedColumn
               ref="ccRecom"
               v-if="dialogInfoLoaded"
               v-on:computedColumnSelectedChange="refreshSelected"
-              :list="dialogInfo.cc_recommendations"
-              v-on:ccNameChange="refreshTabInfo"></ComputedColumn>
+              :list="dialogInfo.cc_recommendations"></ComputedColumn>
           </el-tab-pane>
           <el-tab-pane :label="aggIndexTabTitle" name="aggIndex">
             <AggIndex
@@ -57,7 +54,7 @@
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button @click="closeModal()" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" :disabled="clearBtnLoading || btnLoading" size="medium" @click="submit">{{$t('acceptBtn')}}</el-button>
+        <el-button type="primary" plain :loading="btnLoading" :disabled="clearBtnLoading || btnLoading || !canSubmitRecom" size="medium" @click="submit">{{$t('acceptBtn')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -167,8 +164,14 @@
       return this.$t('tabTableIndex', {selected: this.selectedObj.table_index_selectedLen, total: this.dialogInfo.table_index_recommendations.length})
     }
 
-    // 切换 tab 时要处理东西
-    changeTab (tab, event) {
+    // 控制提交按钮是否可点 - 有一条建议选中就可以点了
+    get canSubmitRecom () {
+      return this.selectedObj.dimension_selectedLen || this.selectedObj.measure_selectedLen || this.selectedObj.cc_selectedLen || this.selectedObj.agg_index_selectedLen || this.selectedObj.table_index_selectedLen
+    }
+
+    // 控制清空按钮是否可点 - 有一条建议就可以点了
+    get canClearRecom () {
+      return this.dialogInfo.dimension_recommendations.length || this.dialogInfo.measure_recommendations.length || this.dialogInfo.cc_recommendations.length || this.dialogInfo.agg_index_recommendations.length || this.dialogInfo.table_index_recommendations.length
     }
 
     // 各tab 中table 选中变更，tab 上的数字要跟着变
@@ -189,16 +192,6 @@
         })
       }
       this.selectedObj[data.type + '_selectedLen'] = this.getSelectLen(data.type)
-    }
-
-    // 每个tab组件内部数据内容变化后，更新对应 tab 对应信息（名称等）
-    refreshTabInfo (data) {
-      // todo 指针赋值，好像不用emit 通知处理
-      /* this.dialogInfo[data.type + '_recommendations'].forEach((item, index) => {
-        if (item.item_id === data.data.item_id) {
-          this.dialogInfo[data.type + '_recommendations'][index] = objectClone(data.data)
-        }
-      }) */
     }
 
     // 获取选中的优化建议，按tab字段分类
@@ -283,8 +276,8 @@
     clearRecommendations () {
       this.clearBtnLoading = true
       let params = {
-        project: this.dialogInfo.project,
-        model: this.dialogInfo.modelId
+        project: this.currentSelectedProject,
+        model: this.modelDesc.uuid
       }
       for (var prop in this.dialogInfo) {
         if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'table_index_recommendations') {
@@ -334,6 +327,7 @@
       })
       return temp
     }
+
     // 提交建议
     submit () {
       // 要验证几个表单是否通过校验
