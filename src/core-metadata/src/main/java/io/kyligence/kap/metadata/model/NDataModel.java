@@ -321,6 +321,8 @@ public class NDataModel extends RootPersistentEntity {
         @JsonProperty("id")
         public int id;
         // logical delete symbol
+        @Getter
+        @Setter
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         public boolean tomb = false;

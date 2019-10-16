@@ -131,12 +131,12 @@ public class OptimizeContext {
         this.virtualCCs = this.model.getComputedColumnDescs().stream().map(ComputedColumnDesc::getColumnName)
                 .collect(Collectors.toSet());
 
-        this.realMeasures = this.model.getAllMeasures().stream().map(MeasureDesc::getName).collect(Collectors.toSet());
-        this.realMeasureIds = this.model.getAllMeasures().stream().map(NDataModel.Measure::getId)
+        this.realMeasures = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(MeasureDesc::getName).collect(Collectors.toSet());
+        this.realMeasureIds = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(NDataModel.Measure::getId)
                 .collect(Collectors.toSet());
-        this.virtualMeasures = this.model.getAllMeasures().stream().map(MeasureDesc::getName)
+        this.virtualMeasures = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(MeasureDesc::getName)
                 .collect(Collectors.toSet());
-        this.virtualMeasureIds = this.model.getAllMeasures().stream().map(NDataModel.Measure::getId)
+        this.virtualMeasureIds = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(NDataModel.Measure::getId)
                 .collect(Collectors.toSet());
 
         this.originMeasureIndex = this.model.getAllMeasures().isEmpty() ? NDataModel.MEASURE_ID_BASE

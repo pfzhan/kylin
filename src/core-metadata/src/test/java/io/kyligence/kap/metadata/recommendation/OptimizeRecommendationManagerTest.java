@@ -229,8 +229,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApply_RemoveMeasure() throws IOException {
         prepare();
-        testRemoveExists(
-                copyForWrite -> copyForWrite.setAllMeasures(Lists.newArrayList(copyForWrite.getAllMeasures().get(0))));
+        testRemoveExists(copyForWrite -> copyForWrite.getAllMeasures().stream()
+                .filter(measure -> measure.getId() > 100000).forEach(measure -> measure.setTomb(true)));
     }
 
     @Test
