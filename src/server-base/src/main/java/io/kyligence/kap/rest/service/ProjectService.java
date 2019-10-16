@@ -426,7 +426,7 @@ public class ProjectService extends BasicService {
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateDefaultDatabase(String project, String defaultDatabase) {
         Preconditions.checkNotNull(project);
