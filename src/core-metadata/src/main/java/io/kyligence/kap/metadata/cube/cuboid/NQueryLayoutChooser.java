@@ -162,9 +162,11 @@ public class NQueryLayoutChooser {
 
     private static void unmatchedCountColumnIfExistCountStar(Collection<FunctionDesc> aggregations) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        for (FunctionDesc functionDesc : aggregations) {
+        Iterator<FunctionDesc> iterator = aggregations.iterator();
+        while (iterator.hasNext()) {
+            FunctionDesc functionDesc = iterator.next();
             if (kylinConfig.isReplaceColCountWithCountStar() && functionDesc.isCountOnColumn()) {
-                aggregations.remove(functionDesc);
+                iterator.remove();
             }
         }
     }
