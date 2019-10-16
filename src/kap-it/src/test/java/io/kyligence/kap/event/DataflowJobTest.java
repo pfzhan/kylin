@@ -165,7 +165,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         prepareFirstSegment(df.getUuid());
         modelManager.updateDataModel(df.getModel().getUuid(), copyForWrite -> {
             copyForWrite.setAllMeasures(
-                    copyForWrite.getAllMeasures().stream().filter(m -> m.id != 100011).collect(Collectors.toList()));
+                    copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 100011).collect(Collectors.toList()));
         });
         cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
             try {

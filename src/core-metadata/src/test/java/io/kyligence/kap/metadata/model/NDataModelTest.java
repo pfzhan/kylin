@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.metadata.model;
 
-import com.google.common.collect.ImmutableBiMap;
-import io.kyligence.kap.common.util.TempMetadataBuilder;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -33,8 +33,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Set;
+import com.google.common.collect.ImmutableBiMap;
+
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 
 public class NDataModelTest {
 
@@ -54,7 +55,7 @@ public class NDataModelTest {
     public void testBasics() {
         try {
             mgr.init(config, DEFAULT_PROJECT);
-        } catch (Exception e){
+        } catch (Exception e) {
             Assert.fail();
         }
 
@@ -65,7 +66,7 @@ public class NDataModelTest {
         Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_ORDER"));
         Set<TableRef> lookupTables = model.getLookupTables();
         TableRef lookupTable = null;
-        for (TableRef table: lookupTables) {
+        for (TableRef table : lookupTables) {
             if (table.getTableIdentity().equals("DEFAULT.TEST_ORDER")) {
                 lookupTable = table;
                 break;
@@ -77,7 +78,7 @@ public class NDataModelTest {
         Assert.assertTrue(model.isFactTable("DEFAULT.TEST_KYLIN_FACT"));
         Set<TableRef> factTables = model.getFactTables();
         TableRef factTable = null;
-        for (TableRef table: factTables) {
+        for (TableRef table : factTables) {
             if (table.getTableIdentity().equals("DEFAULT.TEST_KYLIN_FACT")) {
                 factTable = table;
                 break;
@@ -100,12 +101,11 @@ public class NDataModelTest {
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
         Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
 
-
         ImmutableBiMap<Integer, NDataModel.Measure> measureMap = model.getEffectiveMeasureMap();
         Assert.assertEquals(model.getAllMeasures().size() - 1, measureMap.size());
 
         NDataModel.Measure m = measureMap.get(100001);
-        Assert.assertEquals(100001, m.id);
+        Assert.assertEquals(100001, m.getId());
         Assert.assertEquals("GMV_SUM", m.getName());
         Assert.assertEquals("SUM", m.getFunction().getExpression());
         Assert.assertEquals(model.findColumn("PRICE"), m.getFunction().getParameters().get(0).getColRef());
@@ -113,7 +113,7 @@ public class NDataModelTest {
     }
 
     @Test
-    public void getAllNamedColumns_changeToTomb_lessEffectiveCols() throws IOException {
+    public void getAllNamedColumns_changeToTomb_lessEffectiveCols() {
         NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         int size = model.getEffectiveColsMap().size();
 
@@ -132,8 +132,8 @@ public class NDataModelTest {
         NDataModel copyModel = mgr.copyForWrite(model);
         Assert.assertEquals(model, copyModel);
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
-        copyModel.getAllMeasures().get(0).tomb = true;
-        Assert.assertFalse(model.getAllMeasures().get(0).tomb);
+        copyModel.getAllMeasures().get(0).setTomb(true);
+        Assert.assertFalse(model.getAllMeasures().get(0).isTomb());
         Assert.assertNotEquals(model, copyModel);
 
         NDataModel copyModel2 = mgr.copyForWrite(model);
@@ -148,7 +148,7 @@ public class NDataModelTest {
     }
 
     @Test
-    public void testGetNameById()  {
+    public void testGetNameById() {
         NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("CAL_DT", model.getNameByColumnId(2));
         Assert.assertNull(model.getNameByColumnId(100));

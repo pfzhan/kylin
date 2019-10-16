@@ -28,6 +28,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -42,10 +43,12 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 
 public class NAutoBasicTest extends NAutoTestBase {
@@ -132,6 +135,88 @@ public class NAutoBasicTest extends NAutoTestBase {
         }
 
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+    }
+
+    @Test
+    public void testUsedColumnsIsTomb() {
+        KylinConfig kylinConfig = getTestConfig();
+        String[] sqls = new String[] { "select lstg_format_name from test_kylin_fact group by lstg_format_name",
+                "select sum(price * item_count) from test_kylin_fact" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isFailed());
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[1]).isFailed());
+        NDataModel dataModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, dataModel.getComputedColumnDescs().size());
+
+        // delete computed column add a existing column
+        dataModel.getAllNamedColumns().forEach(column -> {
+            if (column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.lstg_format_name")) {
+                column.setStatus(NDataModel.ColumnStatus.TOMB);
+            }
+            if (column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) {
+                column.setName("modified_cc_column");
+                column.setStatus(NDataModel.ColumnStatus.TOMB);
+            }
+        });
+        dataModel.getAllNamedColumns().get(dataModel.getAllNamedColumns().size() - 1)
+                .setStatus(NDataModel.ColumnStatus.TOMB);
+        dataModel.getComputedColumnDescs().clear();
+        dataModel.getAllMeasures().forEach(measure -> {
+            if (measure.getId() == 100001) {
+                measure.setTomb(true);
+            }
+        });
+        NDataModelManager.getInstance(kylinConfig, getProject()).updateDataModelDesc(dataModel);
+
+        // verify update success
+        NDataModel updatedModel = NDataModelManager.getInstance(kylinConfig, getProject())
+                .getDataModelDesc(dataModel.getUuid());
+        Assert.assertTrue(updatedModel.getComputedColumnDescs().isEmpty());
+        List<NDataModel.NamedColumn> targetColumns = updatedModel.getAllNamedColumns().stream()
+                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.lstg_format_name")
+                        || column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1"))
+                .collect(Collectors.toList());
+        Assert.assertEquals(2, targetColumns.size());
+        targetColumns.forEach(column -> {
+            Assert.assertFalse(column.isExist());
+            if (column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) {
+                Assert.assertEquals("modified_cc_column", column.getName());
+            }
+        });
+        Assert.assertTrue(updatedModel.getAllMeasures().get(1).isTomb());
+
+        // update model to expert mode
+        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(getProject());
+        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(sqls[0]).getPendingMsg()
+                .contains("but the dimension [TEST_KYLIN_FACT.LSTG_FORMAT_NAME] is missing. "
+                        + "Please add the above dimension before attempting to accelerate this query."));
+        Assert.assertTrue(accelerateInfoMap.get(sqls[1]).getPendingMsg()
+                .contains("Please add the above measure before attempting to accelerate this query."));
+
+        // update model to semi-auto-mode
+        kylinConfig.setProperty("kap.metadata.semi-automatic-mode", "true");
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runOptRecommendation(null);
+        accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isNotSucceed());
+        Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isNotSucceed());
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model.getComputedColumnDescs().size());
+        NDataModel.Measure newMeasure = model.getAllMeasures().stream().filter(measure -> measure.getId() == 10010001L)
+                .findFirst().orElse(null);
+        Assert.assertNotNull(newMeasure);
+        Assert.assertFalse(newMeasure.isTomb());
+        NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().stream()
+                .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) //
+                .findFirst().orElse(null);
+        Assert.assertNotNull(namedColumn);
+        Assert.assertEquals(NDataModel.ColumnStatus.EXIST, namedColumn.getStatus());
     }
 
     @Test
@@ -251,7 +336,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         val accelerateInfoMapAfterOpt = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(2, modelContexts.size());
         Assert.assertFalse(accelerateInfoMapAfterOpt.get(sql).isNotSucceed());
-//        Assert.assertTrue(accelerateInfoMapAfterOpt.get(sql).getRelatedLayouts().isEmpty());
+        //        Assert.assertTrue(accelerateInfoMapAfterOpt.get(sql).getRelatedLayouts().isEmpty());
     }
 
     /**

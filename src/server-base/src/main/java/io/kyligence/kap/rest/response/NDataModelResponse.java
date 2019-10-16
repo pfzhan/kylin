@@ -95,7 +95,7 @@ public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("all_measures")
     public List<Measure> getMeasures() {
-        return getAllMeasures().stream().filter(m -> !m.tomb).collect(Collectors.toList());
+        return getAllMeasures().stream().filter(m -> !m.isTomb()).collect(Collectors.toList());
     }
 
     @JsonProperty("simplified_tables")
@@ -116,7 +116,7 @@ public class NDataModelResponse extends NDataModel {
         List<NDataModel.Measure> measures = getAllMeasures();
         List<SimplifiedMeasure> measureResponses = new ArrayList<>();
         for (NDataModel.Measure measure : measures) {
-            if (measure.tomb) {
+            if (measure.isTomb()) {
                 continue;
             }
             measureResponses.add(SimplifiedMeasure.fromMeasure(measure));

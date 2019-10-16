@@ -1285,7 +1285,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
 
@@ -1324,7 +1324,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
 
@@ -1362,7 +1362,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
 
@@ -1395,7 +1395,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         request.getPartitionDesc().setPartitionDateColumn("");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
 

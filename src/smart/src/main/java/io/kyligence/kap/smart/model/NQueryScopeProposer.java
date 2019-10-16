@@ -124,23 +124,20 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         }
 
         private void inheritCandidateNamedColumns(NDataModel dataModel) {
-
-            List<NDataModel.NamedColumn> namedColumns = dataModel.getAllNamedColumns();
-            namedColumns.forEach(column -> {
+            List<NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
+            for (NamedColumn column : allNamedColumns) {
                 // Forward compatibility, ensure col name is unique
-                TblColRef colRef = dataModel.findColumn(column.getAliasDotColumn());
-                column.setName(
-                        colRef == null ? column.getAliasDotColumn() : colRef.getIdentity().replaceAll("\\.", "_"));
-                candidateNamedColumns.put(column.getAliasDotColumn(), column);
+                column.setName(column.getAliasDotColumn().replaceAll("\\.", "_"));
                 maxColId = Math.max(maxColId, column.getId());
-            });
+                candidateNamedColumns.put(column.getAliasDotColumn(), column);
+            }
         }
 
         private void inheritCandidateMeasures(NDataModel dataModel) {
             List<Measure> measures = dataModel.getAllMeasures();
             for (NDataModel.Measure measure : measures) {
-                maxMeasureId = Math.max(maxMeasureId, measure.id);
-                if (measure.tomb) {
+                maxMeasureId = Math.max(maxMeasureId, measure.getId());
+                if (measure.isTomb()) {
                     continue;
                 }
                 candidateMeasures.put(measure.getFunction(), measure);
@@ -196,7 +193,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                     } else {
                         dimensionAsMeasureColumns.addAll(fun.getColRefs());
                     }
-                } else if (candidateMeasures.get(agg).tomb) {
+                } else if (candidateMeasures.get(agg).isTomb()) {
                     String name = String.format("%s_%s", agg.getExpression(), String.join("_", paramNames));
                     Measure measure = CubeUtils.newMeasure(agg, name, ++maxMeasureId);
                     candidateMeasures.put(agg, measure);

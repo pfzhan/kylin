@@ -65,7 +65,7 @@ public class CubeUtils {
         NDataModel.Measure measure = new NDataModel.Measure();
         measure.setName(name);
         measure.setFunction(func);
-        measure.id = id;
+        measure.setId(id);
         return measure;
     }
 

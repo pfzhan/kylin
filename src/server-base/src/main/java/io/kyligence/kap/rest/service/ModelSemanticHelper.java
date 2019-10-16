@@ -175,12 +175,12 @@ public class ModelSemanticHelper extends BasicService {
                 return false;
             }
             return params.stream().map(TblColRef::getIdentity).anyMatch(removedOrUpdatedComputedColumns::contains);
-        }).forEach(unusedMeasure -> unusedMeasure.tomb = true);
+        }).forEach(unusedMeasure -> unusedMeasure.setTomb(true));
         originModel.setComputedColumnDescs(expectedModel.getComputedColumnDescs());
 
         // compare measures
         Function<List<NDataModel.Measure>, Map<SimplifiedMeasure, NDataModel.Measure>> toMeasureMap = allCols -> allCols
-                .stream().filter(m -> !m.tomb)
+                .stream().filter(m -> !m.isTomb())
                 .collect(Collectors.toMap(SimplifiedMeasure::fromMeasure, Function.identity()));
         val newMeasures = Lists.<NDataModel.Measure> newArrayList();
         var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
@@ -188,12 +188,12 @@ public class ModelSemanticHelper extends BasicService {
 
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
                 toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
-                oldMeasure -> oldMeasure.tomb = true,
+                oldMeasure -> oldMeasure.setTomb(true),
                 (oldMeasure, newMeasure) -> oldMeasure.setName(newMeasure.getName()));
         // one measure in expectedModel but not in originModel then add one
         for (NDataModel.Measure measure : newMeasures) {
             maxMeasureId++;
-            measure.id = maxMeasureId;
+            measure.setId(maxMeasureId);
             originModel.getAllMeasures().add(measure);
         }
 
@@ -260,7 +260,7 @@ public class ModelSemanticHelper extends BasicService {
         }
         for (SimplifiedMeasure simplifiedMeasure : simplifiedMeasures) {
             val measure = simplifiedMeasure.toMeasure();
-            measure.id = id;
+            measure.setId(id);
             measures.add(measure);
             val functionDesc = measure.getFunction();
             if (functionDesc.isCount() && !functionDesc.isCountOnColumn()) {

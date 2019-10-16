@@ -314,18 +314,17 @@ public class NDataModel extends RootPersistentEntity {
         }
     }
 
+    @Data
     @EqualsAndHashCode
     public static class Measure extends MeasureDesc implements IKeep {
-        @Getter
-        @Setter
         @JsonProperty("id")
-        public int id;
+        private int id;
         // logical delete symbol
         @Getter
         @Setter
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-        public boolean tomb = false;
+        private boolean tomb = false;
 
     }
 

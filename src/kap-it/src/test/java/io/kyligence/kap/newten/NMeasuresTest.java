@@ -268,12 +268,12 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         countOneMeasure.setName("COUNT_ONE");
         countOneMeasure.setFunction(
                 FunctionDesc.newInstance(FUNC_COUNT, newArrayList(ParameterDesc.newInstance("1")), "bigint"));
-        countOneMeasure.id = 200001;
+        countOneMeasure.setId(200001);
 
         NDataModel.Measure sumColunmMeasure = new NDataModel.Measure();
         sumColunmMeasure.setName("SUM_COLUNM");
         sumColunmMeasure.setFunction(generateMeasList().get(8).getFunction());
-        sumColunmMeasure.id = 200002;
+        sumColunmMeasure.setId(200002);
 
         List<NDataModel.Measure> needMeasures = Lists.newArrayList();
         needMeasures.add(countOneMeasure);

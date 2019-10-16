@@ -243,11 +243,11 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     .findFirst().get();
             Assert.assertNotNull(originalMeasure);
             Assert.assertEquals("TEST_MEASURE_WITH_CC", originalMeasure.getName());
-            Assert.assertTrue(originalMeasure.tomb);
+            Assert.assertTrue(originalMeasure.isTomb());
             Measure newMeasure = model.getEffectiveMeasures().values().stream()
                     .filter(m -> m.getName().equals("TEST_MEASURE_WITH_CC")).findFirst().get();
             Assert.assertNotNull(newMeasure);
-            Assert.assertFalse(newMeasure.tomb);
+            Assert.assertFalse(newMeasure.isTomb());
             newMeasureIdOfCC = newMeasure.getId();
         }
 
@@ -273,7 +273,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == newColIdOfCC).findFirst()
                     .get().isExist());
             Assert.assertTrue(
-                    model.getAllMeasures().stream().filter(m -> m.getId() == newMeasureIdOfCC).findFirst().get().tomb);
+                    model.getAllMeasures().stream().filter(m -> m.getId() == newMeasureIdOfCC).findFirst().get().isTomb());
         }
     }
 
@@ -366,7 +366,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         var model = modelService.getDataModelManager("default").getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
-                model.getAllMeasures().stream().filter(m -> !m.tomb).sorted(Comparator.comparing(k -> k.id))
+                model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
                 CoreMatchers.is(Lists.newArrayList("COUNT_ALL", "MAX1")));
 
@@ -378,7 +378,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.updateDataModelSemantic("default", updateRequest2);
         model = modelService.getDataModelManager("default").getDataModelDesc(updateRequest.getUuid());
         Assert.assertThat(
-                model.getAllMeasures().stream().filter(m -> !m.tomb).sorted(Comparator.comparing(k -> k.id))
+                model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
                 CoreMatchers.is(Lists.newArrayList("COUNT_ALL", "MAX1")));
         Assert.assertEquals(4, model.getAllMeasures().size());
@@ -655,8 +655,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
-            if (m.id == 100011) {
-                m.id = 100017;
+            if (m.getId() == 100011) {
+                m.setId(100017);
             }
         }).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
@@ -688,8 +688,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originModel = getTestInnerModel();
         modelMgr.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
-                    if (m.id == 100017) {
-                        m.id = 100018;
+                    if (m.getId() == 100017) {
+                        m.setId(100018);
                     }
                 }).collect(Collectors.toList())));
 
@@ -711,8 +711,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originModel = getTestInnerModel();
         modelMgr.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
-                    if (m.id == 100011) {
-                        m.id = 100017;
+                    if (m.getId() == 100011) {
+                        m.setId(100017);
                     }
                 }).collect(Collectors.toList())));
         modelMgr.updateDataModel(originModel.getUuid(), model -> {
@@ -785,7 +785,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originModel = getTestInnerModel();
         modelManager.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream()
-                        .filter(m -> m.id != 100002 && m.id != 100001 && m.id != 100011).collect(Collectors.toList())));
+                        .filter(m -> m.getId() != 100002 && m.getId() != 100001 && m.getId() != 100011).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
@@ -852,7 +852,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
     }

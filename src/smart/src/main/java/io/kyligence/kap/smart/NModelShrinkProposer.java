@@ -93,8 +93,8 @@ public class NModelShrinkProposer extends NAbstractProposer {
             if (measure.getFunction().isCount()) {
                 continue;
             }
-            measure.tomb = true;
-            measures.put(measure.id, measure);
+            measure.setTomb(true);
+            measures.put(measure.getId(), measure);
         }
 
         // Keep partition column in named columns
@@ -125,7 +125,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
 
         usedMeasures.remove(null);
         for (Measure used : usedMeasures) {
-            used.tomb = false;
+            used.setTomb(false);
             for (TblColRef param : used.getFunction().getColRefs()) {
                 usedCols.add(colsByName.get(param.getIdentity()));
             }

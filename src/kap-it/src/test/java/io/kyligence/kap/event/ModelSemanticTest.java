@@ -153,7 +153,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         modelManager.updateDataModel(MODEL_ID, copyForWrite -> {
             copyForWrite.setAllMeasures(
-                    copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011).collect(Collectors.toList()));
+                    copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 1011).collect(Collectors.toList()));
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
     }
@@ -272,7 +272,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject(DEFAULT_PROJECT);
         request.setUuid(MODEL_ID);
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         request.setComputedColumnDescs(model.getComputedColumnDescs());
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
@@ -293,7 +293,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setProject(DEFAULT_PROJECT);
         request.setUuid(MODEL_ID);
         request.setSimplifiedMeasures(
-                model.getAllMeasures().stream().filter(m -> !m.tomb).map(SimplifiedMeasure::fromMeasure).peek(sm -> {
+                model.getAllMeasures().stream().filter(m -> !m.isTomb()).map(SimplifiedMeasure::fromMeasure).peek(sm -> {
                     if (sm.getId() == 100016) {
                         sm.setExpression("MAX");
                         sm.setName("MAX_DEAL_AMOUNT");

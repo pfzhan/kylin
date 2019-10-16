@@ -70,7 +70,7 @@ public class SimplifiedMeasure implements Serializable {
 
     public static SimplifiedMeasure fromMeasure(NDataModel.Measure measure) {
         SimplifiedMeasure measureResponse = new SimplifiedMeasure();
-        measureResponse.setId(measure.id);
+        measureResponse.setId(measure.getId());
         measureResponse.setName(measure.getName());
         measureResponse.setExpression(measure.getFunction().getExpression());
         measureResponse.setReturnType(measure.getFunction().getReturnType());
@@ -84,7 +84,7 @@ public class SimplifiedMeasure implements Serializable {
 
     public NDataModel.Measure toMeasure() {
         NDataModel.Measure measure = new NDataModel.Measure();
-        measure.id = getId();
+        measure.setId(getId());
         measure.setName(getName());
         FunctionDesc functionDesc = new FunctionDesc();
         functionDesc.setReturnType(getReturnType());

@@ -212,7 +212,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val func = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
       Lists.newArrayList(ParameterDesc.newInstance(columnList.get(COLUMN_INDEX_BITMAP))), "bitmap")
     measure.setFunction(func)
-    measure.id = 111000
+    measure.setId(111000)
     measure
   }
 }
