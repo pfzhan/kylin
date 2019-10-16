@@ -410,11 +410,12 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     public void testBatchApplyRecommendations() throws IOException {
         prepare();
 
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
         service.batchApplyRecommendations("default", null);
-        Assert.assertEquals(13, recommendationManager.getRecommendationCount(id));
+        Assert.assertEquals(recommendation.getRecommendationsCount(), recommendationManager.getRecommendationCount(id));
 
         service.batchApplyRecommendations("default", Lists.newArrayList("not_exist_model1"));
-        Assert.assertEquals(13, recommendationManager.getRecommendationCount(id));
+        Assert.assertEquals(recommendation.getRecommendationsCount(), recommendationManager.getRecommendationCount(id));
 
         service.batchApplyRecommendations("default", Lists.newArrayList("not_exist_model", "origin"));
         Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
