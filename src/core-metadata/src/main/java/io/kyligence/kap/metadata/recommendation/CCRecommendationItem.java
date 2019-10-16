@@ -92,12 +92,11 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
 
         val columnInModel = new NDataModel.NamedColumn();
         columnInModel.setId(getCcColumnId());
-        columnInModel.setName(newAllName(context.getFactTableName() + "_" + cc.getColumnName(), context));
+        columnInModel.setName(context.getFactTableName() + "_" + cc.getColumnName());
         columnInModel.setAliasDotColumn(context.getFactTableName() + "." + cc.getColumnName());
         columnInModel.setStatus(NDataModel.ColumnStatus.EXIST);
         model.getAllNamedColumns().add(columnInModel);
         if (real) {
-            context.getRealColumnNameIdMap().put(columnInModel.getName(), columnInModel.getId());
             int realId = context.getOriginColumnIndex();
             context.getTranslations().put(columnInModel.getId(), realId);
             columnInModel.setId(realId);
@@ -110,16 +109,6 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
         context.getVirtualColumnIdMap().put(columnInModel.getAliasDotColumn(), columnInModel.getId());
         context.getVirtualIdColumnMap().put(columnInModel.getId(), columnInModel);
         context.getAllCCNames().add(cc.getColumnName());
-    }
-
-    private String newAllName(String name, OptimizeContext context) {
-        int i = 0;
-        String newName = name;
-        while (context.getVirtualColumnNameIdMap().containsKey(newName)) {
-            newName = name + "_" + i;
-            i++;
-        }
-        return newName;
     }
 
     public void checkDependencies(OptimizeContext context, boolean real) {

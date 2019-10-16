@@ -525,7 +525,7 @@ public class OptimizeRecommendationManager {
     private String newAllName(String name, OptimizeContext context) {
         int i = 0;
         String newName = name;
-        while (context.getVirtualColumnNameIdMap().containsKey(newName)) {
+        while (context.getDimensionColumnNameIdMap().containsKey(newName)) {
             newName = name + "_" + i;
             i++;
         }
@@ -536,8 +536,8 @@ public class OptimizeRecommendationManager {
         items.forEach(r -> {
             val itemId = r.getItemId();
             val name = r.getColumn().getName();
-            if (context.getVirtualColumnNameIdMap().containsKey(name)
-                    && !context.getVirtualColumnNameIdMap().get(name).equals(r.getColumn().getId())) {
+            if (context.getDimensionColumnNameIdMap().containsKey(name)
+                    && !context.getDimensionColumnNameIdMap().get(name).equals(r.getColumn().getId())) {
                 if (!r.isAutoChangeName()) {
                     throw new PassConflictException(
                             String.format("dimension all named column %s has already used in model", name));

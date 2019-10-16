@@ -40,7 +40,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -62,11 +61,11 @@ public class OptimizeContext {
     // for check update
     private Map<Integer, NDataModel.NamedColumn> virtualIdColumnMap;
     private Map<String, Integer> virtualColumnIdMap;
-    private Map<String, Integer> virtualColumnNameIdMap;
+
+    private Map<String, Integer> dimensionColumnNameIdMap;
 
     private Map<Integer, NDataModel.NamedColumn> realIdColumnMap;
     private Map<String, Integer> realColumnIdMap;
-    private Map<String, Integer> realColumnNameIdMap;
 
     private Set<String> realCCs;
     private Set<String> virtualCCs;
@@ -78,7 +77,6 @@ public class OptimizeContext {
 
     protected Map<Integer, Integer> translations = Maps.newHashMap();
     private List<Pair<String, String>> nameTranslations = Lists.newArrayList();
-    private List<Pair<String, String>> ccAllNameTranslations = Lists.newArrayList();
 
     ContextRecommendationItems<CCRecommendationItem> ccContextRecommendationItems;
     ContextRecommendationItems<DimensionRecommendationItem> dimensionContextRecommendationItems;
@@ -119,7 +117,7 @@ public class OptimizeContext {
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getId, m -> m));
         this.virtualColumnIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-        this.virtualColumnNameIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+        this.dimensionColumnNameIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getName, NDataModel.NamedColumn::getId));
 
         this.realIdColumnMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
@@ -127,8 +125,6 @@ public class OptimizeContext {
                         m -> JsonUtil.deepCopyQuietly(m, NDataModel.NamedColumn.class)));
         this.realColumnIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-        this.realColumnNameIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(NDataModel.NamedColumn::getName, NDataModel.NamedColumn::getId));
 
         this.realCCs = this.model.getComputedColumnDescs().stream().map(ComputedColumnDesc::getColumnName)
                 .collect(Collectors.toSet());
@@ -148,18 +144,16 @@ public class OptimizeContext {
 
     }
 
+    // for remove layout
     private Map<IndexEntity.IndexIdentifier, IndexEntity> allIndexesMap;
+    // for add layout
     private Map<IndexEntity.IndexIdentifier, IndexEntity> virtualIndexesMap;
-    private Map<IndexEntity.IndexIdentifier, Map<LayoutEntity, IndexRecommendationItem>> indexRecommendationItemsMap;
-    private Map<IndexEntity.IndexIdentifier, List<IndexRecommendationItem>> realIndexRecommendationItemsMap;
-    private Map<IndexEntity.IndexIdentifier, List<IndexRecommendationItem>> virtualIndexRecommendationItemsMap;
 
     public OptimizeContext(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
         this(model, recommendation);
         this.indexPlan = indexPlan;
         this.allIndexesMap = indexPlan.getAllIndexesMap();
         this.virtualIndexesMap = indexPlan.getWhiteListIndexesMap();
-        this.indexRecommendationItemsMap = Maps.newHashMap();
 
     }
 

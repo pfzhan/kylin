@@ -94,17 +94,16 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
         }
         modelColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
         if (!column.getName().equals(modelColumn.getName())) {
-            context.getVirtualColumnNameIdMap().remove(modelColumn.getName());
-            context.getVirtualColumnNameIdMap().put(column.getName(), column.getId());
-            modelColumn.setName(column.getName());
+            context.getDimensionColumnNameIdMap().remove(modelColumn.getName());
         }
+
+        modelColumn.setName(column.getName());
+        context.getDimensionColumnNameIdMap().put(column.getName(), column.getId());
 
         if (real) {
             val realColumn = context.getRealIdColumnMap().get(column.getId());
             realColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
             if (!column.getName().equals(realColumn.getName())) {
-                context.getRealColumnNameIdMap().remove(realColumn.getName());
-                context.getRealColumnNameIdMap().put(column.getName(), column.getId());
                 realColumn.setName(column.getName());
             }
         }

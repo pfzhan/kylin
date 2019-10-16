@@ -106,6 +106,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String removeCCBaseModelFile = modelDir + "remove_cc_base_model.json";
     private final String removeCCOptimizedModelFile = modelDir + "remove_cc_optimized_model.json";
     private final String removeCCOptimizedIndexPlanFile = indexDir + "remove_cc_optimized_index_plan.json";
+    private final String duplicateColumnBaseModel = modelDir + "duplicate_column_base_model.json";
+    private final String duplicateColumnOptimizedModel = modelDir + "duplicate_column_optimized_model.json";
 
     private void prepare(String baseModelFile, String baseIndexFile, String optimizedModelFile,
             String optimizedIndexPlanFile) throws IOException {
@@ -346,8 +348,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3 * 2",
                 recommendation.getCcRecommendations().get(1).getCc().getExpression());
         Assert.assertEquals(10000001, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
-        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_1",
-                recommendation.getDimensionRecommendations().get(1).getColumn().getName());
+        Assert.assertEquals("CC_AUTO_1", recommendation.getDimensionRecommendations().get(1).getColumn().getName());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3",
                 recommendation.getDimensionRecommendations().get(1).getColumn().getAliasDotColumn());
         Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(2).getColumn().getId());
@@ -898,6 +899,55 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         thrown.expect(PassConflictException.class);
         thrown.expectMessage("cc CC_AUTO_1 expression has already defined in model");
         verifier.verify();
+    }
+
+    @Test
+    public void testDuplicateColumn() throws IOException {
+        prepare(duplicateColumnBaseModel, baseIndexFile, duplicateColumnOptimizedModel, optimizedIndexPlanFile);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+
+        var model = recommendationManager.applyModel(id);
+        var indexPlan = recommendationManager.applyIndexPlan(id);
+
+        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", model.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.EXIST, model.getAllNamedColumns().get(2).getStatus());
+        Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", model.getAllNamedColumns().get(3).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.EXIST, model.getAllNamedColumns().get(3).getStatus());
+
+        model.getAllNamedColumns().get(2).setStatus(NDataModel.ColumnStatus.DIMENSION);
+        recommendationManager.optimize(model, indexPlan);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals("TEST_KYLIN_FACT_LSTG_SITE_ID",
+                recommendation.getDimensionRecommendations().get(3).getColumn().getName());
+        model = recommendationManager.applyModel(id);
+        Assert.assertEquals("TEST_KYLIN_FACT_LSTG_SITE_ID", model.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(2).getStatus());
+        var passCCs = Sets.newHashSet(0L, 1L);
+        var passDimensions = Sets.newHashSet(3L);
+
+        var verifier = create(passCCs, null, passDimensions, null, null, null, null, null);
+        verifier.verify();
+
+        model = modelManager.getDataModelDesc(id);
+        Assert.assertEquals("TEST_KYLIN_FACT_LSTG_SITE_ID", model.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(2).getStatus());
+
+        model = recommendationManager.applyModel(id);
+        indexPlan = recommendationManager.applyIndexPlan(id);
+        model.getAllNamedColumns().get(3).setStatus(NDataModel.ColumnStatus.DIMENSION);
+        recommendationManager.optimize(model, indexPlan);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(4L, recommendation.getDimensionRecommendations().get(3).getItemId());
+        Assert.assertEquals("TEST_KYLIN_FACT_ITEM_COUNT",
+                recommendation.getDimensionRecommendations().get(3).getColumn().getName());
+
+        passDimensions = Sets.newHashSet(4L);
+        verifier = create(null, null, passDimensions, null, null, null, null, null);
+        verifier.verify();
+        model = modelManager.getDataModelDesc(id);
+        Assert.assertEquals("TEST_KYLIN_FACT_ITEM_COUNT", model.getAllNamedColumns().get(3).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(3).getStatus());
+
     }
 
 }
