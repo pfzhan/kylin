@@ -149,6 +149,10 @@ public class OptimizeRecommendationService extends BasicService {
 
     private void updateOptimizeRecom(ApplyRecommendationsRequest request) {
         val originalModel = getDataModelManager(request.getProject()).getDataModelDesc(request.getModelId());
+
+        if (originalModel.isBroken())
+            throw new IllegalArgumentException(String.format("model [%s] is broken, cannot apply any optimize recommendations", originalModel.getAlias()));
+
         val copiedOrinalModel = getDataModelManager(request.getProject()).copyForWrite(originalModel);
 
         val nameTranslations = Lists.<Pair<String, String>> newArrayList();
@@ -219,6 +223,9 @@ public class OptimizeRecommendationService extends BasicService {
         long lastAcceptedTime = 0;
 
         for (NDataModel model : getDataModelManager(project).listAllModels()) {
+            if (model.isBroken())
+                continue;
+
             val recommendation = recommendationManager.getOptimizeRecommendation(model.getId());
 
             val modelStats = new RecommendationStatsResponse.RecommendationStatsByModel();
@@ -245,12 +252,12 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 0)
     public void batchApplyRecommendations(String project, List<String> modelAlias) {
-        if (CollectionUtils.isEmpty(modelAlias))
-            return;
-
         val models = getDataModelManager(project).listAllModels();
         models.forEach(model -> {
-            if (modelAlias.contains(model.getAlias())) {
+            if (model.isBroken())
+                return;
+
+            if (CollectionUtils.isEmpty(modelAlias) || modelAlias.contains(model.getAlias())) {
                 val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project, model.getId());
                 verifier.verifyAll();
             }

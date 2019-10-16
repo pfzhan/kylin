@@ -49,7 +49,9 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.RecommendationType;
@@ -269,6 +271,24 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testBrokenModelApplyRecommendations() {
+        val project = "broken_test";
+
+        // broken model
+        val modelId = "3f8941de-d01c-42b8-91b5-44646390864b";
+        val request = new ApplyRecommendationsRequest();
+        request.setProject(project);
+        request.setModelId(modelId);
+
+        try {
+            service.applyRecommendations(request, project);
+        } catch (Exception ex) {
+            Assert.assertTrue(ex instanceof IllegalArgumentException);
+            Assert.assertEquals("model [3f8941de-d01c-42b8-91b5-44646390864b] is broken, cannot apply any optimize recommendations", ex.getMessage());
+        }
+    }
+
+    @Test
     public void testApplyRecommendations() throws IOException {
         prepare();
         val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
@@ -407,17 +427,53 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testBatchApplyRecommendationsWithNoModelNames() throws IOException {
+        prepare();
+
+        service.batchApplyRecommendations("default", null);
+        Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
+    }
+
+    @Test
     public void testBatchApplyRecommendations() throws IOException {
         prepare();
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        service.batchApplyRecommendations("default", null);
-        Assert.assertEquals(recommendation.getRecommendationsCount(), recommendationManager.getRecommendationCount(id));
-
         service.batchApplyRecommendations("default", Lists.newArrayList("not_exist_model1"));
         Assert.assertEquals(recommendation.getRecommendationsCount(), recommendationManager.getRecommendationCount(id));
 
         service.batchApplyRecommendations("default", Lists.newArrayList("not_exist_model", "origin"));
         Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
+    }
+
+    @Test
+    public void testBatchAppplyRecommendationWithBrokenModel() throws IOException {
+        val project = "broken_test";
+
+        // broken model
+        val modelId = "3f8941de-d01c-42b8-91b5-44646390864b";
+
+        val recommendation = new OptimizeRecommendation();
+        recommendation.setUuid(modelId);
+
+        recommendation.setMeasureRecommendations(Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
+        recommendation.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
+        val indexRecommendation1 = new IndexRecommendationItem();
+        val indexEntity = new IndexEntity();
+        indexEntity.setId(10000L);
+        indexRecommendation1.setEntity(indexEntity);
+        indexRecommendation1.setAggIndex(true);
+
+        val indexRecommendation2 = new IndexRecommendationItem();
+        indexRecommendation2.setEntity(indexEntity);
+        indexRecommendation2.setAggIndex(true);
+        recommendation.setIndexRecommendations(Lists.newArrayList(indexRecommendation1, indexRecommendation2));
+
+        val recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), project);
+        recommendationManager.save(recommendation);
+
+        service.batchApplyRecommendations(project, null);
+
+        Assert.assertEquals(recommendation.getRecommendationsCount(), recommendationManager.getRecommendationCount(modelId));
     }
 }
