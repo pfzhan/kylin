@@ -54,6 +54,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -161,9 +162,10 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
         }
 
-        Pair<String, Boolean> result = transformImplRecursive(sql, queryAliasMatcher, dataModelDescs, true);
-        sql = result.getFirst();
-
+        sql = replaceCcName(sql, dataModelDescs);
+        //        Pair<String, Boolean> result = transformImplRecursive(sql, queryAliasMatcher, dataModelDescs, true);
+        //
+        //        sql = result.getFirst();
         return sql;
     }
 
@@ -193,6 +195,35 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         }
 
         return Pair.newPair(sql, recursionCompleted);
+    }
+
+    private static String replaceCcName(String sql, List<NDataModel> dataModelDescs) throws SqlParseException {
+
+        List<ComputedColumnDesc> allCcInPrj = Lists.newArrayList();
+        dataModelDescs.forEach(model -> allCcInPrj.addAll(model.getComputedColumnDescs()));
+        val sortedEntryList = SqlNodeExtractor.getIdentifierPos(sql).entrySet().stream()
+                .sorted((o1, o2) -> o2.getValue().getFirst() - o1.getValue().getFirst()).collect(Collectors.toList());
+
+        String transformedSql = sql;
+        for (Map.Entry<SqlIdentifier, Pair<Integer, Integer>> identifierPairEntry : sortedEntryList) {
+            for (ComputedColumnDesc computedColumnDesc : allCcInPrj) {
+                String identifierName = identifierPairEntry.getKey().toString();
+                if (identifierName.equalsIgnoreCase(computedColumnDesc.getColumnName())) {
+                    transformedSql = transformedSql.substring(0, identifierPairEntry.getValue().getFirst())
+                            + computedColumnDesc.getInternalCcName()
+                            + transformedSql.substring(identifierPairEntry.getValue().getSecond());
+                    break;
+                } else if (identifierName.contains(".") && identifierName.substring(identifierName.lastIndexOf('.') + 1)
+                        .equalsIgnoreCase(computedColumnDesc.getColumnName())) {
+                    transformedSql = transformedSql.substring(0,
+                            identifierPairEntry.getValue().getFirst() + identifierName.lastIndexOf('.') + 1)
+                            + computedColumnDesc.getInternalCcName()
+                            + transformedSql.substring(identifierPairEntry.getValue().getSecond());
+                    break;
+                }
+            }
+        }
+        return transformedSql;
     }
 
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
@@ -413,17 +444,15 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             } else {
                 // iterate through sql call's operands
                 // eg case .. when
-                return ((SqlCall) selectNode).getOperandList().stream()
-                        .filter(Objects::nonNull)
+                return ((SqlCall) selectNode).getOperandList().stream().filter(Objects::nonNull)
                         .map(node -> getSelectNodesToReplace(node, groupKeys)).flatMap(Collection::stream)
                         .collect(Collectors.toList());
             }
         } else if (selectNode instanceof SqlNodeList) {
             // iterate through select list
-            return ((SqlNodeList) selectNode).getList().stream()
-                        .filter(Objects::nonNull)
-                        .map(node -> getSelectNodesToReplace(node, groupKeys)).flatMap(Collection::stream)
-                        .collect(Collectors.toList());
+            return ((SqlNodeList) selectNode).getList().stream().filter(Objects::nonNull)
+                    .map(node -> getSelectNodesToReplace(node, groupKeys)).flatMap(Collection::stream)
+                    .collect(Collectors.toList());
         }
         return Collections.emptyList();
     }
