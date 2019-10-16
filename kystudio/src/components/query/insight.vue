@@ -5,6 +5,7 @@
         <DataSourceBar
           :project-name="currentSelectedProject"
           :is-show-load-source="false"
+          :is-show-load-table="datasourceActions.includes('loadSource')"
           :is-expand-on-click-node="false"
           :is-show-drag-width-bar="true"
           :expand-node-types="['datasource']"

@@ -7,7 +7,7 @@
     :placeholder="$t('kylinLang.project.selectProject')"
     v-model="selected_project"
     @change="changeProject">
-    <el-option v-if="(hasSomeProjectPermission || isAdmin) && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
+    <el-option v-if="isAdmin && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
     <span slot="prefix" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
@@ -22,8 +22,7 @@
 </template>
 <script>
 import { mapGetters } from 'vuex'
-import { hasPermission, hasRole } from 'util/business'
-import { permissions } from '../../config'
+import { hasRole } from 'util/business'
 export default {
   name: 'projectselect',
   data () {
@@ -65,9 +64,6 @@ export default {
     ]),
     projectList () {
       return this.$store.state.project.allProject || ''
-    },
-    hasSomeProjectPermission () {
-      return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')

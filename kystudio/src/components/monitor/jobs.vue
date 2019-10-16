@@ -1,6 +1,6 @@
 <template>
   <div>
-  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips" @close="closeTips" show-icon></el-alert>
+  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips&&isAdminRole" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20" @click.stop>
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
@@ -320,7 +320,8 @@ import { cacheLocalStorage } from 'util/index'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'monitorActions'
+      'monitorActions',
+      'isAdminRole'
     ])
   },
   components: {

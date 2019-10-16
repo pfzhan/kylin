@@ -6,7 +6,7 @@
         <div class="access-card">
           <div class="access-title">
             <span v-if="!isEdit">{{$t('accessTables')}} ({{tableAuthorizedNum}})</span>
-            <el-checkbox v-model="isAllTablesAccess" @change="checkAllTables" :indeterminate="tableAuthorizedNum !== totalNum && tableAuthorizedNum>0" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
+            <el-checkbox v-model="isAllTablesAccess" @change="checkAllTables" :indeterminate="tableAuthorizedNum !== totalNum && tableAuthorizedNum>0" :disabled="!tables.length" v-else>{{$t('accessTables')}} ({{tableAuthorizedNum}}/{{totalNum}})</el-checkbox>
           </div>
           <div class="access-search">
             <el-input size="small" :placeholder="$t('searchKey')" v-model="tableFilter">
@@ -47,7 +47,7 @@
         <div class="access-card column-card">
           <div class="access-title">
             <span v-if="!isEdit">{{$t('accessColumns')}} ({{colAuthorizedNum}})</span>
-            <el-checkbox v-model="selectAllColumns" @change="checkAllColumns" :disabled="!isCurrentTableChecked" :indeterminate="colAuthorizedNum !== columns.length && colAuthorizedNum>0" v-else>{{$t('accessColumns')}} ({{colAuthorizedNum}}/{{columns.length}})</el-checkbox>
+            <el-checkbox v-model="selectAllColumns" @change="checkAllColumns" :disabled="!isCurrentTableChecked || !columns.length" :indeterminate="colAuthorizedNum !== columns.length && colAuthorizedNum>0" v-else>{{$t('accessColumns')}} ({{colAuthorizedNum}}/{{columns.length}})</el-checkbox>
           </div>
           <div class="access-search">
             <el-input size="small" :placeholder="$t('searchKey')" v-model="columnFilter">

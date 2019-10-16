@@ -32,7 +32,7 @@
             {{$t('more')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item command="ruleSetting">{{$t('ruleSetting')}}</el-dropdown-item>
+            <el-dropdown-item v-if="datasourceActions.includes('acceRuleSettingActions')" command="ruleSetting">{{$t('ruleSetting')}}</el-dropdown-item>
             <el-dropdown-item command="blackList">{{$t('blackList')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>

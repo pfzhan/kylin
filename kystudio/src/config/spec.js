@@ -63,6 +63,7 @@ export default {
       { "id": "reloadSourceTable" },
       { "id": "loadData" },
       { "id": "accelerationActions" },
+      { "id": "acceRuleSettingActions" },
       { "id": "modelActions" },
       { "id": "segmentActions" },
       { "id": "editAggGroup" },
@@ -131,14 +132,14 @@ export default {
     "datasourceActions": {
       "keyPattern": "groupRole-projectType-projectRole",
       "entries": [
-        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
-        { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
+        { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions" },
 
         { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
         { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
 
-        { "key": "systemUser-manualMaintain-management", "value": "sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
-        { "key": "systemUser-autoMaintain-management", "value": "sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+        { "key": "systemUser-manualMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
+        { "key": "systemUser-autoMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
 
         { "key": "systemUser-manualMaintain-operation", "value": "loadData,segmentActions,bulidIndex" },
         { "key": "systemUser-autoMaintain-operation", "value": "loadData" },

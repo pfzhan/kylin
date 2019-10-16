@@ -40,7 +40,7 @@
           <!-- Source Table详细信息 -->
           <el-tabs class="table-details" type="card" v-model="viewType">
             <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
-              <TableDataLoad :project="currentProjectData" :table="selectedTable" :is-show-load-data="datasourceActions.includes('loadData')" @fresh-tables="handleFreshTable"></TableDataLoad>
+              <TableDataLoad :project="currentProjectData" :table="selectedTable" :isShowLoadData="datasourceActions.includes('loadData')" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
             <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS" >
               <TableColumns :table="selectedTable" v-if="viewType === viewTypes.COLUMNS"></TableColumns>
