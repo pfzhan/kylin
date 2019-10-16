@@ -186,7 +186,7 @@ public class ModelService extends BasicService {
 
             if (model instanceof NDataModelResponse) {
                 ((NDataModelResponse) model).setOldParams(oldParams);
-            } else if (model instanceof RelatedModelResponse){
+            } else if (model instanceof RelatedModelResponse) {
                 ((RelatedModelResponse) model).setOldParams(oldParams);
             }
         });
@@ -194,16 +194,28 @@ public class ModelService extends BasicService {
         return modelList;
     }
 
+    @VisibleForTesting
+    public Set<String> getAllProjects() {
+        return projectService.getReadableProjects().stream().map(ProjectInstance::getName).collect(Collectors.toSet());
+    }
+
     /**
      * for 3x rest api
      * @param modelAlias
      * @return
      */
-    public NDataModelResponse getCube(String modelAlias) {
-        for (ProjectInstance project : projectService.getReadableProjects()) {
-            List<NDataModelResponse> cubes = getCubes(modelAlias, project.getName());
+    public NDataModelResponse getCube(String modelAlias, String projectName) {
+        if (Objects.nonNull(projectName)) {
+            List<NDataModelResponse> cubes = getCubes(modelAlias, projectName);
             if (!CollectionUtils.isEmpty(cubes)) {
                 return cubes.get(0);
+            }
+        } else {
+            for (String project : getAllProjects()) {
+                List<NDataModelResponse> cubes = getCubes(modelAlias, project);
+                if (!CollectionUtils.isEmpty(cubes)) {
+                    return cubes.get(0);
+                }
             }
         }
 
@@ -213,17 +225,17 @@ public class ModelService extends BasicService {
     /**
      * for 3x rest api
      * @param modelAlias
-     * @param project
+     * @param projectName
      * @return
      */
-    public List<NDataModelResponse> getCubes(String modelAlias, String project) {
-        if (Objects.nonNull(project)) {
-            return getCubes0(modelAlias, project);
+    public List<NDataModelResponse> getCubes(String modelAlias, String projectName) {
+        if (Objects.nonNull(projectName)) {
+            return getCubes0(modelAlias, projectName);
         }
 
         List<NDataModelResponse> cubes = Lists.newArrayList();
-        for (ProjectInstance prj : projectService.getReadableProjects()) {
-            cubes.addAll(getCubes0(modelAlias, prj.getName()));
+        for (String project : getAllProjects()) {
+            cubes.addAll(getCubes0(modelAlias, project));
         }
 
         return cubes;
@@ -249,8 +261,8 @@ public class ModelService extends BasicService {
             List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
                     "" + (Long.MAX_VALUE - 1), "last_modify", true, null);
             for (NDataSegmentResponse segment : segments) {
-                Long sourceRows = segment.getSegDetails().getLayouts().stream()
-                        .map(NDataLayout::getSourceRows).max(Long::compareTo).orElse(0L);
+                Long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
+                        .max(Long::compareTo).orElse(0L);
                 inputRecordCnt += sourceRows;
                 inputRecordSizeBytes += segment.getSourceBytesSize();
 
@@ -305,7 +317,8 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setExpansionrate(
                             computeExpansionRate(nDataModelResponse.getStorage(), nDataModelResponse.getSource()));
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
-                    nDataModelResponse.setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
+                    nDataModelResponse
+                            .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
                     filterModels.add(nDataModelResponse);
                 }
             }

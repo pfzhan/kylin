@@ -68,6 +68,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -3165,8 +3166,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetCubes() {
+        Mockito.doReturn(Sets.newHashSet("default")).when(modelService).getAllProjects();
         List<NDataModelResponse> responses = modelService.getCubes("nmodel_full_measure_test", "default");
         Assert.assertEquals(1, responses.size());
+
+        List<NDataModelResponse> responses1 = modelService.getCubes("nmodel_full_measure_test", null);
+        Assert.assertEquals(1, responses.size());
+
+        NDataModelResponse response = modelService.getCube("nmodel_full_measure_test", "default");
+        Assert.assertNotNull(response);
+
+        NDataModelResponse response1 = modelService.getCube("nmodel_full_measure_test", null);
+        Assert.assertNotNull(response1);
     }
 
 }

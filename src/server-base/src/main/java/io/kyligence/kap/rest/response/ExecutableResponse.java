@@ -172,8 +172,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         @JsonProperty("display_cube_name")
         private String displayCubeName;
 
-        @JsonProperty("udid")
-        private String udid;
+        @JsonProperty("uuid")
+        private String uuid;
 
         @JsonProperty("type")
         private String type;

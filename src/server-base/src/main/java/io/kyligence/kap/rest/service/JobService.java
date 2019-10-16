@@ -212,7 +212,7 @@ public class JobService extends BasicService {
             oldParams.setProjectName(executableResponse.getProject());
             oldParams.setRelatedCube(modelName);
             oldParams.setDisplayCubeName(modelName);
-            oldParams.setUdid(executableResponse.getId());
+            oldParams.setUuid(executableResponse.getId());
             oldParams.setType(jobTypeMap.get(executableResponse.getJobName()));
             oldParams.setName(executableResponse.getJobName());
             oldParams.setExecInterruptTime(0L);

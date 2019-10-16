@@ -94,8 +94,9 @@ public class NCubesControllerV2 extends NBasicController {
     @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getCube(@PathVariable("cubeName") String modelAlias) {
-        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias);
+    public EnvelopeResponse getCube(@PathVariable("cubeName") String modelAlias,
+            @RequestParam(value = "project", required = false) String project) {
+        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
             throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
         }
@@ -107,12 +108,13 @@ public class NCubesControllerV2 extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse rebuild(@PathVariable("cubeName") String modelAlias,
-            @RequestBody CubeRebuildRequest request) throws Exception {
+            @RequestParam(value = "project", required = false) String project, @RequestBody CubeRebuildRequest request)
+            throws Exception {
         String startTime = String.valueOf(request.getStartTime());
         String endTime = String.valueOf(request.getEndTime());
         validateDataRange(startTime, endTime);
 
-        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias);
+        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
             throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
         }
@@ -144,12 +146,13 @@ public class NCubesControllerV2 extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse manageSegments(@PathVariable("cubeName") String modelAlias,
+            @RequestParam(value = "project", required = false) String project,
             @RequestBody SegmentMgmtRequest request) {
         if (CollectionUtils.isEmpty(request.getSegments())) {
             throw new BadRequestException("You should choose at least one segment!");
         }
 
-        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias);
+        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
             throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
         }
@@ -184,8 +187,9 @@ public class NCubesControllerV2 extends NBasicController {
     @RequestMapping(value = "/{cubeName}/holes", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getHoles(@PathVariable("cubeName") String modelAlias) {
-        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias);
+    public EnvelopeResponse getHoles(@PathVariable("cubeName") String modelAlias,
+            @RequestParam(value = "project", required = false) String project) {
+        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
             throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
         }

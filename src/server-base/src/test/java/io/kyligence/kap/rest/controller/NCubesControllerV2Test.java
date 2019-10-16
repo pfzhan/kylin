@@ -141,18 +141,19 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCube() throws Exception {
-        Mockito.when(modelService.getCube("model1")).thenReturn(mockModels().get(0));
+        Mockito.when(modelService.getCube("model1", "default")).thenReturn(mockModels().get(0));
 
         mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/cubes/{cubeName}", "model1").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).getCube("model1");
+        Mockito.verify(nCubesControllerV2).getCube("model1", "default");
     }
 
     @Test
     public void testRebuild() throws Exception {
-        Mockito.when(modelService.getCube("model1")).thenReturn(mockModels().get(0));
+        Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
         String startTime = String.valueOf(0L);
         String endTime = String.valueOf(Long.MAX_VALUE - 1);
         Mockito.doNothing().when(modelService).buildSegmentsManually("default", "model1", startTime, endTime);
@@ -166,33 +167,34 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(rebuildRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).rebuild(eq("model1"), Mockito.any(CubeRebuildRequest.class));
+        Mockito.verify(nCubesControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
     }
 
     @Test
-        public void testManageSegments() throws Exception {
-            Mockito.when(modelService.getCube("model1")).thenReturn(mockModels().get(0));
-            Mockito.doNothing().when(modelService).mergeSegmentsManually("model1", "default", new String[] {"seg1", "seg2"});
+    public void testManageSegments() throws Exception {
+        Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
+        Mockito.doNothing().when(modelService).mergeSegmentsManually("model1", "default",
+                new String[] { "seg1", "seg2" });
 
-            SegmentMgmtRequest request = new SegmentMgmtRequest();
-            request.setBuildType("MERGE");
-            request.setSegments(Lists.newArrayList("test_seg1", "test_seg2"));
+        SegmentMgmtRequest request = new SegmentMgmtRequest();
+        request.setBuildType("MERGE");
+        request.setSegments(Lists.newArrayList("test_seg1", "test_seg2"));
 
-            mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")
-                    .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                    .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                    .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-            Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), Mockito.any(SegmentMgmtRequest.class));
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null), Mockito.any(SegmentMgmtRequest.class));
     }
 
     @Test
     public void testGetHoles() throws Exception {
-        Mockito.when(modelService.getCube("model1")).thenReturn(mockModels().get(1));
+        Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(1));
 
-        mockMvc.perform(
-                MockMvcRequestBuilders.get("/api/cubes/{cubeName}/holes", "model1").contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/cubes/{cubeName}/holes", "model1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).getHoles("model1");
+        Mockito.verify(nCubesControllerV2).getHoles("model1", null);
     }
 }
