@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -54,7 +56,10 @@ public class RedundantLayoutGcStrategy implements IGarbageCleanerStrategy {
                 .collect(Collectors.toList());
         Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
         redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfAggIndex(aggIndexList, true));
-        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, true));
+        if (KylinConfig.getInstanceFromEnv().isRemoveTableIndexRedundantLayoutEnabled()) {
+            redundantToReservedMap
+                    .putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, true));
+        }
         redundantToReservedMap.forEach((redundant, reserved) -> garbageLayouts.add(redundant.getId()));
         return garbageLayouts;
     }

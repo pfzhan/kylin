@@ -87,7 +87,7 @@ public class IndexPlanReduceUtil {
         Map<LayoutEntity, LayoutEntity> redundantMap = Maps.newHashMap();
         for (int i = 0; i < allLayouts.size(); i++) {
             LayoutEntity targetLayout = allLayouts.get(i);
-            if (redundantMap.containsKey(targetLayout)) {
+            if ((!isGarbageCleaning && !targetLayout.isInProposing()) || redundantMap.containsKey(targetLayout)) {
                 continue;
             }
             for (int j = i + 1; j < allLayouts.size(); j++) {

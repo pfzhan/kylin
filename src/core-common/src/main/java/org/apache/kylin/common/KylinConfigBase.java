@@ -1671,6 +1671,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.garbage.storage.query-times-threshold", "5"));
     }
 
+    public boolean isRemoveTableIndexRedundantLayoutEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.garbage.remove-table-index-redundant-layout", "false"));
+    }
+
     public long getExecutableSurvivalTimeThreshold() {
         return TimeUtil.timeStringAs(getOptional("kylin.garbage.storage.executable-survival-time-threshold", "30d"),
                 TimeUnit.MILLISECONDS);

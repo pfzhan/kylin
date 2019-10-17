@@ -43,7 +43,9 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.garbage.LowFreqLayoutGcStrategy;
+import io.kyligence.kap.metadata.cube.garbage.RedundantLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -115,6 +117,46 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertFalse(garbageLayouts.contains(40002L));
         Assert.assertFalse(garbageLayouts.contains(20_000_000_001L));
         Assert.assertFalse(garbageLayouts.contains(20_000_010_001L));
+    }
+
+    @Test
+    public void testRedundantLayoutGcStrategy() {
+        NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        NDataflow dataflow = instance.getDataflow(MODEL_ID);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            LayoutEntity layout1 = new LayoutEntity();
+            layout1.setId(20_000_040_001L);
+            layout1.setColOrder(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7, 8));
+            layout1.setAuto(true);
+            IndexEntity index1 = new IndexEntity();
+            index1.setId(20_000_040_000L);
+            index1.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7, 8));
+            index1.setLayouts(Lists.newArrayList(layout1));
+
+            LayoutEntity layout2 = new LayoutEntity();
+            layout2.setId(20_000_050_001L);
+            layout2.setColOrder(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
+            layout2.setAuto(true);
+            IndexEntity index2 = new IndexEntity();
+            index2.setId(20_000_050_000L);
+            index2.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
+            index2.setLayouts(Lists.newArrayList(layout2));
+
+            copyForWrite.setIndexes(Lists.newArrayList());
+            copyForWrite.getIndexes().add(index1);
+            copyForWrite.getIndexes().add(index2);
+        });
+
+        getTestConfig().setProperty("kylin.garbage.remove-table-index-redundant-layout", "false");
+        Set<Long> garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow, new RedundantLayoutGcStrategy());
+        Assert.assertTrue(garbageLayouts.isEmpty());
+
+        getTestConfig().setProperty("kylin.garbage.remove-table-index-redundant-layout", "true");
+        Set<Long> garbageLayouts2 = LayoutGarbageCleaner.findGarbageLayouts(dataflow, new RedundantLayoutGcStrategy());
+        Assert.assertEquals(1, garbageLayouts2.size());
+        Assert.assertTrue(garbageLayouts2.contains(20_000_050_001L));
     }
 
     private void initTestData() {

@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -63,7 +65,10 @@ class NCuboidReducer extends NAbstractCubeProposer {
                 .collect(Collectors.toList());
         Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
         redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfAggIndex(aggIndexList, false));
-        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, false));
+        if (KylinConfig.getInstanceFromEnv().isRemoveTableIndexRedundantLayoutEnabled()) {
+            redundantToReservedMap
+                    .putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, false));
+        }
         redundantToReservedMap.forEach((redundant, reserved) -> {
             val indexEntityOptional = allProposedIndexes.stream()
                     .filter(index -> index.getId() == redundant.getIndexId()) //

@@ -90,7 +90,7 @@ public class IndexPlanReduceUtilTest {
     }
 
     @Test
-    public void testCollectRedundantAggIndexLayouts() {
+    public void testCollectRedundantAggIndexLayoutsWithProposingLargerIndex() {
         LayoutEntity layout1 = new LayoutEntity(); // a proposed layout
         layout1.setId(1);
         layout1.setColOrder(Lists.newArrayList(1, 2, 3, 4, 100000, 100001));
@@ -139,6 +139,40 @@ public class IndexPlanReduceUtilTest {
         Assert.assertTrue(map2.containsKey(layout4));
         Assert.assertEquals("[2, 1, 3, 4, 100000, 100001, 100002]", map2.get(layout4).getColOrder().toString());
 
+    }
+
+    @Test
+    public void testCollectRedundantAggIndexLayoutsWithProposingSmallerIndex() {
+        LayoutEntity layout1 = new LayoutEntity(); // a proposed layout
+        layout1.setId(1);
+        layout1.setColOrder(Lists.newArrayList(1, 2, 3, 4, 100000, 100001));
+        layout1.setInProposing(false);
+        LayoutEntity layout2 = new LayoutEntity(); // a proposing layout
+        layout2.setId(30001);
+        layout2.setColOrder(Lists.newArrayList(1, 2, 3, 4, 100000));
+        layout2.setInProposing(true);
+        IndexEntity entity1 = new IndexEntity();
+        entity1.setLayouts(Lists.newArrayList(layout1));
+        entity1.setMeasures(Lists.newArrayList(100000, 100001));
+        entity1.setDimensions(Lists.newArrayList(1, 2, 3, 4));
+        entity1.setId(calIndexId(entity1));
+        IndexEntity entity2 = new IndexEntity();
+        entity2.setLayouts(Lists.newArrayList(layout2));
+        entity2.setDimensions(Lists.newArrayList(1, 2, 3, 4));
+        entity2.setMeasures(Lists.newArrayList(100000));
+        entity2.setId(calIndexId(entity2));
+
+        // for auto-modeling proposition
+        Map<LayoutEntity, LayoutEntity> map = IndexPlanReduceUtil
+                .collectRedundantLayoutsOfAggIndex(Lists.newArrayList(entity1, entity2), false);
+        Assert.assertTrue(map.isEmpty());
+
+        // for garbage-cleaning
+        Map<LayoutEntity, LayoutEntity> map2 = IndexPlanReduceUtil
+                .collectRedundantLayoutsOfAggIndex(Lists.newArrayList(entity1, entity2), true);
+        Assert.assertEquals(1, map2.size());
+        Assert.assertTrue(map2.containsKey(layout2));
+        Assert.assertEquals("[1, 2, 3, 4, 100000, 100001]", map2.get(layout2).getColOrder().toString());
     }
 
     @Test
@@ -231,7 +265,42 @@ public class IndexPlanReduceUtilTest {
         Assert.assertEquals("[1, 2, 3, 4, 5]", map2.get(layoutArray[0]).getColOrder().toString());
         Assert.assertTrue(map2.containsKey(layoutArray[4]));
         Assert.assertEquals("[1, 3, 2, 4]", map2.get(layoutArray[4]).getColOrder().toString());
+    }
 
+    @Test
+    public void testCollectRedundantTableIndexLayoutsWithProposingSmallerIndex() {
+        LayoutEntity[] layoutArray = new LayoutEntity[2];
+        layoutArray[0] = new LayoutEntity();
+        layoutArray[0].setId(IndexEntity.TABLE_INDEX_START_ID + 1);
+        layoutArray[0].setColOrder(Lists.newArrayList(1, 2, 3, 4));
+        layoutArray[0].setAuto(true);
+        layoutArray[0].setInProposing(false);
+        layoutArray[1] = new LayoutEntity();
+        layoutArray[1].setId(IndexEntity.TABLE_INDEX_START_ID + 2 * IndexEntity.INDEX_ID_STEP + 1);
+        layoutArray[1].setColOrder(Lists.newArrayList(1, 2, 3));
+        layoutArray[1].setAuto(true);
+        layoutArray[1].setInProposing(true);
+
+        IndexEntity entity1 = new IndexEntity();
+        entity1.setLayouts(Lists.newArrayList(layoutArray[0]));
+        entity1.setDimensions(Lists.newArrayList(1, 2, 3, 4));
+        entity1.setId(calIndexId(entity1));
+        IndexEntity entity2 = new IndexEntity();
+        entity2.setLayouts(Lists.newArrayList(layoutArray[1]));
+        entity2.setDimensions(Lists.newArrayList(1, 2, 3));
+        entity2.setId(calIndexId(entity2));
+
+        // for auto-modeling proposition
+        Map<LayoutEntity, LayoutEntity> map1 = IndexPlanReduceUtil
+                .collectRedundantLayoutsOfTableIndex(Lists.newArrayList(entity1, entity2), false);
+        Assert.assertEquals(0, map1.size());
+
+        // for garbage-cleaning
+        Map<LayoutEntity, LayoutEntity> map2 = IndexPlanReduceUtil
+                .collectRedundantLayoutsOfTableIndex(Lists.newArrayList(entity1, entity2), true);
+        Assert.assertEquals(1, map2.size());
+        Assert.assertTrue(map2.containsKey(layoutArray[1]));
+        Assert.assertEquals("[1, 2, 3, 4]", map2.get(layoutArray[1]).getColOrder().toString());
     }
 
     private void initTableIndex() {
