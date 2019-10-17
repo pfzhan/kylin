@@ -274,8 +274,9 @@ public class AccessService extends BasicService {
             AclEntity ae = getAclEntity("ProjectInstance", pi.getUuid());
 
             MutableAclRecord acl = getAcl(ae);
-            if (acl == null) {
-                return;
+            if (Objects.isNull(acl)) {
+                // skip empty project
+                continue;
             }
 
             Permission perm = acl.getAclRecord().getPermission(sid);

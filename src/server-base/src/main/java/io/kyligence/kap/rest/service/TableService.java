@@ -417,8 +417,7 @@ public class TableService extends BasicService {
     }
 
     @VisibleForTesting
-    public void filterSamplingRows(String project, TableDescResponse rtableDesc, boolean isAclGreen,
-            List<AclTCR> aclTCRS) {
+    void filterSamplingRows(String project, TableDescResponse rtableDesc, boolean isAclGreen, List<AclTCR> aclTCRS) {
         if (isAclGreen) {
             return;
         }
@@ -457,7 +456,8 @@ public class TableService extends BasicService {
         rtableDesc.setSamplingRows(result);
     }
 
-    private TableDesc getAuthorizedTableDesc(boolean isAclGreen, TableDesc originTable, List<AclTCR> aclTCRS) {
+    @VisibleForTesting
+    TableDesc getAuthorizedTableDesc(boolean isAclGreen, TableDesc originTable, List<AclTCR> aclTCRS) {
         if (isAclGreen) {
             return originTable;
         }

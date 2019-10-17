@@ -86,6 +86,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -298,6 +299,43 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testFilterSamplingRows() throws Exception {
+        final String tableIdentity = "DEFAULT.TEST_COUNTRY";
+        final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "newten");
+        final TableDesc originTableDesc = tableMgr.getTableDesc(tableIdentity);
+        AclTCR aclTCR = new AclTCR();
+        AclTCR.Table table = new AclTCR.Table();
+        AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
+        AclTCR.Column column = new AclTCR.Column();
+        column.add("COUNTRY");
+        column.add("LONGITUDE");
+        column.add("NAME");
+        columnRow.setColumn(column);
+        AclTCR.Row row = new AclTCR.Row();
+        AclTCR.RealRow realRow = new AclTCR.RealRow();
+        realRow.add("country_a");
+        row.put("COUNTRY", realRow);
+        columnRow.setRow(row);
+        table.put("DEFAULT.TEST_COUNTRY", columnRow);
+        aclTCR.setTable(table);
+        List<AclTCR> aclTCRs = Lists.newArrayList(aclTCR);
+        TableDesc tableDesc = tableService.getAuthorizedTableDesc(false, originTableDesc, aclTCRs);
+        TableDescResponse tableDescResponse = new TableDescResponse(tableDesc);
+
+        List<String[]> sampleRows = Lists.newArrayList();
+        sampleRows.add(new String[] { "country_a", "10.10", "11.11", "name_a" });
+        sampleRows.add(new String[] { "country_b", "20.20", "22.22", "name_b" });
+        sampleRows.add(new String[] { "country_c", "30.30", "33.33", "name_c" });
+        sampleRows.add(new String[] { "country_d", "40.40", "44.44", "name_d" });
+        tableDescResponse.setSamplingRows(sampleRows);
+
+        tableService.filterSamplingRows("newten", tableDescResponse, false, aclTCRs);
+
+        Assert.assertEquals(tableDescResponse.getSamplingRows().size(), 1);
+        Assert.assertEquals("country_a,11.11,name_a", String.join(",", tableDescResponse.getSamplingRows().get(0)));
+    }
+
+    @Test
     public void testExtractTableMeta() throws Exception {
         String[] tables = { "DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT" };
         List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default");
@@ -383,8 +421,8 @@ public class TableServiceTest extends CSVSourceTestCase {
         npr.updateProject(projectInstance);
         Assert.assertEquals(removeDB, npr.getDefaultDatabase("default"));
 
-        for(TableDesc table: npr.listDefinedTables("default")) {
-            if(removeDB.equalsIgnoreCase(table.getDatabase())) {
+        for (TableDesc table : npr.listDefinedTables("default")) {
+            if (removeDB.equalsIgnoreCase(table.getDatabase())) {
                 tableService.unloadTable("default", table.getIdentity(), false);
             }
         }

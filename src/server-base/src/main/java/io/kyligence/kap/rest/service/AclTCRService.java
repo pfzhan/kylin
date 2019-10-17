@@ -97,7 +97,6 @@ public class AclTCRService extends BasicService {
         getAclTCRManager(project).revokeAclTCR(sid, principal);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void unloadTable(String project, String dbTblName) {
         getAclTCRManager(project).unloadTable(dbTblName);
