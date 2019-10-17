@@ -377,16 +377,23 @@ public class LicenseInfoService extends BasicService {
 
     public void updateLicense(byte[] bytes) throws IOException {
         clearSystemLicense();
-        FileUtils.writeByteArrayToFile(backupAndDeleteLicense("tmp"), bytes);
+        FileUtils.writeByteArrayToFile(backupAndDeleteLicense("temporary"), bytes);
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
         LicenseInfo licenseInfo = extractLicenseInfo();
         File kylinHome = KapConfig.getKylinHomeAtBestEffort();
         File realLicense = new File(kylinHome, LICENSE_FILENAME);
-        File tmpLicense = new File(kylinHome, "LICENSE.tmp");
-        FileUtils.copyFile(tmpLicense, realLicense);
-        FileUtils.forceDelete(tmpLicense);
-        gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
-        verifyLicense(licenseInfo);
+        File tmpLicense = new File(kylinHome, "LICENSE.temporary");
+        try {
+            verifyLicense(licenseInfo);
+        } catch (Exception e) {
+            if (tmpLicense.exists()) {
+                FileUtils.copyFile(tmpLicense, realLicense);
+                FileUtils.forceDelete(tmpLicense);
+                gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
+            }
+            throw e;
+        }
+        FileUtils.deleteQuietly(tmpLicense);
         FileUtils.writeByteArrayToFile(backupAndDeleteLicense("backup"), bytes);
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
     }
