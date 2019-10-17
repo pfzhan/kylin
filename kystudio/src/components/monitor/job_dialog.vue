@@ -10,17 +10,16 @@
     v-model="stepDetail">
     </el-input>
     <form name="download" class="downloadLogs" :action="actionUrl" target="_blank" method="get">
-      <input type="hidden" name="project" :value="currentSelectedProject"/>
+      <input type="hidden" name="project" :value="targetProject"/>
     </form>
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
 import { apiUrl } from '../../config'
 export default {
   name: 'jobDialog',
-  props: ['stepDetail', 'stepId', 'jobId'],
+  props: ['stepDetail', 'stepId', 'jobId', 'targetProject'],
   locales: {
     'en': {
       outputTips: 'The output log shows the first and last 100 lines by default. To view all the output, please click to ',
@@ -34,9 +33,6 @@ export default {
     }
   },
   computed: {
-    ...mapGetters([
-      'currentSelectedProject'
-    ]),
     actionUrl () {
       return apiUrl + 'jobs/' + this.jobId + '/steps/' + this.stepId + '/log'
     }
