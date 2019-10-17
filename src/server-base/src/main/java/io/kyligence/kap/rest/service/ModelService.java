@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.NDataModelOldParams;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -123,6 +122,7 @@ import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
+import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
@@ -596,7 +596,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void purgeModelManually(String modelId, String project) {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModelDesc = getModelById(modelId, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(

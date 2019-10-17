@@ -103,6 +103,7 @@ public class IndexPlanService extends BasicService {
 
     @Transaction(project = 0)
     public BuildIndexResponse updateTableIndex(String project, CreateTableIndexRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
         val layout = parseToLayout(project, request);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
@@ -146,6 +147,7 @@ public class IndexPlanService extends BasicService {
 
     @Transaction(project = 0)
     public BuildIndexResponse createTableIndex(String project, CreateTableIndexRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         val indexPlanManager = getIndexPlanManager(project);
         val eventManager = getEventManager(project);
         val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
@@ -191,6 +193,7 @@ public class IndexPlanService extends BasicService {
 
     @Transaction(project = 0)
     public void removeTableIndex(String project, String model, final long id) {
+        aclEvaluate.checkProjectWritePermission(project);
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
 

@@ -42,13 +42,11 @@
 
 package org.apache.kylin.rest.service;
 
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.persistence.AclEntity;
-
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.AclPermissionFactory;
@@ -79,7 +77,6 @@ public class AccessServiceTest extends ServiceTestBase {
     @Autowired
     @Qualifier("projectService")
     ProjectService projectService;
-
 
     @Test
     public void testBasics() throws JsonProcessingException {

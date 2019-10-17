@@ -154,10 +154,8 @@ public class AccessService extends BasicService {
         if (sidToPerm == null)
             throw new BadRequestException(msg.getACL_PERMISSION_REQUIRED());
 
-        MutableAclRecord acl;
-        try {
-            acl = aclService.readAcl(new ObjectIdentityImpl(ae));
-        } catch (NotFoundException e) {
+        MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
+        if (Objects.isNull(acl)) {
             acl = init(ae, null);
         }
 
@@ -179,10 +177,8 @@ public class AccessService extends BasicService {
         if (sid == null)
             throw new BadRequestException(msg.getSID_REQUIRED());
 
-        MutableAclRecord acl = null;
-        try {
-            acl = aclService.readAcl(new ObjectIdentityImpl(ae));
-        } catch (NotFoundException e) {
+        MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
+        if (Objects.isNull(acl)) {
             acl = init(ae, null);
         }
 
@@ -244,17 +240,13 @@ public class AccessService extends BasicService {
         if (parentAe == null)
             throw new BadRequestException(msg.getPARENT_ACL_NOT_FOUND());
 
-        MutableAclRecord acl = null;
-        try {
-            acl = aclService.readAcl(new ObjectIdentityImpl(ae));
-        } catch (NotFoundException e) {
+        MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
+        if (Objects.isNull(acl)) {
             acl = init(ae, null);
         }
 
-        MutableAclRecord parentAcl = null;
-        try {
-            parentAcl = aclService.readAcl(new ObjectIdentityImpl(parentAe));
-        } catch (NotFoundException e) {
+        MutableAclRecord parentAcl = aclService.readAcl(new ObjectIdentityImpl(parentAe));
+        if (Objects.isNull(parentAcl)) {
             parentAcl = init(parentAe, null);
         }
 
@@ -333,15 +325,7 @@ public class AccessService extends BasicService {
         if (null == ae) {
             return null;
         }
-
-        MutableAclRecord acl = null;
-        try {
-            acl = aclService.readAcl(new ObjectIdentityImpl(ae));
-        } catch (NotFoundException e) {
-            //do nothing?
-        }
-
-        return acl;
+        return aclService.readAcl(new ObjectIdentityImpl(ae));
     }
 
     public Sid getSid(String sid, boolean isPrincipal) {

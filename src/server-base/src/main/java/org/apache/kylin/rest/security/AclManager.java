@@ -136,7 +136,12 @@ public class AclManager {
     }
 
     public MutableAclRecord readAcl(ObjectIdentity oid) {
-        return (MutableAclRecord) readAclById(oid);
+        try {
+            return (MutableAclRecord) readAclById(oid);
+        } catch (NotFoundException nfe) {
+            logger.warn("[UNEXPECTED_THINGS_HAPPENED] acl not found for {}", oid);
+        }
+        return null;
     }
 
     public Acl readAclById(ObjectIdentity object) {

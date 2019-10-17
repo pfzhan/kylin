@@ -119,6 +119,10 @@ public class QueryContext {
     @Setter
     private List<Long> scanBytes;
 
+    @Getter
+    @Setter
+    private boolean hasAdminPermission;
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryStartMillis = System.currentTimeMillis();

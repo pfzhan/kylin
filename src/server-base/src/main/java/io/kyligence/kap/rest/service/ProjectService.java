@@ -42,14 +42,11 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclManager;
-import org.apache.kylin.rest.security.AclPermission;
-import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -97,10 +94,6 @@ public class ProjectService extends BasicService {
     @Autowired
     private AsyncTaskService asyncTaskService;
 
-    @Autowired
-    @Qualifier("accessService")
-    private AccessService accessService;
-
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
@@ -123,11 +116,10 @@ public class ProjectService extends BasicService {
         if (currentProject != null) {
             throw new BadRequestException(String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
         }
-        String owner = SecurityContextHolder.getContext().getAuthentication().getName();
+        final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
                 overrideProps, newProject.getMaintainModelType());
         logger.debug("New project created.");
-        UnitOfWork.get().doAfterUnit(() -> accessService.init(createdProject, AclPermission.ADMINISTRATION));
         UnitOfWork.get().doAfterUnit(() -> UnitOfWork.doInTransactionWithRetry(() -> {
             createDefaultRules(projectName);
             return 0;
@@ -420,9 +412,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void dropProject(String project) {
         val prjManager = getProjectManager();
-        final ProjectInstance projectInstance = prjManager.getProject(project);
         prjManager.forceDropProject(project);
-        UnitOfWork.get().doAfterUnit(() -> accessService.clean(projectInstance, true));
         UnitOfWork.get().doAfterUnit(() -> new ProjectDropListener().onDelete(project));
     }
 

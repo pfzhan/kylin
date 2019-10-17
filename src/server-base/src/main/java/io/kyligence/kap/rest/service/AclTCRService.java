@@ -36,10 +36,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.user.NKylinUserManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -55,11 +51,16 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import com.clearspring.analytics.util.Lists;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.UnitOfAllWorks;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
@@ -77,19 +78,23 @@ public class AclTCRService extends BasicService {
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
                 .ifPresent(prj -> UnitOfWork.doInTransactionWithRetry(() -> {
-                    logger.info("revoke acl tcr project={}, sid={}, principal={}", prj.getName(), sid, principal);
-                    getAclTCRManager(prj.getName()).revokeAclTCR(sid, principal);
+                    revokePrjAclTCR(prj.getName(), sid, principal);
                     return null;
                 }, prj.getName()));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void revokeAclTCR(String sid, boolean principal) {
-        getProjectManager().listAllProjects().forEach(prj -> UnitOfWork.doInTransactionWithRetry(() -> {
-            logger.info("revoke acl tcr project={}, sid={}, principal={}", prj.getName(), sid, principal);
-            getAclTCRManager(prj.getName()).revokeAclTCR(sid, principal);
+        UnitOfAllWorks.doInTransaction(() -> {
+            getProjectManager().listAllProjects().forEach(prj -> revokePrjAclTCR(prj.getName(), sid, principal));
             return null;
-        }, prj.getName()));
+        }, false);
+    }
+
+    private void revokePrjAclTCR(String project, String sid, boolean principal) {
+        logger.info("revoke project table, column and row acls of project={}, sid={}, principal={}", project, sid,
+                principal);
+        getAclTCRManager(project).revokeAclTCR(sid, principal);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
@@ -117,9 +122,11 @@ public class AclTCRService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    @Transaction(project = 0)
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
-        updateAclTCR(project, sid, principal, transformRequests(project, requests));
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            updateAclTCR(project, sid, principal, transformRequests(project, requests));
+            return null;
+        }, project);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -140,7 +147,7 @@ public class AclTCRService extends BasicService {
 
     private void updateAclTCR(String project, String sid, boolean principal, AclTCR updateTo) {
         AclTCR aclTCR = getAclTCRManager(project).getAclTCR(sid, principal);
-        if (aclTCR == null) {
+        if (Objects.isNull(aclTCR)) {
             aclTCR = updateTo;
         } else {
             aclTCR.setTable(updateTo.getTable());

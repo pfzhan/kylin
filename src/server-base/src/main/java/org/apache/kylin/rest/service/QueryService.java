@@ -623,10 +623,12 @@ public class QueryService extends BasicService {
         try (Connection conn = getConnection(sqlRequest.getProject())) {
             try {
                 return doTransactionEnabled(() -> {
+                    final boolean hasAdminPermission = AclPermissionUtil.isAdminInProject(sqlRequest.getProject());
                     String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
                     QueryContext context = QueryContext.current();
                     context.setUsername(userInfo);
                     context.setGroups(AclPermissionUtil.getCurrentUserGroups());
+                    context.setHasAdminPermission(hasAdminPermission);
                     final Collection<? extends GrantedAuthority> grantedAuthorities = SecurityContextHolder.getContext()
                             .getAuthentication().getAuthorities();
                     for (GrantedAuthority grantedAuthority : grantedAuthorities) {
@@ -657,6 +659,8 @@ public class QueryService extends BasicService {
                     Map<String, String> parameters = new HashMap<String, String>();
                     parameters.put(OLAPContext.PRM_USER_AUTHEN_INFO, userInfo);
                     parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
+                    parameters.put(OLAPContext.PRM_PROJECT_PERMISSION,
+                            hasAdminPermission ? OLAPContext.HAS_ADMIN_PERMISSION : OLAPContext.HAS_EMPTY_PERMISSION);
                     OLAPContext.setParameters(parameters);
                     // force clear the query context before a new query
                     clearThreadLocalContexts();

@@ -87,6 +87,10 @@ public class OLAPContext {
 
     public static final String PRM_ACCEPT_PARTIAL_RESULT = "AcceptPartialResult";
     public static final String PRM_USER_AUTHEN_INFO = "UserAuthenInfo";
+    public static final String PRM_PROJECT_PERMISSION = "ProjectPermission";
+
+    public static final String HAS_ADMIN_PERMISSION = "HasAdminPermission";
+    public static final String HAS_EMPTY_PERMISSION = "";
 
     static final ThreadLocal<Map<String, String>> _localPrarameters = new ThreadLocal<Map<String, String>>();
 
@@ -139,6 +143,7 @@ public class OLAPContext {
             if (acceptPartialResult != null) {
                 this.storageContext.setAcceptPartialResult(Boolean.parseBoolean(acceptPartialResult));
             }
+            this.hasAdminPermission = HAS_ADMIN_PERMISSION.equals(parameters.get(PRM_PROJECT_PERMISSION));
             String acceptUserInfo = parameters.get(PRM_USER_AUTHEN_INFO);
             if (null != acceptUserInfo)
                 this.olapAuthen.parseUserInfo(acceptUserInfo);
@@ -234,6 +239,8 @@ public class OLAPContext {
 
     public OLAPAuthentication olapAuthen = new OLAPAuthentication();
 
+    public boolean hasAdminPermission = false;
+
     public boolean isSimpleQuery() {
         return (joins.isEmpty()) && (groupByColumns.isEmpty()) && (aggregations.isEmpty());
     }
@@ -259,7 +266,7 @@ public class OLAPContext {
             sqlDigest = new SQLDigest(firstTableScan.getTableName(), Sets.newHashSet(allColumns),
                     Lists.newLinkedList(joins), // model
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
-                    Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations),  // aggregation
+                    Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), // aggregation
                     Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
                     Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
@@ -420,15 +427,9 @@ public class OLAPContext {
 
     @Override
     public String toString() {
-        return "OLAPContext{" +
-                "firstTableScan=" + firstTableScan +
-                ", allTableScans=" + allTableScans +
-                ", allOlapJoins=" + allOlapJoins +
-                ", groupByColumns=" + groupByColumns +
-                ", innerGroupByColumns=" + innerGroupByColumns +
-                ", innerFilterColumns=" + innerFilterColumns +
-                ", aggregations=" + aggregations +
-                ", filterColumns=" + filterColumns +
-                '}';
+        return "OLAPContext{" + "firstTableScan=" + firstTableScan + ", allTableScans=" + allTableScans
+                + ", allOlapJoins=" + allOlapJoins + ", groupByColumns=" + groupByColumns + ", innerGroupByColumns="
+                + innerGroupByColumns + ", innerFilterColumns=" + innerFilterColumns + ", aggregations=" + aggregations
+                + ", filterColumns=" + filterColumns + '}';
     }
 }

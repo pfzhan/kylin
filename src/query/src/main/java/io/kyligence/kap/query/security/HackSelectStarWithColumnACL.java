@@ -67,7 +67,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin(QueryContext.current())) {
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(QueryContext.current())) {
             return sql;
         }
 
@@ -166,11 +166,11 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return columns;
     }
 
-    private static boolean isAdmin(QueryContext context) {
+    private static boolean hasAdminPermission(QueryContext context) {
         if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
             return false;
         }
-        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals);
+        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
     }
 
     static class SelectNumVisitor extends SqlBasicVisitor<SqlNode> {

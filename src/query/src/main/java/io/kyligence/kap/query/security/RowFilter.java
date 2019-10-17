@@ -70,7 +70,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || isAdmin(QueryContext.current())) {
+        if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled() || hasAdminPermission(QueryContext.current())) {
             return sql;
         }
 
@@ -260,11 +260,11 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IPushDownConverte
         return tblsWithAlias;
     }
 
-    private static boolean isAdmin(QueryContext context) {
+    private static boolean hasAdminPermission(QueryContext context) {
         if (Objects.isNull(context) || Objects.isNull(context.getGroups())) {
             return false;
         }
-        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals);
+        return context.getGroups().stream().anyMatch(Constant.ROLE_ADMIN::equals) || context.isHasAdminPermission();
     }
 
     /*visitor classes.Get all select nodes, include select clause in subquery*/

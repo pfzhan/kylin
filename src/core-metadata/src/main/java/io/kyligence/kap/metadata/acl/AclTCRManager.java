@@ -258,6 +258,31 @@ public class AclTCRManager {
         return result;
     }
 
+    public Optional<Set<String>> getAuthorizedRows(String dbTblName, String colName, List<AclTCR> aclTCRS) {
+        Set<String> rows = Sets.newHashSet();
+        for (AclTCR aclTCR : aclTCRS) {
+            if (Objects.isNull(aclTCR.getTable())) {
+                return Optional.empty();
+            }
+
+            if (!aclTCR.getTable().containsKey(dbTblName)) {
+                continue;
+            }
+
+            AclTCR.ColumnRow columnRow = aclTCR.getTable().get(dbTblName);
+            if (Objects.isNull(columnRow) || Objects.isNull(columnRow.getRow())) {
+                return Optional.empty();
+            }
+
+            AclTCR.Row row = columnRow.getRow();
+            if (!row.containsKey(colName) || Objects.isNull(row.get(colName))) {
+                return Optional.empty();
+            }
+            rows.addAll(row.get(colName));
+        }
+        return Optional.of(rows);
+    }
+
     private void getRows(String dbTblName, AclTCR.ColumnRow columnRow,
             Map<String, Map<String, Set<String>>> dbTblColRow) {
         columnRow.getRow().forEach((colName, realRow) -> {

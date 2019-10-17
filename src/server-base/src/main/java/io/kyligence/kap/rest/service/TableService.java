@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -390,6 +391,7 @@ public class TableService extends BasicService {
             if (tableExtDesc != null) {
                 rtableDesc.setTotalRecords(tableExtDesc.getTotalRows());
                 rtableDesc.setSamplingRows(tableExtDesc.getSampleRows());
+                filterSamplingRows(project, rtableDesc, isAclGreen, aclTCRS);
             }
 
             if (CollectionUtils.isNotEmpty(models)) {
@@ -414,6 +416,47 @@ public class TableService extends BasicService {
         return descs;
     }
 
+    @VisibleForTesting
+    public void filterSamplingRows(String project, TableDescResponse rtableDesc, boolean isAclGreen,
+            List<AclTCR> aclTCRS) {
+        if (isAclGreen) {
+            return;
+        }
+        List<String[]> result = Lists.newArrayList();
+        final String dbTblName = rtableDesc.getIdentity();
+        Map<Integer, Optional<Set<String>>> columnRows = Arrays.stream(rtableDesc.getExtColumns()).map(cdr -> {
+            int id = Integer.parseInt(cdr.getId());
+            Optional<Set<String>> rows = getAclTCRManager(project).getAuthorizedRows(dbTblName, cdr.getName(), aclTCRS);
+            return new AbstractMap.SimpleEntry<>(id, rows);
+        }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        for (String[] row : rtableDesc.getSamplingRows()) {
+            if (Objects.isNull(row)) {
+                continue;
+            }
+            int i = 0;
+            boolean jumpThisSample = false;
+            List<String> nlist = Lists.newArrayList();
+            while (i++ < row.length) {
+                if (!columnRows.containsKey(i)) {
+                    continue;
+                }
+                Set<String> rows = columnRows.get(i).orElse(null);
+                if (Objects.nonNull(rows) && !rows.contains(row[i - 1])) {
+                    jumpThisSample = true;
+                    break;
+                }
+                nlist.add(row[i - 1]);
+            }
+            if (jumpThisSample) {
+                continue;
+            }
+            if (CollectionUtils.isNotEmpty(nlist)) {
+                result.add(nlist.toArray(new String[0]));
+            }
+        }
+        rtableDesc.setSamplingRows(result);
+    }
+
     private TableDesc getAuthorizedTableDesc(boolean isAclGreen, TableDesc originTable, List<AclTCR> aclTCRS) {
         if (isAclGreen) {
             return originTable;
@@ -422,6 +465,8 @@ public class TableService extends BasicService {
             return null;
         }
         val table = JsonUtil.deepCopyQuietly(originTable, TableDesc.class);
+        // pitfall: project is invalid after deepCopy
+        table.init(originTable.getProject());
         table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
                 .filter(c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
                 .toArray(ColumnDesc[]::new));
@@ -577,7 +622,7 @@ public class TableService extends BasicService {
     }
 
     public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectOperationPermission(project);
         String table = dateRangeRequest.getTable();
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         Preconditions.checkNotNull(dataLoadingRange, "table " + table + " is not incremental, ");

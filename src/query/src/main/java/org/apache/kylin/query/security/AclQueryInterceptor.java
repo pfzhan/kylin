@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -66,9 +67,10 @@ public class AclQueryInterceptor {
             return;
         }
 
-        if (isAdmin(contexts)) {
+        if (hasAdminPermission(contexts)) {
             return;
         }
+        
         final String project = getProjectName(contexts);
         // <"DB1.TABLE1":["COLUMN1"], "DB2.TABLE2":["COLUMN2"]>
         final Map<String, Set<String>> dbTblColumns = Maps.newHashMap();
@@ -121,7 +123,10 @@ public class AclQueryInterceptor {
         return contexts.get(0).olapAuthen.getRoles();
     }
 
-    protected static boolean isAdmin(List<OLAPContext> contexts) {
-        return getGroups(contexts).stream().anyMatch(Constant.ROLE_ADMIN::equals);
+    protected static boolean hasAdminPermission(List<OLAPContext> contexts) {
+        if (CollectionUtils.isEmpty(contexts)) {
+            return false;
+        }
+        return getGroups(contexts).stream().anyMatch(Constant.ROLE_ADMIN::equals) || contexts.get(0).hasAdminPermission;
     }
 }

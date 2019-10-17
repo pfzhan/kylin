@@ -64,8 +64,6 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
-import org.apache.kylin.rest.service.AccessService;
-import org.apache.kylin.rest.service.AclService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -119,9 +117,6 @@ public class ProjectServiceTest extends ServiceTestBase {
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
-    private AccessService accessService = Mockito.spy(AccessService.class);
-
-    @Mock
     private AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
 
     @Rule
@@ -136,9 +131,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
-        ReflectionTestUtils.setField(accessService, "aclService", Mockito.spy(AclService.class));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
-        ReflectionTestUtils.setField(projectService, "accessService", accessService);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }

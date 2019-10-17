@@ -58,7 +58,6 @@ import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.AlreadyExistsException;
-import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.acls.model.ObjectIdentity;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.model.Sid;
@@ -96,7 +95,7 @@ public class AclServiceTest extends ServiceTestBase {
         // inherit parent
         childAcl = aclService.inherit(childAcl, parentAcl);
         Assert.assertEquals(parentOid, childAcl.getAclRecord().getParentDomainObjectInfo());
-//        Assert.assertEquals(parentOid, childAclOutdated.getAclRecord().getParentDomainObjectInfo());
+        //        Assert.assertEquals(parentOid, childAclOutdated.getAclRecord().getParentDomainObjectInfo());
 
         // update permission on an outdated ACL, retry should keep things going
         PrincipalSid user1 = new PrincipalSid("user1");
@@ -111,12 +110,7 @@ public class AclServiceTest extends ServiceTestBase {
         // delete ACL
         aclService.deleteAcl(parentOid, true);
 
-        try {
-            aclService.readAcl(childOid);
-            Assert.fail();
-        } catch (NotFoundException ex) {
-            // expected
-        }
+        Assert.assertNull(aclService.readAcl(childOid));
     }
 
     @Test
