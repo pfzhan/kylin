@@ -376,15 +376,37 @@ public class LicenseInfoService extends BasicService {
     }
 
     public void updateLicense(byte[] bytes) throws IOException {
-
+        clearSystemLicense();
+        FileUtils.writeByteArrayToFile(backupAndDeleteLicense("tmp"), bytes);
+        gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
+        LicenseInfo licenseInfo = extractLicenseInfo();
+        File kylinHome = KapConfig.getKylinHomeAtBestEffort();
+        File realLicense = new File(kylinHome, LICENSE_FILENAME);
+        File tmpLicense = new File(kylinHome, "LICENSE.tmp");
+        FileUtils.copyFile(tmpLicense, realLicense);
+        FileUtils.forceDelete(tmpLicense);
+        gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
+        verifyLicense(licenseInfo);
         FileUtils.writeByteArrayToFile(backupAndDeleteLicense("backup"), bytes);
-
-        //refresh license
         gatherLicenseInfo(getDefaultLicenseFile(), getDefaultCommitFile(), getDefaultVersionFile(), null);
     }
 
     public void updateLicense(String string) throws IOException {
         updateLicense(string.getBytes("UTF-8"));
+    }
+
+    public void clearSystemLicense() {
+        System.setProperty(KE_DATES, "");
+        System.setProperty(KE_LICENSE_LEVEL, "");
+        System.setProperty(KE_LICENSE_CATEGORY, "");
+        System.setProperty(KE_LICENSE_STATEMENT, "");
+        System.setProperty(KE_LICENSE_ISEVALUATION, "");
+        System.setProperty(KE_LICENSE_SERVICEEND, "");
+        System.setProperty(KE_LICENSE_NODES, "");
+        System.setProperty(KE_LICENSE_ISCLOUD, "");
+        System.setProperty(KE_LICENSE_INFO, "");
+        System.setProperty(KE_LICENSE_VERSION, "");
+        System.setProperty(KE_LICENSE_VOLUME, "");
     }
 
 }

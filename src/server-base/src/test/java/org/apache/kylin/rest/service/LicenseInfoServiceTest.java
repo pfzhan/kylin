@@ -152,4 +152,40 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testUpdateLicense() throws Exception {
+        String license = "wu xiao xu ke zheng";
+        licenseInfoService.updateLicense(license);
+        File kylinHome = KapConfig.getKylinHomeAtBestEffort();
+        File realLicense = new File(kylinHome, "LICENSE");
+        String fileLicense = FileUtils.readFileToString(realLicense);
+        // This is also success because NOT APPLY LICENSE PATCH
+        assert fileLicense.equals(license);
+
+        license = "Evaluation license for Kyligence Enterprise\n" + "Category: 4.x\n" + "SLA Service: NO\n"
+                + "Volume: 1\n" + "Level: professional\n"
+                + "Insight License: 5 users; evaluation; 2019-06-01,2019-07-30\n" + "====\n" + "Kyligence Enterprise\n"
+                + "2019-06-01,2019-07-30\n" + "19d4801b6dardchr83bp3i7wadbdvycs8ay7ibicu2msfogl6kiwz7z3"
+                + "dmdizepmicl3bgqznn34794jt5g51sutofcfpn9jeiw5k3cvt2750faxw7"
+                + "ip1fp08mt3og6xijt4x02euf1zkrn5m7huwal8lqms3gmn0d5i8y2dqlvkv"
+                + "pqtwz3m9tqcnq6n4lznthbdtfncdqsly7a8v9pndh1cav2tdcczzs17ns6e0"
+                + "d4izeatwybr25lir5f5s6qe4ry10x2fkqco7unb4h4ivx8jo6vdb5sp3r473"
+                + "8zhlvrbdwfa38s3wh82lrnugrhxq8eap3rebq9dz8xka713aui4v2acquulic"
+                + "dadt63cv0biz7y7eccfh1tri60526b2bmon71k29n6p29tsbhyl2wdx5hsjux"
+                + "g2wd993hcndot1fc5oz8kebopqrudyf4o7tjc5ca0bvtysnw3gn64c1sd2iw2r"
+                + "lhlxk7c5szp6kde8dvitteoqo1oufum5eyjbk1q2fegf9vpyng3bs6c6qfoibc2"
+                + "wvxgjn4hnismbsr4ovwe5gvam74ikdromn8dxv91e5wuvcqml92jgfoj4g0xzrn"
+                + "s05hsqs55a5a9ao44f6m2eccscq4crfm5dxwdl7xbmmmj1yfgpygco4mvh9ksits"
+                + "xoy30v6dgse76wmyemjymyaa2f6my83vu55z9vhywv6a4har3tep32dg3mvol1arsi"
+                + "a8bllis4awfqjpw57lpv1fmt5n8ns8vqvle09cpehrlkt5kjcaucwb64c25q8zvikg"
+                + "tm2p0ywfnsapm97fxloymcqp0vgwmqzt3feaq8o6mzjaqmgap7r7gtn1k1awwxjs1s" + "d91g4y1emab14hs";
+
+        licenseInfoService.updateLicense(license);
+        realLicense = new File(kylinHome, "LICENSE");
+        fileLicense = FileUtils.readFileToString(realLicense);
+
+        assert fileLicense.equals(license);
+
+    }
+
 }
