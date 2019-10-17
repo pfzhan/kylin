@@ -160,7 +160,9 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // collect inner columns from group keys
         usedCols.addAll(getGroupByInnerColumns(context));
         // collect inner columns from filter keys
-        usedCols.addAll(getFilterInnerColumns(context));
+        if (modelContext.getSmartContext().getSmartConfig().enableComputedColumnOnFilterKeySuggestion()) {
+            usedCols.addAll(getFilterInnerColumns(context));
+        }
 
         for (TblColRef col : usedCols) {
             if (col.isInnerColumn()) {

@@ -27,6 +27,8 @@ package io.kyligence.kap.smart.model;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.smart.common.SmartConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.junit.Assert;
 import org.junit.Test;
@@ -228,6 +230,40 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(157, dataModel.getAllNamedColumns().size());
         }
     }
+
+    @Test
+    public void testEnableDisableNonEquiJoinModeling() {
+        String[] sqls = new String[] {
+                "select avg(PRICE), ACCOUNT_ID\n" +
+                        "from KYLIN_SALES \n" +
+                        "left join KYLIN_ACCOUNT\n" +
+                        "ON KYLIN_SALES.BUYER_ID > KYLIN_ACCOUNT.ACCOUNT_ID\n" +
+                        "group by price, account_id"
+        };
+        Boolean enableAutoModelingForNonEquiJoin = SmartConfig.wrap(getTestConfig()).enableAutoModelingForNonEquiJoin();
+        KylinConfig conf = getTestConfig();
+
+        conf.setProperty("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        {
+            NSmartMaster smartMaster = new NSmartMaster(conf, proj, sqls);
+            smartMaster.analyzeSQLs();
+
+            NSmartContext ctx = smartMaster.getContext();
+            Assert.assertEquals(1, ctx.getModelContexts().size());
+        }
+
+        conf.setProperty("kap.smart.conf.auto-modeling.non-equi-join.enabled", "FALSE");
+        {
+            NSmartMaster smartMaster = new NSmartMaster(conf, proj, sqls);
+            smartMaster.analyzeSQLs();
+
+            NSmartContext ctx = smartMaster.getContext();
+            Assert.assertEquals(2, ctx.getModelContexts().size());
+        }
+
+        conf.setProperty("kap.smart.conf.auto-modeling.non-equi-join.enabled", enableAutoModelingForNonEquiJoin.toString());
+    }
+
 
     private void preparePartition() {
         String tableName = "DEFAULT.KYLIN_SALES";

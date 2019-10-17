@@ -57,6 +57,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testAllQueries() throws Exception {
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         executeTestScenario(
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //

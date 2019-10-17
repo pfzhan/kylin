@@ -92,4 +92,13 @@ public class SmartConfig {
     public long getComputedColumnOnFilterKeySuggestionMinCardinality() {
         return getOptional("computed-column.suggestion.filter-key.minimum-cardinality", 10000L);
     }
+
+    public Boolean enableComputedColumnOnFilterKeySuggestion() {
+        return Boolean.valueOf(getOptional("computed-column.suggestion.filter-key.enabled", "FALSE"));
+    }
+
+    public Boolean enableAutoModelingForNonEquiJoin() {
+        return Boolean.valueOf(getOptional("auto-modeling.non-equi-join.enabled", "FALSE"));
+    }
+
 }

@@ -32,6 +32,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -49,6 +50,11 @@ import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.val;
 
 public class NAutoComputedColumnTest extends NAutoTestBase {
+
+    @Before
+    public void setupCCConf() {
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+    }
 
     @Test
     public void testComputedColumnSingle() {
@@ -737,6 +743,36 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * 100", computedColumns.get(1).getInnerExpression().trim());
         Assert.assertEquals("BIGINT", computedColumns.get(0).getDatatype());
         Assert.assertEquals("INTEGER", computedColumns.get(1).getDatatype());
+    }
+
+    @Test
+    public void testDisableCCOnInnerFilterCol() {
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "FALSE");
+        String[] sqls = new String[] { "select count(1) as num from\n" //
+                + "(\n" //
+                + "select trans_id, cal_dt\n" //
+                + "from TEST_KYLIN_FACT\n" //
+                + "inner JOIN TEST_ACCOUNT ON TEST_KYLIN_FACT.SELLER_ID = TEST_ACCOUNT.ACCOUNT_ID\n" //
+                + "where\n" //
+                + "  TEST_ACCOUNT.ACCOUNT_ID + TEST_KYLIN_FACT.ITEM_COUNT >= 10000336\n" //
+                + "  and TEST_KYLIN_FACT.ITEM_COUNT > 100\n" //
+                + "  or (\n" //
+                + "    TEST_KYLIN_FACT.ITEM_COUNT * 100 <> 100000\n" //
+                + "    and LSTG_FORMAT_NAME in ('FP-GTC', 'ABIN')\n" //
+                + "  )\n" //
+                + ")\n" //
+                + "group by cal_dt" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+        val computedColumns = targetModel.getComputedColumnDescs();
+        val accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
+
+        Assert.assertEquals(0, computedColumns.size());
     }
 
     @Test
