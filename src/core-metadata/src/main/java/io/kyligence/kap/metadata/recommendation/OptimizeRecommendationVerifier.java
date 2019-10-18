@@ -26,13 +26,11 @@ package io.kyligence.kap.metadata.recommendation;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -89,24 +87,36 @@ public class OptimizeRecommendationVerifier {
         verify(context, recommendation.getMeasureRecommendations(), passMeasureItems, failMeasureItems,
                 context.getMeasureContextRecommendationItems());
 
-        verifyIndexRecommendationItems(context, recommendation.getIndexRecommendations(), passIndexItems,
-                failIndexItems, context.getIndexContextRecommendationItems());
-        val allNamedColumns = Lists.newArrayList(context.getRealIdColumnMap().values());
-        allNamedColumns.sort(Comparator.comparingInt(NDataModel.NamedColumn::getId));
+        verify(context, recommendation.getIndexRecommendations(), passIndexItems, failIndexItems,
+                context.getIndexContextRecommendationItems());
+        val allNamedColumns = model.getAllNamedColumns().stream()
+                .filter(column -> !OptimizeRecommendationManager.isVirtualColumnId(column.getId()))
+                .sorted(Comparator.comparingInt(NDataModel.NamedColumn::getId)).collect(Collectors.toList());
         model.setAllNamedColumns(allNamedColumns);
 
+        val realColumns = allNamedColumns.stream().map(NDataModel.NamedColumn::getAliasDotColumn)
+                .collect(Collectors.toSet());
+
         model.setComputedColumnDescs(model.getComputedColumnDescs().stream()
-                .filter(computedColumnDesc -> context.getRealCCs().contains(computedColumnDesc.getColumnName()))
+                .filter(computedColumnDesc -> realColumns.contains(
+                        (computedColumnDesc.getTableAlias() + "." + computedColumnDesc.getColumnName()).toUpperCase()))
                 .collect(Collectors.toList()));
 
         model.setAllMeasures(model.getAllMeasures().stream()
-                .filter(measure -> context.getRealMeasures().contains(measure.getName())).collect(Collectors.toList()));
+                .filter(measure -> !OptimizeRecommendationManager.isVirtualMeasureId(measure.getId()))
+                .collect(Collectors.toList()));
 
         modelManager.updateDataModelDesc(model);
 
         indexPlanManager.updateIndexPlan(indexPlan);
 
         recommendationManager.update(context, System.currentTimeMillis());
+
+        val modelVerified = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        val indexPlanVerified = indexPlanManager.copy(indexPlanManager.getIndexPlan(id));
+
+        recommendationManager.apply(modelVerified, indexPlanVerified,
+                recommendationManager.getOptimizeRecommendation(id));
     }
 
     public void verifyAll() {
@@ -130,18 +140,7 @@ public class OptimizeRecommendationVerifier {
 
     private <T extends RecommendationItem<T>> void verify(OptimizeContext context, List<T> items, Set<Long> pass,
             Set<Long> fail, OptimizeContext.ContextRecommendationItems<T> contextItems) {
-        verify(context, items, pass, fail, contextItems, item -> item.apply(context, false));
-    }
-
-    private void verifyIndexRecommendationItems(OptimizeContext context, List<IndexRecommendationItem> items,
-            Set<Long> pass, Set<Long> fail,
-            OptimizeContext.ContextRecommendationItems<IndexRecommendationItem> contextItems) {
-        verify(context, items, pass, fail, contextItems, null);
-    }
-
-    private <T extends RecommendationItem<T>> void verify(OptimizeContext context, List<T> items, Set<Long> pass,
-            Set<Long> fail, OptimizeContext.ContextRecommendationItems<T> contextItems, Consumer<T> consumer) {
-        items.forEach(item -> {
+        items.stream().sorted(Comparator.comparingLong(RecommendationItem::getItemId)).forEach(item -> {
             item.translate(context);
             if (pass != null && pass.contains(item.getItemId())) {
                 item.checkDependencies(context, true);
@@ -152,17 +151,6 @@ public class OptimizeRecommendationVerifier {
                 contextItems.getDeletedRecommendations().add(item.getItemId());
             } else if (fail != null && fail.contains(item.getItemId())) {
                 contextItems.failRecommendationItem(item.getItemId());
-            } else {
-                if (contextItems.getDeletedRecommendations().contains(item.getItemId())) {
-                    return;
-                }
-                item.checkDependencies(context, false);
-                if (contextItems.getDeletedRecommendations().contains(item.getItemId())) {
-                    return;
-                }
-                if (consumer != null) {
-                    consumer.accept(item);
-                }
             }
         });
     }

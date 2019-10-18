@@ -79,15 +79,14 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
     private void checkAddTableIndexDependencies(OptimizeContext context, boolean real) {
         var item = context.getIndexRecommendationItem(itemId);
         for (int i = 0; i < item.entity.getDimensions().size(); i++) {
-            val idColumnMap = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
-            if (!(idColumnMap.containsKey(item.entity.getDimensions().get(i)))) {
-                if (!real) {
-                    context.failIndexRecommendationItem(itemId);
-                    return;
-                } else {
-                    throw new DependencyLostException(
-                            "table index lost dependency: column not exists, you may need pass it first");
-                }
+            val idColumnMap = context.getVirtualIdColumnMap();
+            val id = item.entity.getDimensions().get(i);
+            if (!(idColumnMap.containsKey(id)) && !real) {
+                context.failIndexRecommendationItem(itemId);
+            }
+            if (!(idColumnMap.containsKey(id)) || real && OptimizeRecommendationManager.isVirtualColumnId(id)) {
+                throw new DependencyLostException(
+                        "table index lost dependency: column not exists, you may need pass it first");
             }
         }
     }
@@ -95,29 +94,30 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
     private void checkAddAggIndexDependencies(OptimizeContext context, boolean real) {
         var item = context.getIndexRecommendationItem(itemId);
         for (int i = 0; i < item.entity.getDimensions().size(); i++) {
-            val idColumnMap = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
-            if (!(idColumnMap.containsKey(item.entity.getDimensions().get(i))
-                    && idColumnMap.get(item.entity.getDimensions().get(i)).isDimension())) {
-                if (!real) {
-                    context.failIndexRecommendationItem(itemId);
-                    return;
-                } else {
-                    throw new DependencyLostException(
-                            "agg index lost dependency: dimension not exists, you may need pass it first");
-                }
+            val idColumnMap = context.getVirtualIdColumnMap();
+            val id = item.entity.getDimensions().get(i);
+            if (!(idColumnMap.containsKey(id) && idColumnMap.get(id).isDimension()) && !real) {
+                context.failIndexRecommendationItem(itemId);
+                return;
+            }
+            if (!idColumnMap.containsKey(id) || !(idColumnMap.containsKey(id) && idColumnMap.get(id).isDimension())
+                    || real && OptimizeRecommendationManager.isVirtualColumnId(id)) {
+                throw new DependencyLostException(
+                        "agg index lost dependency: dimension not exists, you may need pass it first");
             }
         }
 
         for (int i = 0; i < item.entity.getMeasures().size(); i++) {
-            val measures = real ? context.getRealMeasureIds() : context.getVirtualMeasureIds();
-            if (!measures.contains(item.entity.getMeasures().get(i))) {
-                if (!real) {
-                    context.failIndexRecommendationItem(itemId);
-                    return;
-                } else {
-                    throw new DependencyLostException(
-                            "agg index lost dependency: measure not exists, you may need pass it first");
-                }
+            val measures = context.getVirtualMeasureIds();
+            val id = item.entity.getMeasures().get(i);
+            if (!measures.contains(id) && !real) {
+                context.failIndexRecommendationItem(itemId);
+                return;
+            }
+
+            if (!measures.contains(id) || real && OptimizeRecommendationManager.isVirtualMeasureId(id)) {
+                throw new DependencyLostException(
+                        "agg index lost dependency: measure not exists, you may need pass it first");
             }
         }
     }
@@ -225,8 +225,12 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
             context.getIndexPlan().getIndexes().stream()
                     .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId()).findFirst()
                     .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().removeAll(removeLayouts));
-            context.getIndexPlan().getRuleBasedIndex().addBlackListLayouts(item.getEntity().getLayouts().stream()
-                    .filter(LayoutEntity::isManual).map(LayoutEntity::getId).collect(Collectors.toList()));
+            val rule = context.getIndexPlan().getRuleBasedIndex();
+            if (rule != null) {
+                rule.addBlackListLayouts(item.getEntity().getLayouts().stream()
+                        .filter(LayoutEntity::isManual).map(LayoutEntity::getId).collect(Collectors.toList()));
+            }
+
         } else {
             logger.warn("remove layouts not exists in index plan.");
         }

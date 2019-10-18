@@ -30,7 +30,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.MeasureDesc;
 
@@ -64,14 +63,6 @@ public class OptimizeContext {
 
     private Map<String, Integer> dimensionColumnNameIdMap;
 
-    private Map<Integer, NDataModel.NamedColumn> realIdColumnMap;
-    private Map<String, Integer> realColumnIdMap;
-
-    private Set<String> realCCs;
-    private Set<String> virtualCCs;
-
-    private Set<String> realMeasures;
-    private Set<Integer> realMeasureIds;
     private Set<String> virtualMeasures;
     private Set<Integer> virtualMeasureIds;
 
@@ -117,27 +108,14 @@ public class OptimizeContext {
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getId, m -> m));
         this.virtualColumnIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-        this.dimensionColumnNameIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+        this.dimensionColumnNameIdMap = this.model.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toMap(NDataModel.NamedColumn::getName, NDataModel.NamedColumn::getId));
 
-        this.realIdColumnMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(NDataModel.NamedColumn::getId,
-                        m -> JsonUtil.deepCopyQuietly(m, NDataModel.NamedColumn.class)));
-        this.realColumnIdMap = this.model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, NDataModel.NamedColumn::getId));
-
-        this.realCCs = this.model.getComputedColumnDescs().stream().map(ComputedColumnDesc::getColumnName)
-                .collect(Collectors.toSet());
-        this.virtualCCs = this.model.getComputedColumnDescs().stream().map(ComputedColumnDesc::getColumnName)
-                .collect(Collectors.toSet());
-
-        this.realMeasures = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(MeasureDesc::getName).collect(Collectors.toSet());
-        this.realMeasureIds = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(NDataModel.Measure::getId)
-                .collect(Collectors.toSet());
-        this.virtualMeasures = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(MeasureDesc::getName)
-                .collect(Collectors.toSet());
-        this.virtualMeasureIds = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb()).map(NDataModel.Measure::getId)
-                .collect(Collectors.toSet());
+        this.virtualMeasures = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb())
+                .map(MeasureDesc::getName).collect(Collectors.toSet());
+        this.virtualMeasureIds = this.model.getAllMeasures().stream().filter(measure -> !measure.isTomb())
+                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
 
         this.originMeasureIndex = this.model.getAllMeasures().isEmpty() ? NDataModel.MEASURE_ID_BASE
                 : this.model.getAllMeasures().get(this.model.getAllMeasures().size() - 1).getId() + 1;

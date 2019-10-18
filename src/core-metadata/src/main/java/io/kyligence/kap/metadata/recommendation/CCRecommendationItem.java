@@ -88,7 +88,6 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
 
         val ccs = model.getComputedColumnDescs();
         ccs.add(cc);
-        context.getVirtualCCs().add(cc.getColumnName());
 
         val columnInModel = new NDataModel.NamedColumn();
         columnInModel.setId(getCcColumnId());
@@ -101,10 +100,6 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
             context.getTranslations().put(columnInModel.getId(), realId);
             columnInModel.setId(realId);
             context.setOriginColumnIndex(realId + 1);
-            context.getRealColumnIdMap().put(columnInModel.getAliasDotColumn(), columnInModel.getId());
-            context.getRealIdColumnMap().put(columnInModel.getId(),
-                    JsonUtil.deepCopyQuietly(columnInModel, NDataModel.NamedColumn.class));
-            context.getRealCCs().add(cc.getColumnName());
         }
         context.getVirtualColumnIdMap().put(columnInModel.getAliasDotColumn(), columnInModel.getId());
         context.getVirtualIdColumnMap().put(columnInModel.getId(), columnInModel);
@@ -132,16 +127,16 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
                 name = identifier.names.get(1);
 
             }
-            String aliasDotColumn = table + "." + name;
-            val columnIdMap = real ? context.getRealColumnIdMap() : context.getVirtualColumnIdMap();
-            if (!columnIdMap.containsKey(aliasDotColumn.toUpperCase())) {
-                if (!real) {
-                    context.failCCRecommendationItem(itemId);
-                    return true;
-                } else {
-                    throw new DependencyLostException(String.format(
-                            "cc lost dependency: cc %s not exists, you may need pass it first", aliasDotColumn));
-                }
+            String aliasDotColumn = (table + "." + name).toUpperCase();
+            val columnIdMap = context.getVirtualColumnIdMap();
+            if (!columnIdMap.containsKey(aliasDotColumn) && !real) {
+                context.failCCRecommendationItem(itemId);
+                return true;
+            }
+            if (!columnIdMap.containsKey(aliasDotColumn) || real
+                    && OptimizeRecommendationManager.isVirtualColumnId(columnIdMap.get(aliasDotColumn))) {
+                throw new DependencyLostException(String
+                        .format("cc lost dependency: cc %s not exists, you may need pass it first", aliasDotColumn));
             }
             return false;
         }

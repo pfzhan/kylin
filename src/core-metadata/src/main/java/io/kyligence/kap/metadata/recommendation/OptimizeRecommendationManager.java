@@ -83,7 +83,15 @@ public class OptimizeRecommendationManager {
     }
 
     public static final int ID_OFFSET = 10000000;
-    public static final int MEASURE_OFFSET = 10010000;
+    public static final int MEASURE_OFFSET = ID_OFFSET + NDataModel.MEASURE_ID_BASE;
+
+    public static boolean isVirtualColumnId(int id) {
+        return id >= ID_OFFSET;
+    }
+
+    public static boolean isVirtualMeasureId(int id) {
+        return id >= MEASURE_OFFSET;
+    }
 
     private KylinConfig config;
     private String project;
@@ -460,11 +468,14 @@ public class OptimizeRecommendationManager {
 
     private void apply(OptimizeContext context) {
         val recommendation = context.getRecommendation();
-        var ccRecommendations = recommendation.getCcRecommendations();
+        var ccRecommendations = recommendation.getCcRecommendations().stream()
+                .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).collect(Collectors.toList());
 
-        val dimensionRecommendations = recommendation.getDimensionRecommendations();
+        val dimensionRecommendations = recommendation.getDimensionRecommendations().stream()
+                .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).collect(Collectors.toList());
 
-        val measureRecommendations = recommendation.getMeasureRecommendations();
+        val measureRecommendations = recommendation.getMeasureRecommendations().stream()
+                .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).collect(Collectors.toList());
 
         ccRecommendations = topo(ccRecommendations, context.getFactTableName());
 
@@ -621,10 +632,12 @@ public class OptimizeRecommendationManager {
         }
         val context = new OptimizeContext(model, indexPlan, recommendation);
         apply(context);
-        recommendation.getIndexRecommendations().stream().filter(IndexRecommendationItem::isAdd).forEach(item -> {
-            item.checkDependencies(context);
-            item.apply(context);
-        });
+        recommendation.getIndexRecommendations().stream()
+                .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).filter(IndexRecommendationItem::isAdd)
+                .forEach(item -> {
+                    item.checkDependencies(context);
+                    item.apply(context);
+                });
         update(context);
         return context.getIndexPlan();
     }

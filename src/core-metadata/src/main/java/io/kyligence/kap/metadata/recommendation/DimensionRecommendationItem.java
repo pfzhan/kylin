@@ -99,14 +99,6 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
 
         modelColumn.setName(column.getName());
         context.getDimensionColumnNameIdMap().put(column.getName(), column.getId());
-
-        if (real) {
-            val realColumn = context.getRealIdColumnMap().get(column.getId());
-            realColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
-            if (!column.getName().equals(realColumn.getName())) {
-                realColumn.setName(column.getName());
-            }
-        }
     }
 
     @Override
@@ -115,16 +107,18 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
             return;
         }
         val recommendation = context.getDimensionRecommendationItem(itemId);
-        val columns = real ? context.getRealIdColumnMap() : context.getVirtualIdColumnMap();
-        if (!columns.containsKey(recommendation.getColumn().getId())) {
-            if (!real) {
-                context.failDimensionRecommendationItem(itemId);
-            } else {
-                throw new DependencyLostException(String.format(
-                        "dimension lost dependency: column %s not exists in all columns, you may need pass it first",
-                        context.getDimensionRecommendationItem(itemId).getColumn().getName()));
-            }
+        val columns = context.getVirtualIdColumnMap();
+        val id = recommendation.getColumn().getId();
+        if (!columns.containsKey(id) && !real) {
+            context.failDimensionRecommendationItem(itemId);
+            return;
         }
+        if (!columns.containsKey(id) || (real && OptimizeRecommendationManager.isVirtualColumnId(id))) {
+            throw new DependencyLostException(String.format(
+                    "dimension lost dependency: column %s not exists in all columns, you may need pass it first",
+                    context.getDimensionRecommendationItem(itemId).getColumn().getName()));
+        }
+
     }
 
     @Override

@@ -102,8 +102,6 @@ public class MeasureRecommendationItem implements Serializable, RecommendationIt
             val newId = context.getOriginMeasureIndex();
             measure.setId(newId);
             context.setOriginMeasureIndex(newId + 1);
-            context.getRealMeasures().add(measure.getName());
-            context.getRealMeasureIds().add(measure.getId());
             context.getTranslations().put(oldId, newId);
         }
         context.getVirtualMeasures().add(measure.getName());
@@ -123,18 +121,17 @@ public class MeasureRecommendationItem implements Serializable, RecommendationIt
         for (int i = 0; i < measure.getFunction().getParameters().size(); i++) {
             var parameterDesc = measure.getFunction().getParameters().get(i);
             if (parameterDesc.isColumnType()) {
-                val columns = real ? context.getRealColumnIdMap() : context.getVirtualColumnIdMap();
+                val columns = context.getVirtualColumnIdMap();
                 val value = context.getMeasureRecommendationItem(itemId).getMeasure().getFunction().getParameters()
-                        .get(i).getValue();
-                if (!columns.containsKey(value.toUpperCase())) {
-                    if (!real) {
-                        context.failMeasureRecommendationItem(itemId);
-                        return;
-                    } else {
-                        throw new DependencyLostException(String.format(
-                                "measure lost dependency: column %s not exists in all columns, you may need pass it first",
-                                value));
-                    }
+                        .get(i).getValue().toUpperCase();
+                if (!columns.containsKey(value) && !real) {
+                    context.failMeasureRecommendationItem(itemId);
+                    return;
+                }
+                if (!columns.containsKey(value) || real && OptimizeRecommendationManager.isVirtualColumnId(columns.get(value))) {
+                    throw new DependencyLostException(String.format(
+                            "measure lost dependency: column %s not exists in all columns, you may need pass it first",
+                            value));
                 }
             }
         }

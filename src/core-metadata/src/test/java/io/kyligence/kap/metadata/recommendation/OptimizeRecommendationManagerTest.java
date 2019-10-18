@@ -108,6 +108,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String removeCCOptimizedIndexPlanFile = indexDir + "remove_cc_optimized_index_plan.json";
     private final String duplicateColumnBaseModel = modelDir + "duplicate_column_base_model.json";
     private final String duplicateColumnOptimizedModel = modelDir + "duplicate_column_optimized_model.json";
+    private final String emptyRuleIndexPlanFile = indexDir + "empty_rule_index_plan.json";
 
     private void prepare(String baseModelFile, String baseIndexFile, String optimizedModelFile,
             String optimizedIndexPlanFile) throws IOException {
@@ -202,6 +203,27 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(2, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
     }
 
+    @Test
+    public void testRemoveIndex_NullRule() throws IOException {
+        prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile);
+        val indexPlan = indexPlanManager.getIndexPlan(id);
+        Assert.assertNull(indexPlan.getRuleBasedIndex());
+        val removeLayoutsId = Sets.<Long> newHashSet(150001L, 20000000002L);
+        recommendationManager.removeLayouts(id, removeLayoutsId);
+
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(5, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(2, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+
+        val passIndexes = Sets.newHashSet(3L, 4L);
+        val verifier = create(null, null, null, null, null, null, passIndexes, null);
+
+        verifier.verify();
+        val appliedIndexPlan = indexPlanManager.getIndexPlan(id);
+        Assert.assertTrue(appliedIndexPlan.getIndexes().stream().anyMatch(index -> index.getLayouts().stream()
+                .noneMatch(layoutEntity -> layoutEntity.getId() == 20000000002L || layoutEntity.getId() == 150001L)));
+    }
+
     private void testRemoveExists(NDataModelManager.NDataModelUpdater updater) {
         modelManager.updateDataModel(id, updater);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -232,6 +254,21 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(0, recommendation.getCcRecommendations().size());
         Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(3, recommendation.getMeasureRecommendations().size());
+        val model = recommendationManager.applyModel(id);
+        Assert.assertTrue(model.getAllNamedColumns().stream().anyMatch(
+                namedColumn -> namedColumn.getId() == 16 && namedColumn.getStatus() == NDataModel.ColumnStatus.TOMB));
+    }
+
+    @Test
+    public void testApply_RemoveCCAndVerify() throws IOException {
+        testApply_RemoveCC();
+        val verifier = new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id);
+        verifier.verifyAll();
+        val model = modelManager.getDataModelDesc(id);
+        Assert.assertTrue(model.getAllNamedColumns().stream().anyMatch(namedColumn -> namedColumn.getId() == 1
+                && namedColumn.getStatus() == NDataModel.ColumnStatus.DIMENSION));
+        Assert.assertTrue(model.getAllNamedColumns().stream().anyMatch(
+                namedColumn -> namedColumn.getId() == 16 && namedColumn.getStatus() == NDataModel.ColumnStatus.TOMB));
     }
 
     @Test
@@ -239,6 +276,18 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         prepare();
         testRemoveExists(copyForWrite -> copyForWrite.getAllMeasures().stream()
                 .filter(measure -> measure.getId() > 100000).forEach(measure -> measure.setTomb(true)));
+    }
+
+    @Test
+    public void testApply_RemoveMeasureAndVerify() throws IOException {
+        prepare();
+        testRemoveExists(copyForWrite -> copyForWrite.getAllMeasures().stream()
+                .filter(measure -> measure.getId() > 100000).forEach(measure -> measure.setTomb(true)));
+        val verifier = new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id);
+        verifier.verifyAll();
+        val model = modelManager.getDataModelDesc(id);
+        Assert.assertTrue(
+                model.getAllMeasures().stream().anyMatch(measure -> measure.getId() == 100001 && measure.isTomb()));
     }
 
     @Test

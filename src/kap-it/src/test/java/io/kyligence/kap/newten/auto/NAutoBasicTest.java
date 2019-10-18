@@ -208,7 +208,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isNotSucceed());
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
-        NDataModel.Measure newMeasure = model.getAllMeasures().stream().filter(measure -> measure.getId() == 10010001L)
+        NDataModel.Measure newMeasure = model.getAllMeasures().stream().filter(measure -> measure.getId() == 10100001L)
                 .findFirst().orElse(null);
         Assert.assertNotNull(newMeasure);
         Assert.assertFalse(newMeasure.isTomb());
