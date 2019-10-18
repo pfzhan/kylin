@@ -27,11 +27,11 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -46,13 +46,10 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
@@ -64,6 +61,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -73,7 +72,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
+public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @InjectMocks
     private IndexPlanService indexPlanService = Mockito.spy(new IndexPlanService());
@@ -90,30 +89,47 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @Before
-    public void setupResource() {
-        System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
-    }
-
     @After
     public void tearDown() {
+        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "false");
         cleanupTestMetadata();
     }
 
     @Before
     public void setup() {
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        System.setProperty("HADOOP_USER_NAME", "root");
+        super.setup();
         indexPlanService.setSemanticUpater(semanticService);
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(indexPlanService, "aclEvaluate", aclEvaluate);
     }
 
+    private AtomicBoolean prepare(String modelId) throws NoSuchFieldException, IllegalAccessException {
+        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        val prj = prjManager.getProject("default");
+        val copy = prjManager.copyForWrite(prj);
+        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        prjManager.updateProject(copy);
+        AtomicBoolean clean = new AtomicBoolean(false);
+        val recommendationManager = spyOptimizeRecommendationManager();
+        Mockito.doAnswer(invocation -> {
+            String id = invocation.getArgument(0);
+            if (modelId.equals(id)) {
+                clean.set(true);
+            }
+            return null;
+        }).when(recommendationManager).cleanInEffective(Mockito.anyString());
+        Assert.assertFalse(clean.get());
+        return clean;
+    }
+
     @Test
-    public void testUpdateSingleRuleBasedCuboid() {
+    public void testUpdateSingleRuleBasedCuboid() throws NoSuchFieldException, IllegalAccessException {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val origin = indexPlanManager.getIndexPlan(modelId);
         NAggregationGroup aggregationGroup = new NAggregationGroup();
         aggregationGroup.setIncludes(new Integer[] { 1, 2, 3, 4 });
         val selectRule = new SelectRule();
@@ -130,6 +146,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(4, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals(origin.getAllLayouts().size() + 15, saved.getAllLayouts().size());
+        Assert.assertTrue(clean.get());
     }
 
     @Test
@@ -267,9 +284,11 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateTableIndex() {
+    public void testCreateTableIndex() throws NoSuchFieldException, IllegalAccessException {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val origin = indexPlanManager.getIndexPlan(modelId);
         val originLayoutSize = origin.getAllLayouts().size();
         val response = indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
@@ -305,6 +324,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, allEvents.size());
         val newLayoutEvent = allEvents.get(0);
         Assert.assertTrue(newLayoutEvent instanceof AddCuboidEvent);
+        Assert.assertTrue(clean.get());
     }
 
     @Test
@@ -377,10 +397,12 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateTableIndex() {
+    public void testUpdateTableIndex() throws NoSuchFieldException, IllegalAccessException {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
         long prevMaxId = 20000040001L;
         indexPlanService.createTableIndex("default",
-                CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                CreateTableIndexRequest.builder().project("default").modelId(modelId)
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
@@ -404,6 +426,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         allEvents.sort(Event::compareTo);
 
         Assert.assertEquals(4, allEvents.size());
+        Assert.assertTrue(clean.get());
     }
 
     @Test
@@ -543,4 +566,5 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
 
         return indexPlanService.calculateAggIndexCount(request);
     }
+
 }

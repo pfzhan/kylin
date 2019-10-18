@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -353,7 +354,7 @@ public class OptimizeRecommendationManager {
         return getOptimizeRecommendation(optimized.getId());
     }
 
-    public void clearAll(String id) {
+    public void cleanAll(String id) {
         if (getOptimizeRecommendation(id) == null) {
             return;
         }
@@ -363,6 +364,13 @@ public class OptimizeRecommendationManager {
             recommendation.setMeasureRecommendations(Lists.newArrayList());
             recommendation.setIndexRecommendations(Lists.newArrayList());
         });
+    }
+
+    public void cleanInEffective(String id) {
+        if (getOptimizeRecommendation(id) == null) {
+            return;
+        }
+        applyIndexPlan(id);
     }
 
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
@@ -626,6 +634,10 @@ public class OptimizeRecommendationManager {
     }
 
     void update(OptimizeContext context, long lastVerifiedTime) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !UnitOfWork.isAlreadyInTransaction()) {
+            logger.warn("cannot update recommendation without transaction.");
+            return;
+        }
         if (context.getModifiedCCRecommendations().isEmpty() && context.getModifiedDimensionRecommendations().isEmpty()
                 && context.getModifiedMeasureRecommendations().isEmpty()
                 && context.getModifiedIndexRecommendations().isEmpty()
@@ -805,4 +817,11 @@ public class OptimizeRecommendationManager {
         return indexPlanManager.copy(indexPlan);
     }
 
+    public void dropOptimizeRecommendation(String id) {
+        val recommendation = getOptimizeRecommendation(id);
+        if (recommendation == null) {
+            return;
+        }
+        crud.delete(recommendation);
+    }
 }

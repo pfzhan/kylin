@@ -1107,7 +1107,7 @@ public class TableService extends BasicService {
     }
 
     void cleanRecommendation(String project, NDataModel model) {
-        getOptimizeRecommendationManager(project).clearAll(model.getId());
+        getOptimizeRecommendationManager(project).cleanAll(model.getId());
     }
 
     void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context)

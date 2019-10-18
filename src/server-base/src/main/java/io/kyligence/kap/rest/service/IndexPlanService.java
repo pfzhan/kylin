@@ -98,7 +98,17 @@ public class IndexPlanService extends BasicService {
             response = semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
                     originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
         }
+        cleanInEffectiveRecommendation(project, request.getModelId());
         return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
+    }
+
+    private void cleanInEffectiveRecommendation(String project, String modelId) {
+        val prjManager = getProjectManager();
+        val prjInstance = prjManager.getProject(project);
+        if (prjInstance.isSemiAutoMode()) {
+            val recommendationManager = getOptimizeRecommendationManager(project);
+            recommendationManager.cleanInEffective(modelId);
+        }
     }
 
     @Transaction(project = 0)
@@ -167,6 +177,7 @@ public class IndexPlanService extends BasicService {
                 oldLayout.setOwner(getUsername());
                 oldLayout.setUpdateTime(System.currentTimeMillis());
             });
+            cleanInEffectiveRecommendation(project, request.getModelId());
             return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
         } else {
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
@@ -177,6 +188,7 @@ public class IndexPlanService extends BasicService {
                 newCuboid.setIndexPlan(copyForWrite);
                 copyForWrite.getIndexes().add(newCuboid);
             });
+            cleanInEffectiveRecommendation(project, request.getModelId());
             if (request.isLoadData()) {
                 val df = getDataflowManager(project).getDataflow(request.getModelId());
                 val readySegs = df.getSegments();

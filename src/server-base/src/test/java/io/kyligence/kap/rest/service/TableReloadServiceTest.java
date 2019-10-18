@@ -464,7 +464,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     clean.set(true);
                 }
                 return null;
-            }).when(manager).clearAll(Mockito.anyString());
+            }).when(manager).cleanAll(Mockito.anyString());
 
             NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc("DEFAULT.TEST_COUNTRY");
             prepareTableExt("DEFAULT.TEST_COUNTRY");

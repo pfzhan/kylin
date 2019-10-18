@@ -298,7 +298,7 @@ public class ModelSemanticHelper extends BasicService {
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, project, start, end);
-            recommendationManager.clearAll(model);
+            recommendationManager.cleanAll(model);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()

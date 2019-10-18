@@ -24,9 +24,12 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.ServiceTestBase;
@@ -37,6 +40,7 @@ import org.junit.Before;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import org.mockito.Mockito;
 
 public class CSVSourceTestCase extends ServiceTestBase {
 
@@ -89,6 +93,17 @@ public class CSVSourceTestCase extends ServiceTestBase {
         System.clearProperty("kylin.query.pushdown.jdbc.driver");
         System.clearProperty("kylin.query.pushdown.jdbc.username");
         System.clearProperty("kylin.query.pushdown.jdbc.password");
+    }
+
+    OptimizeRecommendationManager spyOptimizeRecommendationManager()
+            throws NoSuchFieldException, IllegalAccessException {
+        val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()));
+        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
+        filed.setAccessible(true);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
+                .get(getTestConfig());
+        managersByPrjCache.get(OptimizeRecommendationManager.class).put(getProject(), manager);
+        return manager;
     }
 
 }

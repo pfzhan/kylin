@@ -160,6 +160,14 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testDrop() throws IOException {
+        testOptimize();
+        recommendationManager.dropOptimizeRecommendation(id);
+        Assert.assertNull(recommendationManager.getOptimizeRecommendation(id));
+
+    }
+
+    @Test
     public void testOptimizeTwice() throws IOException {
         testOptimize();
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -175,7 +183,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testClearAll() throws IOException {
         testOptimize();
-        recommendationManager.clearAll(id);
+        recommendationManager.cleanAll(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(0, recommendation.getCcRecommendations().size());
         Assert.assertEquals(0, recommendation.getDimensionRecommendations().size());

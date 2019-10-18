@@ -111,7 +111,9 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -570,6 +572,9 @@ public class ModelService extends BasicService {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val recommendationManager = OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        recommendationManager.dropOptimizeRecommendation(modelId);
         dataflowManager.dropDataflow(modelId);
         indexPlanManager.dropIndexPlan(modelId);
         dataModelManager.dropModel(dataModelDesc);
@@ -1412,6 +1417,12 @@ public class ModelService extends BasicService {
 
         checkFlatTableSql(newModel);
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd());
+
+        val projectInstance = NProjectManager.getInstance(getConfig()).getProject(project);
+        if (projectInstance.isSemiAutoMode()) {
+            val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), project);
+            recommendationManager.cleanInEffective(modelId);
+        }
     }
 
     public void updateBrokenModel(String project, ModelRequest modelRequest, Set<Integer> columnIds) {

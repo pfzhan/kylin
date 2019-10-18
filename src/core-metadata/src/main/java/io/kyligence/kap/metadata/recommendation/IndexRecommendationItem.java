@@ -225,7 +225,6 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
             context.getIndexPlan().getIndexes().stream()
                     .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId()).findFirst()
                     .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().removeAll(removeLayouts));
-
             context.getIndexPlan().getRuleBasedIndex().addBlackListLayouts(item.getEntity().getLayouts().stream()
                     .filter(LayoutEntity::isManual).map(LayoutEntity::getId).collect(Collectors.toList()));
         } else {

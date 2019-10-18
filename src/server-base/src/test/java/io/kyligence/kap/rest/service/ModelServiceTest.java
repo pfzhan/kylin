@@ -61,14 +61,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -103,11 +101,13 @@ import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
@@ -176,6 +176,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @InjectMocks
     private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
 
+    @Autowired
+    private TableService tableService;
+
     @InjectMocks
     private SegmentHelper segmentHelper = new SegmentHelper();
 
@@ -213,6 +216,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @After
     public void tearDown() {
+        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "false");
         cleanupTestMetadata();
     }
 
@@ -549,18 +553,29 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testDropModelPass() {
+    public void testDropModelPass() throws NoSuchFieldException, IllegalAccessException {
         String modelId = "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94";
         String project = "default";
         EventManager eventManager = EventManager.getInstance(getTestConfig(), project);
         eventManager.postAddCuboidEvents(modelId, "admin");
         EventDao eventDao = EventDao.getInstance(getTestConfig(), project);
         Assert.assertEquals(2, eventDao.getEventsByModel(modelId).size());
+        AtomicBoolean clean = new AtomicBoolean(false);
+        val recommendationManager = spyOptimizeRecommendationManager();
+        Mockito.doAnswer(invocation -> {
+            String id = invocation.getArgument(0);
+            if (modelId.equals(id)) {
+                clean.set(true);
+            }
+            return null;
+        }).when(recommendationManager).dropOptimizeRecommendation(Mockito.anyString());
+
         modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
         List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", "",
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
         Assert.assertEquals(0, eventDao.getEventsByModel(modelId).size());
+        Assert.assertTrue(clean.get());
     }
 
     @Test
@@ -1028,12 +1043,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh normally
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
-        List<Event> events = eventDao.getEvents();
-        // TODO check other events
-        //        Assert.assertEquals(1, events.size());
-        //        Assert.assertEquals(SegmentRange.dateToLong("2010-01-02"), events.get(0).getSegmentRange().getStart());
-        //        Assert.assertEquals(SegmentRange.dateToLong("2010-01-03"), events.get(0).getSegmentRange().getEnd());
-
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not remove or refresh segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
@@ -1309,41 +1318,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testChangeTableAlias_ClearRecommendation() throws Exception {
-        final String project = "default";
-        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-
-        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
-        val modelId = model.getId();
-
-        modelMgr.updateDataModel(modelId, copyForWrite -> {
-            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-        });
-        model = modelMgr.getDataModelDesc(modelId);
-        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
-        request.setProject(project);
-        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toList()));
-        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
-
-        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
-
+        val modelRequest = prepare();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         AtomicBoolean clean = new AtomicBoolean(false);
-        val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), project));
-        Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
-        filed.setAccessible(true);
-        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
-                .get(getTestConfig());
-        managersByPrjCache.get(OptimizeRecommendationManager.class).put(project, manager);
+        val manager = spyOptimizeRecommendationManager();
         Mockito.doAnswer(invocation -> {
             String id = invocation.getArgument(0);
             if (modelId.equals(id)) {
                 clean.set(true);
             }
             return null;
-        }).when(manager).clearAll(Mockito.anyString());
+        }).when(manager).cleanAll(Mockito.anyString());
         val oldAlias = modelRequest.getJoinTables().get(0).getAlias();
         modelRequest.getJoinTables().get(0).setAlias(oldAlias + "_1");
 
@@ -3180,4 +3165,63 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertNotNull(response1);
     }
 
+    @Test
+    public void testModelBroken_CleanRecommendation() throws NoSuchFieldException, IllegalAccessException {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        AtomicBoolean clean = new AtomicBoolean(false);
+        val manager = spyOptimizeRecommendationManager();
+        Mockito.doAnswer(invocation -> {
+            String id = invocation.getArgument(0);
+            if (modelId.equals(id)) {
+                clean.set(true);
+            }
+            return null;
+        }).when(manager).cleanAll(Mockito.anyString());
+        tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val model = modelManager.getDataModelDesc(modelId);
+        Assert.assertTrue(model.isBroken());
+        Assert.assertTrue(clean.get());
+    }
+
+    private ModelRequest prepare() throws IOException {
+        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        final String project = "default";
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
+        val modelId = model.getId();
+
+        modelMgr.updateDataModel(modelId, copyForWrite -> copyForWrite.setManagementType(ManagementType.MODEL_BASED));
+        model = modelMgr.getDataModelDesc(modelId);
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject(project);
+        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+    }
+
+    @Test
+    public void testUpdateModel_CleanRecommendation() throws Exception {
+        val modelRequest = prepare();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        AtomicBoolean clean = new AtomicBoolean(false);
+        val manager = spyOptimizeRecommendationManager();
+        Mockito.doAnswer(invocation -> {
+            String id = invocation.getArgument(0);
+            if (modelId.equals(id)) {
+                clean.set(true);
+            }
+            return null;
+        }).when(manager).cleanInEffective(Mockito.anyString());
+        modelRequest.setSimplifiedMeasures(
+                modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100001)
+                        .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
+        modelService.updateDataModelSemantic("default", modelRequest);
+
+        Assert.assertTrue(clean.get());
+    }
 }
