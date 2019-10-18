@@ -281,7 +281,7 @@ class CuboidSuggester {
         Map<TblColRef, Integer> colIdMap = model.getEffectiveDimenionsMap().inverse();
         SortedSet<Integer> measureIds = Sets.newTreeSet();
         // Add default measure count(1)
-        measureIds.add(NDataModel.MEASURE_ID_BASE);
+        measureIds.add(calcCountOneMeasureId());
 
         ctx.aggregations.forEach(aggFunc -> {
             Integer measureId = aggFuncIdMap.get(aggFunc);
@@ -299,6 +299,16 @@ class CuboidSuggester {
             }
         });
         return measureIds;
+    }
+
+    /**
+     * By default, we will add a count(1) measure in our model if agg appears.
+     * If current model without measures, the id of count one measure is 10_000;
+     * else find existing count one measure's id.
+     */
+    private Integer calcCountOneMeasureId() {
+        Integer countOne = aggFuncIdMap.get(FunctionDesc.newCountOne());
+        return countOne == null ? NDataModel.MEASURE_ID_BASE : countOne;
     }
 
     private String getMsgTemplateByModelMaintainType(String messagePattern, Type type) {

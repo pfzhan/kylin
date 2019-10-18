@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Assert;
 import org.junit.Test;
@@ -39,7 +40,9 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -108,6 +111,38 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
         Assert.assertEquals("unexpected colOrder", "[4, 100000, 100001]", layout.getColOrder().toString());
         Assert.assertTrue(layout.getUpdateTime() > 0);
+    }
+
+    @Test
+    public void testCountOneMeasureIdInheritCorrectly() {
+        String[] sqls = { "select sum(price) from kylin_sales" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        smartMaster.runAll();
+
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+
+        // update measure id to id + 1, so id of count(1) is 100001
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+        model.getAllMeasures().forEach(measure -> measure.setId(measure.getId() + 1));
+        indexPlan.getIndexes().clear();
+        NDataModelManager.getInstance(getTestConfig(), proj).updateDataModelDesc(model);
+        NIndexPlanManager.getInstance(getTestConfig(), proj).updateIndexPlan(indexPlan);
+
+        // propose again
+        String[] sqls2 = { "select count(price) from kylin_sales" };
+        smartMaster = new NSmartMaster(getTestConfig(), proj, sqls2);
+        smartMaster.runAll();
+
+        // assert propose success
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls2[0]).isNotSucceed());
+
+        // assert the id of count(1) is 100001 for 
+        NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        List<NDataModel.Measure> allMeasures = targetModel.getAllMeasures();
+        NDataModel.Measure measure = allMeasures.get(0);
+        Assert.assertEquals(100001, measure.getId());
+        Assert.assertEquals(FunctionDesc.newCountOne(), measure.getFunction());
     }
 
     @Test
