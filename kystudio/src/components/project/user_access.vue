@@ -32,6 +32,8 @@
               :default-expanded-keys="defaultExpandedKeys"
               :default-checked-keys="defaultCheckedKeys"
               @check="checkChange"
+              @node-expand="pushTableId"
+              @node-collapse="removeTableId"
               @node-click="handleNodeClick">
               <span class="custom-tree-node" slot-scope="{ node, data }">
                 <i class="ksd-mr-2" :class="data.icon"></i>
@@ -218,7 +220,8 @@ export default class UserAccess extends Vue {
   tableAuthorizedNum = 0
   totalNum = 0
   defaultCheckedKeys = []
-  defaultExpandedKeys = []
+  defaultExpandedKeys = ['0']
+  catchDefaultExpandedKeys = ['0']
   allTables = []
   databaseIndex = -1
   tableIndex = -1
@@ -240,6 +243,18 @@ export default class UserAccess extends Vue {
   hideLoading () {
     this.loading = false
   }
+  pushTableId (data) {
+    const index = this.catchDefaultExpandedKeys.indexOf(data.id)
+    if (index === -1) {
+      this.catchDefaultExpandedKeys.push(data.id)
+    }
+  }
+  removeTableId (data) {
+    const index = this.catchDefaultExpandedKeys.indexOf(data.id)
+    if (index !== -1) {
+      this.catchDefaultExpandedKeys.splice(index, 1)
+    }
+  }
   handleNodeClick (data, node) {
     if (!data.children && !data.isMore) { // tables data 中‘非加载更多’的node
       this.isSelectTable = true
@@ -252,18 +267,16 @@ export default class UserAccess extends Vue {
       this.tableIndex = indexs[1]
       this.initColsAndRows(data.columns, data.rows, data.totalColNum)
     } else if (!data.children && data.isMore) {
-      data.currentIndex++
-      const renderNums = data.currentIndex * pageSizeMapping.TABLE_TREE
+      node.parent.data.currentIndex++
+      const index = data.id.split('_')[0]
+      this.tables[index].currentIndex++
+      const renderNums = node.parent.data.currentIndex * pageSizeMapping.TABLE_TREE
       const renderMoreTables = node.parent.data.originTables.slice(0, renderNums)
       if (renderNums < node.parent.data.originTables.length) {
         renderMoreTables.push(data)
       }
       node.parent.data.children = renderMoreTables
-      this.isRerender = false
-      this.$nextTick(() => {
-        this.isRerender = true
-        this.handleLoadMoreStyle()
-      })
+      this.reRenderTree(true)
     }
   }
   initColsAndRows (columns, rows, totalColNum) {
@@ -386,15 +399,17 @@ export default class UserAccess extends Vue {
       }, 100)
     }
   }
-  reRenderTree () {
+  reRenderTree (isLoadMoreRender) { // isLoadMoreRender 为 true 时，不重置数据
     this.isRerender = false
-    this.$nextTick(() => {
+    if (!isLoadMoreRender) {
       this.tables = [...this.tables]
+    }
+    this.defaultExpandedKeys = objectClone(this.catchDefaultExpandedKeys)
+    this.$nextTick(() => {
       this.isRerender = true
       this.handleLoadMoreStyle()
       setTimeout(() => {
         this.$refs.tableTree.setCurrentKey(this.currentTableId)
-        this.defaultExpandedKeys = [this.currentTableId.split('_')[0]]
       })
     })
   }
@@ -404,11 +419,20 @@ export default class UserAccess extends Vue {
   handleLoadMoreStyle () {
     this.$nextTick(() => {
       const loadMore = this.$el.querySelectorAll('.acl-tree .load-more')
+      const indeterminateNodes = this.$el.querySelectorAll('.acl-tree .indeterminate-node')
       if (loadMore.length) {
         loadMore.forEach((m) => {
           const targetCheckbox = m.parentNode.parentNode.querySelector('.el-checkbox')
           if (targetCheckbox) {
             targetCheckbox.style.display = 'none'
+          }
+        })
+      }
+      if (indeterminateNodes.length) {
+        indeterminateNodes.forEach((n) => {
+          const indeterminateCheckbox = n.parentNode.parentNode.querySelector('.el-checkbox .el-checkbox__input')
+          if (indeterminateCheckbox) {
+            indeterminateCheckbox.className = 'el-checkbox__input is-indeterminate'
           }
         })
       }
@@ -420,19 +444,19 @@ export default class UserAccess extends Vue {
       const originFilterTables = data.originTables.filter((t) => {
         return t.label.toLowerCase().indexOf(this.tableFilter.trim().toLowerCase()) !== -1
       })
-      const pagedFilterTables = originFilterTables.slice(0, pageSizeMapping.TABLE_TREE)
+      const pagedFilterTables = originFilterTables.slice(0, pageSizeMapping.TABLE_TREE * data.currentIndex)
       if (pageSizeMapping.TABLE_TREE < originFilterTables.length) {
         pagedFilterTables.push({
           id: data.id + '_more',
           label: this.$t('loadMore'),
           class: 'load-more ksd-fs-12',
-          currentIndex: 1,
           isMore: true
         })
       }
       data.children = pagedFilterTables
       return pagedFilterTables.length > 0
     })
+    this.defaultExpandedKeys = objectClone(this.catchDefaultExpandedKeys)
     this.$nextTick(() => {
       this.handleLoadMoreStyle()
       if (this.$refs.tableTree) {
@@ -551,7 +575,6 @@ export default class UserAccess extends Vue {
   }
   async loadAccessDetails (authorizedOnly) {
     this.defaultCheckedKeys = []
-    this.defaultExpandedKeys = []
     this.allTables = []
     this.tables = []
     this.rows = []
@@ -582,8 +605,7 @@ export default class UserAccess extends Vue {
           pegedTableDatas.push({
             id: key + '_more',
             label: this.$t('loadMore'),
-            class: 'ksd-fs-12',
-            currentIndex: 1,
+            class: 'load-more ksd-fs-12',
             isMore: true
           })
         }
@@ -593,10 +615,12 @@ export default class UserAccess extends Vue {
         return {
           id: key + '',
           label: database.database_name + labelNum,
+          class: database.authorized_table_num && database.authorized_table_num < database.total_table_num ? 'indeterminate-node' : '',
           databaseName: database.database_name,
           authorizedNum: database.authorized_table_num,
           totalNum: database.total_table_num,
           originTables: originTableDatas,
+          currentIndex: 1,
           children: pegedTableDatas
         }
       })
@@ -604,10 +628,12 @@ export default class UserAccess extends Vue {
       this.$nextTick(() => {
         if (this.currentTableId) {
           const indexs = this.currentTableId.split('_')
-          this.defaultExpandedKeys = [indexs[0]]
-          this.handleNodeClick(this.tables[indexs[0]].children[indexs[1]])
+          if (indexs[1] <= pageSizeMapping.TABLE_TREE) {
+            this.handleNodeClick(this.tables[indexs[0]].children[indexs[1]])
+          } else {
+            this.handleNodeClick(this.tables[0].children[0])
+          }
         } else {
-          this.defaultExpandedKeys = ['0']
           this.handleNodeClick(this.tables[0].children[0])
         }
         this.handleLoadMoreStyle()
