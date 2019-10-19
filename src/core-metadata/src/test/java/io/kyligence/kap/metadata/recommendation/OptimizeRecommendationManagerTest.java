@@ -23,12 +23,18 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import static org.apache.kylin.common.util.JsonUtil.readValue;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.junit.After;
 import org.junit.Assert;
@@ -41,10 +47,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -111,18 +120,31 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String emptyRuleIndexPlanFile = indexDir + "empty_rule_index_plan.json";
 
     private void prepare(String baseModelFile, String baseIndexFile, String optimizedModelFile,
-            String optimizedIndexPlanFile) throws IOException {
-        val originModel = JsonUtil.readValue(new File(baseModelFile), NDataModel.class);
+            String optimizedIndexPlanFile, Consumer<NDataModel> modelConsumer,
+            NIndexPlanManager.NIndexPlanUpdater indexPlanUpdater) throws IOException {
+        val originModel = readValue(new File(baseModelFile), NDataModel.class);
+        if (modelConsumer != null) {
+            modelConsumer.accept(originModel);
+        }
         modelManager.createDataModelDesc(originModel, ownerTest);
-        val originIndexPlan = JsonUtil.readValue(new File(baseIndexFile), IndexPlan.class);
+        val originIndexPlan = readValue(new File(baseIndexFile), IndexPlan.class);
         originIndexPlan.setUuid(id);
         originIndexPlan.setProject(projectDefault);
+
         indexPlanManager.createIndexPlan(originIndexPlan);
+        if (indexPlanUpdater != null) {
+            indexPlanManager.updateIndexPlan(id, indexPlanUpdater);
+        }
         val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(optimized, optimizedModelFile);
         val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
         updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
         recommendationManager.optimize(optimized, indexPlanOptimized);
+    }
+
+    private void prepare(String baseModelFile, String baseIndexFile, String optimizedModelFile,
+            String optimizedIndexPlanFile) throws IOException {
+        prepare(baseModelFile, baseIndexFile, optimizedModelFile, optimizedIndexPlanFile, null, null);
     }
 
     private void prepare(String optimizedModelFile, String optimizedIndexPlanFile) throws IOException {
@@ -134,14 +156,14 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     private void updateModelByFile(NDataModel model, String fileName) throws IOException {
-        val optimizedFromFile = JsonUtil.readValue(new File(fileName), NDataModel.class);
+        val optimizedFromFile = readValue(new File(fileName), NDataModel.class);
         model.setAllNamedColumns(optimizedFromFile.getAllNamedColumns());
         model.setComputedColumnDescs(optimizedFromFile.getComputedColumnDescs());
         model.setAllMeasures(optimizedFromFile.getAllMeasures());
     }
 
     private void updateIndexPlanByFile(IndexPlan indexPlan, String fileName) throws IOException {
-        val optimizedFromFile = JsonUtil.readValue(new File(fileName), IndexPlan.class);
+        val optimizedFromFile = readValue(new File(fileName), IndexPlan.class);
         indexPlan.setIndexes(optimizedFromFile.getIndexes());
     }
 
@@ -421,7 +443,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val otherModel = JsonUtil.readValue(new File(otherSameCCNameExprModelFile), NDataModel.class);
+        val otherModel = readValue(new File(otherSameCCNameExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         val appliedModel = recommendationManager.apply(originInit, recommendation);
         Assert.assertEquals(10000001, appliedModel.getAllNamedColumns().get(16).getId());
@@ -437,7 +459,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val otherModel = JsonUtil.readValue(new File(otherSameCCExprModelFile), NDataModel.class);
+        val otherModel = readValue(new File(otherSameCCExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         val appliedModel = recommendationManager.apply(originInit, recommendation);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -459,7 +481,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         prepare();
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val otherModel = JsonUtil.readValue(new File(otherSameCCNameModelFile), NDataModel.class);
+        val otherModel = readValue(new File(otherSameCCNameModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         val appliedModel = recommendationManager.apply(originInit, recommendation);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -866,7 +888,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_renameCCOtherConflictSameName() throws IOException {
         prepare();
-        val otherModel = JsonUtil.readValue(new File(otherSameCCNameModelFile), NDataModel.class);
+        val otherModel = readValue(new File(otherSameCCNameModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         recommendationManager.updateOptimizeRecommendation(id, recommendation -> recommendation.getCcRecommendations()
                 .forEach(ccRecommendationItem -> ccRecommendationItem.setAutoChangeName(false)));
@@ -888,7 +910,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_renameCCOtherConflictSameExpr() throws IOException {
         prepare();
-        val otherModel = JsonUtil.readValue(new File(otherSameCCExprModelFile), NDataModel.class);
+        val otherModel = readValue(new File(otherSameCCExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
         recommendationManager.updateOptimizeRecommendation(id, recommendation -> recommendation.getCcRecommendations()
                 .forEach(ccRecommendationItem -> ccRecommendationItem.setAutoChangeName(false)));
@@ -1005,6 +1027,90 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("TEST_KYLIN_FACT_ITEM_COUNT", model.getAllNamedColumns().get(3).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, model.getAllNamedColumns().get(3).getStatus());
 
+    }
+
+    @Test
+    public void testApply_IndexConflictAgg() throws IOException {
+        prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile, null, indexPlan -> {
+            indexPlan.setIndexes(Lists.newArrayList());
+        });
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
+                .anyMatch(item -> item.getEntity().getLayouts().stream()
+                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(),
+                                Arrays.asList(0, 12, 100000, 100001)))));
+        indexPlanManager.updateIndexPlan(id, copyForWrite -> {
+            val rule = new NRuleBasedIndex();
+            rule.setDimensions(Lists.newArrayList(0, 12));
+            rule.setMeasures(Lists.newArrayList(100000, 100001));
+            NAggregationGroup group = new NAggregationGroup();
+            group.setIncludes(new Integer[] { 0, 12 });
+            SelectRule selectRule = new SelectRule();
+            selectRule.mandatoryDims = new Integer[] {};
+            selectRule.jointDims = new Integer[][] {};
+            selectRule.hierarchyDims = new Integer[][] {};
+            group.setSelectRule(selectRule);
+            rule.getAggregationGroups().add(group);
+            copyForWrite.setRuleBasedIndex(rule);
+        });
+        recommendationManager.applyIndexPlan(id);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
+                .noneMatch(item -> item.getEntity().getLayouts().stream()
+                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(),
+                                Arrays.asList(0, 12, 100000, 100001)))));
+
+    }
+
+    @Test
+    public void testApply_IndexConflictTable() throws IOException {
+        prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile, null, indexPlan -> {
+            indexPlan.setIndexes(Lists.newArrayList());
+        });
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        int indexItemSize = recommendation.getIndexRecommendations().size();
+        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
+                .anyMatch(item -> item.getEntity().getLayouts().stream()
+                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(), Arrays.asList(0, 1, 2))
+                                && compareList(layoutEntity.getSortByColumns(), Collections.singletonList(0)))));
+        indexPlanManager.updateIndexPlan(id, copyForWrite -> {
+            val index = new IndexEntity();
+            index.setId(copyForWrite.getNextTableIndexId());
+            val id = index.getId();
+            index.setDimensions(Lists.newArrayList(0, 1, 2));
+            index.setMeasures(Lists.newArrayList());
+            val layout = new LayoutEntity();
+            layout.setColOrder(Lists.newArrayList(0, 1, 2));
+            layout.setId(id + index.getNextLayoutOffset());
+            index.setNextLayoutOffset(index.getNextLayoutOffset() + 1);
+            layout.setAuto(false);
+            layout.setManual(true);
+            layout.setSortByColumns(Lists.newArrayList(0));
+            index.setLayouts(Lists.newArrayList(layout));
+            layout.setIndex(index);
+            copyForWrite.setIndexes(Lists.newArrayList(index));
+        });
+        recommendationManager.cleanInEffective(id);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
+                .noneMatch(item -> item.getEntity().getLayouts().stream()
+                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(), Arrays.asList(0, 1, 2))
+                                && compareList(layoutEntity.getSortByColumns(), Collections.singletonList(0)))));
+        Assert.assertEquals(indexItemSize - 1, recommendation.getIndexRecommendations().size());
+
+    }
+
+    private <T> boolean compareList(List<T> l1, List<T> l2) {
+        if (l1.size() != l2.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < l1.size(); i++) {
+            if (!l1.get(i).equals(l2.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }

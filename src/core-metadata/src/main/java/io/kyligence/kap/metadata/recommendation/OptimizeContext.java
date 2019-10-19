@@ -91,11 +91,11 @@ public class OptimizeContext {
 
         val originMeasureRecommendations = recommendation.getMeasureRecommendations().stream()
                 .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
-        this.measureContextRecommendationItems = new ContextRecommendationItems<>(originMeasureRecommendations, null);
+        this.measureContextRecommendationItems = new ContextRecommendationItems<>(originMeasureRecommendations);
 
         val originIndexRecommendations = recommendation.getIndexRecommendations().stream()
                 .collect(Collectors.toMap(IndexRecommendationItem::getItemId, item -> item));
-        this.indexContextRecommendationItems = new ContextRecommendationItems<>(originIndexRecommendations, null);
+        this.indexContextRecommendationItems = new ContextRecommendationItems<>(originIndexRecommendations);
 
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         this.model = modelManager.copyForWrite(model);

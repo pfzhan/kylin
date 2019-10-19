@@ -89,6 +89,8 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
                         "table index lost dependency: column not exists, you may need pass it first");
             }
         }
+
+        checkLayouts(context, real);
     }
 
     private void checkAddAggIndexDependencies(OptimizeContext context, boolean real) {
@@ -119,6 +121,34 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
                 throw new DependencyLostException(
                         "agg index lost dependency: measure not exists, you may need pass it first");
             }
+        }
+
+        checkLayouts(context, real);
+
+    }
+
+    private void checkLayouts(OptimizeContext context, boolean real) {
+        var item = context.getIndexRecommendationItem(itemId);
+        val identifier = item.getEntity().createIndexIdentifier();
+        if (!context.getAllIndexesMap().containsKey(identifier)) {
+            return;
+        }
+        var index = context.getAllIndexesMap().get(identifier);
+        val duplicatedLayouts = item.getEntity().getLayouts().stream()
+                .filter(layoutEntity -> index.getLayouts().contains(layoutEntity))
+                .collect(Collectors.toSet());
+        if (duplicatedLayouts.isEmpty()) {
+            return;
+        }
+        if (real) {
+            throw new PassConflictException("cannot add or modify index because index has already added or modified");
+        }
+
+        val copy = context.copyIndexRecommendationItem(itemId);
+        copy.getEntity().setLayouts(copy.getEntity().getLayouts().stream()
+                .filter(layoutEntity -> !duplicatedLayouts.contains(layoutEntity)).collect(Collectors.toList()));
+        if (copy.getEntity().getLayouts().isEmpty()) {
+            context.failIndexRecommendationItem(itemId);
         }
     }
 
