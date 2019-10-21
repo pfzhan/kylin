@@ -34,6 +34,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,6 +43,9 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -80,6 +84,40 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         }
         String model3Alias = model3.getAlias();
         Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_2", model3Alias);
+    }
+
+    @Test
+    public void testLoadingModelCannotOffline() {
+        String[] sqls = { "select item_count, sum(price) from kylin_sales group by item_count" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        smartMaster.runAll();
+
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]).isNotSucceed());
+
+        // set model maintain type to semi-auto
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(proj));
+        projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectUpdate);
+        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+
+        // update existing model to offline
+        NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        NDataflowManager dataflowMgr = NDataflowManager.getInstance(getTestConfig(), proj);
+        NDataflow dataflow = dataflowMgr.getDataflow(targetModel.getUuid());
+        NDataflowUpdate copiedDataFlow = new NDataflowUpdate(dataflow.getUuid());
+        copiedDataFlow.setStatus(RealizationStatusEnum.OFFLINE);
+        dataflowMgr.updateDataflow(copiedDataFlow);
+
+        // propose in semi-auto-mode
+        smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+
+        String expectedPendingMsg = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
+        AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(sqls[0]);
+        Assert.assertTrue(accelerateInfo.isPending());
+        Assert.assertEquals(expectedPendingMsg, accelerateInfo.getPendingMsg());
     }
 
     @Test

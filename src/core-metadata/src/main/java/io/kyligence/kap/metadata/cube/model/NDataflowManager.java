@@ -172,10 +172,21 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return listUnderliningDataModels(false);
     }
 
+    public List<NDataModel> listDataModelsByStatus(RealizationStatusEnum status) {
+        List<NDataflow> dataflows = listAllDataflows();
+        List<NDataModel> onlineModels = Lists.newArrayList();
+        for (NDataflow dataflow : dataflows) {
+            if (status == dataflow.getStatus()) {
+                onlineModels.add(dataflow.getModel());
+            }
+        }
+        return onlineModels;
+    }
+
     // get all models include broken ones
     public List<NDataModel> listUnderliningDataModels(boolean includeBroken) {
         val dataflows = listAllDataflows(includeBroken);
-        return dataflows.stream().map(df -> df.getModel()).collect(Collectors.toList());
+        return dataflows.stream().map(NDataflow::getModel).collect(Collectors.toList());
     }
 
     // within a project, find models that use the specified table

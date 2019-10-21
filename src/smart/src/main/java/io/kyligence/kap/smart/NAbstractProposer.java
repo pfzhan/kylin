@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,12 +61,12 @@ public abstract class NAbstractProposer {
 
     List<NDataModel> getOriginModels() {
         ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        List<NDataModel> dataModels = NDataflowManager.getInstance(kylinConfig, this.project)
-                .listUnderliningDataModels();
+        List<NDataModel> onlineModels = NDataflowManager.getInstance(kylinConfig, project)
+                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
         if (projectInstance.isSemiAutoMode()) {
-            return genRecommendationEnhancedModels(dataModels);
+            return genRecommendationEnhancedModels(onlineModels);
         } else {
-            return dataModels;
+            return onlineModels;
         }
     }
 
