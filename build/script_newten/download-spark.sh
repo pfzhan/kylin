@@ -9,7 +9,7 @@ rm -rf build/spark
 
 spark_pkg_name="spark-newten-2.4.1-r16"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="1aa3371496b4f192a8b1740254867d90"
+spark_pkg_md5="721d997de5992c8a741d58eb71163c8f"
 
 if [ ! -f "build/${spark_pkg_file_name}" ]
 then
