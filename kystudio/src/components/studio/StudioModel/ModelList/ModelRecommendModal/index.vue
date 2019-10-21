@@ -10,7 +10,7 @@
     :close-on-press-escape="false" 
     :close-on-click-modal="false" 
     @close="isShow && closeModal()">
-      <div class="recommendations">
+      <div class="recommendations" v-loading="!dialogInfoLoaded">
         <el-button class="clearBtn" size="mini" @click="clearRecommendations" :loading="clearBtnLoading" :disabled="clearBtnLoading || btnLoading || !canClearRecom">{{$t('clearAllRecom')}}</el-button>
         <el-tabs v-model="activeRecom" type="card">
           <el-tab-pane :label="dimensionTabTitle" name="dimension">
@@ -132,6 +132,28 @@
 
     @Watch('isShow')
     onModalVisibleChange (val) {
+      // 关闭弹窗时，重置所有信息
+      // 每次重新打开，默认tab 置回维度
+      this.activeRecom = 'dimension'
+      // 回复按钮的可点状态
+      this.btnLoading = false
+      this.clearBtnLoading = false
+      // 数据字段都置回初值
+      // 所有的数据格式要在传入prop之前进行处理
+      this.dialogInfo = {
+        dimension_recommendations: [],
+        measure_recommendations: [],
+        cc_recommendations: [],
+        agg_index_recommendations: [],
+        table_index_recommendations: []
+      }
+      // 初始化数字
+      this.selectedObj['dimension_selectedLen'] = 0
+      this.selectedObj['measure_selectedLen'] = 0
+      this.selectedObj['cc_selectedLen'] = 0
+      this.selectedObj['agg_index_selectedLen'] = 0
+      this.selectedObj['table_index_selectedLen'] = 0
+
       // 弹窗显示的时候，才进行数据请求
       if (val) {
         this.loadModalInfo()
@@ -166,7 +188,8 @@
 
     // 控制提交按钮是否可点 - 有一条建议选中就可以点了
     get canSubmitRecom () {
-      return this.selectedObj.dimension_selectedLen || this.selectedObj.measure_selectedLen || this.selectedObj.cc_selectedLen || this.selectedObj.agg_index_selectedLen || this.selectedObj.table_index_selectedLen
+      // 提交按钮必须是数据已经加载进来，并且有选择的内容
+      return this.dialogInfoLoaded && (this.selectedObj.dimension_selectedLen || this.selectedObj.measure_selectedLen || this.selectedObj.cc_selectedLen || this.selectedObj.agg_index_selectedLen || this.selectedObj.table_index_selectedLen)
     }
 
     // 控制清空按钮是否可点 - 有一条建议就可以点了
@@ -204,11 +227,6 @@
 
     // 初始化弹窗上每个 tab 需要的信息，以及 tab 上的选中数据的个数
     initDialogInfo (data) {
-      // 每次重新打开，默认tab 置回维度
-      this.activeRecom = 'dimension'
-      // 回复按钮的可点状态
-      this.btnLoading = false
-      this.clearBtnLoading = false
       // 每次打开弹窗将所有的选项都设为选中
       let tempData = objectClone(data)
       for (var prop in tempData) {
@@ -365,6 +383,7 @@
   @import '../../../../../assets/styles/variables.less';
   .recommendations-dialog {
     .recommendations{
+      min-height: 172px;
       position: relative;
       .clearBtn{
         position: absolute;
