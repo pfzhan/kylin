@@ -25,7 +25,7 @@
                 class="ksd-fright"
                 :placeholder="$t('kylinLang.common.pleaseFilter')"
                 prefix-icon="el-icon-search"
-                v-model.trim="curTableInTableKeyword"
+                v-model.trim="curTableInTableKeyword[scope.row.item_id]"
                 @keyup.native="handleTableInTableFilter(scope.row)"
                 @clear="handleTableInTableFilter(scope.row)"
                 style="width:300px">
@@ -131,7 +131,7 @@
     locales
   })
   export default class recomAggIndex extends Vue {
-    curTableInTableKeyword = ''
+    curTableInTableKeyword = {}
     checkedStatus = []
     tableShowList = []
     ST = null
@@ -160,7 +160,7 @@
           id: row.id,
           pageOffset: page.curpage, // 每次展开默认在第一页
           pageSize: this.perPageSize,
-          content: this.curTableInTableKeyword
+          content: this.curTableInTableKeyword[row.item_id]
         }
         const response = await this.getAggIndex(params)
         const result = await handleSuccessAsync(response)
