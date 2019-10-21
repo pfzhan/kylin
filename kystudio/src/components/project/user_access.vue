@@ -380,14 +380,14 @@ export default class UserAccess extends Vue {
     this.initColsAndRows(this.allTables[indexs[0]].tables[indexs[1]].columns, this.allTables[indexs[0]].tables[indexs[1]].rows, data.totalColNum)
   }
   checkChange (data, checkNode, node) {
-    const isChecked = node.checked
-    if (!data.children && !data.isMore) { // tables data 中‘非加载更多’的node
-      this.handleTableData(data, isChecked)
-      this.setCurrentTable(data, isChecked)
-      this.reRenderTree()
-    } else if (data.children && data.children.length) {
-      this.showLoading()
-      setTimeout(() => {
+    this.showLoading()
+    setTimeout(() => {
+      const isChecked = node.checked
+      if (!data.children && !data.isMore) { // tables data 中‘非加载更多’的node
+        this.handleTableData(data, isChecked)
+        this.setCurrentTable(data, isChecked)
+        this.reRenderTree()
+      } else if (data.children && data.children.length) {
         data.originTables.forEach((d) => {
           if (!d.isMore) {
             this.handleTableData(d, isChecked)
@@ -395,9 +395,9 @@ export default class UserAccess extends Vue {
         })
         this.setCurrentTable(data.children[0], isChecked)
         this.reRenderTree()
-        this.hideLoading()
-      }, 100)
-    }
+      }
+      this.hideLoading()
+    }, 100)
   }
   reRenderTree (isLoadMoreRender) { // isLoadMoreRender 为 true 时，不重置数据
     this.isRerender = false
