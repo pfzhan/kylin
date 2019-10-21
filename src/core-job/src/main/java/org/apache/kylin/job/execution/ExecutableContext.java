@@ -56,10 +56,13 @@ import lombok.extern.slf4j.Slf4j;
 public class ExecutableContext {
 
     private final ConcurrentMap<String, Executable> runningJobs;
+    private final ConcurrentMap<String, Long> runningJobInfos;
     private final KylinConfig kylinConfig;
 
-    public ExecutableContext(ConcurrentMap<String, Executable> runningJobs, KylinConfig kylinConfig) {
+    public ExecutableContext(ConcurrentMap<String, Executable> runningJobs,
+            ConcurrentMap<String, Long> runningJobInfos, KylinConfig kylinConfig) {
         this.runningJobs = runningJobs;
+        this.runningJobInfos = runningJobInfos;
         this.kylinConfig = kylinConfig;
     }
 
@@ -69,13 +72,19 @@ public class ExecutableContext {
 
     public void addRunningJob(Executable executable) {
         runningJobs.put(executable.getId(), executable);
+        runningJobInfos.put(executable.getId(), System.currentTimeMillis());
     }
 
     public void removeRunningJob(Executable executable) {
         runningJobs.remove(executable.getId());
+        runningJobInfos.remove(executable.getId());
     }
 
     public Map<String, Executable> getRunningJobs() {
         return Collections.unmodifiableMap(runningJobs);
+    }
+
+    public Map<String, Long> getRunningJobInfos() {
+        return Collections.unmodifiableMap(runningJobInfos);
     }
 }

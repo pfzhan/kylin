@@ -123,7 +123,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         return executableManager.getJob(jobId).checkSuicide();
     }
 
-    private boolean checkTimeoutIfNeeded(String jobId) {
+    private boolean checkTimeoutIfNeeded(String jobId, Long startTime) {
         Integer timeOutMinute = KylinConfig.getInstanceFromEnv().getSchedulerJobTimeOutMinute();
         if (timeOutMinute == 0) {
             return false;
@@ -132,13 +132,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         if (executableManager.getJob(jobId).getStatus().isFinalState()) {
             return false;
         }
-        Output output = executableManager.getOutput(jobId);
-        long startTime = output.getStartTime();
-        if (startTime == 0)
-            return false;
-        long current = System.currentTimeMillis();
-        int executedTime = Math.toIntExact((current - startTime) / (60 * 1000));
-        return executedTime >= timeOutMinute;
+        long duration = System.currentTimeMillis() - startTime;
+        long durationMins = Math.toIntExact(duration / (60 * 1000));
+        return durationMins >= timeOutMinute;
     }
 
     private boolean discardSuicidalJob(String jobId) {
@@ -159,11 +155,11 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         return false;
     }
 
-    private boolean discardTimeoutJob(String jobId) {
+    private boolean discardTimeoutJob(String jobId, Long startTime) {
         try {
-            if (checkTimeoutIfNeeded(jobId)) {
+            if (checkTimeoutIfNeeded(jobId, startTime)) {
                 return UnitOfWork.doInTransactionWithRetry(() -> {
-                    if (checkTimeoutIfNeeded(jobId)) {
+                    if (checkTimeoutIfNeeded(jobId, startTime)) {
                         logger.error("project {} job {} running timeout.", project, jobId);
                         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).errorJob(jobId);
                         return true;
@@ -188,9 +184,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
             val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             Map<String, Executable> runningJobs = context.getRunningJobs();
+            Map<String, Long> runningJobInfos = context.getRunningJobInfos();
             for (final String id : executableManager.getJobs()) {
                 if (runningJobs.containsKey(id)) {
-                    discardTimeoutJob(id);
+                    discardTimeoutJob(id, runningJobInfos.get(id));
                 }
             }
         }
@@ -446,7 +443,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         }
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<>(), new NamedThreadFactory("RunJobWorker(project:" + project + ")"));
-        context = new ExecutableContext(Maps.newConcurrentMap(), jobEngineConfig.getConfig());
+        context = new ExecutableContext(Maps.newConcurrentMap(), Maps.newConcurrentMap(), jobEngineConfig.getConfig());
 
         val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager.resumeAllRunningJobs();
