@@ -135,8 +135,7 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
         }
         var index = context.getAllIndexesMap().get(identifier);
         val duplicatedLayouts = item.getEntity().getLayouts().stream()
-                .filter(layoutEntity -> index.getLayouts().contains(layoutEntity))
-                .collect(Collectors.toSet());
+                .filter(layoutEntity -> index.getLayouts().contains(layoutEntity)).collect(Collectors.toSet());
         if (duplicatedLayouts.isEmpty()) {
             return;
         }
@@ -249,7 +248,8 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
         val identifier = item.getEntity().createIndexIdentifier();
         if (context.getAllIndexesMap().containsKey(identifier)) {
             val indexEntity = context.getAllIndexesMap().get(identifier);
-            var removeLayouts = item.getEntity().getLayouts().stream().filter(LayoutEntity::isAuto)
+            var removeLayouts = item.getEntity().getLayouts().stream()
+                    .filter(layoutEntity -> indexEntity.isTableIndex() || layoutEntity.isAuto())
                     .collect(Collectors.toList());
             indexEntity.getLayouts().removeAll(removeLayouts);
             context.getIndexPlan().getIndexes().stream()
@@ -258,7 +258,8 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
             val rule = context.getIndexPlan().getRuleBasedIndex();
             if (rule != null) {
                 rule.addBlackListLayouts(item.getEntity().getLayouts().stream()
-                        .filter(LayoutEntity::isManual).map(LayoutEntity::getId).collect(Collectors.toList()));
+                        .filter(layoutEntity -> !indexEntity.isTableIndex() && layoutEntity.isManual())
+                        .map(LayoutEntity::getId).collect(Collectors.toList()));
             }
 
         } else {

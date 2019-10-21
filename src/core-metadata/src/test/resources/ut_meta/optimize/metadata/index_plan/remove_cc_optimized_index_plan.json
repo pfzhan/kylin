@@ -108,7 +108,7 @@
       "layouts": [
         {
           "id": 20000000001,
-          "auto": true,
+          "manual": true,
           "col_order": [
             0,
             1,

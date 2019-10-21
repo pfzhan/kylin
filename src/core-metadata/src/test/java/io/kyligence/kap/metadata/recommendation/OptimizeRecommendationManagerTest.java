@@ -217,12 +217,27 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testRemoveIndex() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        var removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L, 20000000001L);
+        recommendationManager.removeLayouts(id, removeLayoutsId);
+
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(6, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(3, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+
+
+    }
+
+    @Test
+    public void testRemoveIndex_Twice() throws IOException {
+        testRemoveIndex();
+
+        val removeLayoutsId = Sets.newHashSet(1L, 150001L, 20000000001L, 20000000002L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(5, recommendation.getIndexRecommendations().size());
-        Assert.assertEquals(2, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+        Assert.assertEquals(7, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(4, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+
     }
 
     @Test
