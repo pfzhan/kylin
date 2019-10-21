@@ -49,7 +49,7 @@
             <el-table-column
               label="Shared"
               prop="shared"
-              width="60"
+              width="80"
               align="center">
               <template slot-scope="scope">
                 <i class="el-icon-ksd-good_health ky-success ksd-fs-16" v-if="scope.row.shared"></i>

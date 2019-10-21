@@ -98,7 +98,7 @@
           align="right"
           prop="recommendations_count"
           sortable="recommendations_count"
-          width="180px"
+          width="200px"
           :render-header="renderAdviceHeader"
           v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
          </el-table-column>
