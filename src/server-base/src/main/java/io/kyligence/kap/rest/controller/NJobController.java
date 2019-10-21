@@ -189,7 +189,7 @@ public class NJobController extends NBasicController {
         Map<String, String> result = new HashMap<String, String>();
         result.put(JOB_ID_ARG_NAME, jobId);
         result.put(STEP_ID_ARG_NAME, stepId);
-        result.put("cmd_output", jobService.getJobOutput(project, stepId));
+        result.put("cmd_output", jobService.getJobOutput(project, jobId, stepId));
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 

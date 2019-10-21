@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -59,6 +60,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
@@ -95,6 +97,9 @@ public class NExecutableManager {
     private static final String SIGKILL = "-9";
     private static final String SIGTERM = "-15";
     private static final String KILL_CHILD_PROCESS = "kill-child-process.sh";
+
+    private static final Set<String> REMOVE_INFO = Sets.newHashSet(ExecutableConstants.YARN_APP_ID,
+            ExecutableConstants.YARN_APP_URL);
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
@@ -224,6 +229,10 @@ public class NExecutableManager {
         return parseOutput(jobOutput);
     }
 
+    public Output getOutputFromHDFSByJobId(String jobId) {
+        return getOutputFromHDFSByJobId(jobId, jobId);
+    }
+
     /**
      * get job output from hdfs json file;
      * if json file contains logPath,
@@ -232,14 +241,20 @@ public class NExecutableManager {
      * @param jobId
      * @return
      */
-    public Output getOutputFromHDFSByJobId(String jobId) {
-        ExecutableOutputPO jobOutput = getJobOutputFromHDFS(
-                KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
-        assertOutputNotNull(jobOutput, KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, jobId));
+    public Output getOutputFromHDFSByJobId(String jobId, String stepId) {
+        String outputStorePath = KylinConfig.getInstanceFromEnv().getJobTmpOutputStorePath(project, stepId);
+        ExecutableOutputPO jobOutput = getJobOutputFromHDFS(outputStorePath);
+        assertOutputNotNull(jobOutput, outputStorePath);
 
-        if (Objects.nonNull(jobOutput.getLogPath()) && isHdfsPathExists(jobOutput.getLogPath())) {
-            jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), 100));
+        if (Objects.nonNull(jobOutput.getLogPath())) {
+            if (isHdfsPathExists(jobOutput.getLogPath())) {
+                jobOutput.setContent(getSampleDataFromHDFS(jobOutput.getLogPath(), 100));
+            } else if (StringUtils.isEmpty(jobOutput.getContent()) && Objects.nonNull(getJob(jobId))
+                    && getJob(jobId).getStatus() == ExecutableState.RUNNING) {
+                jobOutput.setContent("Wait a moment ... ");
+            }
         }
+
         return parseOutput(jobOutput);
     }
 
@@ -349,6 +364,12 @@ public class NExecutableManager {
     private boolean resumeRunningJob(ExecutablePO po) {
         boolean result = false;
         if (po.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
+            Map<String, String> info = Maps.newHashMap();
+            if (Objects.nonNull(po.getOutput().getInfo())) {
+                info.putAll(po.getOutput().getInfo());
+            }
+            Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
+            po.getOutput().setInfo(info);
             po.getOutput().setStatus(ExecutableState.READY.toString());
             po.getOutput().addEndTime(System.currentTimeMillis());
             result = true;
@@ -480,6 +501,9 @@ public class NExecutableManager {
             Map<String, String> info = Maps.newHashMap(jobOutput.getInfo());
             Optional.ofNullable(updateInfo).ifPresent(info::putAll);
             Optional.ofNullable(removeInfo).ifPresent(set -> set.forEach(info::remove));
+            if (ExecutableState.READY == newStatus) {
+                Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
+            }
             jobOutput.setInfo(info);
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
             logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);

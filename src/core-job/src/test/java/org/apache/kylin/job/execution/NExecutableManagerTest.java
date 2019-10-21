@@ -32,12 +32,15 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
@@ -149,6 +152,29 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         }, "default");
     }
 
+    @Test
+    public void testValidStateTransfer_clear_sparkInfo() {
+        SucceedTestExecutable job = new SucceedTestExecutable();
+        String id = job.getId();
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_APP_URL, "yarn app url");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            manager.addJob(job);
+            for (ExecutableState state : ExecutableState.values()) {
+                if (Arrays.asList(ExecutableState.RUNNING, ExecutableState.ERROR, ExecutableState.PAUSED)
+                        .contains(state)) {
+                    manager.updateJobOutput(id, state, extraInfo, null, null);
+                    Assert.assertTrue(
+                            manager.getJob(job.getId()).getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
+                    manager.updateJobOutput(id, ExecutableState.READY);
+                    Assert.assertFalse(
+                            manager.getJob(job.getId()).getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
+                }
+            }
+            return null;
+        }, "default");
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testDropJobException() throws IOException {
         BaseTestExecutable executable = new SucceedTestExecutable();
@@ -243,16 +269,22 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testResumeAllRunningJobsHappyCase() {
         BaseTestExecutable executable = new SucceedTestExecutable();
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_APP_URL, "yarn app url");
+
         manager.addJob(executable);
-        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, extraInfo, null, null);
 
         AbstractExecutable job = manager.getJob(executable.getId());
         Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
 
+        job = manager.getJob(executable.getId());
+        Assert.assertTrue(job.getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
         manager.resumeAllRunningJobs();
 
         job = manager.getJob(executable.getId());
         Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+        Assert.assertFalse(job.getExtraInfo().containsKey(ExecutableConstants.YARN_APP_URL));
     }
 
     @Test

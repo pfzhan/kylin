@@ -575,9 +575,13 @@ public class JobService extends BasicService {
     }
 
     public String getJobOutput(String project, String jobId) {
+        return getJobOutput(project, jobId, jobId);
+    }
+
+    public String getJobOutput(String project, String jobId, String stepId) {
         aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
-        return executableManager.getOutputFromHDFSByJobId(jobId).getVerboseMsg();
+        return executableManager.getOutputFromHDFSByJobId(jobId, stepId).getVerboseMsg();
     }
 
     /**

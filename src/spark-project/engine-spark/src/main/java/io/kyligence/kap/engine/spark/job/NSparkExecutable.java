@@ -31,10 +31,10 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
@@ -149,6 +149,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        context.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = wrapConfig(context);
 
         String sparkHome = KylinConfig.getSparkHome();
@@ -179,6 +180,7 @@ public class NSparkExecutable extends AbstractExecutable {
         }
 
         deleteJobTmpDirectoryOnExists();
+        onExecuteStart();
 
         try {
             attachMetadataAndKylinProps(config);
@@ -216,6 +218,17 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
+    /**
+     * generate the spark driver log hdfs path format, json path + timestamp + .log
+     *
+     * @param config
+     * @return
+     */
+    public String getSparkDriverLogHdfsPath(KylinConfig config) {
+        return String.format("%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
+                System.currentTimeMillis());
+    }
+
     protected KylinConfig wrapConfig(ExecutableContext context) {
         val originalConfig = context.getConfig();
         KylinConfigExt kylinConfigExt = null;
@@ -238,6 +251,8 @@ public class NSparkExecutable extends AbstractExecutable {
             jobOverrides.put("job.stepId", getId());
         }
         jobOverrides.put("user.timezone", KylinConfig.getInstanceFromEnv().getTimeZone());
+        jobOverrides.put("spark.driver.log4j.appender.hdfs.File",
+                Objects.isNull(context.getLogPath()) ? "null" : context.getLogPath());
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
@@ -285,63 +300,19 @@ public class NSparkExecutable extends AbstractExecutable {
             patternedLogger = new PatternedLogger(null);
         }
 
-        String sparkDriverLogHdfsPath = null;
         try {
             String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
-            sparkDriverLogHdfsPath = getConfigValueFromSparkCmd(cmd, "spark.driver.log4j.appender.hdfs.File");
 
             CliCommandExecutor exec = new CliCommandExecutor();
             Pair<Integer, String> result = exec.execute(cmd, patternedLogger, jobId);
 
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond(), sparkDriverLogHdfsPath);
+            val ret = ExecuteResult.createSucceed(result.getSecond());
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {
-            return ExecuteResult.createError(e, sparkDriverLogHdfsPath);
+            return ExecuteResult.createError(e);
         }
-    }
-
-    /**
-     * get the config value from spark submit command by config key.
-     * key=value, use the key get the value.
-     *
-     * @param cmd
-     * @param configKey
-     * @return
-     */
-    private String getConfigValueFromSparkCmd(String cmd, String configKey) {
-        if (StringUtils.isBlank(cmd) || StringUtils.isBlank(configKey)) {
-            return null;
-        }
-
-        int index = cmd.indexOf(configKey);
-        if (-1 == index) {
-            return null;
-        }
-
-        int equalSepIndex = index + configKey.length();
-        if ('=' != cmd.charAt(equalSepIndex)) {
-            return null;
-        }
-
-        int spaceIndex = cmd.indexOf(' ', equalSepIndex);
-        if (-1 == spaceIndex) {
-            spaceIndex = cmd.length();
-        }
-
-        return cmd.substring(equalSepIndex + 1, spaceIndex);
-    }
-
-    /**
-     * generate the spark driver log hdfs path format, json path + timestamp + .log
-     *
-     * @param config
-     * @return
-     */
-    private String getSparkDriverLogHdfsPath(KylinConfig config) {
-        return String.format("%s.%s.log", config.getJobTmpOutputStorePath(getProject(), getId()),
-                (new Date()).getTime());
     }
 
     protected Map<String, String> getSparkConfigOverride(KylinConfig config) {
@@ -370,6 +341,14 @@ public class NSparkExecutable extends AbstractExecutable {
             sb.append(sparkConfigOverride.get(sparkDriverExtraJavaOptionsKey));
         }
 
+        String sparkDriverHdfsLogPath = null;
+        if (config instanceof KylinConfigExt) {
+            Map<String, String> extendedOverrides = ((KylinConfigExt) config).getExtendedOverrides();
+            if (Objects.nonNull(extendedOverrides)) {
+                sparkDriverHdfsLogPath = extendedOverrides.get("spark.driver.log4j.appender.hdfs.File");
+            }
+        }
+
         KapConfig kapConfig = KapConfig.wrap(config);
         sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
         sb.append(String.format(" -Dkap.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
@@ -383,7 +362,7 @@ public class NSparkExecutable extends AbstractExecutable {
             }
         }
         sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
-        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", getSparkDriverLogHdfsPath(config)));
+        sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", sparkDriverHdfsLogPath));
         sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
         sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
         sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));

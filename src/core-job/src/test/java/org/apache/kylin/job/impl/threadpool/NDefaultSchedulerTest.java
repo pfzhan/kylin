@@ -44,6 +44,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.JobStoppedException;
 import org.apache.kylin.job.exception.JobStoppedNonVoluntarilyException;
@@ -171,9 +172,11 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         Assert.assertEquals(ExecutableState.SUCCEED, executableManager.getOutput(task2.getId()).getState());
         //in case hdfs write is not finished yet
         await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+            Assertions
+                    .assertThat(executableManager.getOutputFromHDFSByJobId(job.getId(), task1.getId()).getVerboseMsg())
                     .contains("succeed");
-            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
+            Assertions
+                    .assertThat(executableManager.getOutputFromHDFSByJobId(job.getId(), task2.getId()).getVerboseMsg())
                     .contains("succeed");
         });
         assertTimeSucceed(createTime, job.getId());
@@ -317,14 +320,27 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
                     .contains("org.apache.kylin.job.execution.MockJobException");
-            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+            Assertions
+                    .assertThat(executableManager.getOutputFromHDFSByJobId(job.getId(), task1.getId()).getVerboseMsg())
                     .contains("succeed");
-            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg())
+            Assertions
+                    .assertThat(executableManager.getOutputFromHDFSByJobId(job.getId(), task2.getId()).getVerboseMsg())
                     .contains("org.apache.kylin.job.execution.MockJobException");
         });
         assertTimeError(createTime, job.getId());
         testJobPending(job.getId());
         assertMemoryRestore(currMem);
+
+        executableManager.updateJobOutput(task2.getId(), ExecutableState.READY);
+        executableManager.updateJobOutput(task2.getId(), ExecutableState.RUNNING);
+        Mockito.doReturn(task2).when(executableManager).getJob(Mockito.anyString());
+        ExecutableOutputPO outputPO = new ExecutableOutputPO();
+        outputPO.setLogPath("/kylin/null.log");
+        Mockito.doReturn(outputPO).when(executableManager).getJobOutputFromHDFS(Mockito.anyString());
+
+        task2.setProject("default");
+        Assert.assertEquals("Wait a moment ... ",
+                executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg());
     }
 
     @Test
@@ -357,7 +373,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(job.getId()).getVerboseMsg())
                     .contains("test error");
-            Assertions.assertThat(executableManager.getOutputFromHDFSByJobId(task1.getId()).getVerboseMsg())
+            Assertions
+                    .assertThat(executableManager.getOutputFromHDFSByJobId(job.getId(), task1.getId()).getVerboseMsg())
                     .contains("test error");
         });
         testJobPending(job.getId());

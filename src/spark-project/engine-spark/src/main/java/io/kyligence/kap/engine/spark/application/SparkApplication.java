@@ -244,8 +244,10 @@ public abstract class SparkApplication implements Application, IKeep {
                 Thread.sleep((long) (Math.random() * 60 * 1000));
                 try {
                     while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterInfoFetcher())) {
-                        logger.info("Current available resource in cluster is not sufficient, wait for a period.");
-                        Thread.sleep((long) (Math.random() * 10 * 60 * 1000L));
+                        long waitTime = (long) (Math.random() * 10 * 60 * 1000L);
+                        logger.info("Current available resource in cluster is not sufficient, wait for a period: {}.",
+                                waitTime);
+                        Thread.sleep(waitTime);
                     }
                 } catch (Throwable throwable) {
                     logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
