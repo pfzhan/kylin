@@ -316,6 +316,29 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testVerify_RemoveMeasure() throws IOException {
+        prepare();
+        val verifier = new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id);
+        verifier.verifyAll();
+        modelManager.updateDataModel(id, copyForWrite -> copyForWrite.getAllMeasures().stream()
+                .filter(measure -> measure.getId() > 100001).forEach(measure -> measure.setTomb(true)));
+        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        updateModelByFile(optimized, optimizedModelFile);
+        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
+        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
+        recommendationManager.optimize(optimized, indexPlanOptimized);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
+        Assert.assertEquals(1, recommendation.getIndexRecommendations().size());
+        Assert.assertTrue(recommendation.getIndexRecommendations().stream().filter(item -> !item.isAggIndex())
+                .allMatch(item -> item.getEntity().getLayouts().size() == 1));
+        val appliedModel = recommendationManager.applyModel(id);
+        Assert.assertEquals(8, appliedModel.getAllMeasures().stream().filter(measure -> !measure.isTomb()).count());
+        Assert.assertEquals(6, appliedModel.getAllMeasures().stream().filter(NDataModel.Measure::isTomb).count());
+
+    }
+
+    @Test
     public void testApply_RemoveMeasureAndVerify() throws IOException {
         prepare();
         testRemoveExists(copyForWrite -> copyForWrite.getAllMeasures().stream()

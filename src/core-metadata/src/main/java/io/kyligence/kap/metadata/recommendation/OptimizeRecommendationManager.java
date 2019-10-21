@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -53,6 +52,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -576,8 +576,8 @@ public class OptimizeRecommendationManager {
             val itemId = r.getItemId();
             r.translate(context);
             for (val measureInModel : context.getModel().getAllMeasures()) {
-                if (context.getDeletedMeasureRecommendations().contains(itemId)) {
-                    return;
+                if (measureInModel.isTomb()) {
+                    continue;
                 }
                 val functionInModel = measureInModel.getFunction();
 
