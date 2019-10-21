@@ -210,14 +210,20 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                 String identifierName = identifierPairEntry.getKey().toString();
                 if (identifierName.equalsIgnoreCase(computedColumnDesc.getColumnName())) {
                     transformedSql = transformedSql.substring(0, identifierPairEntry.getValue().getFirst())
-                            + computedColumnDesc.getInternalCcName()
+                            + transformedSql
+                                    .substring(identifierPairEntry.getValue().getFirst(),
+                                            identifierPairEntry.getValue().getSecond())
+                                    .replaceAll(identifierName, computedColumnDesc.getInternalCcName())
                             + transformedSql.substring(identifierPairEntry.getValue().getSecond());
                     break;
                 } else if (identifierName.contains(".") && identifierName.substring(identifierName.lastIndexOf('.') + 1)
                         .equalsIgnoreCase(computedColumnDesc.getColumnName())) {
-                    transformedSql = transformedSql.substring(0,
-                            identifierPairEntry.getValue().getFirst() + identifierName.lastIndexOf('.') + 1)
-                            + computedColumnDesc.getInternalCcName()
+                    String originCcName = identifierName.substring(identifierName.lastIndexOf('.') + 1);
+                    transformedSql = transformedSql.substring(0, identifierPairEntry.getValue().getFirst())
+                            + transformedSql
+                                    .substring(identifierPairEntry.getValue().getFirst(),
+                                            identifierPairEntry.getValue().getSecond())
+                                    .replaceAll(originCcName, computedColumnDesc.getInternalCcName())
                             + transformedSql.substring(identifierPairEntry.getValue().getSecond());
                     break;
                 }
@@ -381,11 +387,10 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         // if order list is not empty and query is a select
         // then collect order list with checking on group keys
         List<SqlNode> inputNodes = new LinkedList<>();
-        if (sqlOrderBy.orderList != null &&
-                sqlOrderBy.query != null &&
-                sqlOrderBy.query instanceof SqlSelect &&
-                ((SqlSelect) sqlOrderBy.query).getGroup() != null) {
-            inputNodes.addAll(collectCandidateInputNodes(sqlOrderBy.orderList, ((SqlSelect) sqlOrderBy.query).getGroup()));
+        if (sqlOrderBy.orderList != null && sqlOrderBy.query != null && sqlOrderBy.query instanceof SqlSelect
+                && ((SqlSelect) sqlOrderBy.query).getGroup() != null) {
+            inputNodes.addAll(
+                    collectCandidateInputNodes(sqlOrderBy.orderList, ((SqlSelect) sqlOrderBy.query).getGroup()));
         } else {
             if (sqlOrderBy.orderList != null) {
                 inputNodes.addAll(getInputTreeNodes(sqlOrderBy.orderList));
