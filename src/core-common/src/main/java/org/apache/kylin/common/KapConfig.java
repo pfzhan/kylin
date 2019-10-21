@@ -749,7 +749,7 @@ public class KapConfig {
     }
 
     public int getSparkCanaryPeriodMinutes() {
-        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-period-min", "5"));
+        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-period-min", "3"));
     }
 
     public double getJoinMemoryFraction() {

@@ -60,11 +60,9 @@ public class SparkContextCanary {
             synchronized (SparkContextCanary.class) {
                 if (!isStarted) {
                     isStarted = true;
-                    val jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
-                    jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
                     logger.info("Start monitoring Spark");
-                    Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(
-                            () -> SparkContextCanary.monitor(jsc), PERIOD_MINUTES, PERIOD_MINUTES, TimeUnit.MINUTES);
+                    Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(SparkContextCanary::monitor,
+                            PERIOD_MINUTES, PERIOD_MINUTES, TimeUnit.MINUTES);
                 }
             }
         }
@@ -74,7 +72,7 @@ public class SparkContextCanary {
         return errorAccumulated >= THRESHOLD_TO_RESTART_SPARK;
     }
 
-    static void monitor(JavaSparkContext jsc) {
+    static void monitor() {
         try {
             // check spark sql context
             if (!SparderEnv.isSparkAvailable()) {
@@ -82,6 +80,9 @@ public class SparkContextCanary {
                 errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
             } else {
                 try {
+                    val jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
+                    jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
+
                     long t = System.currentTimeMillis();
                     val ret = numberCount(jsc).get(KapConfig.getInstanceFromEnv().getSparkCanaryErrorResponseMs(),
                             TimeUnit.MILLISECONDS);
@@ -96,6 +97,9 @@ public class SparkContextCanary {
                 } catch (ExecutionException ee) {
                     logger.error("SparkContextCanary numberCount occurs exception, need to restart immediately.", ee);
                     errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
+                } catch (Exception e) {
+                    errorAccumulated++;
+                    logger.error("SparkContextCanary numberCount occurs exception.", e);
                 }
             }
 
@@ -106,15 +110,12 @@ public class SparkContextCanary {
                     // Take repair action if error accumulated exceeds threshold
                     logger.warn("Repairing spark context");
                     SparderEnv.restartSpark();
-                    errorAccumulated = 0;
 
                     NMetricsGroup.counterInc(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, "global");
-
                 } catch (Throwable th) {
                     logger.error("Restart spark context failed.", th);
                 }
             }
-
         } catch (Throwable th) {
             logger.error("Error when monitoring Spark.", th);
         }
