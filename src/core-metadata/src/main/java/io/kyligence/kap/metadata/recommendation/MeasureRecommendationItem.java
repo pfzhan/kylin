@@ -25,6 +25,7 @@ package io.kyligence.kap.metadata.recommendation;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.kylin.common.util.JsonUtil;
 
@@ -39,6 +40,7 @@ import lombok.Setter;
 import lombok.val;
 import lombok.var;
 
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class MeasureRecommendationItem implements Serializable, RecommendationItem<MeasureRecommendationItem> {
 
     @Getter

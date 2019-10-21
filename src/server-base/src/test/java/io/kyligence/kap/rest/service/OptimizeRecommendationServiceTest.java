@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
@@ -104,6 +105,9 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         originIndexPlan.setUuid(id);
         originIndexPlan.setProject(projectDefault);
         indexPlanManager.createIndexPlan(originIndexPlan);
+
+        dataflowManager.createDataflow(indexPlanManager.getIndexPlan(id).copy(), "ADMIN");
+        dataflowManager.updateDataflow(id, copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
 
         val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(optimized, optimizedModelFile);
@@ -284,7 +288,9 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
             service.applyRecommendations(request, project);
         } catch (Exception ex) {
             Assert.assertTrue(ex instanceof IllegalArgumentException);
-            Assert.assertEquals("model [3f8941de-d01c-42b8-91b5-44646390864b] is broken, cannot apply any optimize recommendations", ex.getMessage());
+            Assert.assertEquals(
+                    "model [3f8941de-d01c-42b8-91b5-44646390864b] is broken, cannot apply any optimize recommendations",
+                    ex.getMessage());
         }
     }
 
@@ -411,7 +417,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(recommendation.getRecommendationsCount(), response.getTotalRecommendations());
         Assert.assertEquals(1, response.getModels().size());
         Assert.assertEquals("origin", response.getModels().get(0).getAlias());
-        Assert.assertEquals(recommendation.getRecommendationsCount(), response.getModels().get(0).getRecommendationsSize());
+        Assert.assertEquals(recommendation.getRecommendationsCount(),
+                response.getModels().get(0).getRecommendationsSize());
 
         val response2 = service.getRecommendationsStatsByProject("match");
         Assert.assertEquals(0, response2.getTotalRecommendations());
@@ -456,7 +463,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         val recommendation = new OptimizeRecommendation();
         recommendation.setUuid(modelId);
 
-        recommendation.setMeasureRecommendations(Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
+        recommendation.setMeasureRecommendations(
+                Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
         recommendation.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
         val indexRecommendation1 = new IndexRecommendationItem();
         val indexEntity = new IndexEntity();
@@ -474,6 +482,7 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
 
         service.batchApplyRecommendations(project, null);
 
-        Assert.assertEquals(recommendation.getRecommendationsCount(), recommendationManager.getRecommendationCount(modelId));
+        Assert.assertEquals(recommendation.getRecommendationsCount(),
+                recommendationManager.getRecommendationCount(modelId));
     }
 }

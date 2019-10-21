@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ import lombok.Setter;
 import lombok.val;
 import lombok.var;
 
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class IndexRecommendationItem implements Serializable, RecommendationItem<IndexRecommendationItem> {
     private static final Logger logger = LoggerFactory.getLogger(IndexRecommendationItem.class);
 

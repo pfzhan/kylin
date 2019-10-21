@@ -28,10 +28,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
@@ -39,6 +39,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
@@ -51,6 +52,7 @@ import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.response.AggIndexRecomDetailResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.response.TableIndexRecommendationResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
@@ -151,7 +153,8 @@ public class OptimizeRecommendationService extends BasicService {
         val originalModel = getDataModelManager(request.getProject()).getDataModelDesc(request.getModelId());
 
         if (originalModel.isBroken())
-            throw new IllegalArgumentException(String.format("model [%s] is broken, cannot apply any optimize recommendations", originalModel.getAlias()));
+            throw new IllegalArgumentException(String.format(
+                    "model [%s] is broken, cannot apply any optimize recommendations", originalModel.getAlias()));
 
         val copiedOrinalModel = getDataModelManager(request.getProject()).copyForWrite(originalModel);
 
@@ -252,13 +255,13 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 0)
     public void batchApplyRecommendations(String project, List<String> modelAlias) {
-        val models = getDataModelManager(project).listAllModels();
+        val models = getDataflowManager(project).listAllDataflows().stream()
+                .filter(df -> df.getStatus() == RealizationStatusEnum.ONLINE && !df.getModel().isBroken())
+                .map(NDataflow::getModel);
         models.forEach(model -> {
-            if (model.isBroken())
-                return;
-
             if (CollectionUtils.isEmpty(modelAlias) || modelAlias.contains(model.getAlias())) {
-                val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project, model.getId());
+                val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
+                        model.getId());
                 verifier.verifyAll();
             }
         });

@@ -30,10 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-import io.kyligence.kap.metadata.model.exception.LookupTableException;
-import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
-import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -60,6 +56,8 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
@@ -68,6 +66,7 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
@@ -75,6 +74,8 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.OptimizeRecommendationService;
+import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
 @Controller
@@ -88,6 +89,10 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    @Qualifier("projectService")
+    private ProjectService projectService;
 
     @Autowired
     private ModelSemanticHelper semanticService;
@@ -597,12 +602,20 @@ public class NModelController extends NBasicController {
                 .getTableIndexRecomContent(project, modelId, content, layoutId, offset, limit), "");
     }
 
+    public static final String illegalInputMsg = "Request failed. {project/model name} not found.";
+    public static final String illegalModeMsg = "Request failed. Please check whether the recommendation mode is enabled in expert mode.";
+
     @RequestMapping(value = "/recommendations/{project}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getRecommendationsByProject(@PathVariable("project") String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        if (StringUtils.isEmpty(project) || !projectService.isExistProject(project)) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, illegalInputMsg);
+        }
+        if (!projectService.isSemiAutoProject(project)) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, illegalModeMsg);
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 optimizeRecommendationService.getRecommendationsStatsByProject(project), "");
     }
 
@@ -610,10 +623,15 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse batchApplyRecommendations(@RequestParam(value = "project") String project,
-                                                      @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
-        checkProjectName(project);
+            @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
+        if (StringUtils.isEmpty(project) || !projectService.isExistProject(project)) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, illegalInputMsg);
+        }
+        if (!projectService.isSemiAutoProject(project)) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, illegalModeMsg);
+        }
         optimizeRecommendationService.batchApplyRecommendations(project, modelAlias);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     public void validatePartitionDesc(NDataModel model) {

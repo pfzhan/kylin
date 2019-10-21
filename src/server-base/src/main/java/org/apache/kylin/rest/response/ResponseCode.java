@@ -50,5 +50,7 @@ package org.apache.kylin.rest.response;
  */
 public class ResponseCode {
     public final static String CODE_SUCCESS = "000";
+    public final static String CODE_ILLEGAL_INPUT = "001";
+    public final static String CODE_MODE_NOT_MATCH = "002";
     public final static String CODE_UNDEFINED = "999";
 }

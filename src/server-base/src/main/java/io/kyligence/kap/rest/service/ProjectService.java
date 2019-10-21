@@ -485,6 +485,18 @@ public class ProjectService extends BasicService {
         return getProjectConfig(project);
     }
 
+    public boolean isSemiAutoProject(String project) {
+        val prjManager = getProjectManager();
+        val prj = prjManager.getProject(project);
+        return prj != null && prj.isSemiAutoMode();
+    }
+
+    public boolean isExistProject(String project) {
+        val prjManager = getProjectManager();
+        val prj = prjManager.getProject(project);
+        return prj != null;
+    }
+
     private void resetJobNotificationConfig(String project) {
         Set<String> toBeRemovedProps = Sets.newHashSet();
         toBeRemovedProps.add("kylin.job.notification-on-empty-data-load");
