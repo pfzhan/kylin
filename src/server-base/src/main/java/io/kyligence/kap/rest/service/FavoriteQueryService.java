@@ -358,7 +358,6 @@ public class FavoriteQueryService extends BasicService {
      */
     public void generateRecommendation() {
         String oldThreadName = Thread.currentThread().getName();
-
         try {
             Thread.currentThread().setName("AutoRecommendation");
             getProjectManager().listAllProjects().stream() //
@@ -373,6 +372,7 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
+    @Transaction(project = 1)
     private void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
         int batchAccelerateSize = config.getFavoriteAccelerateBatchSize();
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);

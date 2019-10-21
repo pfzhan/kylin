@@ -176,6 +176,7 @@ public class NSmartMaster {
 
     // optimize recommendation
     public void runOptRecommendation(Consumer<NSmartContext> hook) {
+        long start = System.currentTimeMillis();
         try {
             UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
                 @Override
@@ -194,6 +195,7 @@ public class NSmartMaster {
                 }
             }, project);
         } finally {
+            log.info("The whole process of auto-recommendation takes {}ms", System.currentTimeMillis() - start);
             saveAccelerationInfoInTransaction();
         }
     }
