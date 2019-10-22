@@ -65,7 +65,7 @@ public class EscapeTransformerTest {
     @Test
     public void testSqlwithComment() {
         String originalSQL = "select --test comment will remove\n \"--wont remove in quote\", /* will remove multi line comment*/ { fn count(*) } from tbl";
-        String expectedSQL = "select  \"--wont remove in quote\",  count(*) from tbl";
+        String expectedSQL = "select \n \"--wont remove in quote\",  count(*) from tbl";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -297,7 +297,7 @@ public class EscapeTransformerTest {
         String originalSQL = "select --test comment will remove\n \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
         String transformedSQL = new CommentParser(originalSQL).Input();
 
-        String expectedSQL = "select  \"--won't remove in quote, \",  { fn count(*) } from tbl";
+        String expectedSQL = "select \n \"--won't remove in quote, \",  { fn count(*) } from tbl";
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 

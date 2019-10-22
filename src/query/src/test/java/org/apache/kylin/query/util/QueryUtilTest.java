@@ -131,4 +131,46 @@ public class QueryUtilTest {
                 + "Please contact Kyligence Enterprise technical support for more details.", errorMsg);
     }
 
+    @Test
+    public void testRemoveCommentInSql() {
+        //test remove comment when last comment is --
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID;  \n\n\n",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
+                                + "order by SELLER_ID;  --4 /* 7 */\n--5\n/* 7 */\n--6"));
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID  \n\n\n",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
+                                + "order by SELLER_ID  --4 /* 7 */\n--5\n/* 7 */\n--6"));
+
+        //test remove comment when last comment is /* */
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID;  \n\n",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
+                                + "order by SELLER_ID;  --4 /* 7 */\n--5\n/* 7 */"));
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) \nfrom TEST_KYLIN_FACT  \ngroup by CAL_DT  \n" + "order by SELLER_ID  \n\n",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) --1 /* 7 */\nfrom TEST_KYLIN_FACT  --2 /* 7 */\ngroup by CAL_DT  --3 /* 7 */\n"
+                                + "order by SELLER_ID  --4 /* 7 */\n--5\n/* 7 */"));
+
+        //test remove comment when comment contain ''
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) 'sum_count' \nfrom TEST_KYLIN_FACT 'table' ",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) 'sum_count' -- 'comment' \nfrom TEST_KYLIN_FACT 'table' --comment"));
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) ",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) -- 'comment' --"));
+
+        //test remove comment when comment contain , \t /
+        Assert.assertEquals(
+                "select sum(ITEM_COUNT) ",
+                QueryUtil.removeCommentInSql(
+                        "select sum(ITEM_COUNT) -- , --\t --/ --"));
+    }
 }
