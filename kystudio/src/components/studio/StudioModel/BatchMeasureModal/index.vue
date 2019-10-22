@@ -108,7 +108,7 @@
               border
               :data="ccTable.columns"
               :ref="ccTable.guid">
-              <el-table-column show-overflow-tooltip prop="columnName" :label="$t('column')"></el-table-column>
+              <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
               <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
               <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
@@ -375,6 +375,7 @@ export default class BatchMeasureModal extends Vue {
       this.$set(col, 'isMeasureCol', false)
       this.$set(col, 'table_guid', this.factTable[0].guid)
       this.$set(col, 'table_alias', this.factTable[0].alias)
+      this.$set(col, 'name', col.columnName)
       const len = this.usedColumns.length
       for (let i = 0; i < len; i++) {
         let d = this.usedColumns[i]
