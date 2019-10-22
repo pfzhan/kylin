@@ -213,7 +213,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                             + transformedSql
                                     .substring(identifierPairEntry.getValue().getFirst(),
                                             identifierPairEntry.getValue().getSecond())
-                                    .replaceAll(identifierName, computedColumnDesc.getInternalCcName())
+                                    .replaceAll("(?i)" + identifierName, computedColumnDesc.getInternalCcName())
                             + transformedSql.substring(identifierPairEntry.getValue().getSecond());
                     break;
                 } else if (identifierName.contains(".") && identifierName.substring(identifierName.lastIndexOf('.') + 1)
@@ -223,7 +223,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                             + transformedSql
                                     .substring(identifierPairEntry.getValue().getFirst(),
                                             identifierPairEntry.getValue().getSecond())
-                                    .replaceAll(originCcName, computedColumnDesc.getInternalCcName())
+                                    .replaceAll("(?i)" + originCcName, computedColumnDesc.getInternalCcName())
                             + transformedSql.substring(identifierPairEntry.getValue().getSecond());
                     break;
                 }

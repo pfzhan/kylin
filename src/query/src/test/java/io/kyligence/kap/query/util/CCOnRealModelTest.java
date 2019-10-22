@@ -511,6 +511,13 @@ public class CCOnRealModelTest extends NLocalFileMetadataTestCase {
                 + "from (select \"_CC_CC_AUTO_17\" as _CC_CC_AUTO_17  from tdvt.calcs group by _CC_CC_AUTO_17)";
         check(converter, originSql, ccSql, "tdvt");
 
+        // case 4. explicit query CC with lower-case
+        originSql = "select max(CALCS.cc_auto_17)\n" + " - min(calcs.\"cc_auto_17\")\n"
+                + "from (select \"CC_AUTO_17\" as CC_AUTO_17  from tdvt.calcs group by CC_AUTO_17)";
+        ccSql = "select max(CALCS._CC_CC_AUTO_17)\n" + " - min(calcs.\"_CC_CC_AUTO_17\")\n"
+                + "from (select \"_CC_CC_AUTO_17\" as _CC_CC_AUTO_17  from tdvt.calcs group by _CC_CC_AUTO_17)";
+        check(converter, originSql, ccSql, "tdvt");
+
     }
 
     private void check(ConvertToComputedColumn converter, String originSql, String ccSql) {
