@@ -58,6 +58,28 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.5 release note
+
+**Feature**
+
+- Expert mode supports recommendation mode, which provides recommendations for existing models by analyzing the query history and model usage.
+- Provide different user roles to meet different levels of operation permissions
+- Provide health check API to check node status in cluster deployment
+
+**Enhancement**
+
+- Support to accelerate queries with count(constant) or count(distinct constant)
+- Support to input 'database.table' when loading source tables
+- Support to set the default database at project level
+- Enable Tomcat compression configuration by default to reduce the query results and network transmission time when integrating with a BI tool
+
+**Bugfix**
+
+- The index building job fails if it contains a count distinct measure and the source table is empty.
+- Pushdown query fails if there are same expressions in select clause.
+- Incremental loading job fails, when the partition column contains empty value.
+- Merging job may fail in resource detection steps if there are too many segments
+
 #### Kyligence Enterprise 4.0.4 release note
 
 **Feature**
