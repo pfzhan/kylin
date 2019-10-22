@@ -379,7 +379,7 @@ export default class BatchMeasureModal extends Vue {
       const len = this.usedColumns.length
       for (let i = 0; i < len; i++) {
         let d = this.usedColumns[i]
-        if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === col.name) {
+        if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === col.table_alias + '.' + col.name) {
           col[d.expression].value = true
           col[d.expression].isShouldDisable = true
           this.$set(col, 'isMeasureCol', true)
