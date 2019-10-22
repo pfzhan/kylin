@@ -101,14 +101,14 @@
               <span class="ksd-ml-2">
                 <i class="el-icon-ksd-auto_computed_column"></i>
               </span>
-              <span class="table-title">{{$t('computedColumns')}} <span>({{table.meaColNum}}/{{table.columns.length}})</span></span>
+              <span class="table-title">{{$t('computedColumns')}} <span>({{ccTable.meaColNum}}/{{ccTable.columns.length}})</span></span>
             </div>
             <el-table
               v-if="ccTable.show || isGuideMode"
               border
               :data="ccTable.columns"
               :ref="ccTable.guid">
-              <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+              <el-table-column show-overflow-tooltip prop="columnName" :label="$t('column')"></el-table-column>
               <el-table-column show-overflow-tooltip prop="datatype" width="110px" :label="$t('dataType')"></el-table-column>
               <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, ccTable)}" align="center">
                 <template slot-scope="scope">
@@ -367,33 +367,31 @@ export default class BatchMeasureModal extends Vue {
     this.ccTable.columns.forEach((col) => {
       const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
       const returnValue = returnRegex.exec(col.datatype)
-      if (measuresDataType.indexOf(returnValue[1]) >= 0) {
-        this.$set(col, 'SUM', {isShouldDisable: false, value: false})
-        this.$set(col, 'MIN', {isShouldDisable: false, value: false})
-        this.$set(col, 'MAX', {isShouldDisable: false, value: false})
-        this.$set(col, 'COUNT', {isShouldDisable: false, value: false})
-        this.$set(col, 'isAllSelected', false)
-        this.$set(col, 'isMeasureCol', false)
-        this.$set(col, 'table_guid', this.factTable[0].guid)
-        this.$set(col, 'table_alias', this.factTable[0].alias)
-        const len = this.usedColumns.length
-        for (let i = 0; i < len; i++) {
-          let d = this.usedColumns[i]
-          if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === col.name) {
-            col[d.expression].value = true
-            col[d.expression].isShouldDisable = true
-            this.$set(col, 'isMeasureCol', true)
-            nums[d.expression.toLowerCase() + 'Num']++
-          }
+      this.$set(col, 'SUM', {isShouldDisable: false, value: false})
+      this.$set(col, 'MIN', {isShouldDisable: false, value: false})
+      this.$set(col, 'MAX', {isShouldDisable: false, value: false})
+      this.$set(col, 'COUNT', {isShouldDisable: false, value: false})
+      this.$set(col, 'isAllSelected', false)
+      this.$set(col, 'isMeasureCol', false)
+      this.$set(col, 'table_guid', this.factTable[0].guid)
+      this.$set(col, 'table_alias', this.factTable[0].alias)
+      const len = this.usedColumns.length
+      for (let i = 0; i < len; i++) {
+        let d = this.usedColumns[i]
+        if (this.expressions.indexOf(d.expression) !== -1 && d.parameter_value[0].value === col.name) {
+          col[d.expression].value = true
+          col[d.expression].isShouldDisable = true
+          this.$set(col, 'isMeasureCol', true)
+          nums[d.expression.toLowerCase() + 'Num']++
         }
-        if (measureSumAndTopNDataType.indexOf(returnValue[1]) === -1) {
-          col.SUM.isShouldDisable = true
-        }
-        if (col.isMeasureCol) {
-          meaColNum++
-        }
-        filterColumns.push(col)
       }
+      if (measureSumAndTopNDataType.indexOf(returnValue[1]) === -1) {
+        col.SUM.isShouldDisable = true
+      }
+      if (col.isMeasureCol) {
+        meaColNum++
+      }
+      filterColumns.push(col)
     })
     this.ccTable.columns = filterColumns
     this.$set(this.ccTable, 'nums', nums)
