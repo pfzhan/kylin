@@ -46,7 +46,6 @@ import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeContext;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
@@ -115,7 +114,7 @@ public class OptimizeRecommendationService extends BasicService {
         if (optRecommendation == null)
             return null;
 
-        val optimizedModel = getOptimizedModel(project, modelId, optRecommendation);
+        val optimizedModel = getOptimizedModel(project, modelId);
         for (IndexRecommendationItem item : optRecommendation.getIndexRecommendations()) {
             if (item.getEntity().getId() == indexId) {
                 return new AggIndexRecomDetailResponse(item.getEntity(), optimizedModel, content, offset, size);
@@ -125,10 +124,8 @@ public class OptimizeRecommendationService extends BasicService {
         throw new IllegalArgumentException(String.format("agg index [%s] does not exist", indexId));
     }
 
-    private NDataModel getOptimizedModel(String project, String modelId, OptimizeRecommendation recommendation) {
-        val modelManager = getDataModelManager(project);
-        val originModel = modelManager.copyForWrite(modelManager.getDataModelDesc(modelId));
-        return getOptRecommendationManager(project).apply(originModel, recommendation);
+    private NDataModel getOptimizedModel(String project, String modelId) {
+        return getOptRecommendationManager(project).applyModel(modelId);
     }
 
     public TableIndexRecommendationResponse getTableIndexRecomContent(String project, String modelId, String content,
@@ -137,7 +134,7 @@ public class OptimizeRecommendationService extends BasicService {
         if (optRecommendation == null)
             return null;
 
-        val optimizedModel = getOptimizedModel(project, modelId, optRecommendation);
+        val optimizedModel = getOptimizedModel(project, modelId);
         for (IndexRecommendationItem item : optRecommendation.getIndexRecommendations()) {
             for (LayoutEntity layoutEntity : item.getEntity().getLayouts()) {
                 if (layoutEntity.getId() == layoutId) {

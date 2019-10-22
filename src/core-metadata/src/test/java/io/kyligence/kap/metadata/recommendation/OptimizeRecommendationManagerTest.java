@@ -193,13 +193,11 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testOptimizeTwice() throws IOException {
         testOptimize();
-        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
         updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanTwiceFile);
-        val appliedModel = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
-                recommendation);
+        val appliedModel = recommendationManager.applyModel(id);
         recommendationManager.optimize(appliedModel, indexPlanOptimized);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(4, recommendation.getIndexRecommendations().size());
     }
 
@@ -223,7 +221,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(6, recommendation.getIndexRecommendations().size());
         Assert.assertEquals(3, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
-
 
     }
 
@@ -265,8 +262,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         modelManager.updateDataModel(id, updater);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(3, recommendation.getIndexRecommendations().size());
-        recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
-                indexPlanManager.copy(indexPlanManager.getIndexPlan(id)), recommendation);
+        recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(2, recommendation.getIndexRecommendations().size());
         Assert.assertTrue(
@@ -353,9 +349,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApply() throws IOException {
         prepare();
-        var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val appliedModel = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
-                recommendation);
+        val appliedModel = recommendationManager.applyModel(id);
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(1).getStatus());
         Assert.assertEquals(10000001, appliedModel.getAllNamedColumns().get(16).getId());
         Assert.assertEquals("CC_AUTO_1", appliedModel.getAllNamedColumns().get(16).getName());
@@ -365,8 +359,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(17).getStatus());
         val indexPlan = indexPlanManager.getIndexPlan(id).copy();
         val indexId = indexPlan.getNextAggregationIndexId();
-        val appliedIndexPlan = recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
-                indexPlanManager.getIndexPlan(id).copy(), recommendation);
+        val appliedIndexPlan = recommendationManager.applyIndexPlan(id);
         Assert.assertTrue(
                 appliedIndexPlan.getAllIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == indexId));
 
@@ -394,10 +387,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         originInit.getAllNamedColumns().get(1).setStatus(NDataModel.ColumnStatus.DIMENSION);
         modelManager.updateDataModelDesc(originInit);
-        originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        recommendationManager.cleanInEffective(id);
+        val appliedModel = recommendationManager.applyModel(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val appliedModel = recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertTrue(
                 recommendation.getDimensionRecommendations().stream().noneMatch(item -> item.getItemId() == 0));
         Assert.assertEquals(10000001, appliedModel.getAllNamedColumns().get(16).getId());
@@ -408,8 +400,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(17).getStatus());
         val indexPlan = indexPlanManager.getIndexPlan(id).copy();
         val indexId = indexPlan.getNextAggregationIndexId();
-        val appliedIndexPlan = recommendationManager.apply(appliedModel, indexPlanManager.getIndexPlan(id).copy(),
-                recommendation);
+        val appliedIndexPlan = recommendationManager.applyIndexPlan(id);
         Assert.assertTrue(
                 appliedIndexPlan.getAllIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == indexId));
     }
@@ -420,10 +411,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameCCNameExprModelFile);
         modelManager.updateDataModelDesc(originInit);
-        originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        recommendationManager.cleanInEffective(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
         Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getDimensions().contains(16));
         Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getLayouts().stream()
@@ -436,10 +425,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameCCExprModelFile);
         modelManager.updateDataModelDesc(originInit);
-        originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        recommendationManager.cleanInEffective(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(1, recommendation.getCcRecommendations().size());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_X1 * 2",
                 recommendation.getCcRecommendations().get(0).getCc().getExpression());
@@ -456,10 +443,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameCCNameModelFile);
         modelManager.updateDataModelDesc(originInit);
-        originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        recommendationManager.cleanInEffective(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(2, recommendation.getCcRecommendations().size());
         Assert.assertEquals("CC_AUTO_3", recommendation.getCcRecommendations().get(0).getCc().getColumnName());
         Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_3 * 2",
@@ -479,11 +464,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApply_SameCCNameAndExpr() throws IOException {
         prepare();
-        var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val otherModel = readValue(new File(otherSameCCNameExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
-        val appliedModel = recommendationManager.apply(originInit, recommendation);
+        recommendationManager.cleanInEffective(id);
+        val appliedModel = recommendationManager.applyModel(id);
         Assert.assertEquals(10000001, appliedModel.getAllNamedColumns().get(16).getId());
         Assert.assertEquals("CC_AUTO_1", appliedModel.getAllNamedColumns().get(16).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, appliedModel.getAllNamedColumns().get(16).getStatus());
@@ -495,12 +479,11 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApply_CCConflictSameExpr() throws IOException {
         prepare();
-        var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val otherModel = readValue(new File(otherSameCCExprModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
-        val appliedModel = recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        recommendationManager.cleanInEffective(id);
+        val appliedModel = recommendationManager.applyModel(id);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(2, recommendation.getCcRecommendations().size());
         Assert.assertEquals("CC_OTHER_3", recommendation.getCcRecommendations().get(0).getCc().getColumnName());
         Assert.assertEquals("CC_OTHER_4", recommendation.getCcRecommendations().get(1).getCc().getColumnName());
@@ -517,12 +500,11 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApply_CCConflictSameName() throws IOException {
         prepare();
-        var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         val otherModel = readValue(new File(otherSameCCNameModelFile), NDataModel.class);
         modelManager.createDataModelDesc(otherModel, ownerTest);
-        val appliedModel = recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        recommendationManager.cleanInEffective(id);
+        val appliedModel = recommendationManager.applyModel(id);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(2, recommendation.getCcRecommendations().size());
         Assert.assertEquals("CC_AUTO_3", recommendation.getCcRecommendations().get(0).getCc().getColumnName());
         Assert.assertEquals("CC_AUTO_4", recommendation.getCcRecommendations().get(1).getCc().getColumnName());
@@ -542,10 +524,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameMeasureExprModelFile);
         modelManager.updateDataModelDesc(originInit);
-        originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        recommendationManager.cleanInEffective(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        recommendationManager.apply(originInit, recommendation);
-        recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(5, recommendation.getMeasureRecommendations().size());
         Assert.assertTrue(recommendation.getMeasureRecommendations().stream().noneMatch(
                 measure -> measure.getMeasure().getFunction().getExpression().equals("TOP_N") && measure.getMeasure()
@@ -572,11 +552,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(originInit, selfSameMeasureNameModelFile);
         modelManager.updateDataModelDesc(originInit);
-        originInit = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
         Assert.assertEquals("COUNT_SELLER", recommendation.getMeasureRecommendations().get(2).getMeasure().getName());
-        recommendationManager.apply(originInit, recommendation);
+        recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
         Assert.assertEquals("COUNT_SELLER_1", recommendation.getMeasureRecommendations().get(2).getMeasure().getName());
@@ -1091,7 +1070,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
             rule.getAggregationGroups().add(group);
             copyForWrite.setRuleBasedIndex(rule);
         });
-        recommendationManager.applyIndexPlan(id);
+        recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertTrue(recommendation.getIndexRecommendations().stream()
                 .noneMatch(item -> item.getEntity().getLayouts().stream()

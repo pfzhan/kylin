@@ -40,7 +40,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
@@ -81,8 +80,7 @@ public abstract class NAbstractProposer {
         List<NDataModel> enhancedDataModel = Lists.newArrayListWithCapacity(models.size());
         OptimizeRecommendationManager recommendMgr = OptimizeRecommendationManager.getInstance(kylinConfig, project);
         for (NDataModel model : models) {
-            OptimizeRecommendation optimizeRecommendation = recommendMgr.getOptimizeRecommendation(model.getUuid());
-            enhancedDataModel.add(recommendMgr.apply(model, optimizeRecommendation));
+            enhancedDataModel.add(recommendMgr.applyModel(model.getId()));
         }
         return enhancedDataModel;
     }

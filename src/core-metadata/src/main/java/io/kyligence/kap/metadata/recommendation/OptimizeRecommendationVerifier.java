@@ -68,9 +68,7 @@ public class OptimizeRecommendationVerifier {
         Preconditions.checkNotNull(modelManager.getDataModelDesc(id), "model " + id + " not exists");
         Preconditions.checkNotNull(indexPlanManager.getIndexPlan(id), "index " + id + " not exists");
 
-        recommendationManager.apply(modelManager.copyForWrite(modelManager.getDataModelDesc(id)),
-                indexPlanManager.copy(indexPlanManager.getIndexPlan(id)),
-                recommendationManager.getOptimizeRecommendation(id));
+        recommendationManager.cleanInEffective(id);
 
         val model = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         val indexPlan = indexPlanManager.copy(indexPlanManager.getIndexPlan(id));
@@ -112,11 +110,7 @@ public class OptimizeRecommendationVerifier {
 
         recommendationManager.update(context, System.currentTimeMillis());
 
-        val modelVerified = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        val indexPlanVerified = indexPlanManager.copy(indexPlanManager.getIndexPlan(id));
-
-        recommendationManager.apply(modelVerified, indexPlanVerified,
-                recommendationManager.getOptimizeRecommendation(id));
+        recommendationManager.cleanInEffective(id);
     }
 
     public void verifyAll() {

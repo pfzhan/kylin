@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -167,14 +166,8 @@ public class OptimizeRecommendationManager {
         return recommendation;
     }
 
-    public OptimizeRecommendation optimize(NDataModel optimized) {
-        optimizeModel(optimized);
-        return getOptimizeRecommendation(optimized.getId());
-    }
-
-    private Map<Integer, Integer> optimizeModel(NDataModel optimized) {
+    private Map<Integer, Integer> optimizeModel(NDataModel optimized, NDataModel origin) {
         Preconditions.checkNotNull(optimized, "optimize model not exists");
-        val origin = applyModel(optimized.getId());
         Preconditions.checkNotNull(origin, "optimize model not exists");
         val factTable = origin.getRootFactTableAlias() != null ? origin.getRootFactTableAlias()
                 : origin.getRootFactTableName().split("\\.")[1];
@@ -295,11 +288,10 @@ public class OptimizeRecommendationManager {
         return save(optimizeRecommendation);
     }
 
-    private void optimizeIndexPlan(IndexPlan optimized, Map<Integer, Integer> translations) {
+    private void optimizeIndexPlan(IndexPlan optimized, IndexPlan originIndexPlan, Map<Integer, Integer> translations) {
         Preconditions.checkNotNull(optimized, "optimize index plan not exists");
 
         val optimizedAllIndexes = optimized.getAllIndexes();
-        val originIndexPlan = applyIndexPlan(optimized.getId());
 
         Preconditions.checkNotNull(originIndexPlan, "index plan " + optimized.getId() + " not exists");
 
@@ -357,11 +349,6 @@ public class OptimizeRecommendationManager {
         return ids;
     }
 
-    public OptimizeRecommendation optimize(IndexPlan optimized) {
-        optimizeIndexPlan(optimized, Maps.newHashMap());
-        return getOptimizeRecommendation(optimized.getId());
-    }
-
     public void cleanAll(String id) {
         if (getOptimizeRecommendation(id) == null) {
             return;
@@ -375,15 +362,43 @@ public class OptimizeRecommendationManager {
     }
 
     public void cleanInEffective(String id) {
-        if (getOptimizeRecommendation(id) == null) {
+        val recommendation = getOptimizeRecommendation(id);
+
+        if (recommendation == null) {
             return;
         }
-        applyIndexPlan(id);
+
+        val modelManager = NDataModelManager.getInstance(getConfig(), project);
+        val model = modelManager.getDataModelDesc(id);
+        val indexManager = NIndexPlanManager.getInstance(getConfig(), project);
+        val indexPlan = indexManager.getIndexPlan(id);
+
+        Preconditions.checkNotNull(model);
+        Preconditions.checkNotNull(indexPlan);
+
+        val context = apply(modelManager.copyForWrite(model), indexManager.copy(indexPlan), recommendation);
+        update(context);
+
     }
 
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
-        val translations = optimizeModel(model);
-        optimizeIndexPlan(indexPlan, translations);
+        Preconditions.checkNotNull(model);
+        Preconditions.checkNotNull(indexPlan);
+
+        val modelManager = NDataModelManager.getInstance(getConfig(), project);
+        val modelInCache = modelManager.getDataModelDesc(model.getId());
+        val indexManager = NIndexPlanManager.getInstance(getConfig(), project);
+        val indexPlanInCache = indexManager.getIndexPlan(model.getId());
+
+        Preconditions.checkNotNull(modelInCache);
+        Preconditions.checkNotNull(indexPlanInCache);
+        val context = apply(modelManager.copyForWrite(modelInCache), indexManager.copy(indexPlanInCache),
+                getOrCreate(model.getId()));
+        val appliedModel = context.getModel();
+        val appliedIndexPlan = context.getIndexPlan();
+        val translations = optimizeModel(model, appliedModel);
+        optimizeIndexPlan(indexPlan, appliedIndexPlan, translations);
+        cleanInEffective(model.getId());
         return getOptimizeRecommendation(model.getId());
     }
 
@@ -445,25 +460,20 @@ public class OptimizeRecommendationManager {
     }
 
     public NDataModel applyModel(String id) {
-        return applyModel(copy(getOrCreate(id)));
-    }
 
-    public NDataModel applyModel(OptimizeRecommendation recommendation) {
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
-        if (modelManager.getDataModelDesc(recommendation.getId()) == null) {
+        val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
+        if (modelManager.getDataModelDesc(id) == null || indexPlanManager.getIndexPlan(id) == null) {
             return null;
         }
-        return apply(modelManager.copyForWrite(modelManager.getDataModelDesc(recommendation.getId())), recommendation);
-    }
-
-    public NDataModel apply(NDataModel model, OptimizeRecommendation recommendation) {
-        if (Objects.isNull(recommendation)) {
-            return model;
+        val recommendation = getOptimizeRecommendation(id);
+        if (recommendation == null) {
+            return modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         }
-        val context = new OptimizeContext(model, recommendation);
-        apply(context);
-        update(context);
+        val context = apply(modelManager.copyForWrite(modelManager.getDataModelDesc(recommendation.getId())),
+                indexPlanManager.copy(indexPlanManager.getIndexPlan(recommendation.getId())), recommendation);
         return context.getModel();
+
     }
 
     private void apply(OptimizeContext context) {
@@ -611,35 +621,32 @@ public class OptimizeRecommendationManager {
     }
 
     public IndexPlan applyIndexPlan(String id) {
-        return applyIndexPlan(copy(getOrCreate(id)));
-    }
 
-    public IndexPlan applyIndexPlan(OptimizeRecommendation recommendation) {
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
-        if (modelManager.getDataModelDesc(recommendation.getId()) == null
-                || indexPlanManager.getIndexPlan(recommendation.getId()) == null) {
+        if (modelManager.getDataModelDesc(id) == null || indexPlanManager.getIndexPlan(id) == null) {
             return null;
         }
-        return apply(modelManager.copyForWrite(modelManager.getDataModelDesc(recommendation.getId())),
+        val recommendation = getOptimizeRecommendation(id);
+        if (recommendation == null) {
+            return indexPlanManager.copy(indexPlanManager.getIndexPlan(id));
+        }
+        val context = apply(modelManager.copyForWrite(modelManager.getDataModelDesc(recommendation.getId())),
                 indexPlanManager.copy(indexPlanManager.getIndexPlan(recommendation.getId())), recommendation);
-
+        return context.getIndexPlan();
     }
 
-    public IndexPlan apply(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
-        if (Objects.isNull(recommendation)) {
-            return indexPlan;
-        }
+    private OptimizeContext apply(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
         val context = new OptimizeContext(model, indexPlan, recommendation);
         apply(context);
         recommendation.getIndexRecommendations().stream()
                 .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).filter(IndexRecommendationItem::isAdd)
                 .forEach(item -> {
+                    item.translate(context);
                     item.checkDependencies(context);
                     item.apply(context);
                 });
-        update(context);
-        return context.getIndexPlan();
+        return context;
     }
 
     public void update(OptimizeContext context) {

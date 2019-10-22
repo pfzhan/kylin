@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
@@ -92,9 +91,7 @@ public class OptRecommendationResponse {
     private Pair<List<AggIndexRecommendationResponse>, List<TableIndexRecommendationResponse>> convertIndexRecommendation(
             OptimizeRecommendation optimizeRecommendation) {
         val indexRecommendationItems = optimizeRecommendation.getIndexRecommendations();
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val originModel = modelManager.copyForWrite(modelManager.getDataModelDesc(modelId));
-        val optimizedModel = getOptRecomManager().apply(originModel, optimizeRecommendation);
+        val optimizedModel = getOptRecomManager().applyModel(modelId);
 
         val aggIndicesRecommendations = new ArrayList<IndexRecommendationItem>();
         val aggIndices = new ArrayList<AggIndexRecommendationResponse>();
