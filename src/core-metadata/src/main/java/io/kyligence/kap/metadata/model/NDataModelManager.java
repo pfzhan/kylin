@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -113,8 +112,6 @@ public class NDataModelManager {
                 model.setConfig(config);
 
                 if (entity != null) {
-                    val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), project);
-                    recommendationManager.cleanAll(entity.getId());
                     model.setHandledAfterBroken(entity.isHandledAfterBroken());
                     model.setAlias(entity.getAlias());
                     model.setRootFactTableName(entity.getRootFactTableName());

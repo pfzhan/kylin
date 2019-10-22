@@ -50,6 +50,7 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.val;
 
 public class ModelBrokenListener {
@@ -112,6 +113,9 @@ public class ModelBrokenListener {
             modelManager.updateDataBrokenModelDesc(model);
             EventDao eventDao = EventDao.getInstance(config, project);
             eventDao.getEventsByModel(modelId).stream().map(Event::getId).forEach(eventDao::deleteEvent);
+
+            val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
+            recommendationManager.cleanAll(model.getId());
             return null;
         }, project);
     }
