@@ -215,13 +215,18 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
     private void addLayouts(OptimizeContext context) {
         var item = context.getIndexRecommendationItem(itemId);
         val identifier = item.getEntity().createIndexIdentifier();
+        val indexPlan = context.getIndexPlan();
         if (!context.getVirtualIndexesMap().containsKey(identifier)) {
             item.entity.setNextLayoutOffset(1);
-            val indexPlan = context.getIndexPlan();
             val layouts = item.entity.getLayouts();
-            layouts.forEach(layout -> {
+            if (context.getAllIndexesMap().get(identifier) != null) {
+                item.entity.setId(context.getAllIndexesMap().get(identifier).getId());
+                item.entity.setNextLayoutOffset(item.entity.getNextLayoutOffset() + 1);
+            } else {
                 item.entity.setId(
                         item.isAggIndex ? indexPlan.getNextAggregationIndexId() : indexPlan.getNextTableIndexId());
+            }
+            layouts.forEach(layout -> {
                 layout.setId(item.entity.getId() + item.entity.getNextLayoutOffset());
                 item.entity.setNextLayoutOffset(item.entity.getNextLayoutOffset() + 1);
             });
