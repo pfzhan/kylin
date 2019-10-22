@@ -189,18 +189,22 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
         MockMultipartFile file2 = new MockMultipartFile("sqls2.txt", "sqls2.txt", "text/plain",
                 new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
+        // add jdbc type sql
+        MockMultipartFile file3 = new MockMultipartFile("sqls3.txt", "sqls3.txt", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls3.txt")));
+
         MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql",
                 "text/plain", "".getBytes());
 
         Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile, PROJECT)).thenThrow(IOException.class);
 
-        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[] { file1, file2, exceptionFile },
-                PROJECT);
+        Map<String, Object> result = favoriteRuleService
+                .importSqls(new MultipartFile[] { file1, file2, file3, exceptionFile }, PROJECT);
         List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
-        Assert.assertEquals(9, responses.size());
+        Assert.assertEquals(10, responses.size());
         Assert.assertFalse(responses.get(0).isCapable());
         Assert.assertTrue(responses.get(8).isCapable());
-        Assert.assertEquals(9, result.get("size"));
+        Assert.assertEquals(10, result.get("size"));
         Assert.assertEquals(3, result.get("capable_sql_num"));
         String failedFilesMsg = (String) result.get("msg");
         Assert.assertNotNull(failedFilesMsg);

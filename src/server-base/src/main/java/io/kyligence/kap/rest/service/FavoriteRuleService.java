@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -41,6 +42,7 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -241,13 +243,18 @@ public class FavoriteRuleService extends BasicService {
         List<String> sqls = Lists.newArrayList();
         List<String> filesParseFailed = Lists.newArrayList();
 
+        // add user info before invoking row-filter and hack-select-star
+        QueryContext context = QueryContext.current();
+        context.setUsername(AclPermissionUtil.getCurrentUsername());
+        context.setGroups(AclPermissionUtil.getCurrentUserGroups());
+        context.setHasAdminPermission(AclPermissionUtil.isAdminInProject(project));
         // parse file to sqls
         for (MultipartFile file : files) {
             try {
                 sqls.addAll(transformFileToSqls(file, project));
             } catch (Exception ex) {
-                logger.error("Error caught when parsing file {} because {} ", file.getOriginalFilename(),
-                        ex.getMessage());
+                logger.error("[UNEXPECTED_THINGS_HAPPENED]Error caught when parsing file {} because {} ",
+                        file.getOriginalFilename(), ex);
                 filesParseFailed.add(file.getOriginalFilename());
             }
         }
