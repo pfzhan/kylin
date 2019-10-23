@@ -42,6 +42,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.awaitility.Awaitility.await;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -61,6 +63,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -109,6 +112,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -149,6 +153,7 @@ import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -191,6 +196,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
+
     @Before
     public void setup() {
         super.setup();
@@ -212,11 +219,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val copy = prjManager.copyForWrite(prj);
         copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         prjManager.updateProject(copy);
+
+        SchedulerEventBusFactory.getInstance(getTestConfig()).register(modelBrokenListener);
     }
 
     @After
     public void tearDown() {
         getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "false");
+        SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
+        SchedulerEventBusFactory.restart();
         cleanupTestMetadata();
     }
 
@@ -3168,20 +3179,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testModelBroken_CleanRecommendation() throws NoSuchFieldException, IllegalAccessException {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        AtomicBoolean clean = new AtomicBoolean(false);
-        val manager = spyOptimizeRecommendationManager();
-        Mockito.doAnswer(invocation -> {
-            String id = invocation.getArgument(0);
-            if (modelId.equals(id)) {
-                clean.set(true);
-            }
-            return null;
-        }).when(manager).cleanAll(Mockito.anyString());
+        val recomManger = OptimizeRecommendationManager.getInstance(getTestConfig(), "default");
+        val opt = new OptimizeRecommendation();
+        opt.setUuid(modelId);
+        opt.setIndexRecommendations(Lists.newArrayList(new IndexRecommendationItem(), new IndexRecommendationItem()));
+        recomManger.save(opt);
+
+        Assert.assertEquals(2, recomManger.getOptimizeRecommendation(modelId).getIndexRecommendations().size());
         tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelManager.getDataModelDesc(modelId);
         Assert.assertTrue(model.isBroken());
-        Assert.assertTrue(clean.get());
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(0, recomManger.getOptimizeRecommendation(modelId).getIndexRecommendations().size());
+        });
     }
 
     private ModelRequest prepare() throws IOException {

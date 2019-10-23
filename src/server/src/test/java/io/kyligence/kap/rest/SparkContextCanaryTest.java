@@ -60,8 +60,9 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         SparkContextCanary.monitor();
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
-        Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
 
+        SparkContextCanary.monitor();
+        Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
     }
 
     @Test
