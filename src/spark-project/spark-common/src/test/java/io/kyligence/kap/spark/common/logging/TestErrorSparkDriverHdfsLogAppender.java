@@ -23,13 +23,16 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
+import org.apache.log4j.spi.LoggingEvent;
+
 import java.io.IOException;
+import java.util.List;
 
 public class TestErrorSparkDriverHdfsLogAppender extends SparkDriverHdfsLogAppender {
 
     @Override
-    public void doWriteLog(int size) throws IOException, InterruptedException {
-        super.doWriteLog(size);
+    public void doWriteLog(int size, List<LoggingEvent> transaction) throws IOException, InterruptedException {
+        super.doWriteLog(size, transaction);
         throw new IOException("test flush IOException!");
     }
 

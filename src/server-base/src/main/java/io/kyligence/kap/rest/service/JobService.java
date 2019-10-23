@@ -685,7 +685,6 @@ public class JobService extends BasicService {
      */
     @Transaction(project = 0)
     public void updateSparkJobInfo(String project, String jobId, String taskId, String yarnAppId, String yarnAppUrl) {
-        aclEvaluate.checkProjectOperationPermission(project);
         val executableManager = getExecutableManager(project);
         Map<String, String> extraInfo = Maps.newHashMap();
         extraInfo.put(ExecutableConstants.YARN_APP_ID, yarnAppId);

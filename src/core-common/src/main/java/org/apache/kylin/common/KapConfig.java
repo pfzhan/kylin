@@ -55,6 +55,10 @@ public class KapConfig {
         }
     }
 
+    public static String getKylinLogDirAtBestEffort() {
+        return new File(getKylinHomeAtBestEffort(), "logs").getAbsolutePath();
+    }
+
     // ============================================================================
 
     private final KylinConfig config;

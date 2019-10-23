@@ -387,6 +387,7 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
         sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
         sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
+        sb.append(String.format(" -Dspark.driver.local.logDir=%s ", KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
 
         sparkConfigOverride.put(sparkDriverExtraJavaOptionsKey, sb.toString());
 

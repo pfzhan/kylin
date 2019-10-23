@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
@@ -123,7 +124,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @Override
-    void doWriteLog(int size) throws IOException, InterruptedException {
+    void doWriteLog(int size, List<LoggingEvent> transaction) throws IOException, InterruptedException {
         while (size > 0) {
             final LoggingEvent loggingEvent = getLogBufferQue().take();
             if (isTimeChanged(loggingEvent)) {
@@ -147,6 +148,7 @@ public class SparkExecutorHdfsLogAppender extends AbstractHdfsLogAppender {
                 });
             }
 
+            transaction.add(loggingEvent);
             writeLogEvent(loggingEvent);
             size--;
         }

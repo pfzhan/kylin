@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
+import com.google.common.collect.Lists;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.io.IOUtils;
@@ -37,6 +38,7 @@ import org.apache.log4j.spi.LoggingEvent;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.List;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -138,15 +140,24 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             if (!this.closed) {
                 this.closed = true;
 
+                List<LoggingEvent> transaction = Lists.newArrayList();
                 try {
-                    flushLog(getLogBufferQue().size());
+                    flushLog(getLogBufferQue().size(), transaction);
 
                     closeWriter();
                     if (appendHdfsService != null && !appendHdfsService.isShutdown()) {
                         appendHdfsService.shutdownNow();
                     }
                 } catch (Exception e) {
-                    LogLog.error(String.format("close %s failed", getAppenderName()), e);
+                    transaction.forEach(this::printLoggingEvent);
+                    try {
+                        while (!getLogBufferQue().isEmpty()) {
+                            printLoggingEvent(getLogBufferQue().take());
+                        }
+                    } catch (Exception ie) {
+                        LogLog.error("clear the logging buffer queue failed!", ie);
+                    }
+                    LogLog.error(String.format("close %s failed!", getAppenderName()), e);
                 }
                 LogLog.warn(String.format("%s closed ...", getAppenderName()));
             }
@@ -178,7 +189,8 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
             int removeNum = getLogQueueCapacity() / 5;
             while (removeNum > 0) {
                 try {
-                    logBufferQue.take();
+                    LoggingEvent loggingEvent = logBufferQue.take();
+                    printLoggingEvent(loggingEvent);
                 } catch (Exception ex) {
                     LogLog.error("Take event interrupted!", ex);
                 }
@@ -188,11 +200,30 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     }
 
     /**
+     * print the logging event to stderr
+     * @param loggingEvent
+     */
+    private void printLoggingEvent(LoggingEvent loggingEvent) {
+        try {
+            String log = getLayout().format(loggingEvent);
+            LogLog.error(log.endsWith("\n") ? log.substring(0, log.length() - 1) : log);
+            if (null != loggingEvent.getThrowableStrRep()) {
+                for (String stack : loggingEvent.getThrowableStrRep()) {
+                    LogLog.error(stack);
+                }
+            }
+        } catch (Exception e) {
+            LogLog.error("print logging event failed!", e);
+        }
+    }
+
+    /**
      * flush the log to hdfs when conditions are satisfied.
      */
     protected void checkAndFlushLog() {
         long start = System.currentTimeMillis();
         do {
+            List<LoggingEvent> transaction = Lists.newArrayList();
             try {
                 if (isSkipCheckAndFlushLog()) {
                     continue;
@@ -201,12 +232,13 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                 int eventSize = getLogBufferQue().size();
                 if (eventSize > getLogQueueCapacity() * QUEUE_FLUSH_THRESHOLD
                         || System.currentTimeMillis() - start > getFlushInterval()) {
-                    flushLog(eventSize);
+                    flushLog(eventSize, transaction);
                     start = System.currentTimeMillis();
                 } else {
                     Thread.sleep(getFlushInterval() / 100);
                 }
             } catch (Exception e) {
+                transaction.forEach(this::printLoggingEvent);
                 clearLogBufferQueueWhenBlocked();
                 LogLog.error("Error occurred when consume event", e);
             }
@@ -288,7 +320,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * @throws IOException
      * @throws InterruptedException
      */
-    abstract void doWriteLog(int eventSize) throws IOException, InterruptedException;
+    abstract void doWriteLog(int eventSize, List<LoggingEvent> transaction) throws IOException, InterruptedException;
 
     /**
      * flush the buffer data to HDFS.
@@ -307,7 +339,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
      * @throws IOException
      * @throws InterruptedException
      */
-    protected void flushLog(int eventSize) throws IOException, InterruptedException {
+    protected void flushLog(int eventSize, List<LoggingEvent> transaction) throws IOException, InterruptedException {
         if (eventSize <= 0) {
             return;
         }
@@ -317,7 +349,7 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                 eventSize = getLogBufferQue().size();
             }
 
-            doWriteLog(eventSize);
+            doWriteLog(eventSize, transaction);
 
             flush();
         }

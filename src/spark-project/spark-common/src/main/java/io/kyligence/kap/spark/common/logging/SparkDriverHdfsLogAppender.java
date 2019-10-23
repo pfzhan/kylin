@@ -29,8 +29,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.helpers.LogLog;
+import org.apache.log4j.spi.LoggingEvent;
 
 import java.io.IOException;
+import java.util.List;
 
 public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
 
@@ -70,7 +72,8 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
     }
 
     @Override
-    public void doWriteLog(int eventSize) throws IOException, InterruptedException {
+    public void doWriteLog(int eventSize, List<LoggingEvent> transaction)
+            throws IOException, InterruptedException {
         if (!isWriterInited()) {
             Configuration conf = new Configuration();
             if (isKerberosEnable()) {
@@ -83,7 +86,9 @@ public class SparkDriverHdfsLogAppender extends AbstractHdfsLogAppender {
         }
 
         while (eventSize > 0) {
-            writeLogEvent(getLogBufferQue().take());
+            LoggingEvent loggingEvent = getLogBufferQue().take();
+            transaction.add(loggingEvent);
+            writeLogEvent(loggingEvent);
             eventSize--;
         }
     }
