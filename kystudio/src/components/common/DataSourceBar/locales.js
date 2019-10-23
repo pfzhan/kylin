@@ -15,7 +15,9 @@ export default {
     sourceManagement: 'Source Management',
     loadTables: 'Load Tables',
     loadTablesSuccess: 'Succeeded to sync all tables.',
-    loadTablesFail: 'Failed to load {count} database(s) or source table(s) metadata.'
+    loadTablesFail: 'Failed to load {db_counts} database(s) or {table_counts} source table(s) metadata.',
+    databases: 'Database',
+    tables: 'Table'
   },
   'zh-cn': {
     searchTable: '搜索数据库名称或表名',
@@ -33,6 +35,8 @@ export default {
     sourceManagement: '数据源管理',
     loadTables: '加载源表',
     loadTablesSuccess: '成功同步全部源表。',
-    loadTablesFail: '{count} 个数据库或源表（元数据）加载失败。'
+    loadTablesFail: '{db_counts} 个数据库和 {table_counts} 个源表（元数据）加载失败。',
+    databases: '数据库',
+    tables: '源表'
   }
 }

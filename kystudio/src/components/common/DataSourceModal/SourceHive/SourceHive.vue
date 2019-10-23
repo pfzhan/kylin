@@ -1,5 +1,5 @@
 <template>
-  <div class="source-hive clearfix">
+  <div class="source-hive clearfix" :class="{'zh-lang': $store.state.system.lang !== 'en'}">
     <div class="list clearfix">
       <div class="ksd-ml-20 ksd-mt-20">
         <el-input :placeholder="$t('filterTableName')" 
@@ -121,7 +121,7 @@
         <div class="tips" v-if="isShowTips">
           <div class="close el-icon-ksd-close" @click="handleHideTips"></div>
           <div class="header font-medium">{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTipHeader') : $t('loadTipHeader')}}</div>
-          <ul class="body">
+          <ul class="body" :class="{'zh-body': $store.state.system.lang !== 'en'}">
             <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip1') : $t('loadTip1')}}</li>
             <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip2') : $t('loadTip2')}}</li>
             <li>{{$t('loadTip3')}}</li>
@@ -542,12 +542,20 @@ export default class SourceHive extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-hive {
+  &.zh-lang{
+    .content-body.has-tips{
+      height: 264px;
+    }
+    .tips{
+      height: 72px;
+    }
+  }
   .list {
     position: relative;
     float: left;
   }
   .table-tree {
-    width: 480px;
+    width: 400px;
     float: left;
     padding: 10px 0 20px 0;
     margin-left: 20px;
@@ -572,13 +580,13 @@ export default class SourceHive extends Vue {
     border: 1px solid @line-border-color;
   }
   .content {
-    margin-left: calc(480px + 25px + 10px);
+    margin-left: calc(400px + 25px + 10px);
     padding: 60px 20px 15px 0;
     position: relative;
     // height: 453px;
   }
   .sample-block {
-    margin-left: calc(480px + 25px + 10px);
+    margin-left: calc(400px + 25px + 10px);
     margin-bottom: 20px;
     .sample-desc {
       color: @text-normal-color;
@@ -686,9 +694,12 @@ export default class SourceHive extends Vue {
       margin-bottom: 2px;
     }
     .body {
-      line-height: 1.33;
+      line-height: 1.4;
       color: @text-normal-color;
       font-size: 12px;
+      &.zh-body{
+        line-height: 1.5;
+      }
     }
     ul, li {
       list-style: decimal;

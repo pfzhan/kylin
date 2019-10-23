@@ -14,18 +14,40 @@
       :closable="false"
       show-icon>
       <span style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
-      <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn">{{$t('kylinLang.common.seeDetail')}}  
+      <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn" class="show-detail">{{$t('kylinLang.common.seeDetail')}}  
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
       </a>
-      <div v-if="showDetail" v-scroll class="dialog-detail">
+      <div v-if="showDetail" style="padding-top:10px;">
+        <template v-if="theme === 'plain-mult'">
+          <div v-for="item in details">
+            <p class="mult-title">{{item.title}}</p>
+            <div class="dialog-detail">
+              <div v-scroll class="dialog-detail-scroll">
+                <ul>
+                  <li v-for="(p, index) in item.list" :key="index">{{p}}</li>
+                </ul>
+              </div>
+              <el-button class="copyBtn" v-if="showCopyBtn" size="mini" v-clipboard:copy="item.list.join('\r\n')"
+          v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+            </div>
+          </div>
+        </template>
         <template v-if="theme === 'plain'">
-          <ul>
-            <li v-for="(p, index) in details" :key="index">{{p}}</li>
-          </ul>
+          <div class="dialog-detail">
+            <div v-scroll class="dialog-detail-scroll">
+              <ul>
+                <li v-for="(p, index) in details" :key="index">{{p}}</li>
+              </ul>
+            </div>
+            <el-button class="copyBtn" v-if="showCopyBtn" size="mini" v-clipboard:copy="details.join('\r\n')"
+          v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+          </div>
         </template>
         <template v-if="theme === 'sql'">
-          <kap-editor :readOnly="true" :isFormatter="true" class="list-editor" v-for="(s, index) in details" :key="index" height="96" lang="sql" theme="chrome" v-bind:value="s"></kap-editor>
+          <div v-scroll class="dialog-detail">
+            <kap-editor :readOnly="true" :isFormatter="true" class="list-editor" v-for="(s, index) in details" :key="index" height="96" lang="sql" theme="chrome" v-bind:value="s"></kap-editor>
+          </div>
         </template>
       </div>
     </el-alert>
@@ -60,6 +82,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       isShow: state => state.isShow,
       dialogType: state => state.dialogType,
       showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
+      showCopyBtn: state => state.showCopyBtn,
       callback: state => state.callback
     })
   },
@@ -93,21 +116,49 @@ export default class DetailDialogModal extends Vue {
   toggleDetail () {
     this.showDetail = !this.showDetail
   }
+  onCopy () {
+    this.$message({
+      type: 'success',
+      message: this.$t('kylinLang.common.copySuccess')
+    })
+  }
+  onError () {
+    this.$message({
+      type: 'error',
+      message: this.$t('kylinLang.common.copyfail')
+    })
+  }
 }
 </script>
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .global-dialog-box {
+  .show-detail{
+    display: inline-block;
+  }
+  .mult-title{
+    margin-bottom:5px;
+    margin-top:5px;
+  }
   .dialog-detail{
+    border-radius: 2px;
     border:solid 1px @line-border-color;
     background:@background-disabled-color;
-    max-height:230px;
-    margin-top:10px;
-    ul {
-      margin:10px;
-      li {
-        font-size: 12px;
+    margin-bottom:10px;
+    position: relative;
+    .dialog-detail-scroll{
+      max-height:95px;
+      ul {
+        margin:10px;
+        li {
+          font-size: 12px;
+        }
       }
+    }
+    .copyBtn{
+      position: absolute;
+      right:5px;
+      top:5px;
     }
   }
   .el-alert__content {

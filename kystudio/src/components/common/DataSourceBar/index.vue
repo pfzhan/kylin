@@ -483,9 +483,32 @@ export default class DataSourceBar extends Vue {
       this.failedTables = failed || []
       // 提示
       if (failed && failed.length) {
+        // 筛出失败的库
+        let datasrouces = failed.filter((item) => {
+          return item.indexOf('.') === -1
+        })
+        // 筛出失败的表
+        let tables = failed.filter((item) => {
+          return item.indexOf('.') > -1
+        })
+        let tempDetail = []
+        if (datasrouces.length > 0) {
+          tempDetail.push({
+            title: this.$t('databases') + ' (' + datasrouces.length + ')',
+            list: datasrouces
+          })
+        }
+        if (tables.length > 0) {
+          tempDetail.push({
+            title: this.$t('tables') + ' (' + tables.length + ')',
+            list: tables
+          })
+        }
         this.callGlobalDetailDialog({
-          msg: this.$t('loadTablesFail', {count: failed.length}),
-          details: failed
+          theme: 'plain-mult',
+          msg: this.$t('loadTablesFail', {db_counts: datasrouces.length, table_counts: tables.length}),
+          showCopyBtn: true,
+          details: tempDetail
         })
       } else {
         this.$message({ type: 'success', message: this.$t('loadTablesSuccess') })

@@ -13,7 +13,8 @@ const initialState = JSON.stringify({
   dialogType: '',
   theme: '',
   details: [],
-  showDetailBtn: false // 默认设为不显示详情按钮，如果默认显示，配置为不显示的弹窗，在关闭时会闪现详情按钮
+  showDetailBtn: false, // 默认设为不显示详情按钮，如果默认显示，配置为不显示的弹窗，在关闭时会闪现详情按钮
+  showCopyBtn: false
 })
 
 export default {
@@ -43,9 +44,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, title, details = [], theme = 'plain', showDetailBtn = true }) {
+    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, title, details = [], theme = 'plain', showDetailBtn = true, showCopyBtn = false }) {
       return new Promise(async (resolve, reject) => {
-        commit(types.SET_MODAL, { dialogType, msg, title, details, theme, showDetailBtn, callback: resolve })
+        commit(types.SET_MODAL, { dialogType, msg, title, details, theme, showDetailBtn, showCopyBtn, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

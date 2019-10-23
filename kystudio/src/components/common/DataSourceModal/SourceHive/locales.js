@@ -13,7 +13,7 @@ export default {
     selectAll: 'Select All',
     cleanAll: 'Clean All',
     database: 'Database',
-    tableName: 'Table Name',
+    tableName: 'Table',
     synced: 'Synced',
     filterTableName: 'Search Database/Table',
     samplingTitle: 'Table Sampling ',
@@ -25,8 +25,8 @@ export default {
     maxNumber: 'Input should be no larger than 20,000,000 rows',
     selectedDBValidateFailText: 'Please enter database name',
     selectedTableValidateFailText: 'Please enter table name as \'database.table\'.',
-    dbPlaceholder: 'Enter database name',
-    dbTablePlaceholder: 'Enter table name as \'database.table\''
+    dbPlaceholder: 'Enter database name or select from the left',
+    dbTablePlaceholder: 'Enter \'database.table\' or select from the left'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -54,7 +54,7 @@ export default {
     maxNumber: '输入值应 不大于 20,000,000 行',
     selectedDBValidateFailText: '请输入完整数据库名',
     selectedTableValidateFailText: '请输入完整表名\'database.table\'。',
-    dbPlaceholder: '输入数据库名称',
-    dbTablePlaceholder: '输入表名称 \'database.table\''
+    dbPlaceholder: '输入数据库名称或从左侧选择',
+    dbTablePlaceholder: '输入 \'database.table\' 或从左侧选择'
   }
 }
