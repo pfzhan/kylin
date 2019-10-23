@@ -51,8 +51,11 @@ import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -102,10 +105,12 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
@@ -1037,6 +1042,21 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("DEFAULT.TEST_ACCOUNT", ((String[]) res.getFirst())[0]);
         Assert.assertEquals("SsB", ((String[]) res.getFirst())[1]);
         Assert.assertEquals(0, ((Set) res.getSecond()).size());
+    }
+
+    @Test
+    public void testGetTableNameResponsesInCache() throws Exception {
+        Map<String, List<String>> testData = new HashMap<>();
+        testData.put("t", Arrays.asList("aa", "ab", "bc"));
+        NHiveTableName.getInstance().setAllTablesForTest(testData);
+        List<?> tables = tableService.getTableNameResponsesInCache("default", "t", "a");
+        Assert.assertEquals(tables.size(), 2);
+    }
+
+    @Test
+    public void testLoadHiveTableNameToCache() throws Exception {
+        NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(false);
+        Assert.assertNotEquals(response, null);
     }
 
 }

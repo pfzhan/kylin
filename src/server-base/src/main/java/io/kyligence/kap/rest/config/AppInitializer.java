@@ -65,6 +65,7 @@ import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
 import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
+import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -144,6 +145,8 @@ public class AppInitializer {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_ALL)) {
             taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
+            taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
+                    kylinConfig.getLoadHiveTablenameIntervals() * 1000);
         }
     }
 

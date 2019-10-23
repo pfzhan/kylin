@@ -1764,4 +1764,8 @@ abstract public class KylinConfigBase implements Serializable {
         }
         return parentFolder + File.separator + filename;
     }
+
+    public long getLoadHiveTablenameIntervals() {
+        return Long.parseLong(getOptional("kap.table.load-hive-tablename-interval-seconds", "3600"));
+    }
 }

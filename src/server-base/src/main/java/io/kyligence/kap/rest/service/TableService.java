@@ -43,6 +43,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -124,6 +125,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.var;
@@ -1444,6 +1446,27 @@ public class TableService extends BasicService {
             existed.add(str);
         }
         return new Pair<>(existed.toArray(new String[0]), failed);
+    }
+
+    public List<TableNameResponse> getTableNameResponsesInCache(String project, String database, final String table)
+            throws Exception {
+        aclEvaluate.checkProjectReadPermission(project);
+        List<TableNameResponse> responses = new ArrayList<>();
+        NTableMetadataManager tableManager = getTableManager(project);
+        List<String> tables = NHiveTableName.getInstance().getTables(database);
+        for (String tableName : tables) {
+            if (StringUtils.isEmpty(table) || tableName.toUpperCase().contains(table.toUpperCase())) {
+                TableNameResponse response = new TableNameResponse();
+                response.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
+                response.setTableName(tableName);
+                responses.add(response);
+            }
+        }
+        return filterAuthorizedTableNameResponses(project, database, responses);
+    }
+
+    public NHiveTableNameResponse loadHiveTableNameToCache(boolean force) throws Exception {
+        return NHiveTableName.getInstance().loadHiveTableName(force);
     }
 
 }

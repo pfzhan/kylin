@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -66,6 +65,10 @@ public class SourceFactory {
 
     public static ISource getDefaultSource() {
         return getSource(KylinConfig.getInstanceFromEnv().getDefaultSource());
+    }
+
+    public static ISource getSparkSource() {
+        return getSource(ISourceAware.ID_SPARK);
     }
 
     public static ISource getSource(ISourceAware aware) {

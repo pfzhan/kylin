@@ -64,6 +64,7 @@ import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
@@ -325,7 +326,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 tableService.getProjectTables(project, table, offset, limit, true, (databaseName, tableName) -> {
-                    return tableService.getTableNameResponses(project, databaseName, tableName);
+                    return tableService.getTableNameResponsesInCache(project, databaseName, tableName);
                 }), "");
     }
 
@@ -494,6 +495,19 @@ public class NTableController extends NBasicController {
         } catch (Exception e) {
             throw new BadRequestException("reload table error", ResponseCode.CODE_UNDEFINED, e);
         }
+    }
+
+    @GetMapping(value = "/reload_hive_tablename", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse reloadHiveTablename(
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force) {
+        try {
+            NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(force);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
+        } catch (Exception e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, e, "reload hive table name error");
+        }
+
     }
 
 }
