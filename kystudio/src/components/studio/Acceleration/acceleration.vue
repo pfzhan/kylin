@@ -264,7 +264,7 @@
             <div class="ksd-mt-10 ksd-fs-14">
               <el-form-item prop="freqValue">
                 <span>{{$t('AccQueryStart')}}</span>
-                <el-input v-model.trim="rulesObj.freqValue" v-number="rulesObj.freqValue" size="small" class="rule-setting-input" :disabled="!rulesObj.freqEnable"></el-input> %
+                <el-input v-model.trim="rulesObj.freqValue" v-number="rulesObj.freqValue" size="small" class="rule-setting-input" :disabled="!rulesObj.freqEnable"></el-input> 
                 <span>{{$t('AccQueryEnd')}}</span>
               </el-form-item>
             </div>
@@ -383,8 +383,8 @@ import accelerationTable from './acceleration_table'
       submitterDesc: 'Optimize queries from critical users and groups',
       durationDesc: 'Optimize queries with long duration',
       blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.',
-      AccQueryStart: 'Accelerate',
-      AccQueryEnd: ' Queries (From the top usage to lower usage)',
+      AccQueryStart: 'Accelerate queries whose usage is higher than ',
+      AccQueryEnd: ' times',
       unit: 'Seconds / Job',
       inputSql: 'Add SQL',
       delSql: 'Are you sure to delete this sql?',
@@ -432,8 +432,8 @@ import accelerationTable from './acceleration_table'
       submitterDesc: '优化重要⽤用户或⽤用户组发出的查询',
       durationDesc: '优化慢查询',
       blackListDesc: '本列表管理用户不希望被加速的 SQL 查询。一般是指加速时对存储空间、计算力需求过大的查询。',
-      AccQueryStart: '加速',
-      AccQueryEnd: '的 SQL 查询（按照使用频率由高到低计算）',
+      AccQueryStart: '加速使用次数大于',
+      AccQueryEnd: '的查询',
       unit: '秒 / 任务',
       inputSql: '新增查询语句',
       delSql: '确定删除这条查询语句吗？',
@@ -445,7 +445,7 @@ import accelerationTable from './acceleration_table'
       suggestion: '修改建议：',
       from: '加速延迟的范围在',
       to: '秒到',
-      secondes: '的查询',
+      secondes: '秒的查询',
       acceleratedSQL: '已加速 SQL',
       checkAll: '全选',
       cancelAll: '取消全选',
