@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -91,6 +90,7 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
@@ -150,7 +150,8 @@ public class JobService extends BasicService {
                 return true;
             }
             ExecutableState state = abstractExecutable.getStatus();
-            return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())));
+            return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())))
+                    || JobStatusEnum.valueOf(jobFilter.getStatus()).equals(parseToJobStatus(state));
         })).and(abstractExecutable -> {
             String subject = jobFilter.getSubjectAlias();
             if (StringUtils.isEmpty(subject)) {
@@ -267,8 +268,8 @@ public class JobService extends BasicService {
 
     private ExecutableState parseToExecutableState(JobStatusEnum status) {
         Message msg = MsgPicker.getMsg();
-
         switch (status) {
+        case SUICIDAL:
         case DISCARDED:
             return ExecutableState.SUICIDAL;
         case ERROR:
