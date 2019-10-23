@@ -57,7 +57,9 @@ export default {
   },
   watch: {
     selectedlabels (val) {
-      this.selectedL = val
+      this.selectedL = val.map((item) => {
+        return item.toLocaleUpperCase()
+      })
     },
     // 保证组件在外部切换校验类型的时候能够动态切换校验表达式
     validateRegex (val) {
@@ -73,23 +75,26 @@ export default {
         this.$emit('change')
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         if (this.allowcreate && e.length > 0) {
-          let result = this.filterCreateTag(e[e.length - 1])
+          let item = (e[e.length - 1]).toLocaleUpperCase()
+          let result = this.filterCreateTag(item)
           var splitChar = this.splitChar || ';'
           var regOfSeparate = new RegExp(splitChar)
-          if (!this.ignoreSplitChar && regOfSeparate.test(e[e.length - 1])) {
+          if (!this.ignoreSplitChar && regOfSeparate.test(item)) {
             if (result && result.length > 0) {
               this.selectedL.splice(this.selectedL.length - 1, 1)
               this.selectedL = this.selectedL.concat(result)
-              this.selectedL = [...new Set(this.selectedL)]
             }
           }
           if (result && result.length <= 0) {
             this.selectedL.splice(this.selectedL.length - 1, 1)
           }
         }
-        this.selectedL = this.selectedL.map((item) => {
+        // 都转为大写
+        let temp = this.selectedL.map((item) => {
           return item.toLocaleUpperCase()
         })
+        // 去重返回
+        this.selectedL = [...new Set(temp)]
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
       })
@@ -171,13 +176,15 @@ export default {
         }
         // 处理单独录入的情况 start
         if (this.allowcreate && this.query) {
-          var result = this.filterCreateTag(this.query)
+          var result = this.filterCreateTag(this.query.toLocaleUpperCase())
           if (result && result.length > 0) {
             this.selectedL = this.selectedL.concat(result)
-            this.selectedL = [...new Set(this.selectedL)]
-            this.selectedL = this.selectedL.map((item) => {
+            // 都转为大写
+            let temp = this.selectedL.map((item) => {
               return item.toLocaleUpperCase()
             })
+            // 去重返回
+            this.selectedL = [...new Set(temp)]
             this.$emit('refreshData', this.selectedL, this.refreshInfo)
           }
           if (this.$refs.select.$refs.input) {
