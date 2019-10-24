@@ -4,7 +4,7 @@
       <img src="../../assets/img/logo/big_logo.png">
       <ul class="ksd-fright">
         <!-- 在登录页不显示onoff -->
-        <li></li>
+        <li><kap-help isLogin="login"></kap-help></li>
         <li><kap-change-lang></kap-change-lang></li>
       </ul>
     </div>
@@ -52,54 +52,51 @@
 
     <p class="login-footer">&copy;2019 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
 
-    <el-dialog class="updateKAPLicense" limited-area @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="720px">
-      <div class="ksd-mb-40 license-pic">
-        <img src="../../assets/img/license.png">
-      </div>
-      <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
+    <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" :visible.sync="hasLicense" :close-on-click-modal="false" width="480px">
+      <license v-if="hasLicense" ref="licenseEnter" v-on:validSuccess="licenseValidSuccess" @requestLicense="apply"></license>
       <div slot="footer" class="dialog-footer">
-        <span @click="apply" class="ksd-fleft ksd-lineheight-36 ky-a-like" style="text-decoration: underline;">{{$t('applyLicense')}}</span>       
-        <el-button size="medium" @click="closeDialog">{{$t('cancel')}}</el-button>
+        <el-button size="medium" @click="closeDialog" name="cancelUpdate">{{$t('cancel')}}</el-button>
         <el-button size="medium" type="primary" plain :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
-    <el-dialog class="applyLicense" limited-area @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-press-escape="false" :close-on-click-modal="false" width="480px">
-      <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm">
-        <el-form-item prop="email">
-          <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>
-        </el-form-item>
-        <el-form-item prop="company">
-          <el-input v-model="userMessage.company" :placeholder="$t('companyName')"></el-input>
-        </el-form-item>
-        <el-form-item prop="userName">
-          <el-input v-model="userMessage.userName" :placeholder="$t('yourName')"></el-input>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="submitApply" type="primary" plain :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-dialog>
-
-    <el-dialog class="license-msg" width="480px"
+    <el-dialog class="license-msg" :append-to-body="true" width="480px"
       :before-close="handleClose"
-      limited-area
       :title="$t('kylinLang.common.license')"
       :close-on-click-modal="false"
       :visible.sync="showLicenseCheck"
       :close-on-press-escape="false">
       <el-alert
-        show-icon
         :title="$store.state.system.serverAboutKap.msg"
-        :type="$store.state.system.serverAboutKap.code === '002' ? 'error' : 'warning'"
-        :closable="false">
+        :icon="$store.state.system.serverAboutKap.code === '002' ? 'el-icon-ksd-error_01' : 'el-icon-ksd-alert'"
+        :show-background="false"
+        :closable="false"
+        :type="$store.state.system.serverAboutKap.code === '002' ? 'error' : 'warning'">
       </el-alert>
       <span slot="footer" class="dialog-footer">
         <div>
-          <a class="el-button el-button--primary el-button--medium is-plain" style="text-decoration:none;"  href="mailto:g-ent-lic@kyligence.io">{{$t('kylinLang.common.contactTech')}}</a>
+          <a class="el-button  el-button--primary el-button--medium is-plain" style="text-decoration:none;" href="mailto:info@kyligence.io">{{$t('kylinLang.common.contactTech')}}</a>
           <el-button size="medium" type="primary" plain @click="handleClose">{{$t('kylinLang.common.IKnow')}}</el-button>
         </div>
       </span>
+    </el-dialog>
+
+    <el-dialog class="applyLicense" :append-to-body="true" @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-click-modal="false" width="480px">
+      <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm">
+        <el-form-item prop="email" :label="$t('businessEmail')">
+          <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>
+        </el-form-item>
+        <el-form-item prop="company" :label="$t('companyName')">
+          <el-input v-model="userMessage.company" :placeholder="$t('companyName')"></el-input>
+        </el-form-item>
+        <el-form-item prop="username" :label="$t('yourName')">
+          <el-input v-model="userMessage.username" :placeholder="$t('yourName')"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
+        <el-button @click="submitApply" type="primary" plain :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -116,19 +113,6 @@ export default {
   name: 'login',
   data () {
     return {
-      // rules: {
-      //   username: [{ required: true, message: this.$t('noUserName'), trigger: 'blur' }],
-      //   password: [{ required: true, message: this.$t('noUserPwd'), trigger: 'blur' }]
-      // },
-      userRules: {
-        email: [
-          { required: true, message: this.$t('noEmail'), trigger: 'blur' },
-          { type: 'email', message: this.$t('noEmailStyle'), trigger: 'blur' },
-          { validator: this.validateEmail, trigger: 'blur' }
-        ],
-        company: [{ required: true, message: this.$t('noCompany'), trigger: 'blur' }],
-        userName: [{ required: true, message: this.$t('noName'), trigger: 'blur' }]
-      },
       user: {
         username: '' || localStorage.getItem('username'),
         password: ''
@@ -140,7 +124,7 @@ export default {
       userMessage: {
         email: '',
         company: '',
-        userName: '',
+        username: '',
         lang: 'en',
         productType: 'kap',
         category: `${this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['version']}.x`
@@ -160,7 +144,8 @@ export default {
       trialLicenseFile: 'TRIAL_LICENSE_FILE'
     }),
     ...mapMutations({
-      setCurUser: 'SAVE_CURRENT_LOGIN_USER'
+      setCurUser: 'SAVE_CURRENT_LOGIN_USER',
+      showLicenseSuccessDialog: 'TOGGLE_LICENSE_DIALOG'
     }),
     handleClose () {
       if (this.$store.state.system.serverAboutKap['code'] === '001' && this.loginSuccess === true) {
@@ -175,6 +160,112 @@ export default {
       } else {
         this.showLicenseCheck = false
       }
+    },
+    closeDialog: function () {
+      this.hasLicense = false
+      this.loadCheck = false
+    },
+    apply: function () {
+      this.hasLicense = false
+      this.applyLicense = true
+      this.changeDialog = true
+    },
+    licenseForm: function () {
+      this.loadCheck = true
+      this.$refs['licenseEnter'].$emit('licenseFormValid')
+    },
+    licenseValidSuccess: function (license) {
+      if (license === true) {
+        this.hasLicenseMsg = true
+        if (this.$store.state.system.serverAboutKap['code'] === '001' || this.$store.state.system.serverAboutKap['code'] === '002') {
+          this.showLicenseCheck = true
+        } else {
+          this.hasLicense = false
+          this.showLicenseSuccessDialog(true)
+        }
+      } else {
+        this.loadCheck = false
+      }
+      this.loadCheck = false
+    },
+    closeApplyLicense: function () {
+      this.$refs.applyLicenseForm.resetFields()
+      if (this.changeDialog) {
+        this.updateLicenseVisible = true
+        this.applyLicense = false
+      }
+    },
+    submitApply: function () {
+      this.$refs['applyLicenseForm'].validate((valid) => {
+        if (valid) {
+          this.applyLoading = true
+          this.userMessage.category = `${this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['version']}.x`
+          this.trialLicenseFile(this.userMessage).then((res) => {
+            handleSuccess(res, (data) => {
+              if (data && data['ke.dates']) {
+                if (this.lastTime(data['ke.dates']) > 0) {
+                  const dates = data['ke.dates'].split(',')
+                  const range = dates[0] + ' ' + this.$t('kylinLang.query.to') + ' ' + dates[1]
+                  this.$alert(this.$t('evaluationPeriod') + range, this.$t('evaluationLicense'), {
+                    cancelConfirmButton: true,
+                    type: 'success'
+                  })
+                } else {
+                  var splitTime = data['ke.dates'].split(',')
+                  var endTime = splitTime[1]
+                  this.$alert(this.$t('expiredOn') + endTime, this.$t('evaluationLicense'), {
+                    cancelConfirmButton: true,
+                    type: 'warning'
+                  })
+                }
+                this.changeDialog = false
+                this.applyLicense = false
+                this.updateLicenseVisible = false
+                this.applyLoading = false
+                this.$store.state.system.serverAboutKap['ke.dates'] = data['ke.dates']
+              }
+            })
+          }, (res) => {
+            handleError(res)
+            this.applyLoading = false
+          })
+        }
+      })
+    },
+    validateEmail: function (rule, value, callback) {
+      if (value) {
+        for (let key in personalEmail) {
+          if (value.indexOf(key) !== -1) {
+            callback(new Error(this.$t('enterpriseEmail')))
+          }
+        }
+        callback()
+      } else {
+        callback()
+      }
+    },
+    validateName: function (rule, value, callback) {
+      const regex = /^\S[a-zA-Z\s\d\u4e00-\u9fa5]+\S$/
+      if (value.length > 50 && !regex.test(regex)) {
+        callback(new Error(this.$t('enterpriseName')))
+      } else {
+        callback()
+      }
+    },
+    lastTime (date) {
+      var splitTime = date.split(',')
+      if (splitTime.length >= 2) {
+        var endTime = splitTime[1]
+        var lastTimes = (new Date(endTime + ' 23:59:59')) - (new Date())
+        var days = Math.ceil(lastTimes / 1000 / 60 / 60 / 24)
+        if (days >= 0) {
+          days = Math.ceil(Math.abs(days))
+        } else {
+          days = 0
+        }
+        return days
+      }
+      return 0
     },
     onLoginSubmit () {
       this.$refs['loginForm'].validate((valid) => {
@@ -219,109 +310,13 @@ export default {
     checkLicense () {
       this.getAboutKap().then((result) => {
         handleSuccess(result, (data) => {
-          if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.dates'] === null) {
+          if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['ke.dates'] === null) {
             this.hasLicense = true
           }
         }, (resp) => {
           handleError(resp)
         })
       })
-    },
-    licenseForm: function () {
-      this.$refs['licenseEnter'].$emit('licenseFormValid')
-      this.loadCheck = true
-    },
-    licenseValidSuccess: function (license) {
-      if (license === true) {
-        this.hasLicense = false
-        this.hasLicenseMsg = true
-        if (this.$store.state.system.serverAboutKap['code'] === '001' || this.$store.state.system.serverAboutKap['code'] === '002') {
-          this.showLicenseCheck = true
-        } else {
-          this.$alert(this.$t('evaluationPeriod') + this.$store.state.system.serverAboutKap['kap.dates'], this.$t('evaluationLicense'), {
-            cancelConfirmButton: true,
-            type: 'success'
-          })
-        }
-      }
-      this.loadCheck = false
-    },
-    closeDialog: function () {
-      this.hasLicense = false
-    },
-    apply: function () {
-      this.hasLicense = false
-      this.applyLicense = true
-      this.changeDialog = true
-    },
-    closeApplyLicense: function () {
-      this.$refs['applyLicenseForm'].resetFields()
-      if (this.changeDialog) {
-        this.hasLicense = true
-      }
-    },
-    submitApply: function () {
-      this.$refs['applyLicenseForm'].validate((valid) => {
-        if (valid) {
-          this.applyLoading = true
-          this.userMessage.productType = this.isPlusVersion ? 'kapplus' : 'kap'
-          this.userMessage.category = `${this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['version']}.x`
-          this.trialLicenseFile(this.userMessage).then((res) => {
-            handleSuccess(res, (data) => {
-              if (data && data['kap.dates']) {
-                if (this.lastTime(data['kap.dates']) > 0) {
-                  this.$alert(this.$t('evaluationPeriod') + data['kap.dates'], this.$t('evaluationLicense'), {
-                    cancelConfirmButton: true,
-                    type: 'success'
-                  })
-                } else {
-                  var splitTime = data['kap.dates'].split(',')
-                  var endTime = splitTime[1]
-                  this.$alert(this.$t('expiredOn') + endTime, this.$t('evaluationLicense'), {
-                    cancelConfirmButton: true,
-                    type: 'warning'
-                  })
-                }
-                this.changeDialog = false
-                this.applyLicense = false
-                this.hasLicense = false
-                this.applyLoading = false
-                this.$store.state.system.serverAboutKap['kap.dates'] = data['kap.dates']
-              }
-            })
-          }, (res) => {
-            handleError(res)
-            this.applyLoading = false
-          })
-        }
-      })
-    },
-    validateEmail: function (rule, value, callback) {
-      if (value) {
-        for (let key in personalEmail) {
-          if (value.indexOf(key) !== -1) {
-            callback(new Error(this.$t('enterpriseEmail')))
-          }
-        }
-        callback()
-      } else {
-        callback()
-      }
-    },
-    lastTime (date) {
-      var splitTime = date.split(',')
-      if (splitTime.length >= 2) {
-        var endTime = splitTime[1]
-        var lastTimes = (new Date(endTime + ' 23:59:59')) - (new Date())
-        var days = Math.ceil(lastTimes / 1000 / 60 / 60 / 24)
-        if (days >= 0) {
-          days = Math.ceil(Math.abs(days))
-        } else {
-          days = 0
-        }
-        return days
-      }
-      return 0
     }
   },
   components: {
@@ -333,14 +328,27 @@ export default {
     this.checkLicense()
   },
   computed: {
-    isPlusVersion () {
-      var kapVersionInfo = this.$store.state.system.serverAboutKap
-      return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
-    },
     rules () {
       return {
         username: [{ required: true, message: this.$t('noUserName'), trigger: 'blur' }],
         password: [{ required: true, message: this.$t('noUserPwd'), trigger: 'blur' }]
+      }
+    },
+    userRules () {
+      return {
+        email: [
+          { required: true, message: this.$t('noEmail'), trigger: 'blur' },
+          { type: 'email', message: this.$t('noEmailStyle'), trigger: 'blur' },
+          { validator: this.validateEmail, trigger: 'blur' }
+        ],
+        company: [
+          { required: true, message: this.$t('noCompany'), trigger: 'blur' },
+          { validator: this.validateName, trigger: 'blur' }
+        ],
+        username: [
+          { required: true, message: this.$t('noName'), trigger: 'blur' },
+          { validator: this.validateName, trigger: 'blur' }
+        ]
       }
     }
   },
@@ -414,17 +422,11 @@ export default {
   @import '../../assets/styles/variables.less';
   .applyLicense {
     .el-form-item {
-      margin-bottom: 0px;
       .el-form-item__error {
         position: relative;
       }
       .el-input {
         padding: 3px 0px 3px 0px;
-      }
-    }
-    .dialog-footer {
-      .el-button {
-        width: 100%;
       }
     }
   }
@@ -443,6 +445,14 @@ export default {
       height: 28px;
       z-index: 999;
       margin: 12px 20px;
+    }
+    .el-dropdown .el-button {
+      background-color: transparent;
+      border: none;
+      font-size: 14px;
+      &:hover {
+        background-color: transparent;
+      }
     }
     .help-box span{
       color: @fff;
@@ -539,6 +549,9 @@ export default {
     }
   }
   .license-msg {
+    .el-alert--nobg {
+      padding: 0px;
+    }
     .el-dialog__footer {
       div {
         cursor: pointer;

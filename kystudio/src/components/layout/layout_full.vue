@@ -41,6 +41,41 @@
     <GuidePanel />
     <!-- 引导模式选择弹窗 -->
     <!-- 引导控制面板 -->
+
+    <el-dialog class="lincense-result-box"
+      :title="$t('licenseInfo')"
+      width="480px"
+      @close="closeLicenseInfoDialog"
+      :close-on-press-escape="false"
+      :visible="licenseDialogShow">
+      <div class="license-content" v-if="serverAboutKap">
+        <div>
+          <i class="el-icon-ksd-good_health"></i>
+          <span>{{$t('kylinLang.common.updateSuccess')}}</span>
+        </div>
+        <table class="ksd-table ksd-mt-10">
+          <tr v-if="isEvaluation">
+            <th>{{$t('evaluationPeriod')}}</th>
+            <td>{{licenseRange}}</td>
+          </tr>
+          <tr v-else>
+            <th>{{$t('serviceEnd')}}</th>
+            <td>{{serverAboutKap['ke.license.serviceEnd']}}</td>
+          </tr>
+          <!-- <tr>
+            <th>{{$t('dataVolume')}}</th>
+            <td>{{serverAboutKap['ke.license.volume']}}</td>
+          </tr> -->
+          <!-- <tr>
+            <th>{{$t('serviceNode')}}</th>
+            <td>{{serverAboutKap['ke.service.nodes']}}</td>
+          </tr> -->
+        </table>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" size="medium" plain @click="closeLicenseInfoDialog">{{$t('kylinLang.common.ok')}}</el-button>
+      </span>
+    </el-dialog>
     
    </div>
 </template>
@@ -48,7 +83,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions } from 'vuex'
+import { mapActions, mapMutations } from 'vuex'
 import GuidType from '../common/Guide/GuideType'
 import Modal from '../common/Modal/Modal'
 import GuidePanel from '../common/Guide/GuidePanel'
@@ -57,12 +92,52 @@ import { filterInjectScript } from 'util'
   methods: {
     ...mapActions({
       getKybotAccount: 'GET_CUR_ACCOUNTNAME'
+    }),
+    ...mapMutations({
+      showLicenseSuccessDialog: 'TOGGLE_LICENSE_DIALOG'
     })
+  },
+  computed: {
+    licenseDialogShow () {
+      return this.$store.state.system.showLisenceSuccessDialog
+    },
+    serverAboutKap () {
+      return this.$store.state.system.serverAboutKap || {}
+    },
+    isEvaluation () {
+      return this.serverAboutKap['ke.license.isEvaluation']
+    },
+    licenseRange () {
+      let range = ''
+      if (this.serverAboutKap && this.serverAboutKap['ke.dates']) {
+        const dates = this.serverAboutKap['ke.dates'].split(',')
+        range = dates[0] + ' ' + this.$t('kylinLang.query.to') + ' ' + dates[1]
+      }
+      return range
+    }
   },
   components: {
     Modal,
     GuidType,
     GuidePanel
+  },
+  locales: {
+    'en': {
+      userInfo: 'User Information:',
+      evaluationPeriod: 'Evaluation Period:',
+      dataVolume: 'Data Volume:',
+      serviceNode: 'Service Node:',
+      serviceEnd: 'Service End:',
+      licenseInfo: 'License Information'
+    },
+    'zh-cn': {
+      userInfo: '用户信息：',
+      evaluationPeriod: '有效期：',
+      dataVolume: '数据量：',
+      serviceNode: '服务实例：',
+      serviceEnd: '服务截止日期：',
+      licenseInfo: '许可证信息'
+    }
   }
 })
 export default class LayoutFull extends Vue {
@@ -86,6 +161,9 @@ export default class LayoutFull extends Vue {
     this.$store.state.config.errorMsgBox.isShow = false
     this.$refs.detailBox.$el.firstChild.scrollTop = 0
   }
+  closeLicenseInfoDialog () {
+    this.showLicenseSuccessDialog(false)
+  }
   destroyed () {
     this.showCopyStatus = false
   }
@@ -103,6 +181,12 @@ export default class LayoutFull extends Vue {
 body{
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+.lincense-result-box {
+  .el-icon-ksd-good_health {
+    color: @normal-color-1;
+    font-size: 16px;
+  }
 }
 .errMsgBox {
   .el-dialog__body{

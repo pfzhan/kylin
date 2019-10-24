@@ -40,13 +40,13 @@ export default {
     return Vue.resource(apiUrl + 'kybot/upload_remote').get(para)
   },
   saveLicenseContent: (license) => {
-    return Vue.resource(apiUrl + 'kap/system/license/content').save(license)
+    return Vue.resource(apiUrl + 'system/license/content').save(license)
   },
   saveLicenseFile: () => {
-    return Vue.resource(apiUrl + 'kap/system/license/file').save({})
+    return Vue.resource(apiUrl + 'system/license/file').save({})
   },
   trialLicenseFile: (para) => {
-    return Vue.resource(apiUrl + 'kap/system/license/trial').save(para)
+    return Vue.resource(apiUrl + 'system/license/trial').save(para)
   },
   getServiceState: () => {
     return Vue.resource(apiUrl + 'service_discovery/state/all').get()

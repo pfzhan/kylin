@@ -10,5 +10,8 @@ export default {
   },
   hiddenMeasure: (feature) => {
     return Vue.resource(apiUrl + 'config/hidden_feature').get(feature)
+  },
+  isCloud: () => {
+    return Vue.resource(apiUrl + 'config/is_cloud').get()
   }
 }

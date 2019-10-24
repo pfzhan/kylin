@@ -66,6 +66,9 @@ export default {
       return api.config.getDefaults(type).then((response) => {
         commit(types.SAVE_DEFAULT_CONFIG, { type: type, list: response.data.data })
       })
+    },
+    [types.IS_CLOUD]: function ({ commit }, type) {
+      return api.config.isCloud(type)
     }
   },
   getters: {

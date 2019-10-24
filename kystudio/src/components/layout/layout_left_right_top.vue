@@ -112,7 +112,6 @@
       limited-area
       :visible.sync="lisenceDialogVisible"
       :close-on-press-escape="false"
-      :close-on-click-modal="false"
       :modal="false">
       <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
       <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
@@ -633,10 +632,10 @@ export default class LayoutLeftRightTop extends Vue {
     return this.$store.state.system.serverAboutKap
   }
   get kapDate () {
-    return this.defaultVal(this.kapInfo && this.kapInfo['kap.dates'] || null)
+    return this.defaultVal(this.kapInfo && this.kapInfo['ke.dates'] || null)
   }
   get kapVersion () {
-    return this.defaultVal(this.kapInfo && this.kapInfo['kap.version'] || null)
+    return this.defaultVal(this.kapInfo && this.kapInfo['ke.version'] || null)
   }
   get isModeler () {
     return hasRole(this, 'ROLE_MODELER')
@@ -645,7 +644,7 @@ export default class LayoutLeftRightTop extends Vue {
     return this.$store.state.system.serverAboutKap
   }
   get lastTime () {
-    var date = this.serverAboutKap && this.serverAboutKap['kap.dates'] || ''
+    var date = this.serverAboutKap && this.serverAboutKap['ke.dates'] || ''
     var splitTime = date.split(',')
     if (splitTime.length >= 2) {
       var nowdate = new Date()

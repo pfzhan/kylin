@@ -10,11 +10,11 @@
         <label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['ke.version'])}}
       </el-row>
       <el-row>
-        <label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['ke.dates'])}}
+        <label for="">{{$t('validPeriod')}}</label>{{licenseRange}}
       </el-row>
       <el-row>
         <label for="">{{$t('dataVolume')}}</label>
-        {{$t('noLimitation')}}
+        {{serverAboutKap['ke.license.volume']}}
         <!-- <span v-if="license(serverAboutKap && serverAboutKap['ke.license.source.total']) !== 'Unlimited'">{{license(serverAboutKap && serverAboutKap['ke.license.source.used'])}} TB / {{license(serverAboutKap && serverAboutKap['ke.license.source.total'])}} TB</span>
         <span v-else>Unlimited</span> -->
       </el-row>
@@ -78,6 +78,14 @@ export default {
       // kapService.evaluationStatement
       // console.log('this.$store.state.system.statement   ', this.$store.state.system.statement)
       return this.$store.state.system.statement
+    },
+    licenseRange () {
+      let range = ''
+      if (this.license(this.serverAboutKap && this.serverAboutKap['ke.dates']) !== 'N/A') {
+        const dates = this.serverAboutKap['ke.dates'].split(',')
+        range = dates[0] + ' ' + this.$t('kylinLang.query.to') + ' ' + dates[1]
+      }
+      return range
     }
   },
   components: {

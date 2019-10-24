@@ -39,7 +39,8 @@ export default {
         y: 0
       },
       targetList: {}
-    }
+    },
+    showLisenceSuccessDialog: false
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -66,8 +67,8 @@ export default {
     },
     [types.GET_ABOUT]: function (state, result) {
       state.serverAboutKap = result.list.data
-      let version = /^[^/d]+?(\d).*$/.exec(result.list.data['kap.version'])
-      state.serverAboutKap['version'] = version && version.length >= 2 ? version[1] : '2'
+      let version = /^[^/d]+?(\d).*$/.exec(result.list.data['ke.version'])
+      state.serverAboutKap['version'] = version && version.length >= 2 ? version[1] : '4'
       state.serverAboutKap['msg'] = result.list.msg
       state.serverAboutKap['code'] = result.list.code
     },
@@ -76,6 +77,9 @@ export default {
     },
     [types.SAVE_CANARY_REPORT]: function (state, result) {
       state.canaryReport = result.list
+    },
+    [types.TOGGLE_LICENSE_DIALOG]: function (state, result) {
+      state.showLisenceSuccessDialog = result
     }
   },
   actions: {
@@ -197,6 +201,9 @@ export default {
     },
     isGuideMode (state) {
       return state.guideConfig.globalMaskVisible
+    },
+    supportUrl: (state) => {
+      return process.qa ? 'http://supportqa.kyligence.io' : 'https://support.kyligence.io'
     }
   }
 }
