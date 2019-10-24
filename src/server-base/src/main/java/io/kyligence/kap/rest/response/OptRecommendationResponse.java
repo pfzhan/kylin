@@ -28,7 +28,17 @@ import static java.util.stream.Collectors.groupingBy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 
@@ -46,10 +56,10 @@ import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
-import lombok.var;
 
 @Getter
 @Setter
+@Slf4j
 public class OptRecommendationResponse {
     public static final int PAGING_OFFSET = 0;
     public static final int PAGING_SIZE = 10;
@@ -84,6 +94,14 @@ public class OptRecommendationResponse {
         this.tableIndexRecommendations = convertedIndexRecomm.getSecond();
     }
 
+    private Map<IndexEntity.IndexIdentifier, IndexEntity> getIndexEntityMap() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(config, this.project);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, this.project);
+        return indexPlanManager.getIndexPlanByModelAlias(dataModelManager.getDataModelDesc(this.modelId).getAlias())
+                .getAllIndexesMap();
+    }
+
     private OptimizeRecommendationManager getOptRecomManager() {
         return OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
@@ -105,21 +123,37 @@ public class OptRecommendationResponse {
             }
         });
 
+        val indexEntityMap = getIndexEntityMap();
         aggIndicesRecommendations.stream().collect(groupingBy(index -> index.getEntity().getId()))
                 .forEach((indexId, indexRecommItems) -> {
                     val indexEntity = indexRecommItems.get(0).getEntity();
-                    boolean isAdd = indexRecommItems.get(0).isAdd();
-                    var recommendationType = indexRecommItems.get(0).getRecommendationType();
                     val itemids = Lists.newArrayList(indexRecommItems.get(0).getItemId());
+                    val originIndexEntity = indexEntityMap.get(indexEntity.createIndexIdentifier());
 
-                    for (int i = 1; i < indexRecommItems.size(); i++) {
-                        val item = indexRecommItems.get(i);
-                        if (item.isAdd() != isAdd) {
+                    RecommendationType recommendationType;
+                    if (Objects.isNull(originIndexEntity) || CollectionUtils.isEmpty(originIndexEntity.getLayouts())) {
+                        indexRecommItems.forEach(item -> {
+                            if (RecommendationType.REMOVAL == item.getRecommendationType()) {
+                                log.warn(
+                                        "Error found: recommend the type REMOVAL when origin index is empty, IndexEntityId: {}",
+                                        item.getEntity().getId());
+                                return;
+                            }
+                            indexEntity.getLayouts().addAll(item.getEntity().getLayouts());
+                            itemids.add(item.getItemId());
+                        });
+                        recommendationType = RecommendationType.ADDITION;
+                    } else {
+                        if (CollectionUtils.isEmpty(optimizeOriginIndex(originIndexEntity, indexRecommItems))) {
+                            recommendationType = RecommendationType.REMOVAL;
+                        } else {
                             recommendationType = RecommendationType.MODIFICATION;
                         }
+                    }
 
-                        indexEntity.getLayouts().addAll(item.getEntity().getLayouts());
-                        itemids.add(item.getItemId());
+                    for (int i = 1; i < indexRecommItems.size(); i++) {
+                        indexEntity.getLayouts().addAll(indexRecommItems.get(i).getEntity().getLayouts());
+                        itemids.add(indexRecommItems.get(i).getItemId());
                     }
 
                     val aggregatedIndex = new AggIndexRecommendationResponse(indexEntity, optimizedModel);
@@ -129,6 +163,40 @@ public class OptRecommendationResponse {
                 });
 
         return new Pair<>(aggIndices, tableIndices);
+    }
+
+    private Set<LayoutEntity> optimizeOriginIndex(final IndexEntity originIndexEntity,
+            final List<IndexRecommendationItem> indexRecommItems) {
+        Set<LayoutEntity> layoutEntitySet = Sets.newHashSet(originIndexEntity.getLayouts());
+        indexRecommItems.forEach(item -> {
+            if (RecommendationType.ADDITION == item.getRecommendationType()) {
+                item.getEntity().getLayouts().forEach(layoutEntity -> {
+                    if (layoutEntitySet.contains(layoutEntity)) {
+                        log.warn(
+                                "Error found: recommend the type ADDITION when origin index with layout, LayoutEntityId: {}, IndexEntityId: {}",
+                                layoutEntity.getId(), layoutEntity.getIndex().getId());
+                        return;
+                    }
+                    layoutEntitySet.add(layoutEntity);
+                });
+            }
+        });
+
+        indexRecommItems.forEach(item -> {
+            if (RecommendationType.REMOVAL == item.getRecommendationType()) {
+                item.getEntity().getLayouts().forEach(layoutEntity -> {
+                    if (!layoutEntitySet.contains(layoutEntity)) {
+                        log.warn(
+                                "Error found: recommend the type REMOVAL when origin index without layout, LayoutEntityId: {}, IndexEntityId: {}",
+                                layoutEntity.getId(), layoutEntity.getIndex().getId());
+                        return;
+                    }
+                    layoutEntitySet.remove(layoutEntity);
+                });
+            }
+        });
+
+        return layoutEntitySet;
     }
 
     private List<TableIndexRecommendationResponse> convertToTableIndexResponse(

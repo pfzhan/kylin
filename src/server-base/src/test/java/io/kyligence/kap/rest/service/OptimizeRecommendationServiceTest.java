@@ -26,8 +26,11 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.AggIndexRecommendationResponse;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -185,6 +188,45 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         Assert.assertTrue(tableIndexContent.contains("TEST_KYLIN_FACT.LSTG_SITE_ID"));
         Assert.assertTrue(tableIndexContent.contains("TEST_KYLIN_FACT.TRANS_ID"));
         Assert.assertTrue(tableIndexContent.contains("TEST_KYLIN_FACT.LEAF_CATEG_ID"));
+    }
+
+    @Test
+    public void testGetRecommendationByModel_modification() throws IOException {
+        prepare();
+        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        recommendationManager.removeLayouts(id, removeLayoutsId);
+
+        // case of MODIFICATION type
+        recommendationManager.updateOptimizeRecommendation(id, optRecomm -> {
+            val aggIndexRecom = optRecomm.getIndexRecommendations().stream()
+                    .filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
+            val updatedIndexRecom = JsonUtil.deepCopyQuietly(aggIndexRecom, IndexRecommendationItem.class);
+            updatedIndexRecom.setItemId(optRecomm.getIndexRecommendations().size());
+            updatedIndexRecom.setAdd(true);
+            updatedIndexRecom.setRecommendationType(RecommendationType.ADDITION);
+            val layoutEntity = new LayoutEntity();
+            layoutEntity.setAuto(true);
+            layoutEntity.setId(150003L);
+            layoutEntity.setColOrder(Lists.newArrayList(12, 0, 100001, 100000));
+            updatedIndexRecom.getEntity().setLayouts(Lists.newArrayList(layoutEntity));
+            optRecomm.getIndexRecommendations().remove(aggIndexRecom);
+            optRecomm.getIndexRecommendations().add(updatedIndexRecom);
+        });
+
+        val response = service.getRecommendationByModel(projectDefault, id);
+
+        Assert.assertEquals(3, response.getAggIndexRecommendations().size());
+        response.getAggIndexRecommendations().forEach(aggIndexRecommResponse -> {
+            if (0 == aggIndexRecommResponse.getId()) {
+                Assert.assertEquals(RecommendationType.REMOVAL, aggIndexRecommResponse.getRecommendationType());
+            } else if (150000L == aggIndexRecommResponse.getId()) {
+                Assert.assertEquals(RecommendationType.MODIFICATION, aggIndexRecommResponse.getRecommendationType());
+            } else if (1000000L == aggIndexRecommResponse.getId()) {
+                Assert.assertEquals(RecommendationType.ADDITION, aggIndexRecommResponse.getRecommendationType());
+            } else {
+                Assert.fail();
+            }
+        });
     }
 
     @Test
