@@ -258,13 +258,13 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryFrequency')}}</span>
-            <el-switch size="small" v-model="rulesObj.freqEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.countEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
-              <el-form-item prop="freqValue">
+              <el-form-item prop="countValue">
                 <span>{{$t('AccQueryStart')}}</span>
-                <el-input v-model.trim="rulesObj.freqValue" v-number="rulesObj.freqValue" size="small" class="rule-setting-input" :disabled="!rulesObj.freqEnable"></el-input> 
+                <el-input v-model.trim="rulesObj.countValue" v-number="rulesObj.countValue" size="small" class="rule-setting-input" :disabled="!rulesObj.countEnable"></el-input> 
                 <span>{{$t('AccQueryEnd')}}</span>
               </el-form-item>
             </div>
@@ -523,8 +523,8 @@ export default class FavoriteQuery extends Vue {
   stCycle = null
   isPausePolling = false
   rulesObj = {
-    freqEnable: true,
-    freqValue: 0,
+    countEnable: true,
+    countValue: 0,
     submitterEnable: true,
     users: [],
     userGroups: [],
@@ -537,12 +537,12 @@ export default class FavoriteQuery extends Vue {
     group: []
   }
   rulesSettingRules = {
-    freqValue: [{validator: this.validatePass, trigger: 'blur'}],
+    countValue: [{validator: this.validatePass, trigger: 'blur'}],
     minDuration: [{validator: this.validatePass, trigger: 'blur'}],
     maxDuration: [{validator: this.validatePass, trigger: 'blur'}]
   }
   validatePass (rule, value, callback) {
-    if ((!value && value !== 0) && (rule.field === 'freqValue' && this.rulesObj.freqEnable || rule.field.indexOf('Duration') !== -1 && this.rulesObj.durationEnable)) {
+    if ((!value && value !== 0) && (rule.field === 'countValue' && this.rulesObj.countEnable || rule.field.indexOf('Duration') !== -1 && this.rulesObj.durationEnable)) {
       callback(new Error(null))
     } else {
       callback()
@@ -665,7 +665,7 @@ export default class FavoriteQuery extends Vue {
         this.getRules({project: this.currentSelectedProject}).then((res) => {
           handleSuccess(res, (data) => {
             this.rulesObj = data
-            // 都是次数，也不用把老数据转成100了
+            // 换字段名了，也不用处理 百分比的切换了
             // this.rulesObj.freqValue = this.rulesObj.freqValue * 100
             resolve()
           })
@@ -703,7 +703,7 @@ export default class FavoriteQuery extends Vue {
       if (valid) {
         this.updateLoading = true
         const submitData = objectClone(this.rulesObj)
-        // 换成次数了，不需要除于 100
+        // 换成次数字段了，不需要除于 100
         // submitData.freqValue = submitData.freqValue / 100
         this.updateRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
           handleSuccess(res, (data) => {
