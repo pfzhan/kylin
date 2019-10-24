@@ -14,7 +14,8 @@
     :remote-method="remoteMethod"
     :allow-create='allowcreate'
     :popper-class="changeable"
-    :placeholder="placeholder">
+    :placeholder="placeholder"
+    :duplicate-remove="duplicateremove">
     <el-option
       v-for="(item, index) in baseLabel"
       :key="index"
@@ -27,7 +28,7 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate', 'ignoreSplitChar', 'validateRegex', 'splitChar'],
+  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate', 'ignoreSplitChar', 'validateRegex', 'splitChar', 'duplicateremove'],
   data () {
     return {
       selectedL: this.selectedlabels,

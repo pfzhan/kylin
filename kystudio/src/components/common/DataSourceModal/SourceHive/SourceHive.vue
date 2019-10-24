@@ -46,6 +46,7 @@
           </div>
           <div class="names">
             <arealabel
+              :duplicateremove="true"
               :validateRegex="regex.validateDB"
               @validateFail="selectedDBValidateFail"
               @refreshData="refreshDBData"
@@ -65,6 +66,7 @@
           </div>
           <div class="names">
             <arealabel
+              :duplicateremove="true"
               :validateRegex="regex.validateTable"
               @validateFail="selectedTableValidateFail"
               @refreshData="refreshTableData"
