@@ -47,7 +47,7 @@
               prop="column">
             </el-table-column>
             <el-table-column
-              label="Shared"
+              label="Shard"
               prop="shared"
               width="80"
               align="center">
