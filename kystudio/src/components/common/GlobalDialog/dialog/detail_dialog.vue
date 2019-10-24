@@ -18,6 +18,7 @@
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
       </a>
+      <p v-if="showDetail && detailMsg" class="ksd-mt-15 detailMsg" :class="{'en-lang': $store.state.system.lang === 'en'}" v-html="filterInjectScript(detailMsg).replace(/\n/g, '<br/>')"></p>
       <div v-if="showDetail" style="padding-top:10px;">
         <template v-if="theme === 'plain-mult'">
           <div v-for="item in details">
@@ -79,6 +80,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       details: state => state.details,
       theme: state => state.theme,
       msg: state => state.msg,
+      detailMsg: state => state.detailMsg, // 详情里其他的文案信息
       isShow: state => state.isShow,
       dialogType: state => state.dialogType,
       showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
@@ -135,6 +137,15 @@ export default class DetailDialogModal extends Vue {
 .global-dialog-box {
   .show-detail{
     display: inline-block;
+  }
+  .detailMsg{
+    font-size: 12px;
+    color: @text-normal-color;
+    line-height: 1.5;
+    margin-bottom: -5px;
+    &.en-lang{
+      line-height: 1.2;
+    }
   }
   .mult-title{
     margin-bottom:5px;

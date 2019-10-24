@@ -17,7 +17,8 @@ export default {
     loadTablesSuccess: 'Succeeded to sync all tables.',
     loadTablesFail: 'Failed to load {db_counts} database(s) or {table_counts} source table(s) metadata.',
     databases: 'Database',
-    tables: 'Table'
+    tables: 'Table',
+    importErrorDetailMsg: 'Please contact your system administrator for the following checks.\n1. Please check whether the databases and tables are existing in your datasource.\n2. Please check whether the tables contain unsupported data format (map, struct, array).'
   },
   'zh-cn': {
     searchTable: '搜索数据库名称或表名',
@@ -37,6 +38,7 @@ export default {
     loadTablesSuccess: '成功同步全部源表。',
     loadTablesFail: '{db_counts} 个数据库和 {table_counts} 个源表（元数据）加载失败。',
     databases: '数据库',
-    tables: '源表'
+    tables: '源表',
+    importErrorDetailMsg: '请联系您的系统管理员进行如下检查。\n1. 当前数据源中是否存在所选的数据库或源表\n2. 加载的表中是否存在暂不支持的数据类型 （map，struct，array）'
   }
 }

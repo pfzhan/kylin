@@ -508,7 +508,8 @@ export default class DataSourceBar extends Vue {
           theme: 'plain-mult',
           msg: this.$t('loadTablesFail', {db_counts: datasrouces.length, table_counts: tables.length}),
           showCopyBtn: true,
-          details: tempDetail
+          details: tempDetail,
+          detailMsg: this.$t('importErrorDetailMsg')
         })
       } else {
         this.$message({ type: 'success', message: this.$t('loadTablesSuccess') })

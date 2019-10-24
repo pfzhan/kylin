@@ -9,6 +9,7 @@ const initialState = JSON.stringify({
   isShow: false,
   callback: null,
   msg: '',
+  detailMsg: '',
   title: '',
   dialogType: '',
   theme: '',
@@ -44,9 +45,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, title, details = [], theme = 'plain', showDetailBtn = true, showCopyBtn = false }) {
+    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, details = [], theme = 'plain', showDetailBtn = true, showCopyBtn = false }) {
       return new Promise(async (resolve, reject) => {
-        commit(types.SET_MODAL, { dialogType, msg, title, details, theme, showDetailBtn, showCopyBtn, callback: resolve })
+        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, details, theme, showDetailBtn, showCopyBtn, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }
