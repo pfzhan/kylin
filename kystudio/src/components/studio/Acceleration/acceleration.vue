@@ -665,7 +665,8 @@ export default class FavoriteQuery extends Vue {
         this.getRules({project: this.currentSelectedProject}).then((res) => {
           handleSuccess(res, (data) => {
             this.rulesObj = data
-            this.rulesObj.freqValue = this.rulesObj.freqValue * 100
+            // 都是次数，也不用把老数据转成100了
+            // this.rulesObj.freqValue = this.rulesObj.freqValue * 100
             resolve()
           })
         }, (res) => {
@@ -702,7 +703,8 @@ export default class FavoriteQuery extends Vue {
       if (valid) {
         this.updateLoading = true
         const submitData = objectClone(this.rulesObj)
-        submitData.freqValue = submitData.freqValue / 100
+        // 换成次数了，不需要除于 100
+        // submitData.freqValue = submitData.freqValue / 100
         this.updateRules({ ...submitData, ...{project: this.currentSelectedProject} }).then((res) => {
           handleSuccess(res, (data) => {
             this.updateLoading = false
