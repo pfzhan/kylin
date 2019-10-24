@@ -277,6 +277,9 @@ export default {
           return response
         })
     },
+    [types.RELOAD_HIVE_DB_TABLES]: function ({commit}, para) {
+      return api.datasource.reloadHiveDBAndTables(para)
+    },
     [types.UPDATE_TOP_TABLE]: function ({commit}, para) {
       return api.datasource.updateTopTable(para.projectName, para.tableFullName, para.isTopSet)
     },

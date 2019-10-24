@@ -199,6 +199,9 @@ export default {
   fetchDBandTables (project, pageOffset, pageSize, table, datasourceType) {
     return Vue.resource(apiUrl + 'tables/project_tables').get({project, pageOffset, pageSize, table, datasourceType})
   },
+  reloadHiveDBAndTables (para) {
+    return Vue.resource(apiUrl + 'tables/reload_hive_tablename').get(para)
+  },
   updateTopTable (project, table, top) {
     return Vue.resource(apiUrl + 'tables/top').save({project, table, top})
   },

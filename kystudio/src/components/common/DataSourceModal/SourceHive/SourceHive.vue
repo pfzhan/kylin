@@ -10,28 +10,31 @@
           <el-button slot="append" icon="el-icon-search" @click="handleFilter()"></el-button>
         </el-input>
       </div>
-      <TreeList
-        :tree-key="treeKey"
-        v-guide.hiveTree
-        :show-overflow-tooltip="true"
-        ref="tree-list"
-        class="table-tree"
-        :data="treeData"
-        :placeholder="$t('filterTableName')"
-        :is-show-filter="false"
-        :is-show-resize-bar="false"
-        :filter-white-list-types="['datasource', 'database']"
-        @resize="handleResize"
-        @click="handleClickNode"
-        @node-expand="handleNodeExpand"
-        @load-more="handleLoadMore"
-        :default-expanded-keys="defaultExpandedKeys"
-      />
-      <div class="split" v-if="false">
-        <i class="el-icon-ksd-more_03"></i>
-      </div>
-      <div class="empty" v-if="!loadingTreeData && treeData.length===0">
-        <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
+      <div class="treeBox" :class="{'hasRefreshBtn': (filterText || treeData.length === 0) && !loadingTreeData}">
+        <TreeList
+          :tree-key="treeKey"
+          v-guide.hiveTree
+          :show-overflow-tooltip="true"
+          ref="tree-list"
+          class="table-tree"
+          :data="treeData"
+          :placeholder="$t('filterTableName')"
+          :is-show-filter="false"
+          :is-show-resize-bar="false"
+          :filter-white-list-types="['datasource', 'database']"
+          @resize="handleResize"
+          @click="handleClickNode"
+          @node-expand="handleNodeExpand"
+          @load-more="handleLoadMore"
+          :default-expanded-keys="defaultExpandedKeys"
+        />
+        <div class="split" v-if="false">
+          <i class="el-icon-ksd-more_03"></i>
+        </div>
+        <div class="empty" v-if="!loadingTreeData && treeData.length===0">
+          <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
+        </div>
+        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterText || treeData.length === 0) && !loadingTreeData">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -187,7 +190,8 @@ import arealabel from '../../area_label.vue'
     ...mapActions({
       fetchDatabase: 'LOAD_HIVEBASIC_DATABASE',
       fetchTables: 'LOAD_HIVE_TABLES',
-      fetctDatabaseAndTables: 'LOAD_HIVEBASIC_DATABASE_TABLES'
+      fetctDatabaseAndTables: 'LOAD_HIVEBASIC_DATABASE_TABLES',
+      reloadHiveDBAndTables: 'RELOAD_HIVE_DB_TABLES'
     })
   },
   locales
@@ -216,6 +220,15 @@ export default class SourceHive extends Vue {
   }
   selectTablesNames = []
   selectDBNames = []
+  reloadHiveTablesStatus = { // 记录当前的刷新状态
+    isRunning: false
+  }
+  hasClickRefreshBtn = false
+  pollingReloadStatusTimer = null // 轮询当前刷新状态的接口
+
+  get refreshBtnText () {
+    return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
+  }
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -268,6 +281,36 @@ export default class SourceHive extends Vue {
   selectedTableValidateFail () {
     this.$message(this.$t('selectedTableValidateFailText'))
   }
+
+  pollingReloadStatus () {
+    if (this.pollingReloadStatusTimer) {
+      window.clearTimeout(this.pollingReloadStatusTimer)
+    }
+    // 10 秒刷一次
+    this.pollingReloadStatusTimer = setTimeout(() => {
+      this.refreshHive(false)
+    }, 10000)
+  }
+
+  // 手动刷新 hive 元数据
+  refreshHive (isForce) {
+    if (this.pollingReloadStatusTimer) {
+      window.clearTimeout(this.pollingReloadStatusTimer)
+    }
+    if (this.reloadHiveTablesStatus.isRunning) {
+      return false
+    }
+    this.hasClickRefreshBtn = true
+    this.reloadHiveDBAndTables({force: isForce}).then((res) => {
+      this.hasClickRefreshBtn = false
+      this.reloadHiveTablesStatus.isRunning = res.data.data.isRunning
+      this.pollingReloadStatus()
+    }, (res) => {
+      this.hasClickRefreshBtn = false
+      this.reloadHiveTablesStatus.isRunning = false
+    })
+  }
+
   refreshDBData (val) {
     this.selectDBNames = val.map((item) => {
       return item.toLocaleUpperCase()
@@ -323,10 +366,17 @@ export default class SourceHive extends Vue {
     this.getDatabaseTablesTree = getDatabaseTablesTree.bind(this)
   }
   async mounted () {
-    await this.loadDatabase()
+    // await this.loadDatabase()
+    // 现在接口变快了，应该直接调用获取所有的db+table，默认都收起
+    this.refreshHive(false)
+    await this.loadDatabaseAndTables()
     this.$on('samplingFormValid', () => {
       this.handleSamplingRows(this.samplingRows)
     })
+  }
+  beforeDestroy () {
+    // 关闭弹窗时，会销毁这个组件，会触发到这里，去掉轮询
+    window.clearTimeout(this.pollingReloadStatusTimer)
   }
   updated () {
     this.refreshSelectorWidth()
@@ -393,7 +443,7 @@ export default class SourceHive extends Vue {
       }
       const res = await this.fetctDatabaseAndTables(params)
       const results = await handleSuccessAsync(res)
-      this.treeKey = filterText + Number(new Date())
+      this.treeKey = filterText ? filterText + Number(new Date()) : 'HIVETREE'
       this.treeData = this.getDatabaseTablesTree(results.databases)
       this.treeData.forEach((database, index) => {
         const pagination = database.pagination
@@ -431,6 +481,10 @@ export default class SourceHive extends Vue {
     this.loadingTreeData = false
   }
   handleFilter () {
+    // 如果前一次查询还在进行中，不发第二次接口
+    if (this.loadingTreeData) {
+      return false
+    }
     return new Promise(async resolve => {
       // 每次发起搜索时，清空前一次的数据树
       this.loadingTreeData = true
@@ -454,9 +508,10 @@ export default class SourceHive extends Vue {
         ? this.handleRemoveTable(data.id)
         : this.handleAddTable(data.id)
     }
-    if (data.type === 'datasource' && this.isDatabaseError) {
+    // 点击数据库节点时，不用再重新获取了
+    /* if (data.type === 'datasource' && this.isDatabaseError) {
       await this.loadDatabase()
-    }
+    } */
   }
   handleResize (treeWidth) {
     const marginLeft = treeWidth + 25 + 20
@@ -551,14 +606,58 @@ export default class SourceHive extends Vue {
     }
   }
   .list {
-    position: relative;
     float: left;
   }
-  .table-tree {
+  .treeBox{
     width: 400px;
     float: left;
-    padding: 10px 0 20px 0;
-    margin-left: 20px;
+    position: relative;
+    border: 1px solid #ccc;
+    margin: 10px 0 20px 20px;
+    .filter-tree{
+      border: none;
+    }
+    .table-tree {
+      width: 400px;
+    }
+    .refreshNow{
+      z-index: 2;
+      position: absolute;
+      bottom: 0px;
+      width: 100%;
+      text-align: center!important;
+      border-top: 1px solid #ccc;
+      height: 24px;
+      line-height: 24px;
+      font-size: 12px;
+      color: @text-normal-color;
+      background: #fff;
+      a{
+        color: @base-color;
+        margin-right:5px;
+        &:hover{
+          text-decoration: none;
+          color: @base-color-2;
+          cursor: pointer;
+        }
+      }
+      &.isRefresh{
+        color: @text-disabled-color;
+        a{
+          color: @text-disabled-color;
+          &:hover{
+            text-decoration: none;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+    &.hasRefreshBtn{
+      .filter-tree{
+        height: calc(451px - 24px);
+        margin-bottom: 24px;
+      }
+    }
   }
   .split {
     position: absolute;

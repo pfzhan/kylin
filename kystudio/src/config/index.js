@@ -612,7 +612,7 @@ export const sourceNameMapping = {
 }
 
 export const pageSizeMapping = {
-  TABLE_TREE: 14
+  TABLE_TREE: 10
 }
 
 export const speedProjectTypes = [
