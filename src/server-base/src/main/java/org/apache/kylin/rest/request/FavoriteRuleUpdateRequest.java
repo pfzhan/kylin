@@ -37,8 +37,14 @@ import java.util.List;
 public class FavoriteRuleUpdateRequest implements Serializable {
 
     private String project;
+
+    @Deprecated
     private boolean freqEnable;
+    @Deprecated
     private String freqValue;
+
+    private boolean countEnable;
+    private String countValue;
     private boolean durationEnable;
     private String minDuration;
     private String maxDuration;

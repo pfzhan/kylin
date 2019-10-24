@@ -226,7 +226,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         } catch (Throwable ex) {
             Assert.assertEquals(NotFoundException.class, ex.getClass());
             Assert.assertEquals(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), FavoriteRule.FREQUENCY_RULE_NAME),
+                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), FavoriteRule.COUNT_RULE_NAME),
                     ex.getMessage());
         }
     }
@@ -239,8 +239,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
         Map<String, Object> favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
 
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("freqEnable"));
-        Assert.assertEquals(0.1, (float) favoriteRuleResponse.get("freqValue"), 0.1);
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("countEnable"));
+        Assert.assertEquals(10.0f, favoriteRuleResponse.get("countValue"));
 
         List<String> users = (List<String>) favoriteRuleResponse.get("users");
         List<String> userGroups = (List<String>) favoriteRuleResponse.get("userGroups");

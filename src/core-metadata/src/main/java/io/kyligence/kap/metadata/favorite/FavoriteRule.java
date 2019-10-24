@@ -41,6 +41,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class FavoriteRule extends RootPersistentEntity {
     public static final String FREQUENCY_RULE_NAME = "frequency";
+    public static final String COUNT_RULE_NAME = "count";
     public static final String DURATION_RULE_NAME = "duration";
     public static final String SUBMITTER_RULE_NAME = "submitter";
     public static final String SUBMITTER_GROUP_RULE_NAME = "submitter_group";
@@ -121,6 +122,33 @@ public class FavoriteRule extends RootPersistentEntity {
         @Override
         public int hashCode() {
             return this.sqlPattern.hashCode();
+        }
+    }
+
+    public static FavoriteRule getDefaultRule(FavoriteRule rule, String name) {
+        switch (name) {
+        case COUNT_RULE_NAME:
+            return rule == null
+                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "10")), name, true)
+                    : rule;
+        case FREQUENCY_RULE_NAME:
+            return rule == null
+                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "0.1")), name, false)
+                    : rule;
+        case SUBMITTER_RULE_NAME:
+            return rule == null
+                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "ADMIN")), name, true)
+                    : rule;
+        case SUBMITTER_GROUP_RULE_NAME:
+            return rule == null
+                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition(null, "ROLE_ADMIN")), name, true)
+                    : rule;
+        case DURATION_RULE_NAME:
+            return rule == null
+                    ? new FavoriteRule(Lists.newArrayList(new FavoriteRule.Condition("0", "180")), name, false)
+                    : rule;
+        default:
+            return rule;
         }
     }
 }

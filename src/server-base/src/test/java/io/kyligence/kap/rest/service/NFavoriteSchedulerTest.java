@@ -237,6 +237,10 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 queryHistories.add(queryHistory);
             }
         }
+        // change frequency rule to 19
+        val favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
+        List<FavoriteRule.Condition> conditions = Lists.newArrayList(new FavoriteRule.Condition(null, "19"));
+        favoriteRuleManager.updateRule(conditions, true, FavoriteRule.COUNT_RULE_NAME);
 
         String blacklistSql = "SELECT *\nFROM \"TEST_KYLIN_FACT\"";
         for (int i = 0; i < 10; i++) {
@@ -267,12 +271,11 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(favoriteQueryManager.contains(blacklistSql));
 
         // append a sql to blacklist
-        val favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
         favoriteRuleManager.appendSqlPatternToBlacklist(new FavoriteRule.SQLCondition("select * from test_sql9"));
 
-        // change frequency rule to 100%
-        List<FavoriteRule.Condition> conditions = Lists.newArrayList(new FavoriteRule.Condition(null, "1"));
-        favoriteRuleManager.updateRule(conditions, true, FavoriteRule.FREQUENCY_RULE_NAME);
+        // change frequency rule to 1
+        conditions = Lists.newArrayList(new FavoriteRule.Condition(null, "1"));
+        favoriteRuleManager.updateRule(conditions, true, FavoriteRule.COUNT_RULE_NAME);
 
         // run
         autoMarkFavoriteRunner.run();

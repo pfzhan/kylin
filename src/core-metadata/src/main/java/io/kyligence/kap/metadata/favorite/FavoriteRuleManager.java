@@ -122,7 +122,7 @@ public class FavoriteRuleManager {
     }
 
     public void updateRule(List<FavoriteRule.Condition> conditions, boolean isEnabled, String ruleName) {
-        FavoriteRule copy = crud.copyForWrite(getByName(ruleName));
+        FavoriteRule copy = crud.copyForWrite(FavoriteRule.getDefaultRule(getByName(ruleName), ruleName));
         copy.setEnabled(isEnabled);
 
         List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();

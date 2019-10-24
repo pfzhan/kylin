@@ -37,7 +37,6 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.service.BasicService;
@@ -69,8 +68,9 @@ import lombok.val;
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
-    private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.FREQUENCY_RULE_NAME,
-            FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME, FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
+    private static final List<String> favoriteRuleNames = Lists.newArrayList(FavoriteRule.COUNT_RULE_NAME,
+            FavoriteRule.FREQUENCY_RULE_NAME, FavoriteRule.DURATION_RULE_NAME, FavoriteRule.SUBMITTER_RULE_NAME,
+            FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
 
     private static final String DEFAULT_SCHEMA = "DEFAULT";
 
@@ -99,6 +99,14 @@ public class FavoriteRuleService extends BasicService {
                 result.put("freqValue", Float.valueOf(frequency));
             else
                 result.put("freqValue", null);
+            break;
+        case FavoriteRule.COUNT_RULE_NAME:
+            result.put("countEnable", rule.isEnabled());
+            String count = conds.get(0).getRightThreshold();
+            if (StringUtils.isNotEmpty(count))
+                result.put("countValue", Float.valueOf(count));
+            else
+                result.put("countValue", null);
             break;
         case FavoriteRule.SUBMITTER_RULE_NAME:
             List<String> users = Lists.newArrayList();
@@ -136,12 +144,7 @@ public class FavoriteRuleService extends BasicService {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
         Preconditions.checkArgument(ruleName != null && StringUtils.isNotEmpty(ruleName));
 
-        FavoriteRule favoriteRule = getFavoriteRuleManager(project).getByName(ruleName);
-
-        if (favoriteRule == null)
-            throw new NotFoundException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), ruleName));
-
-        return favoriteRule;
+        return FavoriteRule.getDefaultRule(getFavoriteRuleManager(project).getByName(ruleName), ruleName);
     }
 
     @Transaction(project = 0)
@@ -164,6 +167,10 @@ public class FavoriteRuleService extends BasicService {
         case FavoriteRule.FREQUENCY_RULE_NAME:
             isEnabled = request.isFreqEnable();
             conds.add(new FavoriteRule.Condition(null, request.getFreqValue()));
+            break;
+        case FavoriteRule.COUNT_RULE_NAME:
+            isEnabled = request.isCountEnable();
+            conds.add(new FavoriteRule.Condition(null, request.getCountValue()));
             break;
         case FavoriteRule.SUBMITTER_RULE_NAME:
             isEnabled = request.isSubmitterEnable();

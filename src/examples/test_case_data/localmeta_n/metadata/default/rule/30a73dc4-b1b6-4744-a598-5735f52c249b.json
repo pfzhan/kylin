@@ -5,8 +5,8 @@
   "enabled" : "true",
   "conds" : [ {
     "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
-    "rightThreshold" : "0.1",
+    "rightThreshold" : "10",
     "leftThreshold" : null
   } ],
-  "name" : "frequency"
+  "name" : "count"
 }

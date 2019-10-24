@@ -50,6 +50,7 @@ import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
@@ -88,6 +89,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.val;
+import lombok.var;
 
 public class NFavoriteScheduler {
     private static final Logger logger = LoggerFactory.getLogger(NFavoriteScheduler.class);
@@ -280,7 +282,8 @@ public class NFavoriteScheduler {
             scanQueryHistoryByTime();
 
             // filter by frequency rule
-            Set<FavoriteQuery> candidates = getCandidatesByFrequencyRule();
+            Set<FavoriteQuery> candidates = getCandidatesByCountRule();
+            candidates.addAll(getCandidatesByFrequencyRule());
 
             if (CollectionUtils.isNotEmpty(candidates)) {
                 UnitOfWork.doInTransactionWithRetry(() -> {
@@ -388,12 +391,30 @@ public class NFavoriteScheduler {
             updateRelatedMetadata(candidates, endTime, numOfQueryHitIndex, overallQueryNum);
         }
 
+        private Set<FavoriteQuery> getCandidatesByCountRule() {
+            FavoriteRule freqRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getByName(FavoriteRule.COUNT_RULE_NAME);
+            // since 4.0.6.3011 we need count to replace frequency,
+            // for backward compatibility the rule maybe null
+            freqRule = FavoriteRule.getDefaultRule(freqRule, FavoriteRule.COUNT_RULE_NAME);
+            if (!freqRule.isEnabled())
+                return Sets.newHashSet();
+
+            FavoriteRule.Condition condition = (FavoriteRule.Condition) freqRule.getConds().get(0);
+            return copiedOverallStatus.getSqlPatternFreqMap().entrySet().stream()
+                    .filter(entry -> entry.getValue() > Float.parseFloat(condition.getRightThreshold())).map(entry -> {
+                        FavoriteQuery favoriteQuery = new FavoriteQuery(entry.getKey());
+                        favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
+                        return favoriteQuery;
+                    }).collect(Collectors.toSet());
+        }
+
         private Set<FavoriteQuery> getCandidatesByFrequencyRule() {
             FavoriteRule freqRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .getByName(FavoriteRule.FREQUENCY_RULE_NAME);
-            Preconditions.checkArgument(freqRule != null);
-
-            if (!freqRule.isEnabled())
+            // since 4.0.6.3011 we need count to replace frequency,
+            // for backward compatibility if the rule exist we will use it
+            if (freqRule == null || !freqRule.isEnabled())
                 return Sets.newHashSet();
             Map<Integer, Set<String>> distinctFreqMap = Maps.newHashMap();
 
@@ -469,38 +490,37 @@ public class NFavoriteScheduler {
     }
 
     boolean matchRuleBySingleRecord(QueryHistory queryHistory) {
-        List<FavoriteRule> rules = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getAllEnabled();
-
-        for (FavoriteRule rule : rules) {
-            if (matchSingleRule(rule, queryHistory))
-                return true;
-        }
-
-        return false;
-    }
-
-    private boolean matchSingleRule(FavoriteRule rule, QueryHistory queryHistory) {
-        if (rule.getName().equals(FavoriteRule.SUBMITTER_RULE_NAME)) {
-            for (FavoriteRule.Condition submitterCond : (List<FavoriteRule.Condition>) (List<?>) rule.getConds()) {
-                if (queryHistory.getQuerySubmitter().equals(submitterCond.getRightThreshold()))
+        var submitterRule = FavoriteRule.getDefaultRule(FavoriteRuleManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getByName(FavoriteRule.SUBMITTER_RULE_NAME),
+                FavoriteRule.SUBMITTER_RULE_NAME);
+        List<FavoriteRule.AbstractCondition> conditions = submitterRule.getConds();
+        if (submitterRule.isEnabled()) {
+            for (FavoriteRule.AbstractCondition submitterCond : conditions) {
+                if (queryHistory.getQuerySubmitter()
+                        .equals(((FavoriteRule.Condition) submitterCond).getRightThreshold()))
                     return true;
             }
         }
 
-        if (rule.getName().equals(FavoriteRule.SUBMITTER_GROUP_RULE_NAME)) {
+        var groupRule = FavoriteRule
+                .getDefaultRule(FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .getByName(FavoriteRule.SUBMITTER_GROUP_RULE_NAME), FavoriteRule.SUBMITTER_GROUP_RULE_NAME);
+        conditions = groupRule.getConds();
+        if (groupRule.isEnabled()) {
             Set<String> userGroups = getUserGroups(queryHistory.getQuerySubmitter());
-            for (FavoriteRule.Condition userGroupCond : (List<FavoriteRule.Condition>) (List<?>) rule.getConds()) {
-                if (userGroups.contains(userGroupCond.getRightThreshold()))
+            for (FavoriteRule.AbstractCondition userGroupCond : conditions) {
+                if (userGroups.contains(((FavoriteRule.Condition) userGroupCond).getRightThreshold()))
                     return true;
             }
         }
 
-        if (rule.getName().equals(FavoriteRule.DURATION_RULE_NAME)) {
-            Preconditions.checkArgument(CollectionUtils.isNotEmpty(rule.getConds()));
-            FavoriteRule.Condition durationCond = (FavoriteRule.Condition) rule.getConds().get(0);
-            if (queryHistory.getDuration() >= Long.valueOf(durationCond.getLeftThreshold()) * 1000L
-                    && queryHistory.getDuration() <= Long.valueOf(durationCond.getRightThreshold()) * 1000L)
+        var durationRule = FavoriteRule.getDefaultRule(FavoriteRuleManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getByName(FavoriteRule.DURATION_RULE_NAME),
+                FavoriteRule.DURATION_RULE_NAME);
+        FavoriteRule.Condition durationCond = (FavoriteRule.Condition) durationRule.getConds().get(0);
+        if (durationRule.isEnabled()) {
+            if (queryHistory.getDuration() >= Long.parseLong(durationCond.getLeftThreshold()) * 1000L
+                    && queryHistory.getDuration() <= Long.parseLong(durationCond.getRightThreshold()) * 1000L)
                 return true;
         }
 
