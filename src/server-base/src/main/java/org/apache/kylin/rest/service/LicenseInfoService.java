@@ -37,6 +37,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -414,6 +416,20 @@ public class LicenseInfoService extends BasicService {
         System.setProperty(KE_LICENSE_INFO, "");
         System.setProperty(KE_LICENSE_VERSION, "");
         System.setProperty(KE_LICENSE_VOLUME, "");
+    }
+
+    public boolean filterEmail(String email) {
+        String[] emails = { "qq.com", "gmail.com", "sina.com", "163.com", "126.com", "yeah.net", "sohu.com", "tom.com",
+                "sogou.com", "139.com", "hotmail.com", "live.com", "live.cn", "live.com.cn", "189.com", "yahoo.com.cn",
+                "yahoo.cn", "eyou.com", "21cn.com", "188.com", "foxmail.com" };
+        for (String suffix : emails) {
+            if (email.endsWith(suffix)) {
+                return false;
+            }
+        }
+        Pattern pattern = Pattern.compile("^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\\.[a-zA-Z0-9-]+)*\\.[a-zA-Z0-9]{2,6}$");
+        Matcher matcher = pattern.matcher(email);
+        return matcher.find();
     }
 
 }

@@ -188,4 +188,13 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testIsPersonEmail() throws Exception {
+        assert !licenseInfoService.filterEmail("zhou@qq.com");
+        assert licenseInfoService.filterEmail("zhou@q-q.com");
+        assert !licenseInfoService.filterEmail("zhou@.com");
+        assert !licenseInfoService.filterEmail("@q-q.com");
+        assert !licenseInfoService.filterEmail("zhou@q-q.");
+    }
+
 }

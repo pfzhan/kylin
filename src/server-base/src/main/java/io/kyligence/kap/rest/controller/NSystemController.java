@@ -135,6 +135,15 @@ public class NSystemController extends NBasicController {
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "wrong parameter");
         }
+        if (licenseRequest.getEmail().length() > 50 || licenseRequest.getUsername().length() > 50
+                || licenseRequest.getCompany().length() > 50) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "length should be less or equal than 50");
+        }
+        if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "",
+                    "personal email or illegal email is not allowed");
+        }
+
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
         if (trialLicense == null || !trialLicense.isSuccess()) {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "get license error");
