@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import io.kyligence.kap.metadata.model.ModelNonEquiCondMock;
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,6 +64,24 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         JoinsGraph factLJorderGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
                 .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" }).build();
         Assert.assertFalse(orderLJfactGraph.match(factLJorderGraph, new HashMap<String, String>()));
+    }
+
+    @Test
+    public void testInnerJoinPartialMatch() {
+        NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+
+        JoinsGraph innerJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
+        JoinsGraph innerAndInnerJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
+                .innerJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
+                .build();
+        Assert.assertFalse(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
+                KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()));
+        System.setProperty("kylin.query.match-partial-inner-join-model", "true");
+        Assert.assertTrue(innerJoinGraph.match(innerAndInnerJoinGraph, new HashMap<String, String>(),
+                KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()));
     }
 
     @Test

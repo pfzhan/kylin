@@ -299,7 +299,8 @@ public class RealizationChooser {
             if (ctx.getJoinsGraph() == null) {
                 ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
-            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp);
+            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp,
+                    KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
             if (matched) {
                 logger.debug("Context join graph matched model {}, context join graph {}, model join graph {}", model, ctx.getJoinsGraph(), model.getJoinsGraph());
             } else {

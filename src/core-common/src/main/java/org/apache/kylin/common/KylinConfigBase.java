@@ -1272,6 +1272,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.ignore-unknown-function", "false"));
     }
 
+    public boolean isQueryMatchPartialInnerJoinModel() {
+        return Boolean.parseBoolean(this.getOptional("kylin.query.match-partial-inner-join-model", "false"));
+    }
+
     public String getQueryAccessController() {
         return getOptional("kylin.query.access-controller", null);
     }
