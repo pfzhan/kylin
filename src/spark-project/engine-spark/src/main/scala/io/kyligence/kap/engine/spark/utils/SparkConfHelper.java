@@ -109,4 +109,8 @@ public class SparkConfHelper {
             logger.info("Auto set spark conf: {} = {}.", entry.getKey(), entry.getValue());
         }
     }
+
+    public boolean hasCountDistinct() {
+        return "true".equalsIgnoreCase(getConf(COUNT_DISTICT));
+    }
 }

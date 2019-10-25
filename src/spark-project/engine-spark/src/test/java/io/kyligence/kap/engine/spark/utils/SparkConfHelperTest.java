@@ -24,14 +24,11 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.cluster.AvailableResource;
-import io.kyligence.kap.cluster.ResourceInfo;
-import io.kyligence.kap.cluster.YarnInfoFetcher;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
+import static org.mockito.Mockito.mock;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorInstancesRule;
@@ -41,7 +38,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.mockito.Mockito.mock;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.cluster.AvailableResource;
+import io.kyligence.kap.cluster.ResourceInfo;
+import io.kyligence.kap.cluster.YarnInfoFetcher;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 
 public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     private YarnInfoFetcher fetcher = mock(YarnInfoFetcher.class);
@@ -77,8 +80,11 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
                 new CompareTuple("2", SparkConfHelper.SHUFFLE_PARTITIONS));
         compareConf(compareTuples, sparkConf);
         helper.setConf(SparkConfHelper.COUNT_DISTICT, "true");
+        helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
-        compareTuples.set(0, new CompareTuple("1GB", SparkConfHelper.EXECUTOR_MEMORY));
+        compareTuples.set(0, new CompareTuple("4GB", SparkConfHelper.EXECUTOR_MEMORY));
+        compareTuples.set(1, new CompareTuple("5", SparkConfHelper.EXECUTOR_CORES));
+        compareTuples.set(2, new CompareTuple("1GB", SparkConfHelper.EXECUTOR_OVERHEAD));
         compareConf(compareTuples, sparkConf);
 
     }
@@ -104,7 +110,8 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         compareTuples.set(0, new CompareTuple("10GB", SparkConfHelper.EXECUTOR_MEMORY));
-                compareConf(compareTuples, sparkConf);
+        compareTuples.set(2, new CompareTuple("2GB", SparkConfHelper.EXECUTOR_OVERHEAD));
+        compareConf(compareTuples, sparkConf);
     }
 
     @Test
@@ -128,7 +135,8 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         compareTuples.set(0, new CompareTuple("16GB", SparkConfHelper.EXECUTOR_MEMORY));
-                compareConf(compareTuples, sparkConf);
+        compareTuples.set(2, new CompareTuple("4GB", SparkConfHelper.EXECUTOR_OVERHEAD));
+        compareConf(compareTuples, sparkConf);
     }
 
     @Test
@@ -152,11 +160,9 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         helper.generateSparkConf();
         helper.applySparkConf(sparkConf);
         compareTuples.set(0, new CompareTuple("20GB", SparkConfHelper.EXECUTOR_MEMORY));
-                compareConf(compareTuples, sparkConf);
+        compareTuples.set(2, new CompareTuple("6GB", SparkConfHelper.EXECUTOR_OVERHEAD));
+        compareConf(compareTuples, sparkConf);
     }
-
-
-
 
     private void compareConf(List<CompareTuple> tuples, SparkConf conf) {
         for (CompareTuple tuple : tuples) {
@@ -220,13 +226,11 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
         instancesRule.apply(helper);
         Assert.assertEquals("10", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
-
         // case: v1 < v2 < v4 < v3, spark.executor.instances = v4
         resetSparkConfHelper(helper);
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "200");
         instancesRule.apply(helper);
         Assert.assertEquals("14", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
-
 
         // case: v2 < v4 < v3 < v1, spark.executor.instances = v1
         resetSparkConfHelper(helper);

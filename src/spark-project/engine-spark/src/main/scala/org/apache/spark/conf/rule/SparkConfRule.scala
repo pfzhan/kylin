@@ -23,11 +23,10 @@
 package org.apache.spark.conf.rule
 
 
-import io.kyligence.kap.engine.spark.utils.SparkConfHelper
+import io.kyligence.kap.engine.spark.utils.{SparkConfHelper, SparkConfRuleConstants}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
-import io.kyligence.kap.engine.spark.utils.SparkConfRuleConstants
 
 sealed trait SparkConfRule extends Logging {
   def apply(helper: SparkConfHelper): Unit = {
@@ -50,14 +49,7 @@ sealed trait SparkConfRule extends Logging {
 class ExecutorMemoryRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
-    var hasCountDistinct = {
-      if (helper.getConf(SparkConfHelper.COUNT_DISTICT) != null && helper.getConf(SparkConfHelper.COUNT_DISTICT).equals("true")) {
-        logInfo("Find count distinct measure.")
-        true
-      } else {
-        false
-      }
-    }
+    val hasCountDistinct = helper.hasCountDistinct
     val memory = sourceGB match {
       case _ if `sourceGB` >= 100 && `hasCountDistinct` =>
         "20GB"
@@ -65,7 +57,7 @@ class ExecutorMemoryRule extends SparkConfRule {
         "16GB"
       case _ if `sourceGB` >= 10 || (`sourceGB` >= 1 && `hasCountDistinct`) =>
         "10GB"
-      case _ if `sourceGB` >= 1 =>
+      case _ if `sourceGB` >= 1 || `hasCountDistinct` =>
         "4GB"
       case _ =>
         "1GB"
@@ -77,7 +69,8 @@ class ExecutorMemoryRule extends SparkConfRule {
 class ExecutorCoreRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
-    val cores = if (sourceGB >= 1) {
+    val hasCountDistinct = helper.hasCountDistinct
+    val cores = if (sourceGB >= 1 || hasCountDistinct) {
       "5"
     } else {
       SparkConfRuleConstants.DEFUALT_EXECUTOR_CORE
@@ -89,14 +82,18 @@ class ExecutorCoreRule extends SparkConfRule {
 class ExecutorOverheadRule extends SparkConfRule {
   override def doApply(helper: SparkConfHelper): Unit = {
     val sourceGB = Utils.byteStringAsGb(helper.getOption(SparkConfHelper.SOURCE_TABLE_SIZE))
-    val overhead = if (sourceGB >= 100) {
-      "4GB"
-    } else if (sourceGB >= 10) {
-      "2GB"
-    } else if (sourceGB >= 1) {
-      "1GB"
-    } else {
-      "512MB"
+    val hasCountDistinct = helper.hasCountDistinct
+    val overhead = sourceGB match {
+      case _ if `sourceGB` >= 100 && `hasCountDistinct` =>
+        "6GB"
+      case _ if (`sourceGB` >= 100) || (`sourceGB` >= 10 && `hasCountDistinct`) =>
+        "4GB"
+      case _ if `sourceGB` >= 10 || (`sourceGB` >= 1 && `hasCountDistinct`) =>
+        "2GB"
+      case _ if `sourceGB` >= 1 || `hasCountDistinct` =>
+        "1GB"
+      case _ =>
+        "512MB"
     }
     helper.setConf(SparkConfHelper.EXECUTOR_OVERHEAD, overhead)
   }
