@@ -48,6 +48,7 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -459,7 +460,8 @@ public class QueryAliasMatcher {
             // 1st round: dry run without cc expr comparison to collect model alias matching
             joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(null, false));
 
-            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), false);
+            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(),
+                    KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
             if (matches == null || matches.isEmpty()) {
                 return null;
             }
@@ -473,7 +475,8 @@ public class QueryAliasMatcher {
             joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(ccAliasMatch, true));
         }
 
-        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), false);
+        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(),
+                KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
         if (matches == null || matches.isEmpty()) {
             return null;
         }
