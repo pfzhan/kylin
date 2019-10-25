@@ -324,7 +324,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             }
 
             if (maybeIndex == null) {
-                long indexId = layout.getId() / IndexEntity.INDEX_ID_STEP * IndexEntity.INDEX_ID_STEP;
+                long indexId = layout.getIndexId();
                 maybeIndex = new IndexEntity();
                 maybeIndex.setId(indexId);
                 maybeIndex.setLayouts(Lists.newArrayList(layout));

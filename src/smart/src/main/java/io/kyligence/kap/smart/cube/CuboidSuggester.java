@@ -333,10 +333,8 @@ class CuboidSuggester {
 
         IndexEntity indexEntity = new IndexEntity();
         indexEntity.setId(id);
-        indexEntity.setDimensions(Lists.newArrayList(dimIds));
-        indexEntity.getDimensions().sort(Integer::compareTo);
+        indexEntity.setDimensions(dimIds);
         indexEntity.setMeasures(Lists.newArrayList(measureIds));
-        indexEntity.getMeasures().sort(Integer::compareTo);
         indexEntity.setIndexPlan(indexPlan);
         return indexEntity;
     }

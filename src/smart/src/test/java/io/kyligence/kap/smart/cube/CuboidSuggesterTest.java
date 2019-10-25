@@ -85,10 +85,14 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
         final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
+        Assert.assertEquals(Lists.newArrayList(6, 1, 4, 5, 8), allCuboids.get(0).getDimensions());
+        Assert.assertEquals("{1, 4, 5, 6, 8}", allCuboids.get(0).getDimensionBitset().toString());
         Assert.assertEquals("unexpected colOrder", "[6, 1, 4, 5, 8]", layout.getColOrder().toString());
         Assert.assertTrue(layout.getUpdateTime() > 0);
 
         final LayoutEntity layout2 = allCuboids.get(1).getLayouts().get(0);
+        Assert.assertEquals(Lists.newArrayList(7, 1, 4, 5, 6, 8), allCuboids.get(1).getDimensions());
+        Assert.assertEquals("{1, 4, 5, 6, 7, 8}", allCuboids.get(1).getDimensionBitset().toString());
         Assert.assertEquals("unexpected colOrder", "[7, 1, 4, 5, 6, 8]", layout2.getColOrder().toString());
         Assert.assertTrue(layout2.getUpdateTime() > 0);
     }

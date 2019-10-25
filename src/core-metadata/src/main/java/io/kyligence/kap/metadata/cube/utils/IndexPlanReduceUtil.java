@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.util.ImmutableBitSet;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -46,14 +48,16 @@ public class IndexPlanReduceUtil {
     public static Map<LayoutEntity, LayoutEntity> collectRedundantLayoutsOfAggIndex(List<IndexEntity> aggIndexList,
             boolean isGarbageCleaning) {
         Map<LayoutEntity, LayoutEntity> redundantMap = Maps.newHashMap();
-        Map<List<Integer>, List<IndexEntity>> indexGroupedByDims = aggIndexList.stream()
-                .collect(Collectors.groupingBy(IndexEntity::getDimensions));
-        Map<List<Integer>, List<LayoutEntity>> layoutGroupedByDims = Maps.newHashMap();
-        indexGroupedByDims.forEach((dims, indexes) -> {
-            layoutGroupedByDims.putIfAbsent(dims, Lists.newArrayList());
-            indexes.forEach(index -> layoutGroupedByDims.get(dims).addAll(index.getLayouts()));
+        Map<ImmutableBitSet, List<IndexEntity>> indexGroupedByDims = Maps.newHashMap();
+        aggIndexList.forEach(index -> {
+            indexGroupedByDims.putIfAbsent(index.getDimensionBitset(), Lists.newArrayList());
+            indexGroupedByDims.get(index.getDimensionBitset()).add(index);
         });
-
+        Map<ImmutableBitSet, List<LayoutEntity>> layoutGroupedByDims = Maps.newHashMap();
+        indexGroupedByDims.forEach((dimBitSet, indexes) -> {
+            layoutGroupedByDims.putIfAbsent(dimBitSet, Lists.newArrayList());
+            indexes.forEach(index -> layoutGroupedByDims.get(dimBitSet).addAll(index.getLayouts()));
+        });
         layoutGroupedByDims.forEach((dims, layouts) -> {
             List<LayoutEntity> layoutsShareSameDims = descSort(layouts);
             redundantMap.putAll(collectRedundantLayouts(layoutsShareSameDims, isGarbageCleaning));

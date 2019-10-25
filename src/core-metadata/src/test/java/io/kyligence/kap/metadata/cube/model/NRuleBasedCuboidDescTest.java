@@ -102,7 +102,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
                 newRule.setAggregationGroups(Arrays.asList(group1, group2));
                 copyForWrite.setRuleBasedIndex(newRule);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Something wrong happened when update this IndexPlan.", e);
             }
         });
         logLayouts(indexPlan.getAllLayouts());
@@ -112,6 +112,48 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Assert.assertThat(indexPlan.getRuleBasedIndex().getLayoutIdMapping(),
                 CoreMatchers.is(Arrays.asList(10001L, 120001L, 30001L, 40001L, 80001L, 130001L, 140001L, 150001L, 160001L,
                         170001L, 180001L, 190001L)));
+    }
+
+    @Test
+    public void testCorrectnessOfGenRuleBasedIndexes() throws IOException {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+        newPlan.setLastModified(0L);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+        indexPlanManager.createIndexPlan(newPlan);
+        val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
+            val newRule = new NRuleBasedIndex();
+            newRule.setDimensions(Lists.newArrayList(2, 1, 3));
+            try {
+                val group = JsonUtil.readValue("{ \"includes\": [2, 1, 3], "
+                        + "\"select_rule\": { \"hierarchy_dims\": [], \"mandatory_dims\": [2], "
+                        + "\"joint_dims\": [ [1,3] ] } }", NAggregationGroup.class);
+                newRule.setAggregationGroups(Lists.newArrayList(group));
+                copyForWrite.setRuleBasedIndex(newRule);
+            } catch (Exception e) {
+                log.error("Something wrong happened when update this indexPlan.", e);
+            }
+        });
+        logLayouts(indexPlan.getAllLayouts());
+        List<IndexEntity> allIndexes = indexPlan.getAllIndexes();
+        Assert.assertEquals(2, allIndexes.size());
+        Assert.assertEquals(2, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(Lists.newArrayList(2), allIndexes.get(0).getDimensions());
+        Assert.assertEquals("{2}", allIndexes.get(0).getDimensionBitset().toString());
+        IndexEntity entity0 = allIndexes.get(0);
+        Assert.assertEquals(Lists.newArrayList(100000, 100001, 100002, 100003, 100004, 100005, 100007, 100008, 100009,
+                100010, 100011, 100012, 100013, 100014, 100015, 100016), entity0.getMeasures());
+        Assert.assertEquals(Lists.newArrayList(2, 100000, 100001, 100002, 100003, 100004, 100005, 100007, 100008,
+                100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016),
+                entity0.getLayouts().get(0).getColOrder());
+        Assert.assertEquals(Lists.newArrayList(2, 1, 3), allIndexes.get(1).getDimensions());
+        Assert.assertEquals("{1, 2, 3}", allIndexes.get(1).getDimensionBitset().toString());
+        IndexEntity entity1 = allIndexes.get(1);
+        Assert.assertEquals(allIndexes.get(0).getMeasures(), entity1.getMeasures());
+        Assert.assertEquals(Lists.newArrayList(2, 1, 3, 100000, 100001, 100002, 100003, 100004, 100005, 100007, //
+                100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016),
+                entity1.getLayouts().get(0).getColOrder());
     }
 
     @Test

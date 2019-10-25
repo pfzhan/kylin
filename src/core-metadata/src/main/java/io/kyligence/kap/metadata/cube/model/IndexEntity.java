@@ -34,7 +34,6 @@ import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import lombok.Setter;
 import org.apache.kylin.common.util.BitSets;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -54,6 +53,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 @SuppressWarnings("serial")
@@ -103,7 +103,7 @@ public class IndexEntity implements Serializable, IKeep {
     }
 
     @Getter(lazy = true)
-    private final ImmutableBiMap<Integer, Measure> effectiveMeasures = initEffectiveMeasures() ;
+    private final ImmutableBiMap<Integer, Measure> effectiveMeasures = initEffectiveMeasures();
 
     private ImmutableBiMap<Integer, Measure> initEffectiveMeasures() {
         val model = getModel();
@@ -115,6 +115,7 @@ public class IndexEntity implements Serializable, IKeep {
         }
         return measuresBuilder.build();
     }
+
     @Getter(lazy = true)
     private final ImmutableBitSet dimensionBitset = initDimensionBitset();
 
@@ -126,7 +127,7 @@ public class IndexEntity implements Serializable, IKeep {
     private final ImmutableBitSet measureBitset = initMeasureBitset();
 
     private ImmutableBitSet initMeasureBitset() {
-         return ImmutableBitSet.valueOf(measures);
+        return ImmutableBitSet.valueOf(measures);
     }
 
     @Getter(lazy = true)
@@ -135,6 +136,7 @@ public class IndexEntity implements Serializable, IKeep {
     private ImmutableSet<TblColRef> initDimensionSet() {
         return ImmutableSet.copyOf(getEffectiveDimCols().values());
     }
+
     @Getter(lazy = true)
     private final ImmutableSet<Measure> measureSet = initMeasureSet();
 
@@ -206,8 +208,12 @@ public class IndexEntity implements Serializable, IKeep {
         this.id = id;
     }
 
+    /**
+     * If there is no need to consider the order of dimensions,
+     * please use getDimensionBitset() instead of this method.
+     */
     public List<Integer> getDimensions() {
-        return isCachedAndShared() ? Lists.newArrayList(dimensions) : dimensions;
+        return getColIds(dimensions);
     }
 
     public void setDimensions(List<Integer> dimensions) {
@@ -215,13 +221,21 @@ public class IndexEntity implements Serializable, IKeep {
         this.dimensions = dimensions;
     }
 
+    /**
+     * If there is no need to consider the order of measures,
+     * please use getDimensionBitset() instead of this method.
+     */
     public List<Integer> getMeasures() {
-        return isCachedAndShared() ? Lists.newArrayList(measures) : measures;
+        return getColIds(measures);
     }
 
     public void setMeasures(List<Integer> measures) {
         checkIsNotCachedAndShared();
         this.measures = measures;
+    }
+
+    private List<Integer> getColIds(List<Integer> cols) {
+        return isCachedAndShared() ? Lists.newArrayList(cols) : cols;
     }
 
     public List<LayoutEntity> getLayouts() {
@@ -277,7 +291,8 @@ public class IndexEntity implements Serializable, IKeep {
 
     @Override
     public String toString() {
-        return "IndexEntity{ Id=" + id + ", dimBitSet=" + getDimensionBitset() + ", measureBitSet=" + getMeasureBitset() + "}.";
+        return "IndexEntity{ Id=" + id + ", dimBitSet=" + getDimensionBitset() + ", measureBitSet=" + getMeasureBitset()
+                + "}.";
     }
 
     public static class IndexIdentifier {
