@@ -1,0 +1,6 @@
+select sum(ACCOUNT_SELLER_LEVEL), ACCOUNT_COUNTRY
+from TEST_ACCOUNT
+where ACCOUNT_BUYER_LEVEL = (select ACCOUNT_BUYER_LEVEL
+                    from TEST_ACCOUNT
+                    where ACCOUNT_ID = 10000000)
+group by ACCOUNT_COUNTRY

@@ -43,9 +43,11 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -105,7 +107,12 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         ContextVisitorState tempState = ContextVisitorState.init();
         olapContextImplementor.visitChild(getInput(), this, tempState);
         if (tempState.hasFreeTable()) {
-            olapContextImplementor.allocateContext(this, null);
+            // since SINGLE_VALUE agg doesn't participant in any computation, context is allocated to the input rel
+            if (CollectionUtils.exists(aggCalls, aggCall -> ((AggregateCall)aggCall).getAggregation().getKind() == SqlKind.SINGLE_VALUE)) {
+                olapContextImplementor.allocateContext((KapRel) this.getInput(), this);
+            } else {
+                olapContextImplementor.allocateContext(this, null);
+            }
             tempState.setHasFreeTable(false);
         }
         state.merge(tempState);
