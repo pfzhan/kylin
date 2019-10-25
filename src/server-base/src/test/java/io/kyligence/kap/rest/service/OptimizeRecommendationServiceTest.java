@@ -26,11 +26,8 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.AggIndexRecommendationResponse;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
