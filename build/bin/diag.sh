@@ -72,7 +72,7 @@ function runTool() {
         diag_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-diag-log4j.properties"
     fi
 
-    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${DIAG_JAVA_OPTS} -Dlog4j.configuration=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-${version}.jar:${SPARK_HOME}/jars/*" $@
+    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${DIAG_JAVA_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${diag_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-${version}.jar:${SPARK_HOME}/jars/*" $@
     exit $?
 }
 
