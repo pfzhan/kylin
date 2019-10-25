@@ -29,36 +29,56 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RawResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.eventbus.Subscribe;
-
-import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Ehcache;
 
-public class AclTCRListener {
+public class AclTCRListener implements EventListenerRegistry.ResourceEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(AclTCRListener.class);
 
-    private final String prefix;
     private final CacheManager cacheManager;
 
-    public AclTCRListener(String prefix, CacheManager cacheManager) {
-        this.prefix = prefix;
+    public AclTCRListener(CacheManager cacheManager) {
         this.cacheManager = cacheManager;
     }
 
-    @Subscribe
-    public void onAclChange(AclTCR.ChangeEvent event) {
-
-        if (Objects.isNull(event) || Objects.isNull(event.getProject())) {
+    @Override
+    public void onUpdate(KylinConfig config, RawResource rawResource) {
+        if (Objects.isNull(rawResource)) {
             return;
         }
+        getProjectName(rawResource.getResPath()).ifPresent(this::clearCache);
+    }
 
+    @Override
+    public void onDelete(KylinConfig config, String resPath) {
+        getProjectName(resPath).ifPresent(this::clearCache);
+    }
+
+    private Optional<String> getProjectName(String resourcePath) {
+        if (Objects.isNull(resourcePath)) {
+            return Optional.empty();
+        }
+        String[] elements = resourcePath.split("/");
+        // acl resource path like '/{project}/acl/{user|group}/{name}.json
+        if (elements.length < 4 || !"acl".equals(elements[2]) || StringUtils.isEmpty(elements[1])) {
+            return Optional.empty();
+        }
+        return Optional.of(elements[1]);
+    }
+
+    private void clearCache(String project) {
+        logger.debug("clear query cache for {}", project);
+        final String suffix = String.format("-%s", project);
         Optional.ofNullable(cacheManager.getCacheNames()).map(Arrays::stream).orElseGet(Stream::empty)
-                .filter(name -> name.equalsIgnoreCase(prefix + event.getProject())).forEach(cacheName -> {
+                .filter(name -> name.endsWith(suffix)).forEach(cacheName -> {
                     Ehcache ehcache = cacheManager.getEhcache(cacheName);
                     if (Objects.isNull(ehcache)) {
                         return;

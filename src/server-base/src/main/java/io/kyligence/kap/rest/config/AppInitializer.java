@@ -58,6 +58,7 @@ import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
@@ -68,6 +69,7 @@ import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.ehcache.CacheManager;
 
 @Slf4j
 @Configuration
@@ -84,6 +86,9 @@ public class AppInitializer {
 
     @Autowired
     LicenseInfoService licenseInfoService;
+
+    @Autowired
+    CacheManager cacheManager;
 
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
@@ -131,6 +136,9 @@ public class AppInitializer {
             resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
             resourceStore.catchup();
         }
+
+        // register acl update listener
+        EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(cacheManager), "acl");
 
         // init influxDB writer and create DB
         try {

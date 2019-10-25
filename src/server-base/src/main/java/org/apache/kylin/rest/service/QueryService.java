@@ -149,7 +149,6 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -158,7 +157,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
-import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.AllArgsConstructor;
@@ -216,10 +214,6 @@ public class QueryService extends BasicService {
     @PostConstruct
     public void init() throws IOException {
         Preconditions.checkNotNull(cacheManager, "cacheManager is not injected yet");
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                .register(new AclTCRListener(SUCCESS_QUERY_CACHE, cacheManager));
-        SchedulerEventBusFactory.getInstance(KylinConfig.getInstanceFromEnv())
-                .register(new AclTCRListener(EXCEPTION_QUERY_CACHE, cacheManager));
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
@@ -1194,7 +1188,7 @@ public class QueryService extends BasicService {
     }
 
     private Ehcache getEhCache(String prefix, String project) {
-        final String cacheName = prefix + project;
+        final String cacheName = String.format("%s-%s", prefix, project);
         Ehcache ehcache = cacheManager.getEhcache(cacheName);
         if (Objects.isNull(ehcache)) {
             ehcache = cacheManager.addCacheIfAbsent(new Cache(new CacheConfiguration(cacheName, 0)));

@@ -50,7 +50,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 
@@ -120,7 +119,6 @@ public class AclTCRManager {
             copied.getTable().remove(dbTblName);
             groupCrud.save(copied);
         });
-        postAclChangeEvent(null);
     }
 
     public AclTCR getAclTCR(String sid, boolean principal) {
@@ -137,7 +135,6 @@ public class AclTCRManager {
         } else {
             doUpdate(updateTo, sid, groupCrud);
         }
-        postAclChangeEvent(sid);
     }
 
     private void doUpdate(AclTCR updateTo, String sid, CachedCrudAssist<AclTCR> crud) {
@@ -158,7 +155,6 @@ public class AclTCRManager {
         } else {
             groupCrud.delete(sid);
         }
-        postAclChangeEvent(sid);
     }
 
     public List<AclTCR> getAclTCRs(String username, Set<String> groups) {
@@ -370,9 +366,5 @@ public class AclTCRManager {
             authorizedCoarse.get(dbTblName).addAll(columnRow.getColumn());
         }));
         return authorizedCoarse;
-    }
-
-    private void postAclChangeEvent(String sid) {
-        SchedulerEventBusFactory.getInstance(config).post(new AclTCR.ChangeEvent(project, sid));
     }
 }
