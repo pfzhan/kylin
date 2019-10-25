@@ -35,16 +35,30 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.util.DateFormat;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 
 @RunWith(TimeZoneTestRunner.class)
-public class ColumnToCondsTest {
+public class ColumnToCondsTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() throws Exception {
+        createTestMetadata();
+    }
+
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
+    }
+
     @Test
     public void testTrimConds() {
         Assert.assertEquals("'a'", ColumnToConds.Cond.trim("a", "varchar(256)"));
@@ -96,5 +110,20 @@ public class ColumnToCondsTest {
         Assert.assertEquals("(c1>=100)", cond4.toString("c1", "int"));
         Assert.assertEquals("(c1<>null)", cond5.toString("c1", "int"));
         Assert.assertEquals("(c1=null)", cond6.toString("c1", "int"));
+        Assert.assertNotEquals(cond1, cond2);
+        Assert.assertNotEquals(cond1, cond3);
+        Assert.assertNotEquals(cond1, cond4);
+        Assert.assertNotEquals(cond1, cond5);
+        Assert.assertNotEquals(cond1, cond6);
+
+        ColumnToConds.Cond copyCond1 = new ColumnToConds.Cond(OPEN, null, "100");
+        Assert.assertEquals(copyCond1, cond1);
+        Assert.assertEquals(copyCond1.hashCode(), cond1.hashCode());
+    }
+
+    @Test
+    public void testGetColumnWithType() {
+        Map<String, String> colType = ColumnToConds.getColumnWithType("default", "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals("bigint", colType.get("ORDER_ID"));
     }
 }

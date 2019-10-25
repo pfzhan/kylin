@@ -144,13 +144,7 @@ public class AclTCRService extends BasicService {
                 }, prj.getName()));
     }
 
-    private void updateAclTCR(String project, String sid, boolean principal, AclTCR updateTo) {
-        AclTCR aclTCR = getAclTCRManager(project).getAclTCR(sid, principal);
-        if (Objects.isNull(aclTCR)) {
-            aclTCR = updateTo;
-        } else {
-            aclTCR.setTable(updateTo.getTable());
-        }
+    private void updateAclTCR(String project, String sid, boolean principal, AclTCR aclTCR) {
         getAclTCRManager(project).updateAclTCR(aclTCR, sid, principal);
     }
 
@@ -409,7 +403,7 @@ public class AclTCRService extends BasicService {
     }
 
     @VisibleForTesting
-    public NKylinUserManager getKylinUserManager() {
+    NKylinUserManager getKylinUserManager() {
         return NKylinUserManager.getInstance(getConfig());
     }
 
@@ -419,17 +413,18 @@ public class AclTCRService extends BasicService {
     }
 
     @VisibleForTesting
-    public NTableMetadataManager getTableMetadataManager(String project) {
+    NTableMetadataManager getTableMetadataManager(String project) {
         Preconditions.checkNotNull(project);
         return NTableMetadataManager.getInstance(getConfig(), project);
     }
 
     @VisibleForTesting
-    public boolean canUseACLGreenChannel(String project) {
+    boolean canUseACLGreenChannel(String project) {
         return AclPermissionUtil.canUseACLGreenChannel(project);
     }
 
-    public List<TableDesc> getAuthorizedTables(String project, String user, Set<String> groups) {
+    @VisibleForTesting
+    List<TableDesc> getAuthorizedTables(String project, String user, Set<String> groups) {
         if (canUseACLGreenChannel(project)) {
             return getTableMetadataManager(project).listAllTables();
         }

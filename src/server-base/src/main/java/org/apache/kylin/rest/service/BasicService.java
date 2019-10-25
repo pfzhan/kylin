@@ -48,7 +48,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.metadata.acl.TableACLManager;
 import org.springframework.beans.support.PropertyComparator;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -116,10 +115,6 @@ public abstract class BasicService {
 
     public NProjectManager getProjectManager() {
         return NProjectManager.getInstance(getConfig());
-    }
-
-    public TableACLManager getTableACLManager() {
-        return TableACLManager.getInstance(getConfig());
     }
 
     public EventDao getEventDao(String project) {

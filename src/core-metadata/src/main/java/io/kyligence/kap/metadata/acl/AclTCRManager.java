@@ -107,16 +107,18 @@ public class AclTCRManager {
             if (Objects.isNull(aclTCR.getTable())) {
                 return;
             }
-            aclTCR.getTable().remove(dbTblName);
-            userCrud.save(aclTCR);
+            AclTCR copied = userCrud.copyForWrite(aclTCR);
+            copied.getTable().remove(dbTblName);
+            userCrud.save(copied);
         });
 
         groupCrud.listAll().forEach(aclTCR -> {
             if (Objects.isNull(aclTCR.getTable())) {
                 return;
             }
-            aclTCR.getTable().remove(dbTblName);
-            groupCrud.save(aclTCR);
+            AclTCR copied = groupCrud.copyForWrite(aclTCR);
+            copied.getTable().remove(dbTblName);
+            groupCrud.save(copied);
         });
         postAclChangeEvent(null);
     }
@@ -128,14 +130,26 @@ public class AclTCRManager {
         return groupCrud.get(sid);
     }
 
-    public void updateAclTCR(AclTCR aclTCR, String sid, boolean principal) {
-        aclTCR.init(sid);
+    public void updateAclTCR(AclTCR updateTo, String sid, boolean principal) {
+        updateTo.init(sid);
         if (principal) {
-            userCrud.save(aclTCR);
+            doUpdate(updateTo, sid, userCrud);
         } else {
-            groupCrud.save(aclTCR);
+            doUpdate(updateTo, sid, groupCrud);
         }
         postAclChangeEvent(sid);
+    }
+
+    private void doUpdate(AclTCR updateTo, String sid, CachedCrudAssist<AclTCR> crud) {
+        AclTCR copied;
+        AclTCR origin = crud.get(sid);
+        if (Objects.isNull(origin)) {
+            copied = updateTo;
+        } else {
+            copied = crud.copyForWrite(origin);
+            copied.setTable(updateTo.getTable());
+        }
+        crud.save(copied);
     }
 
     public void revokeAclTCR(String sid, boolean principal) {
@@ -175,6 +189,9 @@ public class AclTCRManager {
         }
         return all.stream().map(aclTCR -> aclTCR.getTable().entrySet().stream().map(entry -> {
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(entry.getKey());
+            if (Objects.isNull(tableDesc)) {
+                return Sets.<String> newHashSet();
+            }
             if (Objects.isNull(entry.getValue()) || Objects.isNull(entry.getValue().getColumn())) {
                 return Optional.ofNullable(tableDesc.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
                         .map(columnDesc -> getDbTblCols(tableDesc, columnDesc)).flatMap(Set::stream)
@@ -238,12 +255,19 @@ public class AclTCRManager {
             getRows(dbTblName, columnRow, dbTblColRow);
         }));
 
+        return convertConditions(dbTblColRow);
+    }
+
+    private Map<String, String> convertConditions(Map<String, Map<String, Set<String>>> dbTblColRow) {
         Map<String, String> result = Maps.newHashMap();
+
         dbTblColRow.entrySet().stream().filter(e -> MapUtils.isNotEmpty(e.getValue())).forEach(t -> {
-            Map<String, String> columnType = Optional
-                    .ofNullable(
-                            NTableMetadataManager.getInstance(config, project).getTableDesc(t.getKey()).getColumns())
-                    .map(Arrays::stream).orElseGet(Stream::empty)
+            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(t.getKey());
+            if (Objects.isNull(tableDesc)) {
+                return;
+            }
+            Map<String, String> columnType = Optional.ofNullable(tableDesc.getColumns()).map(Arrays::stream)
+                    .orElseGet(Stream::empty)
                     .map(columnDesc -> new AbstractMap.SimpleEntry<>(columnDesc.getName(), columnDesc.getTypeName()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
             ColumnToConds columnToConds = new ColumnToConds();

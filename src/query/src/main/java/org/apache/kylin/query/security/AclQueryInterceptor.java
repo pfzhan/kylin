@@ -61,6 +61,9 @@ import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 
 public class AclQueryInterceptor {
 
+    private AclQueryInterceptor() {
+    }
+
     public static void intercept(List<OLAPContext> contexts) {
 
         if (!KylinConfig.getInstanceFromEnv().isAclTCREnabled()) {
@@ -70,7 +73,6 @@ public class AclQueryInterceptor {
         if (hasAdminPermission(contexts)) {
             return;
         }
-        
         final String project = getProjectName(contexts);
         // <"DB1.TABLE1":["COLUMN1"], "DB2.TABLE2":["COLUMN2"]>
         final Map<String, Set<String>> dbTblColumns = Maps.newHashMap();

@@ -48,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.clearspring.analytics.util.Lists;
+import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
@@ -115,7 +116,8 @@ public class AclTCRController extends NBasicController {
         aclTCRService.updateAclTCR(project, sid, principal, requests);
     }
 
-    private void checkSid(String sid, boolean principal) throws IOException {
+    @VisibleForTesting
+    void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
             throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
         }

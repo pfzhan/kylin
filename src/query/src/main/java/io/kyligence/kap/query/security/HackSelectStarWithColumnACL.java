@@ -158,7 +158,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         }
     }
 
-    public static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
+    static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
         List<ColumnDesc> columns = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .listExposedColumns(project, tableDesc, OLAPSchemaFactory.exposeMore());
 

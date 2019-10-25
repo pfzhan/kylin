@@ -85,7 +85,6 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
@@ -109,9 +108,6 @@ public class NTableControllerTest {
 
     @Mock
     private TableSamplingService tableSamplingService;
-
-    @Mock
-    private AclTCRService aclTCRService;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
