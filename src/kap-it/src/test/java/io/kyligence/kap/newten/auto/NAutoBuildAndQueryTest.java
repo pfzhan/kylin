@@ -134,7 +134,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_verifyCount"),
 
                 /* CompareLevel = SAME_ORDER */
-                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window"));
+                new TestScenario(CompareLevel.SAME_ORDER, "query/sql_window"),
+
+                /* CompareLevel = NONE */
+                new TestScenario(CompareLevel.NONE, "query/sql_intersect_count"));
     }
 
     @Test

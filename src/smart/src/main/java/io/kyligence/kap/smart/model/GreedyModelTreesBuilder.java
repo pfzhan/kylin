@@ -38,6 +38,7 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -89,6 +90,14 @@ public class GreedyModelTreesBuilder {
                                 && !actualFactTbl.getIdentity().equals(expectedFactTable.getIdentity())) {
                             return; // root fact not match
                         }
+                        ctx.aggregations = ctx.aggregations.stream().map(func -> {
+                            if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
+                                ctx.getGroupByColumns().add(func.getParameters().get(1).getColRef());
+                                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT, func.getParameters().subList(0, 1), "bitmap");
+                            } else {
+                                return func;
+                            }
+                        }).collect(Collectors.toList());
 
                         TreeBuilder builder = builders.computeIfAbsent(actualFactTbl,
                                 tbl -> new TreeBuilder(tbl, tableMap, smartContext));
