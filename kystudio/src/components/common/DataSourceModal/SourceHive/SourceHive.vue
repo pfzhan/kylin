@@ -299,11 +299,16 @@ export default class SourceHive extends Vue {
     if (this.pollingReloadStatusTimer) {
       window.clearTimeout(this.pollingReloadStatusTimer)
     }
-    if (this.reloadHiveTablesStatus.isRunning) {
+    // 立即刷新按钮，防止重复提交，如果是强制刷新的请求，并且正在刷新中，就返回，不做接口请求
+    if (isForce && (this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn)) {
       return false
     }
     this.hasClickRefreshBtn = true
     this.reloadHiveDBAndTables({force: isForce}).then((res) => {
+      // 防止接口过慢导致销毁后回调继续执行
+      if (this._isDestroyed) {
+        return false
+      }
       this.hasClickRefreshBtn = false
       this.reloadHiveTablesStatus.isRunning = res.data.data.isRunning
       this.pollingReloadStatus()
