@@ -1,0 +1,9 @@
+select ACCOUNT_COUNTRY, ACCOUNT_SELLER_LEVEL, sum(cnt)
+from(
+      select ACCOUNT_COUNTRY, ACCOUNT_SELLER_LEVEL, count(*) cnt
+      from TEST_ACCOUNT
+      group by ACCOUNT_COUNTRY, ACCOUNT_SELLER_LEVEL
+)
+group by rollup (ACCOUNT_COUNTRY, ACCOUNT_SELLER_LEVEL)
+
+

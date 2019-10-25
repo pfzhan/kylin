@@ -43,12 +43,17 @@
 
 package org.apache.kylin.query.optrule;
 
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -57,9 +62,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.util.ImmutableBitSet;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Supoort grouping query. Expand the non-simple aggregate to more than one simple aggregates.
@@ -104,8 +107,21 @@ public class AggregateMultipleExpandRule extends RelOptRule {
         RexBuilder rexBuilder = aggr.getCluster().getRexBuilder();
 
         for (ImmutableBitSet groupSet : aggr.getGroupSets()) {
+            List<AggregateCall> newAggCallList = new LinkedList<>();
+            for (AggregateCall aggCall : aggr.getAggCallList()) {
+                // make original aggCall adapt to new group keys
+                // the type nullability may change during this process
+                newAggCallList.add(aggCall.adaptTo(
+                        aggr.getInput(),
+                        aggCall.getArgList(),
+                        aggCall.filterArg,
+                        aggr.getGroupCount(),
+                        groupSet.cardinality()
+                ));
+            }
             // push the simple aggregate with one group set
-            relBuilder.push(aggr.copy(aggr.getTraitSet(), input, false, groupSet, asList(groupSet), aggr.getAggCallList()));
+            LogicalAggregate newAggr = aggr.copy(aggr.getTraitSet(), input, false, groupSet, asList(groupSet), newAggCallList);
+            relBuilder.push(newAggr);
 
             ImmutableList.Builder<RexNode> rexNodes = new ImmutableList.Builder<>();
             int index = 0;
@@ -117,12 +133,19 @@ public class AggregateMultipleExpandRule extends RelOptRule {
             // iterate the group keys, fill with null if the key is rolled up
             while (groupSetIter.hasNext()) {
                 Integer aggrGroupKey = groupSetIter.next();
-                RelDataType type = typeIterator.next().getType();
+                RelDataType targetType = typeIterator.next().getType();
                 if (groupKey == aggrGroupKey) {
-                    rexNodes.add(rexBuilder.makeInputRef(type, index++));
+                    // caseSensitive=true as we are comparing fields on the same rel
+                    RelDataTypeField field = newAggr.getRowType().getField(
+                        newAggr.getInput().getRowType().getFieldList().get(groupKey).getName(),
+                        true,
+                        false);
+                    RexNode node = rexBuilder.makeInputRef(field.getType(), index++);
+                    // ensure the type is the same as the original aggr
+                    rexNodes.add(rexBuilder.ensureType(targetType, node, false));
                     groupKey = groupKeyIter.next();
                 } else {
-                    rexNodes.add(rexBuilder.makeNullLiteral(type));
+                    rexNodes.add(rexBuilder.makeNullLiteral(targetType));
                 }
             }
 
@@ -144,9 +167,11 @@ public class AggregateMultipleExpandRule extends RelOptRule {
             }
 
             // fill aggr calls input ref
-            while (typeIterator.hasNext()) {
-                RelDataType type = typeIterator.next().getType();
-                rexNodes.add(rexBuilder.makeInputRef(type, index++));
+            for (AggregateCall newAggCall : newAggCallList) {
+                RelDataType targetType = typeIterator.next().getType();
+                RexNode node = rexBuilder.makeInputRef(newAggCall.type, index++);
+                // ensure the type is the same as the original aggr
+                rexNodes.add(rexBuilder.ensureType(targetType, node, false));
             }
             relBuilder.project(rexNodes.build());
         }
