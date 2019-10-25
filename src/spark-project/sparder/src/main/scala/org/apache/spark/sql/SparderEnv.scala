@@ -42,6 +42,9 @@ object SparderEnv extends Logging {
   @volatile
   private var spark: SparkSession = _
 
+  @volatile
+  private var initializingThread: Thread = null
+
   def getSparkSession: SparkSession = withClassLoad {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
@@ -104,39 +107,54 @@ object SparderEnv extends Logging {
 
   def initSpark(): Unit = withClassLoad {
     this.synchronized {
-      if (spark == null || spark.sparkContext.isStopped) {
-        try {
-          val sparkSession = System.getProperty("spark.local") match {
-            case "true" =>
-              SparkSession.builder
-                .master("local")
-                .appName("sparder-test-sql-context")
-                .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
-                .enableHiveSupport()
-                .getOrCreateKylinSession()
-            case _ =>
-              SparkSession.builder
-                .appName("sparder-sql-context")
-                .master("yarn-client")
-                //if user defined other master in kylin.properties,
-                // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
-                .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
-                .enableHiveSupport()
-                .getOrCreateKylinSession()
+      if (initializingThread == null && (spark == null || spark.sparkContext.isStopped)) {
+        initializingThread = new Thread(new Runnable {
+          override def run(): Unit = {
+            try {
+              val sparkSession = System.getProperty("spark.local") match {
+                case "true" =>
+                  SparkSession.builder
+                    .master("local")
+                    .appName("sparder-test-sql-context")
+                    .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
+                    .enableHiveSupport()
+                    .getOrCreateKylinSession()
+                case _ =>
+                  SparkSession.builder
+                    .appName("sparder-sql-context")
+                    .master("yarn-client")
+                    //if user defined other master in kylin.properties,
+                    // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
+                    .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
+                    .enableHiveSupport()
+                    .getOrCreateKylinSession()
+              }
+              spark = sparkSession
+              logInfo("Spark context started successfully with stack trace:")
+              logInfo(Thread.currentThread().getStackTrace.mkString("\n"))
+              logInfo(
+                "Class loader: " + Thread
+                  .currentThread()
+                  .getContextClassLoader
+                  .toString)
+              initMonitorEnv()
+            } catch {
+              case throwable: Throwable =>
+                logError("Error for initializing spark ", throwable)
+            } finally {
+              logInfo("Setting initializing Spark thread to null.")
+              initializingThread = null
+            }
           }
-          spark = sparkSession
-          logInfo("Spark context started successfully with stack trace:")
-          logInfo(Thread.currentThread().getStackTrace.mkString("\n"))
-          logInfo(
-            "Class loader: " + Thread
-              .currentThread()
-              .getContextClassLoader
-              .toString)
-          initMonitorEnv
-        } catch {
-          case throwable: Throwable =>
-            logError("Error for init spark ", throwable)
-        }
+        })
+
+        logInfo("Initializing Spark thread starting.")
+        initializingThread.start()
+      }
+
+      if (initializingThread != null) {
+        logInfo("Initializing Spark, waiting for done.")
+        initializingThread.join()
       }
     }
   }
