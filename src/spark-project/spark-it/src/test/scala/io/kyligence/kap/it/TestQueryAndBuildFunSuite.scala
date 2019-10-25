@@ -66,7 +66,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_distinct_dim"),
     //        "sql_distinct_precisel", not exist dir
     FloderInfo("sql_hive"),
-    FloderInfo("sql_join", List("query_11.sql", "query_12.sql", "query_13.sql")),
+    FloderInfo("sql_join", List("query_11.sql", "query_12.sql", "query_13.sql", "query_14.sql", "query_15.sql")),
     FloderInfo("sql_join/sql_right_join"),
     FloderInfo("sql_kap", List("query03.sql")),
     FloderInfo("sql_like"),

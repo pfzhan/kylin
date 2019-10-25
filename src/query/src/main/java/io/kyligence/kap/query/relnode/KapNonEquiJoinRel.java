@@ -72,6 +72,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
+import io.kyligence.kap.query.util.RexUtils;
 
 public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
 
@@ -270,17 +271,10 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
     }
 
     private Set<TblColRef> collectColumnsInJoinCondition(RexNode condition) {
-        Set<TblColRef> joinColumns = new HashSet<>();
-        doCollectColumnsInJoinCondition(condition, joinColumns);
-        return joinColumns.stream().flatMap(col -> col.getSourceColumns().stream()).collect(Collectors.toSet());
-    }
-
-    private void doCollectColumnsInJoinCondition(RexNode rexNode, Set<TblColRef> joinColumns) {
-        if (rexNode instanceof RexCall) {
-            ((RexCall) rexNode).getOperands().forEach(rex -> doCollectColumnsInJoinCondition(rex, joinColumns));
-        } else if (rexNode instanceof RexInputRef) {
-            joinColumns.add(columnRowType.getColumnByIndex(((RexInputRef) rexNode).getIndex()));
-        }
+        return RexUtils.getAllInputRefs(condition).stream()
+                .map(inRef -> columnRowType.getColumnByIndex(inRef.getIndex()))
+                .flatMap(col -> col.getSourceColumns().stream())
+                .collect(Collectors.toSet());
     }
 
     private ColumnRowType buildColumnRowType() {

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -36,8 +37,8 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
@@ -46,6 +47,8 @@ import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.RexUtils;
 
 public class ContextUtil {
     /**
@@ -130,10 +133,13 @@ public class ContextUtil {
             return derivedFromSameContext(inputColsIndex, ((KapAggregateRel) currentNode).getInput(), subContext, hasCountConstant);
 
         } else if (currentNode instanceof KapProjectRel) {
-            Set<Integer> indexOfInputRel = Sets.newHashSet();
-            indexOfInputCols.stream().map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
-                    .filter(inputRef -> inputRef instanceof RexInputRef)
-                    .forEach(inputRef -> indexOfInputRel.add(((RexInputRef) inputRef).getIndex()));
+            Set<Integer> indexOfInputRel = indexOfInputCols.stream().map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
+                    .flatMap(rex -> RexUtils.getAllInputRefs(rex).stream())
+                    .map(RexSlot::getIndex)
+                    .collect(Collectors.toSet());
+            if (!indexOfInputCols.isEmpty() && indexOfInputRel.isEmpty()) {
+                throw new IllegalStateException("Error on collection index, index " + indexOfInputCols + " child index " + indexOfInputRel);
+            }
             return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext, hasCountConstant);
 
         } else if (currentNode instanceof KapJoinRel || currentNode instanceof KapNonEquiJoinRel) {
@@ -234,14 +240,6 @@ public class ContextUtil {
     }
 
     private static Set<Integer> collectColsFromFilterRel(RexCall filterCondition) {
-        Set<Integer> filterColsIndexes = Sets.newHashSet();
-        for (RexNode rel : filterCondition.getOperands()) {
-            if (rel instanceof RexInputRef) {
-                filterColsIndexes.add(((RexInputRef) rel).getIndex());
-            } else if (rel instanceof RexCall) {
-                filterColsIndexes.addAll(collectColsFromFilterRel((RexCall) rel));
-            }
-        }
-        return filterColsIndexes;
+        return RexUtils.getAllInputRefs(filterCondition).stream().map(RexSlot::getIndex).collect(Collectors.toSet());
     }
 }

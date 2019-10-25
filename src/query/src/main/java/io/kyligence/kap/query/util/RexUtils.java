@@ -23,9 +23,13 @@
  */
 package io.kyligence.kap.query.util;
 
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
@@ -46,5 +50,21 @@ public class RexUtils {
         };
         condition.accept(likeVisitor);
         return likeCount.get();
+    }
+
+    public static Set<RexInputRef> getAllInputRefs(RexNode rexNode) {
+        if (rexNode instanceof RexInputRef) {
+            return Collections.singleton((RexInputRef) rexNode);
+        } else if (rexNode instanceof RexCall) {
+            return getAllInputRefsCall((RexCall) rexNode);
+        } else {
+            return Collections.emptySet();
+        }
+    }
+
+    private static Set<RexInputRef> getAllInputRefsCall(RexCall rexCall) {
+        return rexCall.getOperands().stream()
+                .flatMap(rexNode -> getAllInputRefs(rexNode).stream())
+                .collect(Collectors.toSet());
     }
 }
