@@ -264,7 +264,7 @@
             <div class="ksd-mt-10 ksd-fs-14">
               <el-form-item prop="countValue">
                 <span>{{$t('AccQueryStart')}}</span>
-                <el-input v-model.trim="rulesObj.countValue" v-number="rulesObj.countValue" size="small" class="rule-setting-input" :disabled="!rulesObj.countEnable"></el-input> 
+                <el-input-number :min="1" :max="1000" v-model.trim="rulesObj.countValue" v-number="rulesObj.countValue" size="small" class="rule-setting-input count-input" :disabled="!rulesObj.countEnable" :controls="false"></el-input-number> 
                 <span>{{$t('AccQueryEnd')}}</span>
               </el-form-item>
             </div>
@@ -1471,6 +1471,12 @@ export default class FavoriteQuery extends Vue {
     .rule-setting-input {
       display: inline-block;
       width: 60px;
+      &.count-input{
+        width: 80px;
+        &.el-input-number.is-without-controls .el-input__inner{
+          text-align: left;
+        }
+      }
     }
     .favorite-table {
       .impored-row {
