@@ -113,6 +113,14 @@ abstract public class KylinConfigBase implements Serializable {
         return kylinHome;
     }
 
+    public static String getKylinConfHome() {
+        String confHome = System.getenv("KYLIN_CONF");
+        if (StringUtils.isEmpty(confHome)) {
+            confHome = System.getProperty("KYLIN_CONF");
+        }
+        return confHome;
+    }
+
     public static String getSparkHome() {
         String sparkHome = System.getenv("SPARK_HOME");
         if (StringUtils.isNotEmpty(sparkHome)) {

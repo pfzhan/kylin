@@ -60,7 +60,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -73,6 +72,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import lombok.val;
 
 /**
  */
@@ -349,7 +350,7 @@ public class KylinConfig extends KylinConfigBase {
 
     // should be private; package visible for test only
     static File getSitePropertiesFile() {
-        String kylinConfHome = System.getProperty(KYLIN_CONF);
+        String kylinConfHome = getKylinConfHome();
         if (!StringUtils.isEmpty(kylinConfHome)) {
             logger.info("Use KYLIN_CONF=" + kylinConfHome);
             return existFile(kylinConfHome);
@@ -455,7 +456,7 @@ public class KylinConfig extends KylinConfigBase {
         StorageURL url = StorageURL.valueOf(uri);
         String metaDir = url.getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        try(InputStream is = fs.open(new Path(metaDir))) {
+        try (InputStream is = fs.open(new Path(metaDir))) {
             Properties prop = KylinConfig.streamToProps(is);
             return KylinConfig.createKylinConfig(prop);
         } catch (IOException e) {
