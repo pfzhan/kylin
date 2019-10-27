@@ -1085,6 +1085,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Double.parseDouble(getOptional("kylin.engine.retry-memory-gradient", "1.5"));
     }
 
+    public double getSparkEngineRetryOverheadMemoryGradient() {
+        return Double.parseDouble(getOptional("kylin.engine.retry-overheadMemory-gradient", "0.2"));
+    }
+
     public boolean isAutoSetSparkConf() {
         return Boolean.parseBoolean(getOptional("kylin.spark-conf.auto.prior", "true"));
     }

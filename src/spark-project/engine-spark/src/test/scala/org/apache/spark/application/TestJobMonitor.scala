@@ -41,9 +41,11 @@ import org.scalatest.BeforeAndAfterEach
 class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   private val config = Mockito.mock(classOf[KylinConfig])
   private val gradient = 1.5
+  private val overheadGradient = 0.2
   private val proportion = 1.0
   Mockito.when(config.getMaxAllocationResourceProportion).thenReturn(proportion)
   Mockito.when(config.getSparkEngineRetryMemoryGradient).thenReturn(gradient)
+  Mockito.when(config.getSparkEngineRetryOverheadMemoryGradient).thenReturn(overheadGradient)
   Mockito.when(config.getClusterInfoFetcherClassName).thenReturn("org.apache.spark.application.MockFetcher")
 
   override def beforeAll(): Unit = {
@@ -174,7 +176,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       eventLoop.post(ResourceLack(new Exception()))
       // receive ResourceLack and RunJob
       countDownLatch.await()
-      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(env.sparkConf.get(EXECUTOR_OVERHEAD)) + "MB")
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(overhead) + "MB")
       assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
       eventLoop.unregisterListener(listener)
     }
@@ -201,7 +203,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       eventLoop.post(ResourceLack(new Exception()))
       // receive ResourceLack and RunJob
       countDownLatch.await()
-      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(env.sparkConf.get(EXECUTOR_OVERHEAD)) + "MB")
+      assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(overhead) + "MB")
       assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
       eventLoop.unregisterListener(listener)
     }
