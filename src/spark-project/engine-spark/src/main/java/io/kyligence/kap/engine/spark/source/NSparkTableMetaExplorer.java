@@ -46,8 +46,7 @@ public class NSparkTableMetaExplorer implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkTableMetaExplorer.class);
 
     enum PROVIDER {
-        HIVE("hive"),
-        UNSPECIFIED("");
+        HIVE("hive"), UNSPECIFIED("");
 
         private static final PROVIDER[] ALL = new PROVIDER[] { HIVE };
         private String value;
@@ -70,6 +69,8 @@ public class NSparkTableMetaExplorer implements Serializable {
         }
     }
 
+    private static final List<String> UNSUPOORT_TYPE = Lists.newArrayList("array", "map", "struct");
+
     private static final Map<PROVIDER, String> PROVIDER_METADATA_TYPE_STRING = new EnumMap<>(PROVIDER.class);
 
     static {
@@ -78,30 +79,17 @@ public class NSparkTableMetaExplorer implements Serializable {
 
     public NSparkTableMeta getSparkTableMeta(String database, String tableName) {
         SessionCatalog catalog = SparderEnv.getSparkSession().sessionState().catalog();
-        TableIdentifier tableIdentifier = TableIdentifier.apply(tableName, Option.apply(database.isEmpty() ? null : database));
-        CatalogTable tableMetadata = catalog
-                .getTempViewOrPermanentTableMetadata(tableIdentifier);
+        TableIdentifier tableIdentifier = TableIdentifier.apply(tableName,
+                Option.apply(database.isEmpty() ? null : database));
+        CatalogTable tableMetadata = catalog.getTempViewOrPermanentTableMetadata(tableIdentifier);
         checkTableIsValid(tableMetadata, tableIdentifier, database, tableName);
-        return getnSparkTableMeta(tableName, tableMetadata);
+        return getSparkTableMeta(tableName, tableMetadata);
     }
 
-    private NSparkTableMeta getnSparkTableMeta(String tableName, CatalogTable tableMetadata) {
+    private NSparkTableMeta getSparkTableMeta(String tableName, CatalogTable tableMetadata) {
         NSparkTableMetaBuilder builder = new NSparkTableMetaBuilder();
         builder.setTableName(tableName);
-        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists
-                .newArrayListWithCapacity(tableMetadata.schema().size());
-        for (org.apache.spark.sql.types.StructField field : tableMetadata.schema().fields()) {
-            String type = field.dataType().simpleString();
-
-            // fetch provider specified type
-            PROVIDER provider = PROVIDER.fromString(tableMetadata.provider());
-            if (provider != PROVIDER.UNSPECIFIED && field.metadata().contains(PROVIDER_METADATA_TYPE_STRING.get(provider))) {
-                type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
-            }
-            allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(
-                    field.name(), type, field.getComment().isDefined() ? field.getComment().get() : null));
-        }
-        builder.setAllColumns(allColumns);
+        builder.setAllColumns(getAllColumns(tableMetadata));
         builder.setOwner(tableMetadata.owner());
         builder.setCreateTime(tableMetadata.createTime() + "");
         builder.setLastAccessTime(tableMetadata.lastAccessTime() + "");
@@ -129,17 +117,47 @@ public class NSparkTableMetaExplorer implements Serializable {
         return builder.createSparkTableMeta();
     }
 
-    private void checkTableIsValid(CatalogTable tableMetadata, TableIdentifier tableIdentifier, String database, String tableName) {
+    private List<NSparkTableMeta.SparkTableColumnMeta> getAllColumns(CatalogTable tableMetadata) {
+        List<NSparkTableMeta.SparkTableColumnMeta> allColumns = Lists
+                .newArrayListWithCapacity(tableMetadata.schema().size());
+        for (org.apache.spark.sql.types.StructField field : tableMetadata.schema().fields()) {
+            String type = field.dataType().simpleString();
+
+            // fetch provider specified type
+            PROVIDER provider = PROVIDER.fromString(tableMetadata.provider());
+            if (provider != PROVIDER.UNSPECIFIED
+                    && field.metadata().contains(PROVIDER_METADATA_TYPE_STRING.get(provider))) {
+                type = field.metadata().getString(PROVIDER_METADATA_TYPE_STRING.get(provider));
+            }
+            allColumns.add(new NSparkTableMeta.SparkTableColumnMeta(field.name(), type,
+                    field.getComment().isDefined() ? field.getComment().get() : null));
+        }
+
+        return allColumns;
+    }
+
+    private void checkTableIsValid(CatalogTable tableMetadata, TableIdentifier tableIdentifier, String database,
+            String tableName) {
+        for (NSparkTableMeta.SparkTableColumnMeta colMeta : getAllColumns(tableMetadata)) {
+            String type = colMeta.dataType;
+            if (UNSUPOORT_TYPE.stream().filter(t -> type.contains(t)).findAny().isPresent()) {
+                throw new RuntimeException("Error for parser table: " + tableName + ", filed: " + colMeta.name
+                        + " ,unsupoort type: " + type);
+            }
+        }
+
         if (CatalogTableType.VIEW().equals(tableMetadata.tableType())) {
             try {
                 SparderEnv.getSparkSession().table(tableIdentifier).queryExecution().analyzed();
             } catch (Throwable e) {
                 logger.error("Error for parser view: " + tableName, e);
-                throw new RuntimeException("Error for parser view: " + tableName + ", " + e.getMessage() + "(There are maybe syntactic differences between HIVE and SparkSQL)", e);
+                throw new RuntimeException("Error for parser view: " + tableName + ", " + e.getMessage()
+                        + "(There are maybe syntactic differences between HIVE and SparkSQL)", e);
             }
         }
         if (tableMetadata.properties().contains("skip.header.line.count")) {
-            throw new RuntimeException("The current product version does not support such source data tables, which are generally converted from a CSV table with a header. Please change the table to a table without a header.");
+            throw new RuntimeException(
+                    "The current product version does not support such source data tables, which are generally converted from a CSV table with a header. Please change the table to a table without a header.");
         }
     }
 }
