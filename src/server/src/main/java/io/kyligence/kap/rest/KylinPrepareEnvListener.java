@@ -78,6 +78,11 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         } else {
             System.setProperty("calcite.keep-in-clause", "false");
         }
+        if (config.isCalciteConvertMultipleColumnsIntoOrEnabled()) {
+            System.setProperty("calcite.convert-multiple-columns-in-to-or", "true");
+        } else {
+            System.setProperty("calcite.convert-multiple-columns-in-to-or", "false");
+        }
         TimeZoneUtils.setDefaultTimeZone(config);
         KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
         kerberosLoginTask.execute();

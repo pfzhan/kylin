@@ -1675,6 +1675,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite-in-clause-enabled", "true"));
     }
 
+    public Boolean isCalciteConvertMultipleColumnsIntoOrEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite-convert-multiple-columns-in-to-or-enabled", "true"));
+    }
+
     public Boolean isEnumerableRulesEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite.enumerable-rules-enabled", "false"));
     }
