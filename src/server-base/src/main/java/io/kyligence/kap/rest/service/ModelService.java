@@ -127,11 +127,14 @@ import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NRecomendedDataModelResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
@@ -545,14 +548,20 @@ public class ModelService extends BasicService {
     }
 
     private void checkAliasExist(String modelId, String newAlias, String project) {
+        if (!checkModelAliasUniqueness(modelId, newAlias, project)) {
+            throw new BadRequestException("Model alias " + newAlias + " already exists!");
+        }
+    }
+
+    public boolean checkModelAliasUniqueness(String modelId, String newAlias, String project) {
         List<NDataModel> models = getDataflowManager(project).listUnderliningDataModels();
         for (NDataModel model : models) {
-            if (!StringUtils.isNotEmpty(modelId) && model.getUuid().equals(modelId)) {
-                continue;
-            } else if (model.getAlias().equals(newAlias)) {
-                throw new BadRequestException("Model alias " + newAlias + " already exists!");
+            if ((StringUtils.isNotEmpty(modelId) || !model.getUuid().equals(modelId))
+                    && model.getAlias().equals(newAlias)) {
+                return false;
             }
         }
+        return true;
     }
 
     @Transaction(project = 1)
@@ -854,51 +863,109 @@ public class ModelService extends BasicService {
         }
     }
 
-    public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
+    public void batchCreateModel(String project, List<ModelRequest> modelRequests) throws Exception {
+
+        Map<String, String> modelId2PartitionColFormat = Maps.newHashMap();
+        for (ModelRequest modelRequest : modelRequests) {
+            modelRequest.setProject(project);
+            doCheckBeforeModelSave(project, modelRequest);
+
+            val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+            val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
+            modelId2PartitionColFormat.putIfAbsent(modelRequest.getUuid(), partitionColFormat);
         }
-        val prjManager = getProjectManager();
-        val prj = prjManager.getProject(project);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            for (ModelRequest modelRequest : modelRequests) {
+                saveModel(project, modelRequest,
+                        modelId2PartitionColFormat.get(modelId2PartitionColFormat.get(modelRequest.getUuid())));
+            }
+            return null;
+        }, project);
+    }
+
+    public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
+        doCheckBeforeModelSave(project, modelRequest);
+
+        // for probing date-format is a time-costly action, it cannot be call in a transaction
+        val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
+        return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest, partitionColFormat), project);
+    }
+
+    public List<NRecomendedDataModelResponse> suggestModel(String project, List<String> sqls) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            return Lists.newArrayList();
+        }
+
+        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
+                sqls.toArray(new String[0]));
+        smartMaster.analyzeSQLs();
+        smartMaster.optimizeModel();
+        smartMaster.renameModel();
+
+        List<NRecomendedDataModelResponse> dataModelResponseList = Lists.newArrayList();
+        for (NSmartContext.NModelContext modelCtx : smartMaster.getContext().getModelContexts()) {
+            if (modelCtx.withoutTargetModel()) {
+                continue;
+            }
+            NDataModel model = modelCtx.getTargetModel();
+            model.setManagementType(ManagementType.MODEL_BASED);
+            NRecomendedDataModelResponse response = new NRecomendedDataModelResponse(model);
+            List<String> acceleratedSqls = Lists.newArrayList();
+            modelCtx.getModelTree().getOlapContexts().forEach(context -> acceleratedSqls.add(context.sql));
+            response.setDimensions(
+                    model.getAllNamedColumns().stream().filter(dim -> dim.isDimension()).collect(Collectors.toList()));
+            response.setSqls(acceleratedSqls);
+            dataModelResponseList.add(response);
+        }
+        return dataModelResponseList;
+    }
+
+    private void doCheckBeforeModelSave(String project, ModelRequest modelRequest) throws Exception {
+
+        aclEvaluate.checkProjectWritePermission(project);
         checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
         checkModelRequest(modelRequest);
+
         //remove some attributes in modelResponse to fit NDataModel
+        val prjManager = getProjectManager();
+        val prj = prjManager.getProject(project);
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
                 || dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException("Can not create model manually in SQL acceleration project!");
         }
+
         preProcessBeforeModelSave(dataModel, project);
-        val format = probeDateFormatIfNotExist(project, dataModel);
-
         checkFlatTableSql(dataModel);
+    }
 
-        return UnitOfWork.doInTransactionWithRetry(() -> {
-            val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
-            val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-            val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-            val indexPlan = new IndexPlan();
-            indexPlan.setUuid(model.getUuid());
-            indexPlanManager.createIndexPlan(indexPlan);
-            val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
-            SegmentRange range = null;
-            if (model.getPartitionDesc() == null
-                    || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
-                range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-            } else if (StringUtils.isNotEmpty(modelRequest.getStart())
-                    && StringUtils.isNotEmpty(modelRequest.getEnd())) {
-                range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(),
-                        modelRequest.getEnd());
-            }
+    private NDataModel saveModel(String project, ModelRequest modelRequest, String partitionColFormat)
+            throws Exception {
+        val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val indexPlan = new IndexPlan();
+        indexPlan.setUuid(model.getUuid());
+        indexPlanManager.createIndexPlan(indexPlan);
+        val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
 
-            if (range != null) {
-                dataflowManager.fillDfManually(df, Lists.newArrayList(range));
-            }
-            saveDateFormatIfNotExist(project, model.getUuid(), format);
-            return getDataModelManager(project).getDataModelDesc(model.getUuid());
-        }, project);
+        SegmentRange range = null;
+        if (model.getPartitionDesc() == null
+                || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+            range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+        } else if (StringUtils.isNotEmpty(modelRequest.getStart()) && StringUtils.isNotEmpty(modelRequest.getEnd())) {
+            range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
+        }
+        if (range != null) {
+            dataflowManager.fillDfManually(df, Lists.newArrayList(range));
+        }
+
+        saveDateFormatIfNotExist(project, model.getUuid(), partitionColFormat);
+
+        return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
     private NDataModel getBrokenModel(String project, String modelId) {
@@ -909,9 +976,17 @@ public class ModelService extends BasicService {
     }
 
     private void checkModelRequest(ModelRequest request) {
+        checkModelOwner(request);
         checkModelDimensions(request);
         checkModelMeasures(request);
         checkModelJoinConditions(request);
+    }
+
+    private void checkModelOwner(ModelRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            request.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
+        }
     }
 
     private void checkModelDimensions(ModelRequest request) {

@@ -207,6 +207,10 @@ public class Message {
         return "Invalid measure name '%s', only letters, numbers and underlines are supported.";
     }
 
+    public String getMODEL_ID_NOT_FOUND() {
+        return "Model id required";
+    }
+
     public String getDUPLICATE_DIMENSION_NAME() {
         return "Duplicate dimension name '%s'.";
     }

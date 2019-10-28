@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
@@ -59,7 +60,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     @Override
     void propose() {
         initAccelerationInfo(sqls);
-        List<NDataModel> models = getOriginModels();
+        List<NDataModel> models = kylinConfig.isSemiAutoMode() ? Lists.newArrayList() : getOriginModels();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
                 models, DEFAULT_THREAD_NUM)) {
             extractor.execute();

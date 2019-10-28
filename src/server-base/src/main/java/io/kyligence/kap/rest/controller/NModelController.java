@@ -35,6 +35,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
@@ -165,7 +166,49 @@ public class NModelController extends NBasicController {
         } catch (LookupTableException e) {
             throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
         }
+    }
 
+    @RequestMapping(value = "/{project}/batch_save_models", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse batchSaveModels(@PathVariable("project") String project,
+            @RequestBody List<ModelRequest> modelRequests) throws Exception {
+        checkProjectName(project);
+        try {
+            modelService.batchCreateModel(project, modelRequests);
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        } catch (LookupTableException e) {
+            throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
+        }
+    }
+
+    @RequestMapping(value = "/suggest_model", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse suggestModel(@RequestBody FavoriteRequest request) throws Exception {
+        checkProjectName(request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                modelService.suggestModel(request.getProject(), request.getSqls()), "");
+    }
+
+    /**
+     * if exist same name model, then return true.
+     *
+     * @param modelRequest
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value = "/validate_model", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse validateModelAlias(@RequestBody ModelRequest modelRequest) throws Exception {
+        checkProjectName(modelRequest.getProject());
+        if (StringUtils.isEmpty(modelRequest.getUuid()))
+            throw new BadRequestException(msg.getMODEL_ID_NOT_FOUND());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, !modelService
+                .checkModelAliasUniqueness(modelRequest.getUuid(), modelRequest.getAlias(), modelRequest.getProject()),
+                "");
     }
 
     @RequestMapping(value = "/data_range/latest_data", method = { RequestMethod.GET }, produces = {

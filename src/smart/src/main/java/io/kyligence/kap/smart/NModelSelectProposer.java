@@ -98,7 +98,7 @@ public class NModelSelectProposer extends NAbstractProposer {
 
         // In expert mode and semi-auto mode, if selected model is null, record pending message
         final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        if (projectInstance.isExpertMode() || projectInstance.isSemiAutoMode()) {
+        if (projectInstance.isExpertMode()) {
             smartContext.getModelContexts().forEach(modelCtx -> {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {

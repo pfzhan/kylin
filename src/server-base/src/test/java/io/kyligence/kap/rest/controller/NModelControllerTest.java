@@ -52,6 +52,7 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.junit.After;
@@ -862,6 +863,34 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                                 null, NModelController.illegalModeMsg))));
         Mockito.verify(nModelController).batchApplyRecommendations(Mockito.eq("default"), Mockito.anyList());
 
+    }
+
+    @Test
+    public void testBatchSaveModels() throws Exception {
+        ModelRequest request = new ModelRequest();
+        Mockito.doNothing().when(modelService).batchCreateModel("default", Mockito.spy(Lists.newArrayList(request)));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/default/batch_save_models")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(Lists.newArrayList(request)))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).batchSaveModels(Mockito.eq("default"), Mockito.anyList());
+    }
+
+    @Test
+    public void testSuggestModel() throws Exception {
+        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
+        FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+        Mockito.doReturn(null).when(modelService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls));
+        Mockito.doReturn(false).when(projectService).isSemiAutoProject(favoriteRequest.getProject());
+        Mockito.doReturn(true).when(projectService).isExistProject(favoriteRequest.getProject());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).suggestModel(Mockito.any());
     }
 
     private List<NSpanningTreeForWeb> mockRelations() {

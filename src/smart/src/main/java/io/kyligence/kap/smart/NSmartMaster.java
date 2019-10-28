@@ -134,7 +134,7 @@ public class NSmartMaster {
         proposerProvider.getModelShrinkProposer().propose();
     }
 
-    void renameModel() {
+    public void renameModel() {
         long start = System.currentTimeMillis();
         log.info("Start renaming alias of all proposed model.");
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
