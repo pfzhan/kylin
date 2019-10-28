@@ -7,7 +7,14 @@
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
-      <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-visible="datasourceActions.includes('modelActions')" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <div class="ky-no-br-space">
+        <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
+          <span>{{$t('kylinLang.common.model')}}</span>
+        </el-button>
+        <el-button type="primary" v-if="$store.state.project.isSemiAutomatic" size="medium" plain class="ksd-mtb-10 ksd-ml-10" @click="showGenerateModelDialog">
+          <span>{{$t('kylinLang.model.generateModel')}}</span>
+        </el-button>
+      </div>
       <el-table class="model_list_table"
         :data="modelArray"
         border
@@ -196,6 +203,8 @@
     <ModelAddModal/>
     <!-- 模型优化建议 -->
     <ModelRecommendModal/>
+    <!-- 推荐模型 -->
+    <UploadSqlModel v-on:reloadModelList="loadModelsList"/>
   </div>
 </template>
 <script>
@@ -222,6 +231,7 @@ import ModelSql from './ModelSql/ModelSql.vue'
 import ModelRecommendModal from './ModelRecommendModal/index.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
+import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -279,6 +289,9 @@ import '../../../../util/fly.js'
     }),
     ...mapActions('ModelRecommendModal', {
       callModelRecommendDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('UploadSqlModel', {
+      showUploadSqlDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -293,7 +306,8 @@ import '../../../../util/fly.js'
     ModelPartitionModal,
     ModelJson,
     ModelSql,
-    ModelRecommendModal
+    ModelRecommendModal,
+    UploadSqlModel
   },
   locales
 })
@@ -313,6 +327,11 @@ export default class ModelList extends Vue {
   searchLoading = false
   modelArray = []
   expandedRows = []
+  showGenerateModelDialog () {
+    this.showUploadSqlDialog({
+      isGenerateModel: true
+    })
+  }
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
   }

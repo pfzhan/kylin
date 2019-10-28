@@ -178,6 +178,7 @@ exports.default = {
     dot: '.'
   },
   model: {
+    generateModel: 'Generate Model',
     draft: 'Draft',
     modelName: 'Model Name',
     computedColumn: 'Computed Column',

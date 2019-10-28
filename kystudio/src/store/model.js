@@ -262,6 +262,15 @@ export default {
     },
     [types.GET_TABLE_INDEX_CONTENTLIST] ({ commit }, paras) {
       return api.model.getTableIndexContentList(paras)
+    },
+    [types.SUGGEST_MODEL] ({ commit }, paras) {
+      return api.model.suggestModel(paras)
+    },
+    [types.SAVE_SUGGEST_MODELS] ({ commit }, paras) {
+      return api.model.saveSuggestModels(paras)
+    },
+    [types.VALIDATE_MODEL_NAME] ({ commit }, paras) {
+      return api.model.validateModelName(paras)
     }
   },
   getters: {

@@ -196,5 +196,14 @@ export default {
   },
   getTableIndexContentList: (para) => {
     return Vue.resource(apiUrl + 'models/recommendations/table_index').get(para)
+  },
+  suggestModel: (para) => {
+    return Vue.resource(apiUrl + 'models/suggest_model').save(para)
+  },
+  saveSuggestModels: (para) => {
+    return Vue.resource(apiUrl + `models/${para.project}/batch_save_models`).save(para.models)
+  },
+  validateModelName: (para) => {
+    return Vue.resource(apiUrl + 'models/validate_model').save(para)
   }
 }
