@@ -1,6 +1,6 @@
 export default {
   'en': {
-    recommendModalTitle: 'View Recommendations（{selected}/{total})',
+    recommendModalTitle: 'Review Recommendations（{selected}/{total})',
     tabDimension: 'Dimension（{selected}/{total})',
     tabMeasure: 'Measure（{selected}/{total})',
     tabCC: 'Computed Column（{selected}/{total})',
