@@ -7,9 +7,9 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_pkg_name="spark-newten-2.4.1-r16"
+spark_pkg_name="spark-newten-2.4.1-r17"
 spark_pkg_file_name="${spark_pkg_name}.tgz"
-spark_pkg_md5="721d997de5992c8a741d58eb71163c8f"
+spark_pkg_md5="a7e61b989691ebf34e1d937792fe1a79"
 
 if [ ! -f "build/${spark_pkg_file_name}" ]
 then

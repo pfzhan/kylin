@@ -109,6 +109,17 @@ public class SQLResponse implements Serializable {
         }
     }
 
+    private String appMasterURL = "";
+
+    @JsonProperty("appMasterURL")
+    public String getAppMasterURL() {
+        if (storageCacheUsed) {
+            return "";
+        } else {
+            return appMasterURL;
+        }
+    }
+
     protected long resultRowCount;
 
     protected int shufflePartitions;

@@ -126,6 +126,8 @@ import org.apache.kylin.rest.util.TableauInterceptor;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Sampler;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.utils.YarnInfoFetcherUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -548,6 +550,8 @@ public class QueryService extends BasicService {
             sqlResponse.setScanBytes(queryContext.getScanBytes());
             sqlResponse.setShufflePartitions(queryContext.getShufflePartitions());
             sqlResponse.setTimeout(queryContext.isTimeout());
+
+            setAppMaterURL(sqlResponse);
 
             if (queryCacheEnabled && e.getCause() != null
                     && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
@@ -1102,6 +1106,8 @@ public class QueryService extends BasicService {
         response.setShufflePartitions(queryContext.getShufflePartitions());
         response.setNativeRealizations(realizations);
 
+        setAppMaterURL(response);
+
         if (isPushDown) {
             response.setNativeRealizations(Lists.newArrayList());
             response.setEngineType(queryContext.getPushdownEngine());
@@ -1118,6 +1124,24 @@ public class QueryService extends BasicService {
         response.setSignature(QueryCacheSignatureUtil.createCacheSignature(response, project));
 
         return response;
+    }
+
+    private void setAppMaterURL(SQLResponse response) {
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            try {
+                String executionID = QueryContext.current().getExecutionID();
+                if (!executionID.isEmpty()) {
+                    // mater URL like this:
+                    // http://host:8088/proxy/application_1571903613081_0047/SQL/execution/?id=0
+                    String id = SparderEnv.getSparkSession().sparkContext().applicationId();
+                    String trackingUrl = YarnInfoFetcherUtils.getTrackingUrl(id);
+                    String materURL = trackingUrl + "SQL/execution/?id=" + executionID;
+                    response.setAppMasterURL(materURL);
+                }
+            } catch (Throwable th) {
+                logger.error("Get app master for sql failed", th);
+            }
+        }
     }
 
     /**

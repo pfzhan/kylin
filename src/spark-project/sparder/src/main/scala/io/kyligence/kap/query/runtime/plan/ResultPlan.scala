@@ -21,6 +21,7 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import com.google.common.cache.{Cache, CacheBuilder}
 import com.google.common.collect.Lists
 import io.kyligence.kap.query.runtime.plan.ResultType.ResultType
 import org.apache.calcite.linq4j.{Enumerable, Linq4j}
@@ -84,6 +85,8 @@ object ResultPlan extends Logging {
 
     // set priority
     sparkContext.setLocalProperty("spark.scheduler.pool", pool)
+    val queryId = QueryContext.current().getQueryId
+    sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
     sparkContext.setJobGroup(jobGroup,
@@ -117,15 +120,16 @@ object ResultPlan extends Logging {
           e)
         throw new KylinTimeoutException(
           s"Query timeout after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s");
+    } finally {
+      QueryContext.current().setExecutionID(QueryToExecutionIDCache.getQueryExecutionID(queryId))
     }
   }
 
   /**
     * use to check acl  or other
     *
-    * @param df      finally df
-    * @param rowType result rowType
-    * @param body    resultFunc
+    * @param df   finally df
+    * @param body resultFunc
     * @tparam U
     * @return
     */
@@ -158,5 +162,30 @@ object ResultPlan extends Logging {
       }
     SparderEnv.cleanQueryInfo()
     result
+  }
+}
+
+object QueryToExecutionIDCache extends Logging {
+  val KYLIN_QUERY_ID_KEY = "kylin.query.id"
+
+  private val queryID2ExecutionID: Cache[String, String] =
+    CacheBuilder.newBuilder().maximumSize(1000).build()
+
+  def getQueryExecutionID(queryID: String): String = {
+    val executionID = queryID2ExecutionID.getIfPresent(queryID)
+    if (executionID == null) {
+      logWarning(s"Can not get execution ID by query ID $queryID")
+      ""
+    } else {
+      executionID
+    }
+  }
+
+  def setQueryExecutionID(queryID: String, executionID: String): Unit = {
+    if (queryID != null && !queryID.isEmpty) {
+      queryID2ExecutionID.put(queryID, executionID)
+    } else {
+      logWarning(s"Can not get query ID.")
+    }
   }
 }

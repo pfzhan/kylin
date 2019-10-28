@@ -113,6 +113,11 @@ public class QueryContext {
 
     @Getter
     @Setter
+    // Spark execution ID
+    private String executionID = "";
+
+    @Getter
+    @Setter
     private List<Long> scanRows;
 
     @Getter

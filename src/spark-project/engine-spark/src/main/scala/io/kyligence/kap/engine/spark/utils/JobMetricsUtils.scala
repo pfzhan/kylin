@@ -98,8 +98,9 @@ object JobMetricsUtils extends Logging {
 
       override def onOtherEvent(event: SparkListenerEvent): Unit = event match {
         case e: PostQueryExecutionForKylin =>
-          if (e.nExecutionId != "" && e.queryExecution != null) {
-            QueryExecutionCache.setQueryExecution(e.nExecutionId, e.queryExecution)
+          val nExecutionId = e.localProperties.getProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, "")
+          if (nExecutionId != "" && e.queryExecution != null) {
+            QueryExecutionCache.setQueryExecution(nExecutionId, e.queryExecution)
           } else {
             logWarning("executionIdStr is null, can't get QueryExecution from SQLExecution.")
           }
