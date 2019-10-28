@@ -54,10 +54,12 @@ SKIP : {
 < DEFAULT >
 TOKEN :
 {
- < REMAIN_TOKEN : [" ", "\t","\n", "\r", ",", "/"] >
+ < REMAIN_TOKEN : [" ", "\t","\n", "\r", ",", "/", "-" ] >
 | < QUOTE: "'" >
 | < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
-| < ANY : (~[" ", ",", "\t", "\n", "\r", "/" ])+ >
+| < DOUBLE_QUOTE: "\"" >
+| < DOUBLE_QUOTE_STRING: <DOUBLE_QUOTE> ( (~["\""]) | ("\"\""))* <DOUBLE_QUOTE> >
+| < ANY : (~[" ", ",", "\t", "\n", "\r", "/", "-" ])+ >
 }
 
 <WITHINCOMMENT>
@@ -101,6 +103,7 @@ String Expression() :
 {
     (
      innerString = QuotedString()
+    | innerString = DoubleQuoteString()
     | innerString = RemainToken()
     | innerString = Any()
     )
@@ -127,6 +130,18 @@ String QuotedString() :
     <QUOTED_STRING>
     {
         logger.trace("meet token in <QUOTED_STRING>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}
+
+String DoubleQuoteString() :
+{
+    String s;
+}
+{
+    <DOUBLE_QUOTE_STRING>
+    {
+        logger.trace("meet token in <QUOTED2_STRING>: " + getToken(0).image);
         return getToken(0).image;
     }
 }

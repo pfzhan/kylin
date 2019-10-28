@@ -172,5 +172,32 @@ public class QueryUtilTest {
                 "select sum(ITEM_COUNT) ",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) -- , --\t --/ --"));
+
+        Assert.assertEquals("select 1 ", QueryUtil.removeCommentInSql("select 1 --注释"));
+        Assert.assertEquals("select 1 ", QueryUtil.removeCommentInSql("select 1 /* 注释 */"));
+        Assert.assertEquals("select 1\t", QueryUtil.removeCommentInSql("select 1\t--注释"));
+        Assert.assertEquals("select 1\t", QueryUtil.removeCommentInSql("select 1\t/* 注释 */"));
+        Assert.assertEquals("select 1\n", QueryUtil.removeCommentInSql("select 1\n--注释"));
+        Assert.assertEquals("select 1\t", QueryUtil.removeCommentInSql("select 1\t/* 注释 */"));
+        Assert.assertEquals("select 1,\n2", QueryUtil.removeCommentInSql("select 1,--注释\n2"));
+        Assert.assertEquals("select 1,\n2", QueryUtil.removeCommentInSql("select 1,/* 注释 */\n2"));
+        Assert.assertEquals("select 4/\n2", QueryUtil.removeCommentInSql("select 4/-- 注释\n2"));
+        Assert.assertEquals("select 4/\n2", QueryUtil.removeCommentInSql("select 4//* 注释 */\n2"));
+
+        Assert.assertEquals("select 1 'constant_1'", QueryUtil.removeCommentInSql("select 1 'constant_1'--注释''"));
+        Assert.assertEquals("select 1 'constant_1'", QueryUtil.removeCommentInSql("select 1 'constant_1'/* 注释 */"));
+
+        Assert.assertEquals("select 1;", QueryUtil.removeCommentInSql("select 1;--注释"));
+        Assert.assertEquals("select 1", QueryUtil.removeCommentInSql("select 1--注释"));
+
+        Assert.assertEquals("select 'abc-1'", QueryUtil.removeCommentInSql("select 'abc-1'"));
+        Assert.assertEquals("select ' \t\n,\r/-'", QueryUtil.removeCommentInSql("select ' \t\n,\r/-'"));
+        Assert.assertEquals("select 'abc-1'", QueryUtil.removeCommentInSql("select 'abc-1'--注释"));
+        Assert.assertEquals("select ' \t\n,\r/-'", QueryUtil.removeCommentInSql("select ' \t\n,\r/-'--注释"));
+        Assert.assertEquals("select 'abc-1'", QueryUtil.removeCommentInSql("select 'abc-1'/*注释*/"));
+        Assert.assertEquals("select ' \t\n,\r/-'", QueryUtil.removeCommentInSql("select ' \t\n,\r/-'/*注释*/"));
+
+        Assert.assertEquals("select 1 \"--注释\"", QueryUtil.removeCommentInSql("select 1 \"--注释\""));
+        Assert.assertEquals("select 1 \"apache's kylin\"", QueryUtil.removeCommentInSql("select 1 \"apache's kylin\""));
     }
 }

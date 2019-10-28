@@ -297,7 +297,7 @@ public class EscapeTransformerTest {
         String originalSQL = "select --test comment will remove\n \"--won't remove in quote, /*test*/\", /* will remove multi line comment*/ { fn count(*) } from tbl";
         String transformedSQL = new CommentParser(originalSQL).Input();
 
-        String expectedSQL = "select \n \"--won't remove in quote, \",  { fn count(*) } from tbl";
+        String expectedSQL = "select \n \"--won't remove in quote, /*test*/\",  { fn count(*) } from tbl";
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
