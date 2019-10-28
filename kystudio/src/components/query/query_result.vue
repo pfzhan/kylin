@@ -6,6 +6,7 @@
         <p class="resultText">
           <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text">{{extraoption.queryId}}</span>
+          <a v-if="extraoption.appMasterURL" target="_blank" :href="extraoption.appMasterURL"><i class="el-icon-ksd-go"></i></a>
         </p>
         <!-- <p class="resultText">
           <span class="label">{{$t('kylinLang.query.status')}}</span>
@@ -228,6 +229,9 @@ export default class queryResult extends Vue {
         }
         .text{
           color:@color-text-primary;
+        }
+        a {
+          color: @base-color;
         }
       }
     }

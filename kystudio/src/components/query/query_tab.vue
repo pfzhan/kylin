@@ -35,8 +35,11 @@
     <div id="queryPanelBox" v-if="extraoptionObj&&errinfo">
       <div class="resultTipsLine">
         <div class="resultTips">
-          <p class="resultText" v-if="extraoptionObj.queryId"><span class="label">{{$t('kylinLang.query.query_id')}}: </span>
-          <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span></p>
+          <p class="resultText" v-if="extraoptionObj.queryId">
+            <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
+            <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span>
+            <a v-if="extraoption.appMasterURL" target="_blank" :href="extraoption.appMasterURL"><i class="el-icon-ksd-go"></i></a>
+          </p>
           <!-- <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
           <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p> -->
         </div>
