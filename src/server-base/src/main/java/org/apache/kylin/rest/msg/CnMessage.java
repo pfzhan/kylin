@@ -207,6 +207,10 @@ public class CnMessage extends Message {
         return "非法度量名称 '%s', 仅支持字母, 数字和下划线";
     }
 
+    public String getMODEL_ID_NOT_FOUND() {
+        return "模型 ID 不能为空";
+    }
+
     public String getDUPLICATE_MODEL_NAME() {
         return "模型名称 '%s' 已存在, 不能被创建";
     }

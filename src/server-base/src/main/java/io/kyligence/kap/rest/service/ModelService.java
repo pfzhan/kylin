@@ -894,6 +894,7 @@ public class ModelService extends BasicService {
     }
 
     public List<NRecomendedDataModelResponse> suggestModel(String project, List<String> sqls) {
+        aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return Lists.newArrayList();
         }
