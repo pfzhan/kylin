@@ -98,6 +98,9 @@
       </el-col>
     </el-row>
     <div v-if="uploadFlag==='step3'">
+      <div class="ky-list-title ksd-mb-10">
+        {{$t('kylinLang.model.modelList')}} ({{selectModels.length}}/{{suggestModels.length}})
+      </div>
       <el-table
         :data="suggestModels"
         class="model-table"
@@ -107,7 +110,7 @@
         @select="handleSelectionModel"
         @selection-change="handleSelectionModelChange"
         @select-all="handleSelectionAllModel"
-        max-height="378">
+        max-height="430">
         <el-table-column type="selection" width="44"></el-table-column>
         <el-table-column type="expand" width="44">
           <template slot-scope="scope">
@@ -118,15 +121,15 @@
         </el-table-column>
         <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
           <template slot-scope="scope">
-            <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isRename}" size="small" @change="handleRename(scope.row)"></el-input>
-            <div class="rename-error" v-if="scope.row.isRename">{{$t('renameError')}}</div>
+            <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isNameError}" size="small" @change="handleRename(scope.row)"></el-input>
+            <div class="rename-error" v-if="scope.row.isNameError">{{modelNameError}}</div>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.fact')" prop="fact_table" show-overflow-tooltip width="120"></el-table-column>
-        <el-table-column :label="$t('kylinLang.common.dimension')" prop="dimensions" show-overflow-tooltip width="120" align="right">
+        <el-table-column :label="$t('kylinLang.common.fact')" prop="fact_table" show-overflow-tooltip width="140"></el-table-column>
+        <el-table-column :label="$t('kylinLang.common.dimension')" prop="dimensions" show-overflow-tooltip width="95" align="right">
           <template slot-scope="scope">{{scope.row.dimensions.length}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.measure')" prop="all_measures" width="100" align="right">
+        <el-table-column :label="$t('kylinLang.common.measure')" prop="all_measures" width="90" align="right">
           <template slot-scope="scope">{{scope.row.all_measures.length}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="computed_columns" width="150" align="right">
@@ -152,7 +155,7 @@
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
         <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!selectModels.length || isRenameModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!selectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </span>
   </el-dialog>
@@ -168,6 +171,7 @@ import locales from './locales'
 import store, { types } from './store'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, kapConfirm } from '../../../util/business'
+import { NamedRegex } from 'config'
 
 vuex.registerModule(['modals', 'UploadSqlModel'], store)
 @Component({
@@ -230,9 +234,10 @@ export default class UploadSqlModel extends Vue {
   sqlFormatterObj = {}
   generateLoading = false
   submitModelLoading = false
-  isRenameModelExisted = false
+  isNameErrorModelExisted = false
   suggestModels = []
   selectModels = []
+  modelNameError = ''
   handleClose () {
     this.hideModal()
     this.resetModalForm()
@@ -251,7 +256,8 @@ export default class UploadSqlModel extends Vue {
     this.suggestModels = []
     this.selectModels = []
     this.submitModelLoading = false
-    this.isRenameModelExisted = false
+    this.isNameErrorModelExisted = false
+    this.modelNameError = ''
     this.messageInstance && this.messageInstance.close()
   }
   get uploadTitle () {
@@ -300,23 +306,32 @@ export default class UploadSqlModel extends Vue {
   }
   handleRename (model) {
     let suggestListRename = false
-    model.isRename = false
+    model.isNameError = false
+    this.modelNameError = ''
     if (model.isChecked) {
-      for (let m = 0; m < this.suggestModels.length; m++) {
-        if (this.suggestModels[m].uuid !== model.uuid && this.suggestModels[m].alias === model.alias.trim()) {
-          model.isRename = true
-          suggestListRename = true
-          this.checkRenameModelExisted()
-          break
+      if (!NamedRegex.test(model.alias.trim())) {
+        model.isNameError = true
+        suggestListRename = true
+        this.modelNameError = this.$t('kylinLang.common.nameFormatValidTip')
+        this.checkRenameModelExisted()
+      }
+      if (!suggestListRename) {
+        for (let m = 0; m < this.suggestModels.length; m++) {
+          if (this.suggestModels[m].uuid !== model.uuid && this.suggestModels[m].alias === model.alias.trim()) {
+            model.isNameError = true
+            suggestListRename = true
+            this.modelNameError = this.$t('modelNameError')
+            this.checkRenameModelExisted()
+            break
+          }
         }
       }
       if (!suggestListRename) {
         this.validateModelName({alias: model.alias.trim(), uuid: model.uuid, project: this.currentSelectedProject}).then((res) => {
           handleSuccess(res, (data) => {
             if (data) {
-              model.isRename = true
-            } else {
-              model.isRename = false
+              model.isNameError = true
+              this.modelNameError = this.$t('modelNameError')
             }
             this.checkRenameModelExisted()
           })
@@ -447,10 +462,10 @@ export default class UploadSqlModel extends Vue {
     }
   }
   checkRenameModelExisted () {
-    this.isRenameModelExisted = false
+    this.isNameErrorModelExisted = false
     for (let i = 0; i < this.suggestModels.length; i++) {
-      if (this.suggestModels[i].isChecked && this.suggestModels[i].isRename) {
-        this.isRenameModelExisted = true
+      if (this.suggestModels[i].isChecked && this.suggestModels[i].isNameError) {
+        this.isNameErrorModelExisted = true
         break
       }
     }
@@ -520,7 +535,7 @@ export default class UploadSqlModel extends Vue {
         handleSuccess(res, (data) => {
           this.suggestModels = data.map((d) => {
             d.isChecked = true
-            d.isRename = false
+            d.isNameError = false
             return d
           })
           this.generateLoading = false

@@ -178,7 +178,7 @@ exports.default = {
     dot: '.'
   },
   model: {
-    generateModel: 'Generate Model',
+    generateModel: 'Custom SQL',
     draft: 'Draft',
     modelName: 'Model Name',
     computedColumn: 'Computed Column',

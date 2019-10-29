@@ -919,6 +919,7 @@ export default class FavoriteQuery extends Vue {
         .rename-error {
           color: @error-color-1;
           font-size: 12px;
+          line-height: 1.2;
         }
         .name-error {
           .el-input__inner {

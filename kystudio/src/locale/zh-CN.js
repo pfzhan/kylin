@@ -177,7 +177,7 @@ exports.default = {
     dot: '。'
   },
   model: {
-    generateModel: '推荐模型',
+    generateModel: 'SQL 建模',
     modelName: '模型名称',
     modelList: '模型列表',
     indexGroup: '索引组',
