@@ -103,7 +103,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
         NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan(),
                 new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()), true);
-        CreateFlatTable flatTable = new CreateFlatTable(flatTableDesc, null, null, ss);
+        CreateFlatTable flatTable = new CreateFlatTable(flatTableDesc, null, null, ss, null);
         Dataset<Row> ds = flatTable.generateDataset(false, true);
         ds.show(10);
 

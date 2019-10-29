@@ -229,7 +229,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         NDataModel model = df.getModel();
 
         NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange, true);
-        CreateFlatTable flatTable = new CreateFlatTable(flatTableDesc, null, null, ss);
+        CreateFlatTable flatTable = new CreateFlatTable(flatTableDesc, null, null, ss, null);
         Dataset<Row> ds = flatTable.generateDataset(false, true);
 
         StructType schema = ds.schema();

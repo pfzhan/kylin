@@ -158,7 +158,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
 
     val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange, true)
     val encodeColSet = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, nSpanningTree)
-    val flatTable = new CreateFlatTable(flatTableDesc, seg, nSpanningTree, spark)
+    val flatTable = new CreateFlatTable(flatTableDesc, seg, nSpanningTree, spark, null)
     val afterJoin = flatTable.generateDataset(true)
     dictColSet.asScala.foreach(
       col => {

@@ -42,6 +42,7 @@ public class NBuildSourceInfo {
     protected static final Logger logger = LoggerFactory.getLogger(NBuildSourceInfo.class);
 
     private Dataset<Row> flattableDS;
+    private String viewFactTablePath;
     private SparkSession ss;
     private long byteSize;
     private long count;
@@ -79,6 +80,14 @@ public class NBuildSourceInfo {
 
     public void setSparkSession(SparkSession ss) {
         this.ss = ss;
+    }
+
+    public String getViewFactTablePath() {
+        return viewFactTablePath;
+    }
+
+    public void setViewFactTablePath(String viewFactTablePath) {
+        this.viewFactTablePath = viewFactTablePath;
     }
 
     public void setCount(long count) {

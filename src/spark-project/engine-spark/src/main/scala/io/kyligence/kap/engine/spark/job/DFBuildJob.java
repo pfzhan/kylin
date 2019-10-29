@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +70,9 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
@@ -92,6 +92,7 @@ public class DFBuildJob extends SparkApplication {
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
         dfMgr = NDataflowManager.getInstance(config, project);
         List<String> persistedFlatTable = new ArrayList<>();
+        List<String> persistedViewFactTable = new ArrayList<>();
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         try {
             IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
@@ -116,6 +117,9 @@ public class DFBuildJob extends SparkApplication {
                     if (!path.isEmpty()) {
                         persistedFlatTable.add(path);
                     }
+                    if (!org.apache.commons.lang3.StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
+                        persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
+                    }
                     build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
                 }
 
@@ -128,8 +132,12 @@ public class DFBuildJob extends SparkApplication {
             Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(shareDir);
             updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
         } finally {
+            val fs = HadoopUtil.getWorkingFileSystem();
+            for (String viewPath : persistedViewFactTable) {
+                fs.delete(new Path(viewPath), true);
+                logger.info("Delete persisted view fact table: {}.", viewPath);
+            }
             for (String path : persistedFlatTable) {
-                val fs = HadoopUtil.getWorkingFileSystem();
                 fs.delete(new Path(path), true);
                 logger.info("Delete persisted flat table: {}.", path);
             }
@@ -142,9 +150,9 @@ public class DFBuildJob extends SparkApplication {
         NDataflow newDF = dataflow.copy();
         val update = new NDataflowUpdate(dataflow.getUuid());
         List<NDataSegment> nDataSegments = Lists.newArrayList();
-        for(Map.Entry<String, Object> entry: toUpdateSegmentSourceSize.entrySet()) {
+        for (Map.Entry<String, Object> entry : toUpdateSegmentSourceSize.entrySet()) {
             NDataSegment segment = newDF.getSegment(entry.getKey());
-            segment.setSourceBytesSize((Long)entry.getValue());
+            segment.setSourceBytesSize((Long) entry.getValue());
             segment.setLastBuildTime(System.currentTimeMillis());
             nDataSegments.add(segment);
         }
@@ -153,10 +161,10 @@ public class DFBuildJob extends SparkApplication {
     }
 
     @Override
-    protected  String calculateRequiredCores() throws Exception {
+    protected String calculateRequiredCores() throws Exception {
         if (config.getSparkEngineTaskImpactInstanceEnabled()) {
             Path shareDir = config.getJobTmpShareDir(project, jobId);
-            String maxLeafTasksNums =  maxLeafTasksNums(shareDir);
+            String maxLeafTasksNums = maxLeafTasksNums(shareDir);
             logger.info("The maximum number of tasks required to run the job is {}", maxLeafTasksNums);
             val config = KylinConfig.getInstanceFromEnv();
             val factor = config.getSparkEngineTaskCoreFactor();
@@ -172,7 +180,7 @@ public class DFBuildJob extends SparkApplication {
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         FileStatus[] fileStatuses = fs.listStatus(shareDir,
                 path -> path.toString().endsWith(ResourceDetectUtils.cubingDetectItemFileSuffix()));
-        return  ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);
+        return ResourceDetectUtils.selectMaxValueInFiles(fileStatuses);
     }
 
     private NDataSegment getSegment(String segId) {
@@ -289,7 +297,8 @@ public class DFBuildJob extends SparkApplication {
                 layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
             }
         } else {
-            Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg, nSpanningTree);
+            Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg,
+                    nSpanningTree);
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
                 ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);

@@ -25,6 +25,7 @@ package io.kyligence.kap.engine.spark.job
 import com.google.common.base.Preconditions
 import com.google.common.collect.{Lists, Maps}
 import io.kyligence.kap.engine.spark.builder._
+import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
@@ -111,6 +112,25 @@ class DFChooser(toBuildTree: NSpanningTree,
     path
   }
 
+  private def persistFactViewIfNecessary(): String = {
+    var path = ""
+    if (needEncoding) {
+      logInfo(s"Check project:${seg.getProject} seg:${seg.getName} persist view fact table.")
+      val fact = flatTableDesc.getDataModel.getRootFactTable
+      val globalDicts = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree)
+      val existsFactDictCol = globalDicts.asScala.exists(_.getTableRef.getTableIdentity.equals(fact.getTableIdentity))
+
+      if (fact.getTableDesc.isView && existsFactDictCol) {
+        val viewDS = ss.table(fact.getTableDesc).alias(fact.getAlias)
+        path = s"${config.getJobTmpViewFactTableDir(seg.getProject, jobId)}"
+        ss.sparkContext.setJobDescription("Persist view fact table.")
+        viewDS.write.mode(SaveMode.Overwrite).parquet(path)
+        logInfo(s"Persist view fact table into:$path.")
+      }
+    }
+    path
+  }
+
   private def getSourceFromLayout(layout: LayoutEntity,
                                   indexEntity: IndexEntity) = {
     val buildSource = new NBuildSourceInfo
@@ -130,16 +150,17 @@ class DFChooser(toBuildTree: NSpanningTree,
 
   @throws[Exception]
   private def getFlatTable(): NBuildSourceInfo = {
-    val needJoin = DFChooser.needJoinLookupTables(seg.getModel, toBuildTree)
-    val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
-    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss)
-
-    val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding, needJoin)
-
+    val viewPath = persistFactViewIfNecessary()
     val sourceInfo = new NBuildSourceInfo
     sourceInfo.setSparkSession(ss)
-    sourceInfo.setFlattableDS(afterJoin)
     sourceInfo.setLayoutId(DFChooser.FLAT_TABLE_FLAG)
+    sourceInfo.setViewFactTablePath(viewPath)
+
+    val needJoin = DFChooser.needJoinLookupTables(seg.getModel, toBuildTree)
+    val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange, needJoin)
+    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss, sourceInfo)
+    val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding, needJoin)
+    sourceInfo.setFlattableDS(afterJoin)
 
     logInfo("No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo

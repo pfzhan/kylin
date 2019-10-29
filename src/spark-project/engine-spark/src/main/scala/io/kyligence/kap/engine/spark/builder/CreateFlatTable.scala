@@ -24,7 +24,7 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util
 
-import com.google.common.collect.{Maps, Sets}
+import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
@@ -45,7 +45,8 @@ import scala.collection.mutable.ListBuffer
 class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
                       val seg: NDataSegment,
                       val toBuildTree: NSpanningTree,
-                      val ss: SparkSession) extends Logging {
+                      val ss: SparkSession,
+                      val sourceInfo: NBuildSourceInfo) extends Logging {
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
 
@@ -137,8 +138,18 @@ object CreateFlatTable extends Logging {
     joinFactTableWithLookupTables(rootFactDataset, lookupTableDataset, model, ss)
   }
 
-  private def generateTableDataset(tableRef: TableRef, cols: Seq[TblColRef], alias: String, ss: SparkSession): Dataset[Row] = {
-    var dataset = ss.table(tableRef.getTableDesc).alias(alias)
+  private def generateTableDataset(tableRef: TableRef,
+                                   cols: Seq[TblColRef],
+                                   alias: String,
+                                   ss: SparkSession,
+                                   sourceInfo: NBuildSourceInfo = null) = {
+    var dataset: Dataset[Row] =
+      if (sourceInfo != null && !StringUtils.isBlank(sourceInfo.getViewFactTablePath)) {
+        ss.read.parquet(sourceInfo.getViewFactTablePath)
+      } else {
+        ss.table(tableRef.getTableDesc).alias(alias)
+      }
+
     val suitableCols = chooseSuitableCols(dataset, cols)
     dataset = changeSchemaToAliasDotName(dataset, alias)
     val selectedCols = dataset.schema.fields.map(tp => col(tp.name)) ++ suitableCols

@@ -668,6 +668,11 @@ abstract public class KylinConfigBase implements Serializable {
         return new Path(path);
     }
 
+    public Path getJobTmpViewFactTableDir(String project, String jobId) {
+        String path = getJobTmpDir(project) + jobId + "/view_fact_table/";
+        return new Path(path);
+    }
+
     // a_b => a/b/
     private String getNestedPath(String id) {
         String[] ids = id.split("_");

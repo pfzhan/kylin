@@ -126,7 +126,7 @@ class TestCreateFlatTable extends SparderBaseFunSuite with SharedSparkSession wi
     val toBuildTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, MODEL_NAME1)
     val needJoin = DFChooser.needJoinLookupTables(seg.getModel, toBuildTree)
     val flatTableDesc = new NCubeJoinedFlatTableDesc(df.getIndexPlan, seg.getSegRange, needJoin)
-    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, spark)
+    val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, spark, null)
     val afterJoin = flatTable.generateDataset(needEncode)
     afterJoin
   }
