@@ -864,13 +864,12 @@ public class ModelService extends BasicService {
     }
 
     public void batchCreateModel(String project, List<ModelRequest> modelRequests) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
 
         Map<String, String> modelId2PartitionColFormat = Maps.newHashMap();
         for (ModelRequest modelRequest : modelRequests) {
             modelRequest.setProject(project);
-            doCheckBeforeModelSave(project, modelRequest);
-
-            val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+            val dataModel = doCheckBeforeModelSave(project, modelRequest);
             val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
             modelId2PartitionColFormat.putIfAbsent(modelRequest.getUuid(), partitionColFormat);
         }
@@ -885,10 +884,10 @@ public class ModelService extends BasicService {
     }
 
     public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
-        doCheckBeforeModelSave(project, modelRequest);
+        aclEvaluate.checkProjectWritePermission(project);
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
-        val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        val dataModel = doCheckBeforeModelSave(project, modelRequest);
         val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
         return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest, partitionColFormat), project);
     }
@@ -923,9 +922,8 @@ public class ModelService extends BasicService {
         return dataModelResponseList;
     }
 
-    private void doCheckBeforeModelSave(String project, ModelRequest modelRequest) throws Exception {
+    private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) throws Exception {
 
-        aclEvaluate.checkProjectWritePermission(project);
         checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
         checkModelRequest(modelRequest);
 
@@ -940,6 +938,7 @@ public class ModelService extends BasicService {
 
         preProcessBeforeModelSave(dataModel, project);
         checkFlatTableSql(dataModel);
+        return dataModel;
     }
 
     private NDataModel saveModel(String project, ModelRequest modelRequest, String partitionColFormat)
