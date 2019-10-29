@@ -10,7 +10,7 @@
           <el-button slot="append" icon="el-icon-search" @click="handleFilter()"></el-button>
         </el-input>
       </div>
-      <div class="treeBox" :class="{'hasRefreshBtn': (filterText || treeData.length === 0) && !loadingTreeData}">
+      <div class="treeBox" :class="{'hasRefreshBtn': (filterData || treeData.length === 0) && !loadingTreeData}">
         <TreeList
           :tree-key="treeKey"
           v-guide.hiveTree
@@ -34,7 +34,7 @@
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
           <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
         </div>
-        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterText || treeData.length === 0) && !loadingTreeData">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
+        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterData || treeData.length === 0) && !loadingTreeData">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -227,6 +227,7 @@ export default class SourceHive extends Vue {
   }
   hasClickRefreshBtn = false
   pollingReloadStatusTimer = null // 轮询当前刷新状态的接口
+  filterData = false // 打开弹窗时，不显示下面的立即刷新，执行了一次 handleFilter 后显示
 
   get refreshBtnText () {
     return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
@@ -249,6 +250,16 @@ export default class SourceHive extends Vue {
       })
     })
     return tableOptions
+  }
+  // 监听轮询的返回结果，如果轮询回来发现刷新结束了，刷新当前渲染的效果
+  @Watch('reloadHiveTablesStatus.isRunning')
+  async onRefreshTablesChange (newValue, oldValue) {
+    // 由正在刷新变为刷新完成，需要刷下树的结果
+    if (newValue !== oldValue && newValue === false) {
+      let keyword = this.filterText || ''
+      await this.loadDatabaseAndTables(keyword)
+      this.onSelectedItemsChange()
+    }
   }
   @Watch('selectedTables')
   @Watch('selectedDatabases')
@@ -470,9 +481,11 @@ export default class SourceHive extends Vue {
             return item
           }
         })
-        this.defaultExpandedKeys = tempArr.map((item) => {
+        let defaultExpandedKeysAll = tempArr.map((item) => {
           return item.id
         })
+        // 如果需要展开的量超过100，就只展开前100，对页面一次渲染上千的情况进行保护，以防浏览器崩溃
+        this.defaultExpandedKeys = defaultExpandedKeysAll.length > 30 ? defaultExpandedKeysAll.splice(0, 30) : defaultExpandedKeysAll
       }
       this.isDatabaseError = false
       this.$nextTick(() => {
@@ -482,12 +495,17 @@ export default class SourceHive extends Vue {
       this.isDatabaseError = true
       handleError(e)
     }
-    if (this.$refs['tree-list']) {
-      this.$refs['tree-list'].hideLoading()
+    // 搜索结果为空，刷新状态正在刷新，且距离上次刷新时间大于10年时间，说明是第一次刷新，这时候 loading 不隐藏，继续以 loading 的效果显示，反之则隐藏 loading
+    if (!(this.reloadHiveTablesStatus.isRunning && this.reloadHiveTablesStatus.time > 10 * 365 * 24 * 60 * 60 * 1000 && this.treeData.length === 0)) {
+      if (this.$refs['tree-list']) {
+        this.$refs['tree-list'].hideLoading()
+      }
     }
     this.loadingTreeData = false
   }
   handleFilter () {
+    // 只要执行次这个，就设为操作过搜索了，显示刷新数据的条条
+    this.filterData = true
     // 如果前一次查询还在进行中，不发第二次接口
     if (this.loadingTreeData) {
       return false
