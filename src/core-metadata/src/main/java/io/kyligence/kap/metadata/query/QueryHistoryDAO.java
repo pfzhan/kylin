@@ -53,12 +53,12 @@ public class QueryHistoryDAO {
     private static final String QUERY_STATISTICS_BY_ENGINES_SQL_FORMAT = "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE (time>=%dms AND time<=%dms) AND error_type = '' GROUP BY engine_type";
     private static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE time >= %dms AND time < %dms";
     private static final String FIRST_QUERY_HISTORY_SQL = "SELECT FIRST(query_id) FROM %s WHERE time >= %dms AND time < %dms";
-
     private static final String QUERY_COUNT_BY_TIME_SQL_PREFIX = "SELECT COUNT(query_id) FROM %s WHERE time>=%dms AND time<=%dms GROUP BY ";
     private static final String AVG_DURATION_BY_TIME_SQL_PREFIX = "SELECT MEAN(\"duration\") FROM %s WHERE time>=%dms AND time<=%dms GROUP BY ";
 
     private static final int MAX_SIZE = 1000000;
-    private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT time, query_id FROM %s ORDER BY time DESC OFFSET " + MAX_SIZE;
+    private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT time, query_id FROM %s ORDER BY time DESC OFFSET "
+            + MAX_SIZE;
 
     private final String queryIdReg = "[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}";
 
@@ -79,7 +79,8 @@ public class QueryHistoryDAO {
         this.kapConfig = KapConfig.wrap(config);
         String metadataIdentifier = config.getMetadataUrl().getIdentifier().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_");
         this.queryMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
-        this.realizationMetricMeasurement = metadataIdentifier + "_" + project + "_" + QueryHistory.REALIZATION_MEASUREMENT_SURFIX;
+        this.realizationMetricMeasurement = metadataIdentifier + "_" + project + "_"
+                + QueryHistory.REALIZATION_MEASUREMENT_SURFIX;
     }
 
     public String getQueryMetricMeasurement() {
@@ -119,16 +120,29 @@ public class QueryHistoryDAO {
     }
 
     public void deleteQueryHistoriesIfMaxSizeReached() {
-        List<QueryStatistics> statistics = getResultBySql(String.format(QUERY_TIME_IN_MAX_SIZE, this.queryMetricMeasurement), QueryStatistics.class, this.queryMetricMeasurement);
+        List<QueryStatistics> statistics = getResultBySql(
+                String.format(QUERY_TIME_IN_MAX_SIZE, this.queryMetricMeasurement), QueryStatistics.class,
+                this.queryMetricMeasurement);
 
         if (CollectionUtils.isNotEmpty(statistics)) {
             long time = statistics.get(0).getTime().toEpochMilli();
             String deleteQueryMetricSql = "delete from " + this.queryMetricMeasurement + " where time < " + time + "ms";
             getInfluxDB().query(new Query(deleteQueryMetricSql, QueryHistory.DB_NAME));
 
-            String deleteRealizationMetricSql = "delete from " + this.realizationMetricMeasurement + " where time < " + time + "ms";
+            String deleteRealizationMetricSql = "delete from " + this.realizationMetricMeasurement + " where time < "
+                    + time + "ms";
             getInfluxDB().query(new Query(deleteRealizationMetricSql, QueryHistory.DB_NAME));
         }
+    }
+
+    public void dropProjectMeasurement() {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return;
+        }
+        String deleteQueryMetricMeasurement = "drop measurement " + queryMetricMeasurement;
+        String deleteRealizationMetricMeasurement = "drop measurement " + realizationMetricMeasurement;
+        getInfluxDB().query(new Query(deleteQueryMetricMeasurement, QueryHistory.DB_NAME));
+        getInfluxDB().query(new Query(deleteRealizationMetricMeasurement, QueryHistory.DB_NAME));
     }
 
     public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime) {
@@ -194,7 +208,7 @@ public class QueryHistoryDAO {
     }
 
     /**
-     *  format sqls to query Query History statistics
+     * format sqls to query Query History statistics
      */
 
     String getQueryHistoriesSql(String filterSql, int limit, int offset) {
@@ -225,8 +239,7 @@ public class QueryHistoryDAO {
 
         if (StringUtils.isNotEmpty(request.getServer())) {
             // filter by hostname
-            sb.append(String.format("AND (server = '%s') ",
-                    request.getServer()));
+            sb.append(String.format("AND (server = '%s') ", request.getServer()));
         }
 
         if (StringUtils.isNotEmpty(request.getSql())) {

@@ -29,10 +29,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -46,17 +48,17 @@ public class ProjectDropListener {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
 
         try {
-            deleteStorage(kylinConfig, project.split("\\.")[0]);
+            NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
+            QueryHistoryDAO.getInstance(kylinConfig, project).dropProjectMeasurement();
             EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
             NFavoriteScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);
 
             NMetricsGroup.removeProjectMetrics(project);
-
-        } catch (IOException e) {
+            deleteStorage(kylinConfig, project.split("\\.")[0]);
+        } catch (Exception e) {
             log.warn("error when delete " + project + " storage", e);
         }
-
     }
 
     private void deleteStorage(KylinConfig config, String project) throws IOException {

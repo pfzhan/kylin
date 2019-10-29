@@ -121,7 +121,6 @@ public class ProjectService extends BasicService {
         return createdProject;
     }
 
-
     public List<ProjectInstance> getReadableProjects() {
         return getReadableProjects(null, false);
     }

@@ -47,7 +47,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -72,6 +71,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
@@ -803,5 +803,15 @@ public class NExecutableManager {
 
     private void assertOutputNotNull(ExecutableOutputPO output, String idOrPath) {
         Preconditions.checkArgument(output != null, "there is no related output for job :" + idOrPath);
+    }
+
+    public void destoryAllProcess() {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return;
+        }
+        List<String> jobs = getJobs();
+        for (String job : jobs) {
+            destroyProcess(job);
+        }
     }
 }
