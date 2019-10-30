@@ -257,6 +257,8 @@ export default class SourceHive extends Vue {
     // 由正在刷新变为刷新完成，需要刷下树的结果
     if (newValue !== oldValue && newValue === false) {
       let keyword = this.filterText || ''
+      // 轮询出结果后，刷新树，需要重新渲染数据，这时候需要将key值修改下
+      this.treeKey = 'tree' + Number(new Date())
       await this.loadDatabaseAndTables(keyword)
       this.onSelectedItemsChange()
     }
@@ -322,8 +324,10 @@ export default class SourceHive extends Vue {
       }
       this.hasClickRefreshBtn = false
       this.reloadHiveTablesStatus.isRunning = res.data.data.isRunning
+      this.reloadHiveTablesStatus.time = res.data.data.time
       this.pollingReloadStatus()
     }, (res) => {
+      this.reloadHiveTablesStatus.time = 0
       this.hasClickRefreshBtn = false
       this.reloadHiveTablesStatus.isRunning = false
     })
@@ -495,7 +499,7 @@ export default class SourceHive extends Vue {
       this.isDatabaseError = true
       handleError(e)
     }
-    // 搜索结果为空，刷新状态正在刷新，且距离上次刷新时间大于10年时间，说明是第一次刷新，这时候 loading 不隐藏，继续以 loading 的效果显示，反之则隐藏 loading
+    // 搜索结果为空，刷新状态正在刷新，且距离上次刷新时间大于10年时间，说明是第一次刷新，这时候 loading 不隐藏，继续以 loading 的效果显示，反之则隐藏 loading  && this.reloadHiveTablesStatus.time > 10 * 365 * 24 * 60 * 60 * 1000
     if (!(this.reloadHiveTablesStatus.isRunning && this.reloadHiveTablesStatus.time > 10 * 365 * 24 * 60 * 60 * 1000 && this.treeData.length === 0)) {
       if (this.$refs['tree-list']) {
         this.$refs['tree-list'].hideLoading()
