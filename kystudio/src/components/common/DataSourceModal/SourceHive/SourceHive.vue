@@ -223,7 +223,8 @@ export default class SourceHive extends Vue {
   selectTablesNames = []
   selectDBNames = []
   reloadHiveTablesStatus = { // 记录当前的刷新状态
-    isRunning: false
+    isRunning: false,
+    time: 0
   }
   hasClickRefreshBtn = false
   pollingReloadStatusTimer = null // 轮询当前刷新状态的接口
@@ -315,6 +316,9 @@ export default class SourceHive extends Vue {
     // 立即刷新按钮，防止重复提交，如果是强制刷新的请求，并且正在刷新中，就返回，不做接口请求
     if (isForce && (this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn)) {
       return false
+    }
+    if (isForce) { // 如果是强制刷新，就把正在刷新的标志位设置为正在，这样才能在接口返回后，数据变化了，触发 watch
+      this.reloadHiveTablesStatus.isRunning = true
     }
     this.hasClickRefreshBtn = true
     this.reloadHiveDBAndTables({force: isForce}).then((res) => {
