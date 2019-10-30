@@ -76,14 +76,16 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTrialLicense() throws Exception {
+        final String email = "b@kylin.com";
         LicenseRequest licenseRequest = new LicenseRequest();
         licenseRequest.setUsername("a");
-        licenseRequest.setEmail("b");
+        licenseRequest.setEmail(email);
         licenseRequest.setCompany("c");
         RemoteLicenseResponse response = new RemoteLicenseResponse();
         response.setSuccess(true);
         response.setData("");
         Mockito.when(licenseInfoService.getTrialLicense(licenseRequest)).thenReturn(response);
+        Mockito.when(licenseInfoService.filterEmail(email)).thenReturn(true);
         Mockito.doNothing().when(licenseInfoService).updateLicense(response.getData());
         Mockito.when(licenseInfoService.extractLicenseInfo()).thenReturn(null);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/system/license/trial") //

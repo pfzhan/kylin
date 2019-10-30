@@ -133,20 +133,19 @@ public class NSystemController extends NBasicController {
         if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
                 || Strings.isNullOrEmpty(licenseRequest.getUsername())
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "wrong parameter");
+            throw new BadRequestException("email username company can not be empty");
         }
         if (licenseRequest.getEmail().length() > 50 || licenseRequest.getUsername().length() > 50
                 || licenseRequest.getCompany().length() > 50) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "length should be less or equal than 50");
+            throw new BadRequestException("email username company length should be less or equal than 50");
         }
         if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "",
-                    "personal email or illegal email is not allowed");
+            throw new BadRequestException("personal email or illegal email is not allowed");
         }
 
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
         if (trialLicense == null || !trialLicense.isSuccess()) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "get license error");
+            throw new BadRequestException("get license error");
         }
         licenseInfoService.updateLicense(trialLicense.getData());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
