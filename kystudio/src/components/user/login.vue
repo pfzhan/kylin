@@ -234,12 +234,16 @@ export default {
     },
     validateEmail: function (rule, value, callback) {
       if (value) {
-        for (let key in personalEmail) {
-          if (value.indexOf(key) !== -1) {
-            callback(new Error(this.$t('enterpriseEmail')))
+        if (value.length > 50) {
+          callback(new Error(this.$t('emailLength')))
+        } else {
+          for (let key in personalEmail) {
+            if (value.indexOf(key) !== -1) {
+              callback(new Error(this.$t('enterpriseEmail')))
+            }
           }
+          callback()
         }
-        callback()
       } else {
         callback()
       }
@@ -382,7 +386,9 @@ export default {
       expiredOn: 'Expired On:',
       introduction: 'Introduction',
       manual: 'Manual',
-      contactUs: 'Contact Us'
+      contactUs: 'Contact Us',
+      enterpriseName: 'Only Chinese characters, letters, digits and space are supported. The maximum is 50 characters.',
+      emailLength: 'The maximum is 50 characters'
     },
     'zh-cn': {
       welcome: '欢迎使用Kyligence Enterprise',
@@ -413,7 +419,9 @@ export default {
       expiredOn: '过期时间：',
       introduction: '产品介绍',
       manual: '用户手册',
-      contactUs: '联系我们'
+      contactUs: '联系我们',
+      enterpriseName: '支持中英文、数字、空格，最大值为 50 个字符',
+      emailLength: '最大值为 50 个字符'
     }
   }
 }

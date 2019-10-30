@@ -235,12 +235,16 @@
       },
       validateEmail: function (rule, value, callback) {
         if (value) {
-          for (let key in personalEmail) {
-            if (value.indexOf(key) !== -1) {
-              callback(new Error(this.$t('enterpriseEmail')))
+          if (value.length > 50) {
+            callback(new Error(this.$t('emailLength')))
+          } else {
+            for (let key in personalEmail) {
+              if (value.indexOf(key) !== -1) {
+                callback(new Error(this.$t('enterpriseEmail')))
+              }
             }
+            callback()
           }
-          callback()
         } else {
           callback()
         }
@@ -333,7 +337,8 @@
         noName: 'Please enter your name.',
         userGuide: 'User Guide',
         enterpriseName: 'Only Chinese characters, letters, digits and space are supported. The maximum is 50 characters.',
-        manualUrl: 'https://docs.kyligence.io/books/v4.0/en/index.html'
+        manualUrl: 'https://docs.kyligence.io/books/v4.0/en/index.html',
+        emailLength: 'The maximum is 50 characters'
       },
       'zh-cn': {
         autoUpload: '自动上传',
@@ -368,8 +373,9 @@
         expiredOn: '过期时间：',
         noName: '请输入用户名称。',
         userGuide: '新手指引',
-        enterpriseName: '支持中英文、数字、空格，最大值为50个字符',
-        manualUrl: 'https://docs.kyligence.io/books/v4.0/zh-cn/index.html'
+        enterpriseName: '支持中英文、数字、空格，最大值为 50 个字符',
+        manualUrl: 'https://docs.kyligence.io/books/v4.0/zh-cn/index.html',
+        emailLength: '最大值为 50 个字符'
       }
     }
   }
