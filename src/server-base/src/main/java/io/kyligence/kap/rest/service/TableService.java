@@ -1360,7 +1360,7 @@ public class TableService extends BasicService {
         val indexManager = getIndexPlanManager(project);
         val indexPlan = indexManager.getIndexPlan(model.getId());
         val affectedLayouts = indexPlan.getAllIndexes().stream()
-                .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedDims).isEmpty()
+                .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
                         || !Sets.intersection(index.getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
                 .flatMap(index -> index.getLayouts().stream()).map(LayoutEntity::getId).collect(Collectors.toSet());
 

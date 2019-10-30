@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
@@ -165,7 +166,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         //     nmodel_basic_inner: 100001,100002,100003,100009,100011,100013,100016,100015
         //     all_fixed_length: 100001,100002,100003,100009,100011
         Assert.assertEquals(26, response.getRemoveMeasureCount());
-        Assert.assertEquals(25, response.getRemoveIndexesCount());
+        // affect table index:
+        // IndexPlan [741ca86a-1f13-46da-a59f-95fb68615e3a(nmodel_basic_inner)]: 20000000000
+        // IndexPlan [89af4ee2-2cdb-4b07-b39e-4c29856309aa(nmodel_basic)]: 20000000000
+        Assert.assertEquals(27, response.getRemoveIndexesCount());
     }
 
     @Test
@@ -409,6 +413,23 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         for (String[] sampleRow : tableExt.getSampleRows()) {
             Assert.assertTrue(!Joiner.on(",").join(sampleRow).contains("col_3"));
         }
+
+        Assert.assertEquals("PRICE", model.getAllNamedColumns().get(11).getName());
+        Assert.assertTrue(model.getAllNamedColumns().get(11).isExist());
+        Assert.assertTrue(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
+        removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertFalse(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
+    }
+
+    private boolean isTableIndexContainColumn(NIndexPlanManager indexPlanManager, String modelAlias, Integer col) {
+        for(IndexEntity indexEntity: indexPlanManager.getIndexPlanByModelAlias(modelAlias).getIndexes()) {
+            if(indexEntity.getDimensions().contains(col)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Test
