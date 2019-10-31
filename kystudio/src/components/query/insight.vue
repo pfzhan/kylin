@@ -117,8 +117,26 @@ import { insightKeyword } from '../../config'
     ])
   },
   locales: {
-    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More', closeAll: 'Close All', delSqlTitle: 'Delete SQL', confirmDel: 'Are you sure to delete {queryName}?'},
-    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多', closeAll: '关闭全部', delSqlTitle: '删除查询语句', confirmDel: '确认删除 {queryName} 吗？'}
+    'en': {
+      dialogHiveTreeNoData: 'Please click data source to load source tables',
+      trace: 'Trace',
+      savedQueries: 'Save Queries',
+      queryBox: 'Query Box',
+      more: 'More',
+      closeAll: 'Close All',
+      delSqlTitle: 'Delete SQL',
+      confirmDel: 'Are you sure to delete {queryName}?'
+    },
+    'zh-cn': {
+      dialogHiveTreeNoData: '请点击数据源来加载源表',
+      trace: '追踪',
+      savedQueries: '保存的查询',
+      queryBox: '查询窗口',
+      more: '更多',
+      closeAll: '关闭全部',
+      delSqlTitle: '删除查询语句',
+      confirmDel: '确认删除 {queryName} 吗？'
+    }
   }
 })
 export default class NewQuery extends Vue {

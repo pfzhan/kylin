@@ -38,7 +38,9 @@
           <p class="resultText" v-if="extraoptionObj.queryId">
             <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
             <span class="text" v-if="extraoptionObj.queryId">{{extraoptionObj.queryId}}</span>
-            <a v-if="extraoptionObj.appMasterURL" target="_blank" :href="extraoptionObj.appMasterURL"><i class="el-icon-ksd-go"></i></a>
+            <common-tip :content="$t('linkToSpark')" v-if="extraoptionObj.appMasterURL">
+              <a target="_blank" :href="extraoptionObj.appMasterURL"><i class="el-icon-ksd-go"></i></a>
+            </common-tip>
           </p>
           <!-- <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
           <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p> -->
@@ -75,8 +77,16 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
     ])
   },
   locales: {
-    'en': {trace: 'Trace', queryBox: 'Query Box'},
-    'zh-cn': {trace: '追踪', queryBox: '查询窗口'}
+    'en': {
+      trace: 'Trace',
+      queryBox: 'Query Box',
+      linkToSpark: 'Jump to Spark Web UI'
+    },
+    'zh-cn': {
+      trace: '追踪',
+      queryBox: '查询窗口',
+      linkToSpark: '跳转至 Spark 任务详情'
+    }
   }
 })
 export default class QueryTab extends Vue {

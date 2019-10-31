@@ -6,7 +6,9 @@
         <p class="resultText">
           <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text">{{extraoption.queryId}}</span>
-          <a v-if="extraoption.appMasterURL" target="_blank" :href="extraoption.appMasterURL"><i class="el-icon-ksd-go"></i></a>
+          <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL">
+            <a target="_blank" :href="extraoption.appMasterURL"><i class="el-icon-ksd-go"></i></a>
+          </common-tip>
         </p>
         <!-- <p class="resultText">
           <span class="label">{{$t('kylinLang.query.status')}}</span>
@@ -94,8 +96,40 @@ import { hasRole, transToGmtTime } from '../../util/business'
     ])
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart', traceUrl: 'Trace Url:', extraoptionrmation: 'Query Information', queryResults: 'Query Results', exportCSV: 'Export to CSV'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图', traceUrl: '追踪链接：', extraoptionrmation: '查询信息', queryResults: '查询结果', exportCSV: '导出 CSV'}
+    'en': {
+      username: 'Username',
+      role: 'Role',
+      analyst: 'Analyst',
+      modeler: 'Modeler',
+      admin: 'Admin',
+      save: 'Save',
+      restore: 'Restore',
+      lineChart: 'Line Chart',
+      barChart: 'Bar Chart',
+      pieChart: 'Pie Chart',
+      traceUrl: 'Trace Url:',
+      extraoptionrmation: 'Query Information',
+      queryResults: 'Query Results',
+      exportCSV: 'Export to CSV',
+      linkToSpark: 'Jump to Spark Web UI'
+    },
+    'zh-cn': {
+      username: '用户名',
+      role: '角色',
+      analyst: '分析人员',
+      modeler: '建模人员',
+      admin: '管理人员',
+      save: '保存',
+      restore: '还原',
+      lineChart: '折线图',
+      barChart: '柱状图',
+      pieChart: '饼状图',
+      traceUrl: '追踪链接：',
+      extraoptionrmation: '查询信息',
+      queryResults: '查询结果',
+      exportCSV: '导出 CSV',
+      linkToSpark: '跳转至 Spark 任务详情'
+    }
   }
 })
 export default class queryResult extends Vue {
