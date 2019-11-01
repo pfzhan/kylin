@@ -58,6 +58,26 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.6 release note
+
+**Feature**
+
+- Read/Write Separation Deployment
+- Update license in Web UI
+- Apply for license by self-service in Marketplace
+
+**Enhancement**
+
+- Support to view Spark execution details after executing SQL query
+- Support intersect count function in expert mode
+- Optimize the building performance if the fact table is a view and contains the count distinct measure
+- Support using table index to answers some aggregate queries
+- The select * query can return computed columns when there are computed columns saved in the model
+
+**Bugfix**
+
+- After restarting the job, the job log output is not updated in time in the job monitor page. It is still displayed as the log of the previous execution
+
 #### Kyligence Enterprise 4.0.5 release note
 
 **Feature**
