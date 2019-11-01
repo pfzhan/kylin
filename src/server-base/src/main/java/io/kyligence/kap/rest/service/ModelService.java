@@ -869,6 +869,16 @@ public class ModelService extends BasicService {
         Map<String, String> modelId2PartitionColFormat = Maps.newHashMap();
         for (ModelRequest modelRequest : modelRequests) {
             modelRequest.setProject(project);
+            modelRequest.setSimplifiedDimensions(modelRequest.getDimensions());
+
+            List<NDataModel.Measure> allMeasures = modelRequest.getAllMeasures();
+            List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
+            for (NDataModel.Measure measure : allMeasures) {
+                SimplifiedMeasure simplifiedMeasure = SimplifiedMeasure.fromMeasure(measure);
+                simplifiedMeasures.add(simplifiedMeasure);
+            }
+            modelRequest.setSimplifiedMeasures(simplifiedMeasures);
+
             val dataModel = doCheckBeforeModelSave(project, modelRequest);
             val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
             modelId2PartitionColFormat.putIfAbsent(modelRequest.getUuid(), partitionColFormat);

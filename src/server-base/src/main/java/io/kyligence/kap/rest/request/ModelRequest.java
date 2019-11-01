@@ -53,6 +53,9 @@ public class ModelRequest extends NDataModel {
     @JsonProperty("end")
     private String end;
 
+    @JsonProperty("dimensions")
+    private List<NamedColumn> dimensions = Lists.newArrayList();
+
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
 
