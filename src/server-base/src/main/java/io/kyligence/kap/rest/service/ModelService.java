@@ -911,6 +911,15 @@ public class ModelService extends BasicService {
             }
             NDataModel model = modelCtx.getTargetModel();
             model.setManagementType(ManagementType.MODEL_BASED);
+
+            // TEMP IMPLEMENTATION
+            // set join table kind to look up
+            for (JoinTableDesc joinTableDesc : model.getJoinTables()) {
+                if (!joinTableDesc.getTableRef().equals(model.getRootFactTableRef())) {
+                    joinTableDesc.setKind(NDataModel.TableKind.LOOKUP);
+                }
+            }
+
             NRecomendedDataModelResponse response = new NRecomendedDataModelResponse(model);
             List<String> acceleratedSqls = Lists.newArrayList();
             modelCtx.getModelTree().getOlapContexts().forEach(context -> acceleratedSqls.add(context.sql));
