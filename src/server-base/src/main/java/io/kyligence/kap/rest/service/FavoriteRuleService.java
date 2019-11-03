@@ -232,7 +232,7 @@ public class FavoriteRuleService extends BasicService {
         getFavoriteRuleManager(project).removeSqlPatternFromBlacklist(id);
     }
 
-    private Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
+    public Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
         Map<String, SQLValidateResult> map;
         try {
             AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(getConfig(), project, new MockupQueryExecutor());

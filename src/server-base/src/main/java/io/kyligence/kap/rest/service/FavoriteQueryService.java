@@ -33,6 +33,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
+import io.kyligence.kap.metadata.favorite.CreateFavoriteQueryResult;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -86,6 +89,9 @@ public class FavoriteQueryService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Autowired
+    private FavoriteRuleService favoriteRuleService;
+
     private Map<String, Integer> ignoreCountMap = Maps.newConcurrentMap();
 
     private static final String LAST_QUERY_TIME = "last_query_time";
@@ -101,8 +107,11 @@ public class FavoriteQueryService extends BasicService {
     private static final String IMPORTED = "imported";
     private static final String BLACKLIST = "blacklist";
 
+    private static final String JOB_LIST = "job_list";
+    private static final String SQL_ERROR = "sql_error";
+
     @Transaction(project = 0)
-    public Map<String, Integer> createFavoriteQuery(String project, FavoriteRequest request) {
+    public CreateFavoriteQueryResult createFavoriteQuery0(String project, FavoriteRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         Map<String, Integer> result = Maps.newHashMap();
         result.put(BLACKLIST, 0);
@@ -156,7 +165,12 @@ public class FavoriteQueryService extends BasicService {
         fqManager.createWithoutCheck(favoriteQueries);
         result.put(IMPORTED, importedSqlSize);
 
-        return result;
+        return new CreateFavoriteQueryResult(result, favoriteQueries);
+    }
+
+    @Transaction(project = 0)
+    public Map<String, Integer> createFavoriteQuery(String project, FavoriteRequest request) {
+        return createFavoriteQuery0(project, request).getStatusMap();
     }
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,
@@ -334,6 +348,51 @@ public class FavoriteQueryService extends BasicService {
         return getFavoriteQueryManager(project).getToBeAcceleratedSqlPattern();
     }
 
+    @VisibleForTesting
+    public CheckAccelerateSqlListResult checkAccelerateSqlList(String project, final List<String> sqls) {
+        List<String> validateSqls = Lists.newArrayList();
+        List<String> errorSqls = Lists.newArrayList();
+        favoriteRuleService.batchSqlValidate(sqls, project).forEach((sql, validateResult) -> {
+            if (validateResult.isCapable()) {
+                validateSqls.add(sql);
+            } else {
+                errorSqls.add(sql);
+            }
+        });
+
+        return new CheckAccelerateSqlListResult(validateSqls, errorSqls);
+    }
+
+    @Transaction(project = 0)
+    public Map<String, List<String>> acceptAccelerate(String project, final List<String> sqls) {
+        aclEvaluate.checkProjectWritePermission(project);
+        Preconditions.checkNotNull(sqls);
+        Map<String, List<String>> result = Maps.newHashMap();
+        result.put(SQL_ERROR, Lists.newArrayList());
+        result.put(JOB_LIST, Lists.newArrayList());
+
+        if (CollectionUtils.isEmpty(sqls)) {
+            return result;
+        }
+
+        val checkResult = checkAccelerateSqlList(project, sqls);
+        result.get(SQL_ERROR).addAll(checkResult.getErrorSqls());
+
+        FavoriteRequest request = new FavoriteRequest();
+        request.setProject(project);
+        request.setSqls(checkResult.getValidateSqls());
+        val createResult = createFavoriteQuery0(project, request);
+        List<String> importedSql = createResult.getFavoriteQuerySet().stream().map(FavoriteQuery::getSqlPattern)
+                .collect(Collectors.toList());
+
+        result.get(JOB_LIST).addAll(accelerate(importedSql, project, getConfig()));
+
+        if (ignoreCountMap.containsKey(project))
+            ignoreCountMap.put(project, 1);
+
+        return result;
+    }
+
     @Transaction(project = 0)
     public void acceptAccelerate(String project, int accelerateSize) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -373,16 +432,19 @@ public class FavoriteQueryService extends BasicService {
     }
 
     @Transaction(project = 1)
-    private void accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
+    private List<String> accelerate(List<String> unAcceleratedSqlPatterns, String project, KylinConfig config) {
+        List<String> jobList = Lists.newArrayList();
+
         int batchAccelerateSize = config.getFavoriteAccelerateBatchSize();
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
         Lists.partition(unAcceleratedSqlPatterns, batchAccelerateSize).forEach(oneBatchPatterns -> {
             if (projectInstance.isSemiAutoMode()) {
                 generateSuggestions(project, oneBatchPatterns);
             } else {
-                handleAcceleration(project, oneBatchPatterns, getUsername());
+                jobList.addAll(handleAcceleration(project, oneBatchPatterns, getUsername()));
             }
         });
+        return jobList;
     }
 
     public void ignoreAccelerate(String project, int ignoreSize) {
@@ -422,9 +484,10 @@ public class FavoriteQueryService extends BasicService {
         });
     }
 
-    private void handleAcceleration(String project, List<String> sqlList, String user) {
+    private List<String> handleAcceleration(String project, List<String> sqlList, String user) {
+        List<String> jobList = Lists.newArrayList();
         if (CollectionUtils.isEmpty(sqlList))
-            return;
+            return jobList;
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Set<String> sqlSet = Sets.newHashSet(sqlList);
@@ -454,12 +517,13 @@ public class FavoriteQueryService extends BasicService {
                     continue;
                 }
 
-                eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user);
+                jobList.add(eventManager.postAddCuboidEvents(targetIndexPlan.getUuid(), user));
 
                 updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
             }
             updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
         });
+        return jobList;
     }
 
     // including pending and failed fqs

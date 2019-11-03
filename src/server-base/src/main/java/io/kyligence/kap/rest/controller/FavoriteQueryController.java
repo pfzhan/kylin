@@ -118,6 +118,18 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getAccelerateTips(project), "");
     }
 
+    @RequestMapping(value = "/accelerate", method = RequestMethod.PUT)
+    @ResponseBody
+    public EnvelopeResponse acceptAccelerate(@RequestBody FavoriteRequest request) {
+        checkProjectName(request.getProject());
+        Preconditions.checkNotNull(request.getSqls());
+        Map<String, List<String>> result = favoriteQueryService.acceptAccelerate(request.getProject(),
+                request.getSqls());
+
+        NMetricsGroup.counterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
     @RequestMapping(value = "/accept", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse acceptAccelerate(@RequestParam(value = "project") String project,

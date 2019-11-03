@@ -121,6 +121,19 @@ public class FavoriteQueryControllerTest {
     }
 
     @Test
+    public void testAcceptAccelerate_sqls() throws Exception {
+        FavoriteRequest request = new FavoriteRequest();
+        request.setProject(PROJECT);
+        request.setSqls(Lists.newArrayList());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/accelerate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(favoriteQueryController).acceptAccelerate(Mockito.any(request.getClass()));
+    }
+
+    @Test
     public void testAcceptAccelerate() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/accept")
                 .contentType(MediaType.APPLICATION_JSON)

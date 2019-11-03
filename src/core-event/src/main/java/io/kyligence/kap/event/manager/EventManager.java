@@ -112,11 +112,13 @@ public class EventManager {
         NMetricsGroup.counterInc(NMetricsName.EVENT_COUNTER, NMetricsCategory.PROJECT, project);
     }
 
-    public void postAddSegmentEvents(NDataSegment newSegment, String modelId, String userName) {
+    public String postAddSegmentEvents(NDataSegment newSegment, String modelId, String userName) {
+        String jobId = UUID.randomUUID().toString();
+
         AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
         addSegmentEvent.setSegmentId(newSegment.getId());
         addSegmentEvent.setModelId(modelId);
-        addSegmentEvent.setJobId(UUID.randomUUID().toString());
+        addSegmentEvent.setJobId(jobId);
         addSegmentEvent.setOwner(userName);
         post(addSegmentEvent);
 
@@ -126,12 +128,16 @@ public class EventManager {
         postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
         postAddSegmentEvent.setOwner(userName);
         post(postAddSegmentEvent);
+
+        return jobId;
     }
 
-    public void postAddCuboidEvents(String modelId, String userName) {
+    public String postAddCuboidEvents(String modelId, String userName) {
+        String jobId = UUID.randomUUID().toString();
+
         AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
         addCuboidEvent.setModelId(modelId);
-        addCuboidEvent.setJobId(UUID.randomUUID().toString());
+        addCuboidEvent.setJobId(jobId);
         addCuboidEvent.setOwner(userName);
         post(addCuboidEvent);
 
@@ -140,5 +146,7 @@ public class EventManager {
         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
         postAddCuboidEvent.setOwner(userName);
         post(postAddCuboidEvent);
+
+        return jobId;
     }
 }

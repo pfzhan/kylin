@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -219,6 +220,36 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         // change project type back to auto
         manualProject.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
         projectManager.updateProject(manualProject);
+    }
+
+    @Test
+    public void testAcceptAccelerate_sqls() {
+        getTestConfig().setProperty("kylin.server.mode", "query");
+
+        List<String> sqlList = Lists.newArrayList(sqls);
+
+        Mockito.doReturn(new CheckAccelerateSqlListResult(Lists.newArrayList(sqls), Lists.newArrayList()))
+                .when(favoriteQueryService).checkAccelerateSqlList(PROJECT_NEWTEN, sqlList);
+
+        // when there is no origin model
+        Map<String, List<String>> resultNoModel = favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, sqlList);
+        EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
+        var events = eventDaoOfNewtenProj.getEvents();
+        events.sort(Event::compareTo);
+        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, resultNoModel.get("job_list").size());
+
+        Mockito.doReturn(new CheckAccelerateSqlListResult(Lists.newArrayList(sqls), Lists.newArrayList()))
+                .when(favoriteQueryService).checkAccelerateSqlList(PROJECT, sqlList);
+        // when there is origin model
+        favoriteQueryService.acceptAccelerate(PROJECT, sqlList);
+        EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
+        events = eventDaoOfDefaultProj.getEvents();
+        events.sort(Event::compareTo);
+        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, resultNoModel.get("job_list").size());
+
+        getTestConfig().setProperty("kylin.server.mode", "all");
     }
 
     @Test
