@@ -238,7 +238,7 @@ export default class SettingBasic extends Vue {
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   onFormChange () {
-    const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'segment-settings')
+    const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'segment-settings') || this.isFormEdited(this.form, 'storage-quota')
     this.$emit('form-changed', { basicSetting })
   }
   initForm () {
@@ -386,4 +386,5 @@ export default class SettingBasic extends Vue {
     margin-right: 5px;
   }
 }
+
 </style>
