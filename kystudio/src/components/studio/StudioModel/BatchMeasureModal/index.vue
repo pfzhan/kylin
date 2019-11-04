@@ -141,6 +141,7 @@
             v-if="isShowSearchTable || isGuideMode"
             :data="searchTable.columns">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
+            <el-table-column show-overflow-tooltip prop="table_alias" :label="$t('table')"></el-table-column>
             <el-table-column prop="SUM" :renderHeader="(h, obj) => {return renderColumn(h, obj, searchTable)}" align="center">
               <template slot-scope="scope">
                 <el-checkbox v-model="scope.row.SUM.value" @change="handleChange(scope.row, searchTable, 'SUM')" :disabled="scope.row.SUM.isShouldDisable"></el-checkbox>
