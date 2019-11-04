@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -231,6 +232,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore("https://github.com/Kyligence/KAP/issues/16043")
     public void testcleanupMetadataManually_ChangeConfig() {
         long currentTime = System.currentTimeMillis();
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
@@ -295,6 +297,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore("https://github.com/Kyligence/KAP/issues/16043")
     public void testcleanupMetadataManually() {
         /**
          * clean up a project that has broken models
@@ -348,6 +351,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore("https://github.com/Kyligence/KAP/issues/16043")
     public void testcleanupMetadataAtScheduledTime() {
         val projectManager = NProjectManager.getInstance(getTestConfig());
         // when broken model is in MANUAL_MAINTAIN project
