@@ -2,7 +2,7 @@ export default {
   'en': {
     addUser: 'Add User',
     editRole: 'Edit Role',
-    resetPassword: 'Reset Password',
+    resetPassword: 'Change Password',
     username: 'User Name',
     password: 'Password',
     oldPassword: 'Old Password',
@@ -23,7 +23,7 @@ export default {
   'zh-cn': {
     addUser: '添加用户',
     editRole: '编辑角色',
-    resetPassword: '重置密码',
+    resetPassword: '修改密码',
     username: '用户名',
     password: '密码',
     oldPassword: '旧密码',
