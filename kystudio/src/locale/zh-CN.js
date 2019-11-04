@@ -113,6 +113,7 @@ exports.default = {
     pleaseInput: '请输入',
     pleaseFilter: '筛选...',
     pleaseFilterByModelName: '输入模型名称筛选',
+    pleaseFilterByIndexGroupName: '输入索引组名称筛选',
     pleaseFilterByCubeName: '输入 cube 名称筛选',
     enterAlias: '输入别名',
     pleaseSelect: '请选择',
