@@ -692,4 +692,8 @@ public class Message {
     public String getNoJobNode() {
         return "No job node(or all node) detected. Please start the node or configure a job node( or all node) via the property \"kylin.server.mode\" in the file ${KYLIN_HOME}/conf/kylin.properties.";
     }
+
+    public String getTABLENOTFOUND() {
+        return "Failed to save model. Please ensure the columns used in model [%s] must be existed in source table [%s]";
+    }
 }

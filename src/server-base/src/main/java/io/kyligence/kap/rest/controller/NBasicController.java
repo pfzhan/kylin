@@ -79,7 +79,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.Validation;
@@ -96,20 +95,11 @@ public class NBasicController {
 
         Message msg = MsgPicker.getMsg();
         Throwable cause = ex;
-        while (cause != null) {
-            if (cause.getClass().getPackage().getName().startsWith("org.apache.hadoop.hbase")) {
-                return new ErrorResponse(req.getRequestURL().toString(),
-                        new InternalErrorException(String.format(msg.getHBASE_FAIL(), ex.getMessage()), ex));
-            }
+        while (cause != null && cause.getCause() != null) {
             cause = cause.getCause();
         }
 
-        Throwable returnEx = ex;
-        if (ex instanceof TransactionException) {
-            returnEx = ex.getCause();
-        }
-
-        return new ErrorResponse(req.getRequestURL().toString(), returnEx);
+        return new ErrorResponse(req.getRequestURL().toString(), cause);
     }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
@@ -208,7 +198,7 @@ public class NBasicController {
 
     public void checkJobStatus(String jobStatus) {
         Message msg = MsgPicker.getMsg();
-        if(! StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
+        if (!StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
             throw new BadRequestException(String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
     }

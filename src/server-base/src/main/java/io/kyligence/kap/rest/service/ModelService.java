@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -858,8 +860,17 @@ public class ModelService extends BasicService {
             SparkSession ss = SparderEnv.getSparkSession();
             ss.sql(JoinedFlatTable.generateSelectDataStatement(dataModel, false));
         } catch (Exception e) {
-            String errorMsg = null != e.getMessage() ? e.getMessage().substring(0, 200) : "null";
-            throw new RuntimeException(errorMsg, e);
+            Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns: \\[(.*?),(.*?)];");
+            Matcher matcher = pattern.matcher(e.getMessage().replaceAll("`", ""));
+            if (matcher.find()) {
+                String str = matcher.group(1);
+                String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), str,
+                        str.substring(0, str.lastIndexOf('.')));
+                throw new RuntimeException(error);
+            } else {
+                String errorMsg = null != e.getMessage() ? e.getMessage().substring(0, 200) : "null";
+                throw new RuntimeException(errorMsg, e);
+            }
         }
     }
 
