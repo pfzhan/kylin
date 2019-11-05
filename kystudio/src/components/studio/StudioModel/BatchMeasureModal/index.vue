@@ -227,7 +227,15 @@ export default class BatchMeasureModal extends Vue {
   isShowSearchTable = false
   submit () {
     let allMeasureArr = []
-    this.searchColumns.forEach((column) => {
+    let columns = []
+    this.factTable.forEach((t) => {
+      columns.push(...t.columns)
+    })
+    this.lookupTable.forEach((t) => {
+      columns.push(...t.columns)
+    })
+    columns.push(...this.ccTable.columns)
+    columns.forEach((column) => {
       if (column.isMeasureCol) {
         if (column.SUM.value && !column.SUM.isShouldDisable) {
           const measure = {
@@ -289,6 +297,21 @@ export default class BatchMeasureModal extends Vue {
     this.$nextTick(() => {
       this.isShowSearchTable = true
       this.searchChar = val && val.replace(/^\s+|\s+$/, '') || ''
+      if (!this.searchChar) {
+        this.factTable.forEach((t) => {
+          t.meaColNum = t.columns.filter((col) => {
+            return col.isMeasureCol
+          }).length
+        })
+        this.lookupTable.forEach((t) => {
+          t.meaColNum = t.columns.filter((col) => {
+            return col.isMeasureCol
+          }).length
+        })
+        this.ccTable.meaColNum = this.ccTable.columns.filter((col) => {
+          return col.isMeasureCol
+        }).length
+      }
     })
   }
   @Watch('isShow')
