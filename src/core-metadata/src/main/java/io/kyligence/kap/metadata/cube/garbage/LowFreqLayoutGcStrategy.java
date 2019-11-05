@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Sets;
@@ -43,13 +44,13 @@ public class LowFreqLayoutGcStrategy implements IGarbageCleanerStrategy {
         ProjectInstance projectInstance = NProjectManager.getInstance(dataflow.getConfig())
                 .getProject(dataflow.getProject());
         Map<Long, FrequencyMap> hitFrequencyMap = dataflow.getLayoutHitCount();
-        long frequencyTimeWindow = projectInstance.getConfig().getFrequencyTimeWindowByTs();
+        int days = projectInstance.getConfig().getFrequencyTimeWindowInDays();
         Set<Long> garbageLayouts = Sets.newHashSet();
         List<LayoutEntity> waitHandlingLayouts = projectInstance.isExpertMode() //
                 ? dataflow.getIndexPlan().getWhitelistLayouts()
                 : dataflow.getIndexPlan().getAllLayouts();
         waitHandlingLayouts.forEach(layout -> {
-            if (System.currentTimeMillis() - layout.getUpdateTime() >= frequencyTimeWindow) {
+            if (TimeUtil.minusDays(System.currentTimeMillis(), days) >= layout.getUpdateTime()) {
                 FrequencyMap frequencyMap = hitFrequencyMap.get(layout.getId());
                 if (frequencyMap == null || frequencyMap.isLowFrequency(dataflow.getProject())) {
                     garbageLayouts.add(layout.getId());

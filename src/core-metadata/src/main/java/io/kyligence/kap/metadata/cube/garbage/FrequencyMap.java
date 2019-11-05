@@ -101,8 +101,8 @@ public class FrequencyMap implements Serializable {
 
     private long getDateBeforeFrequencyTimeWindow(String project) {
         val prjMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        long daysInMillis = prjMgr.getProject(project).getConfig().getFrequencyTimeWindowByTs();
-        return getDateInMillis(System.currentTimeMillis()) - daysInMillis;
+        int days = prjMgr.getProject(project).getConfig().getFrequencyTimeWindowInDays();
+        return TimeUtil.minusDays(getDateInMillis(System.currentTimeMillis()), days);
     }
 
     private long getDateInMillis(final long queryTime) {

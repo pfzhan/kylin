@@ -306,7 +306,7 @@ public class ProjectService extends BasicService {
         response.setJobErrorNotificationEnabled(config.getJobErrorNotificationEnabled());
         response.setJobNotificationEmails(Lists.newArrayList(config.getAdminDls()));
 
-        response.setFrequencyTimeWindow(config.getFrequencyTimeWindowByTs());
+        response.setFrequencyTimeWindow(config.getFrequencyTimeWindowInDays());
 
         response.setLowFrequencyThreshold(config.getLowFrequencyThreshold());
 

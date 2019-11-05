@@ -515,7 +515,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         projectService.updateGarbageCleanupConfig("default", request);
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         val prj = prjMgr.getProject("default");
-        Assert.assertEquals(604800000L, prj.getConfig().getFrequencyTimeWindowByTs());
+        Assert.assertEquals(7, prj.getConfig().getFrequencyTimeWindowInDays());
         Assert.assertEquals(12, prj.getConfig().getLowFrequencyThreshold());
     }
 

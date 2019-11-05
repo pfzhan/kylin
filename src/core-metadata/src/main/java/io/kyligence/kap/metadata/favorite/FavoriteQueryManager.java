@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -254,9 +255,9 @@ public class FavoriteQueryManager implements IKeepNames {
 
     public List<FavoriteQuery> getLowFrequencyFQs() {
         ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        long favoriteQueryFrequencyTimeWindow = projectInstance.getConfig().getFrequencyTimeWindowByTs();
+        int days = projectInstance.getConfig().getFrequencyTimeWindowInDays();
         return getAll().stream()
-                .filter(fq -> System.currentTimeMillis() - fq.getCreateTime() >= favoriteQueryFrequencyTimeWindow)
+                .filter(fq -> TimeUtil.minusDays(System.currentTimeMillis(), days) >= fq.getCreateTime())
                 .filter(fq -> fq.getFrequencyMap().isLowFrequency(project)).collect(Collectors.toList());
     }
 }

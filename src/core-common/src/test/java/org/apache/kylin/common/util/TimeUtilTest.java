@@ -49,6 +49,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
+import lombok.val;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -110,6 +111,29 @@ public class TimeUtilTest {
         Assert.assertEquals(dateFormat.parse("2014/12/28 00:00:00").getTime(), TimeUtil.getWeekStart(t5));
 
         Assert.assertEquals(24 * 60 * 60 * 1000, TimeUtil.timeStringAs("1d", TimeUnit.MILLISECONDS));
+    }
+
+    @Test
+    public void summerTimeChangeTest() throws ParseException {
+        val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        dateFormat.setTimeZone(TimeZone.getDefault());
+
+        // 2019/11/3 02:00:00 changed from summertime to winter time in pst timezone
+        long winterTime = dateFormat.parse("2019/11/3 03:30:00").getTime();
+        long summerTime = dateFormat.parse("2019/11/3 00:00:00").getTime();
+        Assert.assertEquals(summerTime, TimeUtil.getDayStart(winterTime));
+    }
+
+    @Test
+    public void minusDaysTest() throws ParseException {
+        val dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        dateFormat.setTimeZone(TimeZone.getDefault());
+
+        // 2019/11/3 02:00:00 changed from summertime to winter time in pst timezone
+        long winterTime = dateFormat.parse("2019/11/5 09:40:00").getTime();
+        long sevenDaysBeforeInSummerTime = dateFormat.parse("2019/10/29 09:40:00").getTime();
+
+        Assert.assertEquals(sevenDaysBeforeInSummerTime, TimeUtil.minusDays(winterTime, 7));
     }
 
 }

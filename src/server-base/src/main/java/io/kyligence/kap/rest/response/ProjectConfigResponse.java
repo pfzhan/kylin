@@ -85,9 +85,8 @@ public class ProjectConfigResponse {
     @JsonProperty("low_frequency_threshold")
     private long lowFrequencyThreshold;
 
-    public void setFrequencyTimeWindow(long frequencyTimeWindow) {
-        int days = (int) (frequencyTimeWindow / 86400000L);
-        switch (days) {
+    public void setFrequencyTimeWindow(int frequencyTimeWindow) {
+        switch (frequencyTimeWindow) {
             case 1:
                 this.frequencyTimeWindow = "DAY";
                 break;

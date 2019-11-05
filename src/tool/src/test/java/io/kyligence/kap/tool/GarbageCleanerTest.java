@@ -32,10 +32,10 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -97,15 +97,14 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
         long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
-        long dayInMillis = 24 * 60 * 60 * 1000L;
 
         // a low frequency favorite query, related layout 1 will be considered as garbage
         val fq1 = new FavoriteQuery("sql1");
-        fq1.setCreateTime(currentTime - 32 * dayInMillis);
+        fq1.setCreateTime(TimeUtil.minusDays(currentTime, 32));
         fq1.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
-                put(currentDate - 7 * dayInMillis, 1);
-                put(currentDate - 31 * dayInMillis, 100);
+                put(TimeUtil.minusDays(currentDate, 7), 1);
+                put(TimeUtil.minusDays(currentDate, 31), 100);
             }
         }));
 
@@ -123,10 +122,10 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         // not reached low frequency threshold, related layouts are 40001 and 40002
         val fq2 = new FavoriteQuery("sql2");
-        fq2.setCreateTime(currentTime - 8 * dayInMillis);
+        fq2.setCreateTime(TimeUtil.minusDays(currentTime, 8));
         fq2.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
-                put(currentDate - 7 * 24 * 60 * 60 * 1000L, 1);
+                put(TimeUtil.minusDays(currentDate, 7), 1);
                 put(currentDate, 2);
             }
         }));
@@ -144,10 +143,10 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         // not a low frequency fq, related layouts are 10001 and 10002
         val fq3 = new FavoriteQuery("sql3");
-        fq3.setCreateTime(currentTime - 31 * dayInMillis);
+        fq3.setCreateTime(TimeUtil.minusDays(currentTime, 31));
         fq3.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
-                put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+                put(TimeUtil.minusDays(currentDate, 30), 10);
             }
         }));
 
@@ -171,31 +170,31 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
                 {
                     put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 7 * dayInMillis, 1);
-                            put(currentDate - 31 * dayInMillis, 100);
+                            put(TimeUtil.minusDays(currentDate, 7), 1);
+                            put(TimeUtil.minusDays(currentDate, 31), 100);
                         }
                     }));
                     put(40001L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
                             put(currentDate, 2);
-                            put(currentDate - 7 * dayInMillis, 2);
-                            put(currentDate - 31 * dayInMillis, 100);
+                            put(TimeUtil.minusDays(currentDate, 7), 2);
+                            put(TimeUtil.minusDays(currentDate, 31), 100);
                         }
                     }));
                     put(40002L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
                             put(currentDate, 2);
-                            put(currentDate - 7 * dayInMillis, 1);
+                            put(TimeUtil.minusDays(currentDate, 7), 1);
                         }
                     }));
                     put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 30 * dayInMillis, 10);
+                            put(TimeUtil.minusDays(currentDate, 30), 10);
                         }
                     }));
                     put(10002L, new FrequencyMap(new TreeMap<Long, Integer>() {
                         {
-                            put(currentDate - 30 * dayInMillis, 10);
+                            put(TimeUtil.minusDays(currentDate, 30), 10);
                         }
                     }));
                 }
@@ -232,7 +231,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("https://github.com/Kyligence/KAP/issues/16043")
     public void testcleanupMetadataManually_ChangeConfig() {
         long currentTime = System.currentTimeMillis();
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
@@ -297,7 +295,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("https://github.com/Kyligence/KAP/issues/16043")
     public void testcleanupMetadataManually() {
         /**
          * clean up a project that has broken models
@@ -351,7 +348,6 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("https://github.com/Kyligence/KAP/issues/16043")
     public void testcleanupMetadataAtScheduledTime() {
         val projectManager = NProjectManager.getInstance(getTestConfig());
         // when broken model is in MANUAL_MAINTAIN project
