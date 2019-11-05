@@ -6,7 +6,6 @@
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     @close="isShow && closeHandler(false)">
-
     <el-form :model="form" :rules="rules" ref="form" v-if="isFormShow">
       <!-- 表单：组名 -->
       <el-form-item :label="$t('kylinLang.common.groupName')" prop="groupName" v-if="isFieldShow('groupName')">
@@ -19,9 +18,11 @@
           :data="totalUsers"
           :value="form.selectedUsers"
           :before-query="queryHandler"
+          :total-elements="totalSizes"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
           @change="value => inputHandler('selectedUsers', value)">
-          </el-transfer>
+            <div class="users-over-size-tip" slot="left-panel-bottom_content" v-if="isOverSizeTip">{{$t('overSizeTip')}}</div>
+        </el-transfer>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
@@ -86,6 +87,11 @@ export default class GroupEditModal extends Vue {
       validator: this.validate(GROUP_NAME), trigger: 'blur', required: true
     }]
   }
+
+  // 是否显示提示文案（接口size数大于显示数）
+  isOverSizeTip = false
+  // 返回的数据总数
+  totalSizes = [0]
 
   // Computed: Modal宽度
   get modalWidth () {
@@ -169,8 +175,9 @@ export default class GroupEditModal extends Vue {
 
   // Helper: 从后台获取用户组
   async fetchUsers (value) {
+    const pageSize = 1000
     const { data: { data } } = await this.loadUsersList({
-      pageSize: 1000,
+      pageSize,
       pageOffset: 0,
       project: this.currentSelectedProject,
       name: value
@@ -183,6 +190,12 @@ export default class GroupEditModal extends Vue {
       .map(sItem => ({key: sItem, value: sItem}))
       .filter(sItem => !remoteUsers.some(user => user.key === sItem.key))
 
+    this.totalSizes = [data.size]
+
+    if (data.size > pageSize) {
+      this.isOverSizeTip = true
+    }
+
     this.setModal({
       totalUsers: [ ...selectedUsersNotInRemote, ...remoteUsers ]
     })
@@ -191,9 +204,15 @@ export default class GroupEditModal extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../assets/styles/variables.less';
 .group-edit-modal {
   .el-transfer-panel {
     width: 250px;
+  }
+  .users-over-size-tip {
+    color: @text-normal-color;
+    font-size: @text-assist-size;
+    text-align: center;
   }
 }
 </style>
