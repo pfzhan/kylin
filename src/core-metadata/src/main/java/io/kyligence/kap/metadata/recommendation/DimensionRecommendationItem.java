@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.recommendation;
 import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.util.JsonUtil;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -39,6 +40,7 @@ import lombok.Setter;
 import lombok.val;
 import lombok.var;
 
+@Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class DimensionRecommendationItem implements Serializable, RecommendationItem<DimensionRecommendationItem> {
     @Getter
@@ -76,6 +78,11 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
         if (context.getDeletedDimensionRecommendations().contains(itemId)) {
             return;
         }
+        log.debug(
+                "Semi-Auto-Mode project:{} start to apply DimensionRecommendationItem, [model:{}, real:{}, type:{}, column:{}, columnStatus:{}]",
+                context.getModel().getProject(), context.getModel().getId(), real, recommendationType, column.getName(),
+                column.getStatus());
+
         var item = context.getDimensionRecommendationItem(itemId);
         val column = item.column;
         Preconditions.checkNotNull(column);

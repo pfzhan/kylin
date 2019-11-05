@@ -459,6 +459,8 @@ public class FavoriteQueryService extends BasicService {
         if (CollectionUtils.isEmpty(sqlList)) {
             return;
         }
+        long startTime = System.currentTimeMillis();
+        logger.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, sqlList.size());
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Set<String> sqlSet = Sets.newHashSet(sqlList);
         NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
@@ -482,6 +484,8 @@ public class FavoriteQueryService extends BasicService {
             }
             updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
         });
+        logger.info("Semi-Auto-Mode project:{} generate suggestions cost {}ms", project,
+                System.currentTimeMillis() - startTime);
     }
 
     private List<String> handleAcceleration(String project, List<String> sqlList, String user) {

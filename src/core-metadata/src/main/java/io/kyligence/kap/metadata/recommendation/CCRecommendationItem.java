@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.recommendation;
 import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.kylin.common.util.JsonUtil;
@@ -43,6 +44,7 @@ import lombok.Setter;
 import lombok.val;
 import lombok.var;
 
+@Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class CCRecommendationItem implements Serializable, RecommendationItem<CCRecommendationItem> {
 
@@ -81,6 +83,11 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
         if (context.getDeletedCCRecommendations().contains(itemId)) {
             return;
         }
+        log.debug(
+                "Semi-Auto-Mode project:{} start to apply CCRecommendationItem, [model:{}, real:{}, type:{}, expression:{}, columnName:{}, table:{}]",
+                context.getModel().getProject(), context.getModel().getId(), real, recommendationType,
+                cc.getExpression(), cc.getColumnName(), cc.getTableIdentity());
+
         var item = context.getCCRecommendationItem(itemId);
         val cc = item.cc;
         Preconditions.checkNotNull(cc);
@@ -135,8 +142,8 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
                 context.failCCRecommendationItem(itemId);
                 return true;
             }
-            if (!columnIdMap.containsKey(aliasDotColumn) || real
-                    && OptimizeRecommendationManager.isVirtualColumnId(columnIdMap.get(aliasDotColumn))) {
+            if (!columnIdMap.containsKey(aliasDotColumn)
+                    || real && OptimizeRecommendationManager.isVirtualColumnId(columnIdMap.get(aliasDotColumn))) {
                 throw new DependencyLostException(String
                         .format("cc lost dependency: cc %s not exists, you may need pass it first", aliasDotColumn));
             }

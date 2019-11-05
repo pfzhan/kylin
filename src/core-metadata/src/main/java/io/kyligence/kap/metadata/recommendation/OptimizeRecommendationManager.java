@@ -169,6 +169,8 @@ public class OptimizeRecommendationManager {
     private Map<Integer, Integer> optimizeModel(NDataModel optimized, NDataModel origin) {
         Preconditions.checkNotNull(optimized, "optimize model not exists");
         Preconditions.checkNotNull(origin, "optimize model not exists");
+        logger.info("Semi-Auto-Mode project:{} start to optimize Model:{}", project, optimized.getId());
+
         val factTable = origin.getRootFactTableAlias() != null ? origin.getRootFactTableAlias()
                 : origin.getRootFactTableName().split("\\.")[1];
 
@@ -253,12 +255,15 @@ public class OptimizeRecommendationManager {
         }
 
         val recommendation = copy(getOrCreate(optimized.getId()));
+        logOptimizeRecommendation(optimized.getId(), recommendation);
         recommendation.setUuid(optimized.getUuid());
         recommendation.addCCRecommendations(ccRecommendations);
         recommendation.addDimensionRecommendations(dimensionRecommendations);
         recommendation.addMeasureRecommendations(measureRecommendations);
         recommendation.setProject(project);
         updateOptimizeRecommendation(recommendation);
+
+        logOptimizeRecommendation(optimized.getId());
         return translations;
     }
 
@@ -294,6 +299,7 @@ public class OptimizeRecommendationManager {
         val optimizedAllIndexes = optimized.getAllIndexes();
 
         Preconditions.checkNotNull(originIndexPlan, "index plan " + optimized.getId() + " not exists");
+        logger.info("Semi-Auto-Mode project:{} start to optimize IndexPlan:{}", project, optimized.getId());
 
         val originAllIndexes = originIndexPlan.getAllIndexes();
 
@@ -309,6 +315,8 @@ public class OptimizeRecommendationManager {
 
         val delta = Sets.difference(optimizedAllLayouts, originAllLayouts);
         val recommendation = copy(getOrCreate(optimized.getUuid()));
+        logOptimizeRecommendation(optimized.getId(), recommendation);
+
         List<IndexRecommendationItem> indexRecommendationItems = delta.stream()
                 .collect(Collectors.groupingBy(Pair::getFirst)).entrySet().stream().flatMap(entry -> {
                     val layouts = entry.getValue().stream().map(Pair::getSecond).collect(Collectors.toList());
@@ -328,6 +336,8 @@ public class OptimizeRecommendationManager {
                 }).collect(Collectors.toList());
         recommendation.addIndexRecommendations(indexRecommendationItems);
         crud.save(recommendation);
+
+        logOptimizeRecommendation(optimized.getId());
     }
 
     private void translateIndex(IndexEntity indexEntity, Map<Integer, Integer> translations) {
@@ -353,12 +363,16 @@ public class OptimizeRecommendationManager {
         if (getOptimizeRecommendation(id) == null) {
             return;
         }
+        logger.info("Semi-Auto-Mode project:{} start to clean all recommendation, id:{}", project, id);
+        logOptimizeRecommendation(id);
+
         updateOptimizeRecommendation(id, recommendation -> {
             recommendation.setCcRecommendations(Lists.newArrayList());
             recommendation.setDimensionRecommendations(Lists.newArrayList());
             recommendation.setMeasureRecommendations(Lists.newArrayList());
             recommendation.setIndexRecommendations(Lists.newArrayList());
         });
+        logOptimizeRecommendation(id);
     }
 
     public void cleanInEffective(String id) {
@@ -367,6 +381,7 @@ public class OptimizeRecommendationManager {
         if (recommendation == null) {
             return;
         }
+        logger.info("Semi-Auto-Mode project:{} model:{} start to clean ineffective recommendations.", project, id);
 
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
         val model = modelManager.getDataModelDesc(id);
@@ -384,6 +399,8 @@ public class OptimizeRecommendationManager {
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
         Preconditions.checkNotNull(model);
         Preconditions.checkNotNull(indexPlan);
+        logger.info("Semi-Auto-Mode project:{} start to optimize Model:{} and IndexPlan: {}", project, model.getId(),
+                indexPlan.getId());
 
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
         val modelInCache = modelManager.getDataModelDesc(model.getId());
@@ -423,6 +440,7 @@ public class OptimizeRecommendationManager {
         @Override
         public void handleOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
+            return;
         }
 
         @Override
@@ -441,7 +459,7 @@ public class OptimizeRecommendationManager {
         @Override
         public void handleOnWrongPositionExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
-
+            return;
         }
 
         @Override
@@ -636,8 +654,57 @@ public class OptimizeRecommendationManager {
         return context.getIndexPlan();
     }
 
+    public void logOptimizeRecommendation(String id, OptimizeRecommendation r) {
+        if (null == r) {
+            logger.info("Semi-Auto-Mode project:{} model:{} print recommendations, recommendations is null!", project,
+                    id);
+            return;
+        }
+        logger.info(
+                "Semi-Auto-Mode project:{} print recommendations, [Model:{}, CcRecommendations:{}, DimensionRecommendations:{}, MeasureRecommendations:{}, IndexRecommendations:{}]",
+                r.getProject(), r.getId(), r.getCcRecommendations().size(), r.getDimensionRecommendations().size(),
+                r.getMeasureRecommendations().size(), r.getIndexRecommendations().size());
+    }
+
+    public void logOptimizeRecommendation(String id) {
+        val r = getOptimizeRecommendation(id);
+        logOptimizeRecommendation(id, r);
+    }
+
+    private void logContextRecommendationItems(String project, NDataModel model,
+            OptimizeContext.ContextRecommendationItems items, String type) {
+        logger.info(
+                "Semi-Auto-Mode project:{} print OptimizeContext type:{} [Model:{}, OriginRecommendations: {}, DeletedRecommendations: {}, ModifiedRecommendations: {}]",
+                project, type, model.getId(), items.getOriginRecommendations().size(),
+                items.getDeletedRecommendations().size(), items.getModifiedRecommendations().size());
+    }
+
+    public void logOptimizeContext(String project, OptimizeContext context) {
+        if (null == project || null == context) {
+            logger.info("Semi-Auto-Mode print OptimizeContext, project is null:{} OptimizeContext is null:{}",
+                    null == project, null == context);
+            return;
+        }
+
+        logContextRecommendationItems(project, context.getModel(), context.getCcContextRecommendationItems(),
+                "CcContextRecommendationItems");
+        logContextRecommendationItems(project, context.getModel(), context.getDimensionContextRecommendationItems(),
+                "DimensionContextRecommendationItems");
+        logContextRecommendationItems(project, context.getModel(), context.getMeasureContextRecommendationItems(),
+                "MeasureContextRecommendationItems");
+        logContextRecommendationItems(project, context.getModel(), context.getIndexContextRecommendationItems(),
+                "IndexContextRecommendationItems");
+        logger.info(
+                "Semi-Auto-Mode project:{} print OptimizeContext model [Model:{}, CC:{}, Column:{}, Measure:{}, Index:{}, Layout:{}]",
+                project, context.getModel().getId(), context.getModel().getComputedColumnDescs().size(),
+                context.getModel().getAllNamedColumns().size(), context.getModel().getAllMeasures().size(),
+                context.getIndexPlan().getAllIndexes().size(), context.getIndexPlan().getAllLayouts().size());
+    }
+
     private OptimizeContext apply(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
+        logger.info("Semi-Auto-Mode project:{} start to apply OptimizeContext, [model: {}]", project, model.getId());
         val context = new OptimizeContext(model, indexPlan, recommendation);
+        logOptimizeContext(project, context);
         apply(context);
         recommendation.getIndexRecommendations().stream()
                 .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).filter(IndexRecommendationItem::isAdd)
@@ -646,6 +713,9 @@ public class OptimizeRecommendationManager {
                     item.checkDependencies(context);
                     item.apply(context);
                 });
+        logger.info("Semi-Auto-Mode project:{} apply OptimizeContext successfully, [model: {}]", project,
+                model.getId());
+        logOptimizeContext(project, context);
         return context;
     }
 
@@ -668,11 +738,14 @@ public class OptimizeRecommendationManager {
             return;
         }
 
+        logger.info("Semi-Auto-Mode project:{} start to update recommendation by OptimizeContext, id:{}", project,
+                context.getModel().getId());
         if (!context.getTranslations().isEmpty()) {
             context.getRecommendation().getIndexRecommendations().forEach(item -> item.translate(context));
         }
 
         val cached = getOptimizeRecommendation(context.getModel().getUuid());
+        logOptimizeRecommendation(context.getModel().getId(), cached);
         val copy = copy(cached);
         copy.setCcRecommendations(update(cached.getCcRecommendations(), context.getModifiedCCRecommendations(),
                 context.getDeletedCCRecommendations()));
@@ -686,7 +759,7 @@ public class OptimizeRecommendationManager {
         copy.setLastVerifiedTime(lastVerifiedTime);
 
         crud.save(copy);
-
+        logOptimizeRecommendation(context.getModel().getId());
     }
 
     private <T extends RecommendationItem> List<T> update(List<T> items, Map<Long, T> modifies, Set<Long> deletes) {
@@ -787,6 +860,10 @@ public class OptimizeRecommendationManager {
     }
 
     public void removeLayouts(String id, Set<Long> removeLayouts) {
+        Preconditions.checkNotNull(id);
+        Preconditions.checkNotNull(removeLayouts);
+        logger.info("Semi-Auto-Mode project:{} start to clean the useless layouts [model:{}, layouts:{}]", project, id,
+                removeLayouts.size());
         val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
         var indexPlan = indexPlanManager.getIndexPlan(id);
         Preconditions.checkNotNull(indexPlan);
@@ -817,8 +894,10 @@ public class OptimizeRecommendationManager {
                     }
                 }).collect(Collectors.toList());
         val recommendation = copy(getOrCreate(id));
+        logOptimizeRecommendation(id, recommendation);
         recommendation.addIndexRecommendations(indexItems);
         updateOptimizeRecommendation(recommendation);
+        logOptimizeRecommendation(id);
     }
 
     public IndexPlan applyRemove(IndexPlan indexPlan, OptimizeRecommendation recommendation) {
@@ -843,5 +922,6 @@ public class OptimizeRecommendationManager {
             return;
         }
         crud.delete(recommendation);
+        logger.info("Semi-Auto-Mode project:{} deleted recommendation, id:{}", project, id);
     }
 }

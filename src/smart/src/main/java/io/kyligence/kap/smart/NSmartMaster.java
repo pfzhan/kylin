@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import org.apache.calcite.sql.parser.impl.ParseException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -285,22 +286,26 @@ public class NSmartMaster {
     }
 
     public void genOptRecommendations() {
-        log.info("Start generate optimized recommendations.");
+        log.info("Semi-Auto-Mode project:{} start to generate optimized recommendations.", project);
         OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
+                log.info("Semi-Auto-Mode project:{} skip model optimize, withoutTargetModel: {}, withoutAnyIndexes: {}",
+                        project, modelCtx.withoutTargetModel(), modelCtx.withoutAnyIndexes());
                 continue;
             }
             NDataModel model = modelCtx.getTargetModel();
             IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
             try {
-                optRecMgr.optimize(model, indexPlan);
+                OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
+                optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
             } catch (Exception e) {
-                log.error("model({}) failed to generate recommendations", model.getUuid(), e);
+                log.error("Semi-Auto-Mode project:{} model({}) failed to generate recommendations", project,
+                        model.getUuid(), e);
             }
         }
-        log.info("Optimized recommendations are successfully saved to metadata.");
+        log.info("Semi-Auto-Mode project:{} optimized recommendations are successfully saved to metadata.", project);
     }
 
     public void saveModel() {

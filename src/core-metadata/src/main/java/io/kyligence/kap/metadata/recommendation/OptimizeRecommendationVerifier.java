@@ -23,11 +23,13 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
@@ -39,6 +41,7 @@ import lombok.Data;
 import lombok.val;
 
 @Data
+@Slf4j
 public class OptimizeRecommendationVerifier {
     private String id;
 
@@ -60,7 +63,16 @@ public class OptimizeRecommendationVerifier {
         this.id = id;
     }
 
+    private int getSize(Collection items) {
+        return null == items ? 0 : items.size();
+    }
+
     public void verify() {
+        log.info(
+                "Semi-Auto-Mode project:{} start to verify recommendations, [model:{}, passCCItems:{}, failCCItems:{}, passDimensionItems:{}, failDimensionItems:{}, passMeasureItems:{}, failMeasureItems:{}, passIndexItems:{}, failIndexItems:{}]",
+                project, id, getSize(passCCItems), getSize(failCCItems), getSize(passDimensionItems),
+                getSize(failDimensionItems), getSize(passMeasureItems), getSize(failMeasureItems),
+                getSize(passIndexItems), getSize(failIndexItems));
         val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
         val modelManager = NDataModelManager.getInstance(config, project);
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
@@ -111,6 +123,9 @@ public class OptimizeRecommendationVerifier {
         recommendationManager.update(context, System.currentTimeMillis());
 
         recommendationManager.cleanInEffective(id);
+
+        recommendationManager.logOptimizeRecommendation(id);
+        log.info("Semi-Auto-Mode project:{} verify recommendations successfully, [model:{}]", project, id);
     }
 
     public void verifyAll() {
@@ -119,6 +134,8 @@ public class OptimizeRecommendationVerifier {
 
         if (recommendation == null)
             return;
+
+        log.info("Semi-Auto-Mode project:{} start to verify all recommendations, [model:{}]", project, id);
 
         this.passCCItems = getItemIds(recommendation.getCcRecommendations());
         this.passDimensionItems = getItemIds(recommendation.getDimensionRecommendations());
