@@ -63,10 +63,10 @@ public class InfluxDBTool {
 
             Pair<Integer, String> result = new CliCommandExecutor().execute(cmd, null);
             if (null != result.getSecond()) {
-                logger.info("dumpInfluxDBMetrics: {}", result.getSecond());
+                logger.debug("dumpInfluxDBMetrics: {}", result.getSecond());
             }
         } catch (Exception e) {
-            logger.error("Failed to dump influxdb metrics ", e);
+            logger.debug("Failed to dump influxdb metrics ", e);
         }
     }
 }

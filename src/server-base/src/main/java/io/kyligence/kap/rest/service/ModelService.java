@@ -155,6 +155,8 @@ public class ModelService extends BasicService {
 
     private static final String FILE_COUNT = "file_count";
 
+    private static final String LAST_MODIFY = "last_modify";
+
     public static final String VALID_NAME_FOR_MODEL_DIMENSION_MEASURE = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_";
 
     @Setter
@@ -257,7 +259,7 @@ public class ModelService extends BasicService {
     public List<NDataModelResponse> getCubes0(String modelAlias, String project) {
         Preconditions.checkNotNull(project);
 
-        List<NDataModelResponse> modelResponseList = getModels(modelAlias, project, false, null, null, "last_modify",
+        List<NDataModelResponse> modelResponseList = getModels(modelAlias, project, false, null, null, LAST_MODIFY,
                 true);
 
         modelResponseList.forEach(modelResponse -> {
@@ -266,7 +268,7 @@ public class ModelService extends BasicService {
             long inputRecordCnt = 0L;
             long inputRecordSizeBytes = 0L;
             List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
-                    "" + (Long.MAX_VALUE - 1), "last_modify", true, null);
+                    "" + (Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
             for (NDataSegmentResponse segment : segments) {
                 Long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
                         .max(Long::compareTo).orElse(0L);
@@ -334,7 +336,7 @@ public class ModelService extends BasicService {
             return sortExpansionRate(reverse, filterModels);
         } else {
             Comparator<NDataModelResponse> comparator = propertyComparator(
-                    StringUtils.isEmpty(sortBy) ? "last_modify" : sortBy, !reverse);
+                    StringUtils.isEmpty(sortBy) ? LAST_MODIFY : sortBy, !reverse);
             filterModels.sort(comparator);
             return filterModels;
         }

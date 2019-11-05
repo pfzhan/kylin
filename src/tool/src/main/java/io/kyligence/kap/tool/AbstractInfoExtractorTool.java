@@ -309,6 +309,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     protected void addShellOutput(String cmd, File destDir, String filename, boolean append) {
+        addShellOutput(cmd, destDir, filename, append, false);
+    }
+
+    protected void addShellOutput(String cmd, File destDir, String filename, boolean append, boolean errorDebug) {
         if (null == cmdExecutor) {
             logger.error("Failed to run cmd because cmdExecutor is null: {}", cmd);
             return;
@@ -326,7 +330,11 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
             FileUtils.writeStringToFile(new File(destDir, filename), output, append);
         } catch (Exception e) {
-            logger.warn("Failed to run command: {}", cmd, e);
+            if(errorDebug) {
+                logger.debug("Failed to run command: {}", cmd, e);
+            } else {
+                logger.error("Failed to run command: {}", cmd, e);
+            }
         }
     }
 

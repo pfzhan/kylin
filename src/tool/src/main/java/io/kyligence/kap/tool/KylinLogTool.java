@@ -158,7 +158,12 @@ public class KylinLogTool {
                         FileUtils.write(new File(destLogDir, logFile.getName()), result.getSecond());
                     }
                 } catch (ShellException se) {
-                    logger.error("Failed to extract kylin log file: {}", logFile.getAbsolutePath(), se);
+                    String logMessage = "Failed to extract kylin log file: {}";
+                    if(!se.getMessage().contains("can not found line range in")) {
+                        logger.error(logMessage, logFile.getAbsolutePath(), se);
+                    } else {
+                        logger.debug(logMessage, logFile.getAbsolutePath(), se);
+                    }
                     FileUtils.write(new File(destLogDir, logFile.getName()), se.getMessage());
                 }
             }

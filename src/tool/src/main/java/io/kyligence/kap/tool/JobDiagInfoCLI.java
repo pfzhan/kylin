@@ -23,12 +23,18 @@
  */
 package io.kyligence.kap.tool;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class JobDiagInfoCLI {
+    private static final Logger logger = LoggerFactory.getLogger("diag");
 
     public static void main(String[] args) {
+        logger.info("Start to collect job diagnosis info.");
         JobDiagInfoTool jobDiagInfoTool = new JobDiagInfoTool();
         jobDiagInfoTool.execute(args);
 
+        logger.info("Collect job diagnosis info completely.");
         System.exit(0);
     }
 
