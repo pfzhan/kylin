@@ -114,7 +114,7 @@ exports.default = {
     pleaseInput: 'Please input here',
     pleaseFilter: 'Filter...',
     pleaseFilterByModelName: 'Filter by model name',
-    pleaseFilterByIndexGroupName: 'Filter by Index Group Name',
+    pleaseFilterByIndexGroupName: 'Search Index Group',
     pleaseFilterByCubeName: 'Filter by cube name',
     enterAlias: 'Enter Alias',
     pleaseSelect: 'Please select',
