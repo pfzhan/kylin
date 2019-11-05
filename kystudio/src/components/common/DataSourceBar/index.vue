@@ -461,6 +461,9 @@ export default class DataSourceBar extends Vue {
   selectFirstTable () {
     if (this.isShowSelected && this.tableArray.length) {
       this.handleClick(getFirstTableData(this.datasources))
+      return true
+    } else {
+      return null // 当前数据为空，不存在第一张表
     }
   }
   freshAutoCompleteWords () {

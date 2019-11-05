@@ -328,10 +328,14 @@ export default class StudioSource extends Vue {
       const { isSetToDefault } = options
       const tableName = this.selectedTable.name
       const databaseName = this.selectedTable.database
+      let isHaveFirstTable = true
       await this.$refs['datasource-bar'].loadTables({ isReset: true })
       isSetToDefault
-        ? this.$refs['datasource-bar'].selectFirstTable()
+        ? isHaveFirstTable = this.$refs['datasource-bar'].selectFirstTable()
         : await this.fetchTableDetail({ tableName, databaseName })
+      if (!isHaveFirstTable) {
+        this.selectedTableData = null
+      }
     } catch (e) {
       handleError(e)
     }
