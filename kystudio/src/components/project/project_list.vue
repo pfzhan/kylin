@@ -108,7 +108,7 @@
  </div>
 </template>
 <script>
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapMutations } from 'vuex'
 import cubeList from './cube_list'
 import modeList from './model_list'
 import accessEdit from './access_edit'
@@ -130,6 +130,9 @@ export default {
     }),
     ...mapActions('ProjectEditModal', {
       callProjectEditModal: 'CALL_MODAL'
+    }),
+    ...mapMutations({
+      resetQueryTabs: 'RESET_QUERY_TABS'
     }),
     inputFilter (value) {
       clearInterval(this.filterTimer)
@@ -167,6 +170,7 @@ export default {
           })
           this.loadProjects(this.filterData)
           this.loadAllProjects()
+          this.resetQueryTabs({projectName: project.name})
         }, (res) => {
           handleError(res)
         })

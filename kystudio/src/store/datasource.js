@@ -61,6 +61,9 @@ export default {
     },
     [types.SET_QUERY_TABS] (state, { tabs }) {
       state.editableTabs = tabs
+    },
+    [types.RESET_QUERY_TABS]: (state, {projectName}) => {
+      state.editableTabs && projectName in state.editableTabs && delete state.editableTabs[projectName]
     }
   },
   actions: {
