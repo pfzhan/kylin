@@ -10,6 +10,8 @@ let pageSizes = [5, 10, 20, 30, 40]
 
 let speedInfoTimer = 6000
 
+let sqlRowsLimit = 100
+
 let tooltipDelayTime = 400
 if (process.env.NODE_ENV === 'development') {
   apiUrl = '/kylin/api/'
@@ -28,7 +30,8 @@ export {
   pageCount,
   pageSizes,
   tooltipDelayTime,
-  speedInfoTimer
+  speedInfoTimer,
+  sqlRowsLimit
 }
 export const menusData = [
   // {name: 'dashboard', path: '/dashboard', icon: 'el-icon-ksd-dashboard'},
