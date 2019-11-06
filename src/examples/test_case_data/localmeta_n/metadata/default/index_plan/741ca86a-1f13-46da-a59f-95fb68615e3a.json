@@ -270,7 +270,8 @@
           ],
           "storage_type": 20
         }
-      ]
+      ],
+      "next_layout_offset": 2
     },
     {
       "id": 0,

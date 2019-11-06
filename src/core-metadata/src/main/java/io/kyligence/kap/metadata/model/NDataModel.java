@@ -1266,6 +1266,11 @@ public class NDataModel extends RootPersistentEntity {
         return fk2Pk;
     }
 
+    public Map<String, Integer> getDimensionNameIdMap() {
+        return allNamedColumns.stream().filter(NamedColumn::isDimension)
+                .collect(Collectors.toMap(NamedColumn::getAliasDotColumn, NamedColumn::getId));
+    }
+
     public int getColumnIdByColumnName(String aliasDotName) {
         Preconditions.checkArgument(allNamedColumns != null);
         for (NamedColumn col : allNamedColumns) {

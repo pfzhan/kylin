@@ -297,6 +297,9 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             List<Integer> colOrder = Lists.newArrayList(tailor(getDimensions(), cuboidId));
             colOrder.addAll(getMeasures());
             layout.setColOrder(colOrder);
+            if (colOrder.containsAll(indexPlan.getAggShardByColumns())) {
+                layout.setShardByColumns(indexPlan.getAggShardByColumns());
+            }
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
             val dimensionsInLayout = tailor(getDimensions(), cuboidId);
@@ -331,7 +334,10 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 maybeIndex.setDimensions(dimensionsInLayout);
                 maybeIndex.setMeasures(getMeasures());
                 maybeIndex.setIndexPlan(indexPlan);
-                maybeIndex.setNextLayoutOffset(2);
+                maybeIndex.setNextLayoutOffset(layout.getId() % IndexEntity.INDEX_ID_STEP + 1);
+            } else {
+                maybeIndex.setNextLayoutOffset(
+                        Math.max(layout.getId() % IndexEntity.INDEX_ID_STEP + 1, maybeIndex.getNextLayoutOffset()));
             }
             layout.setUpdateTime(lastModifiedTime);
             layout.setIndex(maybeIndex);

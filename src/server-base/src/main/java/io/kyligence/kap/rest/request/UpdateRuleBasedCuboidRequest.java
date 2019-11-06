@@ -27,11 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.collections.CollectionUtils;
+import org.springframework.beans.BeanUtils;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import lombok.AllArgsConstructor;
@@ -39,8 +42,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.springframework.beans.BeanUtils;
 
 @Builder
 @AllArgsConstructor
@@ -136,7 +137,8 @@ public class UpdateRuleBasedCuboidRequest {
         return mergedAndSorted;
     }
 
-    private void calculateCurrentSortdList(Map<Integer, Integer> mergedAndSortedIndexMap, List<Integer> currentSortedList, int dimensionId) {
+    private void calculateCurrentSortdList(Map<Integer, Integer> mergedAndSortedIndexMap,
+            List<Integer> currentSortedList, int dimensionId) {
         boolean needToAppendToTail = true;
         Set<Integer> currentSortedSet = Sets.newHashSet(currentSortedList);
         if (currentSortedSet.contains(dimensionId)) {

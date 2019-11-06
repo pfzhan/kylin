@@ -43,7 +43,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -58,6 +60,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
+import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
@@ -73,6 +76,7 @@ import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptimizeRecommendationService;
@@ -97,6 +101,9 @@ public class NModelController extends NBasicController {
 
     @Autowired
     private ModelSemanticHelper semanticService;
+
+    @Autowired
+    private IndexPlanService indexPlanService;
 
     @Autowired
     @Qualifier("optimizeRecommendationService")
@@ -265,6 +272,25 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         List<IndexEntityResponse> aggIndices = modelService.getAggIndices(modelId, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndices, "");
+    }
+
+    @PostMapping(value = "/agg_indices/shard_columns", produces = "application/vnd.apache.kylin-v2+json")
+    @ResponseBody
+    public EnvelopeResponse updateAggIndicesShardColumns(
+            @RequestBody AggShardByColumnsRequest aggShardByColumnsRequest) {
+        checkProjectName(aggShardByColumnsRequest.getProject());
+        checkRequiredArg(MODEL_ID, aggShardByColumnsRequest.getModelId());
+        indexPlanService.updateShardByColumns(aggShardByColumnsRequest.getProject(), aggShardByColumnsRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @GetMapping(value = "/agg_indices/shard_columns", produces = "application/vnd.apache.kylin-v2+json")
+    @ResponseBody
+    public EnvelopeResponse getAggIndicesShardColumns(@RequestParam String project, @RequestParam String modelId) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, indexPlanService.getShardByColumns(project, modelId),
+                "");
     }
 
     @RequestMapping(value = "/cuboids", method = RequestMethod.GET, produces = {

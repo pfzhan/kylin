@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
@@ -56,8 +57,10 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -289,6 +292,44 @@ public class IndexPlanService extends BasicService {
         cpMgr.updateIndexPlan(modelId, copyForWrite -> copyForWrite.removeLayouts(layoutIds, LayoutEntity::equals,
                 includeAuto, includeManual));
         dfMgr.removeLayouts(df, layoutIds);
+    }
+
+    @Transaction(project = 0)
+    public void updateShardByColumns(String project, AggShardByColumnsRequest request) {
+        aclEvaluate.checkProjectReadPermission(project);
+
+        val modelId = request.getModelId();
+        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val model = indexPlan.getModel();
+
+        val dimensions = model.getDimensionNameIdMap();
+        for (String shardByColumn : request.getShardByColumns()) {
+            if (!dimensions.containsKey(shardByColumn)) {
+                throw new BadRequestException("Column " + shardByColumn + " is not dimension");
+            }
+        }
+
+        indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.setAggShardByColumns(request.getShardByColumns().stream().map(model::getColumnIdByColumnName)
+                    .collect(Collectors.toList()));
+        });
+        if (request.isLoadData()) {
+            val eventManager = getEventManager(project);
+            eventManager.postAddCuboidEvents(modelId, getUsername());
+        }
+    }
+
+    public AggShardByColumnsResponse getShardByColumns(String project, String modelId) {
+        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val model = indexPlan.getModel();
+        val result = new AggShardByColumnsResponse();
+        result.setModelId(modelId);
+        result.setProject(project);
+        result.setShardByColumns(indexPlan.getAggShardByColumns().stream().map(model::getColumnNameByColumnId)
+                .collect(Collectors.toList()));
+        return result;
     }
 
     public List<TableIndexResponse> getTableIndexs(String project, String model) {

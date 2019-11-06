@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -63,6 +64,7 @@ import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -559,6 +561,70 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a").aggregationGroups(Lists.newArrayList(aggGroup))
                 .build();
         indexPlanService.checkIndexCountWithinLimit(request);
+    }
+
+    @Test
+    public void testUpdateAggShardByColumns() {
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val request = new AggShardByColumnsRequest();
+        request.setModelId(modelId);
+        request.setProject("default");
+        request.setLoadData(true);
+        request.setShardByColumns(Lists.newArrayList("TEST_KYLIN_FACT.CAL_DT", "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"));
+        indexPlanService.updateShardByColumns("default", request);
+
+        var indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(modelId);
+        var layouts = indexPlan.getRuleBaseLayouts();
+        for (LayoutEntity layout : layouts) {
+            if (layout.getColOrder().containsAll(Lists.newArrayList(2, 3))) {
+                Assert.assertEquals(2, layout.getId() % IndexEntity.INDEX_ID_STEP);
+            } else {
+                Assert.assertEquals(1, layout.getId() % IndexEntity.INDEX_ID_STEP);
+            }
+
+        }
+
+        val response = indexPlanService.getShardByColumns("default", modelId);
+        Assert.assertArrayEquals(request.getShardByColumns().toArray(new String[0]),
+                response.getShardByColumns().toArray(new String[0]));
+
+        val eventDao = EventDao.getInstance(getTestConfig(), "default");
+        val events = eventDao.getEventsOrdered();
+        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(AddCuboidEvent.class, events.get(0).getClass());
+
+        // change shard by columns
+        request.setShardByColumns(Lists.newArrayList("TEST_KYLIN_FACT.LSTG_FORMAT_NAME"));
+        request.setLoadData(false);
+        indexPlanService.updateShardByColumns("default", request);
+
+        indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(modelId);
+        layouts = indexPlan.getRuleBaseLayouts();
+        for (LayoutEntity layout : layouts) {
+            if (layout.getColOrder().containsAll(Lists.newArrayList(2, 3))) {
+                Assert.assertEquals(3, layout.getId() % IndexEntity.INDEX_ID_STEP);
+            } else if (layout.getColOrder().contains(3)) {
+                Assert.assertEquals(2, layout.getId() % IndexEntity.INDEX_ID_STEP);
+            } else {
+                Assert.assertEquals(1, layout.getId() % IndexEntity.INDEX_ID_STEP);
+            }
+        }
+        Assert.assertEquals(2, events.size());
+    }
+
+    @Test
+    public void testUpdateAggShard_WithInvalidColumn() {
+        val wrongColumn = "TEST_CAL_DT.WEEK_BEG_DT";
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Column " + wrongColumn + " is not dimension");
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val request = new AggShardByColumnsRequest();
+        request.setModelId(modelId);
+        request.setProject("default");
+        request.setLoadData(true);
+        request.setShardByColumns(
+                Lists.newArrayList("TEST_KYLIN_FACT.CAL_DT", wrongColumn, "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"));
+        indexPlanService.updateShardByColumns("default", request);
     }
 
     private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups) {

@@ -129,6 +129,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @Getter
     @JsonProperty("next_table_index_id")
     private long nextTableIndexId = IndexEntity.TABLE_INDEX_START_ID;
+    @Getter
+    @JsonProperty("agg_shard_by_columns")
+    private List<Integer> aggShardByColumns = Lists.newArrayList();
 
     // computed fields below
     @Setter
@@ -507,6 +510,19 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     public void setRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
         setRuleBasedIndex(ruleBasedIndex, false);
+    }
+
+    public void setAggShardByColumns(List<Integer> aggShardByColumns) {
+        checkIsNotCachedAndShared();
+        if (ruleBasedIndex != null) {
+            val ruleLayouts = ruleBasedIndex.genCuboidLayouts();
+            this.aggShardByColumns = aggShardByColumns;
+            ruleBasedIndex.setLayoutIdMapping(Lists.newArrayList());
+            ruleBasedIndex.genCuboidLayouts(ruleLayouts);
+            this.ruleBasedLayouts = Lists.newArrayList(ruleBasedIndex.genCuboidLayouts());
+        }
+        this.aggShardByColumns = aggShardByColumns;
+        updateNextId();
     }
 
     private void updateNextId() {
