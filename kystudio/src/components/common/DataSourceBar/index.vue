@@ -507,7 +507,7 @@ export default class DataSourceBar extends Vue {
             list: tables
           })
         }
-        this.callGlobalDetailDialog({
+        await this.callGlobalDetailDialog({
           theme: 'plain-mult',
           msg: this.$t('loadTablesFail', {db_counts: datasrouces.length, table_counts: tables.length}),
           showCopyBtn: true,

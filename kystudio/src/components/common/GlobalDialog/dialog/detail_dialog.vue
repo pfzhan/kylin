@@ -102,7 +102,8 @@ export default class DetailDialogModal extends Vue {
   filterInjectScript = filterInjectScript
   loading = false
   showDetail = false
-  handleClose () {
+  handleClose (isSubmit) {
+    this.callback && this.callback(isSubmit)
     this.hideModal()
     this.resetModal()
     this.loading = false
@@ -111,8 +112,8 @@ export default class DetailDialogModal extends Vue {
   handleSubmit () {
     this.loading = true
     setTimeout(() => {
-      this.callback && this.callback()
-      this.handleClose()
+      // this.callback && this.callback()
+      this.handleClose(true)
     }, 200)
   }
   toggleDetail () {
