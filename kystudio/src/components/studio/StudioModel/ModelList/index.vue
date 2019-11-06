@@ -11,7 +11,7 @@
         <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
           <span>{{$t('kylinLang.common.model')}}</span>
         </el-button>
-        <el-button type="primary" icon="el-icon-ksd-add_2" v-if="$store.state.project.isSemiAutomatic" size="medium" plain class="ksd-mtb-10 ksd-ml-10" @click="showGenerateModelDialog">
+        <el-button type="primary" icon="el-icon-ksd-add_2" v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')" size="medium" plain class="ksd-mtb-10 ksd-ml-10" @click="showGenerateModelDialog">
           <span>{{$t('kylinLang.model.generateModel')}}</span>
         </el-button>
       </div>
