@@ -45,13 +45,6 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.request.JobUpdateRequest;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
-import io.kyligence.kap.rest.service.JobService;
-import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -70,6 +63,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.rest.request.SparkJobTimeRequest;
+import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import io.kyligence.kap.rest.service.JobService;
+import lombok.val;
 
 public class NJobControllerTest {
 
@@ -110,7 +113,8 @@ public class NJobControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", null, 0, 10, "last_modified", true);
+        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", null, 0, 10, "last_modified",
+                true);
     }
 
     @Test
@@ -277,5 +281,23 @@ public class NJobControllerTest {
 
         Mockito.verify(nJobController).getJobOutput("e1ad7bb0-522e-456a-859d-2eab1df448de",
                 "e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
+    }
+
+    @Test
+    public void testUpdateSparkJobTime() throws Exception {
+        SparkJobTimeRequest request = new SparkJobTimeRequest();
+        request.setProject("a");
+        request.setJobId("b");
+        request.setTaskId("c");
+        request.setYarnJobWaitTime("2");
+        request.setYarnJobRunTime("1");
+        Mockito.doNothing().when(jobService).updateSparkTimeInfo(request.getProject(), request.getJobId(),
+                request.getTaskId(), request.getYarnJobWaitTime(), request.getYarnJobRunTime());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/wait_and_run_time")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).updateSparkJobTime(request);
     }
 }

@@ -39,10 +39,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.mockito.Mockito;
 
 import io.kyligence.kap.engine.spark.NSparkBasicTest;
 
@@ -107,8 +107,8 @@ public class SparkApplicationTest extends NSparkBasicTest {
             }
         });
 
-        Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/")
-                .when(application).getTrackingUrl("application_1561370224051_0160");
+        Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
+                .getTrackingUrl("application_1561370224051_0160");
 
         Map<String, String> payload = new HashMap<>(5);
         payload.put("project", "test_job_output");
@@ -117,23 +117,25 @@ public class SparkApplicationTest extends NSparkBasicTest {
         payload.put("yarnAppId", "application_1561370224051_0160");
         payload.put("yarnAppUrl", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
 
+        Map<String, String> extraInfo = new HashMap<>();
+        extraInfo.put("yarnAppId", "application_1561370224051_0160");
+        extraInfo.put("yarnAppUrl", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
+
         String payloadJson = new ObjectMapper().writeValueAsString(payload);
-        Mockito.doReturn(Boolean.TRUE).when(application).updateSparkJobInfo(payloadJson);
+        Mockito.doReturn(Boolean.TRUE).when(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
 
-        Assert.assertTrue(application.updateSparkJobExtraInfo("test_job_output",
-                "cb91189b-2b12-4527-aa35-0130e7d54ec0", "application_1561370224051_0160"));
+        Assert.assertTrue(application.updateSparkJobExtraInfo("/kylin/api/jobs/spark", "test_job_output",
+                "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));
 
-        Mockito.verify(application).getTrackingUrl("application_1561370224051_0160");
-        Mockito.verify(application).updateSparkJobInfo(payloadJson);
+        Mockito.verify(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
 
         Mockito.reset(application);
-        Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/")
-                .when(application).getTrackingUrl("application_1561370224051_0160");
-        Mockito.doReturn(Boolean.FALSE).when(application).updateSparkJobInfo(payloadJson);
-        Assert.assertFalse(application.updateSparkJobExtraInfo("test_job_output",
-                "cb91189b-2b12-4527-aa35-0130e7d54ec0", "application_1561370224051_0160"));
+        Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
+                .getTrackingUrl("application_1561370224051_0160");
+        Mockito.doReturn(Boolean.FALSE).when(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
+        Assert.assertFalse(application.updateSparkJobExtraInfo("/kylin/api/jobs/spark", "test_job_output",
+                "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));
 
-        Mockito.verify(application).getTrackingUrl("application_1561370224051_0160");
-        Mockito.verify(application, Mockito.times(3)).updateSparkJobInfo(payloadJson);
+        Mockito.verify(application, Mockito.times(3)).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
     }
 }

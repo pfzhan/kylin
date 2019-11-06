@@ -30,9 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
-import io.kyligence.kap.rest.response.EventResponse;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -44,19 +43,23 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.rest.request.SparkJobTimeRequest;
+import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
+import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
-
-import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping(value = "/jobs")
@@ -258,6 +261,18 @@ public class NJobController extends NBasicController {
         jobService.updateSparkJobInfo(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
                 sparkJobUpdateRequest.getTaskId(), sparkJobUpdateRequest.getYarnAppId(),
                 sparkJobUpdateRequest.getYarnAppUrl());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @PutMapping(value = "/wait_and_run_time", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest)
+            throws IOException {
+        checkProjectName(sparkJobTimeRequest.getProject());
+        jobService.updateSparkTimeInfo(sparkJobTimeRequest.getProject(), sparkJobTimeRequest.getJobId(),
+                sparkJobTimeRequest.getTaskId(), sparkJobTimeRequest.getYarnJobWaitTime(),
+                sparkJobTimeRequest.getYarnJobRunTime());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }

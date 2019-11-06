@@ -134,10 +134,10 @@ public abstract class SparkApplication implements Application, IKeep {
      *
      * @param json
      */
-    public Boolean updateSparkJobInfo(String json) {
+    public Boolean updateSparkJobInfo(String url, String json) {
         String serverIp = System.getProperty("spark.driver.rest.server.ip", "127.0.0.1");
         String port = System.getProperty("spark.driver.rest.server.port", "7070");
-        String requestApi = String.format("http://%s:%s/kylin/api/jobs/spark", serverIp, port);
+        String requestApi = String.format("http://%s:%s" + url, serverIp, port);
 
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPut httpPut = new HttpPut(requestApi);
@@ -151,7 +151,7 @@ public abstract class SparkApplication implements Application, IKeep {
             } else {
                 InputStream inputStream = response.getEntity().getContent();
                 String responseContent = IOUtils.toString(inputStream);
-                logger.warn("update spark job yarnAppid and yarnAppUrl failed, info: {}", responseContent);
+                logger.warn("update spark job failed, info: {}", responseContent);
             }
         } catch (IOException e) {
             logger.error("http request {} failed!", requestApi, e);
@@ -175,28 +175,22 @@ public abstract class SparkApplication implements Application, IKeep {
      * when
      * update spark job extra info, link yarn_application_tracking_url & yarn_application_id
      */
-    public Boolean updateSparkJobExtraInfo(String project, String jobId, String yarnAppId) {
+    public Boolean updateSparkJobExtraInfo(String url, String project, String jobId, Map<String, String> extraInfo) {
         Map<String, String> payload = new HashMap<>(5);
         payload.put("project", project);
         payload.put("jobId", jobId);
         payload.put("taskId", System.getProperty("spark.driver.param.taskId", jobId));
-        payload.put("yarnAppId", yarnAppId);
-
-        try {
-            payload.put("yarnAppUrl", getTrackingUrl(yarnAppId));
-        } catch (IOException | YarnException e) {
-            logger.error("get yarn tracking url failed!", e);
-        }
+        payload.putAll(extraInfo);
 
         try {
             String payloadJson = new ObjectMapper().writeValueAsString(payload);
             int retry = 3;
             for (int i = 0; i < retry; i++) {
-                if (updateSparkJobInfo(payloadJson)) {
+                if (updateSparkJobInfo(url, payloadJson)) {
                     return Boolean.TRUE;
                 }
                 Thread.sleep(3000);
-                logger.warn("retry request rest api update spark job yarnAppId and yarnAppUr!");
+                logger.warn("retry request rest api update spark extra job info");
             }
         } catch (Exception e) {
             logger.error("update spark job extra info failed!", e);
@@ -270,7 +264,15 @@ public abstract class SparkApplication implements Application, IKeep {
                     .getOrCreate();
 
             if (isJobOnCluster(sparkConf)) {
-                updateSparkJobExtraInfo(project, jobId, ss.sparkContext().applicationId());
+                String yarnAppId = ss.sparkContext().applicationId();
+                Map<String, String> extraInfo = new HashMap<>();
+                extraInfo.put("yarnAppId", yarnAppId);
+                try {
+                    extraInfo.put("yarnAppUrl", getTrackingUrl(yarnAppId));
+                } catch (IOException | YarnException e) {
+                    logger.error("get yarn tracking url failed!", e);
+                }
+                updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId, extraInfo);
             }
 
             JoinMemoryManager.releaseAllMemory();
@@ -353,6 +355,10 @@ public abstract class SparkApplication implements Application, IKeep {
     public void logJobInfo() {
         try {
             logger.info(generateInfo());
+            Map<String, String> extraInfo = new HashMap<>();
+            extraInfo.put("yarnJobWaitTime", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
+            extraInfo.put("yarnJobRunTime", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());
+            updateSparkJobExtraInfo("/kylin/api/jobs/wait_and_run_time", project, jobId, extraInfo);
         } catch (Exception e) {
             logger.warn("Error occurred when generate job info.", e);
         }

@@ -696,4 +696,14 @@ public class JobService extends BasicService {
 
         executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
     }
+
+    @Transaction(project = 0)
+    public void updateSparkTimeInfo(String project, String jobId, String taskId, String waitTime, String buildTime) {
+        val executableManager = getExecutableManager(project);
+        Map<String, String> extraInfo = Maps.newHashMap();
+        extraInfo.put(ExecutableConstants.YARN_JOB_WAIT_TIME, waitTime);
+        extraInfo.put(ExecutableConstants.YARN_JOB_RUN_TIME, buildTime);
+
+        executableManager.updateJobOutput(taskId, null, extraInfo, null, null);
+    }
 }

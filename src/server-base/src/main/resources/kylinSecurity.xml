@@ -235,6 +235,7 @@
             <scr:intercept-url pattern="/api/**/metrics" access="permitAll"/>
             <scr:intercept-url pattern="/api/system/backup" access="permitAll"/>
             <scr:intercept-url pattern="/api/jobs/spark" access="permitAll"/>
+            <scr:intercept-url pattern="/api/jobs/wait_and_run_time" access="permitAll"/>
             <scr:intercept-url pattern="/api/cache*/**" access="permitAll"/>
             <scr:intercept-url pattern="/api/cubes/src/tables" access="hasAnyRole('ROLE_ANALYST')"/>
             <scr:intercept-url pattern="/api/cubes*/**" access="isAuthenticated()"/>

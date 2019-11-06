@@ -99,7 +99,8 @@ public class NExecutableManager {
     private static final String KILL_CHILD_PROCESS = "kill-child-process.sh";
 
     private static final Set<String> REMOVE_INFO = Sets.newHashSet(ExecutableConstants.YARN_APP_ID,
-            ExecutableConstants.YARN_APP_URL);
+            ExecutableConstants.YARN_APP_URL, ExecutableConstants.YARN_JOB_WAIT_TIME,
+            ExecutableConstants.YARN_JOB_RUN_TIME);
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
@@ -497,6 +498,7 @@ public class NExecutableManager {
                 }
                 jobOutput.setStatus(String.valueOf(newStatus));
                 updateJobStatus(jobOutput, oldStatus, newStatus);
+                logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
             }
             Map<String, String> info = Maps.newHashMap(jobOutput.getInfo());
             Optional.ofNullable(updateInfo).ifPresent(info::putAll);
@@ -506,7 +508,6 @@ public class NExecutableManager {
             }
             jobOutput.setInfo(info);
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
-            logger.info("Job id: {} from {} to {}", taskOrJobId, oldStatus, newStatus);
 
             if (needDestroyProcess(oldStatus, newStatus)) {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);
