@@ -86,7 +86,7 @@ public class  FunctionDesc implements Serializable {
     }
 
     public static FunctionDesc newCountOne() {
-        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), "bigint");
+        return newInstance(FunctionDesc.FUNC_COUNT, Lists.newArrayList(ParameterDesc.newInstance("1")), TYPE_BIGINT);
     }
 
     public static String proposeReturnType(String expression, String colDataType) {
