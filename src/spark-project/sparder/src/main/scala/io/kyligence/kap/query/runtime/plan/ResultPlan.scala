@@ -28,6 +28,7 @@ import org.apache.calcite.linq4j.{Enumerable, Linq4j}
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exceptions.KylinTimeoutException
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.util.SparderTypeUtil
@@ -134,12 +135,14 @@ object ResultPlan extends Logging {
     * @return
     */
   def withScope[U](df: DataFrame)(body: => U): U = {
+    HadoopUtil.setCurrentConfiguration(df.sparkSession.sparkContext.hadoopConfiguration)
     val r = body
     // remember clear local properties.
     df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
     SparderEnv.setDF(df)
     TableScanPlan.cacheDf.get().clear()
+    HadoopUtil.setCurrentConfiguration(null)
     r
   }
 

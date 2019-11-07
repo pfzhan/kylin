@@ -37,6 +37,7 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.exceptions.YarnException;
@@ -225,7 +226,7 @@ public abstract class SparkApplication implements Application, IKeep {
             // init KylinBuildEnv
             KylinBuildEnv buildEnv = KylinBuildEnv.getOrCreate(config);
             infos = KylinBuildEnv.get().buildJobInfos();
-
+            HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();
             if (config.isAutoSetSparkConf() && isJobOnCluster(sparkConf)) {
                 try {

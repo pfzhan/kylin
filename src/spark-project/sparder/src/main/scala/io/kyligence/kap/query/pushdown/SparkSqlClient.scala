@@ -28,7 +28,7 @@ import java.util.{UUID, List => JList}
 
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.common.exceptions.KylinTimeoutException
-import org.apache.kylin.common.util.Pair
+import org.apache.kylin.common.util.{HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
@@ -47,6 +47,7 @@ object SparkSqlClient {
 
   def executeSql(ss: SparkSession, sql: String, uuid: UUID): Pair[JList[JList[String]], JList[StructField]] = {
     ss.sparkContext.setLocalProperty("spark.scheduler.pool", "query_pushdown")
+    HadoopUtil.setCurrentConfiguration(ss.sparkContext.hadoopConfiguration)
     val s = "Start to run sql with SparkSQL..."
     val queryId = QueryContext.current().getQueryId
     ss.sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
@@ -111,6 +112,7 @@ object SparkSqlClient {
     } finally {
       QueryContext.current().setExecutionID(QueryToExecutionIDCache.getQueryExecutionID(QueryContext.current().getQueryId))
       df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
+      HadoopUtil.setCurrentConfiguration(null)
     }
   }
 }
