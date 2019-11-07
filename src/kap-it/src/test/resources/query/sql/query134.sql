@@ -1,0 +1,11 @@
+-- KAP#15763
+select count(1)
+,mod(35, 11.9)
+,mod(35, 11)
+,mod(35.2, 11.9)
+,mod(35.2, 11)
+,floor(mod(35, 11.9))
+,floor(mod(35, 11))
+,floor(mod(35.2, 11.9))
+,floor(mod(35.2, 11))
+ from TEST_KYLIN_FACT
