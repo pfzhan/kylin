@@ -86,6 +86,11 @@ public class QueryNodeFilter implements Filter {
                 chain.doFilter(request, response);
                 return;
             }
+            if (servletRequest.getRequestURI().equals("/kylin/api/health")
+                    && servletRequest.getMethod().equals("GET")) {
+                chain.doFilter(request, response);
+                return;
+            }
             log.debug("proxy {} {} to job", servletRequest.getMethod(), servletRequest.getRequestURI());
             val body = IOUtils.toByteArray(request.getInputStream());
             HttpHeaders headers = new HttpHeaders();

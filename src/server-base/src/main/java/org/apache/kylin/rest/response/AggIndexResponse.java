@@ -38,4 +38,6 @@ public class AggIndexResponse implements Serializable {
     private List<AggIndexCombResult> aggIndexCounts;
     @JsonProperty(value = "total_count")
     private AggIndexCombResult totalCount;
+    @JsonProperty(value = "max_combination_num")
+    private Long aggrgroupMaxCombination;
 }

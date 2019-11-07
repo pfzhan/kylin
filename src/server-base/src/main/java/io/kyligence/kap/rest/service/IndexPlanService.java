@@ -265,7 +265,7 @@ public class IndexPlanService extends BasicService {
             totalResult = AggIndexCombResult.successResult(totalCount);
 
         }
-        return new AggIndexResponse(aggIndexCounts, totalResult);
+        return new AggIndexResponse(aggIndexCounts, totalResult, getConfig().getCubeAggrGroupMaxCombination());
     }
 
     public void checkIndexCountWithinLimit(UpdateRuleBasedCuboidRequest request) {

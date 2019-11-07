@@ -526,6 +526,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val aggGroup2 = JsonUtil.readValue(aggGroupStr2, NAggregationGroup.class);
         val ret = calculateCount(Lists.newArrayList(aggGroup1, aggGroup2));
         Assert.assertEquals(8L, ret.getAggIndexCounts().get(0).getResult());
+        Assert.assertEquals(4096L, ret.getAggrgroupMaxCombination().longValue());
         Assert.assertEquals(16L, ret.getAggIndexCounts().get(1).getResult());
         Assert.assertEquals(25L, ret.getTotalCount().getResult());
     }
