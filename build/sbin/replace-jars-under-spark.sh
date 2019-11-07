@@ -17,6 +17,18 @@ mr_jars=
 yarn_jars=
 other_jars=
 
+cdh_mapreduce_path=$CDH_MR2_HOME
+
+if [[ -z $cdh_mapreduce_path ]]
+then
+    if [[ -d "/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce" ]]
+    then
+        cdh_mapreduce_path="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce"
+    else
+        cdh_mapreduce_path="/usr/lib/hadoop-mapreduce"
+    fi
+fi
+
 if [ -n "$FI_ENV_PLATFORM" ]
 then
     common_jars=$(find $FI_ENV_PLATFORM/HDFS/hadoop/share/hadoop/common -maxdepth 2 \
@@ -48,30 +60,31 @@ then
 
     find ${SPARK_HOME}/jars -name "zookeeper-*" -exec rm -rf {} \;
 
-elif [ -d "/opt/cloudera/parcels/CDH" ]
+elif [ -d $cdh_mapreduce_path ]
 then
-    common_jars=$(find /opt/cloudera/parcels/CDH/lib/hadoop -maxdepth 1 \
+    common_jars=$(find $cdh_mapreduce_path/../hadoop -maxdepth 2 \
     -name "hadoop-annotations-*.jar" -not -name "*test*" \
     -o -name "hadoop-auth-*.jar" -not -name "*test*" \
     -o -name "hadoop-common-*.jar" -not -name "*test*")
 
-    hdfs_jars=$(find /opt/cloudera/parcels/CDH/lib/hadoop-hdfs -maxdepth 1 -name "hadoop-hdfs-*" -not -name "*test*" -not -name "*nfs*")
+    hdfs_jars=$(find $cdh_mapreduce_path/../hadoop_hdfs -maxdepth 1 -name "hadoop-hdfs-*" -not -name "*test*" -not -name "*nfs*")
 
-    mr_jars=$(find /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce -maxdepth 1 \
+    mr_jars=$(find $cdh_mapreduce_path -maxdepth 1 \
     -name "hadoop-mapreduce-client-app-*.jar" -not -name "*test*"  \
     -o -name "hadoop-mapreduce-client-common-*.jar" -not -name "*test*" \
     -o -name "hadoop-mapreduce-client-jobclient-*.jar" -not -name "*test*" \
     -o -name "hadoop-mapreduce-client-shuffle-*.jar" -not -name "*test*" \
     -o -name "hadoop-mapreduce-client-core-*.jar" -not -name "*test*")
 
-    yarn_jars=$(find /opt/cloudera/parcels/CDH/lib/hadoop-yarn -maxdepth 1 \
+    yarn_jars=$(find $cdh_mapreduce_path/../hadoop-yarn -maxdepth 1 \
     -name "hadoop-yarn-api-*.jar" -not -name "*test*"  \
     -o -name "hadoop-yarn-client-*.jar" -not -name "*test*" \
     -o -name "hadoop-yarn-common-*.jar" -not -name "*test*" \
     -o -name "hadoop-yarn-server-common-*.jar" -not -name "*test*" \
     -o -name "hadoop-yarn-server-web-proxy-*.jar" -not -name "*test*")
 
-    other_jars=$(find /opt/cloudera/parcels/CDH/jars/ -maxdepth 1 -name "htrace-core4*")
+
+    other_jars=$(find $cdh_mapreduce_path/../../jars -maxdepth 1 -name "htrace-core4*" || find $cdh_mapreduce_path/../hadoop -maxdepth 2 -name "htrace-core4*")
 fi
 
 # not consider HDP
