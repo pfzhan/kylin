@@ -18,7 +18,14 @@ export default {
     'clearAggregateTitle': 'Clear Aggregate Group',
     'clearAllAggregateTip': 'Are you sure to clear Aggregate-Group-{aggId}?',
     'maxCombinationTip': 'The aggregate amount exceeds its limit per aggregate group, please optimize the group setting or reduce dimension amount.',
-    aggRuleTip: 'It is recommended to select the grouping dimensions and filtering dimensions frequently used in the query into the aggregation group according to the cardinality from high to low.'
+    aggRuleTip: 'It is recommended to select the grouping dimensions and filtering dimensions frequently used in the query into the aggregation group according to the cardinality from high to low.',
+    checkIndexAmount: 'Check Index Amount',
+    checkIndexAmountBtnTips: 'Check if the index amount exceeds the upper limit',
+    numTitle: 'Index Amount: {num}',
+    exceedLimitTitle: 'Index Amount: Exceed Limit',
+    maxTotalCombinationTip: 'The aggregate index amount exceeds the upper limit, please optimize the group setting or reduce dimension amount.',
+    maxCombinationTotalNum: 'The upper limit of index amount per aggregate group is {num}. The upper limit of aggregate index amount is {numTotal}.',
+    maxCombinationNum: 'The upper limit of index amount per aggregate group is {num}'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',
@@ -39,6 +46,13 @@ export default {
     'clearAggregateTitle': '清除聚合组',
     'clearAllAggregateTip': '你确认要清除聚合组-{aggId}吗？',
     'maxCombinationTip': '聚合索引数超过单个聚合组可以接受的上限，请优化当前聚合组或者减少聚合组中的维度。',
-    aggRuleTip: '推荐将查询中常用的分组维度、过滤维度按照基数从大到小的方式选入聚合组。'
+    aggRuleTip: '推荐将查询中常用的分组维度、过滤维度按照基数从大到小的方式选入聚合组。',
+    checkIndexAmount: '检测索引数',
+    checkIndexAmountBtnTips: '检测聚合索引数是否超过上限',
+    numTitle: '索引数：{num}',
+    exceedLimitTitle: '索引数：超过上限',
+    maxTotalCombinationTip: '聚合索引总数超过上限，请优化当前聚合组或者减少聚合组中的维度。',
+    maxCombinationTotalNum: '单个聚合组内索引上限为 {num}，聚合索引总数上限为 {numTotal}。',
+    maxCombinationNum: '单个聚合组内索引上限为 {num}'
   }
 }

@@ -7,7 +7,12 @@
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
     <span class="el-dialog__title" slot="title">{{$t(modalTitle)}}
-      <span v-html="renderCoboidText(cuboidsInfo.total_count)"></span>
+      <!-- 超出上限的情况 -->
+      <span class="cuboid-error" v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+      <!-- 数字的情况 -->
+      <span v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.total_count.result})}})</span></span>
+      <!-- 正在检测的情况 -->
+      <i v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
     </span>
     <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
     <template v-if="model">
@@ -37,9 +42,14 @@
         <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
       </div>
       <!-- 聚合组表单 -->
-      <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx">
+      <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx" :class="{'js_exceedLimit': !isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'overLimit'}">
         <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}} 
-          <span v-html="renderCoboidText(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx])"></span>
+          <!-- 超出上限的情况 -->
+          <span class="cuboid-error" v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+          <!-- 数字的情况 -->
+          <span v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx] && cuboidsInfo.agg_index_counts[aggregateIdx].result})}})</span></span>
+          <!-- 正在检测的情况 -->
+          <i v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'loading'" class="el-icon-loading"></i>
         </h1>
         <div class="actions">
           <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
@@ -171,6 +181,7 @@
       </div>
       <div class="right">
         <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" plain type="primary" @click="checkCuboids()" :loading="calcLoading">{{$t('checkIndexAmount')}}<el-tooltip placement="top" :content="$t('checkIndexAmountBtnTips')"><i class="plainWhat el-icon-ksd-what ksd-ml-5"></i></el-tooltip></el-button>
         <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn plain type="primary" :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
@@ -228,6 +239,8 @@ export default class AggregateModal extends Vue {
   isFormShow = false
   isDimensionShow = false
   isSubmit = false
+  isWaitingCheckCuboids = true
+  maxCombinationNum = 0
   get modalTitle () {
     return titleMaps[this.editType]
   }
@@ -278,6 +291,10 @@ export default class AggregateModal extends Vue {
   ST = null
   calcLoading = false
   calcCuboids () {
+    // 防重复提交
+    if (this.calcLoading) {
+      return false
+    }
     this.calcLoading = true
     clearTimeout(this.ST)
     this.ST = setTimeout(() => {
@@ -289,17 +306,28 @@ export default class AggregateModal extends Vue {
       }
       delete data.dimensions // 后台处理规整顺序
       this.getCalcCuboids(data).then((res) => {
+        this.isWaitingCheckCuboids = false
         handleSuccess(res, (data) => {
-          if (!/^\d+$/.test(data.total_count.result)) {
-            this.$message.error(this.$t('maxCombinationTip'))
-          }
           if (data) {
             this.cuboidsInfo = data
             this.cuboidsInfo.agg_index_counts = data.agg_index_counts.reverse()
+            this.maxCombinationNum = data.max_combination_num
+            let singleIsLimit = data.agg_index_counts.filter((item) => {
+              return !/^\d+$/.test(item.result)
+            })
+            // 单个索引组的个数超了限制，显示报错，并不往下执行了
+            if (singleIsLimit.length > 0) {
+              this.$message.error(this.$t('maxCombinationTip'))
+              // 操作滚动
+              this.dealScrollToFirstError()
+            }
           }
           this.calcLoading = false
         })
       }, (res) => {
+        this.maxCombinationNum = 0
+        // 获取个数失败，文案应该处于待检状态
+        this.isWaitingCheckCuboids = true
         this.resetCuboidInfo()
         this.calcLoading = false
         handleError(res)
@@ -307,30 +335,38 @@ export default class AggregateModal extends Vue {
     }, 1000)
   }
   get isDisabledSaveBtn () {
-    return this.calcLoading || !(this.cuboidsInfo.total_count && this.cuboidsInfo.total_count.result && /^\d+$/.test(this.cuboidsInfo.total_count.result))
+    // 正在计算的时候按钮disable，选的维度有空的时候，disable，聚合组数为0 时
+    return this.calcLoading || this.isSubmit || !this.isFormVaild || !this.form.aggregateArray || this.form.aggregateArray.length === 0
   }
-  renderCoboidText (cuboidsInfo) {
-    if (!(cuboidsInfo && cuboidsInfo.result !== undefined)) {
-      return ''
-    }
+  renderCoboidTextCheck (cuboidsInfo) {
     let cuboidText = ''
-    if (cuboidsInfo.status !== 'SUCCESS') {
-      cuboidText += '<span class="cuboid-error' + '">'
-    } else {
-      cuboidText += '<span>'
+    if (this.isWaitingCheckCuboids) {
+      cuboidText = ''
     }
-    if (this.calcLoading) {
-      cuboidText += '<i class="el-icon-loading"></i>'
+    if (!(cuboidsInfo && cuboidsInfo.result !== undefined)) {
+      cuboidText = ''
     } else {
-      cuboidText += '(<span class="cuboid-result">' + cuboidsInfo.result + '</span>)'
+      if (cuboidsInfo.status !== 'SUCCESS') {
+        cuboidText = 'cuboid-error'
+      }
+      if (this.calcLoading) {
+        cuboidText = 'loading'
+      } else {
+        if (!/^\d+$/.test(cuboidsInfo.result)) {
+          cuboidText = 'overLimit'
+        } else {
+          cuboidText = 'number'
+        }
+      }
     }
-    cuboidText += '</span>'
     return cuboidText
   }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
+      this.resetCuboidInfo()
+      // 弹窗打开时，默认计算一次 cuboids 数量
       this.calcCuboids()
     } else {
       setTimeout(() => {
@@ -356,7 +392,8 @@ export default class AggregateModal extends Vue {
       id: aggregateArray.length
     }
     this.setModalForm({ aggregateArray: [ aggregateData, ...aggregateArray ] })
-    this.calcCuboids()
+    this.isWaitingCheckCuboids = true
+    // this.calcCuboids()
   }
   handleCopyAggregate (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
@@ -365,14 +402,16 @@ export default class AggregateModal extends Vue {
       id: aggregateArray.length
     }
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
-    this.calcCuboids()
+    this.isWaitingCheckCuboids = true
+    // this.calcCuboids()
   }
   handleDeleteAggregate (aggregateIdx, titleId) {
     kapConfirm(this.$t('delAggregateTip', {aggId: titleId}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
       const aggregateArray = get(this.form, 'aggregateArray')
       aggregateArray.splice(aggregateIdx, 1)
       this.setModalForm({ aggregateArray })
-      this.calcCuboids()
+      this.isWaitingCheckCuboids = true
+      // this.calcCuboids()
     })
   }
   handleAddDimensionRow (path) {
@@ -381,7 +420,8 @@ export default class AggregateModal extends Vue {
     const newId = dimensionRows.length
     const newDimensionRow = { id: newId, items: [] }
     this.setModalForm({[rootKey]: push(this.form, path, newDimensionRow)[rootKey]})
-    this.calcCuboids()
+    this.isWaitingCheckCuboids = true
+    // this.calcCuboids()
   }
   handleRemoveDimensionRow (path, aggregateIdx, dimensionRowIndex) {
     const rootKey = path.split('.')[0]
@@ -390,7 +430,8 @@ export default class AggregateModal extends Vue {
       dimensionRows.splice(dimensionRowIndex, 1)[0]
       this.setModalForm({[rootKey]: set(this.form, path, dimensionRows)[rootKey]})
     }
-    this.calcCuboids()
+    this.isWaitingCheckCuboids = true
+    // this.calcCuboids()
   }
   handleClose (isSubmit) {
     this.hideModal()
@@ -401,7 +442,8 @@ export default class AggregateModal extends Vue {
   }
   handleInput (key, value) {
     if (key !== 'isCatchUp') {
-      this.calcCuboids()
+      this.isWaitingCheckCuboids = true
+      // this.calcCuboids()
     }
     const rootKey = key.split('.')[0]
     this.setModalForm({[rootKey]: set(this.form, key, value)[rootKey]})
@@ -464,12 +506,57 @@ export default class AggregateModal extends Vue {
       this.$message({message: tipMsg, type: 'success'})
     }
   }
+  checkCuboids () {
+    if (this.checkFormVaild()) {
+      this.calcCuboids()
+    }
+  }
+  dealScrollToFirstError () {
+    this.$nextTick(() => {
+      // 第一个数量超过的元素
+      if (document.querySelector('.js_exceedLimit')) {
+        let firstErrorDomTop = document.querySelector('.js_exceedLimit').offsetTop - 100
+        document.querySelector('.aggregate-modal').querySelector('.el-dialog__body').scrollTop = firstErrorDomTop
+      }
+    })
+  }
   async handleSubmit () {
     this.isSubmit = true
     try {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
         delete data.dimensions // 后台处理规整顺序
+        // 发一个获取数据的接口
+        this.isWaitingCheckCuboids = true
+        let cuboidsRes = await this.getCalcCuboids(data)
+        let cuboidsResult = await handleSuccessAsync(cuboidsRes)
+        this.isWaitingCheckCuboids = false
+        if (cuboidsResult) {
+          this.maxCombinationNum = cuboidsResult.max_combination_num
+          this.cuboidsInfo = cuboidsResult
+          this.cuboidsInfo.agg_index_counts = cuboidsResult.agg_index_counts.reverse()
+          let singleIsLimit = cuboidsResult.agg_index_counts.filter((item) => {
+            return !/^\d+$/.test(item.result)
+          })
+          // 单个索引组的个数超了限制，显示报错，并不往下执行了
+          if (singleIsLimit.length > 0) {
+            this.$message.error(this.$t('maxCombinationTip'))
+            this.calcLoading = false
+            this.isSubmit = false
+            // 操作滚动
+            this.dealScrollToFirstError()
+            return false
+          } else {
+            // 单个没超过，总量超了，显示总量的报错，也不往下执行了
+            if (!/^\d+$/.test(cuboidsResult.total_count.result)) {
+              this.$message.error(this.$t('maxTotalCombinationTip'))
+              this.calcLoading = false
+              this.isSubmit = false
+              return false
+            }
+          }
+        }
+        // 获取数字正常的情况下，才进行 submit
         let res = await this.submit(data)
         let result = await handleSuccessAsync(res)
         this.handleBuildIndexTip(result)
@@ -479,6 +566,8 @@ export default class AggregateModal extends Vue {
         this.isSubmit = false
       }
     } catch (e) {
+      this.calcLoading = false
+      this.isWaitingCheckCuboids = false
       e && handleError(e)
       this.isSubmit = false
     }
@@ -552,6 +641,28 @@ export default class AggregateModal extends Vue {
 @import '../../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
+  .dialog-footer{
+    .el-button{
+      .plainWhat{
+        color:@base-color;
+      }
+      &:hover{
+        .plainWhat{
+          color:@fff;
+        }
+      }
+      &.is-disabled{
+        .plainWhat{
+          color: #6bb8eb;
+        }
+        &:hover{
+          .plainWhat{
+            color: #6bb8eb;
+          }
+        }
+      }
+    }
+  }
   .mul-filter-select {
     .el-select__tags {
       padding-left: 15px;
@@ -566,6 +677,10 @@ export default class AggregateModal extends Vue {
     .cuboid-result {
       color:@error-color-1;
       font-weight: @font-regular;
+      .el-icon-ksd-what{
+        color:@error-color-1;
+        font-weight: @font-regular;
+      }
     }
   }
   .el-button + .el-button { margin-left: 3px;}
