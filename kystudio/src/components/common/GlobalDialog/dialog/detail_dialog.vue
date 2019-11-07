@@ -85,6 +85,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       dialogType: state => state.dialogType,
       showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
       showCopyBtn: state => state.showCopyBtn,
+      needCallbackWhenClose: state => state.needCallbackWhenClose, // 数据源处的特殊需求，关闭时执行回调
       callback: state => state.callback
     })
   },
@@ -102,8 +103,10 @@ export default class DetailDialogModal extends Vue {
   filterInjectScript = filterInjectScript
   loading = false
   showDetail = false
-  handleClose (isSubmit) {
-    this.callback && this.callback(isSubmit)
+  handleClose () {
+    if (this.needCallbackWhenClose) {
+      this.callback && this.callback()
+    }
     this.hideModal()
     this.resetModal()
     this.loading = false
@@ -112,8 +115,8 @@ export default class DetailDialogModal extends Vue {
   handleSubmit () {
     this.loading = true
     setTimeout(() => {
-      // this.callback && this.callback()
-      this.handleClose(true)
+      this.callback && this.callback()
+      this.handleClose()
     }, 200)
   }
   toggleDetail () {
