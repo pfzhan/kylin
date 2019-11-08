@@ -104,6 +104,12 @@
       "name": "flag",
       "datatype": "boolean",
       "index": "T"
+    },
+    {
+      "id": "18",
+      "name": "price8",
+      "datatype": "decimal(5,2)",
+      "index": "T"
     }
   ],
   "database": "DEFAULT",
