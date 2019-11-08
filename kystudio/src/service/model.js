@@ -205,5 +205,11 @@ export default {
   },
   validateModelName: (para) => {
     return Vue.resource(apiUrl + 'models/validate_model').save(para)
+  },
+  addAggIndexAdvanced: (para) => {
+    return Vue.resource(apiUrl + 'models/agg_indices/shard_columns').save(para)
+  },
+  getAggIndexAdvanced: (para) => {
+    return Vue.resource(apiUrl + 'models/agg_indices/shard_columns').get(para)
   }
 }

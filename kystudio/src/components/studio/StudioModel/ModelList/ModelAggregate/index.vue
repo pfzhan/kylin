@@ -12,7 +12,7 @@
       </el-button><el-button
         type="primary" size="small" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
         {{$t('buildIndex')}}
-      </el-button>
+      </el-button><el-button v-if="!isAutoProject" size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
     </div>
     <div class="aggregate-view">
       <el-row :gutter="15">
@@ -102,6 +102,7 @@
     </div>
 
     <AggregateModal />
+    <AggAdvancedModal v-on:refreshCuboids="refreshCuboidsAfterSubmitSetting" />
   </div>
 </template>
 
@@ -112,11 +113,12 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
-import { handleSuccessAsync } from '../../../../../util'
+import { handleSuccessAsync, objectClone } from '../../../../../util'
 import { handleError, transToGmtTime, transToServerGmtTime } from '../../../../../util/business'
 import { speedProjectTypes } from '../../../../../config'
 import { BuildIndexStatus } from '../../../../../config/model'
 import AggregateModal from './AggregateModal/index.vue'
+import AggAdvancedModal from './AggAdvancedModal/index.vue'
 import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handler'
 
 @Component({
@@ -142,12 +144,16 @@ import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMap
   },
   computed: {
     ...mapGetters([
-      'currentProjectData'
+      'currentProjectData',
+      'isAutoProject'
     ])
   },
   methods: {
     ...mapActions('AggregateModal', {
       callAggregateModal: 'CALL_MODAL'
+    }),
+    ...mapActions('AggAdvancedModal', {
+      callAggAdvancedModal: 'CALL_MODAL'
     }),
     ...mapActions({
       fetchModelAggregates: 'FETCH_AGGREGATES',
@@ -159,7 +165,8 @@ import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMap
   components: {
     FlowerChart,
     PartitionChart,
-    AggregateModal
+    AggregateModal,
+    AggAdvancedModal
   },
   locales
 })
@@ -172,6 +179,14 @@ export default class ModelAggregate extends Vue {
   searchCuboidId = ''
   backgroundMaps = backgroundMaps
   buildIndexLoading = false
+  // 打开高级设置
+  openAggAdvancedModal () {
+    this.callAggAdvancedModal({
+      model: objectClone(this.model),
+      aggIndexAdvancedDesc: null
+    })
+  }
+
   handleBuildIndexTip (data) {
     let tipMsg = ''
     if (data.type === BuildIndexStatus.NORM_BUILD) {
@@ -247,6 +262,9 @@ export default class ModelAggregate extends Vue {
     this.brokenCuboidCount = getStatusCuboidCounts(data, 'BROKEN')
   }
   async mounted () {
+    await this.freshCuboids()
+  }
+  async refreshCuboidsAfterSubmitSetting () {
     await this.freshCuboids()
   }
   async handleAggregateGroup () {

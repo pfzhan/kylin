@@ -194,7 +194,7 @@
     }
     get filterResult () {
       if (!this.isShow) {
-        return
+        return []
       }
       return this.allColumns.filter((col) => {
         return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0

@@ -271,6 +271,12 @@ export default {
     },
     [types.VALIDATE_MODEL_NAME] ({ commit }, paras) {
       return api.model.validateModelName(paras)
+    },
+    [types.ADD_AGG_INDEX_ADVANCED] ({ commit }, paras) {
+      return api.model.addAggIndexAdvanced(paras)
+    },
+    [types.GET_AGG_INDEX_ADVANCED] ({ commit }, paras) {
+      return api.model.getAggIndexAdvanced(paras)
     }
   },
   getters: {

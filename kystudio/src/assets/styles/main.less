@@ -11,6 +11,13 @@ body {
 textarea {
   font-family: "Lato","Noto Sans S Chinese",sans-serif!important;
 }
+/* 全局所有的info 换成新版的 info */
+.el-icon-info{
+  font-family: 'iconmoon' !important;
+  &:before {
+    content: "\e9bd"!important; /* 每次重新导入svg 文件后，需要修改这里的值 */
+  }
+}
 a {cursor: pointer;}
 a:link {color:@base-color-1;text-decoration:none;}
 a:-webkit-any-link {color:@base-color-1;text-decoration:none;}

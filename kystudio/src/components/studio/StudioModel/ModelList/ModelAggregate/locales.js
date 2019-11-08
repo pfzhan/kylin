@@ -16,7 +16,8 @@ export default {
     id: 'Index ID',
     emptyAggregate: 'Empty Aggregate:',
     brokenAggregate: 'Broken Aggregate:',
-    buildIndex: 'Build Index'
+    buildIndex: 'Build Index',
+    aggIndexAdvancedTitle: 'Advanced Setting'
   },
   'zh-cn': {
     aggregateGroup: '编辑聚合组',
@@ -35,6 +36,7 @@ export default {
     id: 'Index ID',
     emptyAggregate: '空的聚合索引：',
     brokenAggregate: '破损聚合索引：',
-    buildIndex: '构建索引'
+    buildIndex: '构建索引',
+    aggIndexAdvancedTitle: '高级设置'
   }
 }
