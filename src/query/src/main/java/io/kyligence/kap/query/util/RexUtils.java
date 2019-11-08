@@ -23,19 +23,78 @@
  */
 package io.kyligence.kap.query.util;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Join;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
 
 public class RexUtils {
+
+    /**
+     * check if there are more than two tables get involved in the join condition
+     * @param join
+     * @return
+     */
+    public static boolean joinMoreThanOneTable(Join join) {
+        Set<Integer> left = new HashSet<>();
+        Set<Integer> right = new HashSet<>();
+        Set<Integer> indexes =
+                getAllInputRefs(join.getCondition()).stream().map(RexSlot::getIndex).collect(Collectors.toSet());
+        splitJoinInputIndex(join, indexes, left, right);
+        return !(colsComeFromSameSideOfJoin(join.getLeft(), left) && colsComeFromSameSideOfJoin(join.getRight(), right));
+    }
+
+    private static boolean colsComeFromSameSideOfJoin(RelNode rel, Set<Integer> indexes) {
+        if (rel instanceof Join) {
+            Join join = (Join) rel;
+            Set<Integer> left = new HashSet<>();
+            Set<Integer> right = new HashSet<>();
+            splitJoinInputIndex(join, indexes, left, right);
+            if (left.isEmpty()) {
+                return colsComeFromSameSideOfJoin(join.getRight(), right);
+            } else if (right.isEmpty()) {
+                return colsComeFromSameSideOfJoin(join.getLeft(), left);
+            } else {
+                return false;
+            }
+        } else if (rel instanceof Project) {
+            Set<Integer> inputIndexes = indexes.stream()
+                    .map(idx -> ((Project) rel).getProjects().get(idx))
+                    .flatMap(rex -> getAllInputRefs(rex).stream())
+                    .map(RexSlot::getIndex)
+                    .collect(Collectors.toSet());
+            return colsComeFromSameSideOfJoin(((Project) rel).getInput(), inputIndexes);
+        } else if (rel instanceof TableScan || rel instanceof Values) {
+            return true;
+        } else {
+            return colsComeFromSameSideOfJoin(rel.getInput(0), indexes);
+        }
+    }
+
+    public static void splitJoinInputIndex(Join joinRel, Collection<Integer> indexes, Set<Integer> leftInputIndexes, Set<Integer> rightInputIndexes) {
+        indexes.forEach(idx -> {
+            if (idx < joinRel.getLeft().getRowType().getFieldCount()) {
+                leftInputIndexes.add(idx);
+            } else {
+                rightInputIndexes.add(idx - joinRel.getLeft().getRowType().getFieldCount());
+            }
+        });
+    }
 
     public static int countOperatorCall(RexNode condition, final Class<? extends SqlOperator> sqlOperator) {
         final AtomicInteger likeCount = new AtomicInteger(0);

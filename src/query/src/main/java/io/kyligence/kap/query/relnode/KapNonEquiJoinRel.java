@@ -141,7 +141,7 @@ public class KapNonEquiJoinRel extends EnumerableThetaJoin implements KapRel {
         } else {
             // both has free tbl, leave ctx alloc for higher rel node
             // except the following situations
-            if (rightState.hasIncrementalTable() || hasSameFirstTable(leftState, rightState)) {
+            if (rightState.hasIncrementalTable() || hasSameFirstTable(leftState, rightState) || RexUtils.joinMoreThanOneTable(this)) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 olapContextImplementor.allocateContext((KapRel) right, this);
                 leftState.setHasFreeTable(false);

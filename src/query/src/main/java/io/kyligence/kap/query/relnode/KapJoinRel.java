@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.query.util.RexUtils;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
@@ -120,7 +121,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 leftState.setHasFreeTable(false);
             } else if (leftState.hasFreeTable() && rightState.hasFreeTable() && (isCrossJoin()
-                    || hasSameFirstTable(leftState, rightState) || isRightSideIncrementalTable(rightState))) {
+                    || hasSameFirstTable(leftState, rightState) || isRightSideIncrementalTable(rightState)
+                    || RexUtils.joinMoreThanOneTable(this))) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 olapContextImplementor.allocateContext((KapRel) right, this);
                 leftState.setHasFreeTable(false);

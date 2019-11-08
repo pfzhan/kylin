@@ -86,13 +86,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     private final String constantSql = "select * from test_kylin_fact where 1 <> 1";
     private final String blockedSql = "select sum(lstg_format_name) from test_kylin_fact";
     private final String tableMissingSql = "select count(*) from test_kylin_table";
-    private final String blockedSqlForCircleJoin = "SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\" AS \"LSTG_FORMAT_NAME\",\n"
-            + "  SUM(\"TEST_KYLIN_FACT\".\"PRICE\") AS \"sum_price\"\n"
-            + "FROM \"DEFAULT\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n" + "INNER JOIN TEST_ORDER as TEST_ORDER\n"
-            + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
-            + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" + "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n"
-            + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID AND SELLER_ACCOUNT.ACCOUNT_ID = BUYER_ACCOUNT.ACCOUNT_ID\n"
-            + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\"";
 
     @InjectMocks
     private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
@@ -358,7 +351,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void testAcceptAccelerateWithConstantAndBlockedPattern() {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
-        List<String> sqlPatterns = Lists.newArrayList(constantSql, blockedSql, tableMissingSql, blockedSqlForCircleJoin)
+        List<String> sqlPatterns = Lists.newArrayList(constantSql, blockedSql, tableMissingSql)
                 .stream().map(QueryPatternUtil::normalizeSQLPattern) //
                 .collect(Collectors.toList());
 
@@ -366,7 +359,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
         FavoriteQueryManager favoriteQueryManager = favoriteQueryService.getFavoriteQueryManager(PROJECT);
-        favoriteQueryService.acceptAccelerate(PROJECT, 4);
+        favoriteQueryService.acceptAccelerate(PROJECT, 3);
 
         Map<String, FavoriteQuery> fqMap = Maps.newHashMap();
         favoriteQueryManager.getAll().forEach(fq -> fqMap.putIfAbsent(fq.getSqlPattern(), fq));
@@ -374,7 +367,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATED, fqMap.get(sqlPatterns.get(0)).getStatus());
         Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqMap.get(sqlPatterns.get(1)).getStatus());
         Assert.assertEquals(FavoriteQueryStatusEnum.PENDING, fqMap.get(sqlPatterns.get(2)).getStatus());
-        Assert.assertEquals(FavoriteQueryStatusEnum.FAILED, fqMap.get(sqlPatterns.get(3)).getStatus());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
