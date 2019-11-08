@@ -107,76 +107,80 @@ public class AggregateMultipleExpandRule extends RelOptRule {
         RexBuilder rexBuilder = aggr.getCluster().getRexBuilder();
 
         for (ImmutableBitSet groupSet : aggr.getGroupSets()) {
-            List<AggregateCall> newAggCallList = new LinkedList<>();
-            for (AggregateCall aggCall : aggr.getAggCallList()) {
-                // make original aggCall adapt to new group keys
-                // the type nullability may change during this process
-                newAggCallList.add(aggCall.adaptTo(
-                        aggr.getInput(),
-                        aggCall.getArgList(),
-                        aggCall.filterArg,
-                        aggr.getGroupCount(),
-                        groupSet.cardinality()
-                ));
-            }
-            // push the simple aggregate with one group set
-            LogicalAggregate newAggr = aggr.copy(aggr.getTraitSet(), input, false, groupSet, asList(groupSet), newAggCallList);
-            relBuilder.push(newAggr);
-
-            ImmutableList.Builder<RexNode> rexNodes = new ImmutableList.Builder<>();
-            int index = 0;
-            Iterator<Integer> groupSetIter = aggr.getGroupSet().iterator();
-            Iterator<RelDataTypeField> typeIterator = aggr.getRowType().getFieldList().iterator();
-            Iterator<Integer> groupKeyIter = groupSet.iterator();
-            int groupKey = groupKeyIter.next();
-
-            // iterate the group keys, fill with null if the key is rolled up
-            while (groupSetIter.hasNext()) {
-                Integer aggrGroupKey = groupSetIter.next();
-                RelDataType targetType = typeIterator.next().getType();
-                if (groupKey == aggrGroupKey) {
-                    // caseSensitive=true as we are comparing fields on the same rel
-                    RelDataTypeField field = newAggr.getRowType().getField(
-                        newAggr.getInput().getRowType().getFieldList().get(groupKey).getName(),
-                        true,
-                        false);
-                    RexNode node = rexBuilder.makeInputRef(field.getType(), index++);
-                    // ensure the type is the same as the original aggr
-                    rexNodes.add(rexBuilder.ensureType(targetType, node, false));
-                    groupKey = groupKeyIter.next();
-                } else {
-                    rexNodes.add(rexBuilder.makeNullLiteral(targetType));
-                }
-            }
-
-            // fill indicators if need, false when key is present and true if key is rolled up
-            if (aggr.indicator) {
-                groupSetIter = aggr.getGroupSet().iterator();
-                groupKeyIter = groupSet.iterator();
-                groupKey = groupKeyIter.next();
-                while (groupSetIter.hasNext()) {
-                    Integer aggrGroupKey = groupSetIter.next();
-                    RelDataType type = typeIterator.next().getType();
-                    if (groupKey == aggrGroupKey) {
-                        rexNodes.add(rexBuilder.makeLiteral(false, type, true));
-                        groupKey = groupKeyIter.next();
-                    } else {
-                        rexNodes.add(rexBuilder.makeLiteral(true, type, true));
-                    }
-                }
-            }
-
-            // fill aggr calls input ref
-            for (AggregateCall newAggCall : newAggCallList) {
-                RelDataType targetType = typeIterator.next().getType();
-                RexNode node = rexBuilder.makeInputRef(newAggCall.type, index++);
-                // ensure the type is the same as the original aggr
-                rexNodes.add(rexBuilder.ensureType(targetType, node, false));
-            }
-            relBuilder.project(rexNodes.build());
+            buildForIndividualGroup(aggr, input, relBuilder, rexBuilder, groupSet);
         }
         RelNode unionAggr = relBuilder.union(true, aggr.getGroupSets().size()).build();
 
         call.transformTo(unionAggr);
+    }
+
+    private void buildForIndividualGroup(LogicalAggregate aggr, RelNode input, RelBuilder relBuilder, RexBuilder rexBuilder, ImmutableBitSet groupSet) {
+        List<AggregateCall> newAggCallList = new LinkedList<>();
+        for (AggregateCall aggCall : aggr.getAggCallList()) {
+            // make original aggCall adapt to new group keys
+            // the type nullability may change during this process
+            newAggCallList.add(aggCall.adaptTo(
+                    aggr.getInput(),
+                    aggCall.getArgList(),
+                    aggCall.filterArg,
+                    aggr.getGroupCount(),
+                    groupSet.cardinality()
+            ));
+        }
+        // push the simple aggregate with one group set
+        LogicalAggregate newAggr = aggr.copy(aggr.getTraitSet(), input, false, groupSet, asList(groupSet), newAggCallList);
+        relBuilder.push(newAggr);
+
+        ImmutableList.Builder<RexNode> rexNodes = new ImmutableList.Builder<>();
+        int index = 0;
+        Iterator<Integer> groupSetIter = aggr.getGroupSet().iterator();
+        Iterator<RelDataTypeField> typeIterator = aggr.getRowType().getFieldList().iterator();
+        Iterator<Integer> groupKeyIter = groupSet.iterator();
+        int groupKey = groupKeyIter.next();
+
+        // iterate the group keys, fill with null if the key is rolled up
+        while (groupSetIter.hasNext()) {
+            Integer aggrGroupKey = groupSetIter.next();
+            RelDataType targetType = typeIterator.next().getType();
+            if (groupKey == aggrGroupKey) {
+                // caseSensitive=true as we are comparing fields on the same rel
+                RelDataTypeField field = newAggr.getRowType().getField(
+                    newAggr.getInput().getRowType().getFieldList().get(groupKey).getName(),
+                    true,
+                    false);
+                RexNode node = rexBuilder.makeInputRef(field.getType(), index++);
+                // ensure the type is the same as the original aggr
+                rexNodes.add(rexBuilder.ensureType(targetType, node, false));
+                groupKey = groupKeyIter.next();
+            } else {
+                rexNodes.add(rexBuilder.makeNullLiteral(targetType));
+            }
+        }
+
+        // fill indicators if need, false when key is present and true if key is rolled up
+        if (aggr.indicator) {
+            groupSetIter = aggr.getGroupSet().iterator();
+            groupKeyIter = groupSet.iterator();
+            groupKey = groupKeyIter.next();
+            while (groupSetIter.hasNext()) {
+                Integer aggrGroupKey = groupSetIter.next();
+                RelDataType type = typeIterator.next().getType();
+                if (groupKey == aggrGroupKey) {
+                    rexNodes.add(rexBuilder.makeLiteral(false, type, true));
+                    groupKey = groupKeyIter.next();
+                } else {
+                    rexNodes.add(rexBuilder.makeLiteral(true, type, true));
+                }
+            }
+        }
+
+        // fill aggr calls input ref
+        for (AggregateCall newAggCall : newAggCallList) {
+            RelDataType targetType = typeIterator.next().getType();
+            RexNode node = rexBuilder.makeInputRef(newAggCall.type, index++);
+            // ensure the type is the same as the original aggr
+            rexNodes.add(rexBuilder.ensureType(targetType, node, false));
+        }
+        relBuilder.project(rexNodes.build());
     }
 }
