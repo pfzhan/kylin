@@ -190,7 +190,7 @@ export default {
       return api.model.getAutoModelSql(para)
     },
     [types.FETCH_AGGREGATES] ({ commit }, params) {
-      return api.model.fetchAggregates(params.modelName, params.projectName)
+      return api.model.fetchAggregates(params)
     },
     [types.FETCH_SEGMENTS] ({ commit }, params) {
       const startTime = !isNaN(parseInt(params.startTime)) ? String(params.startTime) : null

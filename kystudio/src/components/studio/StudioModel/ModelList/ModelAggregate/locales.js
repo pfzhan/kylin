@@ -11,13 +11,14 @@ export default {
     queryCount: 'Usage',
     usageTip: 'Times of the index used by queries',
     dataRange: 'Data Range',
-    searchAggregateID: 'Search Aggregate ID',
-    to: 'to',
+    searchAggregateID: 'Search Aggregate index content or ID',
+    to: ' to ',
     id: 'Index ID',
     emptyAggregate: 'Empty Aggregate:',
     brokenAggregate: 'Broken Aggregate:',
     buildIndex: 'Build Index',
-    aggIndexAdvancedTitle: 'Advanced Setting'
+    aggIndexAdvancedTitle: 'Advanced Setting',
+    source: 'Source'
   },
   'zh-cn': {
     aggregateGroup: '编辑聚合组',
@@ -31,12 +32,13 @@ export default {
     queryCount: '使用次数',
     usageTip: '查询使用该索引的次数',
     dataRange: '数据范围',
-    searchAggregateID: '搜索聚合索引 ID',
-    to: '至',
+    searchAggregateID: '搜索聚合索引内容或 ID',
+    to: ' 至 ',
     id: 'Index ID',
     emptyAggregate: '空的聚合索引：',
     brokenAggregate: '破损聚合索引：',
     buildIndex: '构建索引',
-    aggIndexAdvancedTitle: '高级设置'
+    aggIndexAdvancedTitle: '高级设置',
+    source: '来源'
   }
 }

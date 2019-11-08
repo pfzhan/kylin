@@ -108,7 +108,7 @@ export default class PartitionChart extends Vue {
     const width = this.elementWidth
     const height = this.elementHeight - 30
     const radius = Math.min(width, height) / 2
-    let isShowDefaultChart = false
+    // let isShowDefaultChart = false
 
     const svg = d3.select(this.$refs['svg'])
       .append('g')
@@ -150,10 +150,10 @@ export default class PartitionChart extends Vue {
       self.$emit('on-click-node', d)
     })
     path.each(function (d) {
-      if (!isShowDefaultChart && d3.select(this).attr('display') === null) {
-        this.dispatchEvent(new Event('click'))
-        isShowDefaultChart = true
-      }
+      // if (!isShowDefaultChart && d3.select(this).attr('display') === null) {
+      //   this.dispatchEvent(new Event('click'))
+      //   isShowDefaultChart = true
+      // }
       this.addEventListener('mousemove', (event) => {
         self.tipX = event.offsetX
         self.tipY = event.offsetY

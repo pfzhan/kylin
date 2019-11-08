@@ -110,8 +110,8 @@ export default {
   fetchSegments: (model, project, start, end, sortBy, reverse, pageOffset, pageSize) => {
     return Vue.resource(`${apiUrl}models/segments`).get({model, project, start, end, sortBy, reverse, pageOffset, pageSize})
   },
-  fetchAggregates: (model, project) => {
-    return Vue.resource(`${apiUrl}models/agg_indexs`).get({model, project})
+  fetchAggregates: (para) => {
+    return Vue.resource(`${apiUrl}models/agg_indices`).get(para)
   },
   fetchCuboid: (model, project, id) => {
     return Vue.resource(`${apiUrl}models/cuboids`).get({model, project, id})

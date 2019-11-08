@@ -40,7 +40,7 @@
             <kap-empty-data v-if="cuboidCount === 0" size="small"></kap-empty-data>
             <PartitionChart
               :data="cuboids"
-              :search-id="searchCuboidId"
+              :search-id="filterArgs.content"
               :background-maps="backgroundMaps"
               @on-click-node="handleClickNode"/>
           </el-card>
@@ -50,56 +50,60 @@
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="searchCuboidId" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.content" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" @input="searchAggs"></el-input>
               </div>
             </div>
             <div class="detail-content">
-              <template v-if="cuboidDetail.id !== ''">
-                <el-table class="cuboid-info" nested :data="cuboidInfo" border stripe :show-header="false">
-                  <el-table-column prop="key" class-name="font-medium" width="166px">
-                    <template slot-scope="scope">
-                      <div v-if="scope.row.key === 'dataRange'">
-                        <div>{{$t(scope.row.key)}}</div>
-                        <div class="slot" v-if="scope.row.value">slot</div>
-                      </div>
-                      <div v-else-if="scope.row.key === 'queryCount'" class="ky-hover-icon">
-                        {{$t(scope.row.key)}}
-                        <el-tooltip placement="top" :content="$t('usageTip')">
-                          <i class='el-icon-ksd-what'></i>
-                        </el-tooltip>
-                      </div>
-                      <div v-else>{{$t(scope.row.key)}}</div>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="value">
-                    <template slot-scope="scope">
-                      <template v-if="scope.row.value !== undefined">
-                        <div v-if="scope.row.key === 'dataRange'">
-                          <div>{{scope.row.value.startDate}} {{scope.row.value.to}}</div>
-                          <div>{{scope.row.value.endDate}}</div>
-                        </div>
-                        <div v-else-if="scope.row.key === 'storage'">{{scope.row.value | dataSize}}</div>
-                        <div v-else>{{scope.row.value}}</div>
-                      </template>
-                      <div v-else>{{$t('kylinLang.common.null')}}</div>
-                    </template>
-                  </el-table-column>
-                </el-table>
-                <el-table class="cuboid-content"  size="medium" nested :data="cuboidContent" border>
-                  <el-table-column type="index" :label="$t('order')" width="64">
-                  </el-table-column>
-                  <el-table-column prop="content" :label="$t('content')">
-                    <template slot-scope="scope">
-                      <div class="align-left">{{scope.row.content}}</div>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </template>
+              <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange">
+                {{$t('dataRange')}}: {{dataRange}}
+              </div>
+              <el-table :data="indexDatas" nested border size="medium" @sort-change="onSortChange" :default-sort = "{prop: 'last_modify_time', order: 'descending'}">
+                <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="70"></el-table-column>
+                <el-table-column prop="storage_size" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
+                  <template slot-scope="scope">
+                    {{scope.row.storage_size | dataSize}}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="index_type" show-overflow-tooltip :label="$t('source')" width="80"></el-table-column>
+                <el-table-column prop="query_hit_count" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
+                <el-table-column :label="$t('kylinLang.common.action')" width="65">
+                  <template slot-scope="scope">
+                    <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" layout="total, prev, pager, next, jumper" :totalSize="totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
             </div>
           </el-card>
         </el-col>
       </el-row>
     </div>
+
+    <el-dialog class="lincense-result-box"
+      :title="$t('aggregateDetail')"
+      width="480px"
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      :visible.sync="aggDetailShow">
+      <div class="ksd-mb-10 ksd-fs-12">{{$t('modifiedTime')}}: {{cuboidDetail.modifiedTime}}</div>
+      <el-table class="cuboid-content" :data="cuboidContent" border>
+        <el-table-column type="index" :label="$t('order')" width="64">
+        </el-table-column>
+        <el-table-column prop="content" :label="$t('content')">
+          <template slot-scope="scope">
+            <div class="align-left">{{scope.row.content}}</div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="type" :label="$t('kylinLang.query.type')" width="90">
+          <template slot-scope="scope">
+            <div class="align-left">{{$t('kylinLang.cube.' + scope.row.type)}}</div>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="default" size="medium" @click="aggDetailShow=false">{{$t('kylinLang.common.close')}}</el-button>
+      </div>
+    </el-dialog>
 
     <AggregateModal />
     <AggAdvancedModal v-on:refreshCuboids="refreshCuboidsAfterSubmitSetting" />
@@ -179,6 +183,18 @@ export default class ModelAggregate extends Vue {
   searchCuboidId = ''
   backgroundMaps = backgroundMaps
   buildIndexLoading = false
+  indexDatas = []
+  dataRange = ''
+  totalSize = 0
+  filterArgs = {
+    pageOffset: 0,
+    pageSize: 10,
+    content: '',
+    sortBy: '',
+    reverse: ''
+  }
+  ST = null
+  aggDetailShow = false
   // 打开高级设置
   openAggAdvancedModal () {
     this.callAggAdvancedModal({
@@ -216,6 +232,27 @@ export default class ModelAggregate extends Vue {
       this.buildIndexLoading = false
     }
   }
+  showDetail (row) {
+    this.cuboidData = row
+    this.aggDetailShow = true
+  }
+  onSortChange ({ column, prop, order }) {
+    this.filterArgs.sortBy = prop
+    this.filterArgs.reverse = !(order === 'ascending')
+    this.loadAggIndices()
+  }
+  pageCurrentChange (size, count) {
+    this.filterArgs.pageOffset = size
+    this.filterArgs.pageSize = count
+    this.loadAggIndices()
+  }
+  searchAggs () {
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      this.filterArgs.pageOffset = 0
+      this.loadAggIndices()
+    }, 500)
+  }
   get cuboidInfo () {
     return Object.entries(this.cuboidDetail)
       .filter(([key]) => !['dimensions', 'measures'].includes(key))
@@ -223,32 +260,22 @@ export default class ModelAggregate extends Vue {
   }
   get cuboidContent () {
     return [
-      ...this.cuboidDetail.dimensions.map(dimension => ({ content: dimension })),
-      ...this.cuboidDetail.measures.map(measure => ({ content: measure }))
+      ...this.cuboidDetail.dimensions.map(dimension => ({ content: dimension, type: 'dimension' })),
+      ...this.cuboidDetail.measures.map(measure => ({ content: measure, type: 'measure' }))
     ]
   }
   get isSpeedProject () {
     return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
   }
   get cuboidDetail () {
-    const id = this.cuboidData.id
-    const dimensions = this.cuboidData.dimensions_res || []
-    const measures = this.cuboidData.measures_res || []
-    const startDate = transToServerGmtTime(this.cuboidData.start_time)
-    const endDate = transToServerGmtTime(this.cuboidData.end_time)
-    const storage = this.cuboidData.storage_size
-    const queryCount = this.cuboidData.query_hit_count || 0
+    const dimensions = this.cuboidData.dimensions || []
+    const measures = this.cuboidData.measures || []
     const modifiedTime = transToGmtTime(this.cuboidData.last_modify_time)
-    const dataRange = (this.cuboidData.start_time && this.cuboidData.end_time) ? { startDate, to: this.$t('to'), endDate } : undefined
-    return { modifiedTime, storage, dimensions, measures, id, dataRange, queryCount }
+    return { modifiedTime, dimensions, measures }
   }
   async handleClickNode (node) {
-    const res = await this.fetchCuboid({
-      projectName: this.projectName,
-      modelId: this.model.uuid,
-      cuboidId: node.cuboid.id
-    })
-    this.cuboidData = await handleSuccessAsync(res)
+    this.filterArgs.content = node.cuboid.id
+    this.loadAggIndices()
   }
   async freshCuboids () {
     const res = await this.fetchCuboids({
@@ -261,8 +288,19 @@ export default class ModelAggregate extends Vue {
     this.emptyCuboidCount = getStatusCuboidCounts(data, 'EMPTY')
     this.brokenCuboidCount = getStatusCuboidCounts(data, 'BROKEN')
   }
+  async loadAggIndices () {
+    const res = await this.fetchModelAggregates(Object.assign({
+      project: this.projectName,
+      model: this.model.uuid
+    }, this.filterArgs))
+    const data = await handleSuccessAsync(res)
+    this.indexDatas = data.indices
+    this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
+    this.totalSize = data.size
+  }
   async mounted () {
     await this.freshCuboids()
+    await this.loadAggIndices()
   }
   async refreshCuboidsAfterSubmitSetting () {
     await this.freshCuboids()
@@ -279,6 +317,10 @@ export default class ModelAggregate extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-aggregate {
+  .tabel-scroll {
+    overflow: hidden;
+    height: 400px;
+  }
   .aggregate-actions {
     margin-bottom: 10px;
   }
@@ -287,6 +329,11 @@ export default class ModelAggregate extends Vue {
     right: 0;
     .el-input {
       width: 120px;
+    }
+  }
+  .el-icon-ksd-desc {
+    &:hover {
+      color: @base-color;
     }
   }
   .agg-counter {
