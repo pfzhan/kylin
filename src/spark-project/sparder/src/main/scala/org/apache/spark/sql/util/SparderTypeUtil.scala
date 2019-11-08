@@ -138,6 +138,7 @@ object SparderTypeUtil extends Logging {
       case SqlTypeName.DATE => DateType
       case SqlTypeName.TIMESTAMP => TimestampType
       case SqlTypeName.BOOLEAN => BooleanType
+      case SqlTypeName.ANY => StringType
       case _ =>
         throw new IllegalArgumentException(s"unsupported SqlTypeName $dt")
     }
