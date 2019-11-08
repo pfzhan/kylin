@@ -28,8 +28,6 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
@@ -68,7 +66,6 @@ public class NAccessControllerV2 extends NBasicController {
     private AclTCRService aclTCRService;
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
-    private static final Message msg = MsgPicker.getMsg();
 
     private static final String PROJECT_NAME = "project_name";
     private static final String TABLE_NAME = "table_name";

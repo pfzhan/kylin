@@ -225,7 +225,8 @@ public class NTableControllerTest {
     public void testSetPartitionKey() throws Exception {
         final PartitionKeyRequest partitionKeyRequest = mockFactTableRequest();
         Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(),
-                partitionKeyRequest.getTable(), partitionKeyRequest.getColumn());
+                partitionKeyRequest.getTable(), partitionKeyRequest.getColumn(),
+                partitionKeyRequest.getPartitionColumnFormat());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -240,7 +241,8 @@ public class NTableControllerTest {
         final PartitionKeyRequest partitionKeyRequest = mockFactTableRequest();
         partitionKeyRequest.setColumn("");
         Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(),
-                partitionKeyRequest.getTable(), partitionKeyRequest.getColumn());
+                partitionKeyRequest.getTable(), partitionKeyRequest.getColumn(),
+                partitionKeyRequest.getPartitionColumnFormat());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -261,6 +263,18 @@ public class NTableControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
+    }
+
+    @Test
+    public void testgetPartitioinColumnFormat() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/partition_column_format") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .param("project", "default") //
+                .param("table", "DEFAULT.TEST_KYLIN_FACT") //
+                .param("partitionColumn", "CAL_DT") //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getPartitioinColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
     }
 
     @Test

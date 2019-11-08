@@ -47,7 +47,6 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -150,8 +149,6 @@ public class ModelService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
-    private static final Message msg = MsgPicker.getMsg();
-
     private static final String MODEL = "Model '";
 
     private static final String SEGMENT_PATH = "segment_path";
@@ -180,7 +177,7 @@ public class ModelService extends BasicService {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
         if (null == nDataModel) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelId));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
         return nDataModel;
     }
@@ -918,11 +915,24 @@ public class ModelService extends BasicService {
         }
     }
 
+    private void validatePartitionDateColumn(ModelRequest modelRequest) {
+        if (Objects.nonNull(modelRequest.getPartitionDesc())) {
+            if (StringUtils.isNotEmpty(modelRequest.getPartitionDesc().getPartitionDateColumn())) {
+                Preconditions.checkArgument(
+                        StringUtils.isNotEmpty(modelRequest.getPartitionDesc().getPartitionDateFormat()),
+                        "Partition column format can not be empty!");
+            } else {
+                modelRequest.getPartitionDesc().setPartitionDateFormat("");
+            }
+        }
+    }
+
     public void batchCreateModel(String project, List<ModelRequest> modelRequests) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
 
-        Map<String, String> modelId2PartitionColFormat = Maps.newHashMap();
         for (ModelRequest modelRequest : modelRequests) {
+            validatePartitionDateColumn(modelRequest);
+
             modelRequest.setProject(project);
             modelRequest.setSimplifiedDimensions(modelRequest.getDimensions());
 
@@ -933,16 +943,12 @@ public class ModelService extends BasicService {
                 simplifiedMeasures.add(simplifiedMeasure);
             }
             modelRequest.setSimplifiedMeasures(simplifiedMeasures);
-
-            val dataModel = doCheckBeforeModelSave(project, modelRequest);
-            val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
-            modelId2PartitionColFormat.putIfAbsent(modelRequest.getUuid(), partitionColFormat);
+            doCheckBeforeModelSave(project, modelRequest);
         }
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             for (ModelRequest modelRequest : modelRequests) {
-                saveModel(project, modelRequest,
-                        modelId2PartitionColFormat.get(modelId2PartitionColFormat.get(modelRequest.getUuid())));
+                saveModel(project, modelRequest);
             }
             return null;
         }, project);
@@ -950,11 +956,11 @@ public class ModelService extends BasicService {
 
     public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
         aclEvaluate.checkProjectWritePermission(project);
+        validatePartitionDateColumn(modelRequest);
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
-        val dataModel = doCheckBeforeModelSave(project, modelRequest);
-        val partitionColFormat = probeDateFormatIfNotExist(project, dataModel);
-        return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest, partitionColFormat), project);
+        doCheckBeforeModelSave(project, modelRequest);
+        return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest), project);
     }
 
     public List<NRecomendedDataModelResponse> suggestModel(String project, List<String> sqls) {
@@ -1015,8 +1021,9 @@ public class ModelService extends BasicService {
         return dataModel;
     }
 
-    private NDataModel saveModel(String project, ModelRequest modelRequest, String partitionColFormat)
-            throws Exception {
+    private NDataModel saveModel(String project, ModelRequest modelRequest) {
+        validatePartitionDateColumn(modelRequest);
+
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -1037,11 +1044,8 @@ public class ModelService extends BasicService {
             dataflowManager.fillDfManually(df, Lists.newArrayList(range));
         }
 
-        saveDateFormatIfNotExist(project, model.getUuid(), partitionColFormat);
-
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
-
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
@@ -1072,12 +1076,12 @@ public class ModelService extends BasicService {
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
             // check if the dimension name is valid
             if (!StringUtils.containsOnly(dimension.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
-                throw new IllegalArgumentException(String.format(msg.getINVALID_DIMENSION_NAME(), dimension.getName()));
+                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName()));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
                 throw new IllegalArgumentException(
-                        String.format(msg.getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
+                        String.format(MsgPicker.getMsg().getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
 
             dimensionNames.add(dimension.getName());
         }
@@ -1090,16 +1094,16 @@ public class ModelService extends BasicService {
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             // check if the measure name is valid
             if (!StringUtils.containsOnly(measure.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
-                throw new IllegalArgumentException(String.format(msg.getINVALID_MEASURE_NAME(), measure.getName()));
+                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))
-                throw new IllegalArgumentException(String.format(msg.getDUPLICATE_MEASURE_NAME(), measure.getName()));
+                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure definitions
             if (measures.contains(measure))
                 throw new IllegalArgumentException(
-                        String.format(msg.getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
+                        String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
 
             measureNames.add(measure.getName());
             measures.add(measure);
@@ -1117,13 +1121,14 @@ public class ModelService extends BasicService {
             for (int i = 0; i < size; i++) {
                 if (joinKeys.contains(Pair.newPair(primaryKeys[i], foreignKey[i])))
                     throw new IllegalArgumentException(
-                            String.format(msg.getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
+                            String.format(MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
 
                 joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
             }
         }
     }
 
+    @Deprecated
     private void proposeAndSaveDateFormatIfNotExist(String project, String modelId) throws Exception {
         val modelManager = getDataModelManager(project);
         NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
@@ -1131,6 +1136,12 @@ public class ModelService extends BasicService {
         if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
                 || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return;
+
+        if (StringUtils.isNotEmpty(partitionDesc.getPartitionDateColumn())
+                && StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat())) {
+            return;
+        }
+
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
         val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn, project);
@@ -1145,11 +1156,16 @@ public class ModelService extends BasicService {
         if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
                 || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return "";
+
+        if (StringUtils.isNotEmpty(partitionDesc.getPartitionDateColumn())
+                && StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat())) {
+            return partitionDesc.getPartitionDateColumn();
+        }
+
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
         val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn, project);
-        val format = DateFormat.proposeDateFormat(date);
-        return format;
+        return DateFormat.proposeDateFormat(date);
     }
 
     private void saveDateFormatIfNotExist(String project, String modelId, String format) throws Exception {
@@ -1168,18 +1184,11 @@ public class ModelService extends BasicService {
         val modelDesc = modelManager.getDataModelDesc(model);
         val table = modelDesc.getRootFactTableName();
 
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table, project);
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
+        String dateFormat = modelDesc.getPartitionDesc().getPartitionDateFormat();
+        Preconditions.checkArgument(StringUtils.isNotEmpty(dateFormat) && StringUtils.isNotEmpty(partitionColumn));
 
-        String dateFormat;
-        if (StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateFormat())) {
-            val copy = modelManager.copyForWrite(modelDesc);
-            dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
-            copy.getPartitionDesc().setPartitionDateFormat(dateFormat);
-            modelManager.updateDataModelDesc(copy);
-        } else {
-            dateFormat = modelDesc.getPartitionDesc().getPartitionDateFormat();
-        }
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTimeWithTimeOut(partitionColumn, table, project);
 
         return new Pair<>(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
@@ -1366,7 +1375,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelId);
         if (dataModel == null) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelId));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
 
         dataModel.setDataCheckDesc(DataCheckDesc.valueOf(checkOptions, faultThreshold, faultActions));
@@ -1527,9 +1536,11 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateDataModelSemantic(String project, ModelRequest request) throws Exception {
+    public void updateDataModelSemantic(String project, ModelRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
         checkModelRequest(request);
+        validatePartitionDateColumn(request);
+
         val modelId = request.getUuid();
         val modelManager = getDataModelManager(project);
         val originModel = modelManager.getDataModelDesc(modelId);
@@ -1559,13 +1570,6 @@ public class ModelService extends BasicService {
         modelManager.updateDataModelDesc(copyModel);
 
         var newModel = modelManager.getDataModelDesc(modelId);
-
-        if (needChangeFormat(originModel, newModel)) {
-            modelManager.updateDataModel(request.getId(), copyForWrite -> {
-                copyForWrite.getPartitionDesc().setPartitionDateFormat("");
-            });
-        }
-        proposeAndSaveDateFormatIfNotExist(project, modelId);
 
         checkFlatTableSql(newModel);
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd());
@@ -1619,20 +1623,6 @@ public class ModelService extends BasicService {
                     copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
             return getDataModelManager(project).getDataModelDesc(model.getUuid());
         }, project);
-    }
-
-    private boolean needChangeFormat(NDataModel oriModel, NDataModel newModel) {
-        if (newModel.getPartitionDesc() == null) {
-            return false;
-        }
-        if (oriModel.getPartitionDesc() == null) {
-            return true;
-        }
-        if (!StringUtil.equals(newModel.getPartitionDesc().getPartitionDateColumn(),
-                oriModel.getPartitionDesc().getPartitionDateColumn())) {
-            return true;
-        }
-        return false;
     }
 
     public NDataModel convertToDataModel(ModelRequest modelDesc) {
@@ -1810,22 +1800,15 @@ public class ModelService extends BasicService {
         });
     }
 
-    public ExistedDataRangeResponse getLatestDataRange(String project, String table, String column, String modelId)
-            throws Exception {
+    public ExistedDataRangeResponse getLatestDataRange(String project, String modelId) throws Exception {
+        Preconditions.checkNotNull(modelId);
         aclEvaluate.checkProjectReadPermission(project);
-        Pair<String, String> pushdownResult = new Pair<>();
-        if (StringUtils.isNotEmpty(modelId)) {
-            val df = getDataflowManager(project).getDataflow(modelId);
-            pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
-            pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
-            if (pushdownResult.getFirst().compareTo(pushdownResult.getSecond()) > 0) {
-                pushdownResult.setSecond(pushdownResult.getFirst());
-            }
-        } else {
-            val maxAndMin = PushDownUtil.getMaxAndMinTime(column, table, project);
-            val dateFormat = DateFormat.proposeDateFormat(maxAndMin.getFirst());
-            pushdownResult.setFirst(DateFormat.getFormattedDate(maxAndMin.getFirst(), dateFormat));
-            pushdownResult.setSecond(DateFormat.getFormattedDate(maxAndMin.getSecond(), dateFormat));
+
+        val df = getDataflowManager(project).getDataflow(modelId);
+        Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
+        pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
+        if (pushdownResult.getFirst().compareTo(pushdownResult.getSecond()) > 0) {
+            pushdownResult.setSecond(pushdownResult.getFirst());
         }
         return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
     }

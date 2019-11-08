@@ -36,7 +36,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -74,8 +73,6 @@ public class NUserGroupController extends NBasicController {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
-
-    private static final Message msg = MsgPicker.getMsg();
 
     @RequestMapping(value = "/groupMembers/{groupName:.+}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
@@ -176,7 +173,7 @@ public class NUserGroupController extends NBasicController {
 
     private void checkGroupName(String groupName) {
         if (StringUtils.isEmpty(groupName)) {
-            throw new BadRequestException(msg.getEMPTY_GROUP_NAME());
+            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_GROUP_NAME());
         }
     }
 }

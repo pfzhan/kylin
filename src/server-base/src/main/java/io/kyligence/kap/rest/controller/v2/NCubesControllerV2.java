@@ -38,8 +38,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +62,6 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/cubes")
 public class NCubesControllerV2 extends NBasicController {
 
-    private static final Message msg = MsgPicker.getMsg();
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";
 
     @Autowired

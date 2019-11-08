@@ -38,6 +38,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -153,6 +155,10 @@ public class TableService extends BasicService {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
+
+    private ExecutorService asyncExecutor = Executors.newCachedThreadPool();
+
+    private static final long TIME_OUT = 30 * 1000;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
@@ -408,6 +414,7 @@ public class TableService extends BasicService {
                     .getDataLoadingRange(table.getIdentity());
             if (null != dataLoadingRange) {
                 rtableDesc.setPartitionedColumn(dataLoadingRange.getColumnName());
+                rtableDesc.setPartitionedColumnFormat(dataLoadingRange.getPartitionDateFormat());
                 rtableDesc.setSegmentRange(dataLoadingRange.getCoveredRange());
             }
             rtableDesc.setForeignKey(tableColumnType.getSecond());
@@ -546,18 +553,24 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void setPartitionKey(String table, String project, String column) {
+    public void setPartitionKey(String table, String project, String column, String columnFormat) {
         aclEvaluate.checkProjectWritePermission(project);
+        if (StringUtils.isNotEmpty(column)) {
+            Preconditions.checkArgument(StringUtils.isNotEmpty(columnFormat),
+                    "Partition column format can not be empty!");
+        }
+
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         String tableName = table.substring(table.lastIndexOf('.') + 1);
         String columnIdentity = tableName + "." + column;
         if ((dataLoadingRange == null && StringUtils.isEmpty(column)) || (dataLoadingRange != null
-                && StringUtils.equalsIgnoreCase(columnIdentity, dataLoadingRange.getColumnName()))) {
+                && StringUtils.equalsIgnoreCase(columnIdentity, dataLoadingRange.getColumnName())
+                && StringUtils.equalsIgnoreCase(columnFormat, dataLoadingRange.getPartitionDateFormat()))) {
             logger.info("Partition column {} does not change", column);
             return;
         }
-        handlePartitionColumnChanged(dataLoadingRange, columnIdentity, column, project, table);
+        handlePartitionColumnChanged(dataLoadingRange, columnIdentity, column, columnFormat, project, table);
     }
 
     private void purgeRelatedModel(String modelId, String table, String project) {
@@ -575,7 +588,7 @@ public class TableService extends BasicService {
     }
 
     private void handlePartitionColumnChanged(NDataLoadingRange dataLoadingRange, String columnIdentity, String column,
-            String project, String table) {
+            String columnFormat, String project, String table) {
         val dataLoadingRangeManager = getDataLoadingRangeManager(project);
         val tableManager = getTableManager(project);
         val tableDesc = tableManager.getTableDesc(table);
@@ -589,11 +602,12 @@ public class TableService extends BasicService {
             if (dataLoadingRange != null) {
                 val loadingRangeCopy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
                 loadingRangeCopy.setColumnName(columnIdentity);
-                loadingRangeCopy.setPartitionDateFormat(null);
+                loadingRangeCopy.setPartitionDateFormat(columnFormat);
                 loadingRangeCopy.setCoveredRange(null);
                 dataLoadingRangeManager.updateDataLoadingRange(loadingRangeCopy);
             } else {
                 dataLoadingRange = new NDataLoadingRange(table, columnIdentity);
+                dataLoadingRange.setPartitionDateFormat(columnFormat);
                 logger.info("Create DataLoadingRange {}", dataLoadingRange.getTableName());
                 dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
             }
@@ -633,9 +647,9 @@ public class TableService extends BasicService {
         var start = dateRangeRequest.getStart();
         var end = dateRangeRequest.getEnd();
 
-        Pair<String, String> pushdownResult;
-        if (PushDownUtil.needPushdown(start, end)) {
-            pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
+        if (getProjectManager().getProject(project).getConfig().isPushDownEnabled()
+                && PushDownUtil.needPushdown(start, end)) {
+            val pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
             start = PushDownUtil.calcStart(pushdownResult.getFirst(), allRange);
             end = pushdownResult.getSecond();
         }
@@ -668,7 +682,22 @@ public class TableService extends BasicService {
         Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
         val start = PushDownUtil.calcStart(pushdownResult.getFirst(), dataLoadingRange.getCoveredRange());
         return new ExistedDataRangeResponse(start, pushdownResult.getSecond());
+    }
 
+    public String getPartitionColumnFormat(String project, String table, String partitionColumn) throws Exception {
+        aclEvaluate.checkProjectOperationPermission(project);
+
+        NTableMetadataManager tableManager = getTableManager(project);
+        TableDesc tableDesc = tableManager.getTableDesc(table);
+        Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName).map(String::toUpperCase)
+                .collect(Collectors.toSet());
+        if (!columnSet.contains(partitionColumn.toUpperCase())) {
+            throw new BadRequestException(String.format("Can not find the column:%s in table:%s, project:%s",
+                    partitionColumn, table, project));
+        }
+
+        String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
+        return DateFormat.proposeDateFormat(cell);
     }
 
     public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
@@ -676,7 +705,7 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         String partitionColumn = dataLoadingRange.getColumnName();
 
-        val maxAndMinTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table, project);
+        val maxAndMinTime = PushDownUtil.getMaxAndMinTimeWithTimeOut(partitionColumn, table, project);
         String dateFormat;
         if (StringUtils.isEmpty(dataLoadingRange.getPartitionDateFormat()))
             dateFormat = setPartitionColumnFormat(maxAndMinTime.getFirst(), project, table);
@@ -1077,7 +1106,7 @@ public class TableService extends BasicService {
         val removeCols = context.getRemoveColumnFullnames();
         loadingManager.getDataLoadingRanges().forEach(loadingRange -> {
             if (removeCols.contains(loadingRange.getColumnName())) {
-                setPartitionKey(tableIdentity, projectName, null);
+                setPartitionKey(tableIdentity, projectName, null, null);
             }
         });
 

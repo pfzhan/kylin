@@ -54,6 +54,8 @@ public class TableDescResponse extends TableDesc {
     private Set<String> foreignKey = new HashSet<>();
     @JsonProperty("partitioned_column")
     private String partitionedColumn;
+    @JsonProperty("partitioned_column_format")
+    private String partitionedColumnFormat;
     @JsonProperty("segment_range")
     private SegmentRange segmentRange;
     @JsonProperty("storage_size")

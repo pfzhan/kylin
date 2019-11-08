@@ -32,7 +32,6 @@ import javax.validation.Valid;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -66,8 +65,6 @@ import io.kyligence.kap.rest.service.ProjectService;
 @RequestMapping(value = "/projects")
 public class NProjectController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NProjectController.class);
-
-    private static final Message msg = MsgPicker.getMsg();
 
     private static final char[] VALID_PROJECT_NAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
@@ -113,10 +110,10 @@ public class NProjectController extends NBasicController {
 
         ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
         if (StringUtils.isEmpty(projectDesc.getName())) {
-            throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
         }
         if (!StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
-            throw new BadRequestException(msg.getINVALID_PROJECT_NAME(), projectDesc.getName());
+            throw new BadRequestException(MsgPicker.getMsg().getINVALID_PROJECT_NAME(), projectDesc.getName());
         }
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createdProj, "");
@@ -173,7 +170,7 @@ public class NProjectController extends NBasicController {
             throws Exception {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
         if (projectInstance == null) {
-            throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), project));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectService.cleanupGarbage(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");

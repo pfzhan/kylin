@@ -1207,7 +1207,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testCreateModelAndBuildManully() throws Exception {
         setupPushdownEnv();
         testGetLatestData();
-        testGetLatestDataWhenCreateModel();
         testCreateModel_PartitionNotNull();
         testBuildSegmentsManually_WithPushDown();
         testCreateModel_PartitionNotNull_WithStartAndEnd();
@@ -1314,7 +1313,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private void testGetLatestData() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "", "",
+        ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
     }
@@ -1325,17 +1324,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setStart("1325347200000");
         modelRequest.setEnd("1388505600000");
-    }
-
-    private void testGetLatestDataWhenCreateModel() throws Exception {
-        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT",
-                "CAL_DT", "");
-
-        java.text.DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
-        dateFormat.setTimeZone(TimeZone.getDefault());
-
-        long t1 = dateFormat.parse("2014/01/01").getTime();
-        Assert.assertEquals(String.valueOf(t1), response.getEndTime());
     }
 
     public void testChangePartitionDesc() throws Exception {
@@ -1479,8 +1467,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setEnd("100");
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
-        modelRequest.getPartitionDesc().setPartitionDateFormat("");
-        Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
+        modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model2", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -2581,7 +2568,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(t1, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(t2, dataflow.getSegments().get(0).getSegRange().getEnd());
-
+        val result = PushDownUtil.getMaxAndMinTimeWithTimeOut(
+                modelUpdate.getPartitionDesc().getPartitionDateColumn(), modelUpdate.getRootFactTableName(), "default");
+        Assert.assertNotNull(result);
     }
 
     @Test

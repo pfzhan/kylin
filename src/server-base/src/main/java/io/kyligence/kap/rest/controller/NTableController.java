@@ -29,8 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -168,7 +170,7 @@ public class NTableController extends NBasicController {
 
         checkProjectName(partitionKeyRequest.getProject());
         tableService.setPartitionKey(partitionKeyRequest.getTable(), partitionKeyRequest.getProject(),
-                partitionKeyRequest.getColumn());
+                partitionKeyRequest.getColumn(), partitionKeyRequest.getPartitionColumnFormat());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -252,7 +254,32 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "table") String table) throws Exception {
         checkProjectName(project);
         checkRequiredArg(TABLE, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getLatestDataRange(project, table), "");
+
+        ExistedDataRangeResponse response;
+        try {
+            response = tableService.getLatestDataRange(project, table);
+        } catch (KylinTimeoutException ke) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null,
+                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+        } catch (Exception e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null,
+                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @RequestMapping(value = "/partition_column_format", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getPartitioinColumnFormat(@RequestParam(value = "project") String project,
+            @RequestParam(value = "table") String table,
+            @RequestParam(value = "partitionColumn") String partitionColumn) throws Exception {
+        checkProjectName(project);
+        checkRequiredArg(TABLE, table);
+        checkRequiredArg("partitionColumn", partitionColumn);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                tableService.getPartitionColumnFormat(project, table, partitionColumn), "");
     }
 
     @RequestMapping(value = "/batch_load", method = { RequestMethod.GET }, produces = {

@@ -463,7 +463,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         // Add partition_key and data_loading_range
         DateRangeRequest request = mockDateRangeRequest();
-        tableService.setPartitionKey(tableName, "default", "CAL_DT");
+        tableService.setPartitionKey(tableName, "default", "CAL_DT", "yyyy-MM-dd");
         tableService.setDataRange("default", request);
         NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -513,6 +513,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         testGetBatchLoadTablesAfter();
         testSetDataRangeWhenNoNewData();
         testSetDataRangeOverlapOrGap();
+        testgetPartitionColumnFormat();
         testGetLatestData();
         cleanPushdownEnv();
     }
@@ -531,7 +532,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     }
 
     private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
         //test set fact and table list order by fact
         Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isIncrementLoading());
@@ -567,7 +568,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertTrue(df.getSegments().size() == 1);
         Assert.assertTrue(loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT") == null);
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertTrue(df.getSegments().size() == 0);
         val loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -581,7 +582,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertTrue(df.getSegments().size() == 1);
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertTrue(df.getSegments().size() == 0);
 
@@ -593,7 +594,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         //change partition
 
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "ORDER_ID");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "ORDER_ID", "yyyy-MM-dd");
         loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertTrue(loadingRange.getCoveredRange() == null);
         Assert.assertEquals(loadingRange.getColumnName(), "TEST_KYLIN_FACT.ORDER_ID");
@@ -616,7 +617,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(loadingRange.getColumnName(), "TEST_KYLIN_FACT.CAL_DT");
 
         //set null
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "");
         df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(df.getSegments().size(), 1);
 
@@ -638,7 +639,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         var loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNull(loadingRange);
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNotNull(loadingRange);
@@ -703,6 +704,11 @@ public class TableServiceTest extends CSVSourceTestCase {
         }
     }
 
+    private void testgetPartitionColumnFormat() throws Exception {
+        String format = tableService.getPartitionColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
+        Assert.assertEquals("yyyy-MM-dd", format);
+    }
+
     private void testGetLatestData() throws Exception {
         java.text.DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
         sdf.setTimeZone(TimeZone.getDefault());
@@ -748,7 +754,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void checkRefreshDataRangeException1() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("There is no ready segment to refresh!");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
     }
 
@@ -756,7 +762,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void checkRefreshDataRangeException2() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data during refresh range must be ready!");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -782,7 +788,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
         NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
         modelManager.updateDataModelDesc(dataModelUpdate);
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         //table oriented model
         AutoMergeConfigResponse response = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
@@ -808,7 +814,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
         NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
         modelManager.updateDataModelDesc(dataModelUpdate);
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
         tableService.setAutoMergeConfigByTable("default", autoMergeRequest);
         AutoMergeConfigResponse respone = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
@@ -845,7 +851,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testSetPushDownMode() {
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         tableService.setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
         boolean result = tableService.getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertTrue(result);
@@ -863,10 +869,10 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testSetFact_NoRelatedModels_PASS() {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "yyyy-MM-dd");
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
     }
@@ -875,22 +881,22 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testSetFact_NotRootFactTable_Exception() {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "");
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
-        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
     }
 
     @Test
     public void testSetFact_IncrementingExists_Exception() {
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
-        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
     }
 
     @Test
@@ -898,9 +904,9 @@ public class TableServiceTest extends CSVSourceTestCase {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "");
 
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertEquals(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc()
                 .getPartitionDateColumn(), "TEST_KYLIN_FACT.CAL_DT");
@@ -910,7 +916,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         eventDao.deleteAllEvents();
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "");
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
 
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));

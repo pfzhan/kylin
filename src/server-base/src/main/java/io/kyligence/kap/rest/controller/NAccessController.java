@@ -40,7 +40,6 @@ import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -94,7 +93,6 @@ public class NAccessController extends NBasicController {
     private AclTCRService aclTCRService;
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
-    private static final Message msg = MsgPicker.getMsg();
 
     /**
      * Get current user's permission in the project
@@ -254,10 +252,10 @@ public class NAccessController extends NBasicController {
 
     private void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
-            throw new BadRequestException(msg.getEMPTY_SID());
+            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
         }
         if (!sidPattern.matcher(sid).matches()) {
-            throw new BadRequestException(msg.getINVALID_SID());
+            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
         }
 
         if (principal && !userService.userExists(sid)) {

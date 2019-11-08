@@ -696,4 +696,13 @@ public class Message {
     public String getTABLENOTFOUND() {
         return "Failed to save model. Please ensure the columns used in model [%s] must be existed in source table [%s]";
     }
+
+    // Async push down get data range
+    public String getPUSHDOWN_DATARANGE_ERROR() {
+        return "Detect failed, please set the data range manually.";
+    }
+
+    public String getPUSHDOWN_DATARANGE_TIMEOUT() {
+        return "Detect timeout, please set the data range manually.";
+    }
 }

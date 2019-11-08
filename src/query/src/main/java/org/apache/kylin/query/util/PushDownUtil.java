@@ -46,6 +46,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.ws.rs.BadRequestException;
 
@@ -66,6 +71,7 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -95,6 +101,8 @@ import lombok.val;
 
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
+
+    private static ExecutorService asyncExecutor = Executors.newCachedThreadPool();
 
     private PushDownUtil() {
     }
@@ -178,6 +186,28 @@ public class PushDownUtil {
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
+    public static Pair<String, String> getMaxAndMinTimeWithTimeOut(String partitionColumn, String table, String project)
+            throws Exception {
+        Future<Pair<String, String>> pushDownTask = asyncExecutor.submit(() -> {
+            try {
+                return getMaxAndMinTime(partitionColumn, table, project);
+            } catch (Exception e) {
+                logger.error("Failed to get partition column latest data range by push down!", e);
+            }
+            return null;
+        });
+
+        Pair<String, String> pushdownResult;
+        try {
+            pushdownResult = pushDownTask.get(30, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            pushDownTask.cancel(true);
+            throw new KylinTimeoutException("Get latest data range by push down timeout 30s !");
+        }
+
+        return pushdownResult;
+    }
+
     public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table, String project)
             throws Exception {
         String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
@@ -190,8 +220,8 @@ public class PushDownUtil {
 
         result.setFirst(returnRows.get(0).get(0));
         result.setSecond(returnRows.get(0).get(1));
-        return result;
 
+        return result;
     }
 
     public static boolean needPushdown(String start, String end) {
@@ -216,13 +246,12 @@ public class PushDownUtil {
     }
 
     public static String getFormatIfNotExist(String table, String partitionColumn, String project) throws Exception {
-
         String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
                 partitionColumn);
 
         // push down
         List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
-        if (returnRows.size() == 0)
+        if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
             throw new BadRequestException(String.format("There are no data in table %s", table));
 
         return returnRows.get(0).get(0);

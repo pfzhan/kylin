@@ -651,4 +651,13 @@ public class CnMessage extends Message {
     public String getTABLENOTFOUND() {
         return "模型保存失败，请确保模型中使用的列 [%s] 在源表 [%s] 中存在";
     }
+
+    // Async push down get data range
+    public String getPUSHDOWN_DATARANGE_ERROR() {
+        return "获取失败，请手动选择数据范围";
+    }
+
+    public String getPUSHDOWN_DATARANGE_TIMEOUT() {
+        return "获取超时，请手动选择数据范围";
+    }
 }

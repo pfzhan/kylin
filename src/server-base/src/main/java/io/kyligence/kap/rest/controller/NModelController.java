@@ -32,8 +32,8 @@ import java.util.Objects;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -75,6 +75,7 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
@@ -86,7 +87,6 @@ import lombok.val;
 @RequestMapping(value = "/models")
 public class NModelController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
-    private static final Message msg = MsgPicker.getMsg();
     private static final String MODEL_ID = "modelId";
     private static final String NEW_MODEL_NAME = "newModelNAME";
 
@@ -210,7 +210,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse validateModelAlias(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
         if (StringUtils.isEmpty(modelRequest.getUuid()))
-            throw new BadRequestException(msg.getMODEL_ID_NOT_FOUND());
+            throw new BadRequestException(MsgPicker.getMsg().getMODEL_ID_NOT_FOUND());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, !modelService
                 .checkModelAliasUniqueness(modelRequest.getUuid(), modelRequest.getAlias(), modelRequest.getProject()),
@@ -221,12 +221,21 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getLatestData(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table", required = false) String table,
-            @RequestParam(value = "partitionColumn", required = false) String column,
-            @RequestParam(value = "model", required = false) String modelId) throws Exception {
+            @RequestParam(value = "model") String modelId) throws Exception {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                modelService.getLatestDataRange(project, table, column, modelId), "");
+
+        ExistedDataRangeResponse response;
+        try {
+            response = modelService.getLatestDataRange(project, modelId);
+        } catch (KylinTimeoutException e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null,
+                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
+        } catch (Exception e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null,
+                    MsgPicker.getMsg().getPUSHDOWN_DATARANGE_ERROR());
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @RequestMapping(value = "/segments", method = RequestMethod.GET, produces = {
@@ -417,7 +426,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelRenameRequest.getModelId());
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newAlias));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
         }
 
         modelService.renameDataModel(modelRenameRequest.getProject(), modelRenameRequest.getModelId(), newAlias);
@@ -490,7 +499,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelName);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
         }
         modelService.cloneModel(request.getModelId(), request.getNewModelName(), request.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
