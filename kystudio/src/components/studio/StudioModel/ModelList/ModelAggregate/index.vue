@@ -304,6 +304,7 @@ export default class ModelAggregate extends Vue {
   }
   async refreshCuboidsAfterSubmitSetting () {
     await this.freshCuboids()
+    await this.loadAggIndices()
   }
   async handleAggregateGroup () {
     const { projectName, model } = this
