@@ -92,7 +92,7 @@ import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
-import io.kyligence.kap.rest.response.IndexEntityResponse;
+import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -181,52 +181,42 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTableIndices() throws Exception {
-        Mockito.when(modelService.getTableIndices("model1", "default")).thenReturn(mockCuboidDescs());
+        Mockito.when(modelService.getTableIndices("model1", "default")).thenReturn(mockIndicesResponse());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/table_indices").contentType(MediaType.APPLICATION_JSON)
                 .param("model", "model1").param("project", "default")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nModelController).getTableIndices("model1", "default");
+        Mockito.verify(nModelController).getTableIndices("default", "model1");
     }
 
     @Test
-    public void testAggIndexs() throws Exception {
-        Mockito.when(modelService.getAggIndices("model1", "default")).thenReturn(mockCuboidDescs());
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/agg_indices").contentType(MediaType.APPLICATION_JSON)
-                        .param("model", "model1").param("project", "default")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
-        Mockito.verify(nModelController).getAggIndices("model1", "default");
-    }
-
-    @Test
-    public void testGetCuboids() throws Exception {
-        IndexEntity cuboidDesc = new IndexEntity();
-        cuboidDesc.setId(432323);
-        cuboidDesc.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
-                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        IndexEntityResponse indexEntityResponse = new IndexEntityResponse(cuboidDesc);
-        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(indexEntityResponse);
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/cuboids").contentType(MediaType.APPLICATION_JSON)
-                        .param("id", "432323").param("project", "default").param("model", "model1")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getCuboids(432323L, "default", "model1");
-    }
-
-    @Test
-    public void testGetCuboidsException() throws Exception {
-
-        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(null);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/cuboids").contentType(MediaType.APPLICATION_JSON)
-                .param("id", "432323").param("project", "default").param("model", "model1")
+    public void testAggIndices() throws Exception {
+        Mockito.when(modelService.getAggIndices("model1", "default", null, null, false, 0, 10, null, true))
+                .thenReturn(mockIndicesResponse());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/agg_indices").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("model", "model1")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nModelController).getCuboids(432323L, "default", "model1");
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nModelController).getAggIndices("default", "model1", null, null, false, 0, 10,
+                "last_modify_time", true);
+    }
+
+    @Test
+    public void testGetIndicesById() throws Exception {
+        IndexEntity index = new IndexEntity();
+        index.setId(432323);
+        index.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        IndicesResponse indices = new IndicesResponse(index.getIndexPlan());
+        Mockito.when(modelService.getIndicesById("default", "model1", 432323L)).thenReturn(indices);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/agg_indices").contentType(MediaType.APPLICATION_JSON)
+                .param("index", "432323").param("project", "default").param("model", "model1")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nModelController).getAggIndices("default", "model1", 432323L, null, false, 0, 10,
+                "last_modify_time", true);
     }
 
     @Test
@@ -900,14 +890,14 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         return nSpanningTrees;
     }
 
-    private List<IndexEntityResponse> mockCuboidDescs() {
-        final List<IndexEntityResponse> nCuboidDescs = new ArrayList<>();
-        IndexEntity cuboidDesc = new IndexEntity();
-        cuboidDesc.setId(1234);
-        cuboidDesc.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+    private IndicesResponse mockIndicesResponse() {
+        IndexEntity index = new IndexEntity();
+        index.setId(1234);
+        index.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
-        nCuboidDescs.add(new IndexEntityResponse(cuboidDesc));
-        return nCuboidDescs;
+        IndicesResponse indices = new IndicesResponse(index.getIndexPlan());
+        indices.addIndexEntity(index);
+        return indices;
     }
 
     private Segments<NDataSegmentResponse> mockSegments() {

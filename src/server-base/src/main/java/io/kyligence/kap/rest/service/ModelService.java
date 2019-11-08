@@ -67,6 +67,7 @@ import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
@@ -125,7 +126,7 @@ import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.IndexEntityResponse;
+import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
@@ -449,44 +450,81 @@ public class ModelService extends BasicService {
         return df.getSegmentsByRange(filterRange);
     }
 
-    public List<IndexEntityResponse> getAggIndices(String modelId, String project) {
+    public IndicesResponse getAggIndices(String project, String modelId, Long indexId, String contentSeg,
+            boolean isCaseSensitive, Integer pageOffset, Integer pageSize, String sortBy, Boolean reverse) {
         aclEvaluate.checkProjectReadPermission(project);
-        List<IndexEntity> indexEntities = getIndexEntities(modelId, project);
-        List<IndexEntityResponse> result = new ArrayList<>();
-        for (IndexEntity indexEntity : indexEntities) {
-            if (indexEntity.getId() < IndexEntity.TABLE_INDEX_START_ID) {
-                IndexEntityResponse indexEntityResponse = new IndexEntityResponse(indexEntity);
-                result.add(indexEntityResponse);
-            }
+
+        logger.debug("find project={}, model={}, index={}, content={}, isCaseSensitive={}, sortBy={}, reverse={}",
+                project, modelId, indexId, contentSeg, isCaseSensitive, sortBy, reverse);
+
+        IndicesResponse result;
+        if (Objects.nonNull(indexId)) {
+            result = getIndicesById(project, modelId, indexId);
+        } else {
+            IndexPlan indexPlan = getIndexPlan(modelId, project);
+            result = new IndicesResponse(indexPlan);
+            indexPlan.getAllIndexes().stream().filter(e -> e.getId() < IndexEntity.TABLE_INDEX_START_ID)
+                    .forEach(result::addIndexEntity);
         }
+        List<IndicesResponse.Index> indices = result.getIndices();
+        if (Objects.nonNull(contentSeg)) {
+            indices = filterFuzzyMatchedIndices(indices, contentSeg, isCaseSensitive);
+        }
+        result.setSize(indices.size());
+        result.setIndices(sortIndicesThenCutPage(indices, sortBy, reverse, pageOffset, pageSize));
         return result;
     }
 
-    public List<IndexEntityResponse> getTableIndices(String modelId, String project) {
-        aclEvaluate.checkProjectReadPermission(project);
-        List<IndexEntity> indexEntities = getIndexEntities(modelId, project);
-        List<IndexEntityResponse> result = new ArrayList<IndexEntityResponse>();
-        for (IndexEntity indexEntity : indexEntities) {
-            if (indexEntity.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
-                IndexEntityResponse indexEntityResponse = new IndexEntityResponse(indexEntity);
-                result.add(indexEntityResponse);
-            }
+    private List<IndicesResponse.Index> filterFuzzyMatchedIndices(List<IndicesResponse.Index> indices,
+            String contentSeg, boolean isCaseSensitive) {
+        if (StringUtils.isBlank(contentSeg)) {
+            return indices;
         }
-        return result;
+        return indices.stream().filter(index -> fuzzyMatched(contentSeg, isCaseSensitive, String.valueOf(index.getId())) // weird rule
+                || index.getDimensions().stream().anyMatch(d -> fuzzyMatched(contentSeg, isCaseSensitive, d))
+                || index.getMeasures().stream().anyMatch(m -> fuzzyMatched(contentSeg, isCaseSensitive, m)))
+                .collect(Collectors.toList());
     }
 
-    public List<IndexEntity> getIndexEntities(String modelId, String project) {
-        val indexPlan = getIndexPlan(modelId, project);
-        List<IndexEntity> cuboidDescs = new ArrayList<IndexEntity>();
-        cuboidDescs.addAll(indexPlan.getAllIndexes());
-        return cuboidDescs;
+    private List<IndicesResponse.Index> sortIndicesThenCutPage(List<IndicesResponse.Index> indices, String sortBy,
+            boolean reverse, int pageOffset, int pageSize) {
+        Comparator<IndicesResponse.Index> comparator = propertyComparator(
+                StringUtils.isEmpty(sortBy) ? IndicesResponse.LAST_MODIFY_TIME : sortBy, !reverse);
+        indices.sort(comparator);
+        return PagingUtil.cutPage(indices, pageOffset, pageSize);
     }
 
-    public IndexEntityResponse getCuboidById(String modelId, String project, Long cuboidId) {
+    private boolean fuzzyMatched(String contentSeg, boolean isCaseSensitive, String content) {
+        if (isCaseSensitive) {
+            return StringUtils.contains(content, contentSeg);
+        }
+        return StringUtils.containsIgnoreCase(content, contentSeg);
+    }
+
+    @VisibleForTesting
+    public IndicesResponse getIndicesById(String project, String modelId, Long indexId) {
         aclEvaluate.checkProjectReadPermission(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
-        IndexEntity cuboidDesc = indexPlan.getIndexEntity(cuboidId);
-        return new IndexEntityResponse(cuboidDesc);
+        IndicesResponse result = new IndicesResponse(indexPlan);
+        result.addIndexEntity(indexPlan.getIndexEntity(indexId));
+        return result;
+    }
+
+    public IndicesResponse getTableIndices(String modelId, String project) {
+        aclEvaluate.checkProjectReadPermission(project);
+        IndexPlan indexPlan = getIndexPlan(modelId, project);
+        IndicesResponse result = new IndicesResponse(indexPlan);
+        indexPlan.getAllIndexes().stream().filter(e -> e.getId() >= IndexEntity.TABLE_INDEX_START_ID)
+                .forEach(result::addIndexEntity);
+        return result;
+    }
+
+    @VisibleForTesting
+    IndicesResponse getIndices(String modelId, String project) {
+        IndexPlan indexPlan = getIndexPlan(modelId, project);
+        IndicesResponse result = new IndicesResponse(indexPlan);
+        indexPlan.getAllIndexes().forEach(result::addIndexEntity);
+        return result;
     }
 
     public String getModelJson(String modelId, String project) throws JsonProcessingException {

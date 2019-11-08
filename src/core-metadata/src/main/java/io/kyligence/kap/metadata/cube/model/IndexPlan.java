@@ -280,7 +280,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public IndexEntity getIndexEntity(long cuboidDescId) {
-        return getSpanningTree().getIndexEntity(cuboidDescId);
+        final NSpanningTree tree = getSpanningTree();
+        if (!tree.isValid(cuboidDescId)) {
+            return null;
+        }
+        return tree.getIndexEntity(cuboidDescId);
     }
 
     public LayoutEntity getCuboidLayout(Long cuboidLayoutId) {

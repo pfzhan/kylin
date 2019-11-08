@@ -73,7 +73,6 @@ import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
-import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
@@ -266,12 +265,20 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/agg_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAggIndices(@RequestParam(value = "model", required = true) String modelId,
-            @RequestParam(value = "project", required = true) String project) {
+    public EnvelopeResponse getAggIndices(@RequestParam(value = "project") String project, //
+            @RequestParam(value = "model") String modelId, //
+            @RequestParam(value = "index", required = false) Long indexId, //
+            @RequestParam(value = "content", required = false) String contentSeg, //
+            @RequestParam(value = "isCaseSensitive", required = false, defaultValue = "false") boolean isCaseSensitive, //
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset, //
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize, //
+            @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify_time") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        List<IndexEntityResponse> aggIndices = modelService.getAggIndices(modelId, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndices, "");
+        val result = modelService.getAggIndices(project, modelId, indexId, contentSeg, isCaseSensitive, pageOffset,
+                pageSize, sortBy, reverse);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @PostMapping(value = "/agg_indices/shard_columns", produces = "application/vnd.apache.kylin-v2+json")
@@ -293,30 +300,14 @@ public class NModelController extends NBasicController {
                 "");
     }
 
-    @RequestMapping(value = "/cuboids", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getCuboids(@RequestParam(value = "id", required = true) Long id,
-            @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "model", required = true) String modelId) {
-        checkProjectName(project);
-        checkRequiredArg(MODEL_ID, modelId);
-        IndexEntityResponse indexEntityResponse = modelService.getCuboidById(modelId, project, id);
-        if (indexEntityResponse == null) {
-            throw new BadRequestException("Can not find this cuboid " + id);
-        }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, indexEntityResponse, "");
-    }
-
     @RequestMapping(value = "/table_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTableIndices(@RequestParam(value = "model", required = true) String modelId,
-            @RequestParam(value = "project", required = true) String project) {
+    public EnvelopeResponse getTableIndices(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        List<IndexEntityResponse> tableIndices = modelService.getTableIndices(modelId, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndices, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelService.getTableIndices(modelId, project), "");
     }
 
     @RequestMapping(value = "/indices", method = RequestMethod.POST, produces = {

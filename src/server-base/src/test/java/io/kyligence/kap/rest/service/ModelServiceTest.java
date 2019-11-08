@@ -161,7 +161,7 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.IndexEntityResponse;
+import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
@@ -434,60 +434,81 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetAggIndices() {
+        IndicesResponse indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null,
+                null, false, 0, 10, null, true);
+        Assert.assertEquals(5, indices.getIndices().size());
+        Assert.assertTrue(indices.getIndices().get(0).getId() < IndexEntity.TABLE_INDEX_START_ID);
 
-        List<IndexEntityResponse> indices = modelService.getAggIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default");
-        Assert.assertEquals(5, indices.size());
-        Assert.assertTrue(indices.get(0).getId() < IndexEntity.TABLE_INDEX_START_ID);
+        final String contentSegIndexId = "200";
+        indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, contentSegIndexId,
+                false, 0, 10, null, true);
+        Assert.assertTrue(indices.getIndices().stream()
+                .allMatch(index -> String.valueOf(index.getId()).contains(contentSegIndexId)));
 
+        final String contentSegDimension = "ORDer";
+        indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null,
+                contentSegDimension, false, 0, 10, null, true);
+        Assert.assertTrue(indices.getIndices().stream().allMatch(
+                index -> index.getDimensions().stream().anyMatch(d -> d.contains(contentSegDimension.toUpperCase()))));
+
+        final String contentSegMeasure = "GMV";
+        indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, contentSegMeasure,
+                true, 0, 10, null, true);
+        Assert.assertTrue(indices.getIndices().stream()
+                .allMatch(index -> index.getMeasures().stream().anyMatch(d -> d.contains(contentSegMeasure))));
+
+        indices = modelService.getAggIndices("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, null, true, 0, 3,
+                null, true);
+        Assert.assertEquals(5, indices.getSize());
+        Assert.assertEquals(3, indices.getIndices().size());
     }
 
     @Test
     public void testGetTableIndices() {
 
-        List<IndexEntityResponse> indices = modelService.getTableIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default");
-        Assert.assertEquals(4, indices.size());
-        Assert.assertTrue(indices.get(0).getId() >= IndexEntity.TABLE_INDEX_START_ID);
+        IndicesResponse indices = modelService.getTableIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        Assert.assertEquals(4, indices.getIndices().size());
+        Assert.assertTrue(indices.getIndices().get(0).getId() >= IndexEntity.TABLE_INDEX_START_ID);
 
     }
 
     @Test
-    public void testGetCuboidDescs() {
+    public void testGetIndices() {
 
-        List<IndexEntity> cuboids = modelService.getIndexEntities("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-        Assert.assertEquals(9, cuboids.size());
+        IndicesResponse indices = modelService.getIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        Assert.assertEquals(9, indices.getIndices().size());
     }
 
     @Test
-    public void testGetCuboidById_AVAILABLE() {
-        IndexEntityResponse cuboid = modelService.getCuboidById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", 0L);
-        Assert.assertEquals(0L, cuboid.getId());
-        Assert.assertEquals(CuboidStatus.AVAILABLE, cuboid.getStatus());
-        Assert.assertEquals(252928L, cuboid.getStorageSize());
+    public void testGetIndicesById_AVAILABLE() {
+        IndicesResponse indices = modelService.getIndicesById("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 0L);
+
+        Assert.assertEquals(0L, indices.getIndices().get(0).getId());
+        Assert.assertEquals(CuboidStatus.AVAILABLE, indices.getIndices().get(0).getStatus());
+        Assert.assertEquals(252928L, indices.getIndices().get(0).getStorageSize());
     }
 
     @Test
-    public void testGetCuboidById_NoSegments_EMPTYStatus() {
-        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default", 130000L);
-        Assert.assertEquals(130000L, cuboid.getId());
-        Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
-        Assert.assertEquals(0L, cuboid.getStorageSize());
-        Assert.assertEquals(0L, cuboid.getStartTime());
-        Assert.assertEquals(0L, cuboid.getEndTime());
+    public void testGetIndicesById_NoSegments_EMPTYStatus() {
+        IndicesResponse indices = modelService.getIndicesById("default", MODEL_UT_INNER_JOIN_ID, 130000L);
+        Assert.assertEquals(130000L, indices.getIndices().get(0).getId());
+        Assert.assertEquals(CuboidStatus.EMPTY, indices.getIndices().get(0).getStatus());
+        Assert.assertEquals(0L, indices.getIndices().get(0).getStorageSize());
+        Assert.assertEquals(0L, indices.getStartTime());
+        Assert.assertEquals(0L, indices.getEndTime());
     }
 
     @Test
-    public void testGetCuboidById_NoReadySegments() {
+    public void testGetIndicesById_NoReadySegments() {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         dfMgr.appendSegment(dfMgr.getDataflow(MODEL_UT_INNER_JOIN_ID),
                 new SegmentRange.TimePartitionedSegmentRange(100L, 200L));
-        IndexEntityResponse cuboid = modelService.getCuboidById(MODEL_UT_INNER_JOIN_ID, "default", 130000L);
-        Assert.assertEquals(130000L, cuboid.getId());
-        Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
-        Assert.assertEquals(0L, cuboid.getStorageSize());
-        Assert.assertEquals(0L, cuboid.getStartTime());
-        Assert.assertEquals(0L, cuboid.getEndTime());
+        IndicesResponse indices = modelService.getIndicesById("default", MODEL_UT_INNER_JOIN_ID, 130000L);
+        Assert.assertEquals(130000L, indices.getIndices().get(0).getId());
+        Assert.assertEquals(CuboidStatus.EMPTY, indices.getIndices().get(0).getStatus());
+        Assert.assertEquals(0L, indices.getIndices().get(0).getStorageSize());
+        Assert.assertEquals(0L, indices.getStartTime());
+        Assert.assertEquals(0L, indices.getEndTime());
     }
 
     @Test
