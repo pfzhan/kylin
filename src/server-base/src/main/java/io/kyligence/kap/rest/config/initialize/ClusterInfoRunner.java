@@ -23,12 +23,10 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -37,8 +35,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
-
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
