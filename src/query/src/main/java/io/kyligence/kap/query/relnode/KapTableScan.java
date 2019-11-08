@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import io.kyligence.kap.query.optrule.KapMinusRule;
 import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
@@ -125,6 +126,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         planner.addRule(KapUnionRule.INSTANCE);
         planner.addRule(KapWindowRule.INSTANCE);
         planner.addRule(KAPValuesRule.INSTANCE);
+        planner.addRule(KapMinusRule.INSTANCE);
         planner.removeRule(ProjectMergeRule.INSTANCE);
         planner.addRule(KapProjectMergeRule.INSTANCE);
 
@@ -288,7 +290,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
                 topProjParent = parent;
             }
 
-            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel
+            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel || parent instanceof KapMinusRel
                     || parent instanceof KapWindowRel || parent instanceof KapAggregateRel) {
                 topProjParent = null;
             }

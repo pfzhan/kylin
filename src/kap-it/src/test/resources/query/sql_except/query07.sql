@@ -1,0 +1,14 @@
+select count(1), sum(c1) from (
+(select sum(ACCOUNT_BUYER_LEVEL) as c1, ACCOUNT_SELLER_LEVEL as c2
+from TEST_ACCOUNT
+where ACCOUNT_COUNTRY='CN'
+group by ACCOUNT_SELLER_LEVEL
+)
+EXCEPT
+(select sum(ACCOUNT_SELLER_LEVEL) as c1, ACCOUNT_BUYER_LEVEL as c2
+from TEST_ACCOUNT
+where ACCOUNT_COUNTRY='FR'
+group by ACCOUNT_BUYER_LEVEL
+)
+)
+group by c2

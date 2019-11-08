@@ -28,16 +28,7 @@ import java.util
 
 import com.google.common.collect.Lists
 import io.kyligence.kap.query.relnode._
-import io.kyligence.kap.query.runtime.plan.{
-  AggregatePlan,
-  FilterPlan,
-  LimitPlan,
-  ProjectPlan,
-  SortPlan,
-  TableScanPlan,
-  ValuesPlan,
-  WindowPlan
-}
+import io.kyligence.kap.query.runtime.plan._
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.{RelNode, RelVisitor}
 import org.apache.spark.internal.Logging
@@ -47,11 +38,11 @@ import scala.collection.JavaConverters._
 
 class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Logging {
   private val stack = new util.Stack[DataFrame]()
-  private val unionStack = new util.Stack[Int]()
+  private val setOpStack = new util.Stack[Int]()
 
   override def visit(node: RelNode, ordinal: Int, parent: RelNode): Unit = {
-    if (node.isInstanceOf[KapUnionRel]) {
-      unionStack.push(stack.size())
+    if (node.isInstanceOf[KapUnionRel] || node.isInstanceOf[KapMinusRel]) {
+      setOpStack.push(stack.size())
     }
     // skip non runtime joins children
     // cases to skip children visit
@@ -106,9 +97,12 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
           }
         }
       case rel: KapUnionRel =>
-        val size = unionStack.pop()
+        val size = setOpStack.pop()
         val java = Range(0, stack.size() - size).map(a => stack.pop()).asJava
         logTime("union") { plan.UnionPlan.union(Lists.newArrayList(java), rel, dataContext) }
+      case rel: KapMinusRel =>
+        val size = setOpStack.pop()
+        logTime("minus") { plan.MinusPlan.minus(Range(0, stack.size() - size).map(a => stack.pop()).reverse, rel, dataContext) }
       case rel: KapValuesRel =>
         logTime("values") { ValuesPlan.values(rel) }
     })
