@@ -13,6 +13,7 @@ const initialState = JSON.stringify({
   isShow: false,
   editType: '',
   callback: null,
+  format: 'yyyy-MM-dd',
   form: {
     isLoadExisted: false,
     loadDataRange: [new Date(), new Date()],
@@ -48,10 +49,10 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, project = {}, table = {}, model = {} }) {
+    [types.CALL_MODAL] ({ commit }, { editType, project = {}, table = {}, model = {}, format }) {
       return new Promise((resolve, reject) => {
         try {
-          commit(types.SET_MODAL, { editType, project, table, model, callback: resolve })
+          commit(types.SET_MODAL, { editType, project, table, model, format, callback: resolve })
           commit(types.INIT_FORM)
           commit(types.SHOW_MODAL)
         } catch (e) {

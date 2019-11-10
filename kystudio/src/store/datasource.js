@@ -340,6 +340,9 @@ export default {
     },
     [types.VERIFY_CSV_SQL]: function ({commit}, data) {
       return api.datasource.verifyCSVSql(data)
+    },
+    [types.FETCH_PARTITION_FORMAT]: function ({ commit }, data) {
+      return api.datasource.fetchPartitionFormat(data)
     }
   }
 }

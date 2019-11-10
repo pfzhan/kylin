@@ -14,6 +14,7 @@ export function getFormattedTable (originData = {}) {
     datasource: originData.source_type,
     cardinality: originData.cardinality,
     partitionColumn,
+    format: originData.partitioned_column_format || 'yyyy-MM-dd',
     storageType,
     storageSize: ~originData.storage_size ? originData.storage_size : null,
     totalRecords: ~originData.total_records ? originData.total_records : null,

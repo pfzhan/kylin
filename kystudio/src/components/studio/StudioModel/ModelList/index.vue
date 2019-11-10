@@ -125,7 +125,7 @@
           prop="gmtTime"
           show-overflow-tooltip
           sortable="custom"
-          width="174px"
+          width="178px"
           :label="$t('dataLoadTime')">
         </el-table-column>
         <el-table-column

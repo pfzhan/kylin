@@ -19,7 +19,8 @@ export default {
     detectAvailableRange: 'Detect available range',
     modelPartitionSet: 'Model Partition',
     noColumnFund: 'Column not found',
-    pleaseInputColumn: 'Please select a partition column'
+    pleaseInputColumn: 'Please select a partition column',
+    detectFormat: 'Detect partition format'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -41,6 +42,7 @@ export default {
     detectAvailableRange: '获取最新数据范围',
     modelPartitionSet: '分区设置',
     noColumnFund: '找不到该列',
-    pleaseInputColumn: '请选择分区列'
+    pleaseInputColumn: '请选择分区列',
+    detectFormat: '获取分区格式'
   }
 }

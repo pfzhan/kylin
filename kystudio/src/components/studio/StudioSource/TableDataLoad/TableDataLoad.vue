@@ -7,7 +7,7 @@
       </div>
       <div class="info-row">
         <span class="info-label font-medium">{{$t('partitionKey')}}</span>
-        <span class="info-value">
+        <span class="info-value ky-no-br-space">
           <el-select
             v-guide.tablePartitionColumn
             filterable
@@ -22,6 +22,33 @@
               :value="item.name">
               <span style="float: left">{{ item.name }}</span>
               <span class="ky-option-sub-info">{{ item.datatype }}</span>
+            </el-option>
+          </el-select>
+          <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top" v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig">
+            <el-button
+              size="medium"
+              class="ksd-ml-10"
+              :loading="isLoadingFormat"
+              icon="el-icon-ksd-data_range_search"
+              @click="handleLoadFormat">
+            </el-button>
+          </el-tooltip>
+        </span>
+      </div>
+      <div class="info-row" v-show="table.partitionColumn">
+        <span class="info-label font-medium">{{$t('dateFormat')}}</span>
+        <span class="info-value">
+          <el-select
+            filterable
+            size="medium"
+            :disabled="isLoadingFormat"
+            @change="handleChangePartitionFormat"
+            v-bind:value="table.format">
+            <el-option
+              v-for="item in dateFormats"
+              :key="item.label"
+              :label="item.label"
+              :value="item.value">
             </el-option>
           </el-select>
         </span>
@@ -105,12 +132,35 @@ import { getAffectedModelsType } from '../../../../config'
       fetchRelatedModelStatus: 'FETCH_RELATED_MODEL_STATUS',
       fetchFullLoadInfo: 'FETCH_FULL_LOAD_INFO',
       fetchFreshInfo: 'FETCH_RANGE_FRESH_INFO',
-      freshDataRange: 'FRESH_RANGE_DATA'
+      freshDataRange: 'FRESH_RANGE_DATA',
+      fetchPartitionFormat: 'FETCH_PARTITION_FORMAT'
     })
   },
   locales
 })
 export default class TableDataLoad extends Vue {
+  isLoadingFormat = false
+  dateFormats = [
+    {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
+    {label: 'yyyyMMdd', value: 'yyyyMMdd'},
+    {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
+    {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
+    {label: 'yyyy-MM', value: 'yyyy-MM'},
+    {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'},
+    {label: 'yyyyMM', value: 'yyyyMM'}
+  ]
+  async handleLoadFormat () {
+    try {
+      this.isLoadingFormat = true
+      const res = await this.fetchPartitionFormat({ project: this.project.name, table: this.table.fullName, partitionColumn: this.table.partitionColumn })
+      const data = await handleSuccessAsync(res)
+      this.handleChangePartitionFormat(data)
+      this.isLoadingFormat = false
+    } catch (e) {
+      this.isLoadingFormat = false
+      handleError(e)
+    }
+  }
   async handleLoadData (isChangePartition) {
     try {
       if (isChangePartition) {
@@ -119,7 +169,7 @@ export default class TableDataLoad extends Vue {
       }
       const { project, table } = this
       if (table.partitionColumn) {
-        const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table })
+        const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table, format: this.table.format })
         isSubmit && this.$emit('fresh-tables')
         // 如果是改变partition拉起的渲染range弹窗，关闭的时候给提示
         if (!isSubmit && isChangePartition === true) {
@@ -138,7 +188,7 @@ export default class TableDataLoad extends Vue {
   }
   async handleRefreshData () {
     const { project, table } = this
-    const isSubmit = await this.callSourceTableModal({ editType: 'refreshData', project, table })
+    const isSubmit = await this.callSourceTableModal({ editType: 'refreshData', project, table, format: this.table.format })
     isSubmit && this.$emit('fresh-tables')
   }
   async handleLoadFullData () {
@@ -157,14 +207,25 @@ export default class TableDataLoad extends Vue {
   }
   async handleChangePartition (value) {
     try {
-      const { modelCount, modelSize } = await this._getAffectedModelCountAndSize(getAffectedModelsType.TOGGLE_PARTITION)
-      if (modelCount || modelSize) {
-        await this._showPartitionConfirm({ modelSize, partitionKey: value })
-      }
-      await this._changePartitionKey(value)
+      // const { modelCount, modelSize } = await this._getAffectedModelCountAndSize(getAffectedModelsType.TOGGLE_PARTITION)
+      // if (modelCount || modelSize) {
+      //   await this._showPartitionConfirm({ modelSize, partitionKey: value })
+      // }
+      await this._changePartitionKey(value, this.table.format)
       if (value) {
         this.table.partitionColumn = value
-        await this.handleLoadData(true)
+        // await this.handleLoadData(true)
+      }
+      this.$emit('fresh-tables')
+    } catch (e) {
+      handleError(e)
+    }
+  }
+  async handleChangePartitionFormat (value) {
+    try {
+      await this._changePartitionKey(this.table.partitionColumn, value)
+      if (value) {
+        this.table.format = value
       }
       this.$emit('fresh-tables')
     } catch (e) {
@@ -219,8 +280,8 @@ export default class TableDataLoad extends Vue {
       )
     }
   }
-  _changePartitionKey (value) {
-    const submitData = _getPartitionInfo(this.project, this.table, value)
+  _changePartitionKey (column, format) {
+    const submitData = _getPartitionInfo(this.project, this.table, column, format)
     return this.saveTablePartition(submitData)
   }
   async _getAffectedModelCountAndSize (affectedType) {

@@ -1,8 +1,9 @@
-export function _getPartitionInfo (project, table, partitionColumn) {
+export function _getPartitionInfo (project, table, partitionColumn, format) {
   return {
     project: project.name,
     table: `${table.database}.${table.name}`,
-    column: partitionColumn
+    column: partitionColumn,
+    partitionColumnFormat: format
   }
 }
 

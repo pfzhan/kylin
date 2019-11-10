@@ -30,6 +30,9 @@
                 v-model="modelBuildMeta.dataRangeVal[0]"
                 :is-auto-complete="true"
                 :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+                @change="resetError"
+                value-format="timestamp"
+                :format="format"
                 :placeholder="$t('kylinLang.common.startTime')">
               </el-date-picker>
               <el-date-picker
@@ -37,12 +40,16 @@
                 v-model="modelBuildMeta.dataRangeVal[1]"
                 :is-auto-complete="true"
                 :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+                value-format="timestamp"
+                @change="resetError"
+                :format="format"
                 :placeholder="$t('kylinLang.common.endTime')">
               </el-date-picker>
               <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
                 <el-button
                   size="medium"
                   class="ksd-ml-10"
+                  v-if="$store.state.project.projectPushdownConfig"
                   :disabled="modelBuildMeta.isLoadExisted"
                   :loading="isLoadingNewRange"
                   icon="el-icon-ksd-data_range_search"
@@ -52,6 +59,7 @@
             </div>
           </el-form-item>
         </el-form>
+        <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -108,6 +116,11 @@
         validator: this.validateRange, trigger: 'blur'
       }]
     }
+    loadRangeDateError = ''
+    isShowRangeDateError = false
+    get format () {
+      return this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_format || 'yyyy-MM-dd'
+    }
     validateRange (rule, value, callback) {
       const [ startValue, endValue ] = value
       const isLoadExisted = this.modelBuildMeta.isLoadExisted
@@ -133,6 +146,7 @@
     }
     async handleLoadNewestRange () {
       this.isLoadingNewRange = true
+      this.resetError()
       try {
         const submitData = {
           project: this.currentSelectedProject,
@@ -142,19 +156,29 @@
         if (submitData.model !== this.modelDesc.uuid) { // 避免ajax耗时太长导致会覆盖新的model的load range数据
           return
         }
-        const result = await handleSuccessAsync(response)
-        const startTime = +result.start_time
-        const endTime = +result.end_time
-        this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
+        if (response.body.code === '000') {
+          const result = await handleSuccessAsync(response)
+          const startTime = +result.start_time
+          const endTime = +result.end_time
+          this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
+        } else if (response.body.code === '999') {
+          this.loadRangeDateError = response.body.msg
+          this.isShowRangeDateError = true
+        }
       } catch (e) {
         handleError(e)
       }
       this.isLoadingNewRange = false
     }
+    resetError () {
+      this.loadRangeDateError = ''
+      this.isShowRangeDateError = false
+    }
     closeModal (isSubmit) {
       this.isLoadingNewRange = false
       this.btnLoading = false
       this.$refs.buildForm && this.$refs.buildForm.resetFields()
+      this.resetError()
       this.hideModal()
       setTimeout(() => {
         this.callback && this.callback(isSubmit)
@@ -196,10 +220,16 @@
   }
 </script>
 <style lang="less">
+@import '../../../../../assets/styles/variables.less';
   .model-build {
     .item-desc {
       font-size: 12px;
       line-height: 1;
+    }
+    .error-msg {
+      color: @error-color-1;
+      font-size: 12px;
+      margin-top: 5px;
     }
   }
 </style>

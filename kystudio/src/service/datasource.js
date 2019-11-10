@@ -266,5 +266,8 @@ export default {
   },
   verifyCSVSql (data) {
     return Vue.resource(apiUrl + `source/validate`).save(data)
+  },
+  fetchPartitionFormat (data) {
+    return Vue.resource(apiUrl + 'tables/partition_column_format').get(data)
   }
 }

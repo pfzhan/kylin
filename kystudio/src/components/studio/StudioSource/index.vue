@@ -345,7 +345,6 @@ export default class StudioSource extends Vue {
       const projectName = this.currentSelectedProject
       const res = await this.fetchTables({ projectName, databaseName, tableName, isExt: true, isFuzzy: false })
       const tableDetail = await handleSuccessAsync(res)
-
       this.selectedTableData = tableDetail.tables[0]
     } catch (e) {
       handleError(e)

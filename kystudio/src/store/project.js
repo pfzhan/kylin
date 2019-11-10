@@ -12,7 +12,8 @@ export default {
     isAllProject: false,
     selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName'),
     projectDefaultDB: '',
-    isSemiAutomatic: false
+    isSemiAutomatic: false,
+    projectPushdownConfig: true
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -82,6 +83,9 @@ export default {
     },
     [types.CACHE_PROJECT_DEFAULT_DB]: function (state, { projectDefaultDB }) {
       state.projectDefaultDB = projectDefaultDB
+    },
+    [types.CACHE_PROJECT_PUSHDOWN_CONFIG]: function (state, { projectPushdownConfig }) {
+      state.projectPushdownConfig = projectPushdownConfig
     }
   },
   actions: {
@@ -170,6 +174,7 @@ export default {
       return api.project.fetchProjectSettings(para.projectName).then((response) => {
         commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
         commit(types.CACHE_PROJECT_DEFAULT_DB, {projectDefaultDB: response.data.data.default_database})
+        commit(types.CACHE_PROJECT_PUSHDOWN_CONFIG, {projectPushdownConfig: response.data.data.push_down_enabled})
         // 更新是否是半自动档标志
         commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, response.data.data.semi_automatic_mode)
         return response
@@ -182,7 +187,10 @@ export default {
       return api.project.updateSegmentConfig(para)
     },
     [types.UPDATE_PUSHDOWN_CONFIG]: function ({commit}, para) {
-      return api.project.updatePushdownConfig(para)
+      return api.project.updatePushdownConfig(para).then((response) => {
+        commit(types.CACHE_PROJECT_PUSHDOWN_CONFIG, {projectPushdownConfig: para.push_down_enabled})
+        return response
+      })
     },
     [types.UPDATE_STORAGE_QUOTA]: function ({commit}, para) {
       return api.project.updateStorageQuota(para)

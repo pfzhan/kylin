@@ -8,20 +8,20 @@
     class="model-partition-dialog" 
     @close="isShow && handleClose(false)" 
     :close-on-press-escape="false" 
-    :close-on-click-modal="false">     
+    :close-on-click-modal="false">
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
     <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top"> 
-      <el-form-item  :label="$t('partitionDateColumn')">
-        <el-col :span="12">
+      <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
+        <el-col :span="10">
           <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" class="ksd-mr-5">
             <el-option :label="$t('noPartition')" value=""></el-option>
             <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
           </el-select>
         </el-col>
-        <el-col :span="12" class="ksd-pl-5">
+        <el-col :span="11" class="ksd-pl-5">
           <el-form-item prop="column">
             <el-select :disabled="isLoadingNewRange"
-            v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
+            v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:100%">
               <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
                 <span style="float: left">{{ t.name }}</span>
                 <span class="ky-option-sub-info">{{ t.datatype }}</span>
@@ -29,9 +29,25 @@
             </el-select>
           </el-form-item>
         </el-col>
+        <el-col :span="3" class="ksd-pl-5" v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig">
+          <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
+            <el-button
+              size="medium"
+              :loading="isLoadingFormat"
+              icon="el-icon-ksd-data_range_search"
+              @click="handleLoadFormat">
+            </el-button>
+          </el-tooltip>
+        </el-col>
+      </el-form-item>
+      <el-form-item  :label="$t('dateFormat')">
+        <el-select :disabled="isLoadingFormat" v-model="partitionMeta.format" style="width:41.66667%">
+          <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
+          <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+        </el-select>
       </el-form-item>
     </el-form> 
-    <template v-if="showDataRange">
+    <!-- <template v-if="showDataRange">
       <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
       <el-alert
         :title="$t('kylinLang.dataSource.rangeInfoTip')"
@@ -51,6 +67,8 @@
               :is-auto-complete="true"
               class="ksd-mr-5"
               :disabled="isLoadingNewRange"
+              value-format="timestamp"
+              format="yyyy/MM/dd"
               :placeholder="$t('kylinLang.common.startTime')">
             </el-date-picker>
             <el-date-picker
@@ -58,11 +76,13 @@
               v-model="modelBuildMeta.dataRangeVal[1]"
               :is-auto-complete="true"
               :disabled="isLoadingNewRange"
+              value-format="timestamp"
+              format="yyyy/MM/dd"
               :placeholder="$t('kylinLang.common.endTime')">
             </el-date-picker>
             <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
               <el-button
-                v-if="isShow"
+                v-if="isShow&&$store.state.project.projectPushdownConfig"
                 size="medium"
                 class="ksd-ml-10"
                 :loading="isLoadingNewRange"
@@ -72,13 +92,12 @@
               </el-button>
             </el-tooltip>
 
-            <!-- for guide -->
             <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
             <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
         </div>
       </el-form-item>
       </el-form>
-    </template>
+    </template> -->
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
@@ -98,8 +117,8 @@ import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { isDatePartitionType, objectClone } from '../../../../../util'
-import { transToUTCMs, handleError, getGmtDateFromUtcLike } from 'util/business'
-import { handleSuccessAsync } from 'util/index'
+import { transToUTCMs } from 'util/business'
+import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 
 @Component({
@@ -131,7 +150,8 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
       loadDataSourceByProject: 'LOAD_DATASOURCE',
       saveSampleData: 'SAVE_SAMPLE_DATA',
       setModelPartition: 'MODEL_PARTITION_SET',
-      fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE'
+      fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE',
+      fetchPartitionFormat: 'FETCH_PARTITION_FORMAT'
     })
   },
   locales
@@ -140,11 +160,13 @@ export default class ModelPartitionModal extends Vue {
   isLoading = false
   isFormShow = false
   isLoadingNewRange = false
+  isLoadingFormat = false
   partitionMeta = {
     table: '',
     column: '',
     format: ''
   }
+  timeDataType = timeDataType
   rules = {
     dataRangeVal: [{
       validator: this.validateRange, trigger: 'blur'
@@ -182,39 +204,46 @@ export default class ModelPartitionModal extends Vue {
     }
     return false
   }
-  async handleLoadNewestRange () {
-    this.isLoadingNewRange = true
+  async handleLoadFormat () {
     try {
-      let tableInfo = this.modelInstance.getTableByAlias(this.partitionMeta.table)
-      const submitData = {
-        project: this.currentSelectedProject,
-        table: tableInfo.name,
-        partitionColumn: this.partitionMeta.column
-      }
-      const response = await this.fetchNewestModelRange(submitData)
-      const result = await handleSuccessAsync(response)
-      const startTime = +result.start_time
-      const endTime = +result.end_time
-      this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
-      this.$refs.partitionForm.validate()
+      this.isLoadingFormat = true
+      const response = await this.fetchPartitionFormat({ project: this.currentSelectedProject, table: this.selectedTable.name, partitionColumn: this.partitionMeta.column })
+      this.partitionMeta.format = await handleSuccessAsync(response)
+      this.isLoadingFormat = false
     } catch (e) {
+      this.isLoadingFormat = false
       handleError(e)
     }
-    this.isLoadingNewRange = false
   }
+  // async handleLoadNewestRange () {
+  //   this.isLoadingNewRange = true
+  //   try {
+  //     let tableInfo = this.modelInstance.getTableByAlias(this.partitionMeta.table)
+  //     const submitData = {
+  //       project: this.currentSelectedProject,
+  //       table: tableInfo.name,
+  //       partitionColumn: this.partitionMeta.column
+  //     }
+  //     const response = await this.fetchNewestModelRange(submitData)
+  //     const result = await handleSuccessAsync(response)
+  //     const startTime = +result.start_time
+  //     const endTime = +result.end_time
+  //     this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
+  //     this.$refs.partitionForm.validate()
+  //   } catch (e) {
+  //     handleError(e)
+  //   }
+  //   this.isLoadingNewRange = false
+  // }
   filterCondition = ''
-  dateFormat = [
-    {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
-    {label: 'yyyyMMdd', value: 'yyyyMMdd'},
-    {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
-    {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'}
-  ]
-  integerFormat = [
+  dateFormats = [
     {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
     {label: 'yyyyMMdd', value: 'yyyyMMdd'},
     {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
     {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
-    {label: '', value: ''}
+    {label: 'yyyy-MM', value: 'yyyy-MM'},
+    {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'},
+    {label: 'yyyyMM', value: 'yyyyMM'}
   ]
   get partitionTables () {
     let result = []
@@ -227,13 +256,13 @@ export default class ModelPartitionModal extends Vue {
     }
     return result
   }
-  get showDataRange () {
-    // 分区列有空值或者和历史值一样
-    if (!this.partitionMeta.table || !this.partitionMeta.column || this.partitionMeta.table + '.' + this.partitionMeta.column === this.modelInstance.his_partition_desc.partition_date_column) {
-      return false
-    }
-    return true
-  }
+  // get showDataRange () {
+  //   // 分区列有空值或者和历史值一样
+  //   if (!this.partitionMeta.table || !this.partitionMeta.column || this.partitionMeta.table + '.' + this.partitionMeta.column === this.modelInstance.his_partition_desc.partition_date_column) {
+  //     return false
+  //   }
+  //   return true
+  // }
   // 获取破损的partition keys
   get brokenPartitionColumns () {
     if (this.partitionMeta.table) {
@@ -275,21 +304,23 @@ export default class ModelPartitionModal extends Vue {
     })
     return result
   }
-  get formatList () {
-    if (!this.partitionMeta.column) {
-      return []
-    }
-    let partitionColumn = this.getColumnInfo(this.partitionMeta.column)
-    if (!partitionColumn) {
-      return []
-    } else {
-      if (timeDataType.indexOf(partitionColumn.datatype) === -1) {
-        return this.integerFormat
-      } else {
-        return this.dateFormat
-      }
-    }
-  }
+  // get formatList () {
+  //   if (!this.partitionMeta.column) {
+  //     return []
+  //   }
+  //   let partitionColumn = this.getColumnInfo(this.partitionMeta.column)
+  //   if (!partitionColumn) {
+  //     return []
+  //   } else {
+  //     if (timeDataType.indexOf(partitionColumn.datatype) === -1) {
+  //       this.partitionMeta.format = 'yyyy-MM-dd'
+  //       return this.integerFormat
+  //     } else {
+  //       this.partitionMeta.format = ''
+  //       return this.dateFormat
+  //     }
+  //   }
+  // }
   getColumnInfo (column) {
     if (this.selectedTable) {
       let len = this.selectedTable.columns && this.selectedTable.columns.length || 0
@@ -324,6 +355,10 @@ export default class ModelPartitionModal extends Vue {
     this.partitionMeta.format = ''
     this.$refs.partitionForm.validate()
   }
+  partitionColumnChange () {
+    this.partitionMeta.format = 'yyyy-MM-dd'
+    this.$refs.partitionForm.validate()
+  }
   resetForm () {
     this.partitionMeta = {
       table: '',
@@ -352,7 +387,7 @@ export default class ModelPartitionModal extends Vue {
     this.handleClose(true)
   }
   handleClose (isSubmit) {
-    this.isLoadingNewRange = false
+    this.isLoadingFormat = false
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()

@@ -35,6 +35,9 @@
           :is-auto-complete="true"
           :disabled="isDisabled || isLoadingNewRange"
           :placeholder="$t('kylinLang.common.startTime')"
+          @change="resetError"
+          value-format="timestamp"
+          :format="format"
           @input="value => handleInputDate('loadDataRange.0', value)">
         </el-date-picker>
         <el-date-picker
@@ -43,11 +46,14 @@
           :is-auto-complete="true"
           :disabled="isDisabled || isLoadingNewRange"
           :placeholder="$t('kylinLang.common.endTime')"
+          @change="resetError"
+          value-format="timestamp"
+          :format="format"
           @input="value => handleInputDate('loadDataRange.1', value)">
         </el-date-picker>
         <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
           <el-button
-            v-if="isFormShow"
+            v-if="isFormShow&&$store.state.project.projectPushdownConfig"
             size="medium"
             style="line-height:1"
             class="ksd-ml-10"
@@ -81,6 +87,9 @@
             :is-auto-complete="true"
             :disabled="isDisabled"
             :placeholder="$t('kylinLang.common.startTime')"
+            @change="resetError"
+            value-format="timestamp"
+            :format="format"
             @input="value => handleInputDate('freshDataRange.0', value)">
           </el-date-picker>
           <el-date-picker
@@ -89,11 +98,15 @@
             :is-auto-complete="true"
             :disabled="isDisabled"
             :placeholder="$t('kylinLang.common.endTime')"
+            @change="resetError"
+            value-format="timestamp"
+            :format="format"
             @input="value => handleInputDate('freshDataRange.1', value)">
           </el-date-picker>
         </div>
       </el-form-item>
     </el-form>
+    <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
     <div slot="footer" class="dialog-footer ky-no-br-space" v-if="isShow">
       <!-- {{form.freshDataRange}} -->
       <!-- <el-button v-guide.hasFundData style="display:none" v-if="form.freshDataRange[0] && form.freshDataRange[1]"></el-button> -->
@@ -128,7 +141,8 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
       callback: state => state.callback,
       project: state => state.project,
       table: state => state.table,
-      model: state => state.model
+      model: state => state.model,
+      format: state => state.format
     })
   },
   methods: {
@@ -156,6 +170,8 @@ export default class SourceTableModal extends Vue {
     [REFRESH_DATA_RANGE]: [{ validator: this.validate(LOAD_DATA_RANGE), trigger: 'blur' }]
   }
   isLoadingNewRange = false
+  loadRangeDateError = ''
+  isShowRangeDateError = false
   get modalTitle () {
     return titleMaps[this.editType]
   }
@@ -171,6 +187,7 @@ export default class SourceTableModal extends Vue {
   handleClosed () {
     this._hideForm()
     this.initForm()
+    this.resetError()
   }
   handleInput (key, value) {
     this.setModalForm(set(this.form, key, value))
@@ -180,20 +197,30 @@ export default class SourceTableModal extends Vue {
   }
   async handleLoadNewestRange () {
     this.isLoadingNewRange = true
+    this.resetError()
     try {
       const submitData = _getNewestTableRange(this.project, this.table)
       const response = await this.fetchNewestTableRange(submitData)
       if (submitData.tableFullName !== this.table.fullName) {
         return
       }
-      const result = await handleSuccessAsync(response)
-      const startTime = +result.start_time
-      const endTime = +result.end_time
-      this.handleInputDate('loadDataRange', [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ])
+      if (response.body.code === '000') {
+        const result = await handleSuccessAsync(response)
+        const startTime = +result.start_time
+        const endTime = +result.end_time
+        this.handleInputDate('loadDataRange', [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ])
+      } else if (response.body.code === '999') {
+        this.loadRangeDateError = response.body.msg
+        this.isShowRangeDateError = true
+      }
     } catch (e) {
       handleError(e)
     }
     this.isLoadingNewRange = false
+  }
+  resetError () {
+    this.loadRangeDateError = ''
+    this.isShowRangeDateError = false
   }
   async handleSubmit () {
     this._showLoading()
@@ -301,6 +328,11 @@ export default class SourceTableModal extends Vue {
       display: block;
       margin-bottom: 8px;
     }
+  }
+  .error-msg {
+    color: @error-color-1;
+    font-size: 12px;
+    margin-top: 5px;
   }
 }
 </style>
