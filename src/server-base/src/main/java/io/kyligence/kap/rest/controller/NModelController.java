@@ -672,18 +672,18 @@ public class NModelController extends NBasicController {
                 .getTableIndexRecomContent(project, modelId, content, layoutId, offset, limit), "");
     }
 
-    public static final String illegalInputMsg = "Request failed. {project/model name} not found.";
-    public static final String illegalModeMsg = "Request failed. Please check whether the recommendation mode is enabled in expert mode.";
+    public static final String ILLEGAL_INPUT_MSG = "Request failed. {project/model name} not found.";
+    public static final String ILLEGAL_MODE_MSG = "Request failed. Please check whether the recommendation mode is enabled in expert mode.";
 
     @RequestMapping(value = "/recommendations/{project}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getRecommendationsByProject(@PathVariable("project") String project) {
         if (StringUtils.isEmpty(project) || !projectService.isExistProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, illegalInputMsg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, ILLEGAL_INPUT_MSG);
         }
         if (!projectService.isSemiAutoProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, illegalModeMsg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, ILLEGAL_MODE_MSG);
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 optimizeRecommendationService.getRecommendationsStatsByProject(project), "");
@@ -695,10 +695,10 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse batchApplyRecommendations(@RequestParam(value = "project") String project,
             @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
         if (StringUtils.isEmpty(project) || !projectService.isExistProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, illegalInputMsg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, ILLEGAL_INPUT_MSG);
         }
         if (!projectService.isSemiAutoProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, illegalModeMsg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, ILLEGAL_MODE_MSG);
         }
         optimizeRecommendationService.batchApplyRecommendations(project, modelAlias);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
