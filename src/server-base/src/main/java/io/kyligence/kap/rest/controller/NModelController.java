@@ -302,7 +302,8 @@ public class NModelController extends NBasicController {
 
     @GetMapping(value = "/agg_indices/shard_columns", produces = "application/vnd.apache.kylin-v2+json")
     @ResponseBody
-    public EnvelopeResponse getAggIndicesShardColumns(@RequestParam String project, @RequestParam String modelId) {
+    public EnvelopeResponse getAggIndicesShardColumns(@RequestParam(value = "project") String project,
+            @RequestParam(value = "modelId") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, indexPlanService.getShardByColumns(project, modelId),
