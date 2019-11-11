@@ -64,7 +64,12 @@
                     {{scope.row.storage_size | dataSize}}
                   </template>
                 </el-table-column>
-                <el-table-column prop="index_type" show-overflow-tooltip :label="$t('source')" width="80"></el-table-column>
+                <el-table-column prop="index_type" show-overflow-tooltip :label="$t('source')" width="150">
+                  <template slot-scope="scope">
+                    <span v-if="scope.row.index_type === 'MANUAL'">{{$t('aggregateGroupType')}}</span>
+                    <span v-if="scope.row.index_type === 'AUTO'">{{$t('recommendation')}}</span>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="query_hit_count" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
                 <el-table-column :label="$t('kylinLang.common.action')" width="65">
                   <template slot-scope="scope">

@@ -18,7 +18,9 @@ export default {
     brokenAggregate: 'Broken Aggregate:',
     buildIndex: 'Build Index',
     aggIndexAdvancedTitle: 'Advanced Setting',
-    source: 'Source'
+    source: 'Source',
+    aggregateGroupType: 'Aggregate Group',
+    recommendation: 'Recommendation'
   },
   'zh-cn': {
     aggregateGroup: '编辑聚合组',
@@ -39,6 +41,8 @@ export default {
     brokenAggregate: '破损聚合索引：',
     buildIndex: '构建索引',
     aggIndexAdvancedTitle: '高级设置',
-    source: '来源'
+    source: '来源',
+    aggregateGroupType: '索引组规则',
+    recommendation: '系统推荐'
   }
 }
