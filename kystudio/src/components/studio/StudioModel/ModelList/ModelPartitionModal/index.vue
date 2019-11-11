@@ -41,7 +41,7 @@
         </el-col>
       </el-form-item>
       <el-form-item  :label="$t('dateFormat')">
-        <el-select :disabled="isLoadingFormat" v-model="partitionMeta.format" style="width:41.66667%">
+        <el-select :disabled="isLoadingFormat" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:41.66667%">
           <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
           <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
         </el-select>

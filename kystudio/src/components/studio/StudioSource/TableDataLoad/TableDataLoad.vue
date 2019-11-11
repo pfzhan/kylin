@@ -43,6 +43,7 @@
             size="medium"
             :disabled="isLoadingFormat"
             @change="handleChangePartitionFormat"
+            :placeholder="$t('kylinLang.common.pleaseSelect')"
             v-bind:value="table.format">
             <el-option
               v-for="item in dateFormats"
