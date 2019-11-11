@@ -41,6 +41,8 @@ import scala.Tuple2;
 @RequestMapping(value = "/spark")
 public class NSparkController extends NBasicController {
 
+    private String msg = " not exists in Spark";
+
     @RequestMapping(value = "/blacklist", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -64,7 +66,7 @@ public class NSparkController extends NBasicController {
             }
         } else {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    "Executor " + executorId + " not exists in Spark");
+                    "Executor " + executorId + msg);
         }
     }
 
@@ -76,7 +78,7 @@ public class NSparkController extends NBasicController {
             getSparkTaskScheduler().addNodeToBlackListManually(node);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "add node to blacklist");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Node " + node + " not exists in Spark");
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Node " + node + msg);
         }
     }
 
@@ -89,7 +91,7 @@ public class NSparkController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "del executor from blacklist");
         } else {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    "Executor " + executorId + " not exists in Spark");
+                    "Executor " + executorId + msg);
         }
     }
 
@@ -101,7 +103,7 @@ public class NSparkController extends NBasicController {
             getSparkTaskScheduler().removeNodeFromBlackListManually(node);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "del node from blacklist");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Node " + node + " not exists in Spark");
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Node " + node + msg);
         }
     }
 
