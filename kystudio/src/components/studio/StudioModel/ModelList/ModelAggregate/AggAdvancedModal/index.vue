@@ -323,6 +323,7 @@ export default class AggregateModal extends Vue {
     let successCb = (res) => {
       handleSuccess(res, (data) => {
         // 提交成功的回调，这里重新处理
+        this.$message({message: this.$t('kylinLang.common.submitSuccess'), type: 'success'})
         this.$emit('refreshCuboids')
       })
       this.closeModal(true)
