@@ -73,7 +73,9 @@
                 <el-table-column prop="query_hit_count" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
                 <el-table-column :label="$t('kylinLang.common.action')" width="65">
                   <template slot-scope="scope">
-                    <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                    <common-tip :content="$t('viewDetail')">
+                      <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                    </common-tip>
                   </template>
                 </el-table-column>
               </el-table>
