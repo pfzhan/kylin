@@ -782,7 +782,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content()
                         .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT,
-                                null, NModelController.illegalInputMsg))));
+                                null, NModelController.ILLEGAL_INPUT_MSG))));
         Mockito.verify(nModelController).getRecommendationsByProject("other");
 
     }
@@ -798,7 +798,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content()
                         .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH,
-                                null, NModelController.illegalModeMsg))));
+                                null, NModelController.ILLEGAL_MODE_MSG))));
         Mockito.verify(nModelController).getRecommendationsByProject("default");
     }
 
@@ -831,7 +831,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content()
                         .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT,
-                                null, NModelController.illegalInputMsg))));
+                                null, NModelController.ILLEGAL_INPUT_MSG))));
         Mockito.verify(nModelController).batchApplyRecommendations(Mockito.eq("other"), Mockito.anyList());
 
     }
@@ -850,7 +850,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.content()
                         .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH,
-                                null, NModelController.illegalModeMsg))));
+                                null, NModelController.ILLEGAL_MODE_MSG))));
         Mockito.verify(nModelController).batchApplyRecommendations(Mockito.eq("default"), Mockito.anyList());
 
     }
