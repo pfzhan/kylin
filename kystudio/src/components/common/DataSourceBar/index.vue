@@ -216,7 +216,7 @@ export default class DataSourceBar extends Vue {
   }
   get showAddDatasourceBtn () {
     // 嵌套在lightning 中的4x，会有内置数据源的情况，只支持单数据源，这时候，不该放出添加数据源，所以只要判断datasources的length是否大于0 即可
-    if (this.$store.state.config.platform === 'cloud') {
+    if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
       return this.datasources.length <= 0
     } else { // 4x 本身保持原来逻辑: 有库表后，才隐藏添加数据源按钮（搜索时会有可能导致databaseArray数组为空，所以要判断是否是搜索后的空态）
       return this.filterText === '' && this.databaseArray.length <= 0
