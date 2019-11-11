@@ -9,7 +9,8 @@ const types = {
   CALL_MODAL: 'CALL_MODAL',
   INIT_FORM: 'INIT_FORM',
   SHOW_LOADING: 'SHOW_LOADING',
-  HIDE_LOADING: 'HIDE_LOADING'
+  HIDE_LOADING: 'HIDE_LOADING',
+  SET_MODEL_DATA_LOADED: 'SET_MODEL_DATA_LOADED'
 }
 export const initialAggregateData = JSON.stringify({
   id: 0,
@@ -31,6 +32,7 @@ const initialState = JSON.stringify({
   callback: null,
   model: null,
   projectName: null,
+  formDataLoaded: false,
   form: {
     isCatchUp: true,
     aggregateArray: [
@@ -73,6 +75,9 @@ export default {
         payload[key] && (state[key] = payload[key])
       }
     },
+    [types.SET_MODEL_DATA_LOADED]: (state, result) => {
+      state.formDataLoaded = result
+    },
     [types.INIT_FORM]: (state, payload) => {
       if (payload) {
         const dimensions = getDimensions(state.model)
@@ -107,13 +112,14 @@ export default {
 
       return new Promise(async (resolve, reject) => {
         const modelId = model && model.uuid
-
+        commit(types.SET_MODEL_DATA_LOADED, false)
         commit(types.SET_MODAL, { editType, model, projectName, callback: resolve })
         commit(types.SHOW_LOADING)
         commit(types.SHOW_MODAL)
         const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
         const aggregateGroupRule = await handleSuccessAsync(response)
         setTimeout(() => {
+          commit(types.SET_MODEL_DATA_LOADED, true)
           commit(types.INIT_FORM, aggregateGroupRule)
         }, 0)
         commit(types.HIDE_LOADING)

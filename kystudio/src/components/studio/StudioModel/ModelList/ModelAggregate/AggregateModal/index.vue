@@ -8,11 +8,11 @@
     @close="isShow && handleClose(false)">
     <span class="el-dialog__title" slot="title">{{$t(modalTitle)}}
       <!-- 超出上限的情况 -->
-      <span class="cuboid-error" v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+      <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
       <!-- 数字的情况 -->
-      <span v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.total_count.result})}})</span></span>
+      <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.total_count.result})}})</span></span>
       <!-- 正在检测的情况 -->
-      <i v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
+      <i v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
     </span>
     <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
     <template v-if="model">
@@ -46,24 +46,24 @@
           <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
         </div>
         <!-- 聚合组表单 -->
-        <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx" :class="{'js_exceedLimit': !isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'overLimit'}">
+        <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregate.id" :class="{'js_exceedLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
           <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}} 
             <!-- 超出上限的情况 -->
-            <span class="cuboid-error" v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+            <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
             <!-- 数字的情况 -->
-            <span v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx] && cuboidsInfo.agg_index_counts[aggregateIdx].result})}})</span></span>
+            <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
             <!-- 正在检测的情况 -->
-            <i v-if="!isWaitingCheckCuboids && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregateIdx]) === 'loading'" class="el-icon-loading"></i>
+            <i v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'" class="el-icon-loading"></i>
           </h1>
           <div class="actions">
             <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
             <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
           </div>
-          <div class="body">
+          <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
             <!-- Include聚合组 -->
             <div class="row ksd-mb-15">
-              <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx)">{{$t('selectAll')}}</el-button>
-              <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('cancelAll')}}</el-button>
+              <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAll')}}</el-button>
+              <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('cancelAll')}}</el-button>
             </div>
             <div class="row">
               <h2 class="title font-medium">{{$t('include')}}</h2>
@@ -76,7 +76,7 @@
                 :ref="`aggregate.include.${aggregateIdx}`"
                 :value="aggregate.includes"
                 :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)"
+                @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value, aggregate.id)"
                 @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
                 <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
                 <el-option
@@ -98,7 +98,7 @@
                 :class="{'reset-padding': aggregate.mandatory.length}"
                 :value="aggregate.mandatory"
                 :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value)">
+                @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value, aggregate.id)">
                 <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -122,7 +122,7 @@
                   :class="{'reset-padding': hierarchy.items.length}"
                   :value="hierarchy.items"
                   :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                  @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value)">
+                  @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value, aggregate.id)">
                   <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
                   <el-option
                     v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -133,11 +133,11 @@
                 </el-select>
                 <div class="list-actions clearfix">
                   <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
-                    @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`)">
+                    @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregate.id)">
                   </el-button>
                   <el-button circle class="delete" size="mini" icon="el-icon-minus"
                     :disabled="aggregate.hierarchyArray.length === 1"
-                    @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx)">
+                    @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx, aggregate.id)">
                   </el-button>
                 </div>
               </div>
@@ -156,7 +156,7 @@
                   :class="{'reset-padding': joint.items.length}"
                   :value="joint.items"
                   :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                  @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value)">
+                  @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value, aggregate.id)">
                   <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
                   <el-option
                     v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -167,11 +167,11 @@
                 </el-select>
                 <div class="list-actions clearfix ksd-no-br-space">
                   <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
-                    @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`)">
+                    @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
                   </el-button>
                   <el-button circle class="delete" size="mini" icon="el-icon-minus"
                     :disabled="aggregate.jointArray.length === 1"
-                    @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx)">
+                    @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx, aggregate.id)">
                   </el-button>
                 </div>
               </div>
@@ -203,7 +203,7 @@ import locales from './locales'
 import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push, kapConfirm, handleSuccessAsync } from '../../../../../../util'
+import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone } from '../../../../../../util'
 import { handleSuccess } from 'util/business'
 
 const { EDIT } = editTypes
@@ -219,7 +219,8 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       editType: state => state.editType,
       callback: state => state.callback,
       model: state => state.model,
-      projectName: state => state.projectName
+      projectName: state => state.projectName,
+      formDataLoaded: state => state.formDataLoaded
     }),
     ...mapGetters('AggregateModal', [
       'dimensions',
@@ -244,7 +245,8 @@ export default class AggregateModal extends Vue {
   isFormShow = false
   isDimensionShow = false
   isSubmit = false
-  isWaitingCheckCuboids = true
+  isWaitingCheckCuboids = {}
+  isWaitingCheckAllCuboids = true
   maxCombinationNum = 0
   get modalTitle () {
     return titleMaps[this.editType]
@@ -285,94 +287,115 @@ export default class AggregateModal extends Vue {
   }
   cuboidsInfo = {
     total_count: {},
-    agg_index_counts: []
+    agg_index_counts: {}
   }
   resetCuboidInfo () {
     this.cuboidsInfo = {
       total_count: {},
-      agg_index_counts: []
+      agg_index_counts: {}
     }
   }
-  ST = null
   calcLoading = false
   calcCuboids () {
     // 防重复提交
     if (this.calcLoading) {
       return false
     }
+    // 只要点击了计算，全局的那个待检标志就要置回 false
+    this.isWaitingCheckAllCuboids = false
+    // 所有 group 中的待检都变成 false
+    for (let prop in this.isWaitingCheckCuboids) {
+      this.isWaitingCheckCuboids[prop] = false
+    }
     this.calcLoading = true
-    clearTimeout(this.ST)
-    this.ST = setTimeout(() => {
-      let data = this.getSubmitData()
-      if (data.dimensions.length <= 0) {
-        this.calcLoading = false
-        this.resetCuboidInfo()
-        return
-      }
-      delete data.dimensions // 后台处理规整顺序
-      this.getCalcCuboids(data).then((res) => {
-        this.isWaitingCheckCuboids = false
-        handleSuccess(res, (data) => {
-          if (data) {
-            this.cuboidsInfo = data
-            this.cuboidsInfo.agg_index_counts = data.agg_index_counts.reverse()
-            this.maxCombinationNum = data.max_combination_num
-            let singleIsLimit = data.agg_index_counts.filter((item) => {
-              return !/^\d+$/.test(item.result)
-            })
-            // 单个索引组的个数超了限制，显示报错，并不往下执行了
-            if (singleIsLimit.length > 0) {
-              this.$message.error(this.$t('maxCombinationTip'))
-              // 操作滚动
-              this.dealScrollToFirstError()
-            }
+    let paramsData = this.getSubmitData()
+    if (paramsData.dimensions.length <= 0) {
+      this.calcLoading = false
+      this.resetCuboidInfo()
+      return
+    }
+    delete paramsData.dimensions // 后台处理规整顺序
+    this.getCalcCuboids(paramsData).then((res) => {
+      handleSuccess(res, (data) => {
+        if (data) {
+          this.cuboidsInfo = objectClone(data)
+          // this.cuboidsInfo.agg_index_counts = data.agg_index_counts.reverse()
+          let resultData = objectClone(data.agg_index_counts.reverse())
+          // 用聚合组的唯一id 做标识
+          this.cuboidsInfo.agg_index_counts = {}
+          for (let i = 0; i < this.form.aggregateArray.length; i++) {
+            let id = this.form.aggregateArray[i].id
+            this.cuboidsInfo.agg_index_counts[id] = objectClone(resultData[i])
           }
-          this.calcLoading = false
-        })
-      }, (res) => {
-        this.maxCombinationNum = 0
-        // 获取个数失败，文案应该处于待检状态
-        this.isWaitingCheckCuboids = true
-        this.resetCuboidInfo()
+          this.maxCombinationNum = data.max_combination_num
+          let singleIsLimit = data.agg_index_counts.filter((item) => {
+            return !/^\d+$/.test(item.result)
+          })
+          // 单个索引组的个数超了限制，显示报错，并不往下执行了
+          if (singleIsLimit.length > 0) {
+            this.$message.error(this.$t('maxCombinationTip'))
+            // 操作滚动
+            this.dealScrollToFirstError()
+          }
+        }
         this.calcLoading = false
-        handleError(res)
       })
-    }, 1000)
+    }, (res) => {
+      this.maxCombinationNum = 0
+      // 获取个数失败，全局所有的文案应该处于待检状态
+      for (let i = 0; i < this.form.aggregateArray.length; i++) {
+        let id = this.form.aggregateArray[i].id
+        this.isWaitingCheckCuboids[id] = true
+      }
+      this.resetCuboidInfo()
+      this.calcLoading = false
+      handleError(res)
+    })
   }
   get isDisabledSaveBtn () {
     // 正在计算的时候按钮disable，选的维度有空的时候，disable，聚合组数为0 时
     return this.calcLoading || this.isSubmit || !this.isFormVaild || !this.form.aggregateArray || this.form.aggregateArray.length === 0
   }
-  renderCoboidTextCheck (cuboidsInfo) {
+  renderCoboidTextCheck (cuboidsInfo, id) {
     let cuboidText = ''
-    if (this.isWaitingCheckCuboids) {
-      cuboidText = ''
-    }
-    if (!(cuboidsInfo && cuboidsInfo.result !== undefined)) {
+    if (this.isWaitingCheckCuboids[id]) { // 如果是待检，直接显示空
       cuboidText = ''
     } else {
-      if (cuboidsInfo.status !== 'SUCCESS') {
-        cuboidText = 'cuboid-error'
-      }
       if (this.calcLoading) {
         cuboidText = 'loading'
       } else {
-        if (!/^\d+$/.test(cuboidsInfo.result)) {
-          cuboidText = 'overLimit'
-        } else {
-          cuboidText = 'number'
+        if (cuboidsInfo && cuboidsInfo.result !== undefined) {
+          if (cuboidsInfo.status !== 'SUCCESS') {
+            cuboidText = 'cuboid-error'
+          }
+          if (!/^\d+$/.test(cuboidsInfo.result)) {
+            cuboidText = 'overLimit'
+          } else {
+            cuboidText = 'number'
+          }
+        } else { // 如果 cuboidsInfo 没数据，就判断是否是在检测中
+          cuboidText = ''
         }
       }
     }
     return cuboidText
+  }
+  @Watch('formDataLoaded')
+  onFormDataLoaded (newVal, oldVal) {
+    // 打开弹窗时，会有一个请求rule的接口，要等接口回来，再发calcCuboids的数目检测接口
+    if (newVal) {
+      for (let i = 0; i < this.form.aggregateArray.length; i++) {
+        let id = this.form.aggregateArray[i].id
+        this.isWaitingCheckCuboids[id] = true
+      }
+      this.calcCuboids()
+    }
   }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
       this.resetCuboidInfo()
-      // 弹窗打开时，默认计算一次 cuboids 数量
-      this.calcCuboids()
     } else {
       setTimeout(() => {
         this.isFormShow = false
@@ -394,20 +417,24 @@ export default class AggregateModal extends Vue {
     const aggregateArray = get(this.form, 'aggregateArray')
     const aggregateData = {
       ...JSON.parse(initialAggregateData),
-      id: aggregateArray.length
+      // id: aggregateArray.length
+      id: sampleGuid()
     }
     this.setModalForm({ aggregateArray: [ aggregateData, ...aggregateArray ] })
-    this.isWaitingCheckCuboids = true
+    this.isWaitingCheckCuboids[aggregateData.id] = true
+    this.isWaitingCheckAllCuboids = true
     // this.calcCuboids()
   }
   handleCopyAggregate (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
     const copyedAggregate = {
       ...aggregateArray[aggregateIdx],
-      id: aggregateArray.length
+      // id: aggregateArray.length
+      id: sampleGuid()
     }
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
-    this.isWaitingCheckCuboids = true
+    this.isWaitingCheckCuboids[copyedAggregate.id] = true
+    this.isWaitingCheckAllCuboids = true
     // this.calcCuboids()
   }
   handleDeleteAggregate (aggregateIdx, titleId) {
@@ -415,27 +442,30 @@ export default class AggregateModal extends Vue {
       const aggregateArray = get(this.form, 'aggregateArray')
       aggregateArray.splice(aggregateIdx, 1)
       this.setModalForm({ aggregateArray })
-      this.isWaitingCheckCuboids = true
+      // this.isWaitingCheckCuboids = true
+      this.isWaitingCheckAllCuboids = true
       // this.calcCuboids()
     })
   }
-  handleAddDimensionRow (path) {
+  handleAddDimensionRow (path, id) {
     const rootKey = path.split('.')[0]
     const dimensionRows = get(this.form, path)
     const newId = dimensionRows.length
     const newDimensionRow = { id: newId, items: [] }
     this.setModalForm({[rootKey]: push(this.form, path, newDimensionRow)[rootKey]})
-    this.isWaitingCheckCuboids = true
+    this.isWaitingCheckCuboids[id] = true
+    this.isWaitingCheckAllCuboids = true
     // this.calcCuboids()
   }
-  handleRemoveDimensionRow (path, aggregateIdx, dimensionRowIndex) {
+  handleRemoveDimensionRow (path, aggregateIdx, dimensionRowIndex, id) {
     const rootKey = path.split('.')[0]
     const dimensionRows = get(this.form, path)
     if (dimensionRows.length > 1) {
       dimensionRows.splice(dimensionRowIndex, 1)[0]
       this.setModalForm({[rootKey]: set(this.form, path, dimensionRows)[rootKey]})
     }
-    this.isWaitingCheckCuboids = true
+    this.isWaitingCheckCuboids[id] = true
+    this.isWaitingCheckAllCuboids = true
     // this.calcCuboids()
   }
   handleClose (isSubmit) {
@@ -445,42 +475,43 @@ export default class AggregateModal extends Vue {
       this.callback && this.callback(isSubmit)
     }, 200)
   }
-  handleInput (key, value) {
+  handleInput (key, value, id) {
     if (key !== 'isCatchUp') {
-      this.isWaitingCheckCuboids = true
+      this.isWaitingCheckCuboids[id] = true
+      this.isWaitingCheckAllCuboids = true
       // this.calcCuboids()
     }
     const rootKey = key.split('.')[0]
     this.setModalForm({[rootKey]: set(this.form, key, value)[rootKey]})
   }
-  handleRemoveIncludeRules (removedValue, aggregateIdx) {
+  handleRemoveIncludeRules (removedValue, aggregateIdx, id) {
     const { aggregateArray = [] } = this.form
     const { mandatory, hierarchyArray, jointArray } = aggregateArray[aggregateIdx]
 
     if (mandatory.includes(removedValue)) {
       const mandatoryKey = `aggregateArray.${aggregateIdx}.mandatory`
-      this.handleInput(mandatoryKey, mandatory.filter(item => item !== removedValue))
+      this.handleInput(mandatoryKey, mandatory.filter(item => item !== removedValue), id)
     }
     hierarchyArray.forEach((hierarchyGroup, hierarchyRowIdx) => {
       const hierarchy = hierarchyGroup.items
       if (hierarchy.includes(removedValue)) {
         const hierarchyKey = `aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`
-        this.handleInput(hierarchyKey, hierarchy.filter(item => item !== removedValue))
+        this.handleInput(hierarchyKey, hierarchy.filter(item => item !== removedValue), id)
       }
     })
     jointArray.forEach((jointGroup, jointRowIdx) => {
       const joint = jointGroup.items
       if (joint.includes(removedValue)) {
         const jointKey = `aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`
-        this.handleInput(jointKey, joint.filter(item => item !== removedValue))
+        this.handleInput(jointKey, joint.filter(item => item !== removedValue), id)
       }
     })
   }
-  handleAddAllIncludes (aggregateIdx) {
+  handleAddAllIncludes (aggregateIdx, id) {
     const allDimensions = this.dimensions.map(dimension => dimension.label)
-    this.handleInput(`aggregateArray.${aggregateIdx}.includes`, allDimensions)
+    this.handleInput(`aggregateArray.${aggregateIdx}.includes`, allDimensions, id)
   }
-  handleRemoveAllIncludes (aggregateIdx, titleId) {
+  handleRemoveAllIncludes (aggregateIdx, titleId, id) {
     kapConfirm(this.$t('clearAllAggregateTip', {aggId: titleId}), {type: 'warning'}, this.$t('clearAggregateTitle')).then(() => {
       const { aggregateArray = [] } = this.form
       const currentAggregate = aggregateArray[aggregateIdx] || {}
@@ -489,7 +520,7 @@ export default class AggregateModal extends Vue {
       for (const include of currentIncludes) {
         this.handleRemoveIncludeRules(include, aggregateIdx)
       }
-      this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [])
+      this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [], id)
     })
   }
   handleBuildIndexTip (data) {
@@ -513,6 +544,8 @@ export default class AggregateModal extends Vue {
   }
   checkCuboids () {
     if (this.checkFormVaild()) {
+      // 每次检测前，reset cuboid的信息
+      this.resetCuboidInfo()
       this.calcCuboids()
     }
   }
@@ -531,15 +564,28 @@ export default class AggregateModal extends Vue {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
         delete data.dimensions // 后台处理规整顺序
+        // 重置总的计算标志
+        this.isWaitingCheckAllCuboids = false
+        for (let prop in this.isWaitingCheckCuboids) {
+          this.isWaitingCheckCuboids[prop] = true
+        }
         // 发一个获取数据的接口
-        this.isWaitingCheckCuboids = true
         let cuboidsRes = await this.getCalcCuboids(data)
         let cuboidsResult = await handleSuccessAsync(cuboidsRes)
-        this.isWaitingCheckCuboids = false
+        for (let prop in this.isWaitingCheckCuboids) {
+          this.isWaitingCheckCuboids[prop] = false
+        }
         if (cuboidsResult) {
           this.maxCombinationNum = cuboidsResult.max_combination_num
-          this.cuboidsInfo = cuboidsResult
-          this.cuboidsInfo.agg_index_counts = cuboidsResult.agg_index_counts.reverse()
+          this.cuboidsInfo = objectClone(cuboidsResult)
+          // this.cuboidsInfo.agg_index_counts = cuboidsResult.agg_index_counts.reverse()
+          let resultData = objectClone(cuboidsResult.agg_index_counts.reverse())
+          // 用聚合组的唯一id 做标识
+          this.cuboidsInfo.agg_index_counts = {}
+          for (let i = 0; i < this.form.aggregateArray.length; i++) {
+            let id = this.form.aggregateArray[i].id
+            this.cuboidsInfo.agg_index_counts[id] = objectClone(resultData[i])
+          }
           let singleIsLimit = cuboidsResult.agg_index_counts.filter((item) => {
             return !/^\d+$/.test(item.result)
           })
@@ -572,7 +618,9 @@ export default class AggregateModal extends Vue {
       }
     } catch (e) {
       this.calcLoading = false
-      this.isWaitingCheckCuboids = false
+      for (let prop in this.isWaitingCheckCuboids) {
+        this.isWaitingCheckCuboids[prop] = false
+      }
       e && handleError(e)
       this.isSubmit = false
     }
@@ -721,6 +769,9 @@ export default class AggregateModal extends Vue {
       border: 1px solid @line-border-color;
       border-radius: 2px;
       padding: 15px;
+      &.overLimit{
+        border: 1px solid @error-color-1;
+      }
     }
     .row {
       margin-bottom: 17px;
