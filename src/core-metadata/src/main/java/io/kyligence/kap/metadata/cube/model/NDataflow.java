@@ -537,8 +537,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public long getQueryHitCount(long layoutId) {
         if (getLayoutHitCount().get(layoutId) != null) {
-            return getLayoutHitCount().get(layoutId).getDateFrequency().values().stream().mapToInt(Integer::intValue)
-                    .sum();
+            return getLayoutHitCount().get(layoutId).getFrequency(project);
         }
         return 0L;
     }

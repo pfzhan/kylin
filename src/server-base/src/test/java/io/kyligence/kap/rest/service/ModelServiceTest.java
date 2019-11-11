@@ -55,13 +55,18 @@ import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -70,6 +75,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -77,6 +83,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -431,6 +438,34 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "" + Long.MAX_VALUE, "start_time", false, "");
         Assert.assertEquals(3, segments.size());
         Assert.assertEquals("MERGING", segments.get(2).getStatusToDisplay().toString());
+    }
+
+    @Test
+    public void testIndexQueryHitCount() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        ZoneId zoneId = TimeZone.getDefault().toZoneId();
+        LocalDate localDate = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(zoneId).toLocalDate();
+        long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+
+        dataflowManager.updateDataflow(modelId, copyForWrite -> {
+            copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
+                {
+                    put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(TimeUtil.minusDays(currentDate, 7), 1);
+                            put(TimeUtil.minusDays(currentDate, 8), 2);
+                            put(TimeUtil.minusDays(currentDate, 31), 100);
+                        }
+                    }));
+                }
+            });
+        });
+
+        val index = modelService.getAggIndices(getProject(), modelId, null, null, false, 0, 10, null, true)
+                .getIndices().stream().filter(aggIndex -> aggIndex.getId() == 0L).findFirst().orElse(null);
+        Assert.assertEquals(3, index.getQueryHitCount());
     }
 
     @Test

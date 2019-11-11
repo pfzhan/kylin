@@ -184,8 +184,8 @@ public class IndicesResponse {
                     .orElse(0L);
             val layoutSet = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
             this.queryHitCount = indicesResponse.getDataFlow().getLayoutHitCount().entrySet().stream()
-                    .filter(entry -> layoutSet.contains(entry.getKey())).map(Map.Entry::getValue)
-                    .flatMap(hit -> hit.getDateFrequency().values().stream()).mapToInt(Integer::intValue).sum();
+                    .filter(entry -> layoutSet.contains(entry.getKey()))
+                    .map(Map.Entry::getValue).mapToInt(hit -> hit.getFrequency(indexEntity.getIndexPlan().getProject())).sum();
 
         }
 

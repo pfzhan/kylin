@@ -26,11 +26,19 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.HashMap;
+import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.util.Lists;
@@ -133,11 +141,32 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         indexPlan.setIndexes(optimizedFromFile.getIndexes());
     }
 
+    private void prepareDataflow() {
+        ZoneId zoneId = TimeZone.getDefault().toZoneId();
+        LocalDate localDate = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(zoneId).toLocalDate();
+        long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+
+        dataflowManager.updateDataflow(id, copyForWrite -> {
+            copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
+                {
+                    put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                        {
+                            put(TimeUtil.minusDays(currentDate, 7), 1);
+                            put(TimeUtil.minusDays(currentDate, 8), 2);
+                            put(TimeUtil.minusDays(currentDate, 31), 100);
+                        }
+                    }));
+                }
+            });
+        });
+    }
+
     @Test
     public void testGetRecommendationByModel() throws IOException {
         prepare();
         val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
+        prepareDataflow();
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         val response = service.getRecommendationByModel(projectDefault, id);
@@ -163,6 +192,10 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL"));
         Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("SUM_CONSTANT"));
         Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("COUNT_ALL"));
+
+        val aggLayoutToBeRemovedRes = response.getIndexRecommendations().stream()
+                .filter(aggIndexItem -> aggIndexItem.getId() == 1L).findFirst().orElse(null);
+        Assert.assertEquals(3, aggLayoutToBeRemovedRes.getUsage());
 
         val tableIndexLayout = recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAggIndex())
                 .collect(Collectors.toList()).get(0).getLayout();
