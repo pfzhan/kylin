@@ -118,6 +118,7 @@ public class NProjectController extends NBasicController {
                 || !StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
             throw new BadRequestException(MsgPicker.getMsg().getINVALID_PROJECT_NAME(), projectDesc.getName());
         }
+
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createdProj, "");
     }

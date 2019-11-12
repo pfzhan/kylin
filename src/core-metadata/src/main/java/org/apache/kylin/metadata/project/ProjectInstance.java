@@ -156,9 +156,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         if (maintainModelType != null) {
             projectInstance.setMaintainModelType(maintainModelType);
         }
-        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            projectInstance.getOverrideKylinProps().put("kap.metadata.semi-automatic-mode", "false");
-        }
         return projectInstance;
     }
 

@@ -64,6 +64,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
@@ -103,6 +104,12 @@ public class ProjectService extends BasicService {
         Message msg = MsgPicker.getMsg();
         String description = newProject.getDescription();
         LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
+        if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            if (overrideProps == null) {
+                overrideProps = Maps.newLinkedHashMap();
+            }
+            overrideProps.put("kap.metadata.semi-automatic-mode", "true");
+        }
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
             throw new BadRequestException(String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
