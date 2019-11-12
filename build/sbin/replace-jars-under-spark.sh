@@ -67,7 +67,7 @@ then
     -o -name "hadoop-auth-*.jar" -not -name "*test*" \
     -o -name "hadoop-common-*.jar" -not -name "*test*")
 
-    hdfs_jars=$(find $cdh_mapreduce_path/../hadoop_hdfs -maxdepth 1 -name "hadoop-hdfs-*" -not -name "*test*" -not -name "*nfs*")
+    hdfs_jars=$(find $cdh_mapreduce_path/../hadoop-hdfs -maxdepth 1 -name "hadoop-hdfs-*" -not -name "*test*" -not -name "*nfs*")
 
     mr_jars=$(find $cdh_mapreduce_path -maxdepth 1 \
     -name "hadoop-mapreduce-client-app-*.jar" -not -name "*test*"  \
