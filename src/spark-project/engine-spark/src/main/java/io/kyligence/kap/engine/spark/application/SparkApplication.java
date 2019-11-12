@@ -199,6 +199,18 @@ public abstract class SparkApplication implements Application, IKeep {
         return Boolean.FALSE;
     }
 
+    private Map<String, String> getYarnInfo() {
+        String yarnAppId = ss.sparkContext().applicationId();
+        Map<String, String> extraInfo = new HashMap<>();
+        extraInfo.put("yarnAppId", yarnAppId);
+        try {
+            extraInfo.put("yarnAppUrl", getTrackingUrl(yarnAppId));
+        } catch (IOException | YarnException e) {
+            logger.error("get yarn tracking url failed!", e);
+        }
+        return extraInfo;
+    }
+
     final protected void execute() throws Exception {
         String hdfsMetalUrl = getParam(NBatchConstants.P_DIST_META_URL);
         jobId = getParam(NBatchConstants.P_JOB_ID);
@@ -264,15 +276,7 @@ public abstract class SparkApplication implements Application, IKeep {
                     .getOrCreate();
 
             if (isJobOnCluster(sparkConf)) {
-                String yarnAppId = ss.sparkContext().applicationId();
-                Map<String, String> extraInfo = new HashMap<>();
-                extraInfo.put("yarnAppId", yarnAppId);
-                try {
-                    extraInfo.put("yarnAppUrl", getTrackingUrl(yarnAppId));
-                } catch (IOException | YarnException e) {
-                    logger.error("get yarn tracking url failed!", e);
-                }
-                updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId, extraInfo);
+                updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId, getYarnInfo());
             }
 
             JoinMemoryManager.releaseAllMemory();
