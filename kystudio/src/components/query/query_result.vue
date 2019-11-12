@@ -64,6 +64,9 @@
 		      :prop="''+index"
           :min-width="52+15*(value.label&&value.label.length || 0)"
 		      :label="value.label">
+          <template slot-scope="props">
+            <pre class="table-cell-text">{{props.row[index]}}</pre>
+          </template>
 		    </el-table-column>
 		  </el-table>
 
@@ -279,5 +282,12 @@ export default class queryResult extends Vue {
         width: auto;
       }
     }
+  }
+  .table-cell-text{
+    word-wrap: break-word;
+    word-break: break-all;
+    white-space: pre-wrap;
+    color: @text-normal-color;
+    font-family: Lato,"Noto Sans S Chinese",sans-serif;
   }
 </style>
