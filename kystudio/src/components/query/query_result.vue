@@ -43,16 +43,18 @@
         </p>
       </div>
     </div>
-    <div class="ksd-title-label-small result-title ksd-mt-20" :class="{'guide-queryResultBox':isWorkspace}">{{$t('queryResults')}}</div>
-    <div class="clearfix ksd-mt-15">
-      <div class="ksd-fleft">
-        <el-button v-if="showExportCondition" type="primary" plain size="small" @click.native="exportData">
-          {{$t('exportCSV')}}
-        </el-button>
-      </div>
-      <div class="resultOperator ksd-fright">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
-        </el-input>
+    <div :class="[{'ksd-header': !showExportCondition}]">
+      <div :class="['ksd-title-label-small', 'result-title', showExportCondition ? 'ksd-mt-20' : 'result-title-float', {'guide-queryResultBox': isWorkspace}]">{{$t('queryResults')}}</div>
+      <div :class="['clearfix', {'ksd-mt-15': showExportCondition}]">
+        <div class="ksd-fleft">
+          <el-button v-if="showExportCondition" type="primary" plain size="small" @click.native="exportData">
+            {{$t('exportCSV')}}
+          </el-button>
+        </div>
+        <div class="resultOperator ksd-fright">
+          <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
+          </el-input>
+        </div>
       </div>
     </div>
   	<div class="ksd-mt-10 grid-box narrowTable">
@@ -241,9 +243,16 @@ export default class queryResult extends Vue {
       height: 30px;
     }
   }
+  .ksd-header {
+    margin-top: 26px;
+  }
   .result-title {
     position: relative;
     top: 6px;
+    &.result-title-float {
+      float: left;
+      top: 2px;
+    }
   }
   .resultTipsLine{
     font-size: 14px;
