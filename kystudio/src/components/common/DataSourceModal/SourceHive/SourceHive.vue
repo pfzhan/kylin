@@ -158,7 +158,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import Scrollbar from 'smooth-scrollbar'
 import locales from './locales'
 import TreeList from '../../TreeList'
-import { sourceTypes, pageSizeMapping } from '../../../../config'
+import { sourceTypes, pageSizeMapping, sourceNameMapping } from '../../../../config'
 import { getDatabaseTree, getTableTree, getDatabaseTablesTree } from './handler'
 import { handleSuccessAsync, handleError } from '../../../../util'
 import arealabel from '../../area_label.vue'
@@ -393,8 +393,14 @@ export default class SourceHive extends Vue {
   }
   async mounted () {
     // await this.loadDatabase()
-    // 现在接口变快了，应该直接调用获取所有的db+table，默认都收起
-    this.refreshHive(false)
+    // hive 数据源默认启动ke 时自动刷入缓存了，云端使用时其他数据源要分项目，所以每次打开时，需要强制刷一次
+    const sourceName = sourceTypes[this.sourceType]
+    let sourceNameStr = sourceNameMapping[sourceName]
+    if (this.$store.state.config.platform === 'iframe' && sourceNameStr.toLocaleLowerCase() !== 'hive') {
+      this.refreshHive(true)
+    } else {
+      this.refreshHive(false)
+    }
     await this.loadDatabaseAndTables()
     this.$on('samplingFormValid', () => {
       this.handleSamplingRows(this.samplingRows)
