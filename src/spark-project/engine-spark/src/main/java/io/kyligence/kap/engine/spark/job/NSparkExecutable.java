@@ -156,7 +156,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        context.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
+        this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = wrapConfig(context);
 
         String sparkHome = KylinConfig.getSparkHome();
@@ -263,7 +263,7 @@ public class NSparkExecutable extends AbstractExecutable {
         }
         jobOverrides.put("user.timezone", KylinConfig.getInstanceFromEnv().getTimeZone());
         jobOverrides.put("spark.driver.log4j.appender.hdfs.File",
-                Objects.isNull(context.getLogPath()) ? "null" : context.getLogPath());
+                Objects.isNull(this.getLogPath()) ? "null" : this.getLogPath());
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }

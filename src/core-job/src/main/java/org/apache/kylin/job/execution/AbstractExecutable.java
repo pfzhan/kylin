@@ -123,6 +123,10 @@ public abstract class AbstractExecutable implements Executable {
     @Setter
     private JobTypeEnum jobType;
 
+    @Getter
+    @Setter
+    private String logPath;
+
     @Setter
     @Getter
     private String targetSubject; //uuid of the model or table identity if table sampling
@@ -238,8 +242,7 @@ public abstract class AbstractExecutable implements Executable {
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, Consumer<String> hook) {
-        String logPath = null != context ? context.getLogPath() : null;
-        updateJobOutput(project, jobId, newStatus, info, output, logPath, hook);
+        updateJobOutput(project, jobId, newStatus, info, output, this.getLogPath(), hook);
     }
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,

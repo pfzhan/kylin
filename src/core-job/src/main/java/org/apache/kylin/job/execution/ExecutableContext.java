@@ -46,8 +46,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 
 import lombok.extern.slf4j.Slf4j;
@@ -60,11 +58,6 @@ public class ExecutableContext {
     private final ConcurrentMap<String, Executable> runningJobs;
     private final ConcurrentMap<String, Long> runningJobInfos;
     private final KylinConfig kylinConfig;
-
-    @Getter
-    @Setter
-    private String logPath;
-
     public ExecutableContext(ConcurrentMap<String, Executable> runningJobs,
             ConcurrentMap<String, Long> runningJobInfos, KylinConfig kylinConfig) {
         this.runningJobs = runningJobs;
