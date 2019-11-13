@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
@@ -242,14 +243,17 @@ public class IndexPlanService extends BasicService {
                 .collect(Collectors.toList());
         request.setAggregationGroups(aggregationGroupsCopy);
 
+        boolean invalid = false;
         try {
             indexPlan.setRuleBasedIndex(request.convertToRuleBasedIndex());
+        } catch (OutOfMaxCombinationException oe) {
+            invalid = true;
+            log.error("Out of max combination, ", oe);
         } catch (IllegalStateException e) {
             log.error(e.getMessage());
         }
 
         List<AggIndexCombResult> aggIndexCounts = Lists.newArrayList();
-        boolean invalid = false;
         for (NAggregationGroup group : aggregationGroups) {
             long count = group.calculateCuboidCombination();
             if (count > maxCount) {
@@ -266,7 +270,6 @@ public class IndexPlanService extends BasicService {
         } else {
             long totalCount = indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount();
             totalResult = AggIndexCombResult.successResult(totalCount);
-
         }
         return new AggIndexResponse(aggIndexCounts, totalResult, getConfig().getCubeAggrGroupMaxCombination());
     }

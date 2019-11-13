@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.model.TooManyCuboidException;
 
@@ -209,7 +210,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         Set<Long> children = getOnTreeParentsByLayer(Sets.newHashSet(0L)); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() > maxCombination) {
-                throw new IllegalStateException("Too many cuboids for the cube. Cuboid combination reached "
+                throw new OutOfMaxCombinationException("Too many cuboids for the cube. Cuboid combination reached "
                         + cuboidHolder.size() + " and limit is " + maxCombination + ". Abort calculation.");
             }
             cuboidHolder.addAll(children);
