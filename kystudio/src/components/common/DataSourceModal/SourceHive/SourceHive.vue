@@ -321,7 +321,14 @@ export default class SourceHive extends Vue {
       this.reloadHiveTablesStatus.isRunning = true
     }
     this.hasClickRefreshBtn = true
-    this.reloadHiveDBAndTables({force: isForce}).then((res) => {
+    let params = {
+      force: isForce
+    }
+    // 如果云端调用，需要传个project
+    if (this.$store.state.config.platform === 'iframe') {
+      params.project = this.currentSelectedProject
+    }
+    this.reloadHiveDBAndTables(params).then((res) => {
       // 防止接口过慢导致销毁后回调继续执行
       if (this._isDestroyed) {
         return false
