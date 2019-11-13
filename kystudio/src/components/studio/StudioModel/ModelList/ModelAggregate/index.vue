@@ -59,19 +59,19 @@
               </div>
               <el-table :data="indexDatas" nested border size="medium" @sort-change="onSortChange" :default-sort = "{prop: 'last_modify_time', order: 'descending'}">
                 <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="70"></el-table-column>
-                <el-table-column prop="storage_size" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
+                <el-table-column prop="storage_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
                   <template slot-scope="scope">
                     {{scope.row.storage_size | dataSize}}
                   </template>
                 </el-table-column>
-                <el-table-column prop="index_type" show-overflow-tooltip :label="$t('source')" width="150">
+                <el-table-column prop="index_type" show-overflow-tooltip :label="$t('source')">
                   <template slot-scope="scope">
                     <span v-if="scope.row.index_type === 'MANUAL'">{{$t('aggregateGroupType')}}</span>
                     <span v-if="scope.row.index_type === 'AUTO'">{{$t('recommendation')}}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="query_hit_count" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
-                <el-table-column :label="$t('kylinLang.common.action')" width="65">
+                <el-table-column prop="query_hit_count" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
+                <el-table-column :label="$t('kylinLang.common.action')" width="70">
                   <template slot-scope="scope">
                     <common-tip :content="$t('viewDetail')">
                       <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
@@ -89,6 +89,7 @@
     <el-dialog class="lincense-result-box"
       :title="$t('aggregateDetail')"
       width="480px"
+      :limited-area="true"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       :visible.sync="aggDetailShow">
@@ -316,7 +317,7 @@ export default class ModelAggregate extends Vue {
   async handleAggregateGroup () {
     const { projectName, model } = this
     const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
-    isSubmit && await this.freshCuboids()
+    isSubmit && await this.refreshCuboidsAfterSubmitSetting()
   }
 }
 </script>
