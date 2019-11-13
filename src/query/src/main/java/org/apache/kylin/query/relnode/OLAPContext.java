@@ -239,7 +239,9 @@ public class OLAPContext {
 
     public OLAPAuthentication olapAuthen = new OLAPAuthentication();
 
-    public boolean hasAdminPermission = false;
+    @Getter
+    @Setter
+    private boolean hasAdminPermission = false;
 
     public boolean isSimpleQuery() {
         return (joins.isEmpty()) && (groupByColumns.isEmpty()) && (aggregations.isEmpty());
@@ -424,7 +426,7 @@ public class OLAPContext {
             this.innerGroupByColumns.add(new TableColRefWIthRel(rel, tblColRef));
         }
     }
-    
+
     public boolean isAnsweredByTableIndex() {
         if (this.storageContext.getCandidate() != null
                 && this.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {

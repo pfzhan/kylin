@@ -129,6 +129,6 @@ public class AclQueryInterceptor {
         if (CollectionUtils.isEmpty(contexts)) {
             return false;
         }
-        return getGroups(contexts).stream().anyMatch(Constant.ROLE_ADMIN::equals) || contexts.get(0).hasAdminPermission;
+        return getGroups(contexts).stream().anyMatch(Constant.ROLE_ADMIN::equals) || contexts.get(0).isHasAdminPermission();
     }
 }
