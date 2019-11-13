@@ -259,10 +259,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         this.parentForward = parentForward;
     }
 
-    public void addBlackListLayouts(Collection<Long> layoutId) {
-        layoutBlackList.addAll(layoutId);
-    }
-
     @Getter(lazy = true)
     private final ImmutableBitSet measuresBitSet = initMeasuresBitSet();
 

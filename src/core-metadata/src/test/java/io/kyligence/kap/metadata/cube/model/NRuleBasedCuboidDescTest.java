@@ -339,7 +339,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(12, newPlan.getAllLayouts().size());
         NRuleBasedIndex oldRuleBasedIndex = newPlan.getRuleBasedIndex();
         val indexPlan = indexPlanManager.updateIndexPlan(newPlan.getUuid(), copyForWrite -> {
-            copyForWrite.getRuleBasedIndex().addBlackListLayouts(oldRuleBasedIndex.getLayoutIdMapping().subList(0, 2));
+            copyForWrite.addRuleBasedBlackList(oldRuleBasedIndex.getLayoutIdMapping().subList(0, 2));
         });
 
         Assert.assertTrue(indexPlan.getRuleBasedIndex().getLayoutBlackList().size() == 2);

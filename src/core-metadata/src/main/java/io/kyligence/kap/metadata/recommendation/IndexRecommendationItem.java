@@ -268,13 +268,10 @@ public class IndexRecommendationItem implements Serializable, RecommendationItem
             context.getIndexPlan().getIndexes().stream()
                     .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId()).findFirst()
                     .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().removeAll(removeLayouts));
-            val rule = context.getIndexPlan().getRuleBasedIndex();
-            if (rule != null) {
-                rule.addBlackListLayouts(item.getEntity().getLayouts().stream()
-                        .filter(layoutEntity -> !indexEntity.isTableIndex() && layoutEntity.isManual())
-                        .map(LayoutEntity::getId).collect(Collectors.toList()));
-            }
-
+            context.getIndexPlan()
+                    .addRuleBasedBlackList(item.getEntity().getLayouts().stream()
+                            .filter(layoutEntity -> !indexEntity.isTableIndex() && layoutEntity.isManual())
+                            .map(LayoutEntity::getId).collect(Collectors.toList()));
         } else {
             logger.warn("remove layouts not exists in index plan.");
         }

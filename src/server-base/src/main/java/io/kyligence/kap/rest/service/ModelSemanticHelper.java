@@ -432,7 +432,7 @@ public class ModelSemanticHelper extends BasicService {
     public IndexPlan addRuleBasedIndexBlackListLayouts(IndexPlan indexPlan, Collection<Long> blackListLayoutIds) {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), indexPlan.getProject());
         return indexPlanManager.updateIndexPlan(indexPlan.getId(), indexPlanCopy -> {
-            indexPlanCopy.getRuleBasedIndex().addBlackListLayouts(blackListLayoutIds);
+            indexPlanCopy.addRuleBasedBlackList(blackListLayoutIds);
         });
     }
 }

@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -272,8 +273,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             NDataModel model = getTestModel();
             Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == newColIdOfCC).findFirst()
                     .get().isExist());
-            Assert.assertTrue(
-                    model.getAllMeasures().stream().filter(m -> m.getId() == newMeasureIdOfCC).findFirst().get().isTomb());
+            Assert.assertTrue(model.getAllMeasures().stream().filter(m -> m.getId() == newMeasureIdOfCC).findFirst()
+                    .get().isTomb());
         }
     }
 
@@ -785,7 +786,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originModel = getTestInnerModel();
         modelManager.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream()
-                        .filter(m -> m.getId() != 100002 && m.getId() != 100001 && m.getId() != 100011).collect(Collectors.toList())));
+                        .filter(m -> m.getId() != 100002 && m.getId() != 100001 && m.getId() != 100011)
+                        .collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
@@ -801,11 +803,46 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     public void testSetBlackListLayout() throws Exception {
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
-        val oldRule = indexPlan.getRuleBasedIndex();
-        var updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, oldRule.getLayoutIdMapping().subList(0, 1));
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        val dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+
+        val dfUpdate = new NDataflowUpdate(dataflow.getUuid());
+        List<NDataLayout> layouts = Lists.newArrayList();
+        for (int i = 0; i < 3; i++) {
+            val layout1 = new NDataLayout();
+            layout1.setLayoutId(indexPlan.getRuleBaseLayouts().get(i).getId());
+            layout1.setRows(100);
+            layout1.setByteSize(100);
+            layout1.setSegDetails(dataflow.getSegments().getLatestReadySegment().getSegDetails());
+            layouts.add(layout1);
+        }
+        dfUpdate.setToAddOrUpdateLayouts(layouts.toArray(new NDataLayout[0]));
+        dataflowManager.updateDataflow(dfUpdate);
+
+        val blacklist2 = Lists.newArrayList(indexPlan.getRuleBaseLayouts().get(1).getId());
+        var updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, blacklist2);
         Assert.assertEquals(updatedPlan.getAllLayouts().size() + 1, indexPlan.getAllLayouts().size());
-        updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, oldRule.getLayoutIdMapping().subList(1, 2));
+        val df2 = dataflowManager.getDataflow(dataflow.getId());
+        for (Long bId : blacklist2) {
+            Assert.assertFalse(df2.getLastSegment().getLayoutsMap().containsKey(bId));
+        }
+
+        val blacklist3 = Lists.newArrayList(indexPlan.getRuleBaseLayouts().get(2).getId());
+        updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, blacklist3);
         Assert.assertEquals(updatedPlan.getAllLayouts().size() + 2, indexPlan.getAllLayouts().size());
+        val df3 = dataflowManager.getDataflow(dataflow.getId());
+        for (Long bId : blacklist3) {
+            Assert.assertFalse(df3.getLastSegment().getLayoutsMap().containsKey(bId));
+        }
+
+        // add layout to blacklist which is auto and manual, will not remove datalayout from segment
+        val blacklist4 = Lists.newArrayList(indexPlan.getRuleBaseLayouts().get(0).getId());
+        updatedPlan = semanticService.addRuleBasedIndexBlackListLayouts(indexPlan, blacklist4);
+        Assert.assertEquals(updatedPlan.getAllLayouts().size() + 2, indexPlan.getAllLayouts().size());
+        val df4 = dataflowManager.getDataflow(dataflow.getId());
+        for (Long bId : blacklist4) {
+            Assert.assertTrue(df4.getLastSegment().getLayoutsMap().containsKey(bId));
+        }
     }
 
     private NDataModel getTestInnerModel() {

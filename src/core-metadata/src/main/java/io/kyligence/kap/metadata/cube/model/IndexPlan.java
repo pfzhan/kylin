@@ -31,6 +31,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -526,6 +527,18 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             this.ruleBasedLayouts = Lists.newArrayList(ruleBasedIndex.genCuboidLayouts());
         }
         this.aggShardByColumns = aggShardByColumns;
+        updateNextId();
+    }
+
+    public void addRuleBasedBlackList(Collection<Long> blacklist) {
+        checkIsNotCachedAndShared();
+        if (ruleBasedIndex != null) {
+            val originBlacklist = ruleBasedIndex.getLayoutBlackList();
+            val newBlacklist = Sets.newHashSet(originBlacklist);
+            newBlacklist.addAll(blacklist);
+            ruleBasedIndex.setLayoutBlackList(newBlacklist);
+            this.ruleBasedLayouts = Lists.newArrayList(ruleBasedIndex.genCuboidLayouts());
+        }
         updateNextId();
     }
 
