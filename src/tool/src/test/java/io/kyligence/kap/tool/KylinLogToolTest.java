@@ -40,43 +40,35 @@ import java.io.IOException;
 
 public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
-    private static final String logs1 = "2019-09-02 02:35:19,868 INFO [dag-scheduler-event-loop] scheduler.DAGScheduler : Got job 459 (countAsync at SparkContextCanary.java:126) with 2 output partitions\n" +
-            "2019-09-02 02:40:06,220 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8_00 from RUNNING to SUCCEED\n" +
-            "2019-09-02 02:40:06,619 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction 1c2792bd-448e-4450-9944-32229523895d updates 1 metadata items\n" +
-            "2019-09-02 02:40:06,635 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 1c2792bd-448e-4450-9944-32229523895d takes 422ms to complete";
+    private static final String logs1 = "2019-09-02 02:35:19,868 INFO [dag-scheduler-event-loop] scheduler.DAGScheduler : Got job 459 (countAsync at SparkContextCanary.java:126) with 2 output partitions\n"
+            + "2019-09-02 02:40:06,220 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8_00 from RUNNING to SUCCEED\n"
+            + "2019-09-02 02:40:06,619 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction 1c2792bd-448e-4450-9944-32229523895d updates 1 metadata items\n"
+            + "2019-09-02 02:40:07,635 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 1c2792bd-448e-4450-9944-32229523895d takes 422ms to complete";
 
-    private static final String logs2 = "2019-09-02 02:41:19,868 INFO [dag-scheduler-event-loop] scheduler.DAGScheduler : Got job 459 (countAsync at SparkContextCanary.java:126) with 2 output partitions\n" +
-            "2019-09-02 02:41:40,178 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork a01fdc0f-ce3e-4094-9f9b-d1b71e8d9069 started on project expert_01\n" +
-            "2019-09-02 02:41:40,185 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8_01 from RUNNING to SUCCEED\n" +
-            "2019-09-02 02:41:40,561 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction a01fdc0f-ce3e-4094-9f9b-d1b71e8d9069 updates 1 metadata items\n" +
-            "2019-09-02 02:41:40,568 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork a01fdc0f-ce3e-4094-9f9b-d1b71e8d9069 takes 390ms to complete\n" +
-            "2019-09-02 02:41:40,568 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 02e4d49e-80f8-4c58-aa44-6be1dab98e77 started on project expert_01\n" +
-            "2019-09-02 02:41:40,569 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8 from RUNNING to SUCCEED\n" +
-            "2019-09-02 02:41:40,877 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction 02e4d49e-80f8-4c58-aa44-6be1dab98e77 updates 1 metadata items\n" +
-            "2019-09-02 02:41:40,885 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 02e4d49e-80f8-4c58-aa44-6be1dab98e77 takes 317ms to complete\n" +
-            "2019-09-02 02:41:40,890 INFO  [FetchJobWorker(project:expert_01)-p-12-t-12] threadpool.NDefaultScheduler : Job Status in project expert_01: 0 should running, 0 actual running, 0 stopped, 0 ready, 12 already succeed, 0 error, 0 discarded, 0 suicidal,  0 others\n" +
-            "2019-09-02 02:41:41,886 DEBUG [EventChecker(project:expert_01)-p-4-t-4] manager.EventOrchestrator : project expert_01 contains 1 events\n" +
-            "2019-09-02 02:41:41,888 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : UnitOfWork ca43de24-b825-4414-beeb-3b966651524e started on project expert_01\n" +
-            "2019-09-02 02:41:41,889 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : transaction ca43de24-b825-4414-beeb-3b966651524e updates 1 metadata items\n" +
-            "2019-09-02 02:41:41,889 INFO  [FetchJobWorker(project:expert_01)-p-12-t-12] threadpool.NDefaultScheduler : Job Status in project expert_01: 0 should running, 0 actual running, 0 stopped, 0 ready, 12 already succeed, 0 error, 0 discarded, 0 suicidal,  0 others\n" +
-            "2019-09-02 02:41:41,901 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : UnitOfWork ca43de24-b825-4414-beeb-3b966651524e takes 13ms to complete\n" +
-            "2019-09-02 02:41:41,901 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : UnitOfWork 297a3ec5-ca3b-4f19-a0a3-40079c3db372 started on project expert_01\n" +
-            "2019-09-02 02:41:41,903 INFO  [EventChecker(project:expert_01)-p-4-t-4] handle.AbstractEventHandler : handling event: \n" +
-            " {\n" +
-            "  \"@class\" : \"io.kyligence.kap.event.model.PostAddCuboidEvent\",\n" +
-            "  \"uuid\" : \"9d1cce98-29ab-4fd7-8025-11ac27c92b56\",\n" +
-            "  \"last_modified\" : 1567392101889,\n" +
-            "  \"create_time\" : 1567391988091,\n" +
-            "  \"version\" : \"4.0.0.0\",\n" +
-            "  \"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\",\n" +
-            "  \"isGlobal\" : false,\n" +
-            "  \"params\" : { },\n" +
-            "  \"msg\" : null,\n" +
-            "  \"sequence_id\" : 1,\n" +
-            "  \"owner\" : \"ADMIN\",\n" +
-            "  \"runTimes\" : 1,\n" +
-            "  \"job_id\" : \"d0f45b72-db2f-407b-9d6f-7cfe6f6624e8\"\n" +
-            "}";
+    private static final String logs2 = "2019-09-02 02:41:19,868 INFO [dag-scheduler-event-loop] scheduler.DAGScheduler : Got job 459 (countAsync at SparkContextCanary.java:126) with 2 output partitions\n"
+            + "2019-09-02 02:41:40,178 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork a01fdc0f-ce3e-4094-9f9b-d1b71e8d9069 started on project expert_01\n"
+            + "2019-09-02 02:41:40,185 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8_01 from RUNNING to SUCCEED\n"
+            + "2019-09-02 02:41:40,561 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction a01fdc0f-ce3e-4094-9f9b-d1b71e8d9069 updates 1 metadata items\n"
+            + "2019-09-02 02:41:40,568 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork a01fdc0f-ce3e-4094-9f9b-d1b71e8d9069 takes 390ms to complete\n"
+            + "2019-09-02 02:41:40,568 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 02e4d49e-80f8-4c58-aa44-6be1dab98e77 started on project expert_01\n"
+            + "2019-09-02 02:41:40,569 INFO  [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] execution.NExecutableManager : Job id: d0f45b72-db2f-407b-9d6f-7cfe6f6624e8 from RUNNING to SUCCEED\n"
+            + "2019-09-02 02:41:40,877 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : transaction 02e4d49e-80f8-4c58-aa44-6be1dab98e77 updates 1 metadata items\n"
+            + "2019-09-02 02:41:40,885 DEBUG [JobWorker(prj:expert_01,jobid:d0f45b72)-11100] transaction.UnitOfWork : UnitOfWork 02e4d49e-80f8-4c58-aa44-6be1dab98e77 takes 317ms to complete\n"
+            + "2019-09-02 02:41:40,890 INFO  [FetchJobWorker(project:expert_01)-p-12-t-12] threadpool.NDefaultScheduler : Job Status in project expert_01: 0 should running, 0 actual running, 0 stopped, 0 ready, 12 already succeed, 0 error, 0 discarded, 0 suicidal,  0 others\n"
+            + "2019-09-02 02:41:41,886 DEBUG [EventChecker(project:expert_01)-p-4-t-4] manager.EventOrchestrator : project expert_01 contains 1 events\n"
+            + "2019-09-02 02:41:41,888 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : UnitOfWork ca43de24-b825-4414-beeb-3b966651524e started on project expert_01\n"
+            + "2019-09-02 02:41:41,889 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : transaction ca43de24-b825-4414-beeb-3b966651524e updates 1 metadata items\n"
+            + "2019-09-02 02:41:41,889 INFO  [FetchJobWorker(project:expert_01)-p-12-t-12] threadpool.NDefaultScheduler : Job Status in project expert_01: 0 should running, 0 actual running, 0 stopped, 0 ready, 12 already succeed, 0 error, 0 discarded, 0 suicidal,  0 others\n"
+            + "2019-09-02 02:41:41,901 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : UnitOfWork ca43de24-b825-4414-beeb-3b966651524e takes 13ms to complete\n"
+            + "2019-09-02 02:41:41,901 DEBUG [EventChecker(project:expert_01)-p-4-t-4] transaction.UnitOfWork : UnitOfWork 297a3ec5-ca3b-4f19-a0a3-40079c3db372 started on project expert_01\n"
+            + "2019-09-02 02:41:42,903 INFO  [EventChecker(project:expert_01)-p-4-t-4] handle.AbstractEventHandler : handling event: \n"
+            + " {\n" + "  \"@class\" : \"io.kyligence.kap.event.model.PostAddCuboidEvent\",\n"
+            + "  \"uuid\" : \"9d1cce98-29ab-4fd7-8025-11ac27c92b56\",\n" + "  \"last_modified\" : 1567392101889,\n"
+            + "  \"create_time\" : 1567391988091,\n" + "  \"version\" : \"4.0.0.0\",\n"
+            + "  \"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\",\n" + "  \"isGlobal\" : false,\n"
+            + "  \"params\" : { },\n" + "  \"msg\" : null,\n" + "  \"sequence_id\" : 1,\n"
+            + "  \"owner\" : \"ADMIN\",\n" + "  \"runTimes\" : 1,\n"
+            + "  \"job_id\" : \"d0f45b72-db2f-407b-9d6f-7cfe6f6624e8\"\n" + "}";
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -125,8 +117,8 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         File kylinLog = new File(ToolUtil.getLogFolder(), "kylin.log");
         File kylinLog1 = new File(ToolUtil.getLogFolder(), "kylin.log.1");
 
-        FileUtils.writeStringToFile(kylinLog, logs1);
-        FileUtils.writeStringToFile(kylinLog1, logs2);
+        FileUtils.writeStringToFile(kylinLog, logs2);
+        FileUtils.writeStringToFile(kylinLog1, logs1);
 
         String jobId = "d0f45b72-db2f-407b-9d6f-7cfe6f6624e8";
         KylinLogTool.extractKylinLog(mainDir, jobId);
@@ -134,9 +126,12 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.deleteQuietly(kylinLog);
         FileUtils.deleteQuietly(kylinLog1);
 
-        Assert.assertFalse(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log")).contains("2019-09-02 02:35:19,868"));
-        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log")).contains("2019-09-02 02:40:06,635"));
-        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("\"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\""));
+        Assert.assertFalse(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02 02:35:19,868"));
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02 02:40:07,635"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log"))
+                .contains("\"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\""));
     }
 
     @Test
@@ -147,8 +142,8 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         File kylinLog = new File(ToolUtil.getLogFolder(), "kylin.log");
         File kylinLog1 = new File(ToolUtil.getLogFolder(), "kylin.log.1");
 
-        FileUtils.writeStringToFile(kylinLog, logs1);
-        FileUtils.writeStringToFile(kylinLog1, logs2);
+        FileUtils.writeStringToFile(kylinLog, logs2);
+        FileUtils.writeStringToFile(kylinLog1, logs1);
 
         long startTime = DateTime.parse("2019-09-01").withTimeAtStartOfDay().getMillis();
         long endTime = DateTime.parse("2019-09-03").withTimeAtStartOfDay().getMillis();
@@ -158,9 +153,12 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.deleteQuietly(kylinLog);
         FileUtils.deleteQuietly(kylinLog1);
 
-        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log")).contains("2019-09-02 02:35:19,868"));
-        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log")).contains("2019-09-02 02:40:06,635"));
-        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("\"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\""));
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02 02:35:19,868"));
+        Assert.assertTrue(
+                FileUtils.readFileToString(new File(mainDir, "logs/kylin.log.1")).contains("2019-09-02 02:40:07,635"));
+        Assert.assertTrue(FileUtils.readFileToString(new File(mainDir, "logs/kylin.log"))
+                .contains("\"model_id\" : \"756bd0bc-f9f1-401d-bcc8-39a1a78557e6\""));
     }
 
     @Test
@@ -231,7 +229,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.deleteQuietly(new File(hdfsPath));
 
         for (String childDir : childDirs) {
-            Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir +"/executor-1.log").exists());
+            Assert.assertTrue(new File(mainDir, "spark_logs/" + childDir + "/executor-1.log").exists());
         }
     }
 }

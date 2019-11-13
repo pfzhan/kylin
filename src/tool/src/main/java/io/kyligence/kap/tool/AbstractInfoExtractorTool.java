@@ -37,6 +37,7 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.TimeZoneUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +153,8 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
+        TimeZoneUtils.setDefaultTimeZone(kylinConfig);
+
         String exportDest = optionsHelper.getOptionValue(OPTION_DEST);
         boolean shouldCompress = getBooleanOption(optionsHelper, OPTION_COMPRESS, true);
         boolean submodule = getBooleanOption(optionsHelper, OPTION_SUBMODULE, false);
@@ -330,7 +333,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
             FileUtils.writeStringToFile(new File(destDir, filename), output, append);
         } catch (Exception e) {
-            if(errorDebug) {
+            if (errorDebug) {
                 logger.debug("Failed to run command: {}", cmd, e);
             } else {
                 logger.error("Failed to run command: {}", cmd, e);

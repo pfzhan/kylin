@@ -909,7 +909,7 @@ public class ModelService extends BasicService {
                         str.substring(0, str.lastIndexOf('.')));
                 throw new RuntimeException(error);
             } else {
-                String errorMsg = null != e.getMessage() ? e.getMessage().substring(0, 200) : "null";
+                String errorMsg = null != e.getMessage() ? StringUtils.substring(e.getMessage(), 0, 200) : "null";
                 throw new RuntimeException(errorMsg, e);
             }
         }
@@ -1076,7 +1076,8 @@ public class ModelService extends BasicService {
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
             // check if the dimension name is valid
             if (!StringUtils.containsOnly(dimension.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
-                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName()));
+                throw new IllegalArgumentException(
+                        String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName()));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
@@ -1094,11 +1095,13 @@ public class ModelService extends BasicService {
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             // check if the measure name is valid
             if (!StringUtils.containsOnly(measure.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
-                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName()));
+                throw new IllegalArgumentException(
+                        String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))
-                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
+                throw new IllegalArgumentException(
+                        String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure definitions
             if (measures.contains(measure))
@@ -1120,8 +1123,8 @@ public class ModelService extends BasicService {
 
             for (int i = 0; i < size; i++) {
                 if (joinKeys.contains(Pair.newPair(primaryKeys[i], foreignKey[i])))
-                    throw new IllegalArgumentException(
-                            String.format(MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
+                    throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(),
+                            primaryKeys[i], foreignKey[i]));
 
                 joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
             }

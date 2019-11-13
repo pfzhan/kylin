@@ -26,24 +26,55 @@ package io.kyligence.kap.tool;
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.ShellException;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class KylinLogTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
 
     public static final long DAY = 24 * 3600 * 1000L;
+
+    public static final String SECOND_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+    private static final String LOG_TIME_PATTERN = "^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})";
+
+    // 2019-11-11 09:30:04,628 INFO  [FetchJobWorker(project:test_fact)-p-94-t-94] threadpool.NDefaultScheduler : start check project test_fact
+    private static final String LOG_PATTERN = "([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2},[0-9]{3}) ([^ ]*)[ ]+\\[(.*)\\] ([^: ]*) :([\\n\\r. ]*)";
+
+    private static final int EXTRA_LINES = 100;
+
+    // 2019-11-11 03:24:52,342 DEBUG [JobWorker(prj:doc_smart,jobid:8a13964c)-965] job.NSparkExecutable : Copied metadata to the target metaUrl, delete the temp dir: /tmp/kylin_job_meta204633716010108932
+    private static String getJobLogPattern(String jobId) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(jobId));
+        return String.format("%s(.*JobWorker.*jobid:%s.*)", LOG_TIME_PATTERN, jobId.substring(0, 8));
+    }
+
+    // 2019-11-11 09:30:04,004 INFO  [Query 4e3350d5-1cd9-450f-ac7e-5859939bedf1-125] service.QueryService : The original query: select * from ssb.SUPPLIER
+    private static String getQueryLogPattern(String queryId) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(queryId));
+        return String.format("%s(.*Query %s.*)", LOG_TIME_PATTERN, queryId);
+    }
 
     private KylinLogTool() {
     }
@@ -100,6 +131,131 @@ public class KylinLogTool {
         extractKylinLog(exportDir, null, startTime, endTime);
     }
 
+    private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File logFile) {
+        return getTimeRangeFromLogFileByJobId(jobId, logFile, false);
+    }
+
+    private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File logFile,
+            boolean onlyStartTime) {
+        Preconditions.checkNotNull(jobId);
+        Preconditions.checkNotNull(logFile);
+
+        String dateStart = null;
+        String dateEnd = null;
+        try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
+            Pattern pattern = Pattern.compile(getJobLogPattern(jobId));
+
+            String log;
+            while ((log = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(log);
+                if (matcher.find()) {
+                    if (Objects.isNull(dateStart)) {
+                        dateStart = matcher.group(1);
+                        if (onlyStartTime) {
+                            return new Pair<>(dateStart, dateStart);
+                        }
+                    }
+                    dateEnd = matcher.group(1);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get time range from logFile:{}, jobId:{}, onlyStartTime: {}",
+                    logFile.getAbsolutePath(), jobId, onlyStartTime, e);
+        }
+        return new Pair<>(dateStart, dateEnd);
+    }
+
+    private static Pair<String, String> getTimeRangeFromLogFileByJobId(String jobId, File[] kylinLogs) {
+        Preconditions.checkNotNull(jobId);
+        Preconditions.checkNotNull(kylinLogs);
+
+        Pair<String, String> timeRangeResult = new Pair<>();
+        if (0 == kylinLogs.length) {
+            return timeRangeResult;
+        }
+
+        List<File> logFiles = Stream.of(kylinLogs).sorted(Comparator.comparing(File::getName))
+                .collect(Collectors.toList());
+
+        int i = 0;
+        while (i < logFiles.size()) {
+            Pair<String, String> timeRange = getTimeRangeFromLogFileByJobId(jobId, logFiles.get(i++));
+            if (null != timeRange.getFirst() && null != timeRange.getSecond()) {
+                timeRangeResult.setFirst(timeRange.getFirst());
+                timeRangeResult.setSecond(timeRange.getSecond());
+                break;
+            }
+        }
+
+        while (i < logFiles.size()) {
+            String dateStart = getTimeRangeFromLogFileByJobId(jobId, logFiles.get(i++), true).getFirst();
+            if (null == dateStart) {
+                break;
+            }
+            if (dateStart.compareTo(timeRangeResult.getFirst()) < 0) {
+                timeRangeResult.setFirst(dateStart);
+            }
+        }
+
+        return timeRangeResult;
+    }
+
+    public static String getFirstTimeByLogFile(File logFile) {
+        try (BufferedReader br = new BufferedReader(new FileReader(logFile))) {
+            Pattern pattern = Pattern.compile(LOG_TIME_PATTERN);
+            String log;
+            while ((log = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(log);
+                if (matcher.find()) {
+                    return matcher.group(1);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get first time by log file: {}", logFile.getAbsolutePath(), e);
+        }
+        return null;
+    }
+
+    public static void extractLogByTimeRange(File logFile, Pair<String, String> timeRange, File distFile) {
+        Preconditions.checkNotNull(logFile);
+        Preconditions.checkNotNull(timeRange);
+        Preconditions.checkNotNull(distFile);
+        Preconditions.checkArgument(timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0);
+
+        try (BufferedReader br = new BufferedReader(new FileReader(logFile));
+                BufferedWriter bw = new BufferedWriter(new FileWriter(distFile))) {
+
+            int extraLines = EXTRA_LINES;
+            boolean extract = false;
+            boolean stdLogNotFound = true;
+            Pattern pattern = Pattern.compile(LOG_PATTERN);
+            String log;
+            while ((log = br.readLine()) != null) {
+                Matcher matcher = pattern.matcher(log);
+
+                if (matcher.find()) {
+                    stdLogNotFound = false;
+                    String logDate = matcher.group(1);
+                    if (logDate.compareTo(timeRange.getSecond()) > 0 && --extraLines < 1) {
+                        break;
+                    }
+
+                    if (extract || logDate.compareTo(timeRange.getFirst()) >= 0) {
+                        extract = true;
+                        bw.write(log);
+                        bw.write('\n');
+                    }
+                } else if (extract || stdLogNotFound) {
+                    bw.write(log);
+                    bw.write('\n');
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Failed to extract log from {} to {}", logFile.getAbsolutePath(), distFile.getAbsolutePath(),
+                    e);
+        }
+    }
+
     /**
      * extract kylin log
      * @param exportDir
@@ -113,17 +269,6 @@ public class KylinLogTool {
         try {
             FileUtils.forceMkdir(destLogDir);
 
-            String logBinFile = "bin/log-extract-tool.sh";
-            if(KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                logBinFile = "../../../build/" + logBinFile;
-            }
-
-            File logExtractTool = new File(ToolUtil.getKylinHome() + File.separator + logBinFile);
-            if (!logExtractTool.exists()) {
-                logger.error("Can not find the log extract tool: {}", logExtractTool.getAbsolutePath());
-                return;
-            }
-
             File logsDir = new File(ToolUtil.getKylinHome() + File.separator + "logs");
             if (!logsDir.exists()) {
                 logger.error("Can not find the logs dir: {}", logsDir);
@@ -131,40 +276,41 @@ public class KylinLogTool {
             }
 
             File[] kylinLogs = logsDir.listFiles(pathname -> pathname.getName().startsWith("kylin.log"));
-            if (null == kylinLogs) {
+            if (null == kylinLogs || 0 == kylinLogs.length) {
                 logger.error("Can not find the kylin.log file!");
                 return;
             }
 
-            CliCommandExecutor cmdExecutor = new CliCommandExecutor();
+            Pair<String, String> timeRange;
+            if (null != jobId) {
+                timeRange = getTimeRangeFromLogFileByJobId(jobId, kylinLogs);
+                Preconditions.checkArgument(
+                        null != timeRange.getFirst() && null != timeRange.getSecond()
+                                && timeRange.getFirst().compareTo(timeRange.getSecond()) <= 0,
+                        "Can not get time range from log files by jobId: {}", jobId);
+            } else {
+                timeRange = new Pair<>(new DateTime(startTime).toString(SECOND_DATE_FORMAT),
+                        new DateTime(endTime).toString(SECOND_DATE_FORMAT));
+            }
+
+            logger.info("Extract kylin log from {} to {} .", timeRange.getFirst(), timeRange.getSecond());
+
             for (File logFile : kylinLogs) {
-                String cmd;
-                if (null != jobId) {
-                    cmd = String.format("%s %s -job %s", logExtractTool.getAbsolutePath(), logFile.getAbsolutePath(),
-                            jobId);
-                } else {
-                    Preconditions.checkArgument(startTime <= endTime);
-                    cmd = String.format("%s %s -startTime %s -endTime %s", logExtractTool.getAbsolutePath(),
-                            logFile.getAbsolutePath(), startTime, endTime);
+                String lastDate = new DateTime(logFile.lastModified()).toString(SECOND_DATE_FORMAT);
+                if (lastDate.compareTo(timeRange.getFirst()) < 0) {
+                    continue;
                 }
 
-                try {
-                    Pair<Integer, String> result = cmdExecutor.execute(cmd, null);
-                    if (result.getFirst() != 0) {
-                        logger.info("Failed to execute the cmd: {}", cmd);
-                    }
+                String logFirstTime = getFirstTimeByLogFile(logFile);
+                if (Objects.isNull(logFirstTime) || logFirstTime.compareTo(timeRange.getSecond()) > 0) {
+                    continue;
+                }
 
-                    if (null != result.getSecond()) {
-                        FileUtils.write(new File(destLogDir, logFile.getName()), result.getSecond());
-                    }
-                } catch (ShellException se) {
-                    String logMessage = "Failed to extract kylin log file: {}";
-                    if(!se.getMessage().contains("can not found line range in")) {
-                        logger.error(logMessage, logFile.getAbsolutePath(), se);
-                    } else {
-                        logger.debug(logMessage, logFile.getAbsolutePath(), se);
-                    }
-                    FileUtils.write(new File(destLogDir, logFile.getName()), se.getMessage());
+                if (logFirstTime.compareTo(timeRange.getFirst()) >= 0
+                        && lastDate.compareTo(timeRange.getSecond()) <= 0) {
+                    FileUtils.copyFileToDirectory(logFile, destLogDir);
+                } else {
+                    extractLogByTimeRange(logFile, timeRange, new File(destLogDir, logFile.getName()));
                 }
             }
         } catch (Exception e) {
@@ -194,7 +340,7 @@ public class KylinLogTool {
             }
 
             for (FileStatus fileStatus : fileStatuses) {
-                fs.copyToLocalFile(fileStatus.getPath(), new Path(sparkLogsDir.getAbsolutePath()));
+                fs.copyToLocalFile(false, fileStatus.getPath(), new Path(sparkLogsDir.getAbsolutePath()), true);
             }
         } catch (Exception e) {
             logger.error("Failed to extract spark log, ", e);
@@ -221,7 +367,7 @@ public class KylinLogTool {
                 return;
             }
 
-            fs.copyToLocalFile(new Path(hdfsPath), new Path(jobTmpDir.getAbsolutePath()));
+            fs.copyToLocalFile(false, new Path(hdfsPath), new Path(jobTmpDir.getAbsolutePath()), true);
         } catch (Exception e) {
             logger.error("Failed to extract job_tmp, ", e);
         }
@@ -255,7 +401,7 @@ public class KylinLogTool {
                 String hdfsPath = ToolUtil.getSparderLogsDir() + '/' + date.toString("yyyy-MM-dd");
                 FileSystem fs = HadoopUtil.getWorkingFileSystem();
                 if (fs.exists(new Path(hdfsPath))) {
-                    fs.copyToLocalFile(new Path(hdfsPath), new Path(sparkLogsDir.getAbsolutePath()));
+                    fs.copyToLocalFile(false, new Path(hdfsPath), new Path(sparkLogsDir.getAbsolutePath()), true);
                 }
 
                 date = date.plusDays(1);
