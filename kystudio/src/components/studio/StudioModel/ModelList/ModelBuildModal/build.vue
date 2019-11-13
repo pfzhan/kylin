@@ -23,7 +23,7 @@
               :closable="false"
               show-icon>
             </el-alert>
-            <div class="ky-no-br-space">
+            <div class="ky-no-br-space" style="height:32px;">
               <el-date-picker
                 type="datetime"
                 class="ksd-mr-5"

@@ -241,9 +241,9 @@ export default class ModelPartitionModal extends Vue {
     {label: 'yyyyMMdd', value: 'yyyyMMdd'},
     {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
     {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
-    {label: 'yyyy-MM', value: 'yyyy-MM'},
-    {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'},
-    {label: 'yyyyMM', value: 'yyyyMM'}
+    {label: 'yyyy/MM/dd', value: 'yyyy/MM/dd'}
+    // {label: 'yyyy-MM', value: 'yyyy-MM'},
+    // {label: 'yyyyMM', value: 'yyyyMM'}
   ]
   get partitionTables () {
     let result = []
