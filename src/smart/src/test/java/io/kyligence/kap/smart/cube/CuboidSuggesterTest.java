@@ -27,6 +27,8 @@ package io.kyligence.kap.smart.cube;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Sets;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -293,6 +295,78 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("{100000, 100007, 100008}", indexEntity3.getMeasureBitset().toString());
         Assert.assertEquals(1, indexEntity3.getLayouts().size());
         Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 3 + 1, indexEntity3.getLayouts().get(0).getId());
+    }
+
+    @Test
+    public void testSuggestShardByInSemiMode() {
+        // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
+        // currently, column part_dt's cardinality < 2000 && tans_id's > 2000
+        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "2000");
+
+        String[] sql1 = new String[] {
+                "select part_dt, lstg_format_name, trans_id from kylin_sales" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sql1);
+        smartMaster.runAll();
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), proj);
+        val modelId = mdCtx.getTargetModel().getId();
+        var indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertNotNull(indexPlan);
+        Assert.assertTrue(indexPlan.getAggShardByColumns().isEmpty());
+
+        indexPlanManager.updateIndexPlan(indexPlan.getId(), indexPlanToBeUpdated -> {
+            indexPlanToBeUpdated.setAggShardByColumns(Lists.newArrayList(3, 7));
+        });
+
+        String[] sqls = new String[] {
+                "select part_dt, lstg_format_name, trans_id from kylin_sales where part_dt = '2012-01-01'",
+                "select part_dt, trans_id from kylin_sales where trans_id = 100000",
+                "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
+
+        new NSmartMaster(getTestConfig(), proj, sqls).runAll();
+
+        indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val indexEntities = indexPlan.getIndexes();
+        Assert.assertEquals(3, indexEntities.size());
+
+        // table index does covered by manually set agg index shardby columns
+        val layouts = indexEntities.get(0).getLayouts();
+        Assert.assertEquals(2, layouts.size());
+        Assert.assertEquals(0, layouts.get(0).getShardByColumns().size());
+        Assert.assertEquals(0, layouts.get(1).getShardByColumns().size());
+        val layouts1 = indexEntities.get(1).getLayouts();
+        Assert.assertTrue(indexEntities.get(1).isTableIndex());
+        Assert.assertEquals(1, layouts1.size());
+        Assert.assertEquals(1, layouts1.get(0).getShardByColumns().size());
+        Assert.assertEquals("KYLIN_SALES.TRANS_ID", mdCtx
+                .getTargetModel().getEffectiveColsMap().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
+
+        // agg index
+        val layouts2 = indexEntities.get(2).getLayouts();
+        Assert.assertFalse(indexEntities.get(2).isTableIndex());
+        Assert.assertEquals(1, layouts2.size());
+        Assert.assertEquals(2, layouts2.get(0).getShardByColumns().size());
+        Assert.assertEquals(indexPlan.getAggShardByColumns(), layouts2.get(0).getShardByColumns());
+
+        indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.setAggShardByColumns(Lists.newArrayList(3, 7, 100));
+            copyForWrite.removeLayouts(Sets.newHashSet(layouts2.get(0).getId()), LayoutEntity::equals, true, false);
+        });
+
+        sqls = new String[] {
+                "select part_dt, lstg_format_name, trans_id from kylin_sales where trans_id = 100000 group by part_dt, lstg_format_name, trans_id" };
+
+        new NSmartMaster(getTestConfig(), proj, sqls).runAll();
+
+        indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val aggIndexLayouts = indexPlan.getIndexes().get(2).getLayouts();
+        Assert.assertFalse(indexEntities.get(2).isTableIndex());
+        Assert.assertEquals(1, aggIndexLayouts.size());
+        Assert.assertEquals(1, aggIndexLayouts.get(0).getShardByColumns().size());
+        Assert.assertEquals(Lists.newArrayList(11), aggIndexLayouts.get(0).getShardByColumns());
+
+        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "1000000");
     }
 
     @Test

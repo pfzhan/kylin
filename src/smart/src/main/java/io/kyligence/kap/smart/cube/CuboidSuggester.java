@@ -179,20 +179,21 @@ class CuboidSuggester {
             collector.put(cuboidIdentifier, indexEntity);
         }
 
-        List<Integer> shardBy = Lists.newArrayList();
-        if (isQualifiedSuggestShardBy(ctx)) {
-            shardBy = suggestShardBy(dimIds);
-        }
-
         LayoutEntity layout = new LayoutEntity();
         layout.setId(suggestLayoutId(indexEntity));
         layout.setColOrder(suggestColOrder(dimIds, measureIds));
         layout.setIndex(indexEntity);
-        layout.setShardByColumns(shardBy);
         layout.setAuto(true);
         layout.setUpdateTime(System.currentTimeMillis());
         layout.setDraftVersion(smartContext.getDraftVersion());
         layout.setInProposing(true);
+
+        if (!indexEntity.isTableIndex() && CollectionUtils.isNotEmpty(indexPlan.getAggShardByColumns())
+                && layout.getColOrder().containsAll(indexPlan.getAggShardByColumns())) {
+            layout.setShardByColumns(indexPlan.getAggShardByColumns());
+        } else if (isQualifiedSuggestShardBy(ctx)) {
+            layout.setShardByColumns(suggestShardBy(dimIds));
+        }
 
         String modelId = model.getUuid();
         int semanticVersion = model.getSemanticVersion();
