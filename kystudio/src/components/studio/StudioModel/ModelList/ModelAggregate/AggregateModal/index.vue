@@ -336,6 +336,11 @@ export default class AggregateModal extends Vue {
             this.$message.error(this.$t('maxCombinationTip'))
             // 操作滚动
             this.dealScrollToFirstError()
+          } else {
+            // 单个没超过，总量超了，显示总量的报错，也不往下执行了
+            if (!/^\d+$/.test(data.total_count.result)) {
+              this.$message.error(this.$t('maxTotalCombinationTip'))
+            }
           }
         }
         this.calcLoading = false
