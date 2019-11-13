@@ -52,12 +52,25 @@ public class NDefaultDataBaseNotSetTest extends NAutoTestBase {
     }
 
     @Test
-    public void testPercentileAndUdf() {
+    public void testUdafAndUdf() {
         String[] sqls = new String[] {
+                //test Udaf
                 "SELECT LO_SUPPKEY, percentile_approx(LO_ORDTOTALPRICE, 0.5) AS ORDER_TOTAL_PRICE FROM SSB.P_LINEORDER GROUP BY LO_SUPPKEY",
+                "SELECT LO_SUPPKEY, percentile(LO_ORDTOTALPRICE, 0.5) AS ORDER_TOTAL_PRICE FROM SSB.P_LINEORDER GROUP BY LO_SUPPKEY",
                 "SELECT LO_SUPPKEY, percentile_approx(LO_ORDTOTALPRICE, 0.5) AS ORDER_TOTAL_PRICE FROM SSB.P_LINEORDER "
                         + "GROUP BY LO_SUPPKEY,LO_ORDERKEY,LO_LINENUMBER,LO_CUSTKEY,LO_PARTKEY,LO_ORDERDATE,LO_ORDERPRIOTITY,LO_SHIPPRIOTITY,"
                         + "LO_QUANTITY,LO_EXTENDEDPRICE,LO_DISCOUNT,LO_REVENUE,LO_SUPPLYCOST,LO_TAX,LO_COMMITDATE,LO_SHIPMODE,V_REVENUE",
+                "SELECT LO_SUPPKEY, percentile(LO_ORDTOTALPRICE, 0.5) AS ORDER_TOTAL_PRICE FROM SSB.P_LINEORDER "
+                        + "GROUP BY LO_SUPPKEY,LO_ORDERKEY,LO_LINENUMBER,LO_CUSTKEY,LO_PARTKEY,LO_ORDERDATE,LO_ORDERPRIOTITY,LO_SHIPPRIOTITY,"
+                        + "LO_QUANTITY,LO_EXTENDEDPRICE,LO_DISCOUNT,LO_REVENUE,LO_SUPPLYCOST,LO_TAX,LO_COMMITDATE,LO_SHIPMODE,V_REVENUE",
+                "SELECT\n" + "  \"LO_LINENUMBER\",\n"
+                        + "    INTERSECT_COUNT(\"LO_SUPPKEY\", \"LO_ORDERDATE\", ARRAY[19960101]) AS \"FIRST_DAY\",\n"
+                        + "    INTERSECT_COUNT(\"LO_SUPPKEY\", \"LO_ORDERDATE\", ARRAY[19960102]) AS \"SECOND_DAY\",\n"
+                        + "    INTERSECT_COUNT(\"LO_SUPPKEY\", \"LO_ORDERDATE\", ARRAY[19960103]) AS \"THIRD_DAY\",\n"
+                        + "    INTERSECT_COUNT(\"LO_SUPPKEY\", \"LO_ORDERDATE\", ARRAY[19960101, 19960102]) AS \"RETENTION_ONEDAY\",\n"
+                        + "    INTERSECT_COUNT(\"LO_SUPPKEY\", \"LO_ORDERDATE\", ARRAY[19960101, 19960102, 19960103]) AS \"RETENTION_TWODAY\"\n"
+                        + "FROM ssb.\"P_LINEORDER\"\n" + "GROUP BY\n" + "  \"LO_LINENUMBER\"",
+                //test Udf
                 "select initcapb(LO_ORDERPRIOTITY),substr(LO_ORDERPRIOTITY,2),instr(LO_ORDERPRIOTITY,'A'),"
                         + "ifnull(LO_LINENUMBER,0),rlike(LO_ORDERPRIOTITY,'*') from SSB.P_LINEORDER" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "ssb", sqls);
