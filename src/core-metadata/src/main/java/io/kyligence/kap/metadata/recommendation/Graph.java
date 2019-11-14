@@ -28,25 +28,24 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class Graph<T> {
+class Graph<T> {
     public static class Node<T> {
-        public T val;
-        public int pathIn = 0;
+        T val;
+        int pathIn = 0;
 
-        public Node(T val) {
+        Node(T val) {
             this.val = val;
         }
     }
 
-    public Set<Node<T>> vertexSet = new HashSet<>();
-    public Map<Node<T>, Set<Node<T>>> outNode = new HashMap<>();
-//    public Map<Node<T>, Set<Node<T>>> inNode = new HashMap<>();
+    Set<Node<T>> vertexSet = new HashSet<>();
+    Map<Node<T>, Set<Node<T>>> outNode = new HashMap<>();
 
-    public boolean addNode(Node<T> start, Node<T> end) {
+    void addNode(Node<T> start, Node<T> end) {
         vertexSet.add(start);
         vertexSet.add(end);
         if (outNode.containsKey(start) && outNode.get(start).contains(end)) {
-            return false;
+            return;
         }
         if (outNode.containsKey(start)) {
             outNode.get(start).add(end);
@@ -55,18 +54,6 @@ public class Graph<T> {
             temp.add(end);
             outNode.put(start, temp);
         }
-
-//        if (inNode.containsKey(end) && inNode.get(start).contains(start)) {
-//            return false;
-//        }
-//        if (inNode.containsKey(end)) {
-//            inNode.get(end).add(start);
-//        } else {
-//            Set<Node<T>> temp = new HashSet<>();
-//            temp.add(start);
-//            inNode.put(end, temp);
-//        }
         end.pathIn++;
-        return true;
     }
 }

@@ -61,8 +61,8 @@ public interface RecommendationItem<T extends RecommendationItem> {
         public Boolean visit(SqlIdentifier identifier) {
             boolean modified = false;
             for (val pair : context.getNameTranslations()) {
-                val oldName = pair.getFirst();
-                val newName = pair.getSecond();
+                String oldName = pair.getFirst();
+                String newName = pair.getSecond();
                 if (identifier.names.size() == 2) {
                     final String[] values = identifier.names.toArray(new String[0]);
                     if (values[0].equals(context.getFactTableName()) && values[1].equals(oldName)) {
