@@ -97,9 +97,11 @@ export default class GroupEditModal extends Vue {
   // 返回的数据总数
   totalSizes = [0, 10]
   searchValueLeft = ''
+  searchValueRight = ''
   clickLoadMore = false
   submitLoading = false
   autoLoadLimit = 500
+  timer = null
 
   // Computed: Modal宽度
   get modalWidth () {
@@ -148,12 +150,17 @@ export default class GroupEditModal extends Vue {
   }
 
   async queryHandler (title, query) {
+    const that = this
     if (title === this.$t('willCheckGroup')) {
       this.pageOffset = 0
       this.setModal({totalUsers: []})
-      await this.fetchUsers(query)
+      clearTimeout(this.timer)
+      this.timer = setTimeout(function () {
+        that.fetchUsers(query)
+      }, 500)
     } else if (title === this.$t('checkedGroup')) {
       try {
+        this.searchValueRight = query
         this.$set(this.totalSizes, 1, this.searchResults(query).length)
       } catch (e) {
         console.error(e)
@@ -268,10 +275,14 @@ export default class GroupEditModal extends Vue {
     width: 250px;
   }
   .load-more-uers {
-    color: @text-normal-color;
+    color: @text-title-color;
     font-size: @text-assist-size;
-    text-align: center;
+    text-align: left;
     cursor: pointer;
+    margin-left: 15px;
+    &:hover {
+      color: @base-color;
+    }
   }
 }
 </style>
