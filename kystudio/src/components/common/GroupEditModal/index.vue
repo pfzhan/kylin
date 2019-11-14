@@ -20,14 +20,14 @@
           :before-query="queryHandler"
           :total-elements="totalSizes"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
-          @change="value => inputHandler('selectedUsers', value)">
-            <div class="users-over-size-tip" slot="left-panel-bottom_content" v-if="isOverSizeTip">{{$t('overSizeTip')}}</div>
+          @change="value => transferInputHandler('selectedUsers', value)">
+            <div class="load-more-uers" slot="left-remote-load-more" v-if="isShowLoadMore" @click="loadMoreUsers(searchValueLeft)">{{$t('kylinLang.common.loadMore')}}</div>
         </el-transfer>
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-      size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" plain type="primary" :loading="submitLoading" :disabled="submitLoading" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -88,10 +88,18 @@ export default class GroupEditModal extends Vue {
     }]
   }
 
-  // 是否显示提示文案（接口size数大于显示数）
-  isOverSizeTip = false
+  // 获取user分页页码
+  pageOffset = 0
+  // 每页请求数量
+  pageSize = 1000
+
+  totalUsersSize = 0
   // 返回的数据总数
-  totalSizes = [0]
+  totalSizes = [0, 10]
+  searchValueLeft = ''
+  clickLoadMore = false
+  submitLoading = false
+  autoLoadLimit = 500
 
   // Computed: Modal宽度
   get modalWidth () {
@@ -105,6 +113,10 @@ export default class GroupEditModal extends Vue {
     return titleMaps[this.editType]
   }
 
+  get isShowLoadMore () {
+    return this.pageOffset < Math.ceil(this.totalUsersSize / this.pageSize) - 1
+  }
+
   // Computed Method: 计算每个Form的field是否显示
   isFieldShow (fieldName) {
     return fieldVisiableMaps[this.editType].includes(fieldName)
@@ -115,7 +127,9 @@ export default class GroupEditModal extends Vue {
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
-      this.editType === 'assign' && this.fetchUsers()
+      this.pageOffset = 0
+      this.setModal({totalUsers: []})
+      this.editType === 'assign' && this.fetchUsers('')
     } else {
       setTimeout(() => {
         this.isFormShow = false
@@ -135,8 +149,21 @@ export default class GroupEditModal extends Vue {
 
   async queryHandler (title, query) {
     if (title === this.$t('willCheckGroup')) {
+      this.pageOffset = 0
+      this.setModal({totalUsers: []})
       await this.fetchUsers(query)
+    } else if (title === this.$t('checkedGroup')) {
+      try {
+        this.$set(this.totalSizes, 1, this.searchResults(query).length)
+      } catch (e) {
+        console.error(e)
+      }
     }
+  }
+
+  // 匹配搜索结果的用户
+  searchResults (content) {
+    return this.form.selectedUsers.filter(user => user.toLowerCase().indexOf(content.toString().toLowerCase()) >= 0)
   }
 
   // Action: 修改Form函数
@@ -144,9 +171,17 @@ export default class GroupEditModal extends Vue {
     this.setModalForm({[key]: value})
   }
 
+  transferInputHandler (key, value) {
+    this.setModalForm({[key]: value})
+    this.totalSizes[0] = this.totalUsersSize - (!this.searchValueLeft.length ? value.length : this.searchResults(this.searchValueLeft).length)
+    const surplusUsers = this.totalUsers.filter(user => !value.includes(user.key))
+    surplusUsers.length < this.autoLoadLimit && (!this.searchValueLeft.length ? this.loadMoreUsers() : this.loadMoreUsers(this.searchValueLeft))
+  }
+
   // Action: Form递交函数
   async submit () {
     try {
+      this.submitLoading = true
       // 获取Form格式化后的递交数据
       const data = getSubmitData(this)
       // 验证表单
@@ -159,9 +194,11 @@ export default class GroupEditModal extends Vue {
         type: 'success',
         message: this.$t('kylinLang.common.saveSuccess')
       })
+      this.submitLoading = false
       // 关闭模态框，通知父组件成功
       this.closeHandler(true)
     } catch (e) {
+      this.submitLoading = false
       // 异常处理
       e && handleError(e)
     }
@@ -175,10 +212,11 @@ export default class GroupEditModal extends Vue {
 
   // Helper: 从后台获取用户组
   async fetchUsers (value) {
-    const pageSize = 1000
+    this.searchValueLeft = typeof value === 'undefined' ? '' : value
+
     const { data: { data } } = await this.loadUsersList({
-      pageSize,
-      pageOffset: 0,
+      pageSize: this.pageSize,
+      pageOffset: this.pageOffset,
       project: this.currentSelectedProject,
       name: value
     })
@@ -186,19 +224,39 @@ export default class GroupEditModal extends Vue {
     const remoteUsers = data.users
       .map(user => ({ key: user.username, value: user.username }))
 
+    const filterNotSelected = this.totalUsers.filter(item => !this.form.selectedUsers.includes(item.key))
+
     const selectedUsersNotInRemote = this.form.selectedUsers
       .map(sItem => ({key: sItem, value: sItem}))
       .filter(sItem => !remoteUsers.some(user => user.key === sItem.key))
 
-    this.totalSizes = [data.size]
+    const searchUserIsSelected = (typeof value !== 'undefined' && value) ? this.form.selectedUsers.filter(user => user.toLowerCase().indexOf(value.toString().toLowerCase()) >= 0) : [...this.totalUsers, ...remoteUsers].filter(user => this.form.selectedUsers.includes(user.key))
 
-    if (data.size > pageSize) {
-      this.isOverSizeTip = true
+    this.totalUsersSize = data.size
+
+    typeof value !== 'undefined' && value ? (this.totalSizes = [this.totalUsersSize - searchUserIsSelected.length]) : (this.totalSizes = [data.size - this.form.selectedUsers.length])
+
+    const users = [ ...filterNotSelected, ...remoteUsers, ...selectedUsersNotInRemote ]
+
+    this.autoLoadMoreData(users, value)
+
+    this.setModal({totalUsers: users})
+  }
+
+  // 判断是否自动加载更多的数据
+  autoLoadMoreData (users, value) {
+    this.clickLoadMore = false
+    const len = users.filter(user => this.form.selectedUsers.includes(user.key)).length
+    if (users.length - len < this.autoLoadLimit && this.isShowLoadMore) {
+      typeof value !== 'undefined' && !value.length ? this.loadMoreUsers() : this.loadMoreUsers(value)
+      return
     }
+  }
 
-    this.setModal({
-      totalUsers: [ ...selectedUsersNotInRemote, ...remoteUsers ]
-    })
+  loadMoreUsers (value) {
+    if (this.clickLoadMore) return
+    this.clickLoadMore = true
+    this.isShowLoadMore && (this.pageOffset += 1, this.fetchUsers(value))
   }
 }
 </script>
@@ -209,10 +267,11 @@ export default class GroupEditModal extends Vue {
   .el-transfer-panel {
     width: 250px;
   }
-  .users-over-size-tip {
+  .load-more-uers {
     color: @text-normal-color;
     font-size: @text-assist-size;
     text-align: center;
+    cursor: pointer;
   }
 }
 </style>
