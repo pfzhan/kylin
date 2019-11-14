@@ -18,7 +18,7 @@
         show-icon>
       </el-alert>
       <!-- 操作区 begin -->
-      <div class="clearfix ksd-mt-20">
+      <div class="clearfix ksd-mt-10">
         <el-input v-model="searchColumn" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('filter')"></el-input>
       </div>
       <!-- 操作区 end -->
