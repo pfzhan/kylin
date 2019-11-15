@@ -216,6 +216,16 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>5.3.6.Final</version>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -359,7 +369,7 @@
                                 </value>
                             </property>
                         </systemProperties>
-                        <argLine>-Xms1G -Xmx4G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current </argLine>
+                        <argLine>-Xms1G -Xmx4G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current</argLine>
                     </configuration>
                 </plugin>
 

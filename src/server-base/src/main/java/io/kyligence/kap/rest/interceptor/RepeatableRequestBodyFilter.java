@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
+import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
@@ -103,9 +104,29 @@ public class RepeatableRequestBodyFilter implements Filter {
         public ServletInputStream getInputStream() throws IOException {
             final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(body.getBytes());
             return new ServletInputStream() {
-                public int read() throws IOException {
-                    return byteArrayInputStream.read();
+
+                @Override
+                public boolean isFinished() {
+                    return isFinished;
                 }
+
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+
+                @Override
+                public void setReadListener(ReadListener readListener) {
+                }
+
+                private boolean isFinished;
+
+                public int read() throws IOException {
+                    int b = byteArrayInputStream.read();
+                    isFinished = b == -1;
+                    return b;
+                }
+
             };
         }
 

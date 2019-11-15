@@ -52,7 +52,7 @@ public class NConfigControllerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(nConfigController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
     }
 

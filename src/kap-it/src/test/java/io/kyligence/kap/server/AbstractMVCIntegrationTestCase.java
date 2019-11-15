@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.server;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -32,21 +31,26 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = IntegrationConfig.class)
 @WebAppConfiguration
+@EnableWebMvc
+@SpringBootTest
+@WithMockUser(username = "ADMIN", roles = "ADMIN")
+@AutoConfigureMockMvc
 @ActiveProfiles("testing")
 public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataTestCase {
 
@@ -55,6 +59,7 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
     @Autowired
     private WebApplicationContext wac;
 
+    @Autowired
     protected MockMvc mockMvc;
 
     @BeforeClass
@@ -62,17 +67,10 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
         staticCreateTestMetadata();
     }
 
-
     @Before
     public void setUp() {
         createTestMetadata();
 
-        mockMvc = MockMvcBuilders.webAppContextSetup(wac)
-                .apply(SecurityMockMvcConfigurers.springSecurity())
-                .defaultRequest(MockMvcRequestBuilders.get("/")
-                        .servletPath("/api")
-                        .with(SecurityMockMvcRequestPostProcessors.user("ADMIN").roles("ADMIN")))
-                .build();
     }
 
     @After

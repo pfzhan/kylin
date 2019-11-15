@@ -45,7 +45,7 @@ import lombok.val;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping(value = "/index_plans")
+@RequestMapping(value = "/api/index_plans")
 public class NIndexPlanController extends NBasicController {
 
     private static final String MODEL_ID = "modelId";

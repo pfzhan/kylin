@@ -78,7 +78,7 @@ public class AclTCRControllerTest {
     public void setup() throws IOException {
         MockitoAnnotations.initMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(aclTCRController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -78,7 +78,7 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/user")
+@RequestMapping(value = "/api/user")
 public class NUserController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NUserController.class);

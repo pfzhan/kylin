@@ -26,15 +26,13 @@ package io.kyligence.kap.rest.controller;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
-@RequestMapping(value = "/config")
-@Component("NConfigController")
+@RequestMapping(value = "/api/config")
 public class NConfigController extends NBasicController {
 
     @GetMapping(value = "/is_cloud", produces = { "application/vnd.apache.kylin-v2+json" })

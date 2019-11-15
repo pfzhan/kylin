@@ -23,18 +23,21 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NUserController;
+import java.io.IOException;
+
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NUserController;
 
 @Controller
+@RequestMapping("/api")
 public class NUserControllerV2 extends NBasicController {
 
     @Autowired

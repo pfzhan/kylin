@@ -235,7 +235,7 @@ public class HadoopUtil {
     public static ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException {
         IStorageProvider provider = (IStorageProvider) ClassUtil
                 .newInstance(KylinConfig.getInstanceFromEnv().getStorageProvider());
-        logger.debug("Use provider:{}", provider.getClass().getCanonicalName());
+        logger.trace("Use provider:{}", provider.getClass().getCanonicalName());
         return provider.getContentSummary(fileSystem, path);
     }
 }

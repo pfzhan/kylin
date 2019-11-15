@@ -63,7 +63,7 @@ import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 
 @Controller
-@RequestMapping(value = "/projects")
+@RequestMapping(value = "/api/projects")
 public class NProjectController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NProjectController.class);
 

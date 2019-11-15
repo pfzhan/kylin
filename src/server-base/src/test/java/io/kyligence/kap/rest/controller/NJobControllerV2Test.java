@@ -60,7 +60,7 @@ public class NJobControllerV2Test {
     public void setup() {
         MockitoAnnotations.initMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(nJobControllerV2)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }

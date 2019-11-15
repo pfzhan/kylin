@@ -62,7 +62,7 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 
 @Controller
-@RequestMapping(value = "/jobs")
+@RequestMapping(value = "/api/jobs")
 public class NJobController extends NBasicController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";

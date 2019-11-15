@@ -74,7 +74,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(nCubesControllerV2)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }

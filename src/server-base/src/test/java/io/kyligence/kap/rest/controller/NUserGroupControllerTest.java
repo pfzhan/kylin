@@ -102,7 +102,7 @@ public class NUserGroupControllerTest {
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
         mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController)
                 .setContentNegotiationManager(contentNegotiationManager)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 

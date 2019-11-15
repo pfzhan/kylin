@@ -42,7 +42,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.util.List;
 
 @Controller
-@RequestMapping(value = "/source")
+@RequestMapping(value = "/api/source")
 public class FileSourceController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileSourceController.class);

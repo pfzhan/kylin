@@ -84,7 +84,7 @@ import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/models")
+@RequestMapping(value = "/api/models")
 public class NModelController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
     private static final String MODEL_ID = "modelId";

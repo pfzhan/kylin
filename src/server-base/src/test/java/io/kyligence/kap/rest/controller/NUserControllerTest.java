@@ -136,7 +136,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(true).when(env).acceptsProfiles("testing");
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
         mockMvc = MockMvcBuilders.standaloneSetup(nUserController).setContentNegotiationManager(contentNegotiationManager)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
         List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);

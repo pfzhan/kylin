@@ -40,7 +40,7 @@ import io.kyligence.kap.rest.response.ExecutorMemoryResponse;
 import io.kyligence.kap.rest.response.ExecutorThreadInfoResponse;
 
 @Controller
-@RequestMapping(value = "/monitor")
+@RequestMapping(value = "/api/monitor")
 public class NMonitorController extends NBasicController {
 
     @RequestMapping(value = "/memoryInfos", method = { RequestMethod.GET }, produces = {

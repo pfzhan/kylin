@@ -50,7 +50,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping(value = "/access")
+@RequestMapping(value = "/api/access")
 public class NAccessControllerV2 extends NBasicController {
 
     @Autowired

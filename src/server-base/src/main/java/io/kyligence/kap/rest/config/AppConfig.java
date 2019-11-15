@@ -25,8 +25,10 @@ package io.kyligence.kap.rest.config;
 
 import java.net.MalformedURLException;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.web.ResourceProperties;
 import org.springframework.cache.ehcache.EhCacheCacheManager;
 import org.springframework.cache.ehcache.EhCacheManagerFactoryBean;
 import org.springframework.context.annotation.Bean;
@@ -34,11 +36,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.http.CacheControl;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
@@ -49,7 +52,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
-@EnableWebMvc
 public class AppConfig extends WebMvcConfigurerAdapter {
 
     @Bean
@@ -88,6 +90,9 @@ public class AppConfig extends WebMvcConfigurerAdapter {
     @Value("${kylin.cache.config}")
     private String cacheConfigLocation;
 
+    @Autowired(required = false)
+    ResourceProperties resourceProperties;
+
     @Bean
     @ConditionalOnMissingBean(ClusterManager.class)
     public ClusterManager clusterManager() {
@@ -104,4 +109,12 @@ public class AppConfig extends WebMvcConfigurerAdapter {
         configurer.favorPathExtension(false);
     }
 
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        if (resourceProperties == null) {
+            return;
+        }
+        registry.addResourceHandler("/index.html").addResourceLocations(resourceProperties.getStaticLocations())
+                .setCacheControl(CacheControl.noCache());
+    }
 }

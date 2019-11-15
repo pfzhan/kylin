@@ -50,7 +50,7 @@ import io.kyligence.kap.rest.service.KapQueryService;
  *
  */
 @RestController
-@RequestMapping(value = "/")
+@RequestMapping(value = "/api/")
 @Deprecated
 public class NQueryMetaController extends NBasicController {
 

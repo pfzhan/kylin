@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -43,7 +42,6 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,6 +63,7 @@ import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
@@ -77,8 +76,7 @@ import io.kyligence.kap.rest.service.TableService;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/tables")
-@Component("TableController")
+@RequestMapping(value = "/api/tables")
 public class NTableController extends NBasicController {
 
     private static final String TABLE = "table";

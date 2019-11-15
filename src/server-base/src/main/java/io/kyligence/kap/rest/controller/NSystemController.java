@@ -34,7 +34,6 @@ import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -51,8 +50,7 @@ import io.kyligence.kap.rest.service.SystemService;
 import lombok.val;
 
 @Controller
-@Component("nSystemController")
-@RequestMapping(value = "/system")
+@RequestMapping(value = "/api/system")
 public class NSystemController extends NBasicController {
 
     @Autowired

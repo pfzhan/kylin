@@ -59,7 +59,7 @@ import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 
 @RestController
-@RequestMapping(value = "/query/favorite_queries", produces = { "application/vnd.apache.kylin-v2+json" })
+@RequestMapping(value = "/api/query/favorite_queries", produces = { "application/vnd.apache.kylin-v2+json" })
 public class FavoriteQueryController extends NBasicController {
 
     @Autowired

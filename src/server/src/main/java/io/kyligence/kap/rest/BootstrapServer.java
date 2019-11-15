@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest;
 
-import org.apache.catalina.Context;
 import org.apache.catalina.connector.Connector;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.apache.curator.x.discovery.ServiceInstance;
@@ -70,16 +69,10 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
     @Bean
     public EmbeddedServletContainerFactory servletContainer() {
-        TomcatEmbeddedServletContainerFactory tomcatFactory = new TomcatEmbeddedServletContainerFactory() {
-            @Override
-            protected void postProcessContext(Context context) {
-                context.addWelcomeFile("index.html");
-            }
-        };
+        TomcatEmbeddedServletContainerFactory tomcatFactory = new TomcatEmbeddedServletContainerFactory();
 
         if (KylinConfig.getInstanceFromEnv().isServerHttpsEnabled())
             tomcatFactory.addAdditionalTomcatConnectors(createSslConnector());
-
         return tomcatFactory;
     }
 
@@ -91,7 +84,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
         connector.setScheme("https");
         connector.setSecure(true);
-        connector.setPort(Integer.valueOf(kylinConfig.getServerHttpsPort()));
+        connector.setPort(kylinConfig.getServerHttpsPort());
         protocol.setSSLEnabled(true);
         protocol.setKeystoreType(kylinConfig.getServerHttpsKeyType());
         protocol.setKeystoreFile(kylinConfig.getServerHttpsKeystore());

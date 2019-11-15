@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Controller
-@RequestMapping(value = "/admin")
+@RequestMapping(value = "/api/admin")
 public class NAdminController extends NBasicController {
 
     @RequestMapping(value = "/public_config", method = { RequestMethod.GET }, produces = {

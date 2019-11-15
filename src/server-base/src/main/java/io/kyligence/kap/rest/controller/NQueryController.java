@@ -94,7 +94,7 @@ import lombok.val;
  * @author xduo
  */
 @RestController
-@RequestMapping(value = "/query")
+@RequestMapping(value = "/api/query")
 public class NQueryController extends NBasicController {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NQueryController.class);

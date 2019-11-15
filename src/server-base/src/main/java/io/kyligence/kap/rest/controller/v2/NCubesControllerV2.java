@@ -59,7 +59,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(value = "/cubes")
+@RequestMapping(value = "/api/cubes")
 public class NCubesControllerV2 extends NBasicController {
 
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";

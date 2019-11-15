@@ -40,7 +40,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.IOException;
 
 @Controller
-@RequestMapping(value = "/jobs")
+@RequestMapping(value = "/api/jobs")
 public class NJobControllerV2 extends NBasicController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";

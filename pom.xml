@@ -95,7 +95,7 @@
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
         <cors.version>2.5</cors.version>
-        <tomcat.version>7.0.81</tomcat.version>
+        <tomcat.version>8.5.34</tomcat.version>
         <t-digest.version>3.1</t-digest.version>
         <jsonpath.version>2.3.0</jsonpath.version>
         <lombok.version>1.18.2</lombok.version>
@@ -173,7 +173,6 @@
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <parquet.version>1.12.0-kylin-r4</parquet.version>
-        <tomcat.version>7.0.82</tomcat.version>
         <jackson.version>2.6.5</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
         <quartz.version>2.1.1</quartz.version>
@@ -904,6 +903,12 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-jdbc</artifactId>
                 <version>${spring.boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>${spring.boot.version}</version>
+                <scope>test</scope>
             </dependency>
 
             <!-- health monitor -->

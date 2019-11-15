@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import scala.Tuple2;
 
 @Controller
-@RequestMapping(value = "/spark")
+@RequestMapping(value = "/api/spark")
 public class NSparkController extends NBasicController {
 
     private String msg = " not exists in Spark";

@@ -475,8 +475,8 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.valueOf(getOptional("kylin.server.https.enable", "false"));
     }
 
-    public String getServerHttpsPort() {
-        return getOptional("kylin.server.https.port", "7443");
+    public int getServerHttpsPort() {
+        return Integer.parseInt(getOptional("kylin.server.https.port", "7443"));
     }
 
     public String getServerHttpsKeyType() {

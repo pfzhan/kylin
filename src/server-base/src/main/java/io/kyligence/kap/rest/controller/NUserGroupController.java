@@ -59,7 +59,7 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/user_group")
+@RequestMapping(value = "/api/user_group")
 public class NUserGroupController extends NBasicController {
 
     @Autowired

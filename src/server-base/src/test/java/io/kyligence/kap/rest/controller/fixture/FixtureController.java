@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class FixtureController extends NBasicController {
 
-    @RequestMapping("/handleErrors")
+    @RequestMapping("/api/handleErrors")
     public EnvelopeResponse request() {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }

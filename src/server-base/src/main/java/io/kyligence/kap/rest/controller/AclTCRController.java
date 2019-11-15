@@ -55,7 +55,7 @@ import io.kyligence.kap.rest.response.AclTCRResponse;
 import io.kyligence.kap.rest.service.AclTCRService;
 
 @Controller
-@RequestMapping(value = "/acl/{project}", produces = { "application/vnd.apache.kylin-v2+json" })
+@RequestMapping(value = "/api/acl/{project}", produces = { "application/vnd.apache.kylin-v2+json" })
 public class AclTCRController extends NBasicController {
 
     @Autowired

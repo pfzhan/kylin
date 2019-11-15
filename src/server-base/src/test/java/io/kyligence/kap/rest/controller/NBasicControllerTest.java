@@ -57,7 +57,7 @@ public class NBasicControllerTest {
     @Before
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(fixtureController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new BadRequestException(StringUtils.EMPTY),

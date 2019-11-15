@@ -1,6 +1,5 @@
 server:
   port: 7070
-  servlet-path: "/api"
   context-path: "/kylin"
   tomcat:
     access-log-enabled: true
@@ -10,6 +9,10 @@ server:
     enabled: true
     min-response-size: 51200
     mime-types: "text/html,text/xml,text/javascript,application/javascript,application/json,text/css,text/plain,application/vnd.apache.kylin-v2+json;charset=UTF-8"
+
+management:
+  context-path: "/api"
+
 spring:
   http:
     multipart:
@@ -17,6 +20,10 @@ spring:
       max-request-size: "5MB"
   application:
     name: ${kylin.server.mode}
+  resources:
+    chain:
+      gzipped: true
+    cache-period: 86400
   cloud:
     zookeeper:
       connect-string: ${kylin.env.zookeeper-connect-string}

@@ -23,41 +23,42 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
-import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
-import io.kyligence.kap.rest.service.AsyncQueryService;
 import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
+import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
+import io.kyligence.kap.rest.response.AsyncQueryResponse;
+import io.kyligence.kap.rest.service.AsyncQueryService;
 
 @RestController
-@EnableAsync
+@RequestMapping(value = "/api")
 public class NAsyncQueryController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NAsyncQueryController.class);

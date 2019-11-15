@@ -65,7 +65,7 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         MockitoAnnotations.initMocks(this);
         ReflectionTestUtils.setField(nSystemController, "licenseInfoService", licenseInfoService);
         mockMvc = MockMvcBuilders.standaloneSetup(nSystemController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
+                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
 
     }
 

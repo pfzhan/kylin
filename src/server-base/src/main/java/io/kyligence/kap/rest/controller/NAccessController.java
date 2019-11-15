@@ -73,7 +73,7 @@ import io.kyligence.kap.rest.request.BatchAccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 
 @Controller
-@RequestMapping(value = "/access")
+@RequestMapping(value = "/api/access")
 public class NAccessController extends NBasicController {
 
     @Autowired
