@@ -31,7 +31,7 @@ import java.lang.management.MemoryUsage;
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.rest.config.initialize.ClusterInfoRunner;
+import io.kyligence.kap.rest.source.NHiveTableName;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -65,16 +65,16 @@ import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
-import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AclTCRListener;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
+import io.kyligence.kap.rest.config.initialize.ClusterInfoRunner;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
 import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
-import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.ehcache.CacheManager;
@@ -167,9 +167,10 @@ public class AppInitializer {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_ALL)) {
             taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
-            taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
-                    kylinConfig.getLoadHiveTablenameIntervals() * 1000);
-            taskScheduler.scheduleWithFixedDelay(clusterInfoRunner, 1000);
+            if (kylinConfig.getLoadHiveTablenameEnabled()) {
+                taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
+                        kylinConfig.getLoadHiveTablenameIntervals() * 1000);
+            }
         }
 
         String host = clusterManager.getLocalServer();
@@ -222,16 +223,18 @@ public class AppInitializer {
         NMetricsGroup.newHistogram(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, host);
 
         MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
-        NMetricsGroup.newGauge(NMetricsName.HEAP_MAX, NMetricsCategory.HOST, host, () -> mxBean.getHeapMemoryUsage().getMax());
-        NMetricsGroup.newGauge(NMetricsName.HEAP_USED, NMetricsCategory.HOST, host, () -> mxBean.getHeapMemoryUsage().getUsed());
+        NMetricsGroup.newGauge(NMetricsName.HEAP_MAX, NMetricsCategory.HOST, host,
+                () -> mxBean.getHeapMemoryUsage().getMax());
+        NMetricsGroup.newGauge(NMetricsName.HEAP_USED, NMetricsCategory.HOST, host,
+                () -> mxBean.getHeapMemoryUsage().getUsed());
         NMetricsGroup.newGauge(NMetricsName.HEAP_USAGE, NMetricsCategory.HOST, host, () -> {
             final MemoryUsage usage = mxBean.getHeapMemoryUsage();
             return RatioGauge.Ratio.of(usage.getUsed(), usage.getMax()).getValue();
         });
 
         NMetricsGroup.newMetricSet(NMetricsName.JVM_GC, NMetricsCategory.HOST, host, new GarbageCollectorMetricSet());
-        NMetricsGroup.newGauge(NMetricsName.JVM_AVAILABLE_CPU, NMetricsCategory.HOST, host, () ->
-                Runtime.getRuntime().availableProcessors());
+        NMetricsGroup.newGauge(NMetricsName.JVM_AVAILABLE_CPU, NMetricsCategory.HOST, host,
+                () -> Runtime.getRuntime().availableProcessors());
 
     }
 }

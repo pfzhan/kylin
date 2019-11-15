@@ -1685,7 +1685,8 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public Boolean isCalciteConvertMultipleColumnsIntoOrEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.query.calcite-convert-multiple-columns-in-to-or-enabled", "true"));
+        return Boolean
+                .parseBoolean(getOptional("kylin.query.calcite-convert-multiple-columns-in-to-or-enabled", "true"));
     }
 
     public Boolean isEnumerableRulesEnabled() {
@@ -1796,5 +1797,9 @@ abstract public class KylinConfigBase implements Serializable {
 
     public long getLoadHiveTablenameIntervals() {
         return Long.parseLong(getOptional("kap.table.load-hive-tablename-interval-seconds", "3600"));
+    }
+
+    public boolean getLoadHiveTablenameEnabled() {
+        return Boolean.parseBoolean(getOptional("kap.table.load-hive-tablename-enabled", "true"));
     }
 }
