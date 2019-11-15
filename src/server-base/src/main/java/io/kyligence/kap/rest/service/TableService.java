@@ -38,8 +38,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -155,10 +153,6 @@ public class TableService extends BasicService {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
-
-    private ExecutorService asyncExecutor = Executors.newCachedThreadPool();
-
-    private static final long TIME_OUT = 30 * 1000;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
