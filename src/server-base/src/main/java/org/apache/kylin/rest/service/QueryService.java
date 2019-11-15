@@ -1129,8 +1129,12 @@ public class QueryService extends BasicService {
                 if (!executionID.isEmpty()) {
                     // mater URL like this:
                     // http://host:8088/proxy/application_1571903613081_0047/SQL/execution/?id=0
-                    String id = SparderEnv.getSparkSession().sparkContext().applicationId();
-                    String trackingUrl = YarnInfoFetcherUtils.getTrackingUrl(id);
+                    String trackingUrl = SparderEnv.APP_MASTER_TRACK_URL();
+                    if (trackingUrl == null) {
+                        String id = SparderEnv.getSparkSession().sparkContext().applicationId();
+                        trackingUrl = YarnInfoFetcherUtils.getTrackingUrl(id);
+                        SparderEnv.setAPPMasterTrackURL(trackingUrl);
+                    }
                     String materURL = trackingUrl + "SQL/execution/?id=" + executionID;
                     response.setAppMasterURL(materURL);
                 }

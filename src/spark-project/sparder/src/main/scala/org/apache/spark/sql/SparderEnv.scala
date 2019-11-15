@@ -48,6 +48,9 @@ object SparderEnv extends Logging {
   @volatile
   private var initializingThread: Thread = null
 
+  @volatile
+  var APP_MASTER_TRACK_URL: String = null
+
   def getSparkSession: SparkSession = withClassLoad {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
@@ -59,6 +62,10 @@ object SparderEnv extends Logging {
   def setSparkSession(sparkSession: SparkSession): Unit = {
     spark = sparkSession
     UdfManager.create(sparkSession)
+  }
+
+  def setAPPMasterTrackURL(url: String): Unit = {
+    APP_MASTER_TRACK_URL = url
   }
 
   def isSparkAvailable: Boolean = {
@@ -142,6 +149,7 @@ object SparderEnv extends Logging {
                   .toString)
               registerListener(sparkSession.sparkContext)
               initMonitorEnv()
+              APP_MASTER_TRACK_URL = null
             } catch {
               case throwable: Throwable =>
                 logError("Error for initializing spark ", throwable)
