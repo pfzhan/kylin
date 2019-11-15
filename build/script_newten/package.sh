@@ -58,6 +58,21 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.7 release note
+
+**Enhancement**
+
+- Support ShardBy column in aggregate index, which could distribute data into multiple shards to improve query performance
+- Improve the information structure of aggregate index page and provide more details such as index source
+- Support to choose the time format of partition column
+- Improve the stability of editing aggregate index page when there are too many aggregate groups or combination of dimensions
+- Reduce some unnecessary outputs in console to avoid confusion while generating the diagnostic package.
+    > Note:  The diag.log will still contain the complete records.
+
+**Bugfix**
+
+- After deleting a project, metadata may not be cleaned up totally
+
 #### Kyligence Enterprise 4.0.6 release note
 
 **Feature**
