@@ -26,14 +26,14 @@
       <!-- list 区 begin -->
       <div class="ky-simple-table">
         <el-row class="table-header table-row ksd-mt-10">
-          <el-col style="width:750px">{{$t('dimension')}}</el-col>
-          <el-col style="width:90px">Shard by</el-col>
+          <el-col :span="21">{{$t('dimension')}}</el-col>
+          <el-col :span="3">Shard by</el-col>
         </el-row>
         <div class="table-content" v-scroll.observe.reactive @scroll-bottom="scrollLoad">
           <transition-group name="flip-list" tag="div">
             <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
-              <el-col style="width:750px" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
-              <el-col style="width:90px">
+              <el-col :span="21" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
+              <el-col :span="3">
                 <div class="action-list" @click="toggleColumnShard(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
                   <i class="el-icon-success" v-if="!col.isUsed" :class="{active: col.isShared}"></i>
                   <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
@@ -351,6 +351,9 @@ export default class AggregateModal extends Vue {
 <style lang="less">
 @import '../../../../../../assets/styles/variables.less';
 .aggAdvancedModal{
+  .el-dialog {
+    min-width: 700px;
+  }
   .flip-list-move {
     transition: transform .5s;
   }

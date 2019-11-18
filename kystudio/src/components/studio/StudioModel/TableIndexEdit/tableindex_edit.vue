@@ -12,17 +12,17 @@
         <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
        <div class="ky-simple-table">
           <el-row class="table-header table-row ksd-mt-10">
-            <el-col style="width:590px">{{$t('kylinLang.model.columnName')}}</el-col>
-            <el-col style="width:90px">{{$t('select')}}</el-col>
-            <el-col style="width:90px">{{$t('sort')}}</el-col>
-            <el-col style="width:70px">Shard</el-col>
+            <el-col :span="15">{{$t('kylinLang.model.columnName')}}</el-col>
+            <el-col :span="3">{{$t('select')}}</el-col>
+            <el-col :span="3">{{$t('sort')}}</el-col>
+            <el-col :span="3">Shard</el-col>
           </el-row>
           <div class="table-content"  v-scroll.observe.reactive @scroll-bottom="scrollLoad">
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
-                  <el-col style="width:590px" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
-                  <el-col style="width:90px" @click.native="toggleDisplay(col)"><i class="el-icon-success" :class="{active: col.isUsed}" ></i></el-col>
-                  <el-col style="width:90px">
+                  <el-col :span="15" :title="col.fullName" class="ksd-left">{{col.fullName}}</el-col>
+                  <el-col :span="3" @click.native="toggleDisplay(col)"><i class="el-icon-success" :class="{active: col.isUsed}" ></i></el-col>
+                  <el-col :span="3">
                     <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
                       <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
                       <span class="up-down" :class="{hide: searchColumn}">
@@ -31,7 +31,7 @@
                       </span>
                     </div>
                   </el-col>
-                  <el-col style="width:70px" @click.native="toggleShard(col)">
+                  <el-col :span="3" @click.native="toggleShard(col)">
                     <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
                   </el-col>
                 </el-row>
@@ -350,6 +350,9 @@
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .table-edit-dialog {
+    .el-dialog {
+      min-width: 600px;
+    }
     .flip-list-move {
       transition: transform .5s;
     }
@@ -357,7 +360,7 @@
       position:relative;
       .up-down {
         position: absolute;
-        right:-8px;
+        left: 61%;
         display: none;
         i {
           color:@base-color;
@@ -420,5 +423,5 @@
         height:32px;
       }
     }
-  } 
+  }
 </style>
