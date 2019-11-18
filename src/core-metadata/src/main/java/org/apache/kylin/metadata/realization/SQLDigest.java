@@ -42,6 +42,7 @@
 
 package org.apache.kylin.metadata.realization;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -115,6 +116,7 @@ public class SQLDigest {
         this.involvedMeasure = involvedMeasure;
 
         this.includeSubqueryJoinParticipants();
+        this.allColumns = Collections.unmodifiableSet(allColumns);
     }
 
     private boolean isRawQuery() {

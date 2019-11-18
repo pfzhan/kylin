@@ -174,20 +174,34 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         NDataflow dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
+        // case 1. raw-query answered by Lookup
         String sql = "select SITE_ID from EDW.TEST_SITES";
         OLAPContext context = prepareOlapContext(sql).get(0);
         Map<String, String> sqlAlias2ModelName = RealizationChooser.matchJoins(dataflow.getModel(), context);
         context.fixModel(dataflow.getModel(), sqlAlias2ModelName);
-
         val result = NDataflowCapabilityChecker.check(dataflow, context.getSQLDigest());
         Assert.assertNotNull(result);
         Assert.assertTrue(result.getSelectedCandidate() instanceof NLookupCandidate);
+        Assert.assertFalse(context.getSQLDigest().allColumns.isEmpty());
+        Assert.assertEquals(1, context.getSQLDigest().allColumns.size());
 
+        // case 2. aggregate-query answered by lookup
+        String sql1 = "select sum(SITE_ID) from EDW.TEST_SITES";
+        OLAPContext context1 = prepareOlapContext(sql1).get(0);
+        Map<String, String> sqlAlias2ModelName1 = RealizationChooser.matchJoins(dataflow.getModel(), context1);
+        context1.fixModel(dataflow.getModel(), sqlAlias2ModelName1);
+        val result1 = NDataflowCapabilityChecker.check(dataflow, context1.getSQLDigest());
+        Assert.assertNotNull(result1);
+        Assert.assertTrue(result1.getSelectedCandidate() instanceof NLookupCandidate);
+        Assert.assertFalse(context1.getSQLDigest().allColumns.isEmpty());
+        Assert.assertEquals(1, context1.getSQLDigest().allColumns.size());
+
+        // case 3. cannot answered when there are no ready segment
         removeAllSegment(dataflow);
         dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val result1 = NDataflowCapabilityChecker.check(dataflow, context.getSQLDigest());
-        Assert.assertFalse(result1.capable);
+        val result2 = NDataflowCapabilityChecker.check(dataflow, context.getSQLDigest());
+        Assert.assertFalse(result2.capable);
 
     }
 

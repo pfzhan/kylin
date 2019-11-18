@@ -101,7 +101,7 @@ public class NDataflowCapabilityChecker {
         //1. all aggregations on lookup table can be done
         Set<TblColRef> colsOfSnapShot = Sets
                 .newHashSet(dataflow.getModel().findFirstTable(digest.factTable).getColumns());
-        Collection<TblColRef> unmatchedCols = digest.allColumns;
+        Collection<TblColRef> unmatchedCols = Sets.newHashSet(digest.allColumns);
         if (!unmatchedCols.isEmpty()) {
             unmatchedCols.removeAll(colsOfSnapShot);
         }
