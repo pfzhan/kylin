@@ -104,7 +104,9 @@ export default class SourceSelect extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-new {
-  padding: 60px 154px;
+  padding: 60px 0;
+  margin: 0 auto;
+  width: 472px;
   ul {
     margin-bottom: 35px;
     &:last-child {
