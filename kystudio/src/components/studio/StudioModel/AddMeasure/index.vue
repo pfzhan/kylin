@@ -180,23 +180,6 @@ export default class AddMeasure extends Vue {
     convertedColumns: [],
     return_type: ''
   }
-  rules = {
-    name: [
-      { required: true, message: this.$t('requiredName'), trigger: 'blur' },
-      { validator: this.validateName, trigger: 'blur' }
-    ],
-    expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }],
-    'parameterValue.value': [
-      { required: true, message: this.$t('requiredParamValue'), trigger: 'change' },
-      { validator: this.checkColumn }
-    ],
-    convertedColValidate: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'blur, change' }]
-  }
-  ccRules = {
-    name: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
-    return_type: [{ required: true, message: this.$t('requiredreturn_type'), trigger: 'change' }],
-    expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
-  }
   ccObject = null
   corrCCObject = null
   isEdit = false
@@ -239,6 +222,27 @@ export default class AddMeasure extends Vue {
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
 
+  get rules () {
+    return {
+      name: [
+        { required: true, message: this.$t('requiredName'), trigger: 'blur' },
+        { validator: this.validateName, trigger: 'blur' }
+      ],
+      expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }],
+      'parameterValue.value': [
+        { required: true, message: this.$t('requiredParamValue'), trigger: 'change' },
+        { validator: this.checkColumn }
+      ],
+      convertedColValidate: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'blur, change' }]
+    }
+  }
+  get ccRules () {
+    return {
+      name: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
+      return_type: [{ required: true, message: this.$t('requiredreturn_type'), trigger: 'change' }],
+      expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
+    }
+  }
   validateName (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
