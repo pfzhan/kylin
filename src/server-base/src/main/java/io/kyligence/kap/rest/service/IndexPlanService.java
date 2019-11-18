@@ -190,7 +190,16 @@ public class IndexPlanService extends BasicService {
                 newCuboid.setDimensions(Lists.newArrayList(newLayout.getColOrder()));
                 newCuboid.setLayouts(Arrays.asList(newLayout));
                 newCuboid.setIndexPlan(copyForWrite);
-                copyForWrite.getIndexes().add(newCuboid);
+                IndexEntity lookForIndex = copyForWrite.getAllIndexesMap().get(newCuboid.createIndexIdentifier());
+                if (lookForIndex == null) {
+                    copyForWrite.getIndexes().add(newCuboid);
+                } else {
+                    IndexEntity realIndex = copyForWrite.getIndexes()
+                            .get(copyForWrite.getIndexes().indexOf(lookForIndex));
+                    newLayout.setId(realIndex.getId() + realIndex.getNextLayoutOffset());
+                    realIndex.setNextLayoutOffset((realIndex.getNextLayoutOffset() + 1) % IndexEntity.INDEX_ID_STEP);
+                    realIndex.getLayouts().add(newLayout);
+                }
             });
             cleanInEffectiveRecommendation(project, request.getModelId());
             if (request.isLoadData()) {
@@ -411,4 +420,5 @@ public class IndexPlanService extends BasicService {
         }
         return result;
     }
+
 }

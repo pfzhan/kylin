@@ -292,7 +292,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = indexPlanManager.getIndexPlan(modelId);
         val originLayoutSize = origin.getAllLayouts().size();
-        val response = indexPlanService.createTableIndex("default",
+        var response = indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
@@ -327,6 +327,22 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val newLayoutEvent = allEvents.get(0);
         Assert.assertTrue(newLayoutEvent instanceof AddCuboidEvent);
         Assert.assertTrue(clean.get());
+
+        int before = origin.getIndexes().size();
+        response = indexPlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).isLoadData(true)
+                        .layoutOverrideIndexes(new HashMap<String, String>() {
+                            {
+                                put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
+                            }
+                        }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
+        int after = origin.getIndexes().size();
+        Assert.assertTrue(before == after);
+
     }
 
     @Test
