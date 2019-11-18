@@ -22,7 +22,7 @@
           <div class="detail-content">
             <el-row :gutter="15" type="flex">
               <el-col :span="14" :style="{height: flexHeight}">
-                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" v-model="props.row.sql_text">
+                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" :isAbridge="true" v-model="props.row.sql_text">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -108,6 +108,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
 import $ from 'jquery'
 @Component({
+  name: 'QueryHistoryTable',
   props: ['queryHistoryData', 'queryNodes'],
   methods: {
     transToGmtTime: transToGmtTime,
@@ -157,6 +158,7 @@ export default class QueryHistoryTable extends Vue {
     }
     this.filterList()
   }
+
   expandChange () {
     this.flexHeight = 0
     this.$nextTick(() => {

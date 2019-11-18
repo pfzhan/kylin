@@ -1,6 +1,6 @@
 <template>
   <div class="model-sql ksd-mb-15">
-    <kap-editor ref="modelSql" :value="convertHiveSql"  height="390" lang="sql" theme="chrome" :readOnly="true" :dragable="false">
+    <kap-editor ref="modelSql" :value="convertHiveSql"  height="390" lang="sql" theme="chrome" :readOnly="true" :dragable="false" :isAbridge="true">
     </kap-editor>
   </div>
 </template>
@@ -10,6 +10,7 @@ import { Component } from 'vue-property-decorator'
 import { handleSuccess, handleError } from 'util/index'
 import { mapActions, mapGetters } from 'vuex'
 @Component({
+  name: 'ModelSql',
   props: ['model'],
   computed: {
     ...mapGetters([

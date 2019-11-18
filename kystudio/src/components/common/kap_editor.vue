@@ -1,6 +1,11 @@
 <template>
   <div class="smyles_editor_wrap" :style="editorStyle">
-    <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+    <template v-if="!isAbridge">
+      <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+    </template>
+    <template v-else>
+      <editor class="smyles_editor" v-model="formatData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+    </template>
     <div class="smyles_dragbar" v-if="dragable" v-drag:change.height="editorDragData"></div>
     <el-popover
       placement="top"
@@ -21,6 +26,8 @@
 <script>
 import $ from 'jquery'
 import sqlFormatter from 'sql-formatter'
+import { sqlRowsLimit } from '../../config/index'
+import { mapState } from 'vuex'
 export default {
   name: 'kapEditor',
   props: {
@@ -47,11 +54,16 @@ export default {
     },
     readOnly: {
       default: false
+    },
+    isAbridge: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
     return {
       editorData: this.isFormatter ? sqlFormatter.format(this.value) : this.value,
+      formatData: '',
       dragging: false,
       showCopyStatus: false,
       editorDragData: {
@@ -61,6 +73,9 @@ export default {
     }
   },
   computed: {
+    ...mapState({
+      systemLang: state => state.system.lang
+    }),
     editorStyle: function () {
       return {
         height: this.editorDragData.height ? this.editorDragData.height + 'px' : '100%',
@@ -93,6 +108,14 @@ export default {
     },
     onError () {
       this.$message(this.$t('kylinLang.common.copyfail'))
+    },
+    // 截取前100行sql
+    abridgeData () {
+      const data = this.editorData.split('\n')
+      this.formatData = data.length > sqlRowsLimit ? [...data.slice(0, sqlRowsLimit), `-- ${this.$t('kylinLang.common.sqlLimitTip')}`].join('\n') : this.editorData
+    },
+    getAbridgeType () {
+      this.isAbridge && this.abridgeData()
     }
   },
   mounted () {
@@ -140,6 +163,8 @@ export default {
         }
       })
     })
+    this.getAbridgeType()
+
     // this.$el.querySelector('.smyles_dragbar').onmousedown = (e) => {
     //   e.preventDefault()
     //   this.dragging = true
@@ -173,6 +198,7 @@ export default {
   watch: {
     value (val) {
       this.editorData = this.isFormatter ? sqlFormatter.format(val) : val
+      this.getAbridgeType()
     },
     readOnly (val) {
       if (this.$refs.kapEditor.editor) {
@@ -184,6 +210,9 @@ export default {
         var editor = this.$refs.kapEditor.editor
         editor.resize()
       }
+    },
+    systemLang () {
+      this.isAbridge && this.abridgeData()
     }
   }
 }

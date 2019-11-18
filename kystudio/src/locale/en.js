@@ -176,7 +176,8 @@ exports.default = {
     purge: 'Purge',
     reset: 'Reset',
     comma: ', ',
-    dot: '.'
+    dot: '.',
+    sqlLimitTip: 'Only the first 100 rows of SQL statements are displayed by default. Please click the copy button and paste to other text editors, if you need to view the complete queries.'
   },
   model: {
     generateModel: 'Custom SQL',

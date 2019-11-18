@@ -175,7 +175,8 @@ exports.default = {
     purge: '清空',
     reset: '重置',
     comma: '，',
-    dot: '。'
+    dot: '。',
+    sqlLimitTip: '当前默认仅展示前100行SQL语句，如需查看完整的查询语句，请点击右侧的复制按钮至其他文本工具中查看。'
   },
   model: {
     generateModel: 'SQL 建模',
