@@ -62,7 +62,8 @@ export default {
     brokenEditTip: 'Please adjust the condition of error join(s) or partition column.',
     noTableTip: '<p>Add Table: drag the table from the left source tree and drop it to the central zone.</p><p>Add Join: drag the column from one table and drop it on another table.</p>',
     noBrokenLink: 'No error join(s).',
-    canNotRepairBrokenTip: 'Sorry the broken model couldn\'t be recovered as its metadata has too many information lost. You can delete the model or contact support to get more information.'
+    canNotRepairBrokenTip: 'Sorry the broken model couldn\'t be recovered as its metadata has too many information lost. You can delete the model or contact support to get more information.',
+    searchColumn: 'Search column name'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -127,6 +128,7 @@ export default {
     delConnTitle: '删除连接关系',
     noTableTip: '<p>添加表：从左侧数据源模块将表拖入中间区域。</p><p>建立关联：从一张表拖拽列到另一张表上。</p>',
     noBrokenLink: '没有需要修改的错误连线关系。',
-    canNotRepairBrokenTip: '该模型丢失了太多的元数据信息，暂时无法进行恢复操作。您可以删除该模型或联系技术支持获取更多信息。'
+    canNotRepairBrokenTip: '该模型丢失了太多的元数据信息，暂时无法进行恢复操作。您可以删除该模型或联系技术支持获取更多信息。',
+    searchColumn: '搜索列名'
   }
 }

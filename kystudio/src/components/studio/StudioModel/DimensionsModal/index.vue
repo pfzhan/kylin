@@ -10,7 +10,9 @@
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
       <div class="ksd-mb-10 ksd-right">
-        <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar"></el-input>
+        <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
+          <i slot="prefix" class="el-input__icon el-icon-search"></i>
+        </el-input>
       </div>
       <div v-scroll.reactive v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
         <div class="add_dimensions" v-guide.batchAddDimensionBox>

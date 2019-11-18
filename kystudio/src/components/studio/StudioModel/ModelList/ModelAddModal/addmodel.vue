@@ -59,7 +59,7 @@ export default class ModelAddModal extends Vue {
     modelDesc: ''
   }
   rules = {
-    newName: [{ validator: this.checkName, trigger: 'blur' }]
+    newName: [{ required: true, validator: this.checkName, trigger: 'blur' }]
   }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {

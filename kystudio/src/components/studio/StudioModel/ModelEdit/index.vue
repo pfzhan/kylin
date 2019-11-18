@@ -13,7 +13,7 @@
           </common-tip>
           <span class="setting-icon" v-if="!isSchemaBrokenModel" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
-        <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="t.filterColumnChar" @input="t.filterColumns()" size="small"></el-input></div>
+        <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="t.filterColumnChar" @input="t.filterColumns()" size="small" :placeholder="$t('searchColumn')"></el-input></div>
         <div class="column-list-box ksd-drag-box" v-if="!t.drawSize.isOutOfView" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
           <ul>
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.showColumns" :key="col.name">

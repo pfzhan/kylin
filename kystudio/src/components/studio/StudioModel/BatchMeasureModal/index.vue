@@ -11,7 +11,9 @@
     <template v-if="isFormShow">
       <div class="batch-des">{{$t('batchMeasureDes')}}</div>
       <div class="ksd-mb-10 ksd-right">
-        <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar"></el-input>
+        <el-input :placeholder="$t('searchColumn')" style="width:230px;" @input="changeSearchVal" v-model="searchChar">
+          <i slot="prefix" class="el-input__icon el-icon-search"></i>
+        </el-input>
       </div>
       <div v-if="!searchChar">
         <!-- 事实表 -->
