@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog class="model-build" :title="$t('modelBuild')" limited-area width="560px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+    <el-dialog class="model-build" :title="$t('modelBuild')" width="560px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
           <!-- <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div> -->

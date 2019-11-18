@@ -3,7 +3,6 @@
     :title="$t(modalTitle)"
     :visible="isShow"
     @open="handleOpen"
-    limited-area
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     @close="() => handleClose()"
