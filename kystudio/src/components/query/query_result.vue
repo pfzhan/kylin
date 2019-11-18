@@ -61,6 +61,7 @@
   		<el-table
 		    :data="pagerTableData"
 		    border
+        ref="tableLayout"
 		    style="width: 100%;">
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
@@ -141,6 +142,7 @@ export default class queryResult extends Vue {
   resultFilter = ''
   tableData = []
   tableMeta = []
+  tableMetaBackup = []
   pagerTableData = []
   graphType = 'line'
   sql = ''
@@ -150,6 +152,8 @@ export default class queryResult extends Vue {
   pageSize = 10
   modelsTotal = this.extraoption.results.length
   timer = null
+  pageX = 0
+  pageSizeX = 6
   exportData () {
     // 区别于3x中，导出所需的参数，存在props 传进来的 queryExportData 这个对象中，不再一起放在 extraoption 中
     this.sql = this.queryExportData.sql
@@ -165,6 +169,8 @@ export default class queryResult extends Vue {
     for (var i = 0; i < lenOfMeta; i++) {
       this.tableMeta.push(columnMeata[i])
     }
+    this.tableMetaBackup = this.tableMeta
+    this.tableMeta = this.tableMetaBackup.slice(0, (this.pageX + 1) * this.pageSizeX)
     this.pageSizeChange(0)
   }
   toggleDetail () {
@@ -211,6 +217,11 @@ export default class queryResult extends Vue {
     }
     this.pagerTableData = Object.assign([], this.tableData)
   }
+  getMoreData () {
+    if (this.$refs.tableLayout.scrollPosition === 'right') {
+      this.tableMeta = this.tableMetaBackup.slice(0, (++this.pageX + 1) * this.pageSizeX)
+    }
+  }
   @Watch('resultFilter')
   onResultFilterChange (val) {
     clearTimeout(this.timer)
@@ -233,6 +244,12 @@ export default class queryResult extends Vue {
   }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
+  }
+  mounted () {
+    this.$refs.tableLayout.bodyWrapper.addEventListener('scroll', this.getMoreData)
+  }
+  beforeDestory () {
+    this.$refs.tableLayout.bodyWrapper.removeEventListener('scroll', this.getMoreData)
   }
 }
 </script>
