@@ -6,7 +6,7 @@
       </div>
       <div class="header-icons clearfix">
         <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
-          <i class="ksd-fs-14 el-icon-ksd-setting" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
+          <i :class="['ksd-fs-14', 'el-icon-ksd-setting', {selected: isSwitchSource}]" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
         </el-tooltip>
       </div>
     </section>
@@ -94,6 +94,7 @@ import TreeList from '../TreeList/index.vue'
 import locales from './locales'
 import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder, getDatabaseTablesObj } from './handler'
 import { handleSuccessAsync, handleError } from '../../../util'
+// import { types } from '../../studio/StudioModel/TableIndexEdit/store'
 
 @Component({
   props: {
@@ -214,6 +215,7 @@ export default class DataSourceBar extends Vue {
       width: [250]
     }
   }
+  dataSourceSelectedLabel = ''
   get showAddDatasourceBtn () {
     // 嵌套在lightning 中的4x，会有内置数据源的情况，只支持单数据源，这时候，不该放出添加数据源，所以只要判断datasources的length是否大于0 即可
     if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
@@ -432,6 +434,7 @@ export default class DataSourceBar extends Vue {
   handleClick (data, node) {
     if (this.clickableNodeTypes.includes(data.type)) {
       if (this.isShowSelected) {
+        this.isSwitchSource = false
         this.setSelectedTable(data)
       }
       this.$emit('click', data, node)
@@ -451,7 +454,26 @@ export default class DataSourceBar extends Vue {
   }
   handleSwitchSource () {
     this.isSwitchSource = !this.isSwitchSource
+    this.resetSourceTableSelect(this.isSwitchSource)
     this.$emit('show-source', this.isSwitchSource)
+  }
+  resetSourceTableSelect (type) {
+    if (type) {
+      for (let item of this.tableArray) {
+        if (item.isSelected) {
+          this.dataSourceSelectedLabel = item.label
+          item.isSelected = !item.isSelected
+          return
+        }
+      }
+    } else if (!type && this.dataSourceSelectedLabel) {
+      for (let item of this.tableArray) {
+        if (item.label === this.dataSourceSelectedLabel) {
+          item.isSelected = !item.isSelected
+          return
+        }
+      }
+    }
   }
   setSelectedTable (data) {
     for (const table of this.tableArray) {
@@ -585,6 +607,10 @@ export default class DataSourceBar extends Vue {
       color: @text-title-color;
       cursor: pointer;
       &:hover {
+        color: @base-color;
+      }
+      &.selected {
+        background-color: @base-color-9;
         color: @base-color;
       }
     }
