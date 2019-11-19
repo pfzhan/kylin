@@ -634,9 +634,6 @@ export default class AggregateModal extends Vue {
     if (!this.isFormVaild) {
       this.$message(this.$t('includesEmpty'))
       return false
-    } else if (this.usedDimensions.length >= 62) {
-      this.$message(this.$t('tooManyDimensions'))
-      return false
     }
     return this.isFormVaild
   }
