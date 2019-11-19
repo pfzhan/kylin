@@ -230,6 +230,17 @@ object ExpressionConverter {
               throw new UnsupportedOperationException(
                 s"to_timestamp must provide one or two parameters under sparder")
             }
+          case "unix_timestamp" =>
+            if (children.length == 0) {
+              unix_timestamp
+            } else if (children.length == 1) {
+              unix_timestamp(k_lit(children.head))
+            } else if (children.length == 2) {
+              unix_timestamp(k_lit(children.head), k_lit(children.apply(1)).toString())
+            } else {
+              throw new UnsupportedOperationException(
+                s"unix_timestamp only supports two or fewer parameters")
+            }
           case "to_date" =>
             if (children.length == 1) {
               to_date(k_lit(children.head))
