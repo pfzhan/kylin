@@ -357,7 +357,10 @@ exports.default = {
     failed: '无法加速',
     pending: '缺失对象',
     unAcce1: '未加速',
-    unAcce: '尚未加速，点击成为加速查询'
+    unAcce: '尚未加速，点击成为加速查询',
+    query_status: '查询状态',
+    SUCCEEDED: '成功',
+    FAILED: '失败'
   },
   job: {
   },

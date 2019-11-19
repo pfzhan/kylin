@@ -77,12 +77,14 @@ export default class QueryHistory extends Vue {
     latencyTo: null,
     realization: [],
     accelerateStatus: [],
-    sql: ''
+    sql: '',
+    query_status: []
   }
   model = {
     uuid: ''
   }
   queryNodes = []
+  pageSize = 10
   async openIndexDialog (modelId, layoutId) {
     this.model.uuid = modelId
     if (layoutId) {
@@ -92,10 +94,10 @@ export default class QueryHistory extends Vue {
       this.aggDetailVisible = true
     }
   }
-  async loadHistoryList (pageIndex, pageSize) {
+  async loadHistoryList (pageIndex) {
     const resData = {
       project: this.currentSelectedProject || null,
-      limit: pageSize || 10,
+      limit: this.pageSize || 10,
       offset: pageIndex || 0,
       startTimeFrom: this.filterData.startTimeFrom,
       startTimeTo: this.filterData.startTimeTo,
@@ -103,7 +105,8 @@ export default class QueryHistory extends Vue {
       latencyTo: this.filterData.latencyTo,
       realization: this.filterData.realization,
       server: this.filterData.server,
-      sql: this.filterData.sql
+      sql: this.filterData.sql,
+      queryStatusList: this.filterData.query_status
     }
     const res = await this.getHistoryList(resData)
     const data = await handleSuccessAsync(res)
@@ -119,8 +122,9 @@ export default class QueryHistory extends Vue {
     this.queryNodes = await handleSuccessAsync(res)
   }
   pageCurrentChange (offset, pageSize) {
+    this.pageSize = pageSize
     this.queryCurrentPage = offset + 1
-    this.loadHistoryList(offset, pageSize)
+    this.loadHistoryList(offset)
   }
 }
 </script>

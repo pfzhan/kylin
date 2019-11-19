@@ -86,7 +86,7 @@ export default {
     return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(para)
   },
   getHistoryList: (para) => {
-    return Vue.resource(apiUrl + 'query/history_queries{?realization}').get(para)
+    return Vue.resource(apiUrl + 'query/history_queries{?realization}{&queryStatusList}').get(para)
   },
   loadOnlineQueryNodes: () => {
     return Vue.resource(apiUrl + 'query/servers').get()

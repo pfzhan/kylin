@@ -360,7 +360,10 @@ exports.default = {
     failed: 'Failed',
     pending: 'Pending',
     unAcce1: 'Not accelerated',
-    unAcce: 'Not accelerated yet, click to mark it as favorite query'
+    unAcce: 'Not accelerated yet, click to mark it as favorite query',
+    query_status: 'Query Status',
+    SUCCEEDED: 'Succeeded',
+    FAILED: 'Failed'
   },
   job: {
   },

@@ -75,7 +75,7 @@
         <template slot-scope="props">
           <span v-if="props.row.duration < 1000 && props.row.query_status === 'SUCCEEDED'">&lt; 1s</span>
           <span v-if="props.row.duration >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.duration / 1000 | fixed(2)}}s</span>
-          <span v-if="props.row.query_status === 'FAILED'">Failed</span>
+          <!-- <span v-if="props.row.query_status === 'FAILED'">Failed</span> -->
         </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_text" show-overflow-tooltip>
@@ -90,6 +90,11 @@
               <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
             </template>
           </div>
+        </template>
+      </el-table-column>
+      <el-table-column :renderHeader="renderColumnStatus" show-overflow-tooltip prop="query_status" width="130">
+        <template slot-scope="scope">
+          {{$t('kylinLang.query.' + scope.row.query_status)}}
         </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn4" show-overflow-tooltip prop="server" width="145">
@@ -141,7 +146,8 @@ export default class QueryHistoryTable extends Vue {
     latencyTo: null,
     realization: [],
     server: null,
-    sql: null
+    sql: null,
+    query_status: []
   }
   timer = null
   showCopyStatus = false
@@ -392,6 +398,25 @@ export default class QueryHistoryTable extends Vue {
           {items}
         </el-checkbox-group>
         <i class={this.filterData.realization.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+      </el-popover>
+    </span>)
+  }
+  renderColumnStatus (h) {
+    let statusList = ['SUCCEEDED', 'FAILED']
+    let items = []
+    for (let i = 0; i < statusList.length; i++) {
+      items.push(<el-checkbox label={statusList[i]} key={statusList[i]}>{this.$t('kylinLang.query.' + statusList[i])}</el-checkbox>)
+    }
+    return (<span>
+      <span>{this.$t('kylinLang.query.query_status')}</span>
+      <el-popover
+        ref="statusFilterPopover"
+        placement="bottom"
+        popperClass="history-filter">
+        <el-checkbox-group class="filter-groups" value={this.filterData.query_status} onInput={val => (this.filterData.query_status = val)} onChange={this.filterList}>
+          {items}
+        </el-checkbox-group>
+        <i class={this.filterData.query_status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
       </el-popover>
     </span>)
   }
