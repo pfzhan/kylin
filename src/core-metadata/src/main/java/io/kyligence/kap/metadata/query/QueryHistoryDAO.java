@@ -223,7 +223,7 @@ public class QueryHistoryDAO {
     String getQueryHistoryFilterSql(QueryHistoryRequest request) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("WHERE 1 = 1 ");
+        sb.append("WHERE (1 = 1) ");
 
         if (StringUtils.isNotEmpty(request.getStartTimeFrom()) && StringUtils.isNotEmpty(request.getStartTimeTo())) {
             // filter by time
@@ -235,6 +235,7 @@ public class QueryHistoryDAO {
             // filter by duration
             sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" <= %d) ",
                     Long.valueOf(request.getLatencyFrom()) * 1000L, Long.valueOf(request.getLatencyTo()) * 1000L));
+            sb.append("AND (query_status = 'SUCCEEDED') ");
         }
 
         if (StringUtils.isNotEmpty(request.getServer())) {
@@ -266,6 +267,15 @@ public class QueryHistoryDAO {
                 }
             }
 
+            sb.setLength(sb.length() - 4);
+            sb.append(") ");
+        }
+
+        if (request.getQueryStatusList() != null && !request.getQueryStatusList().isEmpty()) {
+            sb.append("AND (");
+            for (String status : request.getQueryStatusList()) {
+                sb.append(String.format("query_status = '%s' OR ", status));
+            }
             sb.setLength(sb.length() - 4);
             sb.append(") ");
         }

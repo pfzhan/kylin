@@ -42,12 +42,15 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryRequest;
-import io.kyligence.kap.rest.service.KapQueryService;
-import io.kyligence.kap.rest.service.QueryHistoryService;
+import static org.hamcrest.CoreMatchers.containsString;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -57,9 +60,9 @@ import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
 import org.apache.kylin.rest.service.QueryService;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -73,12 +76,13 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.rest.service.KapQueryService;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 
 /**
  * @author xduo
@@ -171,7 +175,8 @@ public class NQueryControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.content().string(containsString("Query name should only contain alphanumerics and underscores.")));
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(containsString("Query name should only contain alphanumerics and underscores.")));
 
         Mockito.verify(nQueryController).saveQuery(Mockito.any(SaveSqlRequest.class));
     }
@@ -318,13 +323,16 @@ public class NQueryControllerTest {
         request.setStartTimeTo("1000");
         request.setLatencyFrom("0");
         request.setLatencyTo("10");
+        request.setQueryStatusList(Arrays.asList("FAILED"));
         HashMap<String, Object> data = Maps.newHashMap();
         data.put("query_histories", mockedQueryHistories());
         data.put("size", 6);
         Mockito.when(queryHistoryService.getQueryHistories(request, 3, 2)).thenReturn(data);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("startTimeFrom", "0").param("startTimeTo", "1000")
-                .param("latencyFrom", "0").param("latencyTo", "10").param("offset", "2").param("limit", "3")
+                .param("latencyFrom", "0").param("latencyTo", "10").param("queryStatusList", "FAILED")
+                .param("offset", "2").param("limit", "3")
+
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6))
@@ -334,12 +342,13 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].sql_text").value("sql3"));
 
         Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(),
-                request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(), null, null, null, 2, 3);
+                request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(),
+                request.getQueryStatusList(), null, null, null, 2, 3);
 
         // check args
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("startTimeFrom", "0")
-                .param("latencyFrom", "0").param("latencyTo", "10").param("offset", "2").param("limit", "3")
+                .param("project", PROJECT).param("startTimeFrom", "0").param("latencyFrom", "0")
+                .param("latencyTo", "10").param("queryStatusList", "FAILED").param("offset", "2").param("limit", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().is(500));
 

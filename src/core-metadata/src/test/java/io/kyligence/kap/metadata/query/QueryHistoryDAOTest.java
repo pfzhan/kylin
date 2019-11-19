@@ -44,6 +44,7 @@ package io.kyligence.kap.metadata.query;
 
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -90,7 +91,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         realizationMeasurement = queryHistoryDAO.getRealizationMetricMeasurement();
 
         Assert.assertEquals("_examples_test_metadata_metadata_default_query_history", queryMeasurement);
-        Assert.assertEquals("_examples_test_metadata_metadata_default_query_history_realization", realizationMeasurement);
+        Assert.assertEquals("_examples_test_metadata_metadata_default_query_history_realization",
+                realizationMeasurement);
     }
 
     @After
@@ -103,7 +105,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
 
         final String testSql = String.format("select * from %s", queryMeasurement);
-        List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class, queryMeasurement);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class,
+                queryMeasurement);
         Assert.assertEquals(2, queryHistories.size());
         QueryHistory queryHistory1 = queryHistories.get(0);
         QueryHistory queryHistory2 = queryHistories.get(1);
@@ -146,7 +149,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     public void testDatabaseNotExist() {
         QueryHistoryDAO.influxDB = mockInfluxDB(SHOW_DATABASES_NOT_EXIST);
         final String testSql = String.format("select * from %s", queryMeasurement);
-        List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class, queryMeasurement);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class,
+                queryMeasurement);
         Assert.assertEquals(0, queryHistories.size());
     }
 
@@ -193,8 +197,11 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         String getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         String getTotalSizeSql = queryHistoryDAO.getQueryHistoriesSizeSql(filterSql);
 
-        String expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement, limit, offset * limit);
-        String expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 ", queryMeasurement);
+        String expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement, limit,
+                offset * limit);
+        String expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE (1 = 1) ",
+                queryMeasurement);
 
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
         Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
@@ -203,7 +210,9 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (server = 'localhost:7070') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement, limit, offset * limit);
+        expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (server = 'localhost:7070') ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, limit, offset * limit);
 
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
 
@@ -216,9 +225,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         String querySql = "select * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='/'";
         String querySqlEscaped = "(?i)\\Qselect * from test_table where (test_table.test_column1='?' OR test_table.test_column1='.') AND test_table.test_column2!='\\/'\\E";
         request.setSql(querySql);
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
-                queryMeasurement, querySqlEscaped, limit, offset*limit);
+        expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, querySqlEscaped, limit, offset * limit);
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
@@ -227,9 +237,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         querySql = "aa5531ab-128e-4617-b88b-1cedb6d065ea";
         querySqlEscaped = "(?i)\\Qaa5531ab-128e-4617-b88b-1cedb6d065ea\\E";
         request.setSql(querySql);
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/ OR query_id = '%s') ORDER BY time DESC LIMIT %d OFFSET %d",
-                queryMeasurement, querySqlEscaped, querySql, limit, offset*limit);
+        expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/ OR query_id = '%s') ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, querySqlEscaped, querySql, limit, offset * limit);
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
@@ -238,11 +249,14 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         querySql = "select * from test_table";
         querySqlEscaped = "(?i)\\Qselect * from test_table\\E";
         request.setSql(querySql);
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
-                queryMeasurement, querySqlEscaped, limit, offset*limit);
-        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ", queryMeasurement, querySqlEscaped);
+        expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, querySqlEscaped, limit, offset * limit);
+        expectedGetTotalSizeSql = String.format(
+                "SELECT count(query_id) FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) ",
+                queryMeasurement, querySqlEscaped);
 
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
@@ -253,11 +267,14 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
         // when there is a condition that filters answered by
         request.setRealizations(Lists.newArrayList("pushdown", "modelName"));
-        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
-                querySqlEscaped, limit, offset*limit);
-        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE 1 = 1 AND (query_time >= 0 AND query_time < 1) " +
-                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (server = 'localhost:7070') AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') ", queryMeasurement,
+        expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, querySqlEscaped, limit, offset * limit);
+        expectedGetTotalSizeSql = String.format(
+                "SELECT count(query_id) FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') ",
+                queryMeasurement,
 
                 querySqlEscaped);
 
@@ -265,6 +282,23 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         getTotalSizeSql = queryHistoryDAO.getQueryHistoriesSizeSql(filterSql);
 
+        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
+        Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
+
+        expectedQueryHistoriesSql = String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') AND (query_status = 'FAILED') ORDER BY time DESC LIMIT %d OFFSET %d",
+                queryMeasurement, querySqlEscaped, limit, offset * limit);
+        expectedGetTotalSizeSql = String.format(
+                "SELECT count(query_id) FROM %s WHERE (1 = 1) AND (query_time >= 0 AND query_time < 1) "
+                        + "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND (query_status = 'SUCCEEDED') AND (server = 'localhost:7070') AND (sql_text =~ /%s/) AND (index_hit = 'false' OR index_hit = 'true') AND (query_status = 'FAILED') ",
+                queryMeasurement,
+
+                querySqlEscaped);
+        request.setQueryStatusList(Arrays.asList("FAILED"));
+        filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
+        getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
+        getTotalSizeSql = queryHistoryDAO.getQueryHistoriesSizeSql(filterSql);
         Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
         Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
     }
@@ -376,7 +410,6 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
                 final Request request = chain.request();
                 final URL url = request.url().url();
 
-
                 if (url.toString().contains("SHOW+DATABASES")) {
                     return mockResponse(request, SHOW_DATABASES);
                 }
@@ -399,14 +432,15 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",", queryMeasurement));
         // columns
-        sb.append(String.format("\"columns\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"],",
-                QueryHistory.SQL_TEXT, QueryHistory.SQL_PATTERN, QueryHistory.QUERY_SERVER, QueryHistory.SUBMITTER, QueryHistory.REALIZATIONS));
+        sb.append(String.format("\"columns\":[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"],", QueryHistory.SQL_TEXT,
+                QueryHistory.SQL_PATTERN, QueryHistory.QUERY_SERVER, QueryHistory.SUBMITTER,
+                QueryHistory.REALIZATIONS));
         // row 1
-        sb.append(String.format("\"values\":[[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"],",
-                mockedSql1, mockedSqlPattern1, mockedHostname, mockedSubmitter, mockedAnsweredBy));
+        sb.append(String.format("\"values\":[[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"],", mockedSql1, mockedSqlPattern1,
+                mockedHostname, mockedSubmitter, mockedAnsweredBy));
         // row 2
-        sb.append(String.format("[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]]}]}]}",
-                mockedSql2, mockedSqlPattern2, mockedHostname, mockedSubmitter, mockedAnsweredBy));
+        sb.append(String.format("[\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"]]}]}]}", mockedSql2, mockedSqlPattern2,
+                mockedHostname, mockedSubmitter, mockedAnsweredBy));
 
         return sb.toString();
     }
@@ -433,7 +467,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     private String getQueryCountByModelResult() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"model\":\"model1\"}, ", realizationMeasurement));
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"model\":\"model1\"}, ",
+                realizationMeasurement));
         // column
         sb.append("\"columns\":[\"count\"],");
         // row
@@ -453,7 +488,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     private String getAvgDurationByModelResult() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"model\":\"model1\"}, ", realizationMeasurement));
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"model\":\"model1\"}, ",
+                realizationMeasurement));
         // column
         sb.append("\"columns\":[\"mean\"],");
         // row
@@ -479,9 +515,9 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     }
 
     private String getQueryStatisticsByEngineResult() {
-        return String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"engine_type\":\"RDBMS\"}," +
-                "\"columns\":[\"time\",\"count\",\"mean\"]," +
-                "\"values\":[[\"1970-01-01T00:00:00Z\",7.0,1108.7142857142858]]}]," +
-                "\"error\":null}],\"error\":null}\n", queryMeasurement);
+        return String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"engine_type\":\"RDBMS\"},"
+                + "\"columns\":[\"time\",\"count\",\"mean\"],"
+                + "\"values\":[[\"1970-01-01T00:00:00Z\",7.0,1108.7142857142858]]}],"
+                + "\"error\":null}],\"error\":null}\n", queryMeasurement);
     }
 }

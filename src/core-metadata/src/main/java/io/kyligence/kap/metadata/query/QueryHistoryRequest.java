@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -47,6 +47,7 @@ public class QueryHistoryRequest {
     private String latencyTo;
     private String sql;
     private String server;
+    private List<String> queryStatusList;
 
     List<String> realizations;
 
