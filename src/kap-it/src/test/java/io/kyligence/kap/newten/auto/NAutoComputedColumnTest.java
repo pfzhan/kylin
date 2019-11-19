@@ -499,7 +499,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
         Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName)
-                .anyMatch("TEST_KYLIN_FACT_CC_AUTO_1"::equals));
+                .anyMatch("TEST_KYLIN_FACT_0_DOT_0_CC_AUTO_1"::equals));
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
@@ -533,7 +533,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
         Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName)
-                .anyMatch("TEST_KYLIN_FACT_CC_AUTO_1"::equals));
+                .anyMatch("TEST_KYLIN_FACT_0_DOT_0_CC_AUTO_1"::equals));
         Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());

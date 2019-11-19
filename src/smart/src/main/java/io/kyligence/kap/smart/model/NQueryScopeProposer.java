@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
+import static io.kyligence.kap.engine.spark.job.NSparkCubingUtil.SEPARATOR;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +101,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         scopeBuilder.build();
     }
 
-    private class ScopeBuilder {
+    protected class ScopeBuilder {
 
         // column_identity <====> NamedColumn
         Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newLinkedHashMap();
@@ -114,7 +116,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private NDataModel dataModel;
 
-        private ScopeBuilder(NDataModel dataModel) {
+        protected ScopeBuilder(NDataModel dataModel) {
             this.dataModel = dataModel;
 
             // Inherit from old model
@@ -127,7 +129,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             List<NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
             for (NamedColumn column : allNamedColumns) {
                 // Forward compatibility, ensure col name is unique
-                column.setName(column.getAliasDotColumn().replaceAll("\\.", "_"));
+                column.setName(column.getAliasDotColumn().replaceAll("\\.", SEPARATOR));
                 maxColId = Math.max(maxColId, column.getId());
                 candidateNamedColumns.put(column.getAliasDotColumn(), column);
             }
@@ -263,9 +265,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                             || dimensionAsMeasureColumns.contains(tblColRef));
         }
 
-        private NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {
+        protected NamedColumn transferToNamedColumn(TblColRef colRef, ColumnStatus status) {
             NamedColumn col = new NamedColumn();
-            col.setName(colRef.getIdentity().replaceAll("\\.", "_"));
+            col.setName(colRef.getIdentity().replaceAll("\\.", SEPARATOR));
             col.setAliasDotColumn(colRef.getIdentity());
             col.setId(++maxColId);
             col.setStatus(status);

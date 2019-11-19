@@ -554,9 +554,9 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         NDataModel model1 = contexts.get(0).getTargetModel();
         List<NDataModel.NamedColumn> dimensionList1 = model1.getAllNamedColumns().stream()
                 .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
-        Assert.assertEquals("TEST_CAL_DT_CAL_DT", dimensionList1.get(0).getName());
+        Assert.assertEquals("TEST_CAL_DT_0_DOT_0_CAL_DT", dimensionList1.get(0).getName());
         Assert.assertEquals("TEST_CAL_DT.CAL_DT", dimensionList1.get(0).getAliasDotColumn());
-        Assert.assertEquals("TEST_KYLIN_FACT_CAL_DT", dimensionList1.get(1).getName());
+        Assert.assertEquals("TEST_KYLIN_FACT_0_DOT_0_CAL_DT", dimensionList1.get(1).getName());
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", dimensionList1.get(1).getAliasDotColumn());
         List<NDataModel.Measure> measureList1 = model1.getAllMeasures();
         Assert.assertEquals("COUNT_ALL", measureList1.get(0).getName());
@@ -565,9 +565,9 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         NDataModel model2 = contexts.get(1).getTargetModel();
         List<NDataModel.NamedColumn> dimensionList2 = model2.getAllNamedColumns().stream()
                 .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
-        Assert.assertEquals("TEST_ACCOUNT_ACCOUNT_ID", dimensionList2.get(0).getName());
+        Assert.assertEquals("TEST_ACCOUNT_0_DOT_0_ACCOUNT_ID", dimensionList2.get(0).getName());
         Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID", dimensionList2.get(0).getAliasDotColumn());
-        Assert.assertEquals("TEST_ACCOUNT1_ACCOUNT_ID", dimensionList2.get(1).getName());
+        Assert.assertEquals("TEST_ACCOUNT1_0_DOT_0_ACCOUNT_ID", dimensionList2.get(1).getName());
         Assert.assertEquals("TEST_ACCOUNT1.ACCOUNT_ID", dimensionList2.get(1).getAliasDotColumn());
         List<NDataModel.Measure> measureList2 = model2.getAllMeasures();
         Assert.assertEquals("COUNT_ALL", measureList2.get(0).getName());
