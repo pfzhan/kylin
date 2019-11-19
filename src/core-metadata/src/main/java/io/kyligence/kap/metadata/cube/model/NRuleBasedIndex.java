@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -119,7 +120,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     private ImmutableSet<NDataModel.Measure> measureSet = null;
     private Map<Integer, Integer> dim2bitIndex;//dim id -> bit index in rowkey, same as in org.apache.kylin.cube.model.CubeDesc.getColumnByBitIndex()
     @Getter
-    private long fullMask = 0L;
+    private BigInteger fullMask = BigInteger.ZERO;
     private NCuboidScheduler cuboidScheduler = null;
 
     public void init() {
@@ -148,7 +149,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         }
 
         for (int i = 0; i < dimensions.size(); i++) {
-            fullMask |= 1L << i;
+            fullMask = fullMask.setBit(i);
         }
 
         for (NAggregationGroup nAggregationGroup : aggregationGroups) {
@@ -268,7 +269,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
 
     void genCuboidLayouts(Set<LayoutEntity> result) {
         NCuboidScheduler initialCuboidScheduler = getInitialCuboidScheduler();
-        List<Long> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
+        List<BigInteger> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
         Map<LayoutEntity, Long> layoutIdMap = Maps.newHashMap();
         for (LayoutEntity layout : result) {
             layoutIdMap.put(layout, layout.getId());
@@ -284,7 +285,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         val measures = getMeasuresBitSet().mutable();
         //convert all legacy cuboids generated from rules to LayoutEntity
         for (int i = 0; i < allCuboidIds.size(); i++) {
-            long cuboidId = allCuboidIds.get(i);
+            BigInteger cuboidId = allCuboidIds.get(i);
 
             //mock a LayoutEntity for one legacy cuboid
             val layout = new LayoutEntity();
@@ -346,9 +347,9 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         result.removeIf(layout -> layoutBlackList.contains(layout.getId()));
     }
 
-    private List<Integer> tailor(List<Integer> complete, long cuboidId) {
+    private List<Integer> tailor(List<Integer> complete, BigInteger cuboidId) {
 
-        int bitCount = Long.bitCount(cuboidId);
+        int bitCount = cuboidId.bitCount();
 
         Integer[] ret = new Integer[bitCount];
 
@@ -356,7 +357,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         int size = complete.size();
         for (int i = 0; i < size; i++) {
             int shift = size - i - 1;
-            if ((cuboidId & (1L << shift)) != 0) {
+            if ((cuboidId.testBit(shift))) {
                 ret[next++] = complete.get(i);
             }
         }

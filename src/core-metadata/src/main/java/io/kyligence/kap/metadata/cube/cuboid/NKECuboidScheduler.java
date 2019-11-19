@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -39,51 +39,36 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.model.TooManyCuboidException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 
-public class NKapCuboidScheduler243 extends NCuboidScheduler {
+public class NKECuboidScheduler extends NCuboidScheduler {
 
     // smaller is better
-    public final static Comparator<Long> cuboidSelectComparator = new Comparator<Long>() {
-        @Override
-        public int compare(Long o1, Long o2) {
-            return ComparisonChain.start().compare(Long.bitCount(o1), Long.bitCount(o2)).compare(o1, o2).result();
-        }
-    };
+    final static Comparator<BigInteger> cuboidSelectComparator = (o1, o2) -> ComparisonChain.start()
+            .compare(o1.bitCount(), o2.bitCount()).compare(o1, o2).result();
 
-    private final long max;
-    private final Set<Long> allCuboidIds;
-    private final Map<Long, List<Long>> parent2child;
+    private final BigInteger max;
+    private final Set<BigInteger> allCuboidIds;
 
-    public NKapCuboidScheduler243(IndexPlan indexPlan) {
-        this(indexPlan, null);
-
-    }
-
-    public NKapCuboidScheduler243(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
+    NKECuboidScheduler(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
         super(indexPlan, ruleBasedAggIndex);
 
         this.max = ruleBasedAggIndex.getFullMask();
 
         // handle nRuleBasedCuboidDesc has 0 dimensions
-        if (max == 0) {
+        if (max.bitCount() == 0) {
             allCuboidIds = Sets.newHashSet();
-            parent2child = Maps.newHashMap();
         } else {
-            Pair<Set<Long>, Map<Long, List<Long>>> pair = buildTreeBottomUp();
-            this.allCuboidIds = pair.getFirst();
-            this.parent2child = pair.getSecond();
+            this.allCuboidIds = buildTreeBottomUp();
         }
     }
 
@@ -93,91 +78,34 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
     }
 
     @Override
-    public List<Long> getSpanningCuboid(long cuboid) {
-        if (cuboid > max || cuboid < 0) {
-            throw new IllegalArgumentException("Cuboid " + cuboid + " is out of scope 0-" + max);
-        }
-
-        List<Long> spanning = parent2child.get(cuboid);
-        if (spanning == null) {
-            return Collections.EMPTY_LIST;
-        }
-        return spanning;
-    }
-
-    @Override
-    public Set<Long> getAllCuboidIds() {
+    public Set<BigInteger> getAllCuboidIds() {
         return Sets.newHashSet(allCuboidIds);
     }
 
-    /**
-     * Returns a valid cuboid that best matches the request cuboid.
-     */
-    @Override
-    public long findBestMatchCuboid(long cuboid) {
-        if (isValid(cuboid)) {
-            return cuboid;
-        }
-
-        List<Long> onTreeCandidates = Lists.newArrayList();
-        for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
-            Long candidate = agg.translateToOnTreeCuboid(cuboid);
-            if (candidate != null) {
-                onTreeCandidates.add(candidate);
-            }
-        }
-
-        if (onTreeCandidates.size() == 0) {
-            return getBaseCuboidId();
-        }
-
-        long onTreeCandi = Collections.min(onTreeCandidates, cuboidSelectComparator);
-        if (isValid(onTreeCandi)) {
-            return onTreeCandi;
-        }
-
-        return doFindBestMatchCuboid(onTreeCandi);
-    }
-
-    private long doFindBestMatchCuboid(long child) {
-        long parent = getOnTreeParent(child);
-        while (parent > 0) {
-            if (ruleBasedAggIndex.getInitialCuboidScheduler().getAllCuboidIds().contains(parent)) {
-                break;
-            }
-            parent = getOnTreeParent(parent);
-        }
-
-        if (parent <= 0) {
-            throw new IllegalStateException("Can't find valid parent for Cuboid " + child);
-        }
-        return parent;
-    }
-
-    private long getOnTreeParent(long child) {
-        Set<Long> candidates = getOnTreeParents(child);
+    private BigInteger getOnTreeParent(BigInteger child) {
+        Set<BigInteger> candidates = getOnTreeParents(child);
         if (candidates == null || candidates.isEmpty()) {
-            return -1;
+            return BigInteger.valueOf(-1);
         }
         return Collections.min(candidates, cuboidSelectComparator);
     }
 
-    private Map<Long, Set<Long>> childParents = Maps.newConcurrentMap();
+    private Map<BigInteger, Set<BigInteger>> childParents = Maps.newConcurrentMap();
 
-    private Set<Long> getOnTreeParents(long child) {
+    private Set<BigInteger> getOnTreeParents(BigInteger child) {
         if (childParents.containsKey(child)) {
             return childParents.get(child);
         }
-        Set<Long> parentCandidate = new HashSet<>();
+        Set<BigInteger> parentCandidate = new HashSet<>();
 
-        if (child == ruleBasedAggIndex.getFullMask()) {
+        if (child.equals(ruleBasedAggIndex.getFullMask())) {
             return parentCandidate;
         }
 
         for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
-            if (child == agg.getPartialCubeFullMask()) {
+            if (child.equals(agg.getPartialCubeFullMask())) {
                 parentCandidate.add(ruleBasedAggIndex.getFullMask());
-            } else if (child == 0 || agg.isOnTree(child)) {
+            } else if (child.equals(BigInteger.ZERO) || agg.isOnTree(child)) {
                 parentCandidate.addAll(getOnTreeParents(child, agg));
             }
         }
@@ -198,16 +126,16 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
      *
      * @return Cuboid collection
      */
-    protected Pair<Set<Long>, Map<Long, List<Long>>> buildTreeBottomUp() {
+    private Set<BigInteger> buildTreeBottomUp() {
         int forward = ruleBasedAggIndex.getParentForward();
         KylinConfig config = indexPlan.getConfig();
         long maxCombination = config.getCubeAggrGroupMaxCombination() * 10;
         maxCombination = maxCombination < 0 ? Long.MAX_VALUE : maxCombination;
 
-        Set<Long> cuboidHolder = new HashSet<>();
+        Set<BigInteger> cuboidHolder = new HashSet<>();
 
         // build tree structure
-        Set<Long> children = getOnTreeParentsByLayer(Sets.newHashSet(0L)); // lowest level cuboids
+        Set<BigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(BigInteger.ZERO)); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() > maxCombination) {
                 throw new OutOfMaxCombinationException("Too many cuboids for the cube. Cuboid combination reached "
@@ -219,33 +147,27 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         cuboidHolder.add(ruleBasedAggIndex.getFullMask());
 
         // fill padding cuboids
-        Map<Long, List<Long>> parent2Child = Maps.newHashMap();
-        Queue<Long> cuboidScan = new ArrayDeque<>();
+        Queue<BigInteger> cuboidScan = new ArrayDeque<>();
         cuboidScan.addAll(cuboidHolder);
         while (!cuboidScan.isEmpty()) {
-            long current = cuboidScan.poll();
-            long parent = getParentOnPromise(current, cuboidHolder, forward);
+            BigInteger current = cuboidScan.poll();
+            BigInteger parent = getParentOnPromise(current, cuboidHolder, forward);
 
-            if (parent > 0) {
+            if (parent.compareTo(BigInteger.ZERO) > 0) {
                 if (!cuboidHolder.contains(parent)) {
                     cuboidScan.add(parent);
                     cuboidHolder.add(parent);
                 }
-                if (parent2Child.containsKey(parent)) {
-                    parent2Child.get(parent).add(current);
-                } else {
-                    parent2Child.put(parent, Lists.newArrayList(current));
-                }
             }
         }
 
-        return Pair.newPair(cuboidHolder, parent2Child);
+        return cuboidHolder;
     }
 
-    private long getParentOnPromise(long child, Set<Long> coll, int forward) {
-        long parent = getOnTreeParent(child);
-        if (parent < 0) {
-            return -1;
+    private BigInteger getParentOnPromise(BigInteger child, Set<BigInteger> coll, int forward) {
+        BigInteger parent = getOnTreeParent(child);
+        if (parent.compareTo(BigInteger.ZERO) < 0) {
+            return BigInteger.valueOf(-1);
         }
 
         if (coll.contains(parent) || forward == 0) {
@@ -261,18 +183,18 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
      * @param children children cuboids
      * @return all parents cuboids
      */
-    private Set<Long> getOnTreeParentsByLayer(Collection<Long> children) {
+    private Set<BigInteger> getOnTreeParentsByLayer(Collection<BigInteger> children) {
         //debugPrint(children, "children");
-        Set<Long> parents = new HashSet<>();
-        for (long child : children) {
+        Set<BigInteger> parents = new HashSet<>();
+        for (BigInteger child : children) {
             parents.addAll(getOnTreeParents(child));
         }
 
         //debugPrint(parents, "parents");
-        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<Long>() {
+        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<BigInteger>() {
             @Override
-            public boolean apply(@Nullable Long cuboidId) {
-                if (cuboidId == ruleBasedAggIndex.getFullMask()) {
+            public boolean apply(@Nullable BigInteger cuboidId) {
+                if (cuboidId.equals(ruleBasedAggIndex.getFullMask())) {
                     return true;
                 }
 
@@ -290,19 +212,20 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         return parents;
     }
 
-    public static void debugPrint(Collection<Long> set, String msg) {
+    public static void debugPrint(Collection<BigInteger> set, String msg) {
         System.out.println(msg + " ============================================================================");
-        for (Long c : set)
+        for (BigInteger c : set)
             System.out.println(getDisplayName(c, 25));
     }
 
-    private static String getDisplayName(long cuboidID, int dimensionCount) {
+    private static String getDisplayName(BigInteger cuboidID, int dimensionCount) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < dimensionCount; ++i) {
-            if ((cuboidID & (1L << i)) == 0) {
-                sb.append('0');
-            } else {
+
+            if (cuboidID.testBit(i)) {
                 sb.append('1');
+            } else {
+                sb.append('0');
             }
         }
         return StringUtils.reverse(sb.toString());
@@ -315,11 +238,11 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
      * @return cuboidId list
      */
     @Override
-    public Set<Long> calculateCuboidsForAggGroup(NAggregationGroup agg) {
-        Set<Long> cuboidHolder = new HashSet<>();
+    public Set<BigInteger> calculateCuboidsForAggGroup(NAggregationGroup agg) {
+        Set<BigInteger> cuboidHolder = new HashSet<>();
 
         // build tree structure
-        Set<Long> children = getOnTreeParentsByLayer(Sets.newHashSet(0L), agg); // lowest level cuboids
+        Set<BigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(BigInteger.ZERO), agg); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() > indexPlan.getConfig().getCubeAggrGroupMaxCombination()) {
                 throw new TooManyCuboidException("Holder size larger than kylin.cube.aggrgroup.max-combination");
@@ -331,48 +254,48 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         return cuboidHolder;
     }
 
-    private Set<Long> getOnTreeParentsByLayer(Collection<Long> children, final NAggregationGroup agg) {
-        Set<Long> parents = new HashSet<>();
-        for (long child : children) {
+    private Set<BigInteger> getOnTreeParentsByLayer(Collection<BigInteger> children, final NAggregationGroup agg) {
+        Set<BigInteger> parents = new HashSet<>();
+        for (BigInteger child : children) {
             parents.addAll(getOnTreeParents(child, agg));
         }
-        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<Long>() {
+        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<BigInteger>() {
             @Override
-            public boolean apply(@Nullable Long cuboidId) {
+            public boolean apply(@Nullable BigInteger cuboidId) {
                 return checkDimCap(agg, cuboidId);
             }
         }));
         return parents;
     }
 
-    private Set<Long> getOnTreeParents(long child, NAggregationGroup agg) {
-        Set<Long> parentCandidate = new HashSet<>();
+    private Set<BigInteger> getOnTreeParents(BigInteger child, NAggregationGroup agg) {
+        Set<BigInteger> parentCandidate = new HashSet<>();
 
-        long tmpChild = child;
-        if (tmpChild == agg.getPartialCubeFullMask()) {
+        BigInteger tmpChild = child;
+        if (tmpChild.equals(agg.getPartialCubeFullMask())) {
             return parentCandidate;
         }
 
-        if (agg.getMandatoryColumnMask() != 0L) {
+        if (!agg.getMandatoryColumnMask().equals(BigInteger.ZERO)) {
             if (agg.isMandatoryOnlyValid()) {
                 if (fillBit(tmpChild, agg.getMandatoryColumnMask(), parentCandidate)) {
                     return parentCandidate;
                 }
             } else {
-                tmpChild |= agg.getMandatoryColumnMask();
+                tmpChild = tmpChild.or(agg.getMandatoryColumnMask());
             }
         }
 
-        for (Long normal : agg.getNormalDims()) {
+        for (BigInteger normal : agg.getNormalDims()) {
             fillBit(tmpChild, normal, parentCandidate);
         }
 
-        for (Long joint : agg.getJoints()) {
+        for (BigInteger joint : agg.getJoints()) {
             fillBit(tmpChild, joint, parentCandidate);
         }
 
         for (NAggregationGroup.HierarchyMask hierarchy : agg.getHierarchyMasks()) {
-            for (long mask : hierarchy.allMasks) {
+            for (BigInteger mask : hierarchy.allMasks) {
                 if (fillBit(tmpChild, mask, parentCandidate)) {
                     break;
                 }
@@ -382,15 +305,15 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         return parentCandidate;
     }
 
-    private boolean fillBit(long origin, long other, Set<Long> coll) {
-        if ((origin & other) != other) {
-            coll.add(origin | other);
+    private boolean fillBit(BigInteger origin, BigInteger other, Set<BigInteger> coll) {
+        if (!(origin.and(other)).equals(other)) {
+            coll.add(origin.or(other));
             return true;
         }
         return false;
     }
 
-    private boolean checkDimCap(NAggregationGroup agg, long cuboidID) {
+    private boolean checkDimCap(NAggregationGroup agg, BigInteger cuboidID) {
         int dimCap = agg.getDimCap();
         if (dimCap <= 0)
             return true;
@@ -402,18 +325,19 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         //            dimCount++;
         //        }
 
-        for (Long normal : agg.getNormalDims()) {
-            if ((cuboidID & normal) != 0L)
+        for (BigInteger normal : agg.getNormalDims()) {
+            if (!(cuboidID.and(normal)).equals(BigInteger.ZERO)) {
                 dimCount++;
+            }
         }
 
-        for (Long joint : agg.getJoints()) {
-            if ((cuboidID & joint) != 0L)
+        for (BigInteger joint : agg.getJoints()) {
+            if (!(cuboidID.and(joint)).equals(BigInteger.ZERO))
                 dimCount++;
         }
 
         for (NAggregationGroup.HierarchyMask hierarchy : agg.getHierarchyMasks()) {
-            if ((cuboidID & hierarchy.fullMask) != 0L)
+            if (!(cuboidID.and(hierarchy.fullMask)).equals(BigInteger.ZERO))
                 dimCount++;
         }
 

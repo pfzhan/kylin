@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Set;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -63,20 +64,20 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
 
         {
             NAggregationGroup agg = cube.getRuleBasedIndex().getAggregationGroups().get(0);
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(19, set.size());
         }
 
         {
             NAggregationGroup agg = cube.getRuleBasedIndex().getAggregationGroups().get(1);
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(15, set.size());
         }
 
         {
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(31, set.size());
         }
@@ -89,20 +90,20 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
 
         {
             NAggregationGroup agg = cube.getRuleBasedIndex().getAggregationGroups().get(0);
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(15, set.size());
         }
 
         {
             NAggregationGroup agg = cube.getRuleBasedIndex().getAggregationGroups().get(1);
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(11, set.size());
         }
 
         {
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(24, set.size());
         }
@@ -115,20 +116,20 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
 
         {
             NAggregationGroup agg = cube.getRuleBasedIndex().getAggregationGroups().get(0);
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(6, set.size());
         }
 
         {
             NAggregationGroup agg = cube.getRuleBasedIndex().getAggregationGroups().get(1);
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(5, set.size());
         }
 
         {
-            Set<Long> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
+            Set<BigInteger> set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(13, set.size());
         }
@@ -147,7 +148,7 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         rule.setMeasures(Lists.<Integer> newArrayList());
         rule.setIndexPlan(cube);
         cube.setRuleBasedIndex(rule);
-        val scheduler = (NKapCuboidScheduler243) cube.getRuleBasedIndex().getInitialCuboidScheduler();
+        val scheduler = (NKECuboidScheduler) cube.getRuleBasedIndex().getInitialCuboidScheduler();
         Assert.assertEquals(0, scheduler.getAllCuboidIds().size());
     }
 

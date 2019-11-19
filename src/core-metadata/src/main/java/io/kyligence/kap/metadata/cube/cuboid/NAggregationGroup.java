@@ -25,31 +25,28 @@
 package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.kylin.cube.model.SelectRule;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.math.LongMath;
 
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * to compatible with legacy aggregation group in pre-newten
@@ -58,9 +55,9 @@ import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class NAggregationGroup implements Serializable {
     public static class HierarchyMask implements Serializable {
-        public long fullMask; // 00000111
-        public long[] allMasks; // 00000100,00000110,00000111
-        public long[] dims; // 00000100,00000010,00000001
+        public BigInteger fullMask = BigInteger.ZERO; // 00000111
+        public BigInteger[] allMasks; // 00000100,00000110,00000111
+        public BigInteger[] dims; // 00000100,00000010,00000001
     }
 
     @Getter
@@ -74,15 +71,15 @@ public class NAggregationGroup implements Serializable {
     private SelectRule selectRule;
 
     //computed
-    private long partialCubeFullMask;
-    private long mandatoryColumnMask;
+    private BigInteger partialCubeFullMask;
+    private BigInteger mandatoryColumnMask;
     private List<HierarchyMask> hierarchyMasks;
-    private List<Long> joints;//each long is a group
-    private long jointDimsMask;
-    private List<Long> normalDims;//each long is a single dim
+    private List<BigInteger> joints;//each long is a group
+    private BigInteger jointDimsMask;
+    private List<BigInteger> normalDims;//each long is a single dim
     private NRuleBasedIndex ruleBasedAggIndex;
     private boolean isMandatoryOnlyValid;
-    private HashMap<Long, Long> dim2JointMap;
+    private HashMap<BigInteger, BigInteger> dim2JointMap;
 
     public void init(NRuleBasedIndex ruleBasedCuboidsDesc) {
         this.ruleBasedAggIndex = ruleBasedCuboidsDesc;
@@ -140,11 +137,10 @@ public class NAggregationGroup implements Serializable {
         Preconditions.checkState(this.includes != null);
         Preconditions.checkState(this.includes.length != 0);
 
-        partialCubeFullMask = 0L;
+        partialCubeFullMask = BigInteger.ZERO;
         for (Integer dimId : this.includes) {
-            Integer index = ruleBasedAggIndex.getColumnBitIndex(dimId);
-            long bit = 1L << index;
-            partialCubeFullMask |= bit;
+            int index = ruleBasedAggIndex.getColumnBitIndex(dimId);
+            partialCubeFullMask = partialCubeFullMask.setBit(index);
         }
     }
 
@@ -161,28 +157,29 @@ public class NAggregationGroup implements Serializable {
                 continue;
             }
 
-            long joint = 0L;
+            BigInteger joint = BigInteger.ZERO;
             for (int i = 0; i < jointDims.length; i++) {
-                Integer index = ruleBasedAggIndex.getColumnBitIndex(jointDims[i]);
-                long bit = 1L << index;
-                joint |= bit;
+                int index = ruleBasedAggIndex.getColumnBitIndex(jointDims[i]);
+                joint = joint.setBit(index);
             }
 
-            Preconditions.checkState(joint != 0);
+            Preconditions.checkState(!joint.equals(BigInteger.ZERO));
             joints.add(joint);
         }
 
-        for (long jt : joints) {
-            for (int i = 0; i < 64; i++) {
-                if (((1L << i) & jt) != 0) {
-                    dim2JointMap.put((1L << i), jt);
+        // todo
+        for (BigInteger jt : joints) {
+            for (int i = 0; i < jt.bitLength(); i++) {
+                if (jt.testBit(i)) {
+                    BigInteger dim = BigInteger.valueOf(0);
+                    dim2JointMap.put(dim.setBit(i), jt);
                 }
             }
         }
     }
 
     private void buildMandatoryColumnMask() {
-        mandatoryColumnMask = 0L;
+        mandatoryColumnMask = BigInteger.ZERO;
 
         Integer[] mandatory_dims = this.selectRule.mandatoryDims;
         if (mandatory_dims == null || mandatory_dims.length == 0) {
@@ -191,7 +188,7 @@ public class NAggregationGroup implements Serializable {
 
         for (Integer dim : mandatory_dims) {
             Integer index = ruleBasedAggIndex.getColumnBitIndex(dim);
-            mandatoryColumnMask |= (1L << index);
+            mandatoryColumnMask = mandatoryColumnMask.setBit(index);
         }
     }
 
@@ -208,25 +205,26 @@ public class NAggregationGroup implements Serializable {
                 continue;
             }
 
-            ArrayList<Long> allMaskList = new ArrayList<Long>();
-            ArrayList<Long> dimList = new ArrayList<Long>();
+            ArrayList<BigInteger> allMaskList = new ArrayList<>();
+            ArrayList<BigInteger> dimList = new ArrayList<>();
             for (int i = 0; i < hierarchy_dims.length; i++) {
                 Integer index = ruleBasedAggIndex.getColumnBitIndex(hierarchy_dims[i]);
-                long bit = 1L << index;
+                BigInteger bit = BigInteger.ZERO.setBit(index);
 
                 // combine joint as logic dim
                 if (dim2JointMap.get(bit) != null) {
                     bit = dim2JointMap.get(bit);
                 }
 
-                mask.fullMask |= bit;
+                mask.fullMask = mask.fullMask.or(bit);
                 allMaskList.add(mask.fullMask);
                 dimList.add(bit);
             }
 
             Preconditions.checkState(allMaskList.size() == dimList.size());
-            mask.allMasks = new long[allMaskList.size()];
-            mask.dims = new long[dimList.size()];
+            mask.allMasks = new BigInteger[allMaskList.size()];
+            mask.dims = new BigInteger[dimList.size()];
+
             for (int i = 0; i < allMaskList.size(); i++) {
                 mask.allMasks[i] = allMaskList.get(i);
                 mask.dims[i] = dimList.get(i);
@@ -238,108 +236,40 @@ public class NAggregationGroup implements Serializable {
 
     private void buildNormalDimsMask() {
         //no joint, no hierarchy, no mandatory
-        long leftover = partialCubeFullMask & ~mandatoryColumnMask;
-        leftover &= ~this.jointDimsMask;
+        BigInteger leftover = partialCubeFullMask.andNot(mandatoryColumnMask);
+        leftover = leftover.andNot(jointDimsMask);
         for (HierarchyMask hierarchyMask : this.hierarchyMasks) {
-            leftover &= ~hierarchyMask.fullMask;
+            leftover = leftover.andNot(hierarchyMask.fullMask);
         }
 
         this.normalDims = bits(leftover);
     }
 
-    private List<Long> bits(long x) {
-        List<Long> r = Lists.newArrayList();
-        long l = x;
-        while (l != 0) {
-            long bit = Long.lowestOneBit(l);
+    private List<BigInteger> bits(BigInteger x) {
+        List<BigInteger> r = Lists.newArrayList();
+        BigInteger l = x;
+        while (!l.equals(BigInteger.ZERO)) {
+            BigInteger bit = BigInteger.ZERO.setBit(l.getLowestSetBit());
             r.add(bit);
-            l ^= bit;
+            l = l.xor(bit);
         }
         return r;
     }
 
     public void buildJointDimsMask() {
-        long ret = 0;
-        for (long x : joints) {
-            ret |= x;
+        BigInteger ret = BigInteger.ZERO;
+        for (BigInteger x : joints) {
+            ret = ret.or(x);
         }
         this.jointDimsMask = ret;
     }
 
-    public long getMandatoryColumnMask() {
+    public BigInteger getMandatoryColumnMask() {
         return mandatoryColumnMask;
     }
 
     public List<HierarchyMask> getHierarchyMasks() {
         return hierarchyMasks;
-    }
-
-    public Long translateToOnTreeCuboid(long cuboidID) {
-        if ((cuboidID & ~getPartialCubeFullMask()) > 0) {
-            //the partial cube might not contain all required dims
-            return null;
-        }
-
-        // add mandantory
-        cuboidID = cuboidID | getMandatoryColumnMask();
-
-        // add hierarchy
-        for (HierarchyMask hierarchyMask : getHierarchyMasks()) {
-            long fullMask = hierarchyMask.fullMask;
-            long intersect = cuboidID & fullMask;
-            if (intersect != 0 && intersect != fullMask) {
-
-                boolean startToFill = false;
-                for (int i = hierarchyMask.dims.length - 1; i >= 0; i--) {
-                    if (startToFill) {
-                        cuboidID |= hierarchyMask.dims[i];
-                    } else {
-                        if ((cuboidID & hierarchyMask.dims[i]) != 0) {
-                            startToFill = true;
-                            cuboidID |= hierarchyMask.dims[i];
-                        }
-                    }
-                }
-            }
-        }
-
-        // add joint dims
-        for (Long joint : getJoints()) {
-            if (((cuboidID | joint) != cuboidID) && ((cuboidID & ~joint) != cuboidID)) {
-                cuboidID = cuboidID | joint;
-            }
-        }
-
-        if (!isOnTree(cuboidID)) {
-            // no column, add one column
-            long nonJointDims = removeBits((getPartialCubeFullMask() ^ getMandatoryColumnMask()), getJoints());
-            if (nonJointDims != 0) {
-                long nonJointNonHierarchy = removeBits(nonJointDims,
-                        Collections2.transform(getHierarchyMasks(), new Function<HierarchyMask, Long>() {
-                            @Override
-                            public Long apply(HierarchyMask input) {
-                                return input.fullMask;
-                            }
-                        }));
-                if (nonJointNonHierarchy != 0) {
-                    //there exists dim that does not belong to any joint or any hierarchy, that's perfect
-                    return cuboidID | Long.lowestOneBit(nonJointNonHierarchy);
-                } else {
-                    //choose from a hierarchy that does not intersect with any joint dim, only check level 1
-                    long allJointDims = jointDimsMask;
-                    for (HierarchyMask hierarchyMask : getHierarchyMasks()) {
-                        long dim = hierarchyMask.allMasks[0];
-                        if ((dim & allJointDims) == 0) {
-                            return cuboidID | dim;
-                        }
-                    }
-                }
-            }
-
-            cuboidID = cuboidID | Collections.min(getJoints(), NKapCuboidScheduler243.cuboidSelectComparator);
-            Preconditions.checkState(isOnTree(cuboidID));
-        }
-        return cuboidID;
     }
 
     public long calculateCuboidCombination() {
@@ -385,28 +315,20 @@ public class NAggregationGroup implements Serializable {
 
         return combination;
     }
-
-    private long removeBits(long original, Collection<Long> toRemove) {
-        long ret = original;
-        for (Long joint : toRemove) {
-            ret = ret & ~joint;
-        }
-        return ret;
-    }
-
-    public boolean isOnTree(long cuboidID) {
-        if (cuboidID <= 0) {
+    
+    public boolean isOnTree(BigInteger cuboidID) {
+        if (cuboidID.compareTo(BigInteger.ZERO) <= 0) {
             return false; //cuboid must be greater than 0
         }
-        if ((cuboidID & ~partialCubeFullMask) != 0) {
+        if (!(cuboidID.andNot(partialCubeFullMask).equals(BigInteger.ZERO))) {
             return false; //a cuboid's parent within agg is at most partialCubeFullMask
         }
 
         return checkMandatoryColumns(cuboidID) && checkHierarchy(cuboidID) && checkJoint(cuboidID);
     }
 
-    private boolean checkMandatoryColumns(long cuboidID) {
-        if ((cuboidID & mandatoryColumnMask) != mandatoryColumnMask) {
+    private boolean checkMandatoryColumns(BigInteger cuboidID) {
+        if (!(cuboidID.and(mandatoryColumnMask).equals(mandatoryColumnMask))) {
             return false;
         } else {
             //base cuboid is always valid
@@ -415,32 +337,32 @@ public class NAggregationGroup implements Serializable {
             }
 
             //cuboid with only mandatory columns maybe valid
-            return isMandatoryOnlyValid || (cuboidID & ~mandatoryColumnMask) != 0;
+            return isMandatoryOnlyValid || !(cuboidID.andNot(mandatoryColumnMask).equals(BigInteger.ZERO));
         }
     }
 
-    private boolean checkJoint(long cuboidID) {
-        for (long joint : joints) {
-            long common = cuboidID & joint;
-            if (!(common == 0 || common == joint)) {
+    private boolean checkJoint(BigInteger cuboidID) {
+        for (BigInteger joint : joints) {
+            BigInteger common = cuboidID.and(joint);
+            if (!(common.equals(BigInteger.ZERO) || common.equals(joint))) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean checkHierarchy(long cuboidID) {
+    private boolean checkHierarchy(BigInteger cuboidID) {
         // if no hierarchy defined in metadata
         if (hierarchyMasks == null || hierarchyMasks.size() == 0) {
             return true;
         }
 
         for (HierarchyMask hierarchy : hierarchyMasks) {
-            long result = cuboidID & hierarchy.fullMask;
-            if (result > 0) {
+            BigInteger result = cuboidID.and(hierarchy.fullMask);
+            if (result.compareTo(BigInteger.ZERO) > 0) {
                 boolean meetHierarcy = false;
-                for (long mask : hierarchy.allMasks) {
-                    if (result == mask) {
+                for (BigInteger mask : hierarchy.allMasks) {
+                    if (result.equals(mask)) {
                         meetHierarcy = true;
                         break;
                     }
@@ -454,15 +376,15 @@ public class NAggregationGroup implements Serializable {
         return true;
     }
 
-    public List<Long> getJoints() {
+    public List<BigInteger> getJoints() {
         return joints;
     }
 
-    public List<Long> getNormalDims() {
+    public List<BigInteger> getNormalDims() {
         return normalDims;
     }
 
-    public long getPartialCubeFullMask() {
+    public BigInteger getPartialCubeFullMask() {
         return partialCubeFullMask;
     }
 

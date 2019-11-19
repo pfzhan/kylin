@@ -25,12 +25,8 @@
 package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.List;
+import java.math.BigInteger;
 import java.util.Set;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
@@ -41,11 +37,11 @@ import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 abstract public class NCuboidScheduler implements Serializable {
 
     public static NCuboidScheduler getInstance(IndexPlan indexPlan) {
-        return new NKapCuboidScheduler243(indexPlan, null);
+        return new NKECuboidScheduler(indexPlan, null);
     }
 
     public static NCuboidScheduler getInstance(IndexPlan indexPlan, NRuleBasedIndex ruleBasedCuboidsDes) {
-        return new NKapCuboidScheduler243(indexPlan, ruleBasedCuboidsDes);
+        return new NKECuboidScheduler(indexPlan, ruleBasedCuboidsDes);
     }
 
     // ============================================================================
@@ -61,7 +57,7 @@ abstract public class NCuboidScheduler implements Serializable {
     /**
      * Returns all cuboids on the tree.
      */
-    abstract public Set<Long> getAllCuboidIds();
+    abstract public Set<BigInteger> getAllCuboidIds();
 
     /**
      * Returns the number of all cuboids.
@@ -69,80 +65,13 @@ abstract public class NCuboidScheduler implements Serializable {
     abstract public int getCuboidCount();
 
     /**
-     * Returns the child cuboids of a parent.
-     */
-    abstract public List<Long> getSpanningCuboid(long parentCuboid);
-
-    /**
-     * Returns a valid cuboid that best matches the request cuboid.
-     */
-    abstract public long findBestMatchCuboid(long requestCuboid);
-
-    /**
      * optional
      */
-    abstract public Set<Long> calculateCuboidsForAggGroup(NAggregationGroup agg);
+    abstract public Set<BigInteger> calculateCuboidsForAggGroup(NAggregationGroup agg);
 
     // ============================================================================
 
-    private transient List<List<Long>> cuboidsByLayer;
-
-    public long getBaseCuboidId() {
-        return ruleBasedAggIndex.getFullMask();
-    }
-
     public IndexPlan getIndexPlan() {
         return indexPlan;
-    }
-
-    /**
-     * Checks whether a cuboid is valid or not.
-     */
-    public boolean isValid(long requestCuboid) {
-        return getAllCuboidIds().contains(requestCuboid);
-    }
-
-    /**
-     * Get cuboids by layer. It's built from pre-expanding tree.
-     *
-     * @return layered cuboids
-     */
-    public List<List<Long>> getCuboidsByLayer() {
-        if (cuboidsByLayer != null) {
-            return cuboidsByLayer;
-        }
-
-        int totalNum = 0;
-        cuboidsByLayer = Lists.newArrayList();
-
-        cuboidsByLayer.add(Collections.singletonList(ruleBasedAggIndex.getFullMask()));
-        totalNum++;
-
-        List<Long> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
-        while (!lastLayer.isEmpty()) {
-            List<Long> newLayer = Lists.newArrayList();
-            for (Long parent : lastLayer) {
-                newLayer.addAll(getSpanningCuboid(parent));
-            }
-            if (newLayer.isEmpty()) {
-                break;
-            }
-            cuboidsByLayer.add(newLayer);
-            totalNum += newLayer.size();
-            lastLayer = newLayer;
-        }
-
-        int size = getAllCuboidIds().size();
-        Preconditions.checkState(totalNum == size, "total Num: " + totalNum + " actual size: " + size);
-        return cuboidsByLayer;
-    }
-
-    /**
-     * Get cuboid level count except base cuboid
-     *
-     * @return
-     */
-    public int getBuildLevel() {
-        return getCuboidsByLayer().size() - 1;
     }
 }
