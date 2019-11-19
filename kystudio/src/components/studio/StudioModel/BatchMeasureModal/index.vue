@@ -515,13 +515,11 @@ export default class BatchMeasureModal extends Vue {
         if (val) {
           if (!d[column.property].isShouldDisable) {
             d[column.property] = {value: val, isShouldDisable: d[column.property].isShouldDisable}
-            !d[column.property].isShouldDisable && table.nums[column.property.toLowerCase() + 'Num']++
             d.isMeasureCol = true
           }
         } else {
           if (!d[column.property].isShouldDisable) {
             d[column.property] = {value: val, isShouldDisable: d[column.property].isShouldDisable}
-            table.nums[column.property.toLowerCase() + 'Num']--
           }
           if (!(d.SUM.value || d.MIN.value || d.MAX.value || d.COUNT.value)) {
             d.isMeasureCol = false
@@ -529,9 +527,10 @@ export default class BatchMeasureModal extends Vue {
         }
       })
       column.isAllSelected = !column.isAllSelected
-      const numArr = table.nums && Object.values(table.nums)
-      this.$set(table, 'meaColNum', Math.max.apply(null, numArr))
+      const numArr = table.columns.filter(it => it.isMeasureCol).length
+      this.$set(table, 'meaColNum', numArr)
     }
+    totalNums === 0 && (column.isAllSelected = false)
     return (<span>
       <el-checkbox
         disabled={ store.states.data && store.states.data.length === 0 }
