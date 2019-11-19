@@ -23,19 +23,14 @@
  */
 package io.kyligence.kap.rest.config;
 
-import static org.apache.kylin.common.persistence.ResourceStore.METASTORE_UUID_TAG;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.List;
-import java.util.UUID;
 
-import io.kyligence.kap.rest.source.NHiveTableName;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.StringEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.LicenseInfoService;
@@ -60,7 +55,6 @@ import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -75,6 +69,7 @@ import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
 import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
+import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.ehcache.CacheManager;
@@ -120,14 +115,7 @@ public class AppInitializer {
 
         if (isLeader) {
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-            if (!resourceStore.exists(METASTORE_UUID_TAG)) {
-                UnitOfWork.doInTransactionWithRetry(() -> {
-                    val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                    store.checkAndPutResource(METASTORE_UUID_TAG, new StringEntity(UUID.randomUUID().toString()),
-                            StringEntity.serializer);
-                    return null;
-                }, "");
-            }
+            resourceStore.createMetaStoreUuidIfNotExist();
 
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));

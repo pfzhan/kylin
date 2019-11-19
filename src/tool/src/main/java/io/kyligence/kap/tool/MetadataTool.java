@@ -201,6 +201,7 @@ public class MetadataTool extends ExecutableApplication {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         log.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        resourceStore.createMetaStoreUuidIfNotExist();
 
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             boolean isGlobal = null == optionsHelper.getOptionValue(OPTION_PROJECT);
@@ -347,8 +348,9 @@ public class MetadataTool extends ExecutableApplication {
         if (StringUtils.isBlank(project)) {
             log.info("start to restore all projects");
             var srcProjectFolders = restoreResourceStore.listResources("/");
-            val destProjectFolders = resourceStore.listResources("/");
+            var destProjectFolders = resourceStore.listResources("/");
             srcProjectFolders = srcProjectFolders == null ? Sets.newTreeSet() : srcProjectFolders;
+            destProjectFolders = destProjectFolders == null ? Sets.newTreeSet() : destProjectFolders;
             val projectFolders = Sets.union(srcProjectFolders, destProjectFolders);
 
             for (String projectPath : projectFolders) {

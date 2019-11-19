@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
@@ -75,6 +76,7 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Getter;
 import lombok.val;
 
@@ -521,5 +523,16 @@ public abstract class ResourceStore implements AutoCloseable {
 
     public AuditLogStore getAuditLogStore() {
         return getMetadataStore().getAuditLogStore();
+    }
+
+    public void createMetaStoreUuidIfNotExist() {
+        if (!exists(METASTORE_UUID_TAG)) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                store.checkAndPutResource(METASTORE_UUID_TAG, new StringEntity(UUID.randomUUID().toString()),
+                        StringEntity.serializer);
+                return null;
+            }, "");
+        }
     }
 }
