@@ -1328,6 +1328,7 @@ public abstract class KylinConfigBase implements Serializable {
         udfMap.put("if", "org.apache.kylin.query.udf.otherUdf.IfUDF");
         udfMap.put("version", "org.apache.kylin.query.udf.VersionUDF");
         udfMap.put("concat", "org.apache.kylin.query.udf.stringUdf.ConcatUDF");
+        udfMap.put("concat_ws", "org.apache.kylin.query.udf.stringUdf.ConcatwsUDF");
         udfMap.put("massin", "org.apache.kylin.query.udf.MassInUDF");
         udfMap.put("initcapb", "org.apache.kylin.query.udf.stringUdf.InitCapbUDF");
         udfMap.put("substr", "org.apache.kylin.query.udf.stringUdf.SubStrUDF");

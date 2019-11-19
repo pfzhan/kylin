@@ -102,7 +102,7 @@ public class DataType implements Serializable {
                 "int", "short", "long", "integer", "tinyint", "smallint", "bigint", //
                 "int4", "long8", // for test only
                 "float", "real", "double", "decimal", "numeric", //
-                "date", "time", "datetime", "timestamp", //
+                "date", "time", "datetime", "timestamp", "array", //
                 InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType());
 
         registerComplex("array\\<.*\\>");

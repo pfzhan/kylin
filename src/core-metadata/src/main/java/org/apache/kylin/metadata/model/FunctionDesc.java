@@ -120,6 +120,7 @@ public class  FunctionDesc implements Serializable {
     public static final String FUNC_SUM = "SUM";
     public static final String FUNC_MIN = "MIN";
     public static final String FUNC_MAX = "MAX";
+    public static final String FUNC_COLLECT_SET = "COLLECT_SET";
     public static final String FUNC_COUNT = "COUNT";
     public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
     public static final String FUNC_INTERSECT_COUNT = "INTERSECT_COUNT";
@@ -143,6 +144,7 @@ public class  FunctionDesc implements Serializable {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, FUNC_COUNT_DISTINCT_BIT_MAP);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, TYPE_BIGINT);
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COLLECT_SET, "ARRAY");
     }
 
     public static final String PARAMETER_TYPE_CONSTANT = "constant";

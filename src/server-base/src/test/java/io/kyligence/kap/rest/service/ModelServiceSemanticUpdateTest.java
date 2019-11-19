@@ -312,7 +312,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
-        Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(100017).getName());
+        Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(100018).getName());
         Assert.assertNull(model.getEffectiveMeasureMap().get(100002));
         Assert.assertNull(model.getEffectiveMeasureMap().get(100003));
     }
@@ -757,7 +757,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
             if (m.getId() == 100011) {
-                m.setId(100017);
+                m.setId(100018);
             }
         }).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);

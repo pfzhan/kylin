@@ -567,6 +567,18 @@
         }],
         "returntype": "decimal"
       }
+    },
+    {
+      "id": 100017,
+      "name": "COLLECT_SET_CAL_DT",
+      "function": {
+        "expression": "COLLECT_SET",
+        "parameters": [{
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.CAL_DT"
+        }],
+        "returntype": "array"
+      }
     }
   ],
   "column_correlations": [

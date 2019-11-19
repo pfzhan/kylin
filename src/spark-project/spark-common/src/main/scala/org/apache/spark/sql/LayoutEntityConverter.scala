@@ -25,7 +25,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogStorageFormat, CatalogTable, CatalogTableType}
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.types.{DataType, DataTypes, DoubleType, LongType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, DoubleType, LongType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
@@ -152,6 +152,9 @@ object LayoutEntityConverter {
         } else {
           SparderTypeUtil.toSparkType(function.getReturnDataType)
         }
+      case "COLLECT_SET" =>
+        val parameter = function.getParameters.get(0)
+        ArrayType(SparderTypeUtil.toSparkType(parameter.getColRef.getType))
       case _ => SparderTypeUtil.toSparkType(function.getReturnDataType)
     }
   }

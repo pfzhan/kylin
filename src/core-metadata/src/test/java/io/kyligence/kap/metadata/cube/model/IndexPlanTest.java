@@ -100,7 +100,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.TRANS_ID"), effectiveDimCols.get(1));
 
         BiMap<Integer, NDataModel.Measure> effectiveMeasures = cube.getEffectiveMeasures();
-        Assert.assertEquals(16, effectiveMeasures.size());
+        Assert.assertEquals(17, effectiveMeasures.size());
 
         MeasureDesc m = effectiveMeasures.get(100000);
         Assert.assertEquals("TRANS_CNT", m.getName());
@@ -117,8 +117,8 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1000001, cuboidLayout.getId());
             Assert.assertEquals(33, cuboidLayout.getOrderedDimensions().size());
             Assert.assertEquals(33, cuboidLayout.getOrderedDimensions().size()); //test lazy init
-            Assert.assertEquals(16, cuboidLayout.getOrderedMeasures().size());
-            Assert.assertEquals(16, cuboidLayout.getOrderedMeasures().size()); //test lazy init
+            Assert.assertEquals(17, cuboidLayout.getOrderedMeasures().size());
+            Assert.assertEquals(17, cuboidLayout.getOrderedMeasures().size()); //test lazy init
         }
 
         {

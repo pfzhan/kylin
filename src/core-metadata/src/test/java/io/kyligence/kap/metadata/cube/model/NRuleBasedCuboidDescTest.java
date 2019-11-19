@@ -138,16 +138,16 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("{2}", allIndexes.get(0).getDimensionBitset().toString());
         IndexEntity entity0 = allIndexes.get(0);
         Assert.assertEquals(Lists.newArrayList(100000, 100001, 100002, 100003, 100004, 100005, 100007, 100008, 100009,
-                100010, 100011, 100012, 100013, 100014, 100015, 100016), entity0.getMeasures());
+                100010, 100011, 100012, 100013, 100014, 100015, 100016, 100017), entity0.getMeasures());
         Assert.assertEquals(Lists.newArrayList(2, 100000, 100001, 100002, 100003, 100004, 100005, 100007, 100008,
-                100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016),
+                100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016, 100017),
                 entity0.getLayouts().get(0).getColOrder());
         Assert.assertEquals(Lists.newArrayList(2, 1, 3), allIndexes.get(1).getDimensions());
         Assert.assertEquals("{1, 2, 3}", allIndexes.get(1).getDimensionBitset().toString());
         IndexEntity entity1 = allIndexes.get(1);
         Assert.assertEquals(allIndexes.get(0).getMeasures(), entity1.getMeasures());
         Assert.assertEquals(Lists.newArrayList(2, 1, 3, 100000, 100001, 100002, 100003, 100004, 100005, 100007, //
-                100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016),
+                100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016, 100017),
                 entity1.getLayouts().get(0).getColOrder());
     }
 
@@ -181,7 +181,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         newPlan = indexPlanManager.createIndexPlan(newPlan);
         val oldRule = newPlan.getRuleBasedIndex();
         logLayouts(newPlan.getAllLayouts());
-        Assert.assertEquals(13, newPlan.getAllLayouts().size());
+        Assert.assertEquals(14, newPlan.getAllLayouts().size());
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         dataflowManager.createDataflow(newPlan, "ADMIN");
@@ -213,7 +213,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         checkIntersection(oldRule, indexPlan, Lists.<List<Integer>> newArrayList(Lists.newArrayList(1, 3, 4, 5, 6),
                 Lists.newArrayList(1), Lists.newArrayList(1, 3, 5), Lists.newArrayList(1, 4, 6)));
         Assert.assertThat(indexPlan.getRuleBasedIndex().getLayoutIdMapping(),
-                CoreMatchers.is(Arrays.asList(130001L, 230001L, 150001L, 160001L, 200001L, 240001L, 250001L, 260001L, 20004L, 270001L, 280001L, 290001L)));
+                CoreMatchers.is(Arrays.asList(130001L, 230001L, 150001L, 160001L, 200001L, 240001L, 250001L, 260001L, 270001L, 280001L, 290001L, 300001L)));
         val actualDims = indexPlan.getRuleBaseLayouts().stream()
                 .map(layout -> layout.getOrderedDimensions().keySet().asList()).collect(Collectors.toSet());
         val expectedDims = Lists.<List> newArrayList(Lists.newArrayList(1, 2, 5), Lists.newArrayList(2, 3, 4),

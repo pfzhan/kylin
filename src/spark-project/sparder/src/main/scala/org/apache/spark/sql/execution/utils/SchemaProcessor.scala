@@ -100,6 +100,9 @@ object SchemaProcessor {
         } else {
           SparderTypeUtil.toSparkType(function.getReturnDataType)
         }
+      case "COLLECT_SET" =>
+        val parameter = function.getParameters.get(0)
+        ArrayType(SparderTypeUtil.toSparkType(parameter.getColRef.getType))
       case _ =>  SparderTypeUtil.toSparkType(function.getReturnDataType)
     }
   }

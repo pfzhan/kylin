@@ -24,6 +24,7 @@
 package io.kyligence.kap.newten;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COLLECT_SET;
 import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COUNT;
 import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COUNT_DISTINCT;
 import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_MAX;
@@ -36,6 +37,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -72,8 +74,10 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -381,6 +385,127 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap9, sqlForSpark9, "left", getProject(), null));
     }
 
+    @Test
+    public void testCollectSetMeasure() throws Exception {
+        UdfManager.create(ss);
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        buildCuboid(generateCollectSetMeaLists());
+        populateSSWithCSVData(config, "default", SparderEnv.getSparkSession());
+
+        NDataSegment seg = NDataflowManager.getInstance(config, getProject()).getDataflow(DF_NAME)
+                .getLatestReadySegment();
+        NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 1);
+        ParquetStorage storage = new ParquetStorage();
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss);
+
+        for (Row row : ret.collectAsList()) {
+            if (row.apply(0).toString().equals("10000000157")) {
+                WrappedArray collectSetArray1 = (WrappedArray) row.apply(6);
+                Assert.assertEquals("132322342", collectSetArray1.apply(0).toString()); // collect_set(ID2)
+                Assert.assertEquals("132342342", collectSetArray1.apply(1).toString());
+                WrappedArray collectSetArray2 = (WrappedArray) row.apply(7);
+                Assert.assertEquals("124123", collectSetArray2.apply(0).toString()); // collect_set(ID3)
+                Assert.assertEquals("14123", collectSetArray2.apply(1).toString());
+                WrappedArray collectSetArray3 = (WrappedArray) row.apply(8);
+                Assert.assertEquals("3123", collectSetArray3.apply(0).toString()); // collect_set(ID4)
+                Assert.assertEquals("313", collectSetArray3.apply(1).toString());
+                WrappedArray collectSetArray4 = (WrappedArray) row.apply(9);
+                Assert.assertEquals("22.334", collectSetArray4.apply(0).toString()); // collect_set(price1)
+                Assert.assertEquals("12.34", collectSetArray4.apply(1).toString());
+                WrappedArray collectSetArray5 = (WrappedArray) row.apply(10);
+                Assert.assertEquals("124.44", collectSetArray5.apply(0).toString()); // collect_set(price2)
+                Assert.assertEquals("1234.244", collectSetArray5.apply(1).toString());
+                WrappedArray collectSetArray6 = (WrappedArray) row.apply(11);
+                Assert.assertEquals("14.2423", collectSetArray6.apply(0).toString()); // collect_set(price3)
+                Assert.assertEquals("1434.2423", collectSetArray6.apply(1).toString());
+                WrappedArray collectSetArray7 = (WrappedArray) row.apply(12);
+                Assert.assertEquals("1", collectSetArray7.apply(0).toString()); // collect_set(price5)
+                Assert.assertEquals("2", collectSetArray7.apply(1).toString());
+                WrappedArray collectSetArray8 = (WrappedArray) row.apply(13);
+                Assert.assertEquals("1", collectSetArray8.apply(0).toString()); // collect_set(price6)
+                Assert.assertEquals("7", collectSetArray8.apply(1).toString());
+                WrappedArray collectSetArray9 = (WrappedArray) row.apply(14);
+                Assert.assertEquals("1", collectSetArray9.apply(0).toString()); // collect_set(price7)
+                WrappedArray collectSetArray11 = (WrappedArray) row.apply(15);
+                Assert.assertEquals("'FT'", collectSetArray11.apply(0).toString()); // collect_set(name1)
+                WrappedArray collectSetArray12 = (WrappedArray) row.apply(16);
+                Assert.assertEquals("'FT'", collectSetArray12.apply(0).toString()); // collect_set(name2)
+                Assert.assertEquals("'ATOM'", collectSetArray12.apply(1).toString());
+                WrappedArray collectSetArray13 = (WrappedArray) row.apply(17);
+                Assert.assertEquals("'FT'", collectSetArray13.apply(0).toString()); // collect_set(name3)
+                Assert.assertEquals("'ATOM'", collectSetArray13.apply(1).toString());
+                WrappedArray collectSetArray14 = (WrappedArray) row.apply(18);
+                Assert.assertEquals("12", collectSetArray14.apply(0).toString()); // collect_set(name4)
+                Assert.assertEquals("2", collectSetArray14.apply(1).toString());
+                WrappedArray collectSetArray15 = (WrappedArray) row.apply(19);
+                Assert.assertEquals("2013-03-31", collectSetArray15.apply(0).toString()); // collect_set(time1)
+                Assert.assertEquals("2014-03-31", collectSetArray15.apply(1).toString());
+                WrappedArray collectSetArray16 = (WrappedArray) row.apply(20);
+                Assert.assertEquals("2012-03-21 00:00:00.0", collectSetArray16.apply(0).toString()); // collect_set(time2)
+                Assert.assertEquals("2013-03-31 00:00:00.0", collectSetArray16.apply(1).toString());
+                WrappedArray collectSetArray17 = (WrappedArray) row.apply(21);
+                Assert.assertEquals("true", collectSetArray17.apply(0).toString()); // collect_set(flag)
+            }
+        }
+    }
+
+    @Test
+    public void testCollectSetSegmentMerge() throws Exception {
+        // prepare and clean up all segments
+        String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
+        NDataflow df = dsMgr.getDataflow(dfName);
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+
+        // build 2 segment
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                SegmentRange.dateToLong("2012-06-01")), Sets.newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"),
+                SegmentRange.dateToLong("2013-01-01")), Sets.newLinkedHashSet(layouts), true);
+
+        // merge segment
+        df = dsMgr.getDataflow(dfName);
+        NDataSegment mergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false);
+        NSparkMergingJob mergeJob = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
+        execMgr.addJob(mergeJob);
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(mergeJob));
+        val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
+        merger.merge(mergeJob.getSparkMergingStep());
+
+        // validate merge parquet result
+        NDataSegment segment = dsMgr.getDataflow(dfName).getSegments().get(0);
+        NDataLayout dataCuboid = NDataLayout.newDataLayout(segment.getDataflow(), segment.getId(), 1000001);
+        ParquetStorage storage = new ParquetStorage();
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(segment, dataCuboid.getLayoutId()), ss);
+        List<Row> rows = ret.collectAsList();
+        Assert.assertEquals("WrappedArray(2012-01-01)", rows.get(0).apply(49).toString());
+        Assert.assertEquals("WrappedArray(2012-01-02)", rows.get(1).apply(49).toString());
+        Assert.assertEquals("WrappedArray(2012-01-04)", rows.get(2).apply(49).toString());
+        Assert.assertEquals("WrappedArray(2012-01-04)", rows.get(3).apply(49).toString());
+        Assert.assertEquals("WrappedArray(2012-01-05)", rows.get(4).apply(49).toString());
+
+        // query merge result
+        Dataset<Row> cubeResult = NExecAndComp.queryWithKap(getProject(), "left",
+                Pair.newPair("", "select SELLER_ID,collect_set(CAL_DT) from test_kylin_fact group by SELLER_ID"));
+        List<Row> rows1 = cubeResult.collectAsList();
+        Assert.assertEquals("[10000000,WrappedArray(2012-10-24, 2012-06-09)]", rows1.get(0).toString());
+        Assert.assertEquals("[10000001,WrappedArray(2012-04-22, 2012-07-11, 2012-09-17, 2012-04-03, 2012-02-20)]",
+                rows1.get(1).toString());
+        Assert.assertEquals("[10000002,WrappedArray(2012-12-01, 2012-09-18, 2012-01-26, 2012-06-09)]",
+                rows1.get(2).toString());
+        Assert.assertEquals("[10000003,WrappedArray(2012-05-15, 2012-07-09, 2012-07-10, 2012-01-14, 2012-08-20, "
+                + "2012-06-24, 2012-04-18, 2012-03-01)]", rows1.get(3).toString());
+        Assert.assertEquals("[10000004,WrappedArray(2012-09-12, 2012-09-13, 2012-04-12, 2012-12-12, 2012-07-25,"
+                + " 2012-03-18, 2012-12-13, 2012-08-20, 2012-09-10, 2012-10-10)]", rows1.get(4).toString());
+    }
+
     private Double decodePercentileCol(Row row, int index) {
         PercentileSerializer ps = new PercentileSerializer(DataType.ANY);
         ByteBuffer buffer = ByteBuffer.wrap((byte[]) row.get(index));
@@ -544,6 +669,24 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
             }
         }
 
+        return measureList;
+    }
+
+    private List<NDataModel.Measure> generateCollectSetMeaLists() {
+        NDataModelManager modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
+        NDataModel model = modelMgr.getDataModelDesc(DF_NAME);
+        List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
+        int meaStart = 300000;
+        List<NDataModel.Measure> measureList = model.getAllMeasures();
+
+        for (TblColRef col : columnList) {
+            List<ParameterDesc> parameters = Lists.newArrayList(ParameterDesc.newInstance(col),
+                    ParameterDesc.newInstance(col));
+            NDataModel.Measure measure = CubeUtils.newMeasure(
+                    FunctionDesc.newInstance(FUNC_COLLECT_SET, parameters, "array"), meaStart + "_" + FUNC_COLLECT_SET,
+                    meaStart++);
+            measureList.add(measure);
+        }
         return measureList;
     }
 

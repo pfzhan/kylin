@@ -211,6 +211,8 @@ object ExpressionConverter {
             new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr)) //position(substr,str,start)
           case "concat" =>
             concat(k_lit(children.head), k_lit(children.apply(1)))
+          case "concat_ws" =>
+            concat_ws(children.head.toString, k_lit(children.apply(1)))
           case "split_part" =>
             val args = Seq(k_lit(children.head), lit(children.apply(1)), lit(children.apply(2).asInstanceOf[Int])).toArray
             callUDF("split_part", args: _*)

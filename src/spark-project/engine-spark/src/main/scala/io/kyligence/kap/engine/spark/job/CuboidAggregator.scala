@@ -196,6 +196,13 @@ object CuboidAggregator {
           } else {
             callUDF(udfName, columns.head).as(measureEntry._1.toString)
           }
+        case "COLLECT_SET" =>
+          if (reuseLayout) {
+            array_distinct(flatten(collect_set(columns.head))).as(measureEntry._1.toString)
+          } else {
+            collect_set(columns.head).as(measureEntry._1.toString)
+          }
+
       }
     }.toSeq
 

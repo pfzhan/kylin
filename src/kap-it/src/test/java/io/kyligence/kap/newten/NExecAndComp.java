@@ -255,7 +255,7 @@ public class NExecAndComp {
         return rowDataset;
     }
 
-    private static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> sql) {
+    public static Dataset<Row> queryWithKap(String prj, String joinType, Pair<String, String> sql) {
         return queryFromCube(prj, KylinTestBase.changeJoinType(sql.getSecond(), joinType));
     }
 
