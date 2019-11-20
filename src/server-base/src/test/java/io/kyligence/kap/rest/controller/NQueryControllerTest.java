@@ -329,8 +329,8 @@ public class NQueryControllerTest {
         data.put("size", 6);
         Mockito.when(queryHistoryService.getQueryHistories(request, 3, 2)).thenReturn(data);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("startTimeFrom", "0").param("startTimeTo", "1000")
-                .param("latencyFrom", "0").param("latencyTo", "10").param("queryStatusList", "FAILED")
+                .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
+                .param("latency_from", "0").param("latency_to", "10").param("query_status", "FAILED")
                 .param("offset", "2").param("limit", "3")
 
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -347,14 +347,14 @@ public class NQueryControllerTest {
 
         // check args
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("startTimeFrom", "0").param("latencyFrom", "0")
-                .param("latencyTo", "10").param("queryStatusList", "FAILED").param("offset", "2").param("limit", "3")
+                .param("project", PROJECT).param("start_time_from", "0").param("latency_from", "0")
+                .param("latency_to", "10").param("query_status", "FAILED").param("offset", "2").param("limit", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().is(500));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("startTimeFrom", "0").param("startTimeTo", "1000")
-                .param("latencyFrom", "0").param("offset", "2").param("limit", "3")
+                .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
+                .param("latency_from", "0").param("offset", "2").param("limit", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().is(500));
     }
