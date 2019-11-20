@@ -645,7 +645,7 @@ export default class SourceHive extends Vue {
 .source-hive {
   &.zh-lang{
     .content-body.has-tips{
-      height: 264px;
+      height: 254px;
     }
     .tips{
       height: 72px;
@@ -700,7 +700,7 @@ export default class SourceHive extends Vue {
     }
     &.hasRefreshBtn{
       .filter-tree{
-        height: calc(451px - 24px);
+        height: calc(410px);
         margin-bottom: 24px;
       }
     }
@@ -720,7 +720,7 @@ export default class SourceHive extends Vue {
     width: 210px;
   }
   .filter-tree {
-    height: 451px;
+    height: 432px;
     overflow: auto;
     border: 1px solid @line-border-color;
   }
@@ -732,7 +732,7 @@ export default class SourceHive extends Vue {
   }
   .sample-block {
     margin-left: calc(400px + 25px + 10px);
-    margin-bottom: 20px;
+    margin-top: -13px;
     .sample-desc {
       color: @text-normal-color;
       word-break: break-word;
@@ -747,7 +747,7 @@ export default class SourceHive extends Vue {
   }
   .content-body {
     position: relative;
-    height: 367px;
+    height: 357px;
     border: 1px solid @line-border-color;
     transition: height .2s .2s;
     overflow: auto;
@@ -756,7 +756,7 @@ export default class SourceHive extends Vue {
     }
   }
   .content-body.has-tips {
-    height: 240px;
+    height: 230px;
     &.has-error-msg {
       height: 223px;
     }
@@ -831,7 +831,7 @@ export default class SourceHive extends Vue {
     height: 96px;
     border-radius: 2px;
     background-color: @base-color-9;
-    bottom: 15px;
+    bottom: 25px;
     right: 20px;
     .header {
       color: @text-normal-color;

@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="data-srouce-modal" :width="modelWidth" limited-area v-guide.dataSourceSelectBox
+  <el-dialog :class="['data-srouce-modal', {'source-modal-limit': sourceHive}]" :width="modelWidth" limited-area v-guide.dataSourceSelectBox
     :title="$t(modalTitle)"
     :visible="isShow"
     :close-on-press-escape="false"
@@ -22,7 +22,7 @@
         @input="(key, value) => handleInput(`settings.${key}`, value)">
       </SourceHiveSetting>
       <SourceHive
-        v-if="[editTypes.HIVE, editTypes.RDBMS, editTypes.RDBMS2].includes(editType)"
+        v-if="sourceHive"
         ref="source-hive-form"
         :source-type="sourceType"
         :selected-tables="form.selectedTables"
@@ -136,6 +136,7 @@ export default class DataSourceModal extends Vue {
     return this.firstEditType === this.editType ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType])
   }
   get sourceType () { return this.form.project.override_kylin_properties['kylin.source.default'] }
+  get sourceHive () { return [this.editTypes.HIVE, this.editTypes.RDBMS, this.editTypes.RDBMS2].includes(this.editType) }
   handleInput (key, value) {
     this.setModalForm(set(this.form, key, value))
   }
@@ -309,6 +310,23 @@ export default class DataSourceModal extends Vue {
   }
   .source-csv {
     padding: 20px 20px 0;
+  }
+  &.source-modal-limit {
+    .el-dialog {
+      margin-top: auto !important;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: auto;
+      height: 623px;
+    }
+    .el-dialog__body {
+      height: 524px;
+      max-height: inherit !important;
+      overflow: hidden !important;
+    }
   }
 }
 </style>
