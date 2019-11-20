@@ -83,6 +83,7 @@ import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
+import io.kyligence.kap.rest.request.YarnQueueRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
@@ -331,7 +332,7 @@ public class NProjectControllerTest {
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-       Mockito.verify(nProjectController).updateProjectGeneralInfo(request);
+        Mockito.verify(nProjectController).updateProjectGeneralInfo(request);
     }
 
     @Test
@@ -361,5 +362,18 @@ public class NProjectControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nProjectController).updateDefaultDatabase(request);
+    }
+
+    @Test
+    public void testUpdateYarnQueue() throws Exception {
+        val request = new YarnQueueRequest();
+        request.setProject("default");
+        request.setQueueName("q.queue");
+        Mockito.doNothing().when(projectService).updateYarnQueue(request.getProject(), request.getQueueName());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/yarn_queue").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateYarnQueue(request);
     }
 }

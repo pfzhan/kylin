@@ -85,6 +85,9 @@ public class ProjectConfigResponse {
     @JsonProperty("low_frequency_threshold")
     private long lowFrequencyThreshold;
 
+    @JsonProperty("yarn_queue")
+    private String yarnQueue;
+
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
             case 1:

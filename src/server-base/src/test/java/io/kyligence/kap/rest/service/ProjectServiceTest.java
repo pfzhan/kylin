@@ -152,7 +152,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
-        Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.AUTO_MAINTAIN);
+        Assert.assertEquals(MaintainModelType.AUTO_MAINTAIN, projectInstance2.getMaintainModelType());
         projectManager.dropProject("project11");
     }
 
@@ -168,7 +168,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         }, projectInstance.getName());
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
-        Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.MANUAL_MAINTAIN);
+        Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
         projectManager.dropProject("project11");
     }
 
@@ -591,4 +591,13 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(4, response.getAutoMergeTimeRanges().size());
     }
 
+    @Test
+    public void testUpdateYarnQueue() throws Exception {
+        final String updateTo = "q.queue";
+        Assert.assertEquals("default", projectService.getProjectConfig(PROJECT).getYarnQueue());
+        projectService.updateYarnQueue(PROJECT, updateTo);
+        Assert.assertEquals(updateTo, projectService.getProjectConfig(PROJECT).getYarnQueue());
+        Assert.assertEquals(updateTo, NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).getConfig()
+                .getOptional("kylin.engine.spark-conf.spark.yarn.queue", ""));
+    }
 }

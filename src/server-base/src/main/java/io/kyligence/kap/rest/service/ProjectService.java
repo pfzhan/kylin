@@ -92,6 +92,10 @@ public class ProjectService extends BasicService {
     @Autowired
     private AsyncTaskService asyncTaskService;
 
+    private static final String DEFAULT_VAL = "default";
+
+    private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
@@ -267,6 +271,14 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Transaction(project = 0)
+    public void updateYarnQueue(String project, String queueName) {
+        Map<String, String> overrideKylinProps = Maps.newHashMap();
+        overrideKylinProps.put(SPARK_YARN_QUEUE, queueName);
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
     private String convertToString(List<String> stringList) {
         var strValue = "";
         if (CollectionUtils.isEmpty(stringList)) {
@@ -308,6 +320,8 @@ public class ProjectService extends BasicService {
         response.setFrequencyTimeWindow(config.getFrequencyTimeWindowInDays());
 
         response.setLowFrequencyThreshold(config.getLowFrequencyThreshold());
+
+        response.setYarnQueue(config.getOptional(SPARK_YARN_QUEUE, DEFAULT_VAL));
 
         return response;
     }

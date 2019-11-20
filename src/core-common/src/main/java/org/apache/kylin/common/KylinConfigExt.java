@@ -54,7 +54,7 @@ import java.util.Properties;
 @SuppressWarnings("serial")
 public class KylinConfigExt extends KylinConfig {
 
-    final Map<String, String> overrides;
+    private final Map<String, String> overrides;
     final KylinConfig base;
 
     public static KylinConfigExt createInstance(KylinConfig kylinConfig, Map<String, String> overrides) {
@@ -81,7 +81,7 @@ public class KylinConfigExt extends KylinConfig {
     }
 
     @Override
-    protected String getOptional(String prop, String dft) {
+    public String getOptional(String prop, String dft) {
         String value = overrides.get(prop);
         if (value != null)
             return getSubstitutor().replace(value);

@@ -29,6 +29,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.request.YarnQueueRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -278,4 +279,14 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "/yarn_queue", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateYarnQueue(@RequestBody YarnQueueRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg("queue_name", request.getQueueName());
+
+        projectService.updateYarnQueue(request.getProject(), request.getQueueName());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
 }
