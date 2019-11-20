@@ -47,7 +47,7 @@ public class QueryHistoryRequest {
     private String latencyTo;
     private String sql;
     private String server;
-    private List<String> queryStatusList;
+    private List<String> queryStatus;
 
     List<String> realizations;
 

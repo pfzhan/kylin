@@ -177,18 +177,18 @@ public class NQueryController extends NBasicController {
     @GetMapping(value = "/history_queries", produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
-            @RequestParam(value = "startTimeFrom", required = false) String startTimeFrom,
-            @RequestParam(value = "startTimeTo", required = false) String startTimeTo,
-            @RequestParam(value = "latencyFrom", required = false) String latencyFrom,
-            @RequestParam(value = "latencyTo", required = false) String latencyTo,
-            @RequestParam(value = "queryStatusList", required = false) List<String> queryStatusList,
+            @RequestParam(value = "start_time_from", required = false) String startTimeFrom,
+            @RequestParam(value = "start_time_to", required = false) String startTimeTo,
+            @RequestParam(value = "latency_from", required = false) String latencyFrom,
+            @RequestParam(value = "latency_to", required = false) String latencyTo,
+            @RequestParam(value = "query_status", required = false) List<String> queryStatus,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization", required = false) List<String> realizations,
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, server, queryStatusList, realizations);
+                latencyTo, sql, server, queryStatus, realizations);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");

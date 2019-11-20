@@ -323,7 +323,7 @@ public class NQueryControllerTest {
         request.setStartTimeTo("1000");
         request.setLatencyFrom("0");
         request.setLatencyTo("10");
-        request.setQueryStatusList(Arrays.asList("FAILED"));
+        request.setQueryStatus(Arrays.asList("FAILED"));
         HashMap<String, Object> data = Maps.newHashMap();
         data.put("query_histories", mockedQueryHistories());
         data.put("size", 6);
@@ -343,7 +343,7 @@ public class NQueryControllerTest {
 
         Mockito.verify(nQueryController).getQueryHistories(PROJECT, request.getStartTimeFrom(),
                 request.getStartTimeTo(), request.getLatencyFrom(), request.getLatencyTo(),
-                request.getQueryStatusList(), null, null, null, 2, 3);
+                request.getQueryStatus(), null, null, null, 2, 3);
 
         // check args
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)

@@ -295,7 +295,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
                 queryMeasurement,
 
                 querySqlEscaped);
-        request.setQueryStatusList(Arrays.asList("FAILED"));
+        request.setQueryStatus(Arrays.asList("FAILED"));
         filterSql = queryHistoryDAO.getQueryHistoryFilterSql(request);
         getQueryHistoriesSql = queryHistoryDAO.getQueryHistoriesSql(filterSql, limit, offset);
         getTotalSizeSql = queryHistoryDAO.getQueryHistoriesSizeSql(filterSql);

@@ -271,9 +271,9 @@ public class QueryHistoryDAO {
             sb.append(") ");
         }
 
-        if (request.getQueryStatusList() != null && !request.getQueryStatusList().isEmpty()) {
+        if (request.getQueryStatus() != null && !request.getQueryStatus().isEmpty()) {
             sb.append("AND (");
-            for (String status : request.getQueryStatusList()) {
+            for (String status : request.getQueryStatus()) {
                 sb.append(String.format("query_status = '%s' OR ", status));
             }
             sb.setLength(sb.length() - 4);
