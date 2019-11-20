@@ -4,9 +4,9 @@
       <div class="header-text font-medium">
         <span>{{$t('kylinLang.common.dataSource')}}</span>
       </div>
-      <div class="header-icons clearfix">
+      <div :class="['header-icons', 'clearfix', {selected: isSwitchSource}]">
         <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
-          <i :class="['ksd-fs-14', 'el-icon-ksd-setting', {selected: isSwitchSource}]" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
+          <i class="ksd-fs-14 el-icon-ksd-setting" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
         </el-tooltip>
       </div>
     </section>
@@ -599,18 +599,23 @@ export default class DataSourceBar extends Vue {
     }
   }
   .header-icons {
-    position: relative;
-    transform: translateY(4px);
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    right: 22px;
+    text-align: center;
+    line-height: 22px;
+    &.selected {
+      background-color: @line-split-color;
+      i {
+        color: @base-color;
+      }
+    }
     i {
-      float: right;
       margin-right: 4px;
       color: @text-title-color;
       cursor: pointer;
       &:hover {
-        color: @base-color;
-      }
-      &.selected {
-        background-color: @base-color-9;
         color: @base-color;
       }
     }
