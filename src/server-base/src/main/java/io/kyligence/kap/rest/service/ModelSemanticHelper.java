@@ -49,6 +49,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
 import org.springframework.stereotype.Service;
@@ -151,6 +152,10 @@ public class ModelSemanticHelper extends BasicService {
 
     public void updateModelColumns(NDataModel originModel, ModelRequest request) {
         val expectedModel = convertToDataModel(request);
+        val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
+                .getAllTablesMap();
+        expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables,
+                getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject());
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
         originModel.setRootFactTableName(expectedModel.getRootFactTableName());
@@ -181,7 +186,10 @@ public class ModelSemanticHelper extends BasicService {
         // compare measures
         Function<List<NDataModel.Measure>, Map<SimplifiedMeasure, NDataModel.Measure>> toMeasureMap = allCols -> allCols
                 .stream().filter(m -> !m.isTomb())
-                .collect(Collectors.toMap(SimplifiedMeasure::fromMeasure, Function.identity()));
+                .collect(Collectors.toMap(SimplifiedMeasure::fromMeasure, Function.identity(), (u, v) -> {
+                    throw new IllegalArgumentException(
+                            String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), v.getName()));
+                }));
         val newMeasures = Lists.<NDataModel.Measure> newArrayList();
         var maxMeasureId = originModel.getAllMeasures().stream().map(NDataModel.Measure::getId).mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1);

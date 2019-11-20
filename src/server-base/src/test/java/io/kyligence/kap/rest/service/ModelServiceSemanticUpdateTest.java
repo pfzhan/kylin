@@ -317,6 +317,22 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testUpdateMeasure_ChangeReturnType() throws Exception {
+        val request = newSemanticRequest();
+        for (SimplifiedMeasure simplifiedMeasure : request.getSimplifiedMeasures()) {
+            if (simplifiedMeasure.getReturnType().equals("bitmap")) {
+                simplifiedMeasure.setReturnType("hllc(12)");
+            }
+        }
+        modelService.updateDataModelSemantic("default", request);
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertNull(model.getEffectiveMeasures().get(100010));
+        Assert.assertEquals(1, model.getAllMeasures().stream()
+                .filter(m -> m.getFunction().getReturnType().equals("hllc(12)")).count());
+    }
+
+    @Test
     public void testModelUpdateMeasureName() throws Exception {
         val request = newSemanticRequest();
         request.getSimplifiedMeasures().get(0).setName("NEW_MEASURE");

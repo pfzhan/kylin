@@ -56,7 +56,6 @@ public class SimplifiedMeasure implements Serializable {
     @EqualsAndHashCode.Exclude
     @JsonProperty("name")
     private String name;
-    @EqualsAndHashCode.Exclude
     @JsonProperty("return_type")
     private String returnType;
     @JsonProperty("parameter_value")
