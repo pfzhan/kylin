@@ -212,6 +212,9 @@ export default {
     },
     [types.UPDATE_DEFAULT_DB_SETTINGS]: function ({ commit }, para) {
       return api.project.updateDefaultDBSettings(para)
+    },
+    [types.UPDATE_YARN_QUEUE]: function (_, para) {
+      return api.project.updateYarnQueue(para)
     }
   },
   getters: {

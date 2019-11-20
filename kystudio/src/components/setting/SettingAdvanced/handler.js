@@ -5,6 +5,15 @@ export const validate = {
     } else {
       callback()
     }
+  },
+  'validateYarnName' (rule, value, callback) {
+    if (!value) {
+      callback(rule.message[0])
+    } else if (rule.type !== 'string') {
+      callback(rule.message[1])
+    } else {
+      callback()
+    }
   }
 }
 
@@ -35,5 +44,12 @@ export function _getDefaultDBSettings (data) {
   return {
     project: data.project,
     defaultDatabase: data.default_database
+  }
+}
+
+export function _getYarnNameSetting (data) {
+  return {
+    project: data.project,
+    yarn_queue: data.yarn_queue
   }
 }

@@ -18,7 +18,12 @@ export default {
     defaultDBNote1: 'After setting the default database, the database name can be omitted in SQL statements when executing a query or importing a SQL file.',
     defaultDBNote2: 'Note: modifying the default database may result in saved queries or SQL files being unavailable. Please modify the default database prudently. ',
     confirmDefaultDBTitle: 'Modify Default Database',
-    confirmDefaultDBContent: 'Modifying the default database may result in saved queries or SQL files being unavailable. Please confirm whether to modify the default database to {dbName} ?'
+    confirmDefaultDBContent: 'Modifying the default database may result in saved queries or SQL files being unavailable. Please confirm whether to modify the default database to {dbName} ?',
+    yarnQueue: 'YARN Application Queue',
+    yarnQueueTip: 'The system admin user can set the YARN Application Queue of the project. After setting the queue, the jobs will be submitted to the specified queue to achieve computing resources allocation and separation between projects.',
+    yarnQueueWarn: 'Note: please confirm that the set queue is available, otherwise the jobs will be submitted to the default queue in YARN.',
+    yarnIsEmpty: 'The queue name is required',
+    yarnFormat: 'Incorrect format'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -39,6 +44,11 @@ export default {
     defaultDBNote1: '设置为默认数据库后，执行查询语句时或导入 SQL 文件中可以省略数据库名称。',
     defaultDBNote2: '注意：修改默认数据库可能会导致已保存的查询或 SQL 脚本文件不可用，请您谨慎修改默认数据库。',
     confirmDefaultDBTitle: '修改默认数据库',
-    confirmDefaultDBContent: '修改默认数据库可能会导致已保存的查询或 SQL 脚本文件不可用，请确认是否修改默认数据库为 {dbName} ？'
+    confirmDefaultDBContent: '修改默认数据库可能会导致已保存的查询或 SQL 脚本文件不可用，请确认是否修改默认数据库为 {dbName} ？',
+    yarnQueue: 'YARN 资源队列',
+    yarnQueueTip: '系统管理员可以设置项目的 YARN 资源队列，设置后任务将被提交到指定的队列，以实现项目间计算资源的调配和隔离。',
+    yarnQueueWarn: '注意：请确认设置的队列可用，否则任务将被提交到 YARN 默认的资源队列。',
+    yarnIsEmpty: '请输入队列名称',
+    yarnFormat: '格式错误'
   }
 }

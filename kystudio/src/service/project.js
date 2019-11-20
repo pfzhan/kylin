@@ -94,5 +94,8 @@ export default {
   },
   updateDefaultDBSettings (body) {
     return Vue.resource(apiUrl + 'projects/default_database').update(body)
+  },
+  updateYarnQueue (body) {
+    return Vue.resource(apiUrl + 'projects/yarn_queue').update(body)
   }
 }

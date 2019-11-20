@@ -113,17 +113,43 @@
         </div>
       </div>
     </EditableBlock>
+    <!-- YARN 资源队列 -->
+    <EditableBlock
+      :header-content="$t('yarnQueue')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'yarn-name')"
+      :is-editable="userType"
+      @submit="(scb, ecb) => handleSubmit('yarn-name', scb, ecb)"
+      @cancel="(scb, ecb) => handleResetForm('yarn-name', scb, ecb)">
+      <el-form ref="yarn-setting-form" :model="form" :rules="yarnQueueRules" :inline-message="true">
+        <div class="setting-item">
+          <div class="setting-label font-medium">{{$t('yarnQueue')}}</div>
+          <el-form-item prop="yarn_queue">
+            <el-input
+              size="small"
+              class="yarn-name-input"
+              :disabled="!userType"
+              v-model.trim="form.yarn_queue">
+            </el-input>
+          </el-form-item>
+          <div class="setting-desc">
+            <p>{{$t('yarnQueueTip')}}</p>
+            <p class="warning"><i class="el-icon-ksd-alert"></i>{{$t('yarnQueueWarn')}}</p>
+          </div>
+        </div>
+      </el-form>
+    </EditableBlock>
   </div>
 </template>
 
 <script>
 import Vue from 'vue'
 import locales from './locales'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapState } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import { handleError, handleSuccessAsync } from '../../../util'
-import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings } from './handler'
+import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   props: {
@@ -138,7 +164,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       updateJobAlertSettings: 'UPDATE_JOB_ALERT_SETTINGS',
       resetConfig: 'RESET_PROJECT_CONFIG',
       updateDefaultDBSettings: 'UPDATE_DEFAULT_DB_SETTINGS',
-      fetchDatabases: 'FETCH_DATABASES'
+      fetchDatabases: 'FETCH_DATABASES',
+      updateYarnQueue: 'UPDATE_YARN_QUEUE'
     })
   },
   components: {
@@ -148,7 +175,10 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
     ...mapGetters([
       'currentSelectedProject',
       'currentProjectData'
-    ])
+    ]),
+    ...mapState({
+      currentUser: state => state.user.currentUser
+    })
   },
   locales
 })
@@ -161,7 +191,9 @@ export default class SettingAdvanced extends Vue {
     job_error_notification_enabled: true,
     data_load_empty_notification_enabled: true,
     job_notification_emails: [],
-    default_database: this.$store.state.project.projectDefaultDB || ''
+    default_database: this.$store.state.project.projectDefaultDB || '',
+    yarn_queue: this.$store.state.project.yarn_queue || ''
+
   }
   get accelerateRules () {
     return {
@@ -179,10 +211,18 @@ export default class SettingAdvanced extends Vue {
       { type: 'email', message: this.$t('pleaseInputVaildEmail'), trigger: 'blur' }
     ]
   }
+  get yarnQueueRules () {
+    return {
+      'yarn_queue': [{ validator: validate['validateYarnName'], message: [this.$t('yarnIsEmpty'), this.$t('yarnFormat')], trigger: 'blur' }]
+    }
+  }
+  get userType () {
+    return this.currentUser.authorities.map(user => user.authority).some((u) => u === 'ROLE_ADMIN')
+  }
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   onFormChange () {
-    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings')
+    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings') || this.isFormEdited(this.form, 'yarn-name')
     this.$emit('form-changed', { advanceSetting })
   }
   async loadDataBases () {
@@ -206,6 +246,7 @@ export default class SettingAdvanced extends Vue {
     this.handleInit('accelerate-settings')
     this.handleInit('job-alert')
     this.handleInit('defaultDB-settings')
+    this.handleInit('yarn-name')
   }
   handleInit (type) {
     switch (type) {
@@ -219,6 +260,9 @@ export default class SettingAdvanced extends Vue {
       }
       case 'defaultDB-settings': {
         this.form = { ...this.form, ..._getDefaultDBSettings(this.project) }; break
+      }
+      case 'yarn-name': {
+        this.form = { ...this.form, ..._getYarnNameSetting(this.project) }; break
       }
     }
   }
@@ -262,6 +306,16 @@ export default class SettingAdvanced extends Vue {
             return errorCallback()
           }
         }
+        case 'yarn-name': {
+          if (await this.$refs['yarn-setting-form'].validate()) {
+            let submitData = _getYarnNameSetting(this.form)
+            submitData = 'yarn_queue' in submitData && {project: submitData.project, queue_name: submitData.yarn_queue}
+            this.updateYarnQueue(submitData)
+          } else {
+            errorCallback()
+          }
+          break
+        }
       }
       // 设置默认参数的有二次确认，所以成功的反馈不能在结尾调
       if (type !== 'defaultDB-settings') {
@@ -299,6 +353,13 @@ export default class SettingAdvanced extends Vue {
           this.$refs['setDefaultDB'].clearValidate() */
           break
         }
+        case 'yarn-name': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'yarn_queue'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getYarnNameSetting(data) }
+          this.$refs['yarn-setting-form'].clearValidate()
+          break
+        }
       }
       successCallback()
       this.$emit('reload-setting')
@@ -325,6 +386,8 @@ export default class SettingAdvanced extends Vue {
         return JSON.stringify(_getDefaultDBSettings(form)) !== JSON.stringify(_getDefaultDBSettings(project))
       case 'job-alert':
         return JSON.stringify(_getJobAlertSettings(form, true)) !== JSON.stringify(_getJobAlertSettings(project, true))
+      case 'yarn-name':
+        return JSON.stringify(_getYarnNameSetting(form)) !== JSON.stringify(_getYarnNameSetting(project))
     }
   }
 }
@@ -378,6 +441,9 @@ export default class SettingAdvanced extends Vue {
     * {
       cursor: not-allowed;
     }
+  }
+  .yarn-name-input {
+    width: 120px;
   }
 }
 </style>
