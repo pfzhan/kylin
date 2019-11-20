@@ -55,9 +55,17 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class NAggregationGroup implements Serializable {
     public static class HierarchyMask implements Serializable {
-        public BigInteger fullMask = BigInteger.ZERO; // 00000111
-        public BigInteger[] allMasks; // 00000100,00000110,00000111
-        public BigInteger[] dims; // 00000100,00000010,00000001
+        @Getter
+        @Setter
+        private BigInteger fullMask = BigInteger.ZERO; // 00000111
+
+        @Getter
+        @Setter
+        private BigInteger[] allMasks; // 00000100,00000110,00000111
+
+        @Getter
+        @Setter
+        private BigInteger[] dims; // 00000100,00000010,00000001
     }
 
     @Getter

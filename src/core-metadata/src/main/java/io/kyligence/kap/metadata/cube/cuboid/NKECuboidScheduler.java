@@ -194,6 +194,10 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<BigInteger>() {
             @Override
             public boolean apply(@Nullable BigInteger cuboidId) {
+                if (cuboidId == null) {
+                    return false;
+                }
+
                 if (cuboidId.equals(ruleBasedAggIndex.getFullMask())) {
                     return true;
                 }
@@ -295,7 +299,7 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         }
 
         for (NAggregationGroup.HierarchyMask hierarchy : agg.getHierarchyMasks()) {
-            for (BigInteger mask : hierarchy.allMasks) {
+            for (BigInteger mask : hierarchy.getAllMasks()) {
                 if (fillBit(tmpChild, mask, parentCandidate)) {
                     break;
                 }
@@ -337,7 +341,7 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         }
 
         for (NAggregationGroup.HierarchyMask hierarchy : agg.getHierarchyMasks()) {
-            if (!(cuboidID.and(hierarchy.fullMask)).equals(BigInteger.ZERO))
+            if (!(cuboidID.and(hierarchy.getFullMask())).equals(BigInteger.ZERO))
                 dimCount++;
         }
 
