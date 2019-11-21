@@ -78,7 +78,7 @@
           <!-- <span v-if="props.row.query_status === 'FAILED'">Failed</span> -->
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_text" show-overflow-tooltip>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit" show-overflow-tooltip>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn3" prop="realizations" width="250" show-overflow-tooltip>
         <template slot-scope="props">
@@ -112,6 +112,8 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
 import $ from 'jquery'
+import { sqlRowsLimit } from '../../config/index'
+import sqlFormatter from 'sql-formatter'
 @Component({
   name: 'QueryHistoryTable',
   props: ['queryHistoryData', 'queryNodes'],
@@ -163,6 +165,14 @@ export default class QueryHistoryTable extends Vue {
       this.filterData.startTimeTo = null
     }
     this.filterList()
+  }
+
+  @Watch('queryHistoryData')
+  onQueryHistoryDataChange (val) {
+    val.forEach(element => {
+      const sql = sqlFormatter.format(element.sql_text).split('\n')
+      element['sql_limit'] = sql.length > sqlRowsLimit ? [...sql.slice(0, sqlRowsLimit), '...'].join('\n') : element.sql_text
+    })
   }
 
   expandChange () {
