@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
+import org.apache.kylin.rest.exception.BadRequestException;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Data;
 
 @Data
 public class GarbageCleanUpConfigRequest {
@@ -35,22 +37,25 @@ public class GarbageCleanUpConfigRequest {
     @JsonProperty("frequency_time_window")
     private FrequencyTimeWindowEnum frequencyTimeWindow;
     @JsonProperty("low_frequency_threshold")
-    private long lowFrequencyThreshold;
+    private Long lowFrequencyThreshold;
 
     public enum FrequencyTimeWindowEnum {
         DAY, WEEK, MONTH
     }
 
     public int getFrequencyTimeWindow() {
+        if (frequencyTimeWindow == null) {
+            throw new BadRequestException("parameter 'frequency_time_window' is not set");
+        }
         switch (frequencyTimeWindow) {
-            case DAY:
-                return 1;
-            case WEEK:
-                return 7;
-            case MONTH:
-                return 30;
-            default:
-                throw new IllegalArgumentException("Illegal parameter 'frequency_time_window'!");
+        case DAY:
+            return 1;
+        case WEEK:
+            return 7;
+        case MONTH:
+            return 30;
+        default:
+            throw new IllegalArgumentException("Illegal parameter 'frequency_time_window'!");
         }
     }
 

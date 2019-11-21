@@ -165,7 +165,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
-        copy.getSegmentConfig().getVolatileRange().setVolatileRangeNumber(3);
+        copy.getSegmentConfig().getVolatileRange().setVolatileRangeNumber(3L);
         copy.getSegmentConfig().getVolatileRange().setVolatileRangeEnabled(true);
 
         prjManager.updateProject(copy);

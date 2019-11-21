@@ -33,7 +33,7 @@ public class FavoriteQueryThresholdRequest {
     @JsonProperty("project")
     private String project;
     @JsonProperty("threshold")
-    private int threshold;
+    private Integer threshold;
     @JsonProperty("tips_enabled")
-    private boolean tipsEnabled;
+    private Boolean tipsEnabled;
 }

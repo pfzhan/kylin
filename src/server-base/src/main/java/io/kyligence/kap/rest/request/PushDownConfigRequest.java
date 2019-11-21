@@ -34,7 +34,5 @@ public class PushDownConfigRequest {
     @JsonProperty("project")
     private String project;
     @JsonProperty("push_down_enabled")
-    private boolean pushDownEnabled;
-    @JsonProperty("push_down_range_limited")
-    private boolean pushDownRangeLimited;
+    private Boolean pushDownEnabled;
 }

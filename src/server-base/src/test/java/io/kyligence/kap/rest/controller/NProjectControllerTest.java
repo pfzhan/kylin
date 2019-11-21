@@ -43,6 +43,8 @@
 package io.kyligence.kap.rest.controller;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -71,6 +73,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -121,7 +124,10 @@ public class NProjectControllerTest {
 
     private ProjectRequest mockProjectRequest() {
         ProjectRequest projectRequest = new ProjectRequest();
-        projectRequest.setProjectDescData("{\"name\":\"test\"}");
+        projectRequest.setName("test");
+        projectRequest.setDescription("test");
+        projectRequest.setOverrideKylinProperties(new LinkedHashMap<>());
+        projectRequest.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
         return projectRequest;
     }
 
@@ -144,10 +150,8 @@ public class NProjectControllerTest {
 
     @Test
     public void testInvalidProjectName() {
-        ProjectInstance projectInstance = new ProjectInstance();
-        projectInstance.setName("^project");
         ProjectRequest projectRequest = mockProjectRequest();
-        Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
+        projectRequest.setName("^project");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(Message.getInstance().getINVALID_PROJECT_NAME());
         nProjectController.saveProject(projectRequest);
@@ -155,11 +159,10 @@ public class NProjectControllerTest {
 
     @Test
     public void testSaveProjects() throws Exception {
-
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("test");
         ProjectRequest projectRequest = mockProjectRequest();
-        Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
+        projectRequest.setName("test");
         Mockito.when(projectService.createProject(projectInstance.getName(), projectInstance))
                 .thenReturn(projectInstance);
         MvcResult mvcResult = mockMvc
@@ -167,9 +170,7 @@ public class NProjectControllerTest {
                         .content(JsonUtil.writeValueAsString(projectRequest))
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
         Mockito.verify(nProjectController).saveProject(Mockito.any(ProjectRequest.class));
-
     }
 
     @Test
@@ -248,6 +249,9 @@ public class NProjectControllerTest {
     public void testUpdateJobNotificationConfig() throws Exception {
         val request = new JobNotificationConfigRequest();
         request.setProject("default");
+        request.setJobErrorNotificationEnabled(true);
+        request.setDataLoadEmptyNotificationEnabled(true);
+        request.setJobNotificationEmails(Arrays.asList("fff@g.com"));
         Mockito.doNothing().when(projectService).updateJobNotificationConfig("default", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/job_notification_config")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -259,6 +263,7 @@ public class NProjectControllerTest {
     @Test
     public void testUpdatePushDownConfig() throws Exception {
         val request = new PushDownConfigRequest();
+        request.setPushDownEnabled(true);
         request.setProject("default");
         Mockito.doNothing().when(projectService).updatePushDownConfig("default", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/push_down_config")
@@ -286,6 +291,8 @@ public class NProjectControllerTest {
         request.setVolatileRange(new VolatileRange());
         request.setRetentionRange(new RetentionRange());
         request.setProject("default");
+        request.setAutoMergeEnabled(true);
+        request.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
         Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

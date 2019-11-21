@@ -44,6 +44,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,7 @@ import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -390,6 +392,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
         segmentConfigRequest.setProject(project);
+        segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
         projectService.updateSegmentConfig(project, segmentConfigRequest);
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(false, response.isAutoMergeEnabled());
@@ -405,6 +408,12 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(2, response.getJobNotificationEmails().size());
         Assert.assertEquals(false, response.isJobErrorNotificationEnabled());
         Assert.assertEquals(false, response.isDataLoadEmptyNotificationEnabled());
+
+        jobNotificationConfigRequest
+                .setJobNotificationEmails(Lists.newArrayList("@kyligence.io", "user2@.io", "user2@kyligence.io"));
+        thrown.expect(BadRequestException.class);
+        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
+        thrown = ExpectedException.none();
 
         val pushDownConfigRequest = new PushDownConfigRequest();
         pushDownConfigRequest.setProject(project);
@@ -511,7 +520,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testUpdateGarbageCleanupConfig() {
         val request = new GarbageCleanUpConfigRequest();
         request.setFrequencyTimeWindow(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK);
-        request.setLowFrequencyThreshold(12);
+        request.setLowFrequencyThreshold(12L);
         projectService.updateGarbageCleanupConfig("default", request);
         val prjMgr = NProjectManager.getInstance(getTestConfig());
         val prj = prjMgr.getProject("default");
@@ -539,6 +548,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
         segmentConfigRequest.setProject(PROJECT);
+        segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.YEAR));
         projectService.updateSegmentConfig(PROJECT, segmentConfigRequest);
 
         val jobNotificationConfigRequest = new JobNotificationConfigRequest();
@@ -553,7 +563,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         val request = new GarbageCleanUpConfigRequest();
         request.setFrequencyTimeWindow(GarbageCleanUpConfigRequest.FrequencyTimeWindowEnum.WEEK);
-        request.setLowFrequencyThreshold(12);
+        request.setLowFrequencyThreshold(12L);
         projectService.updateGarbageCleanupConfig("default", request);
     }
 

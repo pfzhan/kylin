@@ -38,6 +38,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -108,12 +109,13 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
+        checkRequiredArg("maintain_model_type", projectRequest.getMaintainModelType());
 
-        ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
-        if (StringUtils.isEmpty(projectDesc.getName())) {
-            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_PROJECT_NAME());
-        }
-        if (!StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
+        ProjectInstance projectDesc = new ProjectInstance();
+        BeanUtils.copyProperties(projectRequest, projectDesc);
+        checkRequiredArg("name", projectRequest.getName());
+        if (StringUtils.isEmpty(projectRequest.getName())
+                || !StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
             throw new BadRequestException(MsgPicker.getMsg().getINVALID_PROJECT_NAME(), projectDesc.getName());
         }
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
@@ -138,9 +140,12 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse updateQueryAccelerateThresholdConfig(
             @RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) {
         checkProjectName(favoriteQueryThresholdRequest.getProject());
-        checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
+        checkRequiredArg("tips_enabled", favoriteQueryThresholdRequest.getTipsEnabled());
+        if (Boolean.TRUE.equals(favoriteQueryThresholdRequest.getTipsEnabled())) {
+            checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
+        }
         projectService.updateQueryAccelerateThresholdConfig(favoriteQueryThresholdRequest.getProject(),
-                favoriteQueryThresholdRequest.getThreshold(), favoriteQueryThresholdRequest.isTipsEnabled());
+                favoriteQueryThresholdRequest.getThreshold(), favoriteQueryThresholdRequest.getTipsEnabled());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
     }
@@ -184,9 +189,8 @@ public class NProjectController extends NBasicController {
             throws Exception {
         String project = storageQuotaRequest.getProject();
         checkProjectName(project);
-
-        long storageQuotaSize = storageQuotaRequest.getStorageQuotaSize();
-        projectService.updateStorageQuotaConfig(project, storageQuotaSize);
+        checkRequiredArg("storage_quota_size", storageQuotaRequest.getStorageQuotaSize());
+        projectService.updateStorageQuotaConfig(project, storageQuotaRequest.getStorageQuotaSize());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
 
@@ -207,6 +211,8 @@ public class NProjectController extends NBasicController {
             @RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) throws Exception {
         String project = garbageCleanUpConfigRequest.getProject();
         checkProjectName(project);
+        checkRequiredArg("low_frequency_threshold", garbageCleanUpConfigRequest.getLowFrequencyThreshold());
+        checkRequiredArg("frequency_time_window", garbageCleanUpConfigRequest.getFrequencyTimeWindow());
         projectService.updateGarbageCleanupConfig(project, garbageCleanUpConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
@@ -217,6 +223,11 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse updateJobNotificationConfig(
             @RequestBody JobNotificationConfigRequest jobNotificationConfigRequest) {
         checkProjectName(jobNotificationConfigRequest.getProject());
+        checkRequiredArg("data_load_empty_notification_enabled",
+                jobNotificationConfigRequest.getDataLoadEmptyNotificationEnabled());
+        checkRequiredArg("job_error_notification_enabled",
+                jobNotificationConfigRequest.getJobErrorNotificationEnabled());
+        checkRequiredArg("job_notification_emails", jobNotificationConfigRequest.getJobNotificationEmails());
         projectService.updateJobNotificationConfig(jobNotificationConfigRequest.getProject(),
                 jobNotificationConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -227,6 +238,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updatePushDownConfig(@RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkProjectName(pushDownConfigRequest.getProject());
+        checkRequiredArg("push_down_enabled", pushDownConfigRequest.getPushDownEnabled());
         projectService.updatePushDownConfig(pushDownConfigRequest.getProject(), pushDownConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -236,7 +248,8 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateSegmentConfig(@RequestBody SegmentConfigRequest segmentConfigRequest) {
         checkProjectName(segmentConfigRequest.getProject());
-        checkSegmentConfigArg(segmentConfigRequest);
+        checkRequiredArg("auto_merge_enabled", segmentConfigRequest.getAutoMergeEnabled());
+        checkRequiredArg("auto_merge_time_ranges", segmentConfigRequest.getAutoMergeTimeRanges());
         projectService.updateSegmentConfig(segmentConfigRequest.getProject(), segmentConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }

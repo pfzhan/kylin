@@ -80,7 +80,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.Validation;
 import lombok.val;
 
@@ -251,14 +250,6 @@ public class NBasicController {
             checkRequiredArg("table", request.getTable());
             validateRange(request.getStart(), request.getEnd());
         }
-    }
-
-    public void checkSegmentConfigArg(SegmentConfigRequest segmentConfigRequest) {
-        if (segmentConfigRequest.getRetentionRange().getRetentionRangeNumber() < 0)
-            throw new BadRequestException("Retention range number must be greater than 0.");
-
-        if (segmentConfigRequest.getVolatileRange().getVolatileRangeNumber() < 0)
-            throw new BadRequestException("Volatile range number must be greater than 0.");
     }
 
 }

@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import lombok.Data;
-
-import java.util.List;
 
 @Data
 public class SegmentConfigRequest {
@@ -43,7 +43,7 @@ public class SegmentConfigRequest {
     @JsonProperty("auto_merge_time_ranges")
     private List<AutoMergeTimeEnum> autoMergeTimeRanges;
     @JsonProperty("volatile_range")
-    private VolatileRange volatileRange;
+    private VolatileRange volatileRange = new VolatileRange();
     @JsonProperty("retention_range")
-    private RetentionRange retentionRange;
+    private RetentionRange retentionRange = new RetentionRange();
 }

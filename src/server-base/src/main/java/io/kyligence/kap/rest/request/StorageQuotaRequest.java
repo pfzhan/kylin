@@ -33,5 +33,5 @@ public class StorageQuotaRequest {
     @JsonProperty("project")
     private String project;
     @JsonProperty("storage_quota_size")
-    private long storageQuotaSize;
+    private Long storageQuotaSize;
 }

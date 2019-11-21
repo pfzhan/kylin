@@ -125,11 +125,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private LinkedHashMap<String, String> overrideKylinProps;
 
-    @JsonProperty("push_down_range_limited")
-    @Getter
-    @Setter
-    private boolean pushDownRangeLimited = true;
-
     @JsonProperty("segment_config")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Getter

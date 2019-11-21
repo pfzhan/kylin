@@ -24,33 +24,38 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.validation.constraints.AssertTrue;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.springframework.validation.FieldError;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.Data;
 import lombok.val;
 
 @Data
 public class ProjectRequest implements Validation {
-
-    private String formerProjectName;
-
-    private String projectDescData;
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("description")
+    private String description;
+    @JsonProperty("override_kylin_properties")
+    private LinkedHashMap<String, String> overrideKylinProperties;
+    @JsonProperty("maintain_model_type")
+    private MaintainModelType maintainModelType;
 
     @AssertTrue
     public boolean isNameValid() {
         val pattern = Pattern.compile("^(?![_])\\w+$");
         try {
-            val instance = JsonUtil.readValue(projectDescData, ProjectInstance.class);
-            return pattern.matcher(instance.getName()).matches();
+            return pattern.matcher(name).matches();
         } catch (Exception e) {
             return false;
         }

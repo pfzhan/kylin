@@ -25,10 +25,13 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -60,12 +63,12 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
-import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
@@ -76,11 +79,9 @@ import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
 import lombok.val;
-import lombok.var;
 
 @Component("projectService")
 public class ProjectService extends BasicService {
-
     private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
 
     @Autowired
@@ -95,18 +96,6 @@ public class ProjectService extends BasicService {
     private static final String DEFAULT_VAL = "default";
 
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
-        logger.debug("Saving project " + projectRequest.getProjectDescData());
-        ProjectInstance projectDesc;
-        try {
-            projectDesc = JsonUtil.readValue(projectRequest.getProjectDescData(), ProjectInstance.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return projectDesc;
-    }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction
@@ -147,7 +136,9 @@ public class ProjectService extends BasicService {
     @Transaction
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean tipsEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", String.valueOf(threshold));
+        if (threshold != null) {
+            overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", String.valueOf(threshold));
+        }
         overrideKylinProps.put("kylin.favorite.query-accelerate-tips-enable", String.valueOf(tipsEnabled));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
@@ -231,6 +222,11 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
+        if (storageQuotaSize < 0) {
+            throw new BadRequestException(
+                    "No valid storage quota size, Please set an integer greater than or equal to 0 "
+                            + "to 'storage_quota_size', unit byte.");
+        }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
         overrideKylinProps.put("kylin.storage.quota-in-giga-bytes", String.valueOf(storageQuotaSizeGB));
@@ -263,9 +259,9 @@ public class ProjectService extends BasicService {
     public void updateJobNotificationConfig(String project, JobNotificationConfigRequest jobNotificationConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.job.notification-on-empty-data-load",
-                String.valueOf(jobNotificationConfigRequest.isDataLoadEmptyNotificationEnabled()));
+                String.valueOf(jobNotificationConfigRequest.getDataLoadEmptyNotificationEnabled()));
         overrideKylinProps.put("kylin.job.notification-on-job-error",
-                String.valueOf(jobNotificationConfigRequest.isJobErrorNotificationEnabled()));
+                String.valueOf(jobNotificationConfigRequest.getJobErrorNotificationEnabled()));
         overrideKylinProps.put("kylin.job.notification-admin-emails",
                 convertToString(jobNotificationConfigRequest.getJobNotificationEmails()));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
@@ -280,12 +276,22 @@ public class ProjectService extends BasicService {
     }
 
     private String convertToString(List<String> stringList) {
-        var strValue = "";
         if (CollectionUtils.isEmpty(stringList)) {
-            return strValue;
+            throw new BadRequestException("Please enter at least one email address.");
         }
-        strValue = String.join(",", Sets.newHashSet(stringList));
-        return strValue;
+        Set<String> notEmails = Sets.newHashSet();
+        for (String email : Sets.newHashSet(stringList)) {
+            Pattern pattern = Pattern.compile("^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\\.[a-zA-Z0-9-]+)*\\.[a-zA-Z0-9]{2,6}$");
+            Matcher matcher = pattern.matcher(email);
+            if (!matcher.find()) {
+                notEmails.add(email);
+            }
+        }
+        if (!notEmails.isEmpty()) {
+            throw new BadRequestException(
+                    "No valid value " + notEmails + " for 'job_notification_email'. Please enter valid email address.");
+        }
+        return String.join(",", Sets.newHashSet(stringList));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
@@ -303,7 +309,6 @@ public class ProjectService extends BasicService {
         response.setStorageQuotaSize(config.getStorageQuotaSize());
 
         response.setPushDownEnabled(config.isPushDownEnabled());
-        response.setPushDownRangeLimited(projectInstance.isPushDownRangeLimited());
 
         response.setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
         response.setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
@@ -350,21 +355,39 @@ public class ProjectService extends BasicService {
     public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             val config = getConfig();
-            if (pushDownConfigRequest.isPushDownEnabled()) {
+            if (Boolean.TRUE.equals(pushDownConfigRequest.getPushDownEnabled())) {
                 val pushDownRunner = config.getPushDownRunnerClassName();
                 Preconditions.checkState(StringUtils.isNotBlank(pushDownRunner),
-                        "There is no default PushDownRunner, please check kylin.query.pushdown.runner-class-name in kylin.properties.");
+                        "There is no default PushDownRunner, please check "
+                                + "kylin.query.pushdown.runner-class-name in kylin.properties.");
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", pushDownRunner);
             } else {
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", "");
             }
-            copyForWrite.setPushDownRangeLimited(pushDownConfigRequest.isPushDownRangeLimited());
         });
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction
     public void updateSegmentConfig(String project, SegmentConfigRequest segmentConfigRequest) {
+        //api send volatileRangeEnabled = false but finally it is reset to true
+        segmentConfigRequest.getVolatileRange().setVolatileRangeEnabled(true);
+        if (segmentConfigRequest.getVolatileRange().getVolatileRangeNumber() < 0) {
+            throw new BadRequestException("No valid value. Please set an integer 'x' to "
+                    + "'volatile_range_number'. The 'Auto-Merge' will not merge latest 'x' "
+                    + "period(day/week/month/etc..) segments.");
+        }
+        if (segmentConfigRequest.getRetentionRange().getRetentionRangeNumber() < 0) {
+            throw new BadRequestException("No valid value for 'retention_range_number'."
+                    + " Please set an integer 'x' to specify the retention threshold. The system will "
+                    + "only retain the segments in the retention threshold (x years before the last data time). ");
+        }
+        if (segmentConfigRequest.getAutoMergeTimeRanges().isEmpty()) {
+            throw new BadRequestException("No valid value for 'auto_merge_time_ranges'. Please set "
+                    + "{'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'} to specify the period of auto-merge. ");
+        }
+        segmentConfigRequest.getRetentionRange().setRetentionRangeType(segmentConfigRequest.getAutoMergeTimeRanges()
+                .stream().max(Comparator.comparing(AutoMergeTimeEnum::ordinal)).orElse(AutoMergeTimeEnum.YEAR));
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getSegmentConfig().setAutoMergeEnabled(segmentConfigRequest.getAutoMergeEnabled());
             copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(segmentConfigRequest.getAutoMergeTimeRanges());
@@ -437,6 +460,12 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
+        if (garbageCleanUpConfigRequest.getLowFrequencyThreshold() < 0L) {
+            throw new BadRequestException("No valid value for 'low_frequency_threshold'. Please "
+                    + "set an integer 'x' greater than or equal to 0 to specify the low usage storage "
+                    + "calculation time. When index usage is lower than 'x' times, it would be regarded "
+                    + "as low usage storage.");
+        }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.cube.low-frequency-threshold",
                 String.valueOf(garbageCleanUpConfigRequest.getLowFrequencyThreshold()));
@@ -456,6 +485,10 @@ public class ProjectService extends BasicService {
             resetGarbageCleanupConfig(project);
         } else if ("segment_config".equals(resetItem)) {
             resetSegmentConfig(project);
+        } else {
+            throw new BadRequestException("No valid value for 'reset_item'. Please enter a project setting "
+                    + "type which needs to be reset {'job_notification_config'，"
+                    + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config'} to 'reset_item'.");
         }
         return getProjectConfig(project);
     }

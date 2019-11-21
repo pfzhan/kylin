@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.rest.validator;
 
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,15 +32,12 @@ import lombok.val;
 public class ProjectRequestTest {
 
     @Test
-    public void testRequest_isNameValid() throws Exception {
+    public void testRequest_isNameValid() {
         val req = new ProjectRequest();
-        val project = new ProjectInstance();
-        project.setName("_invalid");
-        req.setProjectDescData(JsonUtil.writeValueAsString(project));
+        req.setName("_invaild");
         Assert.assertFalse(req.isNameValid());
 
-        project.setName("valid");
-        req.setProjectDescData(JsonUtil.writeValueAsString(project));
+        req.setName("valid");
         Assert.assertTrue(req.isNameValid());
     }
 }

@@ -55,8 +55,6 @@ public class ProjectConfigResponse {
 
     @JsonProperty("push_down_enabled")
     private boolean pushDownEnabled;
-    @JsonProperty("push_down_range_limited")
-    private boolean pushDownRangeLimited;
 
     @JsonProperty("auto_merge_enabled")
     private boolean autoMergeEnabled = true;
@@ -90,17 +88,17 @@ public class ProjectConfigResponse {
 
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
-            case 1:
-                this.frequencyTimeWindow = "DAY";
-                break;
-            case 7:
-                this.frequencyTimeWindow = "WEEK";
-                break;
-            case 30:
-                this.frequencyTimeWindow = "MONTH";
-                break;
-            default:
-                break;
+        case 1:
+            this.frequencyTimeWindow = "DAY";
+            break;
+        case 7:
+            this.frequencyTimeWindow = "WEEK";
+            break;
+        case 30:
+            this.frequencyTimeWindow = "MONTH";
+            break;
+        default:
+            break;
         }
 
     }
