@@ -21,4 +21,4 @@ round( max(round(sum(price),0)) over(partition by lstg_format_name,cal_dt), 0),
 round( min(round(sum(price),0)) over(partition by lstg_format_name), 0)
 from test_kylin_fact
 group by cal_dt, lstg_format_name
-order by cal_dt, lstg_format_name
+order by 2,1,3,4,5
