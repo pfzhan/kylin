@@ -99,14 +99,14 @@ export default class QueryHistory extends Vue {
       project: this.currentSelectedProject || null,
       limit: this.pageSize || 10,
       offset: pageIndex || 0,
-      startTimeFrom: this.filterData.startTimeFrom,
-      startTimeTo: this.filterData.startTimeTo,
-      latencyFrom: this.filterData.latencyFrom,
-      latencyTo: this.filterData.latencyTo,
+      start_time_from: this.filterData.startTimeFrom,
+      start_time_to: this.filterData.startTimeTo,
+      latency_from: this.filterData.latencyFrom,
+      latency_to: this.filterData.latencyTo,
       realization: this.filterData.realization,
       server: this.filterData.server,
       sql: this.filterData.sql,
-      queryStatusList: this.filterData.query_status
+      query_status: this.filterData.query_status
     }
     const res = await this.getHistoryList(resData)
     const data = await handleSuccessAsync(res)
