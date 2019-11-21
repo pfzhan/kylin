@@ -63,4 +63,9 @@ public class RedundantLayoutGcStrategy implements IGarbageCleanerStrategy {
         redundantToReservedMap.forEach((redundant, reserved) -> garbageLayouts.add(redundant.getId()));
         return garbageLayouts;
     }
+
+    @Override
+    public LayoutGarbageCleaner.LayoutGarbageType getType() {
+        return LayoutGarbageCleaner.LayoutGarbageType.INCLUDED;
+    }
 }

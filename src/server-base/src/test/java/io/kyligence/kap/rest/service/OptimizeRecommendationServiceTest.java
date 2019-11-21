@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -39,10 +41,10 @@ import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -51,13 +53,16 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
+import io.kyligence.kap.rest.response.LayoutRecommendationResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import lombok.val;
 import lombok.var;
 
@@ -131,24 +136,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     @Test
     public void testGetRecommendationByModel() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
-
-        // case of MODIFICATION type
-        recommendationManager.updateOptimizeRecommendation(id, optRecomm -> {
-            val aggIndexRecom = optRecomm.getIndexRecommendations().stream()
-                    .filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
-            val updatedIndexRecom = JsonUtil.deepCopyQuietly(aggIndexRecom, IndexRecommendationItem.class);
-            updatedIndexRecom.setItemId(optRecomm.getIndexRecommendations().size());
-            updatedIndexRecom.setAdd(true);
-            updatedIndexRecom.setRecommendationType(RecommendationType.ADDITION);
-            val layoutEntity = new LayoutEntity();
-            layoutEntity.setAuto(true);
-            layoutEntity.setId(150003L);
-            layoutEntity.setColOrder(Lists.newArrayList(12, 0, 100001, 100000));
-            updatedIndexRecom.getEntity().setLayouts(Lists.newArrayList(layoutEntity));
-            optRecomm.getIndexRecommendations().add(updatedIndexRecom);
-        });
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         val response = service.getRecommendationByModel(projectDefault, id);
@@ -158,68 +147,53 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
                 recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(response.getMeasureRecommendations().size(),
                 recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(
-                response.getAggIndexRecommendations().size() + response.getTableIndexRecommendations().size(),
-                recommendation.getIndexRecommendations().size() - 1);
-        Assert.assertEquals(3, response.getAggIndexRecommendations().size());
-        Assert.assertEquals(2, response.getTableIndexRecommendations().size());
+        Assert.assertEquals(response.getIndexRecommendations().size(),
+                recommendation.getLayoutRecommendations().size());
 
-        val aggIndexRecommResponse = response.getAggIndexRecommendations().stream()
-                .filter(aggIndexItem -> aggIndexItem.getId() == 150000L).findFirst().orElse(null);
-        val aggIndexContent = aggIndexRecommResponse.getContent();
-        Assert.assertEquals(RecommendationType.MODIFICATION, aggIndexRecommResponse.getRecommendationType());
-        Assert.assertEquals(0, aggIndexRecommResponse.getQueryHitCount());
-        Assert.assertEquals(0, aggIndexRecommResponse.getStorageSize());
-        Assert.assertEquals(4, aggIndexContent.size());
-        Assert.assertTrue(aggIndexContent.contains("TEST_KYLIN_FACT.TRANS_ID"));
-        Assert.assertTrue(aggIndexContent.contains("TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL"));
-        Assert.assertTrue(aggIndexContent.contains("SUM_CONSTANT"));
-        Assert.assertTrue(aggIndexContent.contains("COUNT_ALL"));
+        val aggIndexRecommResponse = response.getIndexRecommendations().stream().filter(r -> r.getType().isAgg())
+                .filter(aggIndexItem -> aggIndexItem.getId() == 150001L).findFirst().orElse(null);
+        assert aggIndexRecommResponse != null;
+        Assert.assertTrue(aggIndexRecommResponse.getType().isRemove());
+        Assert.assertEquals(0, aggIndexRecommResponse.getUsage());
+        Assert.assertEquals(0, aggIndexRecommResponse.getDataSize());
+        val detailResponse = service.getLayoutRecommendationContent(projectDefault, id, "",
+                aggIndexRecommResponse.getItemId(), 0, aggIndexRecommResponse.getColumnsAndMeasuresSize());
+        Assert.assertEquals(4, detailResponse.getColumnsAndMeasures().size());
+        Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("TEST_KYLIN_FACT.TRANS_ID"));
+        Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL"));
+        Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("SUM_CONSTANT"));
+        Assert.assertTrue(detailResponse.getColumnsAndMeasures().contains("COUNT_ALL"));
 
-        val tableIndexLayout = recommendation.getIndexRecommendations().stream().filter(item -> !item.isAggIndex())
-                .collect(Collectors.toList()).get(0).getEntity().getLayouts().get(0);
-        val tableIndexRecommResponse = response.getTableIndexRecommendations().get(0);
-        val tableIndexContent = tableIndexRecommResponse.getColumns();
+        val tableIndexLayout = recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAggIndex())
+                .collect(Collectors.toList()).get(0).getLayout();
+        val tableIndexRecommResponse = response.getIndexRecommendations().stream().filter(r -> r.getType().isTable())
+                .findFirst().orElse(null);
+        assert tableIndexRecommResponse != null;
+        val tableIndexContent = service.getLayoutRecommendationContent(projectDefault, id, "",
+                tableIndexRecommResponse.getItemId(), 0, tableIndexRecommResponse.getColumnsAndMeasuresSize());
         Assert.assertEquals(tableIndexLayout.getId(), tableIndexRecommResponse.getId());
-        Assert.assertEquals(3, tableIndexContent.size());
-        Assert.assertTrue(tableIndexContent.contains("TEST_KYLIN_FACT.LSTG_SITE_ID"));
-        Assert.assertTrue(tableIndexContent.contains("TEST_KYLIN_FACT.TRANS_ID"));
-        Assert.assertTrue(tableIndexContent.contains("TEST_KYLIN_FACT.LEAF_CATEG_ID"));
+        Assert.assertEquals(3, tableIndexContent.getColumnsAndMeasures().size());
+        Assert.assertTrue(tableIndexContent.getColumnsAndMeasures().contains("TEST_KYLIN_FACT.LSTG_SITE_ID"));
+        Assert.assertTrue(tableIndexContent.getColumnsAndMeasures().contains("TEST_KYLIN_FACT.TRANS_ID"));
+        Assert.assertTrue(tableIndexContent.getColumnsAndMeasures().contains("TEST_KYLIN_FACT.LEAF_CATEG_ID"));
     }
 
     @Test
     public void testGetRecommendationByModel_modification() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
-
-        // case of MODIFICATION type
-        recommendationManager.updateOptimizeRecommendation(id, optRecomm -> {
-            val aggIndexRecom = optRecomm.getIndexRecommendations().stream()
-                    .filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
-            val updatedIndexRecom = JsonUtil.deepCopyQuietly(aggIndexRecom, IndexRecommendationItem.class);
-            updatedIndexRecom.setItemId(optRecomm.getIndexRecommendations().size());
-            updatedIndexRecom.setAdd(true);
-            updatedIndexRecom.setRecommendationType(RecommendationType.ADDITION);
-            val layoutEntity = new LayoutEntity();
-            layoutEntity.setAuto(true);
-            layoutEntity.setId(150003L);
-            layoutEntity.setColOrder(Lists.newArrayList(12, 0, 100001, 100000));
-            updatedIndexRecom.getEntity().setLayouts(Lists.newArrayList(layoutEntity));
-            optRecomm.getIndexRecommendations().remove(aggIndexRecom);
-            optRecomm.getIndexRecommendations().add(updatedIndexRecom);
-        });
 
         val response = service.getRecommendationByModel(projectDefault, id);
 
-        Assert.assertEquals(3, response.getAggIndexRecommendations().size());
-        response.getAggIndexRecommendations().forEach(aggIndexRecommResponse -> {
-            if (0 == aggIndexRecommResponse.getId()) {
-                Assert.assertEquals(RecommendationType.REMOVAL, aggIndexRecommResponse.getRecommendationType());
-            } else if (150000L == aggIndexRecommResponse.getId()) {
-                Assert.assertEquals(RecommendationType.MODIFICATION, aggIndexRecommResponse.getRecommendationType());
-            } else if (1000000L == aggIndexRecommResponse.getId()) {
-                Assert.assertEquals(RecommendationType.ADDITION, aggIndexRecommResponse.getRecommendationType());
+        Assert.assertEquals(3, getAggIndexRecommendations(response).size());
+        getAggIndexRecommendations(response).forEach(aggIndexRecommResponse -> {
+            if (1L == aggIndexRecommResponse.getId()) {
+                Assert.assertTrue(aggIndexRecommResponse.getType().isRemove());
+            } else if (150001L == aggIndexRecommResponse.getId()) {
+                Assert.assertTrue(aggIndexRecommResponse.getType().isRemove());
+            } else if (1000001L == aggIndexRecommResponse.getId()) {
+                Assert.assertTrue(aggIndexRecommResponse.getType().isAdd());
             } else {
                 Assert.fail();
             }
@@ -227,37 +201,55 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testGetRecommendationByModel_sources() throws IOException {
+        prepare();
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
+        recommendationManager.removeLayouts(id, removeLayoutsId);
+
+        var response = service.getRecommendationByModel(projectDefault, id, Lists.newArrayList("imported"));
+
+        Assert.assertEquals(0, response.getIndexRecommendations().size());
+        Assert.assertTrue(response.getIndexRecommendations().stream().allMatch(r -> r.getSource().equals("imported")));
+
+        response = service.getRecommendationByModel(projectDefault, id, Lists.newArrayList("query_history"));
+
+        Assert.assertEquals(3, response.getIndexRecommendations().size());
+        Assert.assertTrue(response.getIndexRecommendations().stream().allMatch(r -> r.getSource().equals("query_history")));
+
+    }
+
+    @Test
     public void testGetAggIndexRecomContent() throws IOException {
         prepare();
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val aggIndexRecom = recommendation.getIndexRecommendations().stream()
-                .filter(IndexRecommendationItem::isAggIndex).findFirst().orElse(null);
-        var aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "",
-                aggIndexRecom.getEntity().getId(), 0, 10);
+        val aggIndexRecom = recommendation.getLayoutRecommendations().stream()
+                .filter(LayoutRecommendationItem::isAggIndex).findFirst().orElse(null);
+        var aggIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, "",
+                aggIndexRecom.getItemId(), 0, 10);
         Assert.assertEquals(4, aggIndexRecommContent.getSize());
-        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", aggIndexRecommContent.getContent().get(0));
-        Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1", aggIndexRecommContent.getContent().get(1));
-        Assert.assertEquals("SUM_CONSTANT", aggIndexRecommContent.getContent().get(2));
-        Assert.assertEquals("COUNT_DISTINCT_SELLER", aggIndexRecommContent.getContent().get(3));
+        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", aggIndexRecommContent.getColumnsAndMeasures().get(0));
+        Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1", aggIndexRecommContent.getColumnsAndMeasures().get(1));
+        Assert.assertEquals("SUM_CONSTANT", aggIndexRecommContent.getColumnsAndMeasures().get(2));
+        Assert.assertEquals("COUNT_DISTINCT_SELLER", aggIndexRecommContent.getColumnsAndMeasures().get(3));
 
         // test fuzzy filer
-        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "trans_id ",
-                aggIndexRecom.getEntity().getId(), 0, 10);
+        aggIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, "trans_id ",
+                aggIndexRecom.getItemId(), 0, 10);
         Assert.assertEquals(1, aggIndexRecommContent.getSize());
-        Assert.assertEquals(1, aggIndexRecommContent.getContent().size());
-        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", aggIndexRecommContent.getContent().get(0));
+        Assert.assertEquals(1, aggIndexRecommContent.getColumnsAndMeasures().size());
+        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", aggIndexRecommContent.getColumnsAndMeasures().get(0));
 
         // test paging
-        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, null,
-                aggIndexRecom.getEntity().getId(), 0, 2);
+        aggIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, null,
+                aggIndexRecom.getItemId(), 0, 2);
         Assert.assertEquals(4, aggIndexRecommContent.getSize());
-        Assert.assertEquals(2, aggIndexRecommContent.getContent().size());
+        Assert.assertEquals(2, aggIndexRecommContent.getColumnsAndMeasures().size());
 
-        aggIndexRecommContent = service.getAggIndexRecomContent(projectDefault, id, "test_kylin_fact",
-                aggIndexRecom.getEntity().getId(), 0, 1);
+        aggIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, "test_kylin_fact",
+                aggIndexRecom.getItemId(), 0, 1);
         Assert.assertEquals(2, aggIndexRecommContent.getSize());
-        Assert.assertEquals(1, aggIndexRecommContent.getContent().size());
+        Assert.assertEquals(1, aggIndexRecommContent.getColumnsAndMeasures().size());
     }
 
     @Test
@@ -266,22 +258,29 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         val recommendation = new OptimizeRecommendation();
         recommendation.setUuid(modelId);
         recommendation.setProject(projectDefault);
-        val indexRecommendation = new IndexRecommendationItem();
-        indexRecommendation.setAggIndex(true);
-        indexRecommendation.setItemId(0);
-        indexRecommendation.setRecommendationType(RecommendationType.REMOVAL);
-        indexRecommendation.setAdd(false);
+        val layoutRecommendation = new LayoutRecommendationItem();
+        layoutRecommendation.setAggIndex(true);
+        layoutRecommendation.setItemId(0);
+        layoutRecommendation.setRecommendationType(RecommendationType.REMOVAL);
+        layoutRecommendation.setAdd(false);
 
-        val indexEntity = indexPlanManager.getIndexPlan(modelId).getIndexEntity(0L);
-        indexRecommendation.setEntity(JsonUtil.deepCopyQuietly(indexEntity, IndexEntity.class));
-        recommendation.setIndexRecommendations(Lists.newArrayList(indexRecommendation));
+        val layoutEntity = indexPlanManager.getIndexPlan(modelId).getIndexEntity(0L).getLayouts().get(0);
+        layoutRecommendation.setLayout(JsonUtil.deepCopyQuietly(layoutEntity, LayoutEntity.class));
+        recommendation.setLayoutRecommendations(Lists.newArrayList(layoutRecommendation));
 
         recommendationManager.save(recommendation);
         val response = service.getRecommendationByModel(projectDefault, modelId);
-        Assert.assertEquals(1, response.getAggIndexRecommendations().size());
+        Assert.assertEquals(1,
+                response.getIndexRecommendations().stream()
+                        .filter(r -> r.getType().equals(LayoutRecommendationResponse.Type.ADD_AGG)
+                                || r.getType().equals(LayoutRecommendationResponse.Type.REMOVE_AGG))
+                        .count());
 
-        val aggIndexResponse = response.getAggIndexRecommendations().get(0);
-        Assert.assertEquals(252928L, aggIndexResponse.getStorageSize());
+        val aggIndexResponse = response.getIndexRecommendations().stream()
+                .filter(r -> r.getType().equals(LayoutRecommendationResponse.Type.ADD_AGG)
+                        || r.getType().equals(LayoutRecommendationResponse.Type.REMOVE_AGG))
+                .findFirst().get();
+        Assert.assertEquals(252928L, aggIndexResponse.getDataSize());
 
     }
 
@@ -290,27 +289,27 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         prepare();
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        val tableIndexRecom = recommendation.getIndexRecommendations().stream()
+        val tableIndexRecom = recommendation.getLayoutRecommendations().stream()
                 .filter(indexItem -> !indexItem.isAggIndex()).findFirst().orElse(null);
-        var tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "",
-                tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 10);
+        var tableIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, "",
+                tableIndexRecom.getItemId(), 0, 10);
         Assert.assertEquals(3, tableIndexRecommContent.getSize());
-        Assert.assertEquals("TEST_KYLIN_FACT.LSTG_SITE_ID", tableIndexRecommContent.getColumns().get(0));
-        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", tableIndexRecommContent.getColumns().get(1));
-        Assert.assertEquals("TEST_KYLIN_FACT.LEAF_CATEG_ID", tableIndexRecommContent.getColumns().get(2));
+        Assert.assertEquals("TEST_KYLIN_FACT.LSTG_SITE_ID", tableIndexRecommContent.getColumnsAndMeasures().get(0));
+        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", tableIndexRecommContent.getColumnsAndMeasures().get(1));
+        Assert.assertEquals("TEST_KYLIN_FACT.LEAF_CATEG_ID", tableIndexRecommContent.getColumnsAndMeasures().get(2));
 
         // test fuzzy filter
-        tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "lstg ",
-                tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 10);
+        tableIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, "lstg ",
+                tableIndexRecom.getItemId(), 0, 10);
         Assert.assertEquals(1, tableIndexRecommContent.getSize());
-        Assert.assertEquals(1, tableIndexRecommContent.getColumns().size());
-        Assert.assertEquals("TEST_KYLIN_FACT.LSTG_SITE_ID", tableIndexRecommContent.getColumns().get(0));
+        Assert.assertEquals(1, tableIndexRecommContent.getColumnsAndMeasures().size());
+        Assert.assertEquals("TEST_KYLIN_FACT.LSTG_SITE_ID", tableIndexRecommContent.getColumnsAndMeasures().get(0));
 
         // test paging
-        tableIndexRecommContent = service.getTableIndexRecomContent(projectDefault, id, "T.L ",
-                tableIndexRecom.getEntity().getLayouts().get(0).getId(), 0, 1);
+        tableIndexRecommContent = service.getLayoutRecommendationContent(projectDefault, id, "T.L ",
+                tableIndexRecom.getItemId(), 0, 1);
         Assert.assertEquals(2, tableIndexRecommContent.getSize());
-        Assert.assertEquals(1, tableIndexRecommContent.getColumns().size());
+        Assert.assertEquals(1, tableIndexRecommContent.getColumnsAndMeasures().size());
     }
 
     @Test
@@ -333,27 +332,19 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         }
     }
 
+    private Map<Long, LayoutGarbageCleaner.LayoutGarbageType> createRemoveLayoutIds(Long... ids) {
+        var removeLayoutsId = Maps.<Long, LayoutGarbageCleaner.LayoutGarbageType> newHashMap();
+        for (Long layoutId : ids) {
+            removeLayoutsId.put(layoutId, LayoutGarbageCleaner.LayoutGarbageType.LOW_FREQUENCY);
+        }
+        return removeLayoutsId;
+    }
+
     @Test
     public void testApplyRecommendations() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
-
-        // case of MODIFICATION type
-        recommendationManager.updateOptimizeRecommendation(id, optRecomm -> {
-            val aggIndexRecom = optRecomm.getIndexRecommendations().stream()
-                    .filter(indexItem -> indexItem.getEntity().getId() == 150000L).findAny().orElse(null);
-            val updatedIndexRecom = JsonUtil.deepCopyQuietly(aggIndexRecom, IndexRecommendationItem.class);
-            updatedIndexRecom.setItemId(optRecomm.getIndexRecommendations().size());
-            updatedIndexRecom.setAdd(true);
-            updatedIndexRecom.setRecommendationType(RecommendationType.ADDITION);
-            val layoutEntity = new LayoutEntity();
-            layoutEntity.setAuto(true);
-            layoutEntity.setId(150003L);
-            layoutEntity.setColOrder(Lists.newArrayList(12, 0, 100001, 100000));
-            updatedIndexRecom.getEntity().setLayouts(Lists.newArrayList(layoutEntity));
-            optRecomm.getIndexRecommendations().add(updatedIndexRecom);
-        });
 
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
 
@@ -390,8 +381,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
 
         // apply index recommendations
         val response = service.getRecommendationByModel(projectDefault, id);
-        request.setAggIndexRecommendations(response.getAggIndexRecommendations());
-        request.setTableIndexRecommendations(response.getTableIndexRecommendations());
+        request.setIndexRecommendationItemIds(response.getIndexRecommendations().stream()
+                .map(LayoutRecommendationResponse::getItemId).collect(Collectors.toList()));
         request.setCcRecommendations(Lists.newArrayList());
         request.setMeasureRecommendations(Lists.newArrayList());
         request.setDimensionRecommendations(Lists.newArrayList());
@@ -411,10 +402,9 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
                 break;
             case "150000":
                 Assert.assertEquals(4, indexEntity.getDimensions().size() + indexEntity.getMeasures().size());
-                Assert.assertEquals(2, indexEntity.getLayouts().size());
+                Assert.assertEquals(1, indexEntity.getLayouts().size());
                 val layoutIds = indexEntity.getLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
                 Assert.assertTrue(layoutIds.contains(150002L));
-                Assert.assertTrue(layoutIds.contains(150003L));
                 break;
             case "20000000000":
                 Assert.assertEquals(4, indexEntity.getLayouts().size());
@@ -436,14 +426,14 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         request.setCcItemIds(recommendation.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
                 .collect(Collectors.toList()));
         request.setMeasureItemIds(Lists.newArrayList(0L));
-        request.setAggIndexItemIds(recommendation.getIndexRecommendations().stream()
-                .map(IndexRecommendationItem::getItemId).collect(Collectors.toList()));
+        request.setIndexItemIds(recommendation.getLayoutRecommendations().stream().map(RecommendationItem::getItemId)
+                .collect(Collectors.toList()));
 
         service.removeRecommendations(request, request.getProject());
 
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(0, recommendation.getCcRecommendations().size());
-        Assert.assertEquals(0, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(0, recommendation.getLayoutRecommendations().size());
         Assert.assertEquals(1, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(2, recommendation.getMeasureRecommendations().size());
     }
@@ -505,16 +495,16 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         recommendation.setMeasureRecommendations(
                 Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
         recommendation.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
-        val indexRecommendation1 = new IndexRecommendationItem();
-        val indexEntity = new IndexEntity();
-        indexEntity.setId(10000L);
-        indexRecommendation1.setEntity(indexEntity);
-        indexRecommendation1.setAggIndex(true);
+        val layoutRecommendation1 = new LayoutRecommendationItem();
+        val layoutEntity = new LayoutEntity();
+        layoutEntity.setId(10001L);
+        layoutRecommendation1.setLayout(layoutEntity);
+        layoutRecommendation1.setAggIndex(true);
 
-        val indexRecommendation2 = new IndexRecommendationItem();
-        indexRecommendation2.setEntity(indexEntity);
-        indexRecommendation2.setAggIndex(true);
-        recommendation.setIndexRecommendations(Lists.newArrayList(indexRecommendation1, indexRecommendation2));
+        val layoutRecommendation2 = new LayoutRecommendationItem();
+        layoutRecommendation2.setLayout(layoutEntity);
+        layoutRecommendation2.setAggIndex(true);
+        recommendation.setLayoutRecommendations(Lists.newArrayList(layoutRecommendation1, layoutRecommendation2));
 
         val recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), project);
         recommendationManager.save(recommendation);
@@ -523,5 +513,10 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
 
         Assert.assertEquals(recommendation.getRecommendationsCount(),
                 recommendationManager.getRecommendationCount(modelId));
+    }
+
+    private List<LayoutRecommendationResponse> getAggIndexRecommendations(OptRecommendationResponse response) {
+        return response.getIndexRecommendations().stream().filter(r -> r.getType().isAgg())
+                .collect(Collectors.toList());
     }
 }

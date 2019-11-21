@@ -54,8 +54,8 @@ public class OptimizeRecommendationVerifier {
     private Set<Long> failDimensionItems;
     private Set<Long> passMeasureItems;
     private Set<Long> failMeasureItems;
-    private Set<Long> passIndexItems;
-    private Set<Long> failIndexItems;
+    private Set<Long> passLayoutItems;
+    private Set<Long> failLayoutItems;
 
     public OptimizeRecommendationVerifier(KylinConfig config, String project, String id) {
         this.config = config;
@@ -72,7 +72,7 @@ public class OptimizeRecommendationVerifier {
                 "Semi-Auto-Mode project:{} start to verify recommendations, [model:{}, passCCItems:{}, failCCItems:{}, passDimensionItems:{}, failDimensionItems:{}, passMeasureItems:{}, failMeasureItems:{}, passIndexItems:{}, failIndexItems:{}]",
                 project, id, getSize(passCCItems), getSize(failCCItems), getSize(passDimensionItems),
                 getSize(failDimensionItems), getSize(passMeasureItems), getSize(failMeasureItems),
-                getSize(passIndexItems), getSize(failIndexItems));
+                getSize(passLayoutItems), getSize(failLayoutItems));
         val recommendationManager = OptimizeRecommendationManager.getInstance(config, project);
         val modelManager = NDataModelManager.getInstance(config, project);
         val indexPlanManager = NIndexPlanManager.getInstance(config, project);
@@ -97,8 +97,8 @@ public class OptimizeRecommendationVerifier {
         verify(context, recommendation.getMeasureRecommendations(), passMeasureItems, failMeasureItems,
                 context.getMeasureContextRecommendationItems());
 
-        verify(context, recommendation.getIndexRecommendations(), passIndexItems, failIndexItems,
-                context.getIndexContextRecommendationItems());
+        verify(context, recommendation.getLayoutRecommendations(), passLayoutItems, failLayoutItems,
+                context.getLayoutContextRecommendationItems());
         val allNamedColumns = model.getAllNamedColumns().stream()
                 .filter(column -> !OptimizeRecommendationManager.isVirtualColumnId(column.getId()))
                 .sorted(Comparator.comparingInt(NDataModel.NamedColumn::getId)).collect(Collectors.toList());
@@ -140,7 +140,7 @@ public class OptimizeRecommendationVerifier {
         this.passCCItems = getItemIds(recommendation.getCcRecommendations());
         this.passDimensionItems = getItemIds(recommendation.getDimensionRecommendations());
         this.passMeasureItems = getItemIds(recommendation.getMeasureRecommendations());
-        this.passIndexItems = getItemIds(recommendation.getIndexRecommendations());
+        this.passLayoutItems = getItemIds(recommendation.getLayoutRecommendations());
 
         verify();
     }

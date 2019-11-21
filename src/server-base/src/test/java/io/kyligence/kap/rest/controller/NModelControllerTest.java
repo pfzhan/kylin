@@ -666,7 +666,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("project", "default").param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).getOptimizeRecommendations("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Mockito.verify(nModelController).getOptimizeRecommendations("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                null);
 
         // project argument is empty
         mockMvc.perform(
@@ -674,7 +675,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("project", "").param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nModelController).getOptimizeRecommendations("", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Mockito.verify(nModelController).getOptimizeRecommendations("", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
     }
 
     @Test
@@ -710,7 +711,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).removeOptimizeRecommendations(request.getProject(), request.getModelId(), null,
-                null, null, null, null);
+                null, null, null);
 
         // project is empty
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/recommendations")
@@ -721,14 +722,14 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAggIndexContent() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getAggIndexRecomContent("default",
+        Mockito.doReturn(null).when(optimizeRecommendationService).getLayoutRecommendationContent("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, 10000L, 0, 10);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations/agg_index")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").param("id", "10000")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).getAggIndexRecommendationContent("default",
+        Mockito.verify(nModelController).getLayoutRecommendationContent("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 10000L, null, 0, 10);
 
         // model parameter is empty
@@ -740,14 +741,14 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetTableIndexContent() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getTableIndexRecomContent("default",
+        Mockito.doReturn(null).when(optimizeRecommendationService).getLayoutRecommendationContent("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null, 10000L, 0, 10);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations/table_index")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").param("id", "10000")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).getTableIndexRecommendationContent("default",
+        Mockito.verify(nModelController).getLayoutRecommendationContent("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 10000L, null, 0, 10);
 
         // model and project is empty

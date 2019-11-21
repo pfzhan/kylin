@@ -72,7 +72,7 @@ public class OptimizeContext {
     ContextRecommendationItems<CCRecommendationItem> ccContextRecommendationItems;
     ContextRecommendationItems<DimensionRecommendationItem> dimensionContextRecommendationItems;
     ContextRecommendationItems<MeasureRecommendationItem> measureContextRecommendationItems;
-    ContextRecommendationItems<IndexRecommendationItem> indexContextRecommendationItems;
+    ContextRecommendationItems<LayoutRecommendationItem> layoutContextRecommendationItems;
 
     private int originColumnIndex;
     private int originMeasureIndex;
@@ -93,9 +93,9 @@ public class OptimizeContext {
                 .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
         this.measureContextRecommendationItems = new ContextRecommendationItems<>(originMeasureRecommendations);
 
-        val originIndexRecommendations = recommendation.getIndexRecommendations().stream()
-                .collect(Collectors.toMap(IndexRecommendationItem::getItemId, item -> item));
-        this.indexContextRecommendationItems = new ContextRecommendationItems<>(originIndexRecommendations);
+        val originLayoutRecommendations = recommendation.getLayoutRecommendations().stream()
+                .collect(Collectors.toMap(RecommendationItem::getItemId, item -> item));
+        this.layoutContextRecommendationItems = new ContextRecommendationItems<>(originLayoutRecommendations);
 
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         this.model = modelManager.copyForWrite(model);
@@ -125,13 +125,13 @@ public class OptimizeContext {
     // for remove layout
     private Map<IndexEntity.IndexIdentifier, IndexEntity> allIndexesMap;
     // for add layout
-    private Map<IndexEntity.IndexIdentifier, IndexEntity> virtualIndexesMap;
+    private Map<IndexEntity.IndexIdentifier, IndexEntity> whiteListIndexesMap;
 
     public OptimizeContext(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
         this(model, recommendation);
         this.indexPlan = indexPlan;
         this.allIndexesMap = indexPlan.getAllIndexesMap();
-        this.virtualIndexesMap = indexPlan.getWhiteListIndexesMap();
+        this.whiteListIndexesMap = indexPlan.getWhiteListIndexesMap();
 
     }
 
@@ -147,8 +147,8 @@ public class OptimizeContext {
         return measureContextRecommendationItems.getModifiedRecommendations();
     }
 
-    public Map<Long, IndexRecommendationItem> getModifiedIndexRecommendations() {
-        return indexContextRecommendationItems.getModifiedRecommendations();
+    public Map<Long, LayoutRecommendationItem> getModifiedLayoutRecommendations() {
+        return layoutContextRecommendationItems.getModifiedRecommendations();
     }
 
     public Set<Long> getDeletedCCRecommendations() {
@@ -163,8 +163,8 @@ public class OptimizeContext {
         return measureContextRecommendationItems.getDeletedRecommendations();
     }
 
-    public Set<Long> getDeletedIndexRecommendations() {
-        return indexContextRecommendationItems.getDeletedRecommendations();
+    public Set<Long> getDeletedLayoutRecommendations() {
+        return layoutContextRecommendationItems.getDeletedRecommendations();
     }
 
     static class ContextRecommendationItems<T extends RecommendationItem<T>> {
@@ -284,23 +284,23 @@ public class OptimizeContext {
         measureContextRecommendationItems.failRecommendationItem(id);
     }
 
-    public IndexRecommendationItem getIndexRecommendationItem(long id) {
-        return indexContextRecommendationItems.getRecommendationItem(id);
+    public LayoutRecommendationItem getLayoutRecommendationItem(long id) {
+        return layoutContextRecommendationItems.getRecommendationItem(id);
     }
 
-    public void updateIndexRecommendationItem(IndexRecommendationItem updated) {
-        indexContextRecommendationItems.updateRecommendationItem(updated);
+    public void updateIndexRecommendationItem(LayoutRecommendationItem updated) {
+        layoutContextRecommendationItems.updateRecommendationItem(updated);
     }
 
     public void deleteIndexRecommendationItem(long id) {
-        indexContextRecommendationItems.deleteRecommendationItem(id);
+        layoutContextRecommendationItems.deleteRecommendationItem(id);
     }
 
-    public IndexRecommendationItem copyIndexRecommendationItem(long id) {
-        return indexContextRecommendationItems.copyRecommendationItem(id);
+    public LayoutRecommendationItem copyIndexRecommendationItem(long id) {
+        return layoutContextRecommendationItems.copyRecommendationItem(id);
     }
 
     public void failIndexRecommendationItem(long id) {
-        indexContextRecommendationItems.failRecommendationItem(id);
+        layoutContextRecommendationItems.failRecommendationItem(id);
     }
 }

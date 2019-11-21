@@ -591,11 +591,12 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getOptimizeRecommendations(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId) {
+            @RequestParam(value = "model") String modelId,
+            @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                optimizeRecommendationService.getRecommendationByModel(project, modelId), "");
+                optimizeRecommendationService.getRecommendationByModel(project, modelId, sources), "");
     }
 
     @RequestMapping(value = "/recommendations", method = { RequestMethod.PUT }, produces = {
@@ -616,8 +617,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "cc_recommendations", required = false) List<Long> ccItemIds,
             @RequestParam(value = "dimension_recommendations", required = false) List<Long> dimensionItemIds,
             @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
-            @RequestParam(value = "agg_index_recommendations", required = false) List<Long> aggIndexItemIds,
-            @RequestParam(value = "table_index_recommendations", required = false) List<Long> tableIndexItemIds) {
+            @RequestParam(value = "index_recommendations", required = false) List<Long> indexItemIds) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val request = new RemoveRecommendationsRequest();
@@ -629,41 +629,25 @@ public class NModelController extends NBasicController {
             request.setDimensionItemIds(dimensionItemIds);
         if (measureItemIds != null)
             request.setMeasureItemIds(measureItemIds);
-        if (aggIndexItemIds != null)
-            request.setAggIndexItemIds(aggIndexItemIds);
-        if (tableIndexItemIds != null)
-            request.setTableIndexItemIds(tableIndexItemIds);
+        if (indexItemIds != null)
+            request.setIndexItemIds(indexItemIds);
 
         optimizeRecommendationService.removeRecommendations(request, request.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/recommendations/agg_index", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "/recommendations/index", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAggIndexRecommendationContent(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId, @RequestParam(value = "id") long indexId,
+    public EnvelopeResponse getLayoutRecommendationContent(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId, @RequestParam(value = "item_id") long itemId,
             @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, optimizeRecommendationService
-                .getAggIndexRecomContent(project, modelId, content, indexId, offset, limit), "");
-    }
-
-    @RequestMapping(value = "/recommendations/table_index", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getTableIndexRecommendationContent(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId, @RequestParam(value = "id") long layoutId,
-            @RequestParam(value = "content", required = false) String content,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
-        checkProjectName(project);
-        checkRequiredArg(MODEL_ID, modelId);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, optimizeRecommendationService
-                .getTableIndexRecomContent(project, modelId, content, layoutId, offset, limit), "");
+                .getLayoutRecommendationContent(project, modelId, content, itemId, offset, limit), "");
     }
 
     public static final String ILLEGAL_INPUT_MSG = "Request failed. {project/model name} not found.";

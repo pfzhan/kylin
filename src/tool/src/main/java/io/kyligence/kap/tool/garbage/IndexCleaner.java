@@ -24,9 +24,10 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
@@ -49,18 +50,19 @@ public class IndexCleaner implements MetadataCleaner {
 
             val garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow);
 
-            if (CollectionUtils.isNotEmpty(garbageLayouts)) {
+            if (MapUtils.isNotEmpty(garbageLayouts)) {
                 if (projectInstance.isSemiAutoMode()) {
                     transferToRecommendation(model.getUuid(), project, garbageLayouts);
                 }
                 if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
-                    cleanupIsolatedIndex(project, model.getId(), garbageLayouts);
+                    cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
                 }
             }
         }
     }
 
-    private void transferToRecommendation(String modelId, String project, Set<Long> garbageLayouts) {
+    private void transferToRecommendation(String modelId, String project,
+            Map<Long, LayoutGarbageCleaner.LayoutGarbageType> garbageLayouts) {
         OptimizeRecommendationManager recMgr = OptimizeRecommendationManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
         recMgr.removeLayouts(modelId, garbageLayouts);

@@ -25,12 +25,9 @@ package io.kyligence.kap.metadata.recommendation;
 
 import java.io.Serializable;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.util.JsonUtil;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
@@ -39,15 +36,12 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class DimensionRecommendationItem implements Serializable, RecommendationItem<DimensionRecommendationItem> {
-    @Getter
-    @Setter
-    @JsonProperty("item_id")
-    private long itemId;
-
+public class DimensionRecommendationItem extends RecommendationItem<DimensionRecommendationItem>
+        implements Serializable {
     @Getter
     @Setter
     @JsonProperty("column")
@@ -55,24 +49,8 @@ public class DimensionRecommendationItem implements Serializable, Recommendation
 
     @Getter
     @Setter
-    @JsonProperty("recommendation_type")
-    private RecommendationType recommendationType = RecommendationType.ADDITION;
-
-    @Getter
-    @Setter
-    @JsonProperty("is_auto_change_name")
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private boolean isAutoChangeName = true;
-
-    @Getter
-    @Setter
     @JsonProperty("data_type")
     private String dataType;
-
-    @Getter
-    @Setter
-    @JsonIgnore
-    private boolean copy = false;
 
     public void apply(OptimizeContext context, boolean real) {
         if (context.getDeletedDimensionRecommendations().contains(itemId)) {

@@ -1,0 +1,311 @@
+{
+  "uuid": "25f8bbb7-cddc-4837-873d-f80f994d8a2d",
+  "last_modified": 1574664982537,
+  "create_time": 1574664982353,
+  "version": "4.0.0.0",
+  "project": "default",
+  "last_verified_time": 0,
+  "next_cc_recommendation_item_id": 2,
+  "next_dimension_recommendation_item_id": 3,
+  "next_measure_recommendation_item_id": 6,
+  "next_index_recommendation_item_id": 3,
+  "cc_recommendations": [
+    {
+      "item_id": 0,
+      "cc_column_id": 10000001,
+      "cc": {
+        "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+        "tableAlias": "TEST_KYLIN_FACT",
+        "columnName": "CC_AUTO_1",
+        "expression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+        "innerExpression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
+        "datatype": "DECIMAL(30,4)",
+        "comment": null
+      },
+      "recommendation_type": "ADDITION"
+    },
+    {
+      "item_id": 1,
+      "cc_column_id": 10000002,
+      "cc": {
+        "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+        "tableAlias": "TEST_KYLIN_FACT",
+        "columnName": "CC_AUTO_2",
+        "expression": "TEST_KYLIN_FACT.CC_AUTO_1 * 2",
+        "innerExpression": "(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) * 2",
+        "datatype": "DECIMAL(30,4)",
+        "comment": null
+      },
+      "recommendation_type": "ADDITION"
+    }
+  ],
+  "dimension_recommendations": [
+    {
+      "item_id": 0,
+      "column": {
+        "id": 1,
+        "name": "LEAF_CATEG_ID",
+        "column": "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+        "status": "DIMENSION"
+      },
+      "recommendation_type": "ADDITION",
+      "data_type": "bigint"
+    },
+    {
+      "item_id": 1,
+      "column": {
+        "id": 10000001,
+        "name": "CC_AUTO_1",
+        "column": "TEST_KYLIN_FACT.CC_AUTO_1",
+        "status": "DIMENSION"
+      },
+      "recommendation_type": "ADDITION",
+      "data_type": "decimal(30,4)"
+    },
+    {
+      "item_id": 2,
+      "column": {
+        "id": 10000002,
+        "name": "TEST_KYLIN_FACT_CC_AUTO_2",
+        "column": "TEST_KYLIN_FACT.CC_AUTO_2",
+        "status": "DIMENSION"
+      },
+      "recommendation_type": "ADDITION",
+      "data_type": "decimal(30,4)"
+    }
+  ],
+  "measure_recommendations": [
+    {
+      "item_id": 0,
+      "measure": {
+        "name": "COUNT_DISTINCT_SELLER",
+        "function": {
+          "expression": "COUNT_DISTINCT",
+          "parameters": [
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.SELLER_ID"
+            }
+          ],
+          "returntype": "hllc(10)"
+        },
+        "id": 10100001
+      },
+      "recommendation_type": "ADDITION",
+      "measure_id": 10100001
+    },
+    {
+      "item_id": 1,
+      "measure": {
+        "name": "MIN_PRICE_ITEM",
+        "function": {
+          "expression": "MIN",
+          "parameters": [
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.CC_AUTO_1"
+            }
+          ],
+          "returntype": "integer"
+        },
+        "id": 10100002
+      },
+      "recommendation_type": "ADDITION",
+      "measure_id": 10100002
+    },
+    {
+      "item_id": 2,
+      "measure": {
+        "name": "COUNT_SELLER",
+        "function": {
+          "expression": "COUNT",
+          "parameters": [
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.SELLER_ID"
+            }
+          ],
+          "returntype": "bigint"
+        },
+        "id": 10100003
+      },
+      "recommendation_type": "ADDITION",
+      "measure_id": 10100003
+    },
+    {
+      "item_id": 3,
+      "measure": {
+        "name": "PERCENTILE_PRICE_ITEM",
+        "function": {
+          "expression": "PERCENTILE_APPROX",
+          "parameters": [
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.CC_AUTO_1"
+            }
+          ],
+          "returntype": "percentile(100)"
+        },
+        "id": 10100004
+      },
+      "recommendation_type": "ADDITION",
+      "measure_id": 10100004
+    },
+    {
+      "item_id": 4,
+      "measure": {
+        "name": "MAX_ITEM",
+        "function": {
+          "expression": "MAX",
+          "parameters": [
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.ITEM_COUNT"
+            }
+          ],
+          "returntype": "bigint"
+        },
+        "id": 10100005
+      },
+      "recommendation_type": "ADDITION",
+      "measure_id": 10100005
+    },
+    {
+      "item_id": 5,
+      "measure": {
+        "name": "TOP_100_PRICE_ITEM",
+        "function": {
+          "expression": "TOP_N",
+          "parameters": [
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.CC_AUTO_1"
+            },
+            {
+              "type": "column",
+              "value": "TEST_KYLIN_FACT.CAL_DT"
+            }
+          ],
+          "returntype": "topn(100)"
+        },
+        "id": 10100006
+      },
+      "recommendation_type": "ADDITION",
+      "measure_id": 10100006
+    }
+  ],
+  "index_recommendations": [
+    {
+      "item_id": 0,
+      "index_entity": {
+        "id": 1000000,
+        "dimensions": [
+          0,
+          10000001
+        ],
+        "measures": [
+          100001,
+          10100001
+        ],
+        "layouts": [
+          {
+            "id": 1000001,
+            "name": null,
+            "owner": null,
+            "col_order": [
+              0,
+              10000001,
+              100001,
+              10100001
+            ],
+            "shard_by_columns": [],
+            "sort_by_columns": [],
+            "storage_type": 20,
+            "update_time": 0,
+            "manual": false,
+            "auto": true,
+            "draft_version": null
+          }
+        ],
+        "next_layout_offset": 2
+      },
+      "is_agg_index": true,
+      "is_add": true,
+      "recommendation_type": "ADDITION"
+    },
+    {
+      "item_id": 1,
+      "index_entity": {
+        "id": 20000000000,
+        "dimensions": [
+          0,
+          1,
+          2
+        ],
+        "measures": [],
+        "layouts": [
+          {
+            "id": 20000000003,
+            "name": null,
+            "owner": null,
+            "col_order": [
+              2,
+              0,
+              1
+            ],
+            "shard_by_columns": [
+              1
+            ],
+            "sort_by_columns": [],
+            "storage_type": 20,
+            "update_time": 0,
+            "manual": false,
+            "auto": true,
+            "draft_version": null
+          }
+        ],
+        "next_layout_offset": 5
+      },
+      "is_agg_index": false,
+      "is_add": true,
+      "recommendation_type": "ADDITION"
+    },
+    {
+      "item_id": 2,
+      "index_entity": {
+        "id": 20000000000,
+        "dimensions": [
+          0,
+          1,
+          2
+        ],
+        "measures": [],
+        "layouts": [
+          {
+            "id": 20000000004,
+            "name": null,
+            "owner": null,
+            "col_order": [
+              0,
+              1,
+              2
+            ],
+            "shard_by_columns": [
+              1
+            ],
+            "sort_by_columns": [],
+            "storage_type": 20,
+            "update_time": 0,
+            "manual": false,
+            "auto": true,
+            "draft_version": null
+          }
+        ],
+        "next_layout_offset": 5
+      },
+      "is_agg_index": false,
+      "is_add": true,
+      "recommendation_type": "ADDITION"
+    }
+  ]
+}

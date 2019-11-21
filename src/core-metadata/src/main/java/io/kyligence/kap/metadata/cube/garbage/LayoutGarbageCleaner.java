@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.metadata.cube.garbage;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -45,8 +46,12 @@ public class LayoutGarbageCleaner {
     private LayoutGarbageCleaner() {
     }
 
-    public static Set<Long> findGarbageLayouts(NDataflow dataflow) {
-        Set<Long> garbageLayoutIds = Sets.newHashSet();
+    public enum LayoutGarbageType {
+        LOW_FREQUENCY, INCLUDED
+    }
+
+    public static Map<Long, LayoutGarbageType> findGarbageLayouts(NDataflow dataflow) {
+        Map<Long, LayoutGarbageType> garbageLayoutIds = Maps.newHashMap();
         final ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(dataflow.getProject());
 
@@ -60,7 +65,8 @@ public class LayoutGarbageCleaner {
         }
 
         for (IGarbageCleanerStrategy strategy : strategies) {
-            garbageLayoutIds.addAll(strategy.collectGarbageLayouts(dataflow));
+            LayoutGarbageType type = strategy.getType();
+            strategy.collectGarbageLayouts(dataflow).forEach(id -> garbageLayoutIds.put(id, type));
         }
         return garbageLayoutIds;
     }

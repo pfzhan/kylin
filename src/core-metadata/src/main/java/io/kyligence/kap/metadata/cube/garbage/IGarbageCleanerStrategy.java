@@ -30,4 +30,5 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 
 public interface IGarbageCleanerStrategy {
     Set<Long> collectGarbageLayouts(NDataflow dataflow);
+    LayoutGarbageCleaner.LayoutGarbageType getType();
 }

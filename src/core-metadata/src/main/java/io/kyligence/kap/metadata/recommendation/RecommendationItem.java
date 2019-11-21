@@ -23,32 +23,61 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.sql.SqlIdentifier;
 
 import com.google.common.collect.ImmutableList;
 
 import lombok.val;
 
-public interface RecommendationItem<T extends RecommendationItem> {
-    long getItemId();
+public abstract class RecommendationItem<T extends RecommendationItem> {
 
-    void setItemId(long itemId);
+    @Getter
+    @Setter
+    @JsonProperty("item_id")
+    protected long itemId;
 
-    void checkDependencies(OptimizeContext context, boolean real);
+    @Getter
+    @Setter
+    @JsonProperty("create_time")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    protected long createTime;
 
-    default void checkDependencies(OptimizeContext context) {
+    @Getter
+    @Setter
+    @JsonProperty("recommendation_type")
+    protected RecommendationType recommendationType = RecommendationType.ADDITION;
+
+    @Getter
+    @Setter
+    @JsonProperty("is_auto_change_name")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    protected boolean isAutoChangeName = true;
+
+    @Getter
+    @Setter
+    @JsonIgnore
+    protected boolean isCopy = false;
+
+    abstract void checkDependencies(OptimizeContext context, boolean real);
+
+    public void checkDependencies(OptimizeContext context) {
         checkDependencies(context, false);
     }
 
-    void apply(OptimizeContext context, boolean real);
+    abstract void apply(OptimizeContext context, boolean real);
 
-    default void apply(OptimizeContext context) {
+    public void apply(OptimizeContext context) {
         apply(context, false);
     }
 
-    T copy();
+    abstract T copy();
 
-    abstract class NameModifier<T extends RecommendationItem<T>> extends OptimizeVisitor {
+    abstract static class NameModifier<T extends RecommendationItem<T>> extends OptimizeVisitor {
         protected OptimizeContext context;
 
         NameModifier(OptimizeContext context) {
@@ -77,5 +106,5 @@ public interface RecommendationItem<T extends RecommendationItem> {
         }
     }
 
-    void translate(OptimizeContext context);
+    abstract void translate(OptimizeContext context);
 }

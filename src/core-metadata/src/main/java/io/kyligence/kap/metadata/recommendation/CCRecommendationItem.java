@@ -25,14 +25,11 @@ package io.kyligence.kap.metadata.recommendation;
 
 import java.io.Serializable;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.kylin.common.util.JsonUtil;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
@@ -43,15 +40,11 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class CCRecommendationItem implements Serializable, RecommendationItem<CCRecommendationItem> {
-
-    @Getter
-    @Setter
-    @JsonProperty("item_id")
-    private long itemId;
+public class CCRecommendationItem extends RecommendationItem<CCRecommendationItem> implements Serializable {
 
     @Getter
     @Setter
@@ -62,22 +55,6 @@ public class CCRecommendationItem implements Serializable, RecommendationItem<CC
     @Setter
     @JsonProperty("cc")
     private ComputedColumnDesc cc;
-
-    @Getter
-    @Setter
-    @JsonProperty("recommendation_type")
-    private RecommendationType recommendationType = RecommendationType.ADDITION;
-
-    @Getter
-    @Setter
-    @JsonProperty("is_auto_change_name")
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private boolean isAutoChangeName = true;
-
-    @Getter
-    @Setter
-    @JsonIgnore
-    private boolean isCopy = false;
 
     public void apply(OptimizeContext context, boolean real) {
         if (context.getDeletedCCRecommendations().contains(itemId)) {

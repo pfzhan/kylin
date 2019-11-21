@@ -59,4 +59,9 @@ public class LowFreqLayoutGcStrategy implements IGarbageCleanerStrategy {
         });
         return garbageLayouts;
     }
+
+    @Override
+    public LayoutGarbageCleaner.LayoutGarbageType getType() {
+        return LayoutGarbageCleaner.LayoutGarbageType.LOW_FREQUENCY;
+    }
 }

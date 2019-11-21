@@ -32,8 +32,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
-import io.kyligence.kap.rest.response.AggIndexRecommendationResponse;
-import io.kyligence.kap.rest.response.TableIndexRecommendationResponse;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -55,9 +53,6 @@ public class ApplyRecommendationsRequest {
     @JsonProperty("measure_recommendations")
     private List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
 
-    @JsonProperty("agg_index_recommendations")
-    private List<AggIndexRecommendationResponse> aggIndexRecommendations = Lists.newArrayList();
-
-    @JsonProperty("table_index_recommendations")
-    private List<TableIndexRecommendationResponse> tableIndexRecommendations = Lists.newArrayList();
+    @JsonProperty("index_recommendation_item_ids")
+    private List<Long> indexRecommendationItemIds = Lists.newArrayList();
 }

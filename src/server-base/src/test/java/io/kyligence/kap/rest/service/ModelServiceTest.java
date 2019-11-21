@@ -70,7 +70,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -113,6 +112,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
@@ -127,6 +127,7 @@ import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -150,7 +151,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
@@ -281,16 +282,16 @@ public class ModelServiceTest extends CSVSourceTestCase {
         recommendation2.setMeasureRecommendations(
                 Lists.newArrayList(new MeasureRecommendationItem(), new MeasureRecommendationItem()));
         recommendation2.setDimensionRecommendations(Lists.newArrayList(new DimensionRecommendationItem()));
-        val indexRecommendation1 = new IndexRecommendationItem();
-        val indexEntity = new IndexEntity();
-        indexEntity.setId(10000L);
-        indexRecommendation1.setEntity(indexEntity);
-        indexRecommendation1.setAggIndex(true);
+        val layoutRecommendation1 = new LayoutRecommendationItem();
+        val layoutEntity = new LayoutEntity();
+        layoutEntity.setId(10001L);
+        layoutRecommendation1.setLayout(layoutEntity);
+        layoutRecommendation1.setAggIndex(true);
 
-        val indexRecommendation2 = new IndexRecommendationItem();
-        indexRecommendation2.setEntity(indexEntity);
-        indexRecommendation2.setAggIndex(true);
-        recommendation2.setIndexRecommendations(Lists.newArrayList(indexRecommendation1, indexRecommendation2));
+        val layoutRecommendation2 = new LayoutRecommendationItem();
+        layoutRecommendation2.setLayout(layoutEntity);
+        layoutRecommendation2.setAggIndex(true);
+        recommendation2.setLayoutRecommendations(Lists.newArrayList(layoutRecommendation1, layoutRecommendation2));
 
         Mockito.doReturn(recommendation2).when(recommendationManager).getOptimizeRecommendation(modelId2);
         Mockito.doReturn(recommendationManager).when(modelService).getOptRecommendationManager("default");
@@ -2568,8 +2569,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(t1, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(t2, dataflow.getSegments().get(0).getSegRange().getEnd());
-        val result = PushDownUtil.getMaxAndMinTimeWithTimeOut(
-                modelUpdate.getPartitionDesc().getPartitionDateColumn(), modelUpdate.getRootFactTableName(), "default");
+        val result = PushDownUtil.getMaxAndMinTimeWithTimeOut(modelUpdate.getPartitionDesc().getPartitionDateColumn(),
+                modelUpdate.getRootFactTableName(), "default");
         Assert.assertNotNull(result);
     }
 
@@ -3214,16 +3215,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val recomManger = OptimizeRecommendationManager.getInstance(getTestConfig(), "default");
         val opt = new OptimizeRecommendation();
         opt.setUuid(modelId);
-        opt.setIndexRecommendations(Lists.newArrayList(new IndexRecommendationItem(), new IndexRecommendationItem()));
+        opt.setLayoutRecommendations(
+                Lists.newArrayList(new LayoutRecommendationItem(), new LayoutRecommendationItem()));
         recomManger.save(opt);
 
-        Assert.assertEquals(2, recomManger.getOptimizeRecommendation(modelId).getIndexRecommendations().size());
+        Assert.assertEquals(2, recomManger.getOptimizeRecommendation(modelId).getLayoutRecommendations().size());
         tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
         val model = modelManager.getDataModelDesc(modelId);
         Assert.assertTrue(model.isBroken());
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(0, recomManger.getOptimizeRecommendation(modelId).getIndexRecommendations().size());
+            Assert.assertEquals(0, recomManger.getOptimizeRecommendation(modelId).getLayoutRecommendations().size());
         });
     }
 

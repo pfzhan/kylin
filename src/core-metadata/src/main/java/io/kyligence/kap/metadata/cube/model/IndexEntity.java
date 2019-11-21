@@ -300,7 +300,7 @@ public class IndexEntity implements Serializable, IKeep {
         BitSet measureBitSet;
         boolean isTableIndex;
 
-        IndexIdentifier(BitSet dimBitSet, BitSet measureBitSet, boolean isTableIndex) {
+        public IndexIdentifier(BitSet dimBitSet, BitSet measureBitSet, boolean isTableIndex) {
             this(dimBitSet, measureBitSet);
             this.isTableIndex = isTableIndex;
         }

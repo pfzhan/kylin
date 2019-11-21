@@ -74,7 +74,8 @@
     {
       "id": 5,
       "name": "CAL_DT",
-      "column": "TEST_KYLIN_FACT.CAL_DT"
+      "column": "TEST_KYLIN_FACT.CAL_DT",
+      "status": "DIMENSION"
     },
     {
       "id": 6,

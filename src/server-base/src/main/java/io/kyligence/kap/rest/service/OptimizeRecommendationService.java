@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -38,33 +37,38 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeContext;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
-import io.kyligence.kap.rest.response.AggIndexRecomDetailResponse;
+import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.RecommendationStatsResponse;
-import io.kyligence.kap.rest.response.TableIndexRecommendationResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 
 @Component("optimizeRecommendationService")
 public class OptimizeRecommendationService extends BasicService {
 
+    public OptRecommendationResponse getRecommendationByModel(String project, String modelId, List<String> sources) {
+        val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
+        if (optRecommendation == null)
+            return null;
+
+        return new OptRecommendationResponse(optRecommendation, sources);
+    }
+
     public OptRecommendationResponse getRecommendationByModel(String project, String modelId) {
         val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
         if (optRecommendation == null)
             return null;
 
-        return new OptRecommendationResponse(optRecommendation);
+        return new OptRecommendationResponse(optRecommendation, null);
     }
 
     @Transaction(project = 1)
@@ -80,15 +84,12 @@ public class OptimizeRecommendationService extends BasicService {
         val passMeasureItems = request.getMeasureRecommendations().stream().map(MeasureRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
 
-        val passIndexItems = Sets.<Long> newHashSet();
-
-        request.getAggIndexRecommendations().forEach(item -> passIndexItems.addAll(item.getItemIds()));
-        request.getTableIndexRecommendations().forEach(item -> passIndexItems.add(item.getItemId()));
+        val passIndexItems = Sets.<Long> newHashSet(request.getIndexRecommendationItemIds());
 
         verifier.setPassCCItems(passCCItems);
         verifier.setPassDimensionItems(passDimensionItems);
         verifier.setPassMeasureItems(passMeasureItems);
-        verifier.setPassIndexItems(passIndexItems);
+        verifier.setPassLayoutItems(passIndexItems);
 
         verifier.verify();
     }
@@ -97,53 +98,33 @@ public class OptimizeRecommendationService extends BasicService {
     public void removeRecommendations(RemoveRecommendationsRequest request, String project) {
         val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
                 request.getModelId());
-        val failIndexItemIds = Stream
-                .concat(request.getAggIndexItemIds().stream(), request.getTableIndexItemIds().stream())
-                .collect(Collectors.toSet());
+
         verifier.setFailCCItems(Sets.newHashSet(request.getCcItemIds()));
         verifier.setFailDimensionItems(Sets.newHashSet(request.getDimensionItemIds()));
         verifier.setFailMeasureItems(Sets.newHashSet(request.getMeasureItemIds()));
-        verifier.setFailIndexItems(failIndexItemIds);
+        verifier.setFailLayoutItems(Sets.newHashSet(request.getIndexItemIds()));
 
         verifier.verify();
     }
 
-    public AggIndexRecomDetailResponse getAggIndexRecomContent(String project, String modelId, String content,
-            long indexId, int offset, int size) {
+    public LayoutRecommendationDetailResponse getLayoutRecommendationContent(String project, String modelId,
+                                                                             String content, long itemId, int offset, int size) {
         val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
         if (optRecommendation == null)
             return null;
 
         val optimizedModel = getOptimizedModel(project, modelId);
-        for (IndexRecommendationItem item : optRecommendation.getIndexRecommendations()) {
-            if (item.getEntity().getId() == indexId) {
-                return new AggIndexRecomDetailResponse(item.getEntity(), optimizedModel, content, offset, size);
+        for (val item : optRecommendation.getLayoutRecommendations()) {
+            if (item.getItemId() == itemId) {
+                return new LayoutRecommendationDetailResponse(item, optimizedModel, content, offset, size);
             }
         }
 
-        throw new IllegalArgumentException(String.format("agg index [%s] does not exist", indexId));
+        throw new IllegalArgumentException(String.format("index [%s] does not exist", itemId));
     }
 
     private NDataModel getOptimizedModel(String project, String modelId) {
         return getOptRecommendationManager(project).applyModel(modelId);
-    }
-
-    public TableIndexRecommendationResponse getTableIndexRecomContent(String project, String modelId, String content,
-            long layoutId, int offset, int size) {
-        val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
-        if (optRecommendation == null)
-            return null;
-
-        val optimizedModel = getOptimizedModel(project, modelId);
-        for (IndexRecommendationItem item : optRecommendation.getIndexRecommendations()) {
-            for (LayoutEntity layoutEntity : item.getEntity().getLayouts()) {
-                if (layoutEntity.getId() == layoutId) {
-                    return new TableIndexRecommendationResponse(layoutEntity, optimizedModel, content, offset, size);
-                }
-            }
-        }
-
-        throw new IllegalArgumentException(String.format("table index [%s] does not exist", layoutId));
     }
 
     private void updateOptimizeRecom(ApplyRecommendationsRequest request) {
@@ -161,7 +142,7 @@ public class OptimizeRecommendationService extends BasicService {
                 optRecomm -> {
                     // cc recommendation
                     val ccMapOrigin = optRecomm.getCcRecommendations().stream()
-                            .collect(Collectors.toMap(item -> item.getItemId(), item -> item));
+                            .collect(Collectors.toMap(CCRecommendationItem::getItemId, item -> item));
 
                     request.getCcRecommendations().forEach(updatedCCItem -> {
                         if (ccMapOrigin.get(updatedCCItem.getItemId()) == null)
@@ -177,25 +158,25 @@ public class OptimizeRecommendationService extends BasicService {
                     });
 
                     val ccMapUpdated = request.getCcRecommendations().stream()
-                            .collect(Collectors.toMap(item -> item.getItemId(), item -> item));
+                            .collect(Collectors.toMap(CCRecommendationItem::getItemId, item -> item));
 
                     ccMapOrigin.putAll(ccMapUpdated);
                     optRecomm.setCcRecommendations(Lists.newArrayList(ccMapOrigin.values()));
 
                     // dimension recommendation
                     val dimMapOrigin = optRecomm.getDimensionRecommendations().stream()
-                            .collect(Collectors.toMap(item -> item.getItemId(), item -> item));
+                            .collect(Collectors.toMap(DimensionRecommendationItem::getItemId, item -> item));
                     val dimMapUpdated = request.getDimensionRecommendations().stream()
-                            .collect(Collectors.toMap(item -> item.getItemId(), item -> item));
+                            .collect(Collectors.toMap(DimensionRecommendationItem::getItemId, item -> item));
 
                     dimMapOrigin.putAll(dimMapUpdated);
                     optRecomm.setDimensionRecommendations(Lists.newArrayList(dimMapOrigin.values()));
 
                     // measure recommendation
                     val measureMapOrigin = optRecomm.getMeasureRecommendations().stream()
-                            .collect(Collectors.toMap(item -> item.getItemId(), item -> item));
+                            .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
                     val measureMapUpdated = request.getMeasureRecommendations().stream()
-                            .collect(Collectors.toMap(item -> item.getItemId(), item -> item));
+                            .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
 
                     measureMapOrigin.putAll(measureMapUpdated);
                     optRecomm.setMeasureRecommendations(Lists.newArrayList(measureMapOrigin.values()));

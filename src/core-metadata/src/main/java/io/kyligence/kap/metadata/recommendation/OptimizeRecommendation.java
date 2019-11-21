@@ -24,7 +24,6 @@
 package io.kyligence.kap.metadata.recommendation;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
@@ -34,8 +33,6 @@ import com.google.common.collect.Lists;
 
 import lombok.Getter;
 import lombok.Setter;
-
-import static java.util.stream.Collectors.groupingBy;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class OptimizeRecommendation extends RootPersistentEntity {
@@ -67,10 +64,16 @@ public class OptimizeRecommendation extends RootPersistentEntity {
     @JsonProperty("next_measure_recommendation_item_id")
     private long nextMeasureRecommendationItemId;
 
+    @Deprecated
     @Getter
     @Setter
     @JsonProperty("next_index_recommendation_item_id")
     private long nextIndexRecommendationItemId;
+
+    @Getter
+    @Setter
+    @JsonProperty("next_layout_recommendation_item_id")
+    private long nextLayoutRecommendationItemId;
 
     @Getter
     @Setter
@@ -87,10 +90,16 @@ public class OptimizeRecommendation extends RootPersistentEntity {
     @JsonProperty("measure_recommendations")
     private List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
 
+    @Deprecated
     @Getter
     @Setter
     @JsonProperty("index_recommendations")
     private List<IndexRecommendationItem> indexRecommendations = Lists.newArrayList();
+
+    @Getter
+    @Setter
+    @JsonProperty("layout_recommendations")
+    private List<LayoutRecommendationItem> layoutRecommendations = Lists.newArrayList();
 
     public void addCCRecommendations(List<CCRecommendationItem> ccRecommendations) {
         nextCCRecommendationItemId = addRecommendations(this.ccRecommendations, ccRecommendations,
@@ -108,19 +117,14 @@ public class OptimizeRecommendation extends RootPersistentEntity {
                 nextMeasureRecommendationItemId);
     }
 
-    public void addIndexRecommendations(List<IndexRecommendationItem> indexRecommendationItems) {
-        nextIndexRecommendationItemId = addRecommendations(this.indexRecommendations, indexRecommendationItems,
-                nextIndexRecommendationItemId);
+    public void addLayoutRecommendations(List<LayoutRecommendationItem> layoutRecommendationItems) {
+        this.nextLayoutRecommendationItemId = addRecommendations(this.layoutRecommendations, layoutRecommendationItems,
+                nextLayoutRecommendationItemId);
     }
 
     public int getRecommendationsCount() {
         return ccRecommendations.size() + dimensionRecommendations.size() + measureRecommendations.size()
-                + getIndexRecommendationCount();
-    }
-
-    private int getIndexRecommendationCount() {
-        return indexRecommendations.stream().filter(item -> !item.isAggIndex()).collect(Collectors.toList()).size() +
-                indexRecommendations.stream().filter(item -> item.isAggIndex()).collect(groupingBy(index -> index.getEntity().getId())).size();
+                + layoutRecommendations.size();
     }
 
     private <T extends RecommendationItem<T>> long addRecommendations(List<T> all, List<T> news, long itemId) {

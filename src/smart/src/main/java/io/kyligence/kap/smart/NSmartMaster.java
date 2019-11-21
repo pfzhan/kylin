@@ -24,12 +24,13 @@
 
 package io.kyligence.kap.smart;
 
+import static io.kyligence.kap.metadata.favorite.FavoriteQuery.CHANNEL_FROM_IMPORTED;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import org.apache.calcite.sql.parser.impl.ParseException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -47,6 +48,8 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
@@ -298,7 +301,26 @@ public class NSmartMaster {
             NDataModel model = modelCtx.getTargetModel();
             IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
             try {
+                long indexItemId = 0;
+                val oldRecommendations = optRecMgr.getOptimizeRecommendation(model.getId());
+                if (oldRecommendations != null) {
+                    indexItemId = oldRecommendations.getNextLayoutRecommendationItemId();
+                }
                 OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
+                long finalIndexItemId = indexItemId;
+                boolean isQueryHistory = modelCtx.getSmartContext().getAccelerateInfoMap().entrySet().stream()
+                        .noneMatch(entry -> {
+                            String sql = entry.getKey();
+                            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
+                                    .getInstance(modelCtx.getSmartContext().getKylinConfig(), project);
+                            return favoriteQueryManager.get(sql).getChannel().equals(CHANNEL_FROM_IMPORTED);
+                        });
+                optRecMgr.updateOptimizeRecommendation(model.getId(), recommendation -> {
+                    recommendation.getLayoutRecommendations().stream()
+                            .filter(item -> item.getItemId() >= finalIndexItemId)
+                            .forEach(item -> item.setSource(isQueryHistory ? LayoutRecommendationItem.QUERY_HISTORY
+                                    : LayoutRecommendationItem.IMPORTED));
+                });
                 optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
             } catch (Exception e) {
                 log.error("Semi-Auto-Mode project:{} model({}) failed to generate recommendations", project,

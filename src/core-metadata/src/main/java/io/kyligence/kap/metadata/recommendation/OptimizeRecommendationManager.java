@@ -35,6 +35,7 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -52,8 +53,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -69,6 +72,8 @@ import lombok.var;
 
 public class OptimizeRecommendationManager {
     private static final Logger logger = LoggerFactory.getLogger(OptimizeRecommendationManager.class);
+
+    public static final String REMOVE_REASON = "remove_reason";
 
     public static OptimizeRecommendationManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, OptimizeRecommendationManager.class);
@@ -109,9 +114,21 @@ public class OptimizeRecommendationManager {
                 OptimizeRecommendation.class) {
             @Override
             protected OptimizeRecommendation initEntityAfterReload(OptimizeRecommendation entity, String resourceName) {
+                if (CollectionUtils.isEmpty(entity.getIndexRecommendations())) {
+                    return entity;
+                }
+                entity.addLayoutRecommendations(convertIndexToLayout(entity.getIndexRecommendations()));
+                entity.setIndexRecommendations(Lists.newArrayList());
                 return entity;
             }
         };
+    }
+
+    private List<LayoutRecommendationItem> convertIndexToLayout(List<IndexRecommendationItem> indexRecommendations) {
+        return indexRecommendations.stream()
+                .flatMap(item -> item.getEntity().getLayouts().stream()
+                        .map(layoutEntity -> createRecommendation(layoutEntity, item.isAdd(), item.isAdd())))
+                .collect(Collectors.toList());
     }
 
     public KylinConfig getConfig() {
@@ -141,27 +158,31 @@ public class OptimizeRecommendationManager {
     public static CCRecommendationItem createRecommendation(ComputedColumnDesc computedColumnDesc) {
         val recommendation = new CCRecommendationItem();
         recommendation.setCc(computedColumnDesc);
+        recommendation.setCreateTime(System.currentTimeMillis());
         return recommendation;
     }
 
-    public static DimensionRecommendationItem createRecommendation(NDataModel.NamedColumn column) {
+    private static DimensionRecommendationItem createRecommendation(NDataModel.NamedColumn column) {
         val recommendation = new DimensionRecommendationItem();
         recommendation.setColumn(column);
+        recommendation.setCreateTime(System.currentTimeMillis());
         return recommendation;
     }
 
-    public static MeasureRecommendationItem createRecommendation(NDataModel.Measure measure) {
+    private static MeasureRecommendationItem createRecommendation(NDataModel.Measure measure) {
         val recommendation = new MeasureRecommendationItem();
         recommendation.setMeasure(measure);
+        recommendation.setCreateTime(System.currentTimeMillis());
         return recommendation;
     }
 
-    public static IndexRecommendationItem createRecommendation(IndexEntity indexEntity, boolean add) {
-        val recommendation = new IndexRecommendationItem();
-        recommendation.setEntity(indexEntity);
-        recommendation.setAggIndex(!indexEntity.isTableIndex());
-        recommendation.setAdd(add);
-        val recommendationType = add ? RecommendationType.ADDITION : RecommendationType.REMOVAL;
+    private static LayoutRecommendationItem createRecommendation(LayoutEntity layoutEntity, boolean isAdd,
+                                                                 boolean isAgg) {
+        val recommendation = new LayoutRecommendationItem();
+        recommendation.setLayout(layoutEntity);
+        recommendation.setAggIndex(isAgg);
+        recommendation.setAdd(isAdd);
+        val recommendationType = isAdd ? RecommendationType.ADDITION : RecommendationType.REMOVAL;
         recommendation.setRecommendationType(recommendationType);
         return recommendation;
     }
@@ -317,37 +338,27 @@ public class OptimizeRecommendationManager {
         val recommendation = copy(getOrCreate(optimized.getUuid()));
         logOptimizeRecommendation(optimized.getId(), recommendation);
 
-        List<IndexRecommendationItem> indexRecommendationItems = delta.stream()
+        List<LayoutRecommendationItem> layoutRecommendationItems = delta.stream()
                 .collect(Collectors.groupingBy(Pair::getFirst)).entrySet().stream().flatMap(entry -> {
                     val layouts = entry.getValue().stream().map(Pair::getSecond).collect(Collectors.toList());
                     val index = layouts.get(0).getIndex();
-                    if (!index.isTableIndex()) {
-                        index.setLayouts(layouts);
-                        translateIndex(index, translations);
-                        return Lists.newArrayList(createRecommendation(index, true)).stream();
-                    } else {
-                        return layouts.stream().map(layout -> {
-                            val indexCopy = JsonUtil.deepCopyQuietly(index, IndexEntity.class);
-                            indexCopy.setLayouts(Lists.newArrayList(layout));
-                            translateIndex(indexCopy, translations);
-                            return createRecommendation(indexCopy, true);
-                        });
-                    }
+                    return layouts.stream().map(layout -> {
+                        val layoutCopy = JsonUtil.deepCopyQuietly(layout, LayoutEntity.class);
+                        translateLayout(layoutCopy, translations);
+                        return createRecommendation(layoutCopy, true, !index.isTableIndex());
+                    });
                 }).collect(Collectors.toList());
-        recommendation.addIndexRecommendations(indexRecommendationItems);
+        recommendation.addLayoutRecommendations(layoutRecommendationItems);
         crud.save(recommendation);
 
         logOptimizeRecommendation(optimized.getId());
     }
 
-    private void translateIndex(IndexEntity indexEntity, Map<Integer, Integer> translations) {
-        indexEntity.setDimensions(translateIds(indexEntity.getDimensions(), translations));
-        indexEntity.setMeasures(translateIds(indexEntity.getMeasures(), translations));
-        indexEntity.getLayouts().forEach(layoutEntity -> {
-            layoutEntity.setColOrder(translateIds(Lists.newArrayList(layoutEntity.getColOrder()), translations));
-            translateIds(layoutEntity.getShardByColumns(), translations);
-            translateIds(layoutEntity.getSortByColumns(), translations);
-        });
+    private void translateLayout(LayoutEntity layoutEntity, Map<Integer, Integer> translations) {
+        layoutEntity.setColOrder(translateIds(Lists.newArrayList(layoutEntity.getColOrder()), translations));
+        layoutEntity.setShardByColumns(translateIds(layoutEntity.getShardByColumns(), translations));
+        layoutEntity.setSortByColumns(translateIds(layoutEntity.getSortByColumns(), translations));
+
     }
 
     private List<Integer> translateIds(List<Integer> ids, Map<Integer, Integer> translations) {
@@ -371,6 +382,7 @@ public class OptimizeRecommendationManager {
             recommendation.setDimensionRecommendations(Lists.newArrayList());
             recommendation.setMeasureRecommendations(Lists.newArrayList());
             recommendation.setIndexRecommendations(Lists.newArrayList());
+            recommendation.setLayoutRecommendations(Lists.newArrayList());
         });
         logOptimizeRecommendation(id);
     }
@@ -661,9 +673,9 @@ public class OptimizeRecommendationManager {
             return;
         }
         logger.info(
-                "Semi-Auto-Mode project:{} print recommendations, [Model:{}, CcRecommendations:{}, DimensionRecommendations:{}, MeasureRecommendations:{}, IndexRecommendations:{}]",
+                "Semi-Auto-Mode project:{} print recommendations, [Model:{}, CcRecommendations:{}, DimensionRecommendations:{}, MeasureRecommendations:{}, LayoutRecommendations:{}]",
                 r.getProject(), r.getId(), r.getCcRecommendations().size(), r.getDimensionRecommendations().size(),
-                r.getMeasureRecommendations().size(), r.getIndexRecommendations().size());
+                r.getMeasureRecommendations().size(), r.getLayoutRecommendations().size());
     }
 
     public void logOptimizeRecommendation(String id) {
@@ -692,7 +704,7 @@ public class OptimizeRecommendationManager {
                 "DimensionContextRecommendationItems");
         logContextRecommendationItems(project, context.getModel(), context.getMeasureContextRecommendationItems(),
                 "MeasureContextRecommendationItems");
-        logContextRecommendationItems(project, context.getModel(), context.getIndexContextRecommendationItems(),
+        logContextRecommendationItems(project, context.getModel(), context.getLayoutContextRecommendationItems(),
                 "IndexContextRecommendationItems");
         logger.info(
                 "Semi-Auto-Mode project:{} print OptimizeContext model [Model:{}, CC:{}, Column:{}, Measure:{}, Index:{}, Layout:{}]",
@@ -706,8 +718,8 @@ public class OptimizeRecommendationManager {
         val context = new OptimizeContext(model, indexPlan, recommendation);
         logOptimizeContext(project, context);
         apply(context);
-        recommendation.getIndexRecommendations().stream()
-                .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).filter(IndexRecommendationItem::isAdd)
+        recommendation.getLayoutRecommendations().stream()
+                .sorted(Comparator.comparingLong(RecommendationItem::getItemId)).filter(LayoutRecommendationItem::isAdd)
                 .forEach(item -> {
                     item.translate(context);
                     item.checkDependencies(context);
@@ -730,18 +742,18 @@ public class OptimizeRecommendationManager {
         }
         if (context.getModifiedCCRecommendations().isEmpty() && context.getModifiedDimensionRecommendations().isEmpty()
                 && context.getModifiedMeasureRecommendations().isEmpty()
-                && context.getModifiedIndexRecommendations().isEmpty()
+                && context.getModifiedLayoutRecommendations().isEmpty()
                 && context.getDeletedCCRecommendations().isEmpty()
                 && context.getDeletedDimensionRecommendations().isEmpty()
                 && context.getDeletedMeasureRecommendations().isEmpty()
-                && context.getDeletedIndexRecommendations().isEmpty() && context.getTranslations().isEmpty()) {
+                && context.getDeletedLayoutRecommendations().isEmpty() && context.getTranslations().isEmpty()) {
             return;
         }
 
         logger.info("Semi-Auto-Mode project:{} start to update recommendation by OptimizeContext, id:{}", project,
                 context.getModel().getId());
         if (!context.getTranslations().isEmpty()) {
-            context.getRecommendation().getIndexRecommendations().forEach(item -> item.translate(context));
+            context.getRecommendation().getLayoutRecommendations().forEach(item -> item.translate(context));
         }
 
         val cached = getOptimizeRecommendation(context.getModel().getUuid());
@@ -753,8 +765,8 @@ public class OptimizeRecommendationManager {
                 context.getModifiedDimensionRecommendations(), context.getDeletedDimensionRecommendations()));
         copy.setMeasureRecommendations(update(cached.getMeasureRecommendations(),
                 context.getModifiedMeasureRecommendations(), context.getDeletedMeasureRecommendations()));
-        copy.setIndexRecommendations(update(cached.getIndexRecommendations(), context.getModifiedIndexRecommendations(),
-                context.getDeletedIndexRecommendations()));
+        copy.setLayoutRecommendations(update(cached.getLayoutRecommendations(),
+                context.getModifiedLayoutRecommendations(), context.getDeletedLayoutRecommendations()));
 
         copy.setLastVerifiedTime(lastVerifiedTime);
 
@@ -859,7 +871,7 @@ public class OptimizeRecommendationManager {
         return res;
     }
 
-    public void removeLayouts(String id, Set<Long> removeLayouts) {
+    public void removeLayouts(String id, Map<Long, LayoutGarbageCleaner.LayoutGarbageType> removeLayouts) {
         Preconditions.checkNotNull(id);
         Preconditions.checkNotNull(removeLayouts);
         logger.info("Semi-Auto-Mode project:{} start to clean the useless layouts [model:{}, layouts:{}]", project, id,
@@ -868,8 +880,8 @@ public class OptimizeRecommendationManager {
         var indexPlan = indexPlanManager.getIndexPlan(id);
         Preconditions.checkNotNull(indexPlan);
         indexPlan = applyRemove(indexPlanManager.copy(indexPlan), getOrCreate(id));
-        List<IndexRecommendationItem> indexItems = indexPlan.getAllLayouts().stream()
-                .filter(layoutEntity -> removeLayouts.contains(layoutEntity.getId()))
+        List<LayoutRecommendationItem> indexItems = indexPlan.getAllLayouts().stream()
+                .filter(layoutEntity -> removeLayouts.containsKey(layoutEntity.getId()))
                 .map(layoutEntity -> new Pair<>(layoutEntity.getIndex(), layoutEntity))
                 .collect(Collectors.groupingBy(Pair::getFirst)).entrySet().stream().flatMap(entry -> {
                     val indexEntity = new IndexEntity();
@@ -879,23 +891,16 @@ public class OptimizeRecommendationManager {
                     indexEntity.setId(originIndexEntity.getId());
                     indexEntity.setDimensions(originIndexEntity.getDimensions());
                     indexEntity.setMeasures(originIndexEntity.getMeasures());
-                    if (!originIndexEntity.isTableIndex()) {
-                        indexEntity.setLayouts(layouts);
-                        val item = createRecommendation(indexEntity, false);
-                        item.setAggIndex(!originIndexEntity.isTableIndex());
-                        return Lists.newArrayList(item).stream();
-                    } else {
-                        return layouts.stream().map(layout -> {
-                            val indexCopy = JsonUtil.deepCopyQuietly(indexEntity, IndexEntity.class);
-                            indexCopy.setLayouts(Lists.newArrayList(layout));
-                            return createRecommendation(indexCopy, false);
-                        });
-
-                    }
+                    return layouts.stream().map(layout -> {
+                        val layoutCopy = JsonUtil.deepCopyQuietly(layout, LayoutEntity.class);
+                        val item = createRecommendation(layoutCopy, false, !originIndexEntity.isTableIndex());
+                        item.getExtraInfo().put(REMOVE_REASON, removeLayouts.get(layout.getId()).name());
+                        return item;
+                    });
                 }).collect(Collectors.toList());
         val recommendation = copy(getOrCreate(id));
         logOptimizeRecommendation(id, recommendation);
-        recommendation.addIndexRecommendations(indexItems);
+        recommendation.addLayoutRecommendations(indexItems);
         updateOptimizeRecommendation(recommendation);
         logOptimizeRecommendation(id);
     }
@@ -907,7 +912,7 @@ public class OptimizeRecommendationManager {
 
         val context = new OptimizeContext(model, indexPlan, recommendation);
 
-        val removeLayouts = recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd())
+        val removeLayouts = recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAdd())
                 .collect(Collectors.toList());
         removeLayouts.forEach(item -> item.apply(context, false));
         val allWhiteIndexes = indexPlan.getIndexes().stream().filter(indexEntity -> !indexEntity.getLayouts().isEmpty())
@@ -924,4 +929,5 @@ public class OptimizeRecommendationManager {
         crud.delete(recommendation);
         logger.info("Semi-Auto-Mode project:{} deleted recommendation, id:{}", project, id);
     }
+
 }

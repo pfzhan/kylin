@@ -24,38 +24,27 @@
 
 package io.kyligence.kap.rest.response;
 
-import static java.util.stream.Collectors.groupingBy;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.MeasureDesc;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.IndexRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Setter
@@ -73,148 +62,71 @@ public class OptRecommendationResponse {
     @JsonProperty("measure_recommendations")
     private List<MeasureRecommendationItem> measureRecommendations;
 
-    @JsonProperty("agg_index_recommendations")
-    private List<AggIndexRecommendationResponse> aggIndexRecommendations;
-
-    @JsonProperty("table_index_recommendations")
-    private List<TableIndexRecommendationResponse> tableIndexRecommendations;
+    @JsonProperty("index_recommendations")
+    private List<LayoutRecommendationResponse> indexRecommendations;
 
     private String modelId;
     private String project;
 
-    public OptRecommendationResponse(OptimizeRecommendation optRecommendation) {
+    public OptRecommendationResponse(OptimizeRecommendation optRecommendation, List<String> sources) {
         this.modelId = optRecommendation.getUuid();
         this.project = optRecommendation.getProject();
 
         this.ccRecommendations = optRecommendation.getCcRecommendations();
         this.dimensionRecommendations = optRecommendation.getDimensionRecommendations();
         this.measureRecommendations = optRecommendation.getMeasureRecommendations();
-        val convertedIndexRecomm = convertIndexRecommendation(optRecommendation);
-        this.aggIndexRecommendations = convertedIndexRecomm.getFirst();
-        this.tableIndexRecommendations = convertedIndexRecomm.getSecond();
-    }
+        this.indexRecommendations = convertIndexRecommendation(optRecommendation, sources);
 
-    private Map<IndexEntity.IndexIdentifier, IndexEntity> getIndexEntityMap() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(config, this.project);
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, this.project);
-        return indexPlanManager.getIndexPlanByModelAlias(dataModelManager.getDataModelDesc(this.modelId).getAlias())
-                .getAllIndexesMap();
     }
 
     private OptimizeRecommendationManager getOptRecomManager() {
         return OptimizeRecommendationManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
-    private Pair<List<AggIndexRecommendationResponse>, List<TableIndexRecommendationResponse>> convertIndexRecommendation(
-            OptimizeRecommendation optimizeRecommendation) {
-        val indexRecommendationItems = optimizeRecommendation.getIndexRecommendations();
+    private List<LayoutRecommendationResponse> convertIndexRecommendation(OptimizeRecommendation optimizeRecommendation,
+            List<String> sources) {
+        val indexRecommendationItems = optimizeRecommendation.getLayoutRecommendations();
         val optimizedModel = getOptRecomManager().applyModel(modelId);
+        val idNameMap = optimizedModel.getAllNamedColumns().stream()
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getId, NDataModel.NamedColumn::getAliasDotColumn));
+        idNameMap.putAll(optimizedModel.getAllMeasures().stream()
+                .collect(Collectors.toMap(NDataModel.Measure::getId, MeasureDesc::getName)));
 
-        val aggIndicesRecommendations = new ArrayList<IndexRecommendationItem>();
-        val aggIndices = new ArrayList<AggIndexRecommendationResponse>();
-        val tableIndices = new ArrayList<TableIndexRecommendationResponse>();
+        return indexRecommendationItems.stream().map(this::convertToIndexRecommendationResponse).filter(r -> {
+            if (CollectionUtils.isEmpty(sources)) {
+                return true;
+            }
+            return sources.contains(r.getSource());
+        }).collect(Collectors.toList());
 
-        indexRecommendationItems.forEach(indexRecommendation -> {
-            if (indexRecommendation.isAggIndex()) {
-                aggIndicesRecommendations.add(indexRecommendation);
+    }
+
+    private LayoutRecommendationResponse convertToIndexRecommendationResponse(LayoutRecommendationItem item) {
+        val response = new LayoutRecommendationResponse();
+        response.setInfo(item.getExtraInfo());
+        response.setItemId(item.getItemId());
+        response.setCreatedTime(item.getCreateTime());
+        val layout = item.getLayout();
+        response.setId(layout.getId());
+        response.setColumnsAndMeasuresSize(layout.getColOrder().size());
+        if (item.isAdd()) {
+            if (item.isAggIndex()) {
+                response.setType(LayoutRecommendationResponse.Type.ADD_AGG);
             } else {
-                tableIndices.addAll(convertToTableIndexResponse(indexRecommendation, optimizedModel));
+                response.setType(LayoutRecommendationResponse.Type.ADD_TABLE);
             }
-        });
-
-        val indexEntityMap = getIndexEntityMap();
-        aggIndicesRecommendations.stream().collect(groupingBy(index -> index.getEntity().getId()))
-                .forEach((indexId, indexRecommItems) -> {
-                    val indexEntity = indexRecommItems.get(0).getEntity();
-                    val itemids = Lists.newArrayList(indexRecommItems.get(0).getItemId());
-                    val originIndexEntity = indexEntityMap.get(indexEntity.createIndexIdentifier());
-
-                    RecommendationType recommendationType;
-                    if (Objects.isNull(originIndexEntity) || CollectionUtils.isEmpty(originIndexEntity.getLayouts())) {
-                        indexRecommItems.forEach(item -> {
-                            if (RecommendationType.REMOVAL == item.getRecommendationType()) {
-                                log.warn(
-                                        "Error found: recommend the type REMOVAL when origin index is empty, IndexEntityId: {}",
-                                        item.getEntity().getId());
-                                return;
-                            }
-                            indexEntity.getLayouts().addAll(item.getEntity().getLayouts());
-                            itemids.add(item.getItemId());
-                        });
-                        recommendationType = RecommendationType.ADDITION;
-                    } else {
-                        if (CollectionUtils.isEmpty(optimizeOriginIndex(originIndexEntity, indexRecommItems))) {
-                            recommendationType = RecommendationType.REMOVAL;
-                        } else {
-                            recommendationType = RecommendationType.MODIFICATION;
-                        }
-                    }
-
-                    for (int i = 1; i < indexRecommItems.size(); i++) {
-                        indexEntity.getLayouts().addAll(indexRecommItems.get(i).getEntity().getLayouts());
-                        itemids.add(indexRecommItems.get(i).getItemId());
-                    }
-
-                    val aggregatedIndex = new AggIndexRecommendationResponse(indexEntity, optimizedModel);
-                    aggregatedIndex.setRecommendationType(recommendationType);
-                    aggregatedIndex.setItemIds(itemids);
-                    aggIndices.add(aggregatedIndex);
-                });
-
-        return new Pair<>(aggIndices, tableIndices);
-    }
-
-    private Set<LayoutEntity> optimizeOriginIndex(final IndexEntity originIndexEntity,
-            final List<IndexRecommendationItem> indexRecommItems) {
-        Set<LayoutEntity> layoutEntitySet = Sets.newHashSet(originIndexEntity.getLayouts());
-        indexRecommItems.forEach(item -> {
-            if (RecommendationType.ADDITION == item.getRecommendationType()) {
-                item.getEntity().getLayouts().forEach(layoutEntity -> {
-                    if (layoutEntitySet.contains(layoutEntity)) {
-                        log.warn(
-                                "Error found: recommend the type ADDITION when origin index with layout, LayoutEntityId: {}, IndexEntityId: {}",
-                                layoutEntity.getId(), layoutEntity.getIndex().getId());
-                        return;
-                    }
-                    layoutEntitySet.add(layoutEntity);
-                });
+            response.setSource(item.getSource());
+        } else {
+            if (item.isAggIndex()) {
+                response.setType(LayoutRecommendationResponse.Type.REMOVE_AGG);
+            } else {
+                response.setType(LayoutRecommendationResponse.Type.REMOVE_TABLE);
             }
-        });
-
-        indexRecommItems.forEach(item -> {
-            if (RecommendationType.REMOVAL == item.getRecommendationType()) {
-                item.getEntity().getLayouts().forEach(layoutEntity -> {
-                    if (!layoutEntitySet.contains(layoutEntity)) {
-                        log.warn(
-                                "Error found: recommend the type REMOVAL when origin index without layout, LayoutEntityId: {}, IndexEntityId: {}",
-                                layoutEntity.getId(), layoutEntity.getIndex().getId());
-                        return;
-                    }
-                    layoutEntitySet.remove(layoutEntity);
-                });
-            }
-        });
-
-        return layoutEntitySet;
-    }
-
-    private List<TableIndexRecommendationResponse> convertToTableIndexResponse(
-            IndexRecommendationItem indexRecommendationItem, NDataModel optimizedModel) {
-        val tableIndexLayoutsRes = Lists.<TableIndexRecommendationResponse> newArrayList();
-        val recommendationType = indexRecommendationItem.isAdd() ? RecommendationType.ADDITION
-                : RecommendationType.REMOVAL;
-        val indexEntity = indexRecommendationItem.getEntity();
-        val itemId = indexRecommendationItem.getItemId();
-
-        indexEntity.getLayouts().forEach(layout -> {
-            val tableIndexRes = new TableIndexRecommendationResponse(layout, optimizedModel, null, PAGING_OFFSET,
-                    PAGING_SIZE);
-            tableIndexRes.setItemId(itemId);
-            tableIndexRes.setRecommendationType(recommendationType);
-            tableIndexLayoutsRes.add(tableIndexRes);
-        });
-
-        return tableIndexLayoutsRes;
+            val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            val dataflow = dfManager.getDataflow(modelId);
+            response.setDataSize(dataflow.getByteSize(layout.getId()));
+            response.setUsage(dataflow.getQueryHitCount(layout.getId()));
+        }
+        return response;
     }
 }

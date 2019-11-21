@@ -50,9 +50,6 @@ public class RemoveRecommendationsRequest {
     @JsonProperty("measure_recommendations")
     private List<Long> measureItemIds = Lists.newArrayList();
 
-    @JsonProperty("agg_index_recommendations")
-    private List<Long> aggIndexItemIds = Lists.newArrayList();
-
-    @JsonProperty("table_index_recommendations")
-    private List<Long> tableIndexItemIds = Lists.newArrayList();
+    @JsonProperty("index_recommendations")
+    private List<Long> indexItemIds = Lists.newArrayList();
 }

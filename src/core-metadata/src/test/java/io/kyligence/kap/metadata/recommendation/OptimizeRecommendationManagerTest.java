@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -44,10 +45,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -90,6 +93,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
     private final String modelDir = "src/test/resources/ut_meta/optimize/metadata/model/";
     private final String indexDir = "src/test/resources/ut_meta/optimize/metadata/index_plan/";
+    private final String recommendationDir = "src/test/resources/ut_meta/optimize/metadata/recommendation/";
     private final String id = "25f8bbb7-cddc-4837-873d-f80f994d8a2d";
     private final String baseModelFile = modelDir + "base_model.json";
     private final String baseIndexFile = indexDir + "base_index_plan.json";
@@ -118,6 +122,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private final String duplicateColumnBaseModel = modelDir + "duplicate_column_base_model.json";
     private final String duplicateColumnOptimizedModel = modelDir + "duplicate_column_optimized_model.json";
     private final String emptyRuleIndexPlanFile = indexDir + "empty_rule_index_plan.json";
+    private final String sameAggGroupLayoutIndexPlanFile = indexDir + "same_agg_group_layout_index_plan.json";
 
     private void prepare(String baseModelFile, String baseIndexFile, String optimizedModelFile,
             String optimizedIndexPlanFile, Consumer<NDataModel> modelConsumer,
@@ -176,9 +181,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(3, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals("bigint", recommendation.getDimensionRecommendations().get(0).getDataType());
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(3, recommendation.getIndexRecommendations().size());
-        Assert.assertTrue(recommendation.getIndexRecommendations().stream().filter(item -> !item.isAggIndex())
-                .allMatch(item -> item.getEntity().getLayouts().size() == 1));
+        Assert.assertEquals(3, recommendation.getLayoutRecommendations().size());
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAggIndex())
+                .allMatch(item -> item.getLayout() != null));
 
     }
 
@@ -198,7 +203,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         val appliedModel = recommendationManager.applyModel(id);
         recommendationManager.optimize(appliedModel, indexPlanOptimized);
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(4, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(6, recommendation.getLayoutRecommendations().size());
+        Assert.assertTrue(
+                recommendation.getLayoutRecommendations().stream().allMatch(item -> item.getLayout() != null));
     }
 
     @Test
@@ -209,18 +216,27 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(0, recommendation.getCcRecommendations().size());
         Assert.assertEquals(0, recommendation.getDimensionRecommendations().size());
         Assert.assertEquals(0, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(0, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(0, recommendation.getLayoutRecommendations().size());
+    }
+
+    private Map<Long, LayoutGarbageCleaner.LayoutGarbageType> createRemoveLayoutIds(Long... ids) {
+        var removeLayoutsId = Maps.<Long, LayoutGarbageCleaner.LayoutGarbageType> newHashMap();
+        for (Long layoutId : ids) {
+            removeLayoutsId.put(layoutId, LayoutGarbageCleaner.LayoutGarbageType.LOW_FREQUENCY);
+        }
+        return removeLayoutsId;
     }
 
     @Test
     public void testRemoveIndex() throws IOException {
         prepare();
-        var removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L, 20000000001L);
+        var removeLayoutsId = createRemoveLayoutIds(1L, 150001L, 20000000001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(6, recommendation.getIndexRecommendations().size());
-        Assert.assertEquals(3, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+        Assert.assertEquals(6, recommendation.getLayoutRecommendations().size());
+        Assert.assertEquals(3,
+                recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAdd()).count());
 
     }
 
@@ -228,12 +244,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     public void testRemoveIndex_Twice() throws IOException {
         testRemoveIndex();
 
-        val removeLayoutsId = Sets.newHashSet(1L, 150001L, 20000000001L, 20000000002L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L, 20000000001L, 20000000002L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(7, recommendation.getIndexRecommendations().size());
-        Assert.assertEquals(4, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+        Assert.assertEquals(7, recommendation.getLayoutRecommendations().size());
+        Assert.assertEquals(4,
+                recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAdd()).count());
 
     }
 
@@ -242,12 +259,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile);
         val indexPlan = indexPlanManager.getIndexPlan(id);
         Assert.assertNull(indexPlan.getRuleBasedIndex());
-        val removeLayoutsId = Sets.<Long> newHashSet(150001L, 20000000002L);
+        val removeLayoutsId = createRemoveLayoutIds(150001L, 20000000002L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(5, recommendation.getIndexRecommendations().size());
-        Assert.assertEquals(2, recommendation.getIndexRecommendations().stream().filter(item -> !item.isAdd()).count());
+        Assert.assertEquals(5, recommendation.getLayoutRecommendations().size());
+        Assert.assertEquals(2,
+                recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAdd()).count());
 
         val passIndexes = Sets.newHashSet(3L, 4L);
         val verifier = create(null, null, null, null, null, null, passIndexes, null);
@@ -261,12 +279,12 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     private void testRemoveExists(NDataModelManager.NDataModelUpdater updater) {
         modelManager.updateDataModel(id, updater);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(3, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(3, recommendation.getLayoutRecommendations().size());
         recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(2, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(2, recommendation.getLayoutRecommendations().size());
         Assert.assertTrue(
-                recommendation.getIndexRecommendations().stream().noneMatch(IndexRecommendationItem::isAggIndex));
+                recommendation.getLayoutRecommendations().stream().noneMatch(LayoutRecommendationItem::isAggIndex));
     }
 
     @Test
@@ -325,9 +343,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         recommendationManager.optimize(optimized, indexPlanOptimized);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(1, recommendation.getIndexRecommendations().size());
-        Assert.assertTrue(recommendation.getIndexRecommendations().stream().filter(item -> !item.isAggIndex())
-                .allMatch(item -> item.getEntity().getLayouts().size() == 1));
+        Assert.assertEquals(1, recommendation.getLayoutRecommendations().size());
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAggIndex())
+                .allMatch(item -> item.getLayout() != null));
         val appliedModel = recommendationManager.applyModel(id);
         Assert.assertEquals(8, appliedModel.getAllMeasures().stream().filter(measure -> !measure.isTomb()).count());
         Assert.assertEquals(6, appliedModel.getAllMeasures().stream().filter(NDataModel.Measure::isTomb).count());
@@ -368,7 +386,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testApplyRemove() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L, 20000000001L, 20000000002L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L, 20000000001L, 20000000002L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val indexPlanOrigin = indexPlanManager.copy(indexPlanManager.getIndexPlan(id));
@@ -414,9 +432,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         recommendationManager.cleanInEffective(id);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getDimensions().contains(16));
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getLayouts().stream()
-                .allMatch(layout -> layout.getColOrder().contains(16)));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getDimensions().contains(16));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(16));
     }
 
     @Test
@@ -432,9 +449,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                 recommendation.getCcRecommendations().get(0).getCc().getExpression());
         Assert.assertEquals(16, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
         Assert.assertEquals("CC_AUTO_1", recommendation.getDimensionRecommendations().get(1).getColumn().getName());
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getDimensions().contains(16));
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getLayouts().stream()
-                .allMatch(layout -> layout.getColOrder().contains(16)));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getDimensions().contains(16));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(16));
     }
 
     @Test
@@ -538,12 +554,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(10000002, recommendation.getDimensionRecommendations().get(1).getColumn().getId());
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2",
                 recommendation.getDimensionRecommendations().get(1).getColumn().getName());
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getDimensions().contains(16));
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getLayouts().stream()
-                .allMatch(layout -> layout.getColOrder().contains(16)));
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getMeasures().contains(100002));
-        Assert.assertTrue(recommendation.getIndexRecommendations().get(0).getEntity().getLayouts().stream()
-                .allMatch(layout -> layout.getColOrder().contains(100002)));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getDimensions().contains(16));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(16));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getMeasures().contains(100002));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(0).getLayout().getColOrder().contains(100002));
     }
 
     @Test
@@ -564,7 +578,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerifyAll() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val verifier = new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id);
@@ -598,7 +612,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testVerify_passAll() throws IOException {
         prepare();
-        val removeLayoutsId = Sets.<Long> newHashSet(1L, 150001L);
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
         recommendationManager.removeLayouts(id, removeLayoutsId);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
@@ -612,7 +626,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                 .collect(Collectors.toSet());
         val failMeasures = Sets.<Long> newHashSet();
 
-        val passIndexes = recommendation.getIndexRecommendations().stream().map(IndexRecommendationItem::getItemId)
+        val passIndexes = recommendation.getLayoutRecommendations().stream().map(LayoutRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
         val failIndexes = Sets.<Long> newHashSet();
 
@@ -656,7 +670,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(0, updateRecommendation.getCcRecommendations().size());
         Assert.assertEquals(0, updateRecommendation.getDimensionRecommendations().size());
         Assert.assertEquals(0, updateRecommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(0, updateRecommendation.getIndexRecommendations().size());
+        Assert.assertEquals(0, updateRecommendation.getLayoutRecommendations().size());
     }
 
     private OptimizeRecommendationVerifier create(Set<Long> passCCs, Set<Long> failCCs, Set<Long> passDimensions,
@@ -671,8 +685,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         verifier.setFailDimensionItems(failDimensions);
         verifier.setPassMeasureItems(passMeasures);
         verifier.setFailMeasureItems(failMeasures);
-        verifier.setPassIndexItems(passIndexes);
-        verifier.setFailIndexItems(failIndexes);
+        verifier.setPassLayoutItems(passIndexes);
+        verifier.setFailLayoutItems(failIndexes);
         return verifier;
     }
 
@@ -690,7 +704,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                 .collect(Collectors.toSet());
         val passMeasures = Sets.<Long> newHashSet();
 
-        val failIndexes = recommendation.getIndexRecommendations().stream().map(IndexRecommendationItem::getItemId)
+        val failIndexes = recommendation.getLayoutRecommendations().stream().map(LayoutRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
         val passIndexes = Sets.<Long> newHashSet();
 
@@ -713,7 +727,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(0, updateRecommendation.getCcRecommendations().size());
         Assert.assertEquals(0, updateRecommendation.getDimensionRecommendations().size());
         Assert.assertEquals(0, updateRecommendation.getMeasureRecommendations().size());
-        Assert.assertEquals(0, updateRecommendation.getIndexRecommendations().size());
+        Assert.assertEquals(0, updateRecommendation.getLayoutRecommendations().size());
     }
 
     @Test
@@ -752,7 +766,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
                     }
                     return false;
                 })));
-        Assert.assertEquals(2, updateRecommendation.getIndexRecommendations().size());
+        Assert.assertEquals(2, updateRecommendation.getLayoutRecommendations().size());
     }
 
     @Test
@@ -769,7 +783,7 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         val passMeasures = recommendation.getMeasureRecommendations().stream().map(MeasureRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
         val failMeasures = Sets.<Long> newHashSet();
-        val passIndexes = recommendation.getIndexRecommendations().stream().map(IndexRecommendationItem::getItemId)
+        val passIndexes = recommendation.getLayoutRecommendations().stream().map(LayoutRecommendationItem::getItemId)
                 .collect(Collectors.toSet());
         val failIndexes = Sets.<Long> newHashSet();
 
@@ -1052,10 +1066,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
             indexPlan.setIndexes(Lists.newArrayList());
         });
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
-                .anyMatch(item -> item.getEntity().getLayouts().stream()
-                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(),
-                                Arrays.asList(0, 12, 100000, 100001)))));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .anyMatch(item -> compareList(item.getLayout().getColOrder(), Arrays.asList(0, 12, 100000, 100001))));
         indexPlanManager.updateIndexPlan(id, copyForWrite -> {
             val rule = new NRuleBasedIndex();
             rule.setDimensions(Lists.newArrayList(0, 12));
@@ -1072,10 +1084,8 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         });
         recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
-                .noneMatch(item -> item.getEntity().getLayouts().stream()
-                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(),
-                                Arrays.asList(0, 12, 100000, 100001)))));
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .noneMatch(item -> compareList(item.getLayout().getColOrder(), Arrays.asList(0, 12, 100000, 100001))));
 
     }
 
@@ -1085,11 +1095,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
             indexPlan.setIndexes(Lists.newArrayList());
         });
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        int indexItemSize = recommendation.getIndexRecommendations().size();
-        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
-                .anyMatch(item -> item.getEntity().getLayouts().stream()
-                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(), Arrays.asList(0, 1, 2))
-                                && compareList(layoutEntity.getSortByColumns(), Collections.singletonList(0)))));
+        int indexItemSize = recommendation.getLayoutRecommendations().size();
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .anyMatch(item -> compareList(item.getLayout().getColOrder(), Arrays.asList(0, 1, 2))
+                        && compareList(item.getLayout().getSortByColumns(), Collections.singletonList(0))));
         indexPlanManager.updateIndexPlan(id, copyForWrite -> {
             val index = new IndexEntity();
             index.setId(copyForWrite.getNextTableIndexId());
@@ -1109,11 +1118,24 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         });
         recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertTrue(recommendation.getIndexRecommendations().stream()
-                .noneMatch(item -> item.getEntity().getLayouts().stream()
-                        .anyMatch(layoutEntity -> compareList(layoutEntity.getColOrder(), Arrays.asList(0, 1, 2))
-                                && compareList(layoutEntity.getSortByColumns(), Collections.singletonList(0)))));
-        Assert.assertEquals(indexItemSize - 1, recommendation.getIndexRecommendations().size());
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .noneMatch(item -> compareList(item.getLayout().getColOrder(), Arrays.asList(0, 1, 2))
+                        && compareList(item.getLayout().getSortByColumns(), Collections.singletonList(0))));
+        Assert.assertEquals(indexItemSize - 1, recommendation.getLayoutRecommendations().size());
+
+    }
+
+    @Test
+    public void testApply_IndexSameAgg() throws IOException {
+        prepare(baseModelFile, baseIndexFile, optimizedModelFile, sameAggGroupLayoutIndexPlanFile);
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .anyMatch(item -> compareList(item.getLayout().getColOrder(), Arrays.asList(5, 0, 100000, 100001))));
+        val verifier = new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id);
+        verifier.verifyAll();
+        val indexPlan = indexPlanManager.getIndexPlan(id);
+        Assert.assertTrue(indexPlan.getAllLayouts().stream().anyMatch(
+                layoutEntity -> compareList(layoutEntity.getColOrder(), Arrays.asList(5, 0, 100000, 100001))));
 
     }
 
@@ -1128,6 +1150,22 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
             }
         }
         return true;
+    }
+
+    @Test
+    public void testCompatibleLegacy() throws IOException {
+        val legacyRecommendation = readValue(new File(recommendationDir + "/legacy.json"),
+                OptimizeRecommendation.class);
+        val originModel = readValue(new File(baseModelFile), NDataModel.class);
+        val indexPlan = readValue(new File(baseIndexFile), IndexPlan.class);
+
+        modelManager.createDataModelDesc(originModel, "ADMIN");
+        indexPlanManager.createIndexPlan(indexPlan);
+        recommendationManager.save(legacyRecommendation);
+
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertEquals(0, recommendation.getIndexRecommendations().size());
+        Assert.assertEquals(3, recommendation.getLayoutRecommendations().size());
     }
 
 }

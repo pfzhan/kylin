@@ -303,4 +303,6 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public boolean matchDraftVersion(String draftVersion) {
         return isDraft() && this.draftVersion.equals(draftVersion);
     }
+
+
 }

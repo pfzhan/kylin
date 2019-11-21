@@ -534,4 +534,24 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
         return bytesSize;
     }
+
+    public long getQueryHitCount(long layoutId) {
+        if (getLayoutHitCount().get(layoutId) != null) {
+            return getLayoutHitCount().get(layoutId).getDateFrequency().values().stream().mapToInt(Integer::intValue)
+                    .sum();
+        }
+        return 0L;
+    }
+
+    public long getByteSize(long layoutId) {
+        long dataSize = 0L;
+        for (NDataSegment segment : getSegments()) {
+            val dataCuboid = segment.getLayout(layoutId);
+            if (dataCuboid == null) {
+                continue;
+            }
+            dataSize += dataCuboid.getByteSize();
+        }
+        return dataSize;
+    }
 }
