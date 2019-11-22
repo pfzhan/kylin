@@ -24,18 +24,17 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
+@Data
 public class PushDownModeRequest {
 
     private String project;
 
     private String table;
 
+    @JsonProperty("pushdown_range_limited")
     private boolean pushdownRangeLimited;
 
 }

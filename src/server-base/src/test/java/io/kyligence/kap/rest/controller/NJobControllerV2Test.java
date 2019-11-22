@@ -23,10 +23,13 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.controller.v2.NJobControllerV2;
 import io.kyligence.kap.rest.request.JobActionEnum;
+import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
@@ -44,6 +47,11 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 public class NJobControllerV2Test {
 
     private MockMvc mockMvc;
@@ -59,8 +67,8 @@ public class NJobControllerV2Test {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nJobControllerV2)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nJobControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -79,10 +87,28 @@ public class NJobControllerV2Test {
 
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/jobs/{jobId}/resume", jobId).contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobControllerV2).resume(jobId);
+    }
+
+    @Test
+    public void testGetJobs() throws Exception {
+        List<JobStatusEnum> status = new ArrayList<>();
+        status.add(JobStatusEnum.NEW);
+        List<ExecutableResponse> jobs = new ArrayList<>();
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter("NEW", jobNames, 4, "", "", "default", "job_name", false);
+        Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("pageOffset", "0").param("pageSize", "10")
+                .param("timeFilter", "1").param("subject", "").param("subjectAlias", "").param("jobNames", "")
+                .param("status", "NEW").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobControllerV2).getJobList("NEW", jobNames, 1, "", "", "default", 0, 10, "last_modified",
+                true);
     }
 
 }

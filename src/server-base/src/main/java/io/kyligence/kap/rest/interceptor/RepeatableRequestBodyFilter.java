@@ -52,7 +52,7 @@ import lombok.Getter;
 import lombok.val;
 
 @Component
-@Order(1)
+@Order(2)
 public class RepeatableRequestBodyFilter implements Filter {
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {

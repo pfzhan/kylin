@@ -24,6 +24,7 @@
 
 package org.apache.kylin.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,16 +40,25 @@ public class FavoriteRuleUpdateRequest implements Serializable {
     private String project;
 
     @Deprecated
+    @JsonProperty("freq_enable")
     private boolean freqEnable;
     @Deprecated
+    @JsonProperty("freq_value")
     private String freqValue;
 
+    @JsonProperty("count_enable")
     private boolean countEnable;
+    @JsonProperty("count_value")
     private String countValue;
+    @JsonProperty("duration_enable")
     private boolean durationEnable;
+    @JsonProperty("min_duration")
     private String minDuration;
+    @JsonProperty("max_duration")
     private String maxDuration;
+    @JsonProperty("submitter_enable")
     private boolean submitterEnable;
     private List<String> users;
+    @JsonProperty("user_groups")
     private List<String> userGroups;
 }

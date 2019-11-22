@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,6 +35,7 @@ import java.util.List;
 @Setter
 public class JobUpdateRequest {
 
+    @JsonProperty("job_ids")
     private List<String> jobIds = new ArrayList<>();
     private String project;
     private String action;

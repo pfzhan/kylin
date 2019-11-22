@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.util.ArrayList;
@@ -102,7 +103,7 @@ public class NAccessControllerTest {
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/access/permission/project_permission")
                         .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nAccessController).getUserPermissionInPrj("default");
@@ -121,7 +122,7 @@ public class NAccessControllerTest {
         Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
     }
@@ -148,7 +149,7 @@ public class NAccessControllerTest {
         Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/access/{type}/{uuid}", type, uuid)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString(expectedMsg)));
         Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
     }

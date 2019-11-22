@@ -29,7 +29,7 @@ import lombok.Data;
 
 @Data
 public class NHiveTableNameResponse {
-    @JsonProperty("isRunning")
+    @JsonProperty("is_running")
     private Boolean isRunning;
     @JsonProperty("time")
     private Long time;

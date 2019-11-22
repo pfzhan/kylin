@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,6 +40,7 @@ public class ImportSqlResponse {
     private int id;
     private String sql;
     private boolean capable;
+    @JsonProperty("sql_advices")
     private Set<SQLAdvice> sqlAdvices = new HashSet<>();
 
     public ImportSqlResponse(String sql, boolean capable) {

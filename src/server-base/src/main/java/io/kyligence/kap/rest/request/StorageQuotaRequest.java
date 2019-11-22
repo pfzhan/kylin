@@ -30,8 +30,6 @@ import lombok.Data;
 
 @Data
 public class StorageQuotaRequest {
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("storage_quota_size")
     private Long storageQuotaSize;
 }

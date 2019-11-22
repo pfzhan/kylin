@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
@@ -32,9 +33,13 @@ public class CSVRequest {
     private String credential;
     private String type;
     private String ddl;
+    @JsonProperty("table_data")
     private String tableData;
     private String url;
+    @JsonProperty("separator_char")
     private String separatorChar = ",";
+    @JsonProperty("quote_char")
     private String quoteChar = "\"";
+    @JsonProperty("escape_char")
     private String escapeChar = "\\";
 }

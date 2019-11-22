@@ -88,15 +88,15 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
     private List<SimpleGrantedAuthority> authorities = Lists.newArrayList();
     @JsonProperty
     private boolean disabled = false;
-    @JsonProperty
+    @JsonProperty("default_password")
     private boolean defaultPassword = false;
     @JsonProperty
     private boolean locked = false;
-    @JsonProperty
+    @JsonProperty("locked_time")
     private long lockedTime = 0L;
-    @JsonProperty
+    @JsonProperty("wrong_time")
     private int wrongTime = 0;
-    @JsonProperty
+    @JsonProperty("first_login_failed_time")
     private long firstLoginFailedTime = 0L;
 
     //DISABLED_ROLE is a ancient way to represent disabled user

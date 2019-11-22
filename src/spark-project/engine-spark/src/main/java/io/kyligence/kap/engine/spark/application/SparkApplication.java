@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.application;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
 
 import java.io.IOException;
@@ -39,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.exceptions.YarnException;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPut;
@@ -62,7 +64,6 @@ import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
 import org.apache.spark.utils.YarnInfoFetcherUtils;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,7 +142,7 @@ public abstract class SparkApplication implements Application, IKeep {
 
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPut httpPut = new HttpPut(requestApi);
-            httpPut.addHeader("Content-Type", "application/vnd.apache.kylin-v2+json");
+            httpPut.addHeader(HttpHeaders.CONTENT_TYPE, HTTP_VND_APACHE_KYLIN_JSON);
             httpPut.setEntity(new StringEntity(json, StandardCharsets.UTF_8));
 
             HttpResponse response = httpClient.execute(httpPut);
@@ -178,12 +179,12 @@ public abstract class SparkApplication implements Application, IKeep {
     public Boolean updateSparkJobExtraInfo(String url, String project, String jobId, Map<String, String> extraInfo) {
         Map<String, String> payload = new HashMap<>(5);
         payload.put("project", project);
-        payload.put("jobId", jobId);
-        payload.put("taskId", System.getProperty("spark.driver.param.taskId", jobId));
+        payload.put("job_id", jobId);
+        payload.put("task_id", System.getProperty("spark.driver.param.taskId", jobId));
         payload.putAll(extraInfo);
 
         try {
-            String payloadJson = new ObjectMapper().writeValueAsString(payload);
+            String payloadJson = JsonUtil.writeValueAsString(payload);
             int retry = 3;
             for (int i = 0; i < retry; i++) {
                 if (updateSparkJobInfo(url, payloadJson)) {
@@ -202,9 +203,9 @@ public abstract class SparkApplication implements Application, IKeep {
     private Map<String, String> getYarnInfo() {
         String yarnAppId = ss.sparkContext().applicationId();
         Map<String, String> extraInfo = new HashMap<>();
-        extraInfo.put("yarnAppId", yarnAppId);
+        extraInfo.put("yarn_app_id", yarnAppId);
         try {
-            extraInfo.put("yarnAppUrl", getTrackingUrl(yarnAppId));
+            extraInfo.put("yarn_app_url", getTrackingUrl(yarnAppId));
         } catch (IOException | YarnException e) {
             logger.error("get yarn tracking url failed!", e);
         }
@@ -360,8 +361,8 @@ public abstract class SparkApplication implements Application, IKeep {
         try {
             logger.info(generateInfo());
             Map<String, String> extraInfo = new HashMap<>();
-            extraInfo.put("yarnJobWaitTime", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
-            extraInfo.put("yarnJobRunTime", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());
+            extraInfo.put("yarn_job_wait_time", ((Long) KylinBuildEnv.get().buildJobInfos().waitTime()).toString());
+            extraInfo.put("yarn_job_run_time", ((Long) KylinBuildEnv.get().buildJobInfos().buildTime()).toString());
             updateSparkJobExtraInfo("/kylin/api/jobs/wait_and_run_time", project, jobId, extraInfo);
         } catch (Exception e) {
             logger.warn("Error occurred when generate job info.", e);

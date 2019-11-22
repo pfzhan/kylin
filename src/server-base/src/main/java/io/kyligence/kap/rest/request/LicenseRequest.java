@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.request;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.common.obf.IKeep;
 import lombok.Data;
 
@@ -36,6 +37,7 @@ public class LicenseRequest implements IKeep, Serializable {
     private String email;
     private String company;
     private String lang;
+    @JsonProperty("product_type")
     private String productType;
     private String category;
 

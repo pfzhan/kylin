@@ -55,7 +55,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.model.Query;
-import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
@@ -83,6 +82,7 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 /**
  * @author xduo
@@ -107,8 +107,8 @@ public class NQueryControllerTest {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(nQueryController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nQueryController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -129,7 +129,7 @@ public class NQueryControllerTest {
     public void testQuery() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockPrepareSqlRequest()))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).query((PrepareSqlRequest) Mockito.any());
@@ -140,7 +140,7 @@ public class NQueryControllerTest {
         final PrepareSqlRequest sqlRequest = mockPrepareSqlRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/prestate").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).prepareQuery((PrepareSqlRequest) Mockito.any());
@@ -152,7 +152,7 @@ public class NQueryControllerTest {
         sqlRequest.setSql("select * from test_kylin_fact");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).saveQuery(Mockito.any(SaveSqlRequest.class));
@@ -163,7 +163,7 @@ public class NQueryControllerTest {
         final SaveSqlRequest sqlRequest = mockSaveSqlRequest("");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString("Query name should not be empty.")));
 
         Mockito.verify(nQueryController).saveQuery(Mockito.any(SaveSqlRequest.class));
@@ -174,7 +174,7 @@ public class NQueryControllerTest {
         final SaveSqlRequest sqlRequest = mockSaveSqlRequest("query%");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content()
                         .string(containsString("Query name should only contain alphanumerics and underscores.")));
 
@@ -183,11 +183,11 @@ public class NQueryControllerTest {
 
     @Test
     public void testRemoveSavedQuery() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/saved_queries/{project}/{id}", "default", "1")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/saved_queries//{id}", "1").param("project", "default")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).removeSavedQuery("default", "1");
+        Mockito.verify(nQueryController).removeSavedQuery("1", "default");
     }
 
     @Test
@@ -195,13 +195,13 @@ public class NQueryControllerTest {
         Mockito.when(kapQueryService.getSavedQueries("ADMIN", "default")).thenReturn(mockSavedQueries());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("offset", "2").param("limit", "3")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries.length()").value(3))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[0].name").value(7))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[1].name").value(8))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[2].name").value(9));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.total_size").value(10))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[0].name").value(7))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[1].name").value(8))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[2].name").value(9));
 
         Mockito.verify(nQueryController).getSavedQueries("default", 2, 3);
     }
@@ -231,7 +231,7 @@ public class NQueryControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/format/{format}", "xml")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).downloadQueryResult(Mockito.anyString(), Mockito.any(SQLRequest.class),
@@ -240,13 +240,11 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetMetadata() throws Exception {
-        final MetaRequest metaRequest = new MetaRequest();
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(metaRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "project")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).getMetadata(Mockito.any(MetaRequest.class));
+        Mockito.verify(nQueryController).getMetadata("project");
     }
 
     @Test
@@ -262,7 +260,7 @@ public class NQueryControllerTest {
     public void testQueryStatistics() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/statistics").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("start_time", "0").param("end_time", "999999999999")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).getQueryStatistics("default", 0, 999999999999L);
@@ -270,10 +268,10 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetQueryCount() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/statistics/count")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("start_time", "0")
-                .param("end_time", "999999999999").param("dimension", "model")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/query/statistics/count").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default").param("start_time", "0").param("end_time", "999999999999")
+                        .param("dimension", "model").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).getQueryCount("default", 0, 999999999999L, "model");
@@ -281,10 +279,10 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetQueryDuration() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/statistics/duration")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("start_time", "0")
-                .param("end_time", "999999999999").param("dimension", "model")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/query/statistics/duration").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default").param("start_time", "0").param("end_time", "999999999999")
+                        .param("dimension", "model").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).getAvgDuration("default", 0, 999999999999L, "model");
@@ -294,7 +292,7 @@ public class NQueryControllerTest {
     public void testQueryStatisticsEngine() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/overview").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("start_time", "0").param("end_time", "999999999999")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nQueryController).queryStatisticsByEngine("default", 0, 999999999999L);
@@ -331,9 +329,7 @@ public class NQueryControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
                 .param("latency_from", "0").param("latency_to", "10").param("query_status", "FAILED")
-                .param("offset", "2").param("limit", "3")
-
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .param("offset", "2").param("limit", "3").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(6))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories.length()").value(3))
@@ -349,13 +345,13 @@ public class NQueryControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("start_time_from", "0").param("latency_from", "0")
                 .param("latency_to", "10").param("query_status", "FAILED").param("offset", "2").param("limit", "3")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(500));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT).param("start_time_from", "0").param("start_time_to", "1000")
                 .param("latency_from", "0").param("offset", "2").param("limit", "3")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(500));
     }
 }

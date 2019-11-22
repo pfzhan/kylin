@@ -53,6 +53,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class AclTCRControllerTest {
 
     private MockMvc mockMvc;
@@ -72,7 +74,7 @@ public class AclTCRControllerTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    private static final String APPLICATION_JSON = "application/vnd.apache.kylin-v2+json";
+    private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
 
     @Before
     public void setup() throws IOException {
@@ -118,19 +120,21 @@ public class AclTCRControllerTest {
 
         Mockito.doReturn(Lists.newArrayList()).when(aclTCRService).getAclTCRResponse(Mockito.anyString(),
                 Mockito.anyString(), Mockito.anyBoolean(), Mockito.anyBoolean());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/acl/{project}/sid/{sidType}/{sid}", "default", "user", "u1") //
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/acl/sid/{sidType}/{sid}", "user", "u1") //
+                .param("project", "default") //
                 .param("authorizedOnly", "false") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(aclTCRController).getProjectSidTCR("default", "user", "u1", false);
+        Mockito.verify(aclTCRController).getProjectSidTCR("user", "u1", "default", false);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/acl/{project}/sid/{sidType}/{sid}", "default", "group", "g1") //
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/acl/sid/{sidType}/{sid}", "group", "g1") //
+                .param("project", "default") //
                 .param("authorizedOnly", "false") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(aclTCRController).getProjectSidTCR("default", "group", "g1", false);
+        Mockito.verify(aclTCRController).getProjectSidTCR("group", "g1", "default", false);
     }
 
     @Test
@@ -142,20 +146,22 @@ public class AclTCRControllerTest {
         Mockito.doNothing().when(aclTCRService).updateAclTCR(Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyBoolean(), Mockito.anyList());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/acl/{project}/sid/{sidType}/{sid}", "default", "user", "u1") //
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/acl/sid/{sidType}/{sid}", "user", "u1") //
+                .param("project", "default") //
                 .content(JsonUtil.writeValueAsBytes(Lists.<AclTCRRequest> newArrayList())) //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(aclTCRController).updateProject("default", "user", "u1", Lists.newArrayList());
+        Mockito.verify(aclTCRController).updateProject("user", "u1", "default", Lists.newArrayList());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/acl/{project}/sid/{sidType}/{sid}", "default", "group", "g1") //
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/acl/sid/{sidType}/{sid}", "group", "g1") //
+                .param("project", "default") //
                 .content(JsonUtil.writeValueAsBytes(Lists.<AclTCRRequest> newArrayList())) //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(aclTCRController).updateProject("default", "group", "g1", Lists.newArrayList());
+        Mockito.verify(aclTCRController).updateProject("group", "g1", "default", Lists.newArrayList());
     }
 }

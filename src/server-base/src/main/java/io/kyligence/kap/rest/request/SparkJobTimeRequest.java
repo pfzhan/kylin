@@ -23,14 +23,21 @@
  */
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class SparkJobTimeRequest {
     private String project;
+
+    @JsonProperty("job_id")
     private String jobId;
+
+    @JsonProperty("task_id")
     private String taskId;
 
+    @JsonProperty("yarn_job_wait_time")
     private String yarnJobWaitTime;
+    @JsonProperty("yarn_job_run_time")
     private String yarnJobRunTime;
 }

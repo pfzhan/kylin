@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import lombok.Getter;
@@ -37,6 +38,8 @@ import java.util.Set;
 @NoArgsConstructor
 public class SQLValidateResponse {
     private boolean capable;
+
+    @JsonProperty("sql_advices")
     private Set<SQLAdvice> sqlAdvices = Sets.newHashSet();
 
     public SQLValidateResponse(boolean capable, Set<SQLAdvice> sqlAdvices) {

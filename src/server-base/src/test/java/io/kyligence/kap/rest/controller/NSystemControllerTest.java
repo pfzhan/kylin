@@ -45,8 +45,10 @@ import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class NSystemControllerTest extends NLocalFileMetadataTestCase {
-    private static final String APPLICATION_JSON = "application/vnd.apache.kylin-v2+json";
+    private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
 
     private MockMvc mockMvc;
 

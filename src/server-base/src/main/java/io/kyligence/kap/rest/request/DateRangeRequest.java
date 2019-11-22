@@ -39,6 +39,4 @@ public class DateRangeRequest {
     private String project;
 
     private String table;
-
-
 }

@@ -45,6 +45,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 public class NAccessControllerV2Test {
 
     private MockMvc mockMvc;
@@ -85,7 +87,7 @@ public class NAccessControllerV2Test {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/access/{userName:.+}", userName)
                 .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nAccessControllerV2).getAllAccessEntitiesOfUser(userName);

@@ -31,28 +31,29 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.TimeZone;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 @Controller
 @RequestMapping(value = "/api/admin")
 public class NAdminController extends NBasicController {
 
-    @RequestMapping(value = "/public_config", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getPublicConfig (update)", notes = "Update Param: project_name")
+    @GetMapping(value = "/public_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getPublicConfig(@RequestParam(value = "projectName", required = false) String projectName)
-            throws IOException {
+    public EnvelopeResponse<String> getPublicConfig() throws IOException {
 
         final String whiteListProperties = KylinConfig.getInstanceFromEnv().getPropertiesWhiteList();
 
@@ -72,20 +73,19 @@ public class NAdminController extends NBasicController {
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, config, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, config, "");
     }
 
-    @RequestMapping(value = "/instance_info", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/instance_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getPublicConfig() throws IOException {
+    public EnvelopeResponse<Map<String, String>> getInstanceConfig() {
 
         Map<String, String> data = Maps.newHashMap();
 
         ZoneId zoneId = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).toZoneId();
         data.put("instance.timezone", zoneId.toString());
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
     }
 
 }

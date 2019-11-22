@@ -23,11 +23,14 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.v2.NUserControllerV2;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -37,13 +40,21 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.accept.ContentNegotiationManager;
 
-public class NUserControllerV2Test {
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -58,26 +69,36 @@ public class NUserControllerV2Test {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserControllerV2)
+        ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserControllerV2).setContentNegotiationManager(contentNegotiationManager)
                 .defaultRequest(MockMvcRequestBuilders.get("/")).build();
-
+        List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+        ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
+        Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
     public void testListAllUsers() throws Exception {
         Mockito.when(nUserController.listAllUsers(null, null, false, 0, 10))
-                .thenReturn(new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "testListAllUsers"));
+                .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "testListAllUsers"));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/kap/user/users").contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nUserControllerV2).listAllUsers(null, null, false, 0, 10);
     }
 
+    @Test
+    public void testBasics() {
+        EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserControllerV2.authenticatedUser();
+        Assert.assertNotNull(userDetailsEnvelopeResponse);
+        Assert.assertTrue(userDetailsEnvelopeResponse.getCode().equals(ResponseCode.CODE_SUCCESS));
+    }
 }

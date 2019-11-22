@@ -25,11 +25,11 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -38,6 +38,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
@@ -76,6 +77,8 @@ import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/user")
@@ -129,11 +132,12 @@ public class NUserController extends NBasicController {
 
     }
 
-    @PostMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "createUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public EnvelopeResponse createUser(@RequestBody ManagedUser user) {
+    public EnvelopeResponse<String> createUser(@RequestBody ManagedUser user) {
         val username = user.getUsername();
         val password = user.getPassword();
 
@@ -146,21 +150,22 @@ public class NUserController extends NBasicController {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public EnvelopeResponse createAdminUser(@RequestBody ManagedUser user) {
+    public EnvelopeResponse<String> createAdminUser(@RequestBody ManagedUser user) {
         checkProfile();
         user.setUuid(UUID.randomUUID().toString());
         user.setPassword(pwdEncode(user.getPassword()));
         logger.info("Creating user: {}", user);
         completeAuthorities(user);
         userService.createUser(user);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PutMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
+    @PutMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public EnvelopeResponse updateUser(@RequestBody ManagedUser user) {
+    public EnvelopeResponse<String> updateUser(@RequestBody ManagedUser user) {
         val msg = MsgPicker.getMsg();
         checkProfile();
 
@@ -191,13 +196,13 @@ public class NUserController extends NBasicController {
 
         completeAuthorities(user);
         userService.updateUser(user);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @DeleteMapping(value = "/{username:.+}", produces = { "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/{username:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse delete(@PathVariable("username") String username) {
+    public EnvelopeResponse<String> delete(@PathVariable("username") String username) {
         val msg = MsgPicker.getMsg();
 
         checkProfile();
@@ -209,39 +214,39 @@ public class NUserController extends NBasicController {
         accessService.revokeProjectPermission(username, MetadataConstants.TYPE_USER);
         aclTCRService.revokeAclTCR(username, true);
         userService.deleteUser(username);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "listAllUsers (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse listAllUsers(@RequestParam(value = "project", required = false) String project,
+    public EnvelopeResponse<DataResult<List<ManagedUser>>> listAllUsers(
+            @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
-            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         if (project == null) {
             aclEvaluate.checkIsGlobalAdmin();
         } else {
             aclEvaluate.checkProjectAdminPermission(project);
         }
-        HashMap<String, Object> data = new HashMap<>();
+
         List<ManagedUser> usersByFuzzyMatching = userService.getManagedUsersByFuzzMatching(nameSeg, isCaseSensitive);
         List<ManagedUser> subList = PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize);
         //LDAP users dose not have authorities
         for (ManagedUser u : subList) {
             userService.completeUserInfo(u);
         }
-        data.put("users", subList);
-        data.put("size", usersByFuzzyMatching.size());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, usersByFuzzyMatching), "");
     }
 
-    @PutMapping(value = "/password", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "/password", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     //change passwd
-    public EnvelopeResponse updateUserPassword(@RequestBody PasswordChangeRequest user) {
+    public EnvelopeResponse<String> updateUserPassword(@RequestBody PasswordChangeRequest user) {
         val msg = MsgPicker.getMsg();
         val username = user.getUsername();
 
@@ -287,14 +292,14 @@ public class NUserController extends NBasicController {
             token.setDetails(SecurityContextHolder.getContext().getAuthentication().getDetails());
             SecurityContextHolder.getContext().setAuthentication(token);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/authentication", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
         checkLicense();
-        EnvelopeResponse response = authenticatedUser();
+        EnvelopeResponse<UserDetails> response = authenticatedUser();
         logger.debug("User login: {}", response.getData());
         return response;
     }
@@ -306,7 +311,7 @@ public class NUserController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/authentication", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -318,12 +323,12 @@ public class NUserController extends NBasicController {
 
         if (authentication.getPrincipal() instanceof UserDetails) {
             data = (UserDetails) authentication.getPrincipal();
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
         }
 
         if (authentication.getDetails() instanceof UserDetails) {
             data = (UserDetails) authentication.getDetails();
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
         }
 
         throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());

@@ -91,9 +91,11 @@ import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
 import lombok.val;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class NTableControllerTest {
 
-    private static final String APPLICATION_JSON = "application/vnd.apache.kylin-v2+json";
+    private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
 
     private MockMvc mockMvc;
 
@@ -142,7 +144,7 @@ public class NTableControllerTest {
     private TableLoadRequest mockLoadTableRequest() {
         final TableLoadRequest tableLoadRequest = new TableLoadRequest();
         tableLoadRequest.setProject("default");
-        tableLoadRequest.setDatasourceType(11);
+        tableLoadRequest.setDataSourceType(11);
         String[] tables = { "table1", "DEFAULT.TEST_ACCOUNT" };
         String[] dbs = { "db1", "default" };
         tableLoadRequest.setTables(tables);
@@ -211,10 +213,10 @@ public class NTableControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/names") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .param("project", "default") //
-                .param("datasourceType", "11") //
+                .param("data_source_type", "11") //
                 .param("database", "db1") //
-                .param("pageOffset", "0") //
-                .param("pageSize", "10") //
+                .param("page_offset", "0") //
+                .param("page_size", "10") //
                 .param("table", "") //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -255,6 +257,7 @@ public class NTableControllerTest {
     @Test
     public void testSetDateRangePass() throws Exception {
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
+        dateRangeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
         Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -262,7 +265,6 @@ public class NTableControllerTest {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
-
     }
 
     @Test
@@ -271,7 +273,7 @@ public class NTableControllerTest {
                 .contentType(MediaType.APPLICATION_JSON) //
                 .param("project", "default") //
                 .param("table", "DEFAULT.TEST_KYLIN_FACT") //
-                .param("partitionColumn", "CAL_DT") //
+                .param("partition_column", "CAL_DT") //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getPartitioinColumnFormat("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT");
@@ -354,6 +356,7 @@ public class NTableControllerTest {
         String errorMsg = "Start of range must be greater than 0!";
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("-1");
+        dateRangeRequest.setTable("TEST_KYLIN_FACT");
         Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -372,6 +375,7 @@ public class NTableControllerTest {
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setStart("100");
         dateRangeRequest.setEnd("1");
+        dateRangeRequest.setTable("TEST_KYLIN_FACT");
         Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
         final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -473,9 +477,8 @@ public class NTableControllerTest {
     public void testUnloadTable() throws Exception {
         Mockito.doReturn(false).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
         Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
-                        .accept(MediaType.parseMediaType(APPLICATION_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{database}/{table}", "DEFAULT", "TABLE")
+                .param("project", "default").accept(MediaType.parseMediaType(APPLICATION_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE", false);
     }
@@ -484,9 +487,8 @@ public class NTableControllerTest {
     public void testUnloadTableException() throws Exception {
         Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
         Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE", false);
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
-                        .accept(MediaType.parseMediaType(APPLICATION_JSON)));
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{database}/{table}", "DEFAULT", "TABLE")
+                .param("project", "default").accept(MediaType.parseMediaType(APPLICATION_JSON)));
         Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE", false);
     }
 
@@ -566,11 +568,11 @@ public class NTableControllerTest {
         Mockito.doNothing().when(modelService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0", "100");
         RefreshSegmentsRequest refreshSegmentsRequest = new RefreshSegmentsRequest();
         refreshSegmentsRequest.setProject("default");
-        refreshSegmentsRequest.setTable("TEST_KYLIN_FACT");
         refreshSegmentsRequest.setRefreshStart("0");
         refreshSegmentsRequest.setRefreshEnd("100");
         refreshSegmentsRequest.setAffectedStart("0");
         refreshSegmentsRequest.setAffectedEnd("100");
+        refreshSegmentsRequest.setTable("TEST_KYLIN_FACT");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(refreshSegmentsRequest)) //
@@ -798,7 +800,7 @@ public class NTableControllerTest {
     @Test
     public void testReloadHiveTablename() throws Exception {
         Mockito.when(tableService.loadHiveTableNameToCache(false)).thenReturn(null);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/reload_hive_tablename") //
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/reload_hive_table_name") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());

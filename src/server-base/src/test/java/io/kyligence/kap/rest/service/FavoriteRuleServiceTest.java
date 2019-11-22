@@ -239,18 +239,18 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
         Map<String, Object> favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
 
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("countEnable"));
-        Assert.assertEquals(10.0f, favoriteRuleResponse.get("countValue"));
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("count_enable"));
+        Assert.assertEquals(10.0f, favoriteRuleResponse.get("count_value"));
 
         List<String> users = (List<String>) favoriteRuleResponse.get("users");
-        List<String> userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("submitterEnable"));
+        List<String> userGroups = (List<String>) favoriteRuleResponse.get("user_groups");
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("submitter_enable"));
         Assert.assertEquals(3, users.size());
         Assert.assertEquals(1, userGroups.size());
 
-        long minDuration = (Long) favoriteRuleResponse.get("minDuration");
-        long maxDuration = (Long) favoriteRuleResponse.get("maxDuration");
-        Assert.assertTrue((boolean) favoriteRuleResponse.get("durationEnable"));
+        long minDuration = (Long) favoriteRuleResponse.get("min_duration");
+        long maxDuration = (Long) favoriteRuleResponse.get("max_duration");
+        Assert.assertTrue((boolean) favoriteRuleResponse.get("duration_enable"));
         Assert.assertEquals(5, minDuration);
         Assert.assertEquals(8, maxDuration);
 
@@ -270,18 +270,18 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
         // assert
         favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
-        Assert.assertFalse((boolean) favoriteRuleResponse.get("freqEnable"));
-        Assert.assertFalse((boolean) favoriteRuleResponse.get("durationEnable"));
-        Assert.assertFalse((boolean) favoriteRuleResponse.get("submitterEnable"));
-        Assert.assertEquals(0.2, (float) favoriteRuleResponse.get("freqValue"), 0.1);
+        Assert.assertFalse((boolean) favoriteRuleResponse.get("freq_enable"));
+        Assert.assertFalse((boolean) favoriteRuleResponse.get("duration_enable"));
+        Assert.assertFalse((boolean) favoriteRuleResponse.get("submitter_enable"));
+        Assert.assertEquals(0.2, (float) favoriteRuleResponse.get("freq_value"), 0.1);
 
         users = (List<String>) favoriteRuleResponse.get("users");
         Assert.assertEquals(4, users.size());
-        userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
+        userGroups = (List<String>) favoriteRuleResponse.get("user_groups");
         Assert.assertEquals(0, userGroups.size());
 
-        minDuration = (Long) favoriteRuleResponse.get("minDuration");
-        maxDuration = (Long) favoriteRuleResponse.get("maxDuration");
+        minDuration = (Long) favoriteRuleResponse.get("min_duration");
+        maxDuration = (Long) favoriteRuleResponse.get("max_duration");
         Assert.assertEquals(0, minDuration);
         Assert.assertEquals(10, maxDuration);
 
@@ -291,7 +291,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
         users = (List<String>) favoriteRuleResponse.get("users");
         Assert.assertEquals(4, users.size());
-        userGroups = (List<String>) favoriteRuleResponse.get("userGroups");
+        userGroups = (List<String>) favoriteRuleResponse.get("user_groups");
         Assert.assertEquals(2, userGroups.size());
         Assert.assertEquals("ROLE_ADMIN", userGroups.get(0));
 
@@ -304,9 +304,9 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
         favoriteRuleService.updateRegularRule(PROJECT, request);
         favoriteRuleResponse = favoriteRuleService.getFavoriteRules(PROJECT);
-        Assert.assertNull(favoriteRuleResponse.get("freqValue"));
-        Assert.assertNull(favoriteRuleResponse.get("minDuration"));
-        Assert.assertNull(favoriteRuleResponse.get("maxDuration"));
+        Assert.assertNull(favoriteRuleResponse.get("freq_value"));
+        Assert.assertNull(favoriteRuleResponse.get("min_duration"));
+        Assert.assertNull(favoriteRuleResponse.get("max_duration"));
     }
 
     @Test

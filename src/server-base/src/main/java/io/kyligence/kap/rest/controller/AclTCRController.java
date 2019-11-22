@@ -28,6 +28,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+import io.swagger.annotations.ApiOperation;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -41,21 +45,20 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.clearspring.analytics.util.Lists;
-import com.google.common.annotations.VisibleForTesting;
-
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
 import io.kyligence.kap.rest.service.AclTCRService;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 @Controller
-@RequestMapping(value = "/api/acl/{project}", produces = { "application/vnd.apache.kylin-v2+json" })
+@RequestMapping(value = "/api/acl", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class AclTCRController extends NBasicController {
 
     @Autowired
@@ -72,13 +75,15 @@ public class AclTCRController extends NBasicController {
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
 
-    @GetMapping(value = "/sid/{sidType}/{sid}")
+    @ApiOperation(value = "getProjectSidTCR (update)", notes = "Update URL: {project}; Update Param: project, authorized_only")
+    @GetMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody
-    public EnvelopeResponse getProjectSidTCR(@PathVariable("project") String project, //
-            @PathVariable("sidType") String sidType, //
+    public EnvelopeResponse<List<AclTCRResponse>> getProjectSidTCR(@PathVariable("sid_type") String sidType,
             @PathVariable("sid") String sid, //
-            @RequestParam(value = "authorizedOnly", required = false, defaultValue = "false") boolean authorizedOnly)
+            @RequestParam("project") String project, //
+            @RequestParam(value = "authorized_only", required = false, defaultValue = "false") boolean authorizedOnly)
             throws IOException {
+        checkProjectName(project);
         List<AclTCRResponse> result;
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             result = getProjectSidTCR(project, sid, true, authorizedOnly);
@@ -87,21 +92,24 @@ public class AclTCRController extends NBasicController {
         } else {
             result = Lists.newArrayList();
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @PostMapping(value = "/sid/{sidType}/{sid}")
+    @ApiOperation(value = "updateProject (update)", notes = "Update URL: {project}; Update Param: project")
+    @PutMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
     @ResponseBody
-    public EnvelopeResponse updateProject(@PathVariable("project") String project, //
-            @PathVariable("sidType") String sidType, //
+    public EnvelopeResponse<String> updateProject(@PathVariable("sid_type") String sidType, //
             @PathVariable("sid") String sid, //
+            @RequestParam("project") String project, //
             @RequestBody List<AclTCRRequest> requests) throws IOException {
+        checkProjectName(project);
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             updateSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
             updateSidAclTCR(project, sid, false, requests);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     private List<AclTCRResponse> getProjectSidTCR(String project, String sid, boolean principal, boolean authorizedOnly)

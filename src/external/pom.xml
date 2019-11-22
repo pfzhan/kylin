@@ -144,6 +144,29 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>install_swagger</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>mvn</executable>
+                            <arguments>
+                                <argument>-f</argument>
+                                <argument>
+                                    src/external/swagger/pom.xml
+                                </argument>
+                                <argument>clean</argument>
+                                <argument>install</argument>
+                                <argument>-DskipTests</argument>
+
+                            </arguments>
+                            <workingDirectory>
+                                ${project.basedir}/../../
+                            </workingDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>install_htrace</id>
                         <phase>compile</phase>
                         <goals>

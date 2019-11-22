@@ -25,20 +25,24 @@ package io.kyligence.kap.rest.controller.v2;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.AclTCRService;
+import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.IOException;
@@ -46,11 +50,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 @Controller
-@RequestMapping(value = "/api/access")
+@RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
 public class NAccessControllerV2 extends NBasicController {
 
     @Autowired
@@ -64,8 +69,6 @@ public class NAccessControllerV2 extends NBasicController {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
-
-    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
 
     private static final String PROJECT_NAME = "project_name";
     private static final String TABLE_NAME = "table_name";
@@ -83,8 +86,7 @@ public class NAccessControllerV2 extends NBasicController {
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/{userName:.+}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/{userName:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String userName) {
@@ -102,5 +104,24 @@ public class NAccessControllerV2 extends NBasicController {
             dataList.add(data);
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataList, "");
+    }
+
+    @GetMapping(value = "/{type}/{uuid}", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public EnvelopeResponse<Map<String, Object>> getAccessEntities(@PathVariable("type") String type,
+            @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
+            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
+
+        AclEntity ae = accessService.getAclEntity(type, uuid);
+        List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
+                nameSeg, isCaseSensitive);
+        List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("sids", sublist);
+        data.put("size", resultsAfterFuzzyMatching.size());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
     }
 }

@@ -26,17 +26,18 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -46,10 +47,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -57,6 +61,8 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import lombok.val;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/user_group")
@@ -74,13 +80,14 @@ public class NUserGroupController extends NBasicController {
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
 
-    @RequestMapping(value = "/groupMembers/{groupName:.+}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
+    @GetMapping(value = "/group_members/{group_name:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<Map<String, Object>> getUsersByGroup(@PathVariable(value = "groupName") String groupName,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+    public EnvelopeResponse<DataResult<List<ManagedUser>>> getUsersByGroup(
+            @PathVariable(value = "group_name") String groupName,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         List<ManagedUser> members = userGroupService.getGroupMembersByName(groupName);
         val subList = PagingUtil.cutPage(members, pageOffset, pageSize);
@@ -88,14 +95,12 @@ public class NUserGroupController extends NBasicController {
         for (ManagedUser user : subList) {
             userService.completeUserInfo(user);
         }
-        Map<String, Object> result = new HashMap<>();
-        result.put("groupMembers", subList);
-        result.put("size", members.size());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "get groups members");
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, members, pageOffset, pageSize),
+                "get groups members");
     }
 
-    @RequestMapping(value = "/groups", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/groups", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<List<String>> listUserAuthorities(@RequestParam(value = "project") String project)
@@ -104,14 +109,14 @@ public class NUserGroupController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, groups, "get groups");
     }
 
-    @RequestMapping(value = "/usersWithGroup", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
+    @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<Map<String, Object>> getUsersWithGroup(
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
-            @RequestParam(value = "userGroupName", required = false, defaultValue = "") String userGroupName)
+    public EnvelopeResponse<DataResult<List<Pair<String, Set<String>>>>> getUsersWithGroup(
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "user_group_name", required = false, defaultValue = "") String userGroupName)
             throws IOException {
         List<Pair<String, Set<String>>> usersWithGroup = new ArrayList<>();
         List<String> groups = userGroupService.getAuthoritiesFilterByGroupName(userGroupName);
@@ -124,51 +129,47 @@ public class NUserGroupController extends NBasicController {
             }
             usersWithGroup.add(Pair.newPair(group, groupMembers));
         }
-        Map<String, Object> result = new HashMap<>();
-        result.put("usersWithGroup", usersWithGroup);
-        result.put("size", groups.size());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "get users with group");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(usersWithGroup, groups.size()),
+                "get users with group");
     }
 
-    @RequestMapping(value = "/users_and_groups", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/users_and_groups", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse getUsersAndGroups() throws IOException {
+    public EnvelopeResponse<Map<String, List<String>>> getUsersAndGroups() throws IOException {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, userGroupService.getUserAndUserGroup(), "");
     }
 
-    @RequestMapping(value = "/{groupName:.+}", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_name; Update Param: group_name")
+    @PostMapping(value = "/{group_name:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "groupName") String groupName)
+    public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
         checkGroupName(groupName);
         userGroupService.addGroup(groupName);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "add user group");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user group");
     }
 
-    @RequestMapping(value = "/{groupName:.+}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_name; Update Param: group_name")
+    @DeleteMapping(value = "/{group_name:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "groupName") String groupName)
+    public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "group_name") String groupName)
             throws IOException {
         userGroupService.deleteGroup(groupName);
         aclTCRService.revokeAclTCR(groupName, false);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "del user group");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del user group");
     }
 
     //move users in/out from groups
-    @RequestMapping(value = "/users", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "/users", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> addOrDelUsers(@RequestBody UpdateGroupRequest updateGroupRequest)
             throws IOException {
         userGroupService.modifyGroupUsers(updateGroupRequest.getGroup(), updateGroupRequest.getUsers());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "modify users in user group");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "modify users in user group");
     }
 
     private void checkGroupName(String groupName) {

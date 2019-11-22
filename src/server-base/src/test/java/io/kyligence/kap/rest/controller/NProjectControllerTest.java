@@ -93,6 +93,9 @@ import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.mockito.ArgumentMatchers.eq;
+
 public class NProjectControllerTest {
 
     private MockMvc mockMvc;
@@ -112,8 +115,8 @@ public class NProjectControllerTest {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(nProjectController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nProjectController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -140,8 +143,8 @@ public class NProjectControllerTest {
         Mockito.when(projectService.getReadableProjects("default", false)).thenReturn(projects);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/projects").contentType(MediaType.APPLICATION_JSON)
-                        .param("project", "default").param("pageOffset", "0").param("pageSize", "10")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .param("project", "default").param("page_offset", "0").param("page_size", "10")
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nProjectController).getProjects("default", 0, 10, false);
@@ -168,7 +171,7 @@ public class NProjectControllerTest {
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(projectRequest))
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nProjectController).saveProject(Mockito.any(ProjectRequest.class));
     }
@@ -176,18 +179,17 @@ public class NProjectControllerTest {
     @Test
     public void testUpdateQueryAccelerateThreshold() throws Exception {
         FavoriteQueryThresholdRequest favoriteQueryThresholdRequest = new FavoriteQueryThresholdRequest();
-        favoriteQueryThresholdRequest.setProject("default");
         favoriteQueryThresholdRequest.setThreshold(20);
         favoriteQueryThresholdRequest.setTipsEnabled(true);
         Mockito.doNothing().when(projectService).updateQueryAccelerateThresholdConfig("default", 20, true);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/query_accelerate_threshold")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/query_accelerate_threshold", "default")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(favoriteQueryThresholdRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nProjectController)
-                .updateQueryAccelerateThresholdConfig(Mockito.any(FavoriteQueryThresholdRequest.class));
+        Mockito.verify(nProjectController).updateQueryAccelerateThresholdConfig(eq("default"),
+                Mockito.any(FavoriteQueryThresholdRequest.class));
     }
 
     @Test
@@ -197,9 +199,9 @@ public class NProjectControllerTest {
         favoriteQueryThresholdResponse.setThreshold(20);
         Mockito.doReturn(favoriteQueryThresholdResponse).when(projectService)
                 .getQueryAccelerateThresholdConfig("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/query_accelerate_threshold")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/query_accelerate_threshold", "default")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nProjectController).getQueryAccelerateThresholdConfig("default");
@@ -209,9 +211,9 @@ public class NProjectControllerTest {
     public void testGetStorageVolumeInfoResponse() throws Exception {
         StorageVolumeInfoResponse storageVolumeInfoResponse = new StorageVolumeInfoResponse();
         Mockito.doReturn(storageVolumeInfoResponse).when(projectService).getStorageVolumeInfoResponse("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/storage_volume_info")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/{project}/storage_volume_info", "default")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nProjectController).getStorageVolumeInfo("default");
@@ -220,15 +222,15 @@ public class NProjectControllerTest {
     @Test
     public void testUpdateStorageQuotaConfig() throws Exception {
         StorageQuotaRequest storageQuotaRequest = new StorageQuotaRequest();
-        storageQuotaRequest.setProject("default");
         storageQuotaRequest.setStorageQuotaSize(2147483648L);
         Mockito.doNothing().when(projectService).updateStorageQuotaConfig("default", 2147483648L);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage_quota")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/storage_quota", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(storageQuotaRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nProjectController).updateStorageQuotaConfig(Mockito.any(StorageQuotaRequest.class));
+        Mockito.verify(nProjectController).updateStorageQuotaConfig(eq("default"),
+                Mockito.any(StorageQuotaRequest.class));
     }
 
     @Test
@@ -238,8 +240,9 @@ public class NProjectControllerTest {
         Mockito.doReturn(projectInstance).when(projectManager).getProject("default");
         Mockito.doReturn(projectManager).when(projectService).getProjectManager();
         Mockito.doNothing().when(projectService).cleanupGarbage("default");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/storage", "default")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nProjectController).cleanupProjectStorage("default");
@@ -248,41 +251,41 @@ public class NProjectControllerTest {
     @Test
     public void testUpdateJobNotificationConfig() throws Exception {
         val request = new JobNotificationConfigRequest();
-        request.setProject("default");
+
         request.setJobErrorNotificationEnabled(true);
         request.setDataLoadEmptyNotificationEnabled(true);
         request.setJobNotificationEmails(Arrays.asList("fff@g.com"));
+
         Mockito.doNothing().when(projectService).updateJobNotificationConfig("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/job_notification_config")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/job_notification_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateJobNotificationConfig(request);
+        Mockito.verify(nProjectController).updateJobNotificationConfig("default", request);
     }
 
     @Test
     public void testUpdatePushDownConfig() throws Exception {
         val request = new PushDownConfigRequest();
         request.setPushDownEnabled(true);
-        request.setProject("default");
+
         Mockito.doNothing().when(projectService).updatePushDownConfig("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/push_down_config")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/push_down_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updatePushDownConfig(request);
+        Mockito.verify(nProjectController).updatePushDownConfig("default", request);
     }
 
     @Test
     public void testUpdateShardNumConfig() throws Exception {
         val request = new ShardNumConfigRequest();
-        request.setProject("default");
         Mockito.doNothing().when(projectService).updateShardNumConfig("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/shard_num_config")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/shard_num_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateShardNumConfig(request);
+        Mockito.verify(nProjectController).updateShardNumConfig("default", request);
     }
 
     @Test
@@ -290,15 +293,15 @@ public class NProjectControllerTest {
         val request = new SegmentConfigRequest();
         request.setVolatileRange(new VolatileRange());
         request.setRetentionRange(new RetentionRange());
-        request.setProject("default");
         request.setAutoMergeEnabled(true);
         request.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
+
         Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/segment_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateSegmentConfig(Mockito.any(request.getClass()));
+        Mockito.verify(nProjectController).updateSegmentConfig(eq("default"), Mockito.any(request.getClass()));
     }
 
     @Test
@@ -306,13 +309,12 @@ public class NProjectControllerTest {
         val request = new SegmentConfigRequest();
         request.setVolatileRange(new VolatileRange());
         request.setRetentionRange(new RetentionRange(-1, true, AutoMergeTimeEnum.DAY));
-        request.setProject("default");
         Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/segment_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig(request);
+        Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig("default", request);
     }
 
     @Test
@@ -320,26 +322,25 @@ public class NProjectControllerTest {
         val request = new SegmentConfigRequest();
         request.setRetentionRange(new RetentionRange());
         request.setVolatileRange(new VolatileRange(-1, true, AutoMergeTimeEnum.DAY));
-        request.setProject("default");
         Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/segment_config", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
-        Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig(request);
+        Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig("default", request);
     }
 
     @Test
     public void testUpdateProjectGeneralInfo() throws Exception {
         val request = new ProjectGeneralInfoRequest();
-        request.setProject("default");
         request.setSemiAutoMode(true);
         Mockito.doNothing().when(projectService).updateProjectGeneralInfo("default", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/project_general_info")
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/project_general_info", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateProjectGeneralInfo(request);
+
+        Mockito.verify(nProjectController).updateProjectGeneralInfo("default", request);
     }
 
     @Test
@@ -347,9 +348,9 @@ public class NProjectControllerTest {
         val response = new ProjectConfigResponse();
         Mockito.doReturn(response).when(projectService).getProjectConfig("default");
         final MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/projects/project_config")
+                .perform(MockMvcRequestBuilders.get("/api/projects/{project}/project_config", "default")
                         .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Assert.assertTrue(mvcResult.getResponse().getContentAsString().contains("\"semi_automatic_mode\":false"));
         Assert.assertTrue(
@@ -360,27 +361,24 @@ public class NProjectControllerTest {
     @Test
     public void testUpdateDefaultDatabase() throws Exception {
         val request = new DefaultDatabaseRequest();
-        request.setProject("default");
         request.setDefaultDatabase("EDW");
-        Mockito.doNothing().when(projectService).updateDefaultDatabase(request.getProject(),
-                request.getDefaultDatabase());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/default_database")
+        Mockito.doNothing().when(projectService).updateDefaultDatabase("default", request.getDefaultDatabase());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/default_database", "default")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateDefaultDatabase(request);
+        Mockito.verify(nProjectController).updateDefaultDatabase("default", request);
     }
 
     @Test
     public void testUpdateYarnQueue() throws Exception {
         val request = new YarnQueueRequest();
-        request.setProject("default");
         request.setQueueName("q.queue");
-        Mockito.doNothing().when(projectService).updateYarnQueue(request.getProject(), request.getQueueName());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/yarn_queue").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.doNothing().when(projectService).updateYarnQueue("project", request.getQueueName());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/{project}/yarn_queue", "project")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateYarnQueue(request);
+        Mockito.verify(nProjectController).updateYarnQueue("project", request);
     }
 }

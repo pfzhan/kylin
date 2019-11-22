@@ -50,6 +50,8 @@ import com.jayway.jsonpath.JsonPath;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import lombok.val;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
@@ -63,7 +65,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .post("/api/query")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andReturn();
 
@@ -109,7 +111,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .post("/api/query")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
                         .value(resultSet.getMetaData().getColumnCount()))
@@ -122,7 +124,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .post("/api/query")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
                         .value(resultSet.getMetaData().getColumnCount()))
@@ -152,7 +154,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .post("/api/query/prestate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andDo(MockMvcResultHandlers.print());
 
@@ -162,7 +164,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
     public void testGetMetadata() throws Exception {
         final val mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "default")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         final JsonNode data = jsonNode.get("data");

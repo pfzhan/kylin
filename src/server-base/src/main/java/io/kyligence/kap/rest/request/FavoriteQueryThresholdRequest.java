@@ -30,8 +30,6 @@ import lombok.Data;
 @Data
 public class FavoriteQueryThresholdRequest {
 
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("threshold")
     private Integer threshold;
     @JsonProperty("tips_enabled")

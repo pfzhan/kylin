@@ -48,9 +48,6 @@ import lombok.Data;
 @Data
 public class YarnQueueRequest {
 
-    @JsonProperty("project")
-    private String project;
-
     @JsonProperty("queue_name")
     private String queueName;
 }

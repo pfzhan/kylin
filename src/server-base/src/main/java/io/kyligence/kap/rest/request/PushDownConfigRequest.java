@@ -30,9 +30,6 @@ import lombok.Data;
 
 @Data
 public class PushDownConfigRequest {
-
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("push_down_enabled")
     private Boolean pushDownEnabled;
 }

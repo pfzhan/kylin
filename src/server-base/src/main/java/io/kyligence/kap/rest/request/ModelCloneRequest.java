@@ -24,14 +24,13 @@
 
 package io.kyligence.kap.rest.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-@Setter
-@Getter
+@Data
 public class ModelCloneRequest {
 
-    private String modelId;
+    @JsonProperty("new_model_name")
     private String newModelName;
     private String project;
 

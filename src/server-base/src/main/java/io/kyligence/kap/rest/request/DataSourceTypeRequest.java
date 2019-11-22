@@ -29,9 +29,6 @@ import lombok.Data;
 
 @Data
 public class DataSourceTypeRequest {
-    @JsonProperty("project")
-    private String project;
-
     @JsonProperty("source_type")
     private String sourceType;
 }

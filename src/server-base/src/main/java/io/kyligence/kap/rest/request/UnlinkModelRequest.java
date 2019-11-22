@@ -24,12 +24,9 @@
 
 package io.kyligence.kap.rest.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Setter
-@Getter
+@Data
 public class UnlinkModelRequest {
-    private String modelId;
     private String project;
 }

@@ -43,13 +43,10 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.Data;
 
 @Data
 public class DefaultDatabaseRequest {
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("default_database")
     private String defaultDatabase;
 

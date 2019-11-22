@@ -23,27 +23,44 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import java.io.IOException;
-
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NUserController;
+import lombok.val;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.exception.UnauthorizedException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.service.LicenseInfoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NUserController;
+import java.io.IOException;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 @Controller
 @RequestMapping("/api")
 public class NUserControllerV2 extends NBasicController {
+    private static final Logger logger = LoggerFactory.getLogger(NUserControllerV2.class);
+
+    @Autowired
+    private LicenseInfoService licenseInfoService;
 
     @Autowired
     private NUserController nUserController;
 
-    @GetMapping(value = "/kap/user/users", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/kap/user/users", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse listAllUsers(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
@@ -52,5 +69,44 @@ public class NUserControllerV2 extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         return nUserController.listAllUsers(project, nameSeg, isCaseSensitive, pageOffset, pageSize);
+    }
+
+    @PostMapping(value = "/user/authentication", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
+    @ResponseBody
+    public EnvelopeResponse<UserDetails> authenticate() {
+        checkLicense();
+        EnvelopeResponse<UserDetails> response = authenticatedUser();
+        logger.debug("User login: {}", response.getData());
+        return response;
+    }
+
+    private void checkLicense() {
+        if (!KylinConfig.getInstanceFromEnv().isDevOrUT()) {
+            val info = licenseInfoService.extractLicenseInfo();
+            licenseInfoService.verifyLicense(info);
+        }
+    }
+
+    @GetMapping(value = "/user/authentication", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
+    @ResponseBody
+    public EnvelopeResponse<UserDetails> authenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails data = null;
+        val msg = MsgPicker.getMsg();
+        if (authentication == null) {
+            throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
+        }
+
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            data = (UserDetails) authentication.getPrincipal();
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        }
+
+        if (authentication.getDetails() instanceof UserDetails) {
+            data = (UserDetails) authentication.getDetails();
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        }
+
+        throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
     }
 }

@@ -22,35 +22,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.rest.controller.v2;
 
-import java.sql.SQLException;
-import java.util.List;
-
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.service.KapQueryService;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.kyligence.kap.rest.service.KapQueryService;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Backward capable API for KyligenceODBC: /kylin/api/tables_and_columns
- * 
+ *
  * Ref(KE 3.x): org.apache.kylin.rest.controller.QueryController.getMetadata(MetaRequest)
- * 
+ *
  * TODO ODBC should support Newten API: /kylin/api/query/tables_and_columns
- * 
+ *
  * @author yifanzhang
  *
  */
 @RestController
-@RequestMapping(value = "/api/")
+@RequestMapping(value = "/api")
 @Deprecated
 public class NQueryMetaController extends NBasicController {
 
@@ -58,8 +58,7 @@ public class NQueryMetaController extends NBasicController {
     @Qualifier("kapQueryService")
     private KapQueryService queryService;
 
-    @RequestMapping(value = "/tables_and_columns", method = RequestMethod.GET, produces = {
-            "application/json" })
+    @GetMapping(value = "/tables_and_columns", produces = { "application/json" })
     @ResponseBody
     @Deprecated
     public List<TableMeta> getMetadataForDriver(MetaRequest metaRequest) {

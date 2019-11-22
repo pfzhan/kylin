@@ -32,8 +32,6 @@ import lombok.Data;
 
 @Data
 public class GarbageCleanUpConfigRequest {
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("frequency_time_window")
     private FrequencyTimeWindowEnum frequencyTimeWindow;
     @JsonProperty("low_frequency_threshold")

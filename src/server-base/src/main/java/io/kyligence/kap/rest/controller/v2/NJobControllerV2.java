@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller.v2;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.request.JobActionEnum;
+import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.service.JobService;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -32,15 +33,21 @@ import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 @Controller
-@RequestMapping(value = "/api/jobs")
+@RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
 public class NJobControllerV2 extends NBasicController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";
@@ -49,14 +56,35 @@ public class NJobControllerV2 extends NBasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @RequestMapping(value = "/{jobId}/resume", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "/{jobId}/resume")
     @ResponseBody
-    public EnvelopeResponse resume(@PathVariable(value = "jobId") String jobId) throws IOException {
+    public EnvelopeResponse<ExecutableResponse> resume(@PathVariable(value = "jobId") String jobId) throws IOException {
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
 
         final ExecutableResponse jobInstance = jobService.getJobInstance(jobId);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 jobService.manageJob(jobInstance.getProject(), jobInstance, JobActionEnum.RESUME.toString()), "");
+    }
+
+    @GetMapping(value = "")
+    @ResponseBody
+    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "jobNames", required = false) List<String> jobNames,
+            @RequestParam(value = "timeFilter") Integer timeFilter,
+            @RequestParam(value = "subject", required = false) String subject,
+            @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
+            @RequestParam(value = "project") String projectName,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+        checkJobStatus(status);
+        JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, projectName, sortBy,
+                reverse);
+        List<ExecutableResponse> executables;
+        executables = jobService.listJobs(jobFilter);
+        executables = jobService.addOldParams(executables);
+        Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 }

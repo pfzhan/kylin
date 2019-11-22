@@ -33,8 +33,6 @@ import lombok.Data;
 @Data
 public class ShardNumConfigRequest {
 
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("col_to_num")
     private Map colToNum;
 }

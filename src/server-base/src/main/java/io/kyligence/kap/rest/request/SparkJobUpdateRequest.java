@@ -24,19 +24,21 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
+@Data
 public class SparkJobUpdateRequest {
 
     private String project;
+    @JsonProperty("job_id")
     private String jobId;
+    @JsonProperty("task_id")
     private String taskId;
 
+    @JsonProperty("yarn_app_id")
     private String yarnAppId;
+    @JsonProperty("yarn_app_url")
     private String yarnAppUrl;
 
 }

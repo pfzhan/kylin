@@ -8,7 +8,7 @@ server:
   compression:
     enabled: true
     min-response-size: 51200
-    mime-types: "text/html,text/xml,text/javascript,application/javascript,application/json,text/css,text/plain,application/vnd.apache.kylin-v2+json;charset=UTF-8"
+    mime-types: "text/html,text/xml,text/javascript,application/javascript,application/json,text/css,text/plain,application/vnd.apache.kylin-v2+json;charset=UTF-8,application/vnd.apache.kylin-v4+json;charset=UTF-8"
 
 management:
   context-path: "/api"

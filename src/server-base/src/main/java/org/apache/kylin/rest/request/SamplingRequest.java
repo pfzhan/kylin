@@ -26,6 +26,7 @@ package org.apache.kylin.rest.request;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,6 +38,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SamplingRequest implements Serializable {
     private String project;
+    @JsonProperty("qualified_table_name")
     private String qualifiedTableName;
     private int rows;
 }

@@ -24,14 +24,11 @@
 
 package io.kyligence.kap.rest.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Setter
-@Getter
+@Data
 public class SegmentsRequest {
 
-    private String modelId;
     private String[] ids;
     private String project;
     private SegmentsRequestType type = SegmentsRequestType.REFRESH;

@@ -35,9 +35,6 @@ import lombok.Data;
 
 @Data
 public class SegmentConfigRequest {
-
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("auto_merge_enabled")
     private Boolean autoMergeEnabled;
     @JsonProperty("auto_merge_time_ranges")

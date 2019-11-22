@@ -57,6 +57,7 @@ public class CreateTableIndexRequest implements Validation {
 
     private String project;
 
+    @JsonProperty("model_id")
     private String modelId;
 
     private String name;

@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 import io.kyligence.kap.rest.request.CSVRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.service.FileSourceService;
+import io.swagger.annotations.ApiOperation;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
@@ -33,13 +34,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/source")
@@ -51,8 +54,8 @@ public class FileSourceController extends NBasicController {
     @Qualifier("fileSourceService")
     private FileSourceService fileSourceService;
 
-    @RequestMapping(value = "/csv/save", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "saveCsv (update)", notes = "Update URL: /save")
+    @PostMapping(value = "/csv", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> saveCsv(@RequestParam(value = "mode") String mode,
             @RequestBody CSVRequest csvRequest) throws Exception {
@@ -60,8 +63,7 @@ public class FileSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, fileSourceService.saveCSV(mode, csvRequest), "");
     }
 
-    @RequestMapping(value = "/verify", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/verify", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<Boolean> verifyCredential(@RequestBody CSVRequest csvRequest) {
         try {
@@ -73,24 +75,21 @@ public class FileSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @RequestMapping(value = "/csv/samples", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/csv/samples", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String[][]> csvSamples(@RequestBody CSVRequest csvRequest) throws Exception {
+    public EnvelopeResponse<String[][]> csvSamples(@RequestBody CSVRequest csvRequest) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, fileSourceService.csvSamples(csvRequest), "");
     }
 
-    @RequestMapping(value = "/csv/schema", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/csv/schema", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<List<String>> csvSchema(@RequestBody CSVRequest csvRequest) throws Exception {
+    public EnvelopeResponse<List<String>> csvSchema(@RequestBody CSVRequest csvRequest) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, fileSourceService.csvSchema(csvRequest), "");
     }
 
-    @RequestMapping(value = "/validate", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/validate", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<Boolean> validateSql(@RequestBody CSVRequest csvRequest) throws Exception {
+    public EnvelopeResponse<Boolean> validateSql(@RequestBody CSVRequest csvRequest) {
         try {
             fileSourceService.validateSql(csvRequest.getDdl());
         } catch (Exception e) {

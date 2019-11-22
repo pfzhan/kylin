@@ -32,9 +32,6 @@ import lombok.Data;
 
 @Data
 public class JobNotificationConfigRequest {
-
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("job_error_notification_enabled")
     private Boolean jobErrorNotificationEnabled;
     @JsonProperty("data_load_empty_notification_enabled")

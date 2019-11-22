@@ -71,6 +71,8 @@ import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 @Slf4j
 public class MetadataTool extends ExecutableApplication {
 
@@ -181,7 +183,7 @@ public class MetadataTool extends ExecutableApplication {
         byte[] body = objectMapper.writeValueAsBytes(map);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.put(HttpHeaders.CONTENT_TYPE, Lists.newArrayList("application/vnd.apache.kylin-v2+json"));
+        headers.put(HttpHeaders.CONTENT_TYPE, Lists.newArrayList(HTTP_VND_APACHE_KYLIN_JSON));
 
         val response = restTemplate.postForEntity("http://" + address + "/kylin/api/system/backup",
                 new HttpEntity<>(body, headers), Map.class);

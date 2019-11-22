@@ -75,6 +75,8 @@ import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 @Slf4j
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
@@ -129,9 +131,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         dataLoadingRange.setUuid(UUID.randomUUID().toString());
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(df.getModel().getPartitionDesc().getPartitionDateColumn());
-        dataLoadingRange.setCoveredRange(
-                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
-                        SegmentRange.dateToLong("2012-05-01")));
+        dataLoadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("2012-05-01")));
         NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
                 .createDataLoadingRange(dataLoadingRange);
 
@@ -195,9 +196,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         waitForEventFinished(0);
 
         val result = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_ID)
-                        .param("project", DEFAULT_PROJECT)
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
+                        .param("project", DEFAULT_PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.status").value("AVAILABLE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.storage_size").value(246))
                 .andReturn();
@@ -224,7 +224,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .aggregationGroups(Lists.newArrayList(group1)).build();
         mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         waitForEventFinished(0);
 
@@ -235,12 +235,12 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         // job is running
         val cube1 = dfMgr.getDataflow(MODEL_ID).getIndexPlan();
-        var actions1 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_ID)
-                .param("project", DEFAULT_PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
+        var actions1 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
+                .param("project", DEFAULT_PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
         for (LayoutEntity layout : cube1.getRuleBaseLayouts()) {
-            actions1 = actions1.andExpect(MockMvcResultMatchers
-                    .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status").value("EMPTY"))
+            actions1 = actions1
+                    .andExpect(MockMvcResultMatchers
+                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status").value("EMPTY"))
                     .andExpect(MockMvcResultMatchers
                             .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.storage_size")
                             .value(0));
@@ -251,14 +251,11 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         waitForEventFinished(0);
 
         val cube2 = dfMgr.getDataflow(MODEL_ID).getIndexPlan();
-        var actions2 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_ID)
-                .param("project", DEFAULT_PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
+        var actions2 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
+                .param("project", DEFAULT_PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
         for (LayoutEntity layout : cube2.getRuleBaseLayouts()) {
-            actions2 = actions2
-                    .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status")
-                            .value("AVAILABLE"))
+            actions2 = actions2.andExpect(MockMvcResultMatchers
+                    .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status").value("AVAILABLE"))
                     .andExpect(MockMvcResultMatchers
                             .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.storage_size")
                             .value(246));
@@ -282,7 +279,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val result = mockMvc
                 .perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
     }
 
@@ -292,8 +289,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject(DEFAULT_PROJECT);
         request.setUuid(MODEL_ID);
-        request.setSimplifiedMeasures(
-                model.getAllMeasures().stream().filter(m -> !m.isTomb()).map(SimplifiedMeasure::fromMeasure).peek(sm -> {
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .map(SimplifiedMeasure::fromMeasure).peek(sm -> {
                     if (sm.getId() == 100016) {
                         sm.setExpression("MAX");
                         sm.setName("MAX_DEAL_AMOUNT");
@@ -305,7 +302,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setJoinTables(request.getJoinTables());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
     }
 

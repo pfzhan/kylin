@@ -24,16 +24,16 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.util.HashMap;
 import java.util.List;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.request.YarnQueueRequest;
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
@@ -42,15 +42,22 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
+import io.kyligence.kap.rest.request.YarnQueueRequest;
+import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.ProjectConfigResponse;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
@@ -62,6 +69,8 @@ import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.service.ProjectService;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/projects")
@@ -75,40 +84,37 @@ public class NProjectController extends NBasicController {
     @Qualifier("projectService")
     private ProjectService projectService;
 
-    @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getProjects (update)", notes = "Update Param: page_offset, page_size; Update Response: total_size")
+    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getProjects(@RequestParam(value = "project", required = false) String projectName,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size,
+    public EnvelopeResponse<DataResult<List<ProjectInstance>>> getProjects(
+            @RequestParam(value = "project", required = false) String projectName,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer size,
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch) {
-
         List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName, exactMatch);
-        HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, size);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projects, "");
-
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(readableProjects, offset, size), "");
     }
 
-    @RequestMapping(value = "/{project}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/{project:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse dropProject(@PathVariable("project") String project) {
+    public EnvelopeResponse<String> dropProject(@PathVariable("project") String project) {
         projectService.dropProject(project);
         projectService.clearManagerCache(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
-
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/backup/{project}", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "backupProject (check)", notes = "Update URL, {project}")
+    @PostMapping(value = "/{project:.+}/backup", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse backupProject(@PathVariable("project") String project) throws Exception {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
-
+    public EnvelopeResponse<String> backupProject(@PathVariable("project") String project) throws Exception {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
     }
 
-    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "saveProject (update)", notes = "Update Param: former_project_name, project_desc_data")
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
+    public EnvelopeResponse<ProjectInstance> saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
         checkRequiredArg("maintain_model_type", projectRequest.getMaintainModelType());
 
         ProjectInstance projectDesc = new ProjectInstance();
@@ -120,187 +126,174 @@ public class NProjectController extends NBasicController {
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createdProj, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createdProj, "");
     }
 
-    @RequestMapping(value = "/default_database", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateDefaultDatabase (update)", notes = "Add URL: {project}; Update Param: default_database;")
+    @PutMapping(value = "/{project:.+}/default_database", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateDefaultDatabase(@RequestBody DefaultDatabaseRequest defaultDatabaseRequest) {
-        checkProjectName(defaultDatabaseRequest.getProject());
+    public EnvelopeResponse updateDefaultDatabase(@PathVariable("project") String project,
+            @RequestBody DefaultDatabaseRequest defaultDatabaseRequest) {
         checkRequiredArg("default_database", defaultDatabaseRequest.getDefaultDatabase());
 
-        projectService.updateDefaultDatabase(defaultDatabaseRequest.getProject(),
-                defaultDatabaseRequest.getDefaultDatabase());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        projectService.updateDefaultDatabase(project, defaultDatabaseRequest.getDefaultDatabase());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/query_accelerate_threshold", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateQueryAccelerateThresholdConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/query_accelerate_threshold", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateQueryAccelerateThresholdConfig(
+    public EnvelopeResponse<String> updateQueryAccelerateThresholdConfig(@PathVariable("project") String project,
             @RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) {
-        checkProjectName(favoriteQueryThresholdRequest.getProject());
         checkRequiredArg("tips_enabled", favoriteQueryThresholdRequest.getTipsEnabled());
         if (Boolean.TRUE.equals(favoriteQueryThresholdRequest.getTipsEnabled())) {
             checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
         }
-        projectService.updateQueryAccelerateThresholdConfig(favoriteQueryThresholdRequest.getProject(),
-                favoriteQueryThresholdRequest.getThreshold(), favoriteQueryThresholdRequest.getTipsEnabled());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
-
+        projectService.updateQueryAccelerateThresholdConfig(project, favoriteQueryThresholdRequest.getThreshold(),
+                favoriteQueryThresholdRequest.getTipsEnabled());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/query_accelerate_threshold", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getQueryAccelerateThresholdConfig (update)", notes = "Add URL: {project}; ")
+    @GetMapping(value = "/{project:.+}/query_accelerate_threshold", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getQueryAccelerateThresholdConfig(
-            @RequestParam(value = "project", required = true) String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+    public EnvelopeResponse<FavoriteQueryThresholdResponse> getQueryAccelerateThresholdConfig(
+            @PathVariable(value = "project") String project) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 projectService.getQueryAccelerateThresholdConfig(project), "");
     }
 
-    @RequestMapping(value = "/storage_volume_info", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getStorageVolumeInfo (update)", notes = "Add URL: {project}; ")
+    @GetMapping(value = "/{project:.+}/storage_volume_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getStorageVolumeInfo(@RequestParam(value = "project", required = true) String project)
-            throws Exception {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),
+    public EnvelopeResponse<StorageVolumeInfoResponse> getStorageVolumeInfo(
+            @PathVariable(value = "project") String project) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),
                 "");
     }
 
-    @RequestMapping(value = "/storage", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "cleanupProjectStorage (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/storage", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse cleanupProjectStorage(@RequestParam(value = "project", required = true) String project)
+    public EnvelopeResponse<Boolean> cleanupProjectStorage(@PathVariable(value = "project") String project)
             throws Exception {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
         if (projectInstance == null) {
             throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectService.cleanupGarbage(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @RequestMapping(value = "/storage_quota", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateStorageQuotaConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/storage_quota", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateStorageQuotaConfig(@RequestBody StorageQuotaRequest storageQuotaRequest)
-            throws Exception {
-        String project = storageQuotaRequest.getProject();
+    public EnvelopeResponse<Boolean> updateStorageQuotaConfig(@PathVariable(value = "project") String project,
+            @RequestBody StorageQuotaRequest storageQuotaRequest) {
         checkProjectName(project);
         checkRequiredArg("storage_quota_size", storageQuotaRequest.getStorageQuotaSize());
         projectService.updateStorageQuotaConfig(project, storageQuotaRequest.getStorageQuotaSize());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @RequestMapping(value = "/shard_num_config", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateShardNumConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/shard_num_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateShardNumConfig(@RequestBody ShardNumConfigRequest req) {
-        String project = req.getProject();
-        checkProjectName(project);
+    public EnvelopeResponse<String> updateShardNumConfig(@PathVariable("project") String project,
+            @RequestBody ShardNumConfigRequest req) {
         projectService.updateShardNumConfig(project, req);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getShardNumConfig(project), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getShardNumConfig(project), "");
     }
 
-    @RequestMapping(value = "/garbage_cleanup_config", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateGarbageCleanupConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/garbage_cleanup_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateGarbageCleanupConfig(
-            @RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) throws Exception {
-        String project = garbageCleanUpConfigRequest.getProject();
-        checkProjectName(project);
+    public EnvelopeResponse updateGarbageCleanupConfig(@PathVariable("project") String project,
+            @RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         checkRequiredArg("low_frequency_threshold", garbageCleanUpConfigRequest.getLowFrequencyThreshold());
         checkRequiredArg("frequency_time_window", garbageCleanUpConfigRequest.getFrequencyTimeWindow());
         projectService.updateGarbageCleanupConfig(project, garbageCleanUpConfigRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @RequestMapping(value = "/job_notification_config", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateJobNotificationConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/job_notification_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateJobNotificationConfig(
+    public EnvelopeResponse<String> updateJobNotificationConfig(@PathVariable("project") String project,
             @RequestBody JobNotificationConfigRequest jobNotificationConfigRequest) {
-        checkProjectName(jobNotificationConfigRequest.getProject());
         checkRequiredArg("data_load_empty_notification_enabled",
                 jobNotificationConfigRequest.getDataLoadEmptyNotificationEnabled());
         checkRequiredArg("job_error_notification_enabled",
                 jobNotificationConfigRequest.getJobErrorNotificationEnabled());
         checkRequiredArg("job_notification_emails", jobNotificationConfigRequest.getJobNotificationEmails());
-        projectService.updateJobNotificationConfig(jobNotificationConfigRequest.getProject(),
-                jobNotificationConfigRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/push_down_config", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updatePushDownConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/push_down_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updatePushDownConfig(@RequestBody PushDownConfigRequest pushDownConfigRequest) {
-        checkProjectName(pushDownConfigRequest.getProject());
+    public EnvelopeResponse<String> updatePushDownConfig(@PathVariable("project") String project,
+            @RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkRequiredArg("push_down_enabled", pushDownConfigRequest.getPushDownEnabled());
-        projectService.updatePushDownConfig(pushDownConfigRequest.getProject(), pushDownConfigRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/segment_config", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateSegmentConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/segment_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateSegmentConfig(@RequestBody SegmentConfigRequest segmentConfigRequest) {
-        checkProjectName(segmentConfigRequest.getProject());
+    public EnvelopeResponse<String> updateSegmentConfig(@PathVariable("project") String project,
+            @RequestBody SegmentConfigRequest segmentConfigRequest) {
         checkRequiredArg("auto_merge_enabled", segmentConfigRequest.getAutoMergeEnabled());
         checkRequiredArg("auto_merge_time_ranges", segmentConfigRequest.getAutoMergeTimeRanges());
-        projectService.updateSegmentConfig(segmentConfigRequest.getProject(), segmentConfigRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        projectService.updateSegmentConfig(project, segmentConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/project_general_info", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateProjectGeneralInfo (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/project_general_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateProjectGeneralInfo(@RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
-        checkProjectName(projectGeneralInfoRequest.getProject());
-        projectService.updateProjectGeneralInfo(projectGeneralInfoRequest.getProject(), projectGeneralInfoRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    public EnvelopeResponse<String> updateProjectGeneralInfo(@PathVariable("project") String project,
+            @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
+        projectService.updateProjectGeneralInfo(project, projectGeneralInfoRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/project_config", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getProjectConfig (update)", notes = "Add URL: {project}; ")
+    @GetMapping(value = "/{project:.+}/project_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getProjectConfig(@RequestParam(value = "project", required = true) String project) {
-        checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
+    public EnvelopeResponse<ProjectConfigResponse> getProjectConfig(@PathVariable(value = "project") String project) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
     }
 
-    @RequestMapping(value = "/{project}/project_config", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "resetProjectConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/project_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse resetProjectConfig(@RequestBody ProjectConfigResetRequest projectConfigResetRequest,
-            @PathVariable(value = "project") String project) {
+    public EnvelopeResponse<ProjectConfigResponse> resetProjectConfig(@PathVariable("project") String project,
+            @RequestBody ProjectConfigResetRequest projectConfigResetRequest) {
         checkRequiredArg("reset_item", projectConfigResetRequest.getResetItem());
-        checkRequiredArg("project", project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 projectService.resetProjectConfig(project, projectConfigResetRequest.getResetItem()), "");
-
     }
 
-    @RequestMapping(value = "/source_type", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "setDataSourceType (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/source_type", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse setDataSourceType(@RequestBody DataSourceTypeRequest request) {
-        checkProjectName(request.getProject());
-        projectService.setDataSourceType(request.getProject(), request.getSourceType());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    public EnvelopeResponse<String> setDataSourceType(@PathVariable("project") String project,
+            @RequestBody DataSourceTypeRequest request) {
+        projectService.setDataSourceType(project, request.getSourceType());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/yarn_queue", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateYarnQueue (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/yarn_queue", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateYarnQueue(@RequestBody YarnQueueRequest request) {
-        checkProjectName(request.getProject());
+    public EnvelopeResponse<String> updateYarnQueue(@PathVariable("project") String project,
+            @RequestBody YarnQueueRequest request) {
         checkRequiredArg("queue_name", request.getQueueName());
 
-        projectService.updateYarnQueue(request.getProject(), request.getQueueName());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        projectService.updateYarnQueue(project, request.getQueueName());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

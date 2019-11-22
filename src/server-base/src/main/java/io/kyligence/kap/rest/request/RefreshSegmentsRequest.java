@@ -24,24 +24,25 @@
 
 package io.kyligence.kap.rest.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class RefreshSegmentsRequest {
 
+    @JsonProperty("refresh_start")
     private String refreshStart;
 
+    @JsonProperty("refresh_end")
     private String refreshEnd;
 
+    @JsonProperty("affected_start")
     private String affectedStart;
 
+    @JsonProperty("affected_end")
     private String affectedEnd;
 
     private String project;
 
     private String table;
-
-
 }

@@ -32,25 +32,27 @@ import java.util.Objects;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.response.JobStatisticsResponse;
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
-import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
@@ -60,6 +62,8 @@ import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/jobs")
@@ -72,91 +76,75 @@ public class NJobController extends NBasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getJobList (update)", notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
+    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "jobNames", required = false) List<String> jobNames,
-            @RequestParam(value = "timeFilter", required = true) Integer timeFilter,
+    public EnvelopeResponse<DataResult<List<ExecutableResponse>>> getJobList(
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "job_names", required = false) List<String> jobNames,
+            @RequestParam(value = "time_filter") Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
-            @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
+            @RequestParam(value = "subject_alias", required = false) String subjectAlias,
             @RequestParam(value = "project", required = false) String project,
-            @RequestParam(value = "projectName", required = false) String projectName,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
-            @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        if (Objects.nonNull(projectName)) {
-            project = projectName;
-        }
         checkJobStatus(status);
         JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
         List<ExecutableResponse> executables;
         if (!StringUtils.isEmpty(project)) {
             executables = jobService.listJobs(jobFilter);
-            executables = jobService.addOldParams(executables);
         } else {
             executables = jobService.listGlobalJobs(jobFilter);
         }
-        Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(executables, pageOffset, pageSize), "");
     }
 
-    @RequestMapping(value = "/waiting_jobs", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getWaitingJobs (update)", notes = "Update Response: total_size")
+    @GetMapping(value = "/waiting_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getWaitingJobs(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId,
+    public EnvelopeResponse<DataResult<List<EventResponse>>> getWaitingJobs(
+            @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         List<EventResponse> waitingJobs = jobService.getWaitingJobsByModel(project, modelId);
-        Map<String, Object> data = Maps.newHashMap();
-        data.put("data", PagingUtil.cutPage(waitingJobs, offset, limit));
-        data.put("size", waitingJobs.size());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(waitingJobs, offset, limit), "");
     }
 
-    @RequestMapping(value = "/waiting_jobs/models", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/waiting_jobs/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getWaitingJobsInfoGroupByModel(@RequestParam(value = "project") String project) {
+    public EnvelopeResponse<Map<String, Object>> getWaitingJobsInfoGroupByModel(
+            @RequestParam(value = "project") String project) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 
-    @RequestMapping(value = "/{project}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "dropJob dropGlobalJob (merge)(update)", notes = "Update URL: {project}; Update Param: project, job_ids")
+    @DeleteMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse dropJob(@PathVariable("project") String project,
-            @RequestParam(value = "jobIds", required = false) List<String> jobIds,
-            @RequestParam(value = "status", required = false) String status) throws IOException {
-        checkProjectName(project);
-        checkJobStatus(status);
-        if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
-            throw new BadRequestException("At least one job should be selected to delete!");
-        }
-        jobService.batchDropJob(project, jobIds, status);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
-    }
-
-    @RequestMapping(value = "", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse dropGlobalJob(@RequestParam(value = "jobIds", required = false) List<String> jobIds,
+    public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
+            @RequestParam(value = "job_ids", required = false) List<String> jobIds,
             @RequestParam(value = "status", required = false) String status) throws IOException {
         checkJobStatus(status);
         if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
             throw new BadRequestException("At least one job should be selected to delete!");
         }
-        jobService.batchDropGlobalJob(jobIds, status);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+
+        if (null != project) {
+            jobService.batchDropJob(project, jobIds, status);
+        } else {
+            jobService.batchDropGlobalJob(jobIds, status);
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/status", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateJobStatus (update)", notes = "Update Body: job_ids")
+    @PutMapping(value = "/status", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
+    public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkJobStatus(jobUpdateRequest.getStatus());
         if (CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())
                 && StringUtils.isEmpty(jobUpdateRequest.getStatus())) {
@@ -170,37 +158,38 @@ public class NJobController extends NBasicController {
             jobService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
                     jobUpdateRequest.getStatus());
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/detail", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateJobStatus (update)", notes = "Update Param: job_id")
+    @GetMapping(value = "/{job_id:.+}/detail", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getJobDetail(@RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "jobId", required = true) String jobId) {
+    public EnvelopeResponse<List<ExecutableStepResponse>> getJobDetail(@PathVariable(value = "job_id") String jobId,
+            @RequestParam(value = "project") String project) {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
-        List<ExecutableStepResponse> jobDetails = jobService.getJobDetail(project, jobId);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobDetails, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobDetail(project, jobId), "");
     }
 
-    @RequestMapping(value = "/{jobId}/steps/{stepId}/output", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "updateJobStatus (update)", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getJobOutput(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
-            @RequestParam(value = "project") String project) {
-        Map<String, String> result = new HashMap<String, String>();
+    public EnvelopeResponse<Map<String, String>> getJobOutput(@PathVariable("job_id") String jobId,
+            @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project) {
+        checkProjectName(project);
+        Map<String, String> result = new HashMap<>();
         result.put(JOB_ID_ARG_NAME, jobId);
         result.put(STEP_ID_ARG_NAME, stepId);
         result.put("cmd_output", jobService.getJobOutput(project, jobId, stepId));
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "/{jobId}/steps/{stepId}/log", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "downloadLogFile (update)", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
+    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse downloadLogFile(@PathVariable("jobId") String jobId, @PathVariable("stepId") String stepId,
-            @RequestParam(value = "project") String project, HttpServletResponse response) {
+    public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,
+            @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project,
+            HttpServletResponse response) {
         checkProjectName(project);
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
         checkRequiredArg(STEP_ID_ARG_NAME, stepId);
@@ -208,72 +197,75 @@ public class NJobController extends NBasicController {
 
         String hdfsLogpath = jobService.getHdfsLogPath(project, stepId);
         if (Objects.isNull(hdfsLogpath)) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, "can not find the log file!");
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "can not find the log file!");
         }
 
-        response.setHeader("content-type", "application/octet-stream");
-        response.setContentType("application/octet-stream");
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 String.format("attachment; filename=\"%s\"", downloadFilename));
 
         jobService.downloadHdfsLogFile(response, hdfsLogpath);
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/statistics", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/statistics", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getJobStats(@RequestParam(value = "project") String project,
+    public EnvelopeResponse<JobStatisticsResponse> getJobStats(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime),
+                "");
     }
 
-    @RequestMapping(value = "/statistics/count", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/statistics/count", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getJobCount(@RequestParam(value = "project") String project,
+    public EnvelopeResponse<Map<String, Integer>> getJobCount(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
             @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 jobService.getJobCount(project, startTime, endTime, dimension), "");
     }
 
-    @RequestMapping(value = "/statistics/duration_per_byte", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/statistics/duration_per_byte", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getJobDurationPerByte(@RequestParam(value = "project") String project,
+    public EnvelopeResponse<Map<String, Double>> getJobDurationPerByte(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
             @RequestParam(value = "dimension") String dimension) {
         checkProjectName(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
     }
 
-    @RequestMapping(value = "/spark", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    /**
+     * RPC Call
+     * @param sparkJobUpdateRequest
+     * @return
+     */
+    @PutMapping(value = "/spark", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest)
-            throws IOException {
+    public EnvelopeResponse<String> updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) {
         checkProjectName(sparkJobUpdateRequest.getProject());
         jobService.updateSparkJobInfo(sparkJobUpdateRequest.getProject(), sparkJobUpdateRequest.getJobId(),
                 sparkJobUpdateRequest.getTaskId(), sparkJobUpdateRequest.getYarnAppId(),
                 sparkJobUpdateRequest.getYarnAppUrl());
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PutMapping(value = "/wait_and_run_time", produces = { "application/vnd.apache.kylin-v2+json" })
+    /**
+     * RPC Call
+     * @param sparkJobTimeRequest
+     * @return
+     */
+    @PutMapping(value = "/wait_and_run_time", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest)
-            throws IOException {
+    public EnvelopeResponse<String> updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest) {
         checkProjectName(sparkJobTimeRequest.getProject());
         jobService.updateSparkTimeInfo(sparkJobTimeRequest.getProject(), sparkJobTimeRequest.getJobId(),
                 sparkJobTimeRequest.getTaskId(), sparkJobTimeRequest.getYarnJobWaitTime(),
                 sparkJobTimeRequest.getYarnJobRunTime());
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

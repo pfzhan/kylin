@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.AclEntity;
@@ -42,6 +42,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.AclEntityType;
@@ -56,11 +57,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -71,6 +74,8 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.BatchAccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/access")
@@ -97,25 +102,24 @@ public class NAccessController extends NBasicController {
     /**
      * Get current user's permission in the project
      */
-    @RequestMapping(value = "/permission/project_permission", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/permission/project_permission", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> getUserPermissionInPrj(
-            @RequestParam(value = "project", required = true) String project) {
+    public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
         String grantedPermission = accessService.getUserPermissionInPrj(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, grantedPermission, "");
     }
 
-    @RequestMapping(value = "/available/{sidType}/{uuid}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getAvailableSids (update)", notes = "Update Param: sid_type, is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @GetMapping(value = "/available/{sid_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse getAvailableSids(@PathVariable("uuid") String uuid, @PathVariable("sidType") String sidType,
-            @RequestParam(value = "project", required = false) String project,
+    public EnvelopeResponse<DataResult<List<String>>> getAvailableSids(@PathVariable("uuid") String uuid,
+            @PathVariable("sid_type") String sidType, @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
-            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
         Acl acl = accessService.getAcl(ae);
@@ -132,63 +136,58 @@ public class NAccessController extends NBasicController {
 
         List<String> sids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, oriList);
         List<String> subList = PagingUtil.cutPage(sids, pageOffset, pageSize);
-        HashMap<String, Object> data = new HashMap<>();
-
-        data.put("sids", subList);
-        data.put("size", sids.size());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, sids), "");
     }
 
-    @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getAccessEntities (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
+    @GetMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse getAccessEntities(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
-            @RequestParam(value = "name", required = false) String nameSeg,
-            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
+    public EnvelopeResponse<DataResult<List<AccessEntryResponse>>> getAccessEntities(@PathVariable("type") String type,
+            @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
+            @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
                 nameSeg, isCaseSensitive);
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
-
-        HashMap<String, Object> data = new HashMap<>();
-        data.put("sids", sublist);
-        data.put("size", resultsAfterFuzzyMatching.size());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(sublist, resultsAfterFuzzyMatching),
+                "");
     }
 
     /**
      * Grant a new access on a domain object to a user/role
      */
-    @RequestMapping(value = "/{entityType}/{uuid}", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "grant (update)", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
+    @PostMapping(value = "/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse grant(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
-            @RequestBody AccessRequest accessRequest) throws IOException {
+    public EnvelopeResponse<String> grant(@PathVariable("entity_type") String entityType,
+            @PathVariable("uuid") String uuid, @RequestBody AccessRequest accessRequest) throws IOException {
         checkSid(accessRequest);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, Lists.newArrayList(accessRequest));
         }
         accessService.grant(entityType, uuid, accessRequest.getSid(), accessRequest.isPrincipal(),
                 accessRequest.getPermission());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/batch/{entityType}/{uuid}", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "batchGrant (update)", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
+    @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse batchGrant(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
-            @RequestBody List<BatchAccessRequest> batchAccessRequests) throws IOException {
+    public EnvelopeResponse<String> batchGrant(@PathVariable("entity_type") String entityType,
+            @PathVariable("uuid") String uuid, @RequestBody List<BatchAccessRequest> batchAccessRequests)
+            throws IOException {
         List<AccessRequest> requests = transform(batchAccessRequests);
         checkSid(requests);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, requests);
         }
         accessService.batchGrant(requests, entityType, uuid);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     /**
@@ -196,11 +195,10 @@ public class NAccessController extends NBasicController {
      *
      * @param accessRequest
      */
-
-    @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "batchGrant (update)", notes = "Update Body: access_entry_id")
+    @PutMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
+    public EnvelopeResponse<String> updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) throws IOException {
         checkSid(accessRequest);
         AclEntity ae = accessService.getAclEntity(type, uuid);
@@ -210,27 +208,24 @@ public class NAccessController extends NBasicController {
         }
         accessService.update(ae, accessRequest.getAccessEntryId(), permission);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
-
-    /**
-     * Revoke access on a domain object from a user/role
-     *
-     * @param accessRequest
-     */
-
-    @RequestMapping(value = "/{entityType}/{uuid}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    
+    @ApiOperation(value = "revokeAcl (update)", notes = "URL: entity_type; Update Param: entity_type; Update Body: access_entry_id")
+    @DeleteMapping(value = "/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse revokeAcl(@PathVariable("entityType") String entityType, @PathVariable("uuid") String uuid,
-            AccessRequest accessRequest) throws IOException {
-        checkSid(accessRequest);
+    public EnvelopeResponse<String> revokeAcl(@PathVariable("entity_type") String entityType,
+            @PathVariable("uuid") String uuid, //
+            @RequestParam("access_entry_id") Integer accessEntryId, //
+            @RequestParam("sid") String sid, //
+            @RequestParam("principal") Boolean principal) throws IOException {
+        checkSid(sid, principal);
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
-        accessService.revoke(ae, accessRequest.getAccessEntryId());
+        accessService.revoke(ae, accessEntryId);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
-            aclTCRService.revokeAclTCR(uuid, accessRequest.getSid(), accessRequest.isPrincipal());
+            aclTCRService.revokeAclTCR(uuid, sid, principal);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     private List<String> getAllUserNames() throws IOException {

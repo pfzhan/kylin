@@ -131,8 +131,10 @@ public class SQLResponse implements Serializable {
     @JsonProperty("pushDown")
     protected boolean queryPushDown = false;
 
+    @JsonProperty("is_prepare")
     private boolean isPrepare = false;
 
+    @JsonProperty("is_timeout")
     private boolean isTimeout;
 
     protected byte[] queryStatistics;
@@ -164,13 +166,13 @@ public class SQLResponse implements Serializable {
         this.affectedRowCount = affectedRowCount;
         this.isException = isException;
         this.exceptionMessage = exceptionMessage;
-        if(results != null){
+        if (results != null) {
             this.resultRowCount = results.size();
         }
     }
 
-    public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results,
-            int affectedRowCount, boolean isException, String exceptionMessage, boolean isPartial, boolean isPushDown) {
+    public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results, int affectedRowCount,
+            boolean isException, String exceptionMessage, boolean isPartial, boolean isPushDown) {
         this.columnMetas = columnMetas;
         this.results = results;
         this.affectedRowCount = affectedRowCount;
@@ -179,7 +181,7 @@ public class SQLResponse implements Serializable {
         this.isPartial = isPartial;
         this.queryPushDown = isPushDown;
         this.isPrepare = BackdoorToggles.getPrepareOnly();
-        if(results != null){
+        if (results != null) {
             this.resultRowCount = results.size();
         }
     }

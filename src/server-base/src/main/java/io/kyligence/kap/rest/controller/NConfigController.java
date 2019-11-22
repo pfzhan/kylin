@@ -31,13 +31,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 @Controller
 @RequestMapping(value = "/api/config")
 public class NConfigController extends NBasicController {
 
-    @GetMapping(value = "/is_cloud", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/is_cloud", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse isCloud() {
+    public EnvelopeResponse<Boolean> isCloud() {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, !(kapConfig.getChannelUser().equals("on-premises")),
                 "");

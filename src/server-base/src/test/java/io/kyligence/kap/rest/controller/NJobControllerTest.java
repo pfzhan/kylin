@@ -45,6 +45,7 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -73,6 +74,8 @@ import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 public class NJobControllerTest {
 
@@ -108,20 +111,19 @@ public class NJobControllerTest {
         JobFilter jobFilter = new JobFilter("NEW", jobNames, 4, "", "", "default", "job_name", false);
         Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("offset", "0").param("limit", "10").param("timeFilter", "1")
-                .param("subject", "").param("subjectAlias", "").param("jobNames", "").param("status", "NEW")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .param("project", "default").param("page_offset", "0").param("page_size", "10")
+                .param("time_filter", "1").param("subject", "").param("subject_alias", "").param("job_names", "")
+                .param("status", "NEW").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", null, 0, 10, "last_modified",
-                true);
+        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", 0, 10, "last_modified", true);
     }
 
     @Test
     public void testGetWaitingJobs() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/waiting_jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("model", "test_model")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getWaitingJobs("default", "test_model", 0, 10);
@@ -129,9 +131,9 @@ public class NJobControllerTest {
 
     @Test
     public void testGetWaitingJobsModels() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/waiting_jobs/models")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/jobs/waiting_jobs/models").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getWaitingJobsInfoGroupByModel("default");
@@ -141,13 +143,12 @@ public class NJobControllerTest {
     public void testDropJob() throws Exception {
         Mockito.doNothing().when(jobService).batchDropJob("default",
                 Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}", "default")
-                .param("jobIds", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("status", "")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default")
+                .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("status", "")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).dropJob("default", Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
                 "");
-
     }
 
     @Test
@@ -155,20 +156,19 @@ public class NJobControllerTest {
         Mockito.doNothing().when(jobService)
                 .batchDropGlobalJob(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
         mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/jobs").param("jobIds", "e1ad7bb0-522e-456a-859d-2eab1df448de")
-                        .param("status", "").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                MockMvcRequestBuilders.delete("/api/jobs").param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de")
+                        .param("status", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).dropGlobalJob(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
+        Mockito.verify(nJobController).dropJob(null, Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
     }
 
     @Test
     public void testDropJob_selectNoneJob_exception() throws Exception {
         Mockito.doNothing().when(jobService).batchDropJob("default", Lists.newArrayList(), "");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}", "default").param("jobIds", "")
-                .param("status", "").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default").param("job_ids", "")
+                .param("status", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(nJobController).dropJob("default", Lists.newArrayList(), "");
-
     }
 
     @Test
@@ -178,7 +178,7 @@ public class NJobControllerTest {
                 "RESUME", mockJobUpdateRequest().getStatus());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
@@ -191,7 +191,7 @@ public class NJobControllerTest {
                 mockJobUpdateRequest().getStatus());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
@@ -204,7 +204,7 @@ public class NJobControllerTest {
                 "RESUME", mockJobUpdateRequest().getStatus());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
@@ -213,12 +213,13 @@ public class NJobControllerTest {
     public void testGetJobDetail() throws Exception {
         Mockito.when(jobService.getJobDetail("default", "e1ad7bb0-522e-456a-859d-2eab1df448de"))
                 .thenReturn(mockStepsResponse());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/detail").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("jobId", "e1ad7bb0-522e-456a-859d-2eab1df448de")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/{job}/detail", "e1ad7bb0-522e-456a-859d-2eab1df448de")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("job_id", "e1ad7bb0-522e-456a-859d-2eab1df448de")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobDetail("default", "e1ad7bb0-522e-456a-859d-2eab1df448de");
+        Mockito.verify(nJobController).getJobDetail("e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
     }
 
     private List<ExecutableStepResponse> mockStepsResponse() {
@@ -241,7 +242,7 @@ public class NJobControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/statistics").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("start_time", String.valueOf(Long.MIN_VALUE))
                 .param("end_time", String.valueOf(Long.MAX_VALUE))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);
@@ -252,7 +253,7 @@ public class NJobControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/statistics/count").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("start_time", String.valueOf(Long.MIN_VALUE))
                 .param("end_time", String.valueOf(Long.MAX_VALUE)).param("dimension", "model")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getJobCount("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
@@ -263,7 +264,7 @@ public class NJobControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/statistics/duration_per_byte")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .param("start_time", String.valueOf(Long.MIN_VALUE)).param("end_time", String.valueOf(Long.MAX_VALUE))
-                .param("dimension", "model").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .param("dimension", "model").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getJobDurationPerByte("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
@@ -276,11 +277,29 @@ public class NJobControllerTest {
                 .get("/api/jobs/{jobId}/steps/{stepId}/output", "e1ad7bb0-522e-456a-859d-2eab1df448de",
                         "e1ad7bb0-522e-456a-859d-2eab1df448de")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getJobOutput("e1ad7bb0-522e-456a-859d-2eab1df448de",
                 "e1ad7bb0-522e-456a-859d-2eab1df448de", "default");
+    }
+
+    @Test
+    public void testUpdateSparkJobInfo() throws Exception {
+        SparkJobUpdateRequest request = new SparkJobUpdateRequest();
+        request.setProject("a");
+        request.setJobId("b");
+        request.setTaskId("c");
+        request.setYarnAppUrl("url");
+        request.setYarnAppId("app_id");
+        Mockito.doNothing().when(jobService).updateSparkJobInfo(request.getProject(), request.getJobId(),
+                request.getTaskId(), request.getYarnAppId(), request.getYarnAppUrl());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/spark").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).updateSparkJobInfo(request);
     }
 
     @Test
@@ -295,7 +314,7 @@ public class NJobControllerTest {
                 request.getTaskId(), request.getYarnJobWaitTime(), request.getYarnJobRunTime());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/wait_and_run_time")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).updateSparkJobTime(request);

@@ -35,6 +35,8 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class NModelControllerWithRealServiceTest extends AbstractMVCIntegrationTestCase {
 
     @Test
@@ -52,7 +54,7 @@ public class NModelControllerWithRealServiceTest extends AbstractMVCIntegrationT
         final MvcResult result = mockMvc
                 .perform(MockMvcRequestBuilders.post("/api/models/computed_columns/check")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(ccRequest))
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
     }
 }

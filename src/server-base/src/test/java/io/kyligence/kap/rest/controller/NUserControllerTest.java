@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultCommitFile;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultLicenseFile;
 import static org.apache.kylin.rest.service.LicenseInfoService.getDefaultVersionFile;
@@ -186,7 +187,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).createUser(Mockito.any(ManagedUser.class));
@@ -210,7 +211,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content()
                         .string(containsString("The password should contain more than 8 characters!")));
 
@@ -225,7 +226,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString(
                         "The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:\\\"<>?[];\\\\'\\\\,./`).")));
 
@@ -236,9 +237,9 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testDelUser() throws Exception {
         Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1@.h").contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1@.h")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).delete("u1@.h");
@@ -252,7 +253,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         request.setNewPassword("KYLIN1234@");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString("User 'ADMIN' not found.")));
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
@@ -269,7 +270,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
@@ -286,7 +287,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content()
                         .string(containsString("New password should not be same as old one!")));
 
@@ -305,7 +306,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString(
                         "The password should contain at least one number, letter and special character")));
 
@@ -324,7 +325,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content()
                         .string(containsString("The password should contain more than 8 characters!")));
 
@@ -344,7 +345,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
@@ -363,7 +364,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.content().string(containsString("Old password is not correct!")));
 
         Mockito.verify(nUserController).updateUserPassword(Mockito.any(PasswordChangeRequest.class));
@@ -373,7 +374,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testListAll() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("name", "KYLIN")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).listAllUsers(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean(),
@@ -387,7 +388,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(user).when(nUserController).getManagedUser("ADMIN");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(user))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).updateUser(Mockito.any(ManagedUser.class));

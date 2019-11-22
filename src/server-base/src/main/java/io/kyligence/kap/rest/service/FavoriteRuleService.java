@@ -93,46 +93,46 @@ public class FavoriteRuleService extends BasicService {
 
         switch (ruleName) {
         case FavoriteRule.FREQUENCY_RULE_NAME:
-            result.put("freqEnable", rule.isEnabled());
+            result.put("freq_enable", rule.isEnabled());
             String frequency = conds.get(0).getRightThreshold();
             if (StringUtils.isNotEmpty(frequency))
-                result.put("freqValue", Float.valueOf(frequency));
+                result.put("freq_value", Float.valueOf(frequency));
             else
-                result.put("freqValue", null);
+                result.put("freq_value", null);
             break;
         case FavoriteRule.COUNT_RULE_NAME:
-            result.put("countEnable", rule.isEnabled());
+            result.put("count_enable", rule.isEnabled());
             String count = conds.get(0).getRightThreshold();
             if (StringUtils.isNotEmpty(count))
-                result.put("countValue", Float.valueOf(count));
+                result.put("count_value", Float.valueOf(count));
             else
-                result.put("countValue", null);
+                result.put("count_value", null);
             break;
         case FavoriteRule.SUBMITTER_RULE_NAME:
             List<String> users = Lists.newArrayList();
             conds.forEach(cond -> users.add(cond.getRightThreshold()));
-            result.put("submitterEnable", rule.isEnabled());
+            result.put("submitter_enable", rule.isEnabled());
             result.put("users", users);
             break;
         case FavoriteRule.SUBMITTER_GROUP_RULE_NAME:
             List<String> userGroups = Lists.newArrayList();
             conds.forEach(cond -> userGroups.add(cond.getRightThreshold()));
-            result.put("userGroups", userGroups);
+            result.put("user_groups", userGroups);
             break;
         case FavoriteRule.DURATION_RULE_NAME:
-            result.put("durationEnable", rule.isEnabled());
+            result.put("duration_enable", rule.isEnabled());
             String minDuration = conds.get(0).getLeftThreshold();
             String maxDuration = conds.get(0).getRightThreshold();
 
             if (StringUtils.isNotEmpty(minDuration))
-                result.put("minDuration", Long.valueOf(minDuration));
+                result.put("min_duration", Long.valueOf(minDuration));
             else
-                result.put("minDuration", null);
+                result.put("min_duration", null);
 
             if (StringUtils.isNotEmpty(maxDuration))
-                result.put("maxDuration", Long.valueOf(maxDuration));
+                result.put("max_duration", Long.valueOf(maxDuration));
             else
-                result.put("maxDuration", null);
+                result.put("max_duration", null);
 
             break;
         default:

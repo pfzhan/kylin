@@ -30,9 +30,6 @@ import lombok.Data;
 
 @Data
 public class ProjectGeneralInfoRequest {
-
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("description")
     private String description;
     @JsonProperty("semi_automatic_mode")

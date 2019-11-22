@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 import static org.mockito.ArgumentMatchers.eq;
 
 public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
@@ -134,7 +135,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/cubes").contentType(MediaType.APPLICATION_JSON)
                 .param("pageOffset", "0").param("projectName", "default").param("modelName", "model1")
-                .param("pageSize", "10").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .param("pageSize", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nCubesControllerV2).getCubes("default", "model1", 0, 10);
     }
@@ -143,10 +144,9 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetCube() throws Exception {
         Mockito.when(modelService.getCube("model1", "default")).thenReturn(mockModels().get(0));
 
-        mockMvc.perform(
-                MockMvcRequestBuilders.get("/api/cubes/{cubeName}", "model1").contentType(MediaType.APPLICATION_JSON)
-                        .param("project", "default")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/cubes/{cubeName}", "model1")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nCubesControllerV2).getCube("model1", "default");
     }
@@ -165,7 +165,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/rebuild", "model1")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(rebuildRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nCubesControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
     }
@@ -182,9 +182,10 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null), Mockito.any(SegmentMgmtRequest.class));
+        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null),
+                Mockito.any(SegmentMgmtRequest.class));
     }
 
     @Test
@@ -193,7 +194,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/cubes/{cubeName}/holes", "model1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nCubesControllerV2).getHoles("model1", null);
     }

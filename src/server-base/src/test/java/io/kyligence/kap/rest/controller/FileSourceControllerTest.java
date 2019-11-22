@@ -47,6 +47,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.mockito.Mockito.mock;
 
 public class FileSourceControllerTest {
@@ -88,7 +89,7 @@ public class FileSourceControllerTest {
         Mockito.when(fileSourceService.verifyCredential(mockCsvRequest())).thenReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/source/verify").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockCsvRequest()))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(fileSourceController).verifyCredential(mockCsvRequest());
     }
@@ -98,7 +99,7 @@ public class FileSourceControllerTest {
         Mockito.when(fileSourceService.validateSql(mockCsvRequest().getDdl())).thenReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/source/validate").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockCsvRequest()))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(fileSourceController).validateSql(mockCsvRequest());
     }
@@ -108,9 +109,9 @@ public class FileSourceControllerTest {
         String mode = "guide";
         LoadTableResponse loadTableResponse = mock(LoadTableResponse.class);
         Mockito.when(fileSourceService.saveCSV(mode, mockCsvRequest())).thenReturn(loadTableResponse);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/source/csv/save").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/source/csv").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockCsvRequest())).param("mode", "guide")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(fileSourceController).saveCsv("guide", mockCsvRequest());
     }
@@ -121,7 +122,7 @@ public class FileSourceControllerTest {
         Mockito.when(fileSourceService.csvSamples(mockCsvRequest())).thenReturn(samples);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/source/csv/samples").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockCsvRequest()))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(fileSourceController).csvSamples(mockCsvRequest());
     }
@@ -132,7 +133,7 @@ public class FileSourceControllerTest {
         Mockito.when(fileSourceService.csvSchema(mockCsvRequest())).thenReturn(schema);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/source/csv/schema").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockCsvRequest()))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(fileSourceController).csvSchema(mockCsvRequest());
     }

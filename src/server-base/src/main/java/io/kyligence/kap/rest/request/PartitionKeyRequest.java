@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.rest.request;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class PartitionKeyRequest {
     private String table;
     private String project;
     private String column;
+
+    @JsonProperty("partition_column_format")
     private String partitionColumnFormat;
 }

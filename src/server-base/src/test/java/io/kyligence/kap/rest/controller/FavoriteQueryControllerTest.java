@@ -49,6 +49,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.List;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class FavoriteQueryControllerTest {
 
     private final String PROJECT = "default";
@@ -73,9 +75,8 @@ public class FavoriteQueryControllerTest {
     public void testCreateFavoriteQuery() throws Exception {
         FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList("test_sql_pattern"));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/favorite_queries")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).createFavoriteQuery(Mockito.any());
@@ -92,19 +93,17 @@ public class FavoriteQueryControllerTest {
 
     @Test
     public void testListAllFavorite() throws Exception {
-        Mockito.when(favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "last_query_time", false, null)).thenReturn(mockedFavoriteQueries());
+        Mockito.when(favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "last_query_time", false, null))
+                .thenReturn(mockedFavoriteQueries());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .param("sortBy", "last_query_time")
-                .param("reverse", "false")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT).param("sort_by", "last_query_time")
+                .param("reverse", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(3))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries.length()").value(3))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[0].sql_pattern").value("sql1"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[1].sql_pattern").value("sql2"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[2].sql_pattern").value("sql3"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.total_size").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[0].sql_pattern").value("sql1"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[1].sql_pattern").value("sql2"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[2].sql_pattern").value("sql3"));
 
         Mockito.verify(favoriteQueryController).listFavoriteQuery(PROJECT, "last_query_time", false, null, 0, 10);
     }
@@ -112,9 +111,8 @@ public class FavoriteQueryControllerTest {
     @Test
     public void testGetAccelerateTips() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/threshold")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).getAccelerateTips(PROJECT);
@@ -126,9 +124,8 @@ public class FavoriteQueryControllerTest {
         request.setProject(PROJECT);
         request.setSqls(Lists.newArrayList());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/accelerate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(favoriteQueryController).acceptAccelerate(Mockito.any(request.getClass()));
     }
@@ -136,21 +133,17 @@ public class FavoriteQueryControllerTest {
     @Test
     public void testAcceptAccelerate() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/accept")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .param("accelerateSize", "20")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT).param("accelerate_size", "20")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(favoriteQueryController).acceptAccelerate(PROJECT, 20);
     }
 
     @Test
     public void testIgnoreAccelerate() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/ignore/")
-                .param("project", PROJECT)
-                .param("ignoreSize", "20")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/ignore/").param("project", PROJECT)
+                .param("ignore_size", "20").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).ignoreAccelerate(PROJECT, 20);
@@ -158,10 +151,9 @@ public class FavoriteQueryControllerTest {
 
     @Test
     public void testGetFrequencyRule() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/query/favorite_queries/rules").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).getFavoriteRules(PROJECT);
@@ -173,9 +165,8 @@ public class FavoriteQueryControllerTest {
         request.setProject(PROJECT);
         request.setFreqEnable(false);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).updateFavoriteRules(Mockito.any(request.getClass()));
@@ -187,27 +178,24 @@ public class FavoriteQueryControllerTest {
         request.setProject(PROJECT);
         request.setFreqEnable(true);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(400));
 
         request.setFreqEnable(false);
         request.setDurationEnable(true);
         request.setMinDuration("0");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(400));
     }
 
     @Test
     public void testGetAccelerateRatio() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/accelerate_ratio")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).getAccelerateRatio(PROJECT);
@@ -231,27 +219,23 @@ public class FavoriteQueryControllerTest {
 
     @Test
     public void testImportSqls() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "sqls.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
-        MockMultipartFile file2 = new MockMultipartFile("file", "sqls.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
-        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/query/favorite_queries/sql_files")
-                .file(file)
-                .file(file2)
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        MockMultipartFile file = new MockMultipartFile("file", "sqls.sql", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
+        MockMultipartFile file2 = new MockMultipartFile("file", "sqls.sql", "text/plain",
+                new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
+        mockMvc.perform(MockMvcRequestBuilders.fileUpload("/api/query/favorite_queries/sql_files").file(file)
+                .file(file2).contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(favoriteQueryController).importSqls(Mockito.any(), Mockito.anyString());
+        Mockito.verify(favoriteQueryController).importSqls(Mockito.anyString(), Mockito.any());
     }
 
     @Test
     public void testDeleteFavoriteQuery() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/favorite_queries")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("uuids", "uuid")
-                .param("block", "false")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("uuids", "uuid")
+                .param("block", "false").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).batchDeleteFQs("default", Lists.newArrayList("uuid"), false);
@@ -261,29 +245,23 @@ public class FavoriteQueryControllerTest {
     public void testGetBlacklist() throws Exception {
         Mockito.doReturn(getMockedResponse()).when(favoriteRuleService).getBlacklistSqls(PROJECT, "");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/blacklist")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .param("sql", "")
-                .param("offset", "2")
-                .param("limit", "3")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default").param("sql", "")
+                .param("offset", "2").param("limit", "3").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.sqls.length()").value(3))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.sqls[0].id").value("id7"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.sqls[1].id").value("id8"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.sqls[2].id").value("id9"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.total_size").value(10))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[0].id").value("id7"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[1].id").value("id8"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.value[2].id").value("id9"));
 
-        Mockito.verify(favoriteQueryController).getBlacklist(PROJECT, "",  2, 3);
+        Mockito.verify(favoriteQueryController).getBlacklist(PROJECT, "", 2, 3);
     }
 
     @Test
     public void testRemoveBlacklist() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/favorite_queries/blacklist")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("id", "test_id")
-                .param("project", PROJECT)
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/favorite_queries/blacklist/{id}", "test_id")
+                .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).removeBlacklistSql("test_id", PROJECT);
@@ -293,9 +271,8 @@ public class FavoriteQueryControllerTest {
     public void testSqlValidate() throws Exception {
         SQLValidateRequest request = new SQLValidateRequest(PROJECT, "sql");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/sql_validation")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).sqlValidate(Mockito.any(SQLValidateRequest.class));

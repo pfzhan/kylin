@@ -27,6 +27,10 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.response.IndexGraphResponse;
+import io.swagger.annotations.ApiOperation;
+import org.apache.kylin.rest.response.AggIndexResponse;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,11 +45,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.rest.response.TableIndexResponse;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import lombok.val;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @RestController
 @RequestMapping(value = "/api/index_plans")
@@ -57,8 +66,9 @@ public class NIndexPlanController extends NBasicController {
     @Qualifier("indexPlanService")
     private IndexPlanService indexPlanService;
 
-    @PutMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
+    @ApiOperation(value = "updateRule (update)", notes = "Update Body: model_id")
+    @PutMapping(value = "/rule", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<BuildIndexResponse> updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         indexPlanService.checkIndexCountWithinLimit(request);
@@ -66,16 +76,19 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @GetMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getRule(@RequestParam("project") String project, @RequestParam("model") String modelId) {
+    @GetMapping(value = "/rule", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<NRuleBasedIndex> getRule(@RequestParam("project") String project,
+            @RequestParam("model") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val rule = indexPlanService.getRule(project, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
     }
 
-    @PutMapping(value = "/agg_index_count", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse calculateAggIndexCombination(@RequestBody UpdateRuleBasedCuboidRequest request) {
+    @ApiOperation(value = "calculateAggIndexCombination (update)", notes = "Update Body: model_id")
+    @PutMapping(value = "/agg_index_count", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<AggIndexResponse> calculateAggIndexCombination(
+            @RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
 
@@ -83,16 +96,18 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, aggIndexCount, "");
     }
 
-    @PostMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
+    @ApiOperation(value = "createTableIndex (update)", notes = "Update Body: model_id")
+    @PostMapping(value = "/table_index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<BuildIndexResponse> createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         val response = indexPlanService.createTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @PutMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse updateTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
+    @ApiOperation(value = "updateTableIndex (update)", notes = "Update Body: model_id")
+    @PutMapping(value = "/table_index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<BuildIndexResponse> updateTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         checkRequiredArg("id", request.getId());
@@ -100,31 +115,36 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @DeleteMapping(value = "/table_index/{project}/{model}/{id}", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse deleteTableIndex(@PathVariable("project") String project,
-            @PathVariable("model") String modelId, @PathVariable("id") Long id) {
+    @Deprecated
+    @ApiOperation(value = "deleteTableIndex (update)", notes = "Update URL: {project}, Update Param: project")
+    @DeleteMapping(value = "/table_index/{id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<String> deleteTableIndex(@PathVariable("id") Long id, @RequestParam("model") String modelId,
+            @RequestParam("project") String project) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg("id", id);
         indexPlanService.removeTableIndex(project, modelId, id);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getTableIndex(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+    @Deprecated
+    @ApiOperation(value = "getTableIndex (update)", notes = "Update Param: page_offset, page_size; Update response: total_size")
+    @GetMapping(value = "/table_index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<DataResult<List<TableIndexResponse>>> getTableIndex(
+            @RequestParam(value = "project") String project, // 
+            @RequestParam(value = "model") String modelId, //
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val tableIndexes = indexPlanService.getTableIndexs(project, modelId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                getDataResponse("table_indexs", tableIndexes, offset, limit), "");
+        val tableIndexs = indexPlanService.getTableIndexs(project, modelId);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(tableIndexs, offset, limit), "");
     }
 
-    @GetMapping(value = "/index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getIndex(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId,
+    @ApiOperation(value = "getIndex (update)", notes = "Update response: total_size")
+    @GetMapping(value = "/index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<DataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "sort_by", required = false, defaultValue = "") String order,
             @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
             @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexResponse.Source> sources,
@@ -134,13 +154,12 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         val indexes = indexPlanService.getIndexes(project, modelId, key, order, desc, sources);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("indexes", indexes, offset, limit),
-                "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 
-    @GetMapping(value = "/index_graph", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getIndexGraph(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model") String modelId,
+    @GetMapping(value = "/index_graph", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<IndexGraphResponse> getIndexGraph(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "order", required = false, defaultValue = "100") Integer size) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
@@ -148,13 +167,15 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, indexes, "");
     }
 
-    @DeleteMapping(value = "/index/{project}/{model}/{id}", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse deleteIndex(@PathVariable(value = "project") String project,
-            @PathVariable(value = "model") String modelId, @PathVariable(value = "id") long layoutId) {
+    @ApiOperation(value = "deleteIndex (update)", notes = "Update response: need to update total_size")
+    @DeleteMapping(value = "/index/{layout_id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<String> deleteIndex(@PathVariable(value = "layout_id") long layoutId,
+            @RequestParam(value = "project") String project, //
+            @RequestParam(value = "model") String modelId) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         indexPlanService.removeIndex(project, modelId, layoutId);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
 }

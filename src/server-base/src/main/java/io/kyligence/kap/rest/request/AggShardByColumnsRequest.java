@@ -35,6 +35,7 @@ public class AggShardByColumnsRequest {
 
     private String project;
 
+    @JsonProperty("model_id")
     private String modelId;
 
     @JsonProperty("shard_by_columns")

@@ -74,6 +74,7 @@
 
 -keep class !io.kyligence.** {*;}
 -keep class io.kyligence.kap.rest.config.** {*;}
+-keep class io.kyligence.kap.rest.controller.** {*;}
 -keep class io.kyligence.kap.tool.** {*;}
 -keep class io.kyligence.kap.query.util.** {*;}
 -keep class io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl {*;}

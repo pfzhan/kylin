@@ -37,6 +37,6 @@ public class ExecutorMemoryResponse {
     @JsonProperty("name")
     private String executorName;
 
-    @JsonProperty("memInfos")
+    @JsonProperty("mem_infos")
     private List<String> memInfos;
 }

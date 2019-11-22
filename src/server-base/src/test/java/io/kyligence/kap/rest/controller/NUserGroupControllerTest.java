@@ -75,6 +75,8 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 public class NUserGroupControllerTest {
 
     private MockMvc mockMvc;
@@ -114,9 +116,9 @@ public class NUserGroupControllerTest {
     public void testGetUsersByGroup() throws Exception {
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
         Mockito.doNothing().when(aclTCRService).revokeAclTCR(Mockito.anyString(), Mockito.anyBoolean());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/groupMembers/{groupName:.+}", "g1@.h")
-                .contentType(MediaType.APPLICATION_JSON).param("pageOffset", "0").param("pageSize", "10")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/group_members/{group_name:.+}", "g1@.h")
+                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0").param("page_size", "10")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nUserGroupController).getUsersByGroup("g1@.h", 0, 10);
@@ -126,7 +128,7 @@ public class NUserGroupControllerTest {
     public void testGetGroups() throws Exception {
         Mockito.doReturn(null).when(userGroupService).listAllAuthorities(Mockito.anyString());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/groups").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .param("project", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nUserGroupController).listUserAuthorities("");
@@ -137,9 +139,9 @@ public class NUserGroupControllerTest {
         Mockito.doReturn(null).when(userGroupService).listAllAuthorities(Mockito.anyString());
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/usersWithGroup")
-                .contentType(MediaType.APPLICATION_JSON).param("pageOffset", "0").param("pageSize", "10")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/users_with_group")
+                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0").param("page_size", "10")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nUserGroupController).getUsersWithGroup(0, 10, "");
@@ -149,7 +151,7 @@ public class NUserGroupControllerTest {
     public void testAddGroup() throws Exception {
         Mockito.doNothing().when(userGroupService).addGroup("g1@.h");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName:.+}", "g1@.h")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).addUserGroup("g1@.h");
     }
@@ -165,7 +167,7 @@ public class NUserGroupControllerTest {
     public void testDelGroup() throws Exception {
         Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/user_group/{groupName:.+}", "g1@.h")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).delUserGroup("g1@.h");
     }
@@ -178,7 +180,7 @@ public class NUserGroupControllerTest {
         Mockito.doNothing().when(userGroupService).modifyGroupUsers("g1", request.getUsers());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/user_group/users").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nUserGroupController).addOrDelUsers(Mockito.any(UpdateGroupRequest.class));
     }

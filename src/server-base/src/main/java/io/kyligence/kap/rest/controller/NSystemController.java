@@ -26,8 +26,10 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
@@ -49,6 +51,8 @@ import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
 import lombok.val;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 @Controller
 @RequestMapping(value = "/api/system")
 public class NSystemController extends NBasicController {
@@ -60,9 +64,9 @@ public class NSystemController extends NBasicController {
     @Qualifier("systemService")
     private SystemService systemService;
 
-    @GetMapping(value = "/license", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/license", produces = { HTTP_VND_APACHE_KYLIN_JSON})
     @ResponseBody
-    public EnvelopeResponse listLicense() throws IOException {
+    public EnvelopeResponse<LicenseInfo> listLicense() {
         val info = licenseInfoService.extractLicenseInfo();
         val response = new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, info, "");
         try {
@@ -74,7 +78,6 @@ public class NSystemController extends NBasicController {
             setResponse(response, e.getCode(), e.getMessage());
         }
         return response;
-
     }
 
     private void setResponse(EnvelopeResponse response, String errorCode, String message) {
@@ -83,18 +86,18 @@ public class NSystemController extends NBasicController {
     }
 
     // used for service discovery
-    @PostMapping(value = "/backup", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/backup", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
+    public EnvelopeResponse<String> remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
         checkRequiredArg("backupPath", backupRequest.getBackupPath());
         systemService.backup(backupRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/license/file", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/license/file", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse uploadLicense(@RequestParam("file") MultipartFile uploadfile)
-            throws IOException, InterruptedException {
+    public EnvelopeResponse<LicenseInfo> uploadLicense(@RequestParam("file") MultipartFile uploadfile)
+            throws IOException {
 
         if (uploadfile.isEmpty()) {
             throw new IllegalArgumentException("please select a file");
@@ -103,13 +106,13 @@ public class NSystemController extends NBasicController {
         byte[] bytes = uploadfile.getBytes();
         licenseInfoService.updateLicense(new String(bytes));
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
     //either content or file is okay
-    @PostMapping(value = "/license/content", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/license/content", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse uploadLicense(@RequestBody String licenseContent) throws IOException {
+    public EnvelopeResponse<LicenseInfo> uploadLicense(@RequestBody String licenseContent) throws IOException {
 
         byte[] bytes = null;
 
@@ -122,12 +125,13 @@ public class NSystemController extends NBasicController {
 
         licenseInfoService.updateLicense(bytes);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @PostMapping(value = "/license/trial", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "trialLicense (update)", notes = "Update Body: product_type")
+    @PostMapping(value = "/license/trial", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse trialLicense(@RequestBody LicenseRequest licenseRequest) throws Exception {
+    public EnvelopeResponse<LicenseInfo> trialLicense(@RequestBody LicenseRequest licenseRequest) throws Exception {
         if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
                 || Strings.isNullOrEmpty(licenseRequest.getUsername())
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
@@ -146,7 +150,7 @@ public class NSystemController extends NBasicController {
             throw new BadRequestException("get license error");
         }
         licenseInfoService.updateLicense(trialLicense.getData());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
 }

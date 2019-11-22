@@ -380,7 +380,6 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         val description = "test description";
         val request = new ProjectGeneralInfoRequest();
-        request.setProject(project);
         request.setDescription(description);
         projectService.updateProjectGeneralInfo(project, request);
         var response = projectService.getProjectConfig(project);
@@ -392,14 +391,12 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
-        segmentConfigRequest.setProject(project);
         segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.DAY));
         projectService.updateSegmentConfig(project, segmentConfigRequest);
         response = projectService.getProjectConfig(project);
         Assert.assertEquals(false, response.isAutoMergeEnabled());
 
         val jobNotificationConfigRequest = new JobNotificationConfigRequest();
-        jobNotificationConfigRequest.setProject(project);
         jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(false);
         jobNotificationConfigRequest.setJobErrorNotificationEnabled(false);
         jobNotificationConfigRequest.setJobNotificationEmails(
@@ -417,7 +414,6 @@ public class ProjectServiceTest extends ServiceTestBase {
         thrown = ExpectedException.none();
 
         val pushDownConfigRequest = new PushDownConfigRequest();
-        pushDownConfigRequest.setProject(project);
         pushDownConfigRequest.setPushDownEnabled(false);
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
         response = projectService.getProjectConfig(project);
@@ -425,7 +421,6 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.smart.query.mockup.MockupPushDownRunner");
-        pushDownConfigRequest.setProject(project);
         pushDownConfigRequest.setPushDownEnabled(true);
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
         response = projectService.getProjectConfig(project);
@@ -433,7 +428,6 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         // this config should not expose to end users.
         val shardNumConfigRequest = new ShardNumConfigRequest();
-        shardNumConfigRequest.setProject(project);
         Map<String, String> map = new HashMap<>();
         map.put("DEFAULT.TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "100");
         map.put("DEFAULT.TEST_KYLIN_FACT.SELLER_ID", "50");
@@ -444,7 +438,6 @@ public class ProjectServiceTest extends ServiceTestBase {
                 JsonUtil.readValueAsMap(pi.getConfig().getExtendedOverrides().get("kylin.engine.shard-num-json")), map);
 
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
-        pushDownConfigRequest.setProject(project);
         pushDownConfigRequest.setPushDownEnabled(true);
         thrown.expectMessage(
                 "There is no default PushDownRunner, please check kylin.query.pushdown.runner-class-name in kylin.properties.");
@@ -548,12 +541,10 @@ public class ProjectServiceTest extends ServiceTestBase {
     private void updateProject() {
         val segmentConfigRequest = new SegmentConfigRequest();
         segmentConfigRequest.setAutoMergeEnabled(false);
-        segmentConfigRequest.setProject(PROJECT);
         segmentConfigRequest.setAutoMergeTimeRanges(Arrays.asList(AutoMergeTimeEnum.YEAR));
         projectService.updateSegmentConfig(PROJECT, segmentConfigRequest);
 
         val jobNotificationConfigRequest = new JobNotificationConfigRequest();
-        jobNotificationConfigRequest.setProject(PROJECT);
         jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(true);
         jobNotificationConfigRequest.setJobErrorNotificationEnabled(true);
         jobNotificationConfigRequest.setJobNotificationEmails(

@@ -23,11 +23,14 @@
  */
 package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class AsyncQueryResponse {
     public enum Status {
         RUNNING, SUCCESSFUL, FAILED, MISSING
     }
 
+    @JsonProperty("query_id")
     private String queryID;
     private Status status;
     private String info;

@@ -33,8 +33,8 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -112,16 +112,16 @@ public class SparkApplicationTest extends NSparkBasicTest {
 
         Map<String, String> payload = new HashMap<>(5);
         payload.put("project", "test_job_output");
-        payload.put("jobId", "cb91189b-2b12-4527-aa35-0130e7d54ec0");
-        payload.put("taskId", "cb91189b-2b12-4527-aa35-0130e7d54ec0_01");
-        payload.put("yarnAppId", "application_1561370224051_0160");
-        payload.put("yarnAppUrl", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
+        payload.put("job_id", "cb91189b-2b12-4527-aa35-0130e7d54ec0");
+        payload.put("task_id", "cb91189b-2b12-4527-aa35-0130e7d54ec0_01");
+        payload.put("yarn_app_id", "application_1561370224051_0160");
+        payload.put("yarn_app_url", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
 
         Map<String, String> extraInfo = new HashMap<>();
-        extraInfo.put("yarnAppId", "application_1561370224051_0160");
-        extraInfo.put("yarnAppUrl", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
+        extraInfo.put("yarn_app_id", "application_1561370224051_0160");
+        extraInfo.put("yarn_app_url", "http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/");
 
-        String payloadJson = new ObjectMapper().writeValueAsString(payload);
+        String payloadJson = JsonUtil.writeValueAsString(payload);
         Mockito.doReturn(Boolean.TRUE).when(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
 
         Assert.assertTrue(application.updateSparkJobExtraInfo("/kylin/api/jobs/spark", "test_job_output",

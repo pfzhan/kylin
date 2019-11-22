@@ -59,8 +59,10 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 @RestController
-@RequestMapping(value = "/api/cubes")
+@RequestMapping(value = "/api/cubes", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
 public class NCubesControllerV2 extends NBasicController {
 
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";
@@ -72,9 +74,9 @@ public class NCubesControllerV2 extends NBasicController {
     @Autowired
     private ModelSemanticHelper semanticService;
 
-    @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "", method = { RequestMethod.GET })
     @ResponseBody
-    public EnvelopeResponse getCubes(@RequestParam(value = "projectName", required = false) String project,
+    public EnvelopeResponse getCubes(@RequestParam(value = "projectName") String project,
             @RequestParam(value = "modelName", required = false) String modelAlias,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
@@ -82,11 +84,10 @@ public class NCubesControllerV2 extends NBasicController {
         List<NDataModel> models = new ArrayList<>(modelService.getCubes(modelAlias, project));
 
         HashMap<String, Object> modelResponse = getDataResponse("cubes", models, offset, limit);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET })
     @ResponseBody
     public EnvelopeResponse getCube(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project) {
@@ -95,11 +96,10 @@ public class NCubesControllerV2 extends NBasicController {
             throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, dataModelResponse, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataModelResponse, "");
     }
 
-    @RequestMapping(value = "/{cubeName}/rebuild", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/rebuild", method = { RequestMethod.PUT })
     @ResponseBody
     public EnvelopeResponse rebuild(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project, @RequestBody CubeRebuildRequest request)
@@ -133,11 +133,10 @@ public class NCubesControllerV2 extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/{cubeName}/segments", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/segments", method = { RequestMethod.PUT })
     @ResponseBody
     public EnvelopeResponse manageSegments(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project,
@@ -175,11 +174,10 @@ public class NCubesControllerV2 extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/{cubeName}/holes", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{cubeName}/holes", method = { RequestMethod.GET })
     @ResponseBody
     public EnvelopeResponse getHoles(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project) {
@@ -208,7 +206,7 @@ public class NCubesControllerV2 extends NBasicController {
             }
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, holes, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, holes, "");
     }
 
 }

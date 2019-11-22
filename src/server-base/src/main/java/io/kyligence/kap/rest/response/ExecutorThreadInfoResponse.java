@@ -36,6 +36,6 @@ public class ExecutorThreadInfoResponse {
     @JsonProperty("name")
     private String executorName;
 
-    @JsonProperty("threadInfos")
+    @JsonProperty("thread_infos")
     private List<String> threadInfos;
 }

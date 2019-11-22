@@ -30,12 +30,16 @@ import org.apache.spark.scheduler.TaskSchedulerImpl;
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import scala.Tuple2;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/spark")
@@ -43,67 +47,61 @@ public class NSparkController extends NBasicController {
 
     private String msg = " not exists in Spark";
 
-    @RequestMapping(value = "/blacklist", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/blacklist", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<Tuple2<String[], String[]>> getBlacklist() {
         Tuple2<String[], String[]> blacklist = getSparkTaskScheduler().getBlacklist();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, blacklist, "get blacklist");
     }
 
-    @RequestMapping(value = "/blacklist/executor/{executorId}", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "/blacklist/executor/{executor_id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> addExecutorToBlackListManually(@PathVariable String executorId) {
+    public EnvelopeResponse<String> addExecutorToBlackListManually(@PathVariable("executor_id") String executorId) {
         if (getBackend().getExecutorIds().contains(executorId)) {
             String host = getBackend().getHostByExecutor(executorId);
             if (!host.isEmpty()) {
                 getSparkTaskScheduler().addExecutorToBlackListManually(executorId, host);
-                return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "add executor to blacklist");
+                return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add executor to blacklist");
             } else {
-                return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
+                return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "",
                         "Can not get host by executor " + executorId);
             }
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    "Executor " + executorId + msg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Executor " + executorId + msg);
         }
     }
 
-    @RequestMapping(value = "/blacklist/node/{node:.+}", method = { RequestMethod.PUT }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @PutMapping(value = "/blacklist/node/{node:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> addNodeToBlackListManually(@PathVariable String node) {
+    public EnvelopeResponse<String> addNodeToBlackListManually(@PathVariable("node") String node) {
         if (getBackend().getHosts().contains(node)) {
             getSparkTaskScheduler().addNodeToBlackListManually(node);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "add node to blacklist");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add node to blacklist");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Node " + node + msg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Node " + node + msg);
         }
     }
 
-    @RequestMapping(value = "/blacklist/executor/{executorId}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/blacklist/executor/{executor_id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> removeExecutorFromBlackListManually(@PathVariable String executorId) {
+    public EnvelopeResponse<String> removeExecutorFromBlackListManually(
+            @PathVariable("executor_id") String executorId) {
         if (getBackend().getExecutorIds().contains(executorId)) {
             getSparkTaskScheduler().removeExecutorFromBlackListManually(executorId);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "del executor from blacklist");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del executor from blacklist");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
-                    "Executor " + executorId + msg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Executor " + executorId + msg);
         }
     }
 
-    @RequestMapping(value = "/blacklist/node/{node:.+}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/blacklist/node/{node:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> removeNodeFromBlackListManually(@PathVariable String node) {
+    public EnvelopeResponse<String> removeNodeFromBlackListManually(@PathVariable("node") String node) {
         if (getBackend().getHosts().contains(node)) {
             getSparkTaskScheduler().removeNodeFromBlackListManually(node);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "del node from blacklist");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del node from blacklist");
         } else {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Node " + node + msg);
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Node " + node + msg);
         }
     }
 

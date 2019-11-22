@@ -24,20 +24,26 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
 public class AutoMergeRequest {
+    @JsonProperty("auto_merge_enabled")
     private boolean autoMergeEnabled = true;
 
+    @JsonProperty("auto_merge_time_ranges")
     private String[] autoMergeTimeRanges;
 
+    @JsonProperty("volatile_range_number")
     private long volatileRangeNumber;
 
+    @JsonProperty("volatile_range_enabled")
     private boolean volatileRangeEnabled = true;
 
+    @JsonProperty("volatile_range_type")
     private String volatileRangeType;
 
     private String project;

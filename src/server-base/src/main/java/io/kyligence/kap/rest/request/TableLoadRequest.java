@@ -24,16 +24,20 @@
 
 package io.kyligence.kap.rest.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
 public class TableLoadRequest {
-    private int datasourceType;
+    @JsonProperty("data_source_type")
+    private int dataSourceType;
     private String project;
     private String[] tables;
     private String[] databases;
+    @JsonProperty("need_sampling")
     private boolean needSampling;
+    @JsonProperty("sampling_rows")
     private int samplingRows;
 }

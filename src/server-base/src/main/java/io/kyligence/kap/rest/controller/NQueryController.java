@@ -32,31 +32,31 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.swagger.annotations.ApiOperation;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,10 +83,13 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SQLFormatRequest;
+import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import lombok.val;
+
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 /**
  * Handle query requests.
@@ -111,72 +114,65 @@ public class NQueryController extends NBasicController {
     @Autowired
     private ClusterManager clusterManager;
 
-    @PostMapping(value = "", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "query (update)", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse query(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
+    public EnvelopeResponse<SQLResponse> query(@RequestBody PrepareSqlRequest sqlRequest) {
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, sqlResponse, "");
-    }
-
-    @Deprecated
-    @PostMapping(value = "", produces = { "application/json" })
-    @ResponseBody
-    public SQLResponse query4JDBC(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
-        return queryService.doQueryWithCache(sqlRequest, false);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
     // TODO should be just "prepare" a statement, get back expected ResultSetMetaData
 
-    @PostMapping(value = "/prestate", produces = { "application/vnd.apache.kylin-v2+json" })
+    @PostMapping(value = "/prestate", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
+    public EnvelopeResponse<SQLResponse> prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) {
         Map<String, String> newToggles = Maps.newHashMap();
         if (sqlRequest.getBackdoorToggles() != null)
             newToggles.putAll(sqlRequest.getBackdoorToggles());
         newToggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
         sqlRequest.setBackdoorToggles(newToggles);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
     }
 
-    @PostMapping(value = "/saved_queries", produces = { "application/vnd.apache.kylin-v2+json" })
-    public void saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
+    @PostMapping(value = "/saved_queries", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<String> saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
         String queryName = sqlRequest.getName();
         checkQueryName(queryName);
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         Query newQuery = new Query(queryName, sqlRequest.getProject(), sqlRequest.getSql(),
                 sqlRequest.getDescription());
         queryService.saveQuery(creator, sqlRequest.getProject(), newQuery);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @DeleteMapping(value = "/saved_queries/{project}/{id}", produces = { "application/vnd.apache.kylin-v2+json" })
+    @DeleteMapping(value = "/saved_queries/{id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public void removeSavedQuery(@PathVariable("project") String project, @PathVariable("id") String id)
-            throws IOException {
+    public EnvelopeResponse<String> removeSavedQuery(@PathVariable("id") String id,
+            @RequestParam("project") String project) throws IOException {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         queryService.removeSavedQuery(creator, project, id);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/saved_queries", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/saved_queries", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getSavedQueries(@RequestParam(value = "project", required = false) String project,
+    public EnvelopeResponse<DataResult<List<Query>>> getSavedQueries(@RequestParam(value = "project") String project,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
-
-        HashMap<String, Object> data = new HashMap<String, Object>();
+        checkProjectName(project);
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         List<Query> savedQueries = queryService.getSavedQueries(creator, project).getQueries();
 
-        data.put("saved_queries", PagingUtil.cutPage(savedQueries, offset, limit));
-        data.put("size", savedQueries.size());
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(savedQueries, offset, limit), "");
     }
 
-    @GetMapping(value = "/history_queries", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getQueryHistories (update)", notes = "Update Param: start_time_from, start_time_to, latency_from, latency_to")
+    @GetMapping(value = "/history_queries", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
+    public EnvelopeResponse<Map<String, Object>> getQueryHistories(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time_from", required = false) String startTimeFrom,
             @RequestParam(value = "start_time_to", required = false) String startTimeTo,
             @RequestParam(value = "latency_from", required = false) String latencyFrom,
@@ -187,17 +183,18 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "server", required = false) String server,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
                 latencyTo, sql, server, queryStatus, realizations);
         checkGetQueryHistoriesParam(request);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");
     }
 
-    @GetMapping(value = "/servers", produces = { "application/vnd.apache.kylin-v2+json" })
+    @GetMapping(value = "/servers", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getQueryServers() {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers(), "");
+    public EnvelopeResponse<List<String>> getQueryServers() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers(), "");
     }
 
     private void checkGetQueryHistoriesParam(QueryHistoryRequest request) {
@@ -216,11 +213,11 @@ public class NQueryController extends NBasicController {
         return false;
     }
 
-    @PostMapping(value = "/format/{format}", produces = {
-            "application/vnd.apache.kylin-v2+json" }, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @PostMapping(value = "/format/{format:.+}", produces = {
+            HTTP_VND_APACHE_KYLIN_JSON }, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @ResponseBody
     public void downloadQueryResult(@PathVariable("format") String format, SQLRequest sqlRequest,
-            HttpServletResponse response) throws IOException {
+            HttpServletResponse response) {
 
         KylinConfig config = queryService.getConfig();
         val msg = MsgPicker.getMsg();
@@ -263,56 +260,60 @@ public class NQueryController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/tables_and_columns", produces = { "application/vnd.apache.kylin-v2+json" })
+    @ApiOperation(value = "getMetadata (update)", notes = "Update Param: project")
+    @GetMapping(value = "/tables_and_columns", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse getMetadata(MetaRequest metaRequest) throws SQLException, IOException {
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.getMetadataV2(metaRequest.getProject()),
-                "");
+    public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project)
+            throws SQLException {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.getMetadataV2(project), "");
     }
 
-    @GetMapping(value = "/overview", params = { "start_time", "end_time" }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse<List<QueryEngineStatisticsResponse>> queryStatisticsByEngine(
+    @GetMapping(value = "/overview", params = { "start_time", "end_time" }, produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<QueryEngineStatisticsResponse> queryStatisticsByEngine(
             @RequestParam("project") String project, @RequestParam("start_time") long startTime,
             @RequestParam("end_time") long endTime) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryService.getQueryStatisticsByEngine(project, startTime, endTime), "");
     }
 
-    @GetMapping(value = "/statistics", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getQueryStatistics(@RequestParam("project") String project,
+    @GetMapping(value = "/statistics", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<QueryStatisticsResponse> getQueryStatistics(@RequestParam("project") String project,
             @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryStatistics(project, startTime, endTime), "");
     }
 
-    @GetMapping(value = "/statistics/count", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getQueryCount(@RequestParam("project") String project,
+    @GetMapping(value = "/statistics/count", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<Map<String, Object>> getQueryCount(@RequestParam("project") String project,
             @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime,
             @RequestParam("dimension") String dimension) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryCount(project, startTime, endTime, dimension), "");
     }
 
-    @GetMapping(value = "/statistics/duration", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getAvgDuration(@RequestParam("project") String project,
+    @GetMapping(value = "/statistics/duration", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<Map<String, Object>> getAvgDuration(@RequestParam("project") String project,
             @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime,
             @RequestParam("dimension") String dimension) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getAvgDuration(project, startTime, endTime, dimension), "");
     }
 
-    @GetMapping(value = "/history_queries/table_names", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getQueryHistoryTableNames(
+    @GetMapping(value = "/history_queries/table_names", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<Map<String, String>> getQueryHistoryTableNames(
             @RequestParam(value = "projects", required = false) List<String> projects) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects),
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistoryTableMap(projects),
                 "");
     }
 
-    @PutMapping(value = "/format", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse formatQuery(@RequestBody SQLFormatRequest request) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.format(request.getSqls()), "");
+    @PutMapping(value = "/format", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<List<String>> formatQuery(@RequestBody SQLFormatRequest request) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.format(request.getSqls()), "");
     }
 
     private void checkQueryName(String queryName) {

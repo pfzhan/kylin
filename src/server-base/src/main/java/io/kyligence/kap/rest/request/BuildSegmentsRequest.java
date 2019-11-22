@@ -24,21 +24,15 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.Data;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
+@Data
 public class BuildSegmentsRequest {
 
     private String project;
 
-    private String modelId;
-
     private String start;
 
     private String end;
-
 
 }

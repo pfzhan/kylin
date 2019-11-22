@@ -26,10 +26,13 @@ package io.kyligence.kap.rest.request;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
 public class BatchAccessRequest {
+
+    @JsonProperty("access_entry_id")
     private int accessEntryId;
     private String permission;
     private List<String> sids;
