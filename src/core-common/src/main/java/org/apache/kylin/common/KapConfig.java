@@ -663,6 +663,10 @@ public class KapConfig {
                 "io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree");
     }
 
+    public String getIntersectCountSeparator() {
+        return config.getOptional("kap.cube.intersect-count-array-separator", "|");
+    }
+
     public float getSampleDatasetSizeRatio() {
         return Float.parseFloat(config.getOptional("kap.engine.spark-sample-dataset-ratio", "0.1f"));
     }

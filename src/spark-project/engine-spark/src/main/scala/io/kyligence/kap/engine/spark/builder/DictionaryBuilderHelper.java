@@ -163,7 +163,7 @@ public class DictionaryBuilderHelper {
         String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
         if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
             List<TblColRef> cols = measure.getFunction().getColRefs();
-            Preconditions.checkArgument(cols.size() == 1);
+            Preconditions.checkArgument(cols.size() >= 1);
             return cols.get(0);
         }
         return null;
