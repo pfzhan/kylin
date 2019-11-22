@@ -41,33 +41,37 @@
       :is-edited="isFormEdited(form, 'storage-quota')"
       @submit="(scb, ecb) => handleSubmit('storage-quota', scb, ecb)"
       @cancel="(scb, ecb) => handleResetForm('storage-quota', scb, ecb)">
-      <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
-        <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span>
-        <div class="setting-desc">{{$t('storageQuotaDesc')}}</div>
-      </div>
-      <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
-        <div class="setting-desc large">
-          <span>{{$t('storageGarbageDesc1')}}</span>
-          <el-select
-            class="setting-input"
-            size="small"
-            style="width: 100px;"
-            v-model="form.frequency_time_window"
-            :placeholder="$t('kylinLang.common.pleaseChoose')">
-            <el-option
-              v-for="lowUsageStorageType in lowUsageStorageTypes"
-              :key="lowUsageStorageType"
-              :label="$t(lowUsageStorageType+'1')"
-              :value="lowUsageStorageType">
-            </el-option>
-          </el-select>
-          <span>{{$t('storageGarbageDesc2')}}</span>
-          <el-input-number size="small" style="width: 100px;" :max="9999" v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold" :controls="false"></el-input-number>
-          <span>{{$store.state.project.isSemiAutomatic ? $t('storageGarbageDesc3ForSemiAutomatic') : $t('storageGarbageDesc3')}}</span>
+      <el-form ref="setting-storage-quota" :model="form" :rules="storageQuota">
+        <div class="setting-item">
+          <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
+          <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span>
+          <div class="setting-desc">{{$t('storageQuotaDesc')}}</div>
         </div>
-      </div>
+        <div class="setting-item">
+          <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
+          <div class="setting-desc large">
+            <span>{{$t('storageGarbageDesc1')}}</span>
+            <el-select
+              class="setting-input"
+              size="small"
+              style="width: 100px;"
+              v-model="form.frequency_time_window"
+              :placeholder="$t('kylinLang.common.pleaseChoose')">
+              <el-option
+                v-for="lowUsageStorageType in lowUsageStorageTypes"
+                :key="lowUsageStorageType"
+                :label="$t(lowUsageStorageType+'1')"
+                :value="lowUsageStorageType">
+              </el-option>
+            </el-select>
+            <span>{{$t('storageGarbageDesc2')}}</span>
+            <el-form-item class="setting-input" :show-message="false" prop="low_frequency_threshold">
+              <el-input-number size="small" style="width: 100px;" :max="9999" v-number="form.low_frequency_threshold" v-model="form.low_frequency_threshold" :controls="false"></el-input-number>
+            </el-form-item>
+            <span>{{$store.state.project.isSemiAutomatic ? $t('storageGarbageDesc3ForSemiAutomatic') : $t('storageGarbageDesc3')}}</span>
+          </div>
+        </div>
+      </el-form>
     </EditableBlock>
     <!-- 下压查询设置 -->
     <EditableBlock
@@ -235,6 +239,11 @@ export default class SettingBasic extends Vue {
       'retention_range.retention_range_number': [{ validator: validate['positiveNumber'], trigger: 'change' }]
     }
   }
+  get storageQuota () {
+    return {
+      'low_frequency_threshold': [{ validator: validate['storageQuotaNum'], trigger: 'change' }]
+    }
+  }
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   onFormChange () {
@@ -301,8 +310,12 @@ export default class SettingBasic extends Vue {
           }
         }
         case 'storage-quota': {
-          const submitData = _getStorageQuota(this.form, this.project)
-          await this.updateStorageQuota(submitData); break
+          if (await this.$refs['setting-storage-quota'].validate()) {
+            const submitData = _getStorageQuota(this.form, this.project)
+            await this.updateStorageQuota(submitData); break
+          } else {
+            return errorCallback()
+          }
         }
       }
       successCallback()
@@ -344,7 +357,9 @@ export default class SettingBasic extends Vue {
         case 'storage-quota': {
           const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'garbage_cleanup_config'})
           const data = await handleSuccessAsync(res)
-          this.form = { ...this.form, ..._getStorageQuota(data) }; break
+          this.form = { ...this.form, ..._getStorageQuota(data) }
+          this.$refs['setting-storage-quota'].clearValidate()
+          break
         }
       }
       successCallback()

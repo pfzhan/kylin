@@ -15,7 +15,7 @@ export default {
     return Vue.resource(apiUrl + 'projects').update({ formerProjectName: project.name, projectDescData: project.desc })
   },
   saveProject: (projectDesc) => {
-    return Vue.resource(apiUrl + 'projects').save({projectDescData: projectDesc})
+    return Vue.resource(apiUrl + 'projects').save(projectDesc)
   },
   addProjectAccess: (accessData, projectId) => {
     return Vue.resource(apiUrl + 'access/batch/ProjectInstance/' + projectId).save(accessData)

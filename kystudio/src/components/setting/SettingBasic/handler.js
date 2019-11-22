@@ -55,6 +55,13 @@ export const validate = {
     } else {
       callback()
     }
+  },
+  'storageQuotaNum' (rule, value, callback) {
+    if (value === '' || value === undefined || value < 0 || isNaN(value)) {
+      callback(new Error(null))
+    } else {
+      callback()
+    }
   }
 }
 export function _getProjectGeneralInfo (data) {

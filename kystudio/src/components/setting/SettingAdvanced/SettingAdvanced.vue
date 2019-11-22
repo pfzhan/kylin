@@ -286,7 +286,7 @@ export default class SettingAdvanced extends Vue {
           }).then(async () => {
             if (await this.$refs['setDefaultDB'].validate()) {
               const submitData = _getDefaultDBSettings(this.form)
-              await this.updateDefaultDBSettings(submitData)
+              await this.updateDefaultDBSettings({project: submitData.project, default_database: submitData.defaultDatabase})
               successCallback()
               this.$emit('reload-setting')
               this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
