@@ -137,6 +137,11 @@ public class ProjectService extends BasicService {
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean tipsEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         if (threshold != null) {
+            if (threshold <= 0) {
+                throw new BadRequestException("No valid value for 'threshold'. Please set an integer 'x' "
+                        + "greater than 0 to 'threshold'. The system will notify you whenever there "
+                        + "are more then 'x' queries waiting to accelerate.");
+            }
             overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", String.valueOf(threshold));
         }
         overrideKylinProps.put("kylin.favorite.query-accelerate-tips-enable", String.valueOf(tipsEnabled));
