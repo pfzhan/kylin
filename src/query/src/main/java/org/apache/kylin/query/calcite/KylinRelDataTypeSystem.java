@@ -52,6 +52,27 @@ import org.apache.calcite.sql.type.SqlTypeName;
 @SuppressWarnings("unused") //used by reflection
 public class KylinRelDataTypeSystem extends RelDataTypeSystemImpl {
     @Override
+    public RelDataType deriveAvgAggType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
+        if (argumentType instanceof BasicSqlType) {
+            switch (argumentType.getSqlTypeName()) {
+                case DECIMAL:
+                    return typeFactory.createTypeWithNullability(
+                            typeFactory.createSqlType(SqlTypeName.DECIMAL,
+                                    argumentType.getPrecision() + 4,
+                                    argumentType.getScale() + 4),
+                            argumentType.isNullable()
+                    );
+                default:
+                    return typeFactory.createTypeWithNullability(
+                            typeFactory.createSqlType(SqlTypeName.DOUBLE),
+                            argumentType.isNullable()
+                    );
+            }
+        }
+        return super.deriveAvgAggType(typeFactory, argumentType);
+    }
+
+    @Override
     public RelDataType deriveSumType(RelDataTypeFactory typeFactory, RelDataType argumentType) {
         if (argumentType instanceof BasicSqlType) {
             switch (argumentType.getSqlTypeName()) {
