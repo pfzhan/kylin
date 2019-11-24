@@ -1759,6 +1759,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kap.engine.persist-flattable-threshold", "1"));
     }
 
+    public boolean isPersistFlatViewEnabled() {
+        return Boolean.parseBoolean(getOptional("kap.engine.persist-flatview", "false"));
+    }
+
     public boolean isShardingJoinOptEnabled() {
         return Boolean.parseBoolean(getOptional("kap.storage.columnar.expose-sharding-trait", "true"));
     }

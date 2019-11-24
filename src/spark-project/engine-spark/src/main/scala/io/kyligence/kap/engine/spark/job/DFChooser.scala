@@ -114,12 +114,13 @@ class DFChooser(toBuildTree: NSpanningTree,
 
   private def persistFactViewIfNecessary(): String = {
     var path = ""
-    if (needEncoding) {
+    if (needEncoding && config.isPersistFlatViewEnabled) {
       logInfo(s"Check project:${seg.getProject} seg:${seg.getName} persist view fact table.")
       val fact = flatTableDesc.getDataModel.getRootFactTable
       val globalDicts = DictionaryBuilderHelper.extractTreeRelatedGlobalDicts(seg, toBuildTree)
       val existsFactDictCol = globalDicts.asScala.exists(_.getTableRef.getTableIdentity.equals(fact.getTableIdentity))
 
+      logInfo(s"Fact table ${fact.getAlias} isView ${fact.getTableDesc.isView} and fact table exists dict col ${existsFactDictCol}")
       if (fact.getTableDesc.isView && existsFactDictCol) {
         val viewDS = ss.table(fact.getTableDesc).alias(fact.getAlias)
         path = s"${config.getJobTmpViewFactTableDir(seg.getProject, jobId)}"

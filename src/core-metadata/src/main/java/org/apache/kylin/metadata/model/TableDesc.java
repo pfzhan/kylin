@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
@@ -72,7 +73,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(TableDesc.class);
 
-    private static final String TABLE_TYPE_VIRTUAL_VIEW = "VIRTUAL_VIEW";
+    private static final String TABLE_TYPE_VIEW = "VIEW";
     private static final String materializedTableNamePrefix = "kylin_intermediate_";
 
     // returns <table, project>
@@ -235,7 +236,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     }
 
     public boolean isView() {
-        return TABLE_TYPE_VIRTUAL_VIEW.equals(tableType);
+        return StringUtils.containsIgnoreCase(tableType, TABLE_TYPE_VIEW);
     }
 
     public boolean isBorrowedFromGlobal() {
