@@ -47,8 +47,6 @@ public class NSparkCubingUtil {
 
     public static final String SEPARATOR = "_0_DOT_0_";
 
-    public static final String SEPARATOR_TMP = "_0_DOT_TMP_0_";
-
     private NSparkCubingUtil() {
     }
 
@@ -157,25 +155,16 @@ public class NSparkCubingUtil {
                 + segDetails.getUuid() + "/" + layoutId;
     }
 
-    private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\S+)");
-
-    private static final Pattern LETTER_PATTERN = Pattern.compile(".*[a-zA-Z]+.*");
+    private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\D+)");
 
     public static String convertFromDot(String withDot) {
         Matcher m = DOT_PATTERN.matcher(withDot);
         String withoutDot = withDot;
         while (m.find()) {
-            String matched = m.group();
-            if (LETTER_PATTERN.matcher(matched).find()) {
-                withoutDot = m.replaceFirst("$1" + SEPARATOR + "$2");
-                m = DOT_PATTERN.matcher(withoutDot);
-            } else {
-                withoutDot = m.replaceFirst("$1" + SEPARATOR_TMP + "$2");
-                m = DOT_PATTERN.matcher(withoutDot);
-            }
+            withoutDot = m.replaceAll("$1" + SEPARATOR + "$2");
+            m = DOT_PATTERN.matcher(withoutDot);
         }
-        withoutDot = withoutDot.replace(SEPARATOR_TMP, ".");
-        return withoutDot.replace("`", "");
+        return withoutDot;
     }
 
     public static String convertToDot(String withoutDot) {
