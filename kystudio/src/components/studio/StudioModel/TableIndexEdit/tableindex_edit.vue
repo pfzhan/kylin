@@ -243,6 +243,12 @@
     initTableIndex (val) {
       if (val) {
         if (this.tableIndexDesc) {
+          // col_order 数据结构改成object list了，这里重置成原来的column list
+          if (this.tableIndexDesc.col_order) {
+            this.tableIndexDesc.col_order = this.tableIndexDesc.col_order.map((col) => {
+              return col.key
+            })
+          }
           Object.assign(this.tableIndexMeta, this.tableIndexDesc)
         }
         this.getAllColumns()

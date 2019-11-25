@@ -211,5 +211,14 @@ export default {
   },
   getAggIndexAdvanced: (para) => {
     return Vue.resource(apiUrl + 'models/agg_indices/shard_columns').get(para)
+  },
+  loadAllIndex: (para) => {
+    return Vue.resource(apiUrl + 'index_plans/index{?sources}').get(para)
+  },
+  deleteIndex: (para) => {
+    return Vue.resource(apiUrl + `index_plans/index/${para.project}/${para.model}/${para.id}`).delete()
+  },
+  fetchIndexGraph: (para) => {
+    return Vue.resource(apiUrl + 'index_plans/index_graph').get(para)
   }
 }

@@ -186,6 +186,7 @@ exports.default = {
     computedColumn: 'Computed Column',
     modelNameGrid: 'Model Name',
     modelList: 'Model List',
+    index: 'index',
     indexGroup: 'Index Group',
     tableIndex: 'table index',
     aggregateGroupIndex: 'aggregate index',

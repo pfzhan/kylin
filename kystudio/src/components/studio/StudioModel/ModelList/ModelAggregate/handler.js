@@ -14,6 +14,47 @@ export const backgroundMaps = {
   }
 }
 
+export function formatGraphData (data) {
+  return [
+    {
+      name: 'AUTO_AGG',
+      value: data['auto_agg_indexes'].total_size,
+      children: data['auto_agg_indexes'].indexes.filter((k) => {
+        return k.data_size > 0
+      }).map((i) => {
+        return { name: i.id, value: i.data_size, usage: i.usage }
+      })
+    },
+    {
+      name: 'AUTO_TABLE',
+      value: data['auto_table_indexes'].total_size,
+      children: data['auto_table_indexes'].indexes.filter((k) => {
+        return k.data_size > 0
+      }).map((i) => {
+        return { name: i.id, value: i.data_size, usage: i.usage }
+      })
+    },
+    {
+      name: 'MANUAL_AGG',
+      value: data['manual_agg_indexes'].total_size,
+      children: data['manual_agg_indexes'].indexes.filter((k) => {
+        return k.data_size > 0
+      }).map((i) => {
+        return { name: i.id, value: i.data_size, usage: i.usage }
+      })
+    },
+    {
+      name: 'MANUAL_TABLE',
+      value: data['manual_table_indexes'].total_size,
+      children: data['manual_table_indexes'].indexes.filter((k) => {
+        return k.data_size > 0
+      }).map((i) => {
+        return { name: i.id, value: i.data_size, usage: i.usage }
+      })
+    }
+  ]
+}
+
 export function formatFlowerJson (data) {
   let flowers = []
   let rootLevel = 0

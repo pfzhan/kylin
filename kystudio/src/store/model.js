@@ -277,6 +277,15 @@ export default {
     },
     [types.GET_AGG_INDEX_ADVANCED] ({ commit }, paras) {
       return api.model.getAggIndexAdvanced(paras)
+    },
+    [types.LOAD_ALL_INDEX] ({ commit }, paras) {
+      return api.model.loadAllIndex(paras)
+    },
+    [types.DELETE_INDEX] ({ commit }, paras) {
+      return api.model.deleteIndex(paras)
+    },
+    [types.FETCH_INDEX_GRAPH] ({ commit }, paras) {
+      return api.model.fetchIndexGraph(paras)
     }
   },
   getters: {

@@ -1,22 +1,21 @@
 <template>
   <div class="model-aggregate ksd-mb-15" v-if="model">
     <div class="aggregate-actions" v-if="isShowAggregateAction">
-      <!-- <el-button type="primary" icon="el-icon-ksd-table_refresh">
-        {{$t('kylinLang.common.refresh')}}
-      </el-button>
-      <el-button type="primary" icon="el-icon-ksd-table_delete">
-        {{$t('kylinLang.common.delete')}}
-      </el-button> -->
-      <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-table_edit" @click="handleAggregateGroup" v-if="isShowEditAgg">
-        {{$t('aggregateGroup')}}
+      <el-button-group>
+        <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-add_2" @click="handleAggregateGroup" v-if="isShowEditAgg">
+          {{$t('aggregateGroup')}}
+        </el-button>
+        <el-button v-if="!isAutoProject" size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
+      </el-button-group><el-button
+        type="primary" size="small" class="ksd-ml-10" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex()">{{$t('tableIndex')}}
       </el-button><el-button
-        type="primary" size="small" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
+        type="primary" size="small" class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
         {{$t('buildIndex')}}
-      </el-button><el-button v-if="!isAutoProject" size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
+      </el-button>
     </div>
     <div class="aggregate-view">
       <el-row :gutter="15">
-        <el-col :span="15">
+        <el-col :span="12">
           <el-card class="agg-detail-card agg_index">
             <div slot="header" class="clearfix">
               <div class="left font-medium">{{$t('aggregateIndexTree')}}</div>
@@ -27,54 +26,69 @@
             </div>
             <div class="agg-counter">
               <div>
-                <img src="./empty_note.jpg" />
+                <!-- <img src="./empty_note.jpg" /> -->
                 <span>{{$t('emptyAggregate')}}</span>
                 <span>{{emptyCuboidCount}}</span>
               </div>
-              <div>
+              <!-- <div>
                 <img src="./broken_note.jpg" />
                 <span>{{$t('brokenAggregate')}}</span>
                 <span>{{brokenCuboidCount}}</span>
-              </div>
+              </div> -->
             </div>
-            <kap-empty-data v-if="cuboidCount === 0" size="small"></kap-empty-data>
-            <PartitionChart
+            <kap-empty-data v-if="cuboidCount === 0 || noDataNum === 0" size="small"></kap-empty-data>
+            <TreemapChart
+              v-else
               :data="cuboids"
-              :search-id="filterArgs.content"
-              :background-maps="backgroundMaps"
-              @on-click-node="handleClickNode"/>
+              :search-id="filterArgs.key"
+              @searchId="handleClickNode"/>
           </el-card>
         </el-col>
-        <el-col :span="9">
+        <el-col :span="12">
           <el-card class="agg-detail-card agg-detail">
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.content" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" @input="searchAggs"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" @input="searchAggs"></el-input>
               </div>
             </div>
             <div class="detail-content">
-              <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange">
+              <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
+                {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
+              </div>
+              <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
                 {{$t('dataRange')}}: {{dataRange}}
               </div>
-              <el-table :data="indexDatas" nested border size="medium" @sort-change="onSortChange" :default-sort = "{prop: 'last_modify_time', order: 'descending'}">
-                <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="70"></el-table-column>
-                <el-table-column prop="storage_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
+              <el-table
+                nested
+                border
+                :data="indexDatas"
+                class="index-table"
+                size="medium"
+                @sort-change="onSortChange"
+                :row-class-name="tableRowClassName">
+                <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
+                <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
                   <template slot-scope="scope">
-                    {{scope.row.storage_size | dataSize}}
+                    {{scope.row.data_size | dataSize}}
                   </template>
                 </el-table-column>
-                <el-table-column prop="index_type" show-overflow-tooltip :label="$t('source')">
+                <el-table-column prop="usage" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
+                <el-table-column prop="source" show-overflow-tooltip :renderHeader="renderColumn">
                   <template slot-scope="scope">
-                    <span v-if="scope.row.index_type === 'MANUAL'">{{$t('aggregateGroupType')}}</span>
-                    <span v-if="scope.row.index_type === 'AUTO'">{{$t('recommendation')}}</span>
+                    <span>{{$t(scope.row.source)}}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="query_hit_count" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
-                <el-table-column :label="$t('kylinLang.common.action')" width="70">
+                <el-table-column :label="$t('kylinLang.common.action')" width="83">
                   <template slot-scope="scope">
                     <common-tip :content="$t('viewDetail')">
                       <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
+                    </common-tip>
+                    <common-tip :content="$t('editIndex')">
+                      <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="editTableIndex(scope.row)"></i>
+                    </common-tip>
+                    <common-tip :content="$t('delIndex')">
+                      <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
                     </common-tip>
                   </template>
                 </el-table-column>
@@ -92,29 +106,66 @@
       :limited-area="true"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
-      :visible.sync="aggDetailShow">
-      <div class="ksd-mb-10 ksd-fs-12">{{$t('modifiedTime')}}: {{cuboidDetail.modifiedTime}}</div>
-      <el-table class="cuboid-content" :data="cuboidContent" border>
+      @close="resetDetail"
+      :visible.sync="indexDetailShow">
+      <div class="ksd-mb-10 ksd-fs-12">{{$t('modifiedTime')}}: {{cuboidDetail.modifiedTime || showTableIndexDetail.modifiedTime}}</div>
+      <el-table class="cuboid-content" :data="cuboidDetail.cuboidContent" border v-if="detailType === 'aggDetail'">
         <el-table-column type="index" :label="$t('order')" width="64">
         </el-table-column>
-        <el-table-column prop="content" :label="$t('content')">
+        <el-table-column prop="content" show-overflow-tooltip :label="$t('content')">
           <template slot-scope="scope">
-            <div class="align-left">{{scope.row.content}}</div>
+            <span>{{scope.row.content}}</span>
           </template>
         </el-table-column>
         <el-table-column prop="type" :label="$t('kylinLang.query.type')" width="90">
           <template slot-scope="scope">
-            <div class="align-left">{{$t('kylinLang.cube.' + scope.row.type)}}</div>
+            <span>{{$t('kylinLang.cube.' + scope.row.type)}}</span>
           </template>
         </el-table-column>
       </el-table>
+      <div v-else>
+          <el-table
+          size="medium"
+          :data="showTableIndexDetail.renderData"
+          border class="table-index-detail">
+          <el-table-column
+            :label="$t('ID')"
+            prop="id"
+            width="64">
+          </el-table-column>
+          <el-table-column
+            show-overflow-tooltip
+            :label="$t('column')"
+            prop="column">
+          </el-table-column>
+          <el-table-column
+          :label="$t('sort')"
+          prop="sort"
+          width="60"
+          align="center">
+          <template slot-scope="scope">
+            <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
+          </template>
+            </el-table-column>
+          <el-table-column
+          label="Shard"
+          align="center"
+          width="70">
+            <template slot-scope="scope">
+                <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.shared"></i>
+            </template>
+            </el-table-column>
+          </el-table>
+          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :perpage_size="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+        </div>
       <div slot="footer" class="dialog-footer">
-        <el-button type="default" size="medium" @click="aggDetailShow=false">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button type="default" size="medium" @click="indexDetailShow=false">{{$t('kylinLang.common.close')}}</el-button>
       </div>
     </el-dialog>
 
-    <AggregateModal />
-    <AggAdvancedModal v-on:refreshCuboids="refreshCuboidsAfterSubmitSetting" />
+    <AggregateModal/>
+    <TableIndexEdit/>
+    <AggAdvancedModal v-on:refreshIndexGraph="refreshIndexGraphAfterSubmitSetting" />
   </div>
 </template>
 
@@ -124,14 +175,16 @@ import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import FlowerChart from '../../../../common/FlowerChart'
-import PartitionChart from '../../../../common/PartitionChart'
+import TreemapChart from '../../../../common/TreemapChart'
 import { handleSuccessAsync, objectClone } from '../../../../../util'
-import { handleError, transToGmtTime, transToServerGmtTime } from '../../../../../util/business'
+import { handleError, transToGmtTime, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
 import { speedProjectTypes } from '../../../../../config'
 import { BuildIndexStatus } from '../../../../../config/model'
 import AggregateModal from './AggregateModal/index.vue'
 import AggAdvancedModal from './AggAdvancedModal/index.vue'
-import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handler'
+import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
+import { formatGraphData } from './handler'
+import NModel from '../../ModelEdit/model.js'
 
 @Component({
   props: {
@@ -152,13 +205,25 @@ import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMap
     isShowBulidIndex: {
       type: Boolean,
       default: true
+    },
+    isShowTableIndexActions: {
+      type: Boolean,
+      default: true
+    },
+    isHideEdit: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
     ...mapGetters([
       'currentProjectData',
       'isAutoProject'
-    ])
+    ]),
+    modelInstance () {
+      this.model.project = this.currentProjectData.name
+      return new NModel(this.model)
+    }
   },
   methods: {
     ...mapActions('AggregateModal', {
@@ -167,18 +232,22 @@ import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMap
     ...mapActions('AggAdvancedModal', {
       callAggAdvancedModal: 'CALL_MODAL'
     }),
+    ...mapActions('TableIndexEditModal', {
+      showTableIndexEditModal: 'CALL_MODAL'
+    }),
     ...mapActions({
-      fetchModelAggregates: 'FETCH_AGGREGATES',
-      fetchCuboids: 'FETCH_CUBOIDS',
-      fetchCuboid: 'FETCH_CUBOID',
-      buildIndex: 'BUILD_INDEX'
+      fetchIndexGraph: 'FETCH_INDEX_GRAPH',
+      buildIndex: 'BUILD_INDEX',
+      loadAllIndex: 'LOAD_ALL_INDEX',
+      deleteIndex: 'DELETE_INDEX'
     })
   },
   components: {
     FlowerChart,
-    PartitionChart,
+    TreemapChart,
     AggregateModal,
-    AggAdvancedModal
+    AggAdvancedModal,
+    TableIndexEdit
   },
   locales
 })
@@ -189,26 +258,40 @@ export default class ModelAggregate extends Vue {
   cuboids = []
   cuboidData = {}
   searchCuboidId = ''
-  backgroundMaps = backgroundMaps
   buildIndexLoading = false
   indexDatas = []
   dataRange = ''
   totalSize = 0
   filterArgs = {
-    pageOffset: 0,
-    pageSize: 10,
-    content: '',
-    sortBy: '',
-    reverse: ''
+    page_offset: 0,
+    page_size: 10,
+    key: '',
+    sort_by: '',
+    reverse: '',
+    sources: []
   }
   ST = null
-  aggDetailShow = false
+  indexDetailShow = false
+  tableIndexBaseList = []
+  realFilteArr = ['AUTO_AGG', 'MANUAL_AGG', 'AUTO_TABLE', 'MANUAL_TABLE']
+  detailType = ''
+  currentPage = 0
+  currentCount = 10
+  totalTableIndexColumnSize = 0
+  isFullLoaded = false
   // 打开高级设置
   openAggAdvancedModal () {
     this.callAggAdvancedModal({
       model: objectClone(this.model),
       aggIndexAdvancedDesc: null
     })
+  }
+
+  tableRowClassName ({row, rowIndex}) {
+    if (row.status === 'EMPTY') {
+      return 'empty-index'
+    }
+    return ''
   }
 
   handleBuildIndexTip (data) {
@@ -219,11 +302,39 @@ export default class ModelAggregate extends Vue {
       return
     }
     if (data.type === BuildIndexStatus.NO_LAYOUT) {
-      tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
+      tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.index')})
     } else if (data.type === BuildIndexStatus.NO_SEGMENT) {
       tipMsg += this.$t('kylinLang.model.buildIndexFail1', {modelName: this.model.name})
     }
     this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
+  }
+  editTableIndex (indexDesc) {
+    this.showTableIndexEditModal({
+      modelInstance: this.modelInstance,
+      tableIndexDesc: indexDesc || {name: 'TableIndex_1'}
+    }).then((res) => {
+      if (res.isSubmit) {
+        this.refreshIndexGraphAfterSubmitSetting()
+      }
+    })
+  }
+  renderColumn (h) {
+    let items = []
+    for (let i = 0; i < this.realFilteArr.length; i++) {
+      items.push(<el-checkbox label={this.realFilteArr[i]} key={this.realFilteArr[i]}>{this.$t(this.realFilteArr[i])}</el-checkbox>)
+    }
+    return (<span>
+      <span>{this.$t('source')}</span>
+      <el-popover
+        ref="sourceFilterPopover"
+        placement="bottom-start"
+        popperClass="source-filter">
+        <el-checkbox-group class="filter-groups" value={this.filterArgs.sources} onInput={val => (this.filterArgs.sources = val)} onChange={this.loadAggIndices}>
+          {items}
+        </el-checkbox-group>
+        <i class={this.filterArgs.sources.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+      </el-popover>
+    </span>)
   }
   async buildAggIndex () {
     try {
@@ -240,84 +351,129 @@ export default class ModelAggregate extends Vue {
       this.buildIndexLoading = false
     }
   }
+  resetDetail () {
+    this.currentPage = 0
+    this.currentCount = 10
+    this.totalTableIndexColumnSize = 0
+  }
+  currentChange (size, count) {
+    this.currentPage = size
+    this.currentCount = count
+  }
   showDetail (row) {
     this.cuboidData = row
-    this.aggDetailShow = true
+    this.detailType = row.source.indexOf('AGG') >= 0 ? 'aggDetail' : 'tabelIndexDetail'
+    this.indexDetailShow = true
+  }
+  async removeIndex (row) {
+    try {
+      await kapConfirm(this.$t('delIndexTip'), null, this.$t('delIndex'))
+      await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: row.id})
+      this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
+      this.refreshIndexGraphAfterSubmitSetting()
+    } catch (e) {
+      handleError(e)
+    }
   }
   onSortChange ({ column, prop, order }) {
-    this.filterArgs.sortBy = prop
+    this.filterArgs.sort_by = prop
     this.filterArgs.reverse = !(order === 'ascending')
     this.loadAggIndices()
   }
   pageCurrentChange (size, count) {
-    this.filterArgs.pageOffset = size
-    this.filterArgs.pageSize = count
+    this.filterArgs.page_offset = size
+    this.filterArgs.page_size = count
     this.loadAggIndices()
   }
   searchAggs () {
     clearTimeout(this.ST)
     this.ST = setTimeout(() => {
-      this.filterArgs.pageOffset = 0
+      this.filterArgs.page_offset = 0
       this.loadAggIndices()
     }, 500)
   }
-  get cuboidInfo () {
-    return Object.entries(this.cuboidDetail)
-      .filter(([key]) => !['dimensions', 'measures'].includes(key))
-      .map(([key, value]) => ({ key, value }))
-  }
-  get cuboidContent () {
-    return [
-      ...this.cuboidDetail.dimensions.map(dimension => ({ content: dimension, type: 'dimension' })),
-      ...this.cuboidDetail.measures.map(measure => ({ content: measure, type: 'measure' }))
-    ]
+  get showTableIndexDetail () {
+    if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'aggDetail') {
+      return []
+    }
+    let tableIndexList = this.cuboidData.col_order.slice(this.currentCount * this.currentPage, this.currentCount * (this.currentPage + 1))
+    this.totalTableIndexColumnSize = this.cuboidData.col_order.length
+    let renderData = tableIndexList.map((item, i) => {
+      let newitem = {
+        id: this.currentCount * this.currentPage + i + 1,
+        column: item.key,
+        sort: this.cuboidData.sort_by_columns.indexOf(item.key) + 1 || '',
+        shared: this.cuboidData.shard_by_columns.includes(item.key)
+      }
+      return newitem
+    })
+    const modifiedTime = transToGmtTime(this.cuboidData.last_modified_time)
+    return { renderData, modifiedTime }
   }
   get isSpeedProject () {
     return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
   }
   get cuboidDetail () {
-    const dimensions = this.cuboidData.dimensions || []
-    const measures = this.cuboidData.measures || []
-    const modifiedTime = transToGmtTime(this.cuboidData.last_modify_time)
-    return { modifiedTime, dimensions, measures }
+    if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'tabelIndexDetail') {
+      return []
+    }
+    const modifiedTime = transToGmtTime(this.cuboidData.last_modified_time)
+    const cuboidContent = this.cuboidData.col_order.map(col => ({ content: col.key, type: col.value === 'measure' ? 'measure' : 'dimension' }))
+    return { modifiedTime, cuboidContent }
   }
-  async handleClickNode (node) {
-    this.filterArgs.content = node.cuboid.id
+  async handleClickNode (id) {
+    this.filterArgs.key = id
     this.loadAggIndices()
   }
-  async freshCuboids () {
-    const res = await this.fetchCuboids({
-      projectName: this.projectName,
-      modelId: this.model.uuid
+  async freshIndexGraph () {
+    try {
+      const res = await this.fetchIndexGraph({
+        project: this.projectName,
+        model: this.model.uuid
+      })
+      const data = await handleSuccessAsync(res)
+      this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
+      this.isFullLoaded = data.is_full_loaded
+      this.cuboids = formatGraphData(data)
+      this.cuboidCount = data.total_indexes
+      this.emptyCuboidCount = data.empty_indexes
+    } catch (e) {
+      handleError(e)
+    }
+  }
+  get noDataNum () {
+    let nodeNum = 0
+    this.cuboids.forEach((n) => {
+      nodeNum = nodeNum + n.children.length
     })
-    const data = await handleSuccessAsync(res)
-    this.cuboids = formatFlowerJson(data)
-    this.cuboidCount = getCuboidCounts(data)
-    this.emptyCuboidCount = getStatusCuboidCounts(data, 'EMPTY')
-    this.brokenCuboidCount = getStatusCuboidCounts(data, 'BROKEN')
+    return nodeNum
   }
   async loadAggIndices () {
-    const res = await this.fetchModelAggregates(Object.assign({
-      project: this.projectName,
-      model: this.model.uuid
-    }, this.filterArgs))
-    const data = await handleSuccessAsync(res)
-    this.indexDatas = data.indices
-    this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
-    this.totalSize = data.size
+    try {
+      const res = await this.loadAllIndex(Object.assign({
+        project: this.projectName,
+        model: this.model.uuid
+      }, this.filterArgs))
+      const data = await handleSuccessAsync(res)
+      this.indexDatas = data.indexes
+      this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
+      this.totalSize = data.size
+    } catch (e) {
+      handleError(e)
+    }
   }
   async mounted () {
-    await this.freshCuboids()
+    await this.freshIndexGraph()
     await this.loadAggIndices()
   }
-  async refreshCuboidsAfterSubmitSetting () {
-    await this.freshCuboids()
+  async refreshIndexGraphAfterSubmitSetting () {
+    await this.freshIndexGraph()
     await this.loadAggIndices()
   }
   async handleAggregateGroup () {
     const { projectName, model } = this
     const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
-    isSubmit && await this.refreshCuboidsAfterSubmitSetting()
+    isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
   }
 }
 </script>
@@ -326,6 +482,23 @@ export default class ModelAggregate extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-aggregate {
+  .index-table {
+    .empty-index {
+      background: @warning-color-2;
+    }
+    .el-popover.source-filter {
+      min-width: 130px;
+      box-sizing: border-box;
+    }
+    .el-icon-ksd-filter {
+      position: relative;
+      left: 5px;
+      &.isFilter,
+      &:hover {
+        color: @base-color;
+      }
+    }
+  }
   .tabel-scroll {
     overflow: hidden;
     height: 400px;

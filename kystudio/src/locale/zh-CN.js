@@ -183,7 +183,8 @@ exports.default = {
     modelName: '模型名称',
     modelList: '模型列表',
     indexGroup: '索引组',
-    tableIndex: '表明细索引',
+    index: '索引',
+    tableIndex: '明细索引',
     aggregateGroupIndex: '聚合索引',
     modelNameGrid: '模型名称',
     indexGroupName: '索引组名称',
@@ -248,7 +249,7 @@ exports.default = {
     aloneTableTipTitle: '表关联不完整'
   },
   cube: {
-    tableIndex: '表索引',
+    tableIndex: '索引',
     measure: '度量',
     dimension: '维度',
     noCube: '您可以点击下面的按钮来添加Cube',

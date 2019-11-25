@@ -36,21 +36,22 @@
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment ref="segmentComp" :model="props.row" :isShowSegmentActions="datasourceActions.includes('segmentActions')" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
                   </el-tab-pane>
-                  <el-tab-pane :label="$t('aggregate')" name="second">
+                  <el-tab-pane :label="$t('index')" name="second">
                     <ModelAggregate
                       :model="props.row"
                       :project-name="currentSelectedProject"
-                      :is-show-edit-agg="datasourceActions.includes('editAggGroup')"
-                      :is-show-bulid-index="datasourceActions.includes('bulidIndex')"
+                      :isShowEditAgg="datasourceActions.includes('editAggGroup')"
+                      :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
+                      :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
                       v-if="props.row.tabTypes === 'second'" />
                   </el-tab-pane>
-                  <el-tab-pane :label="$t('tableIndex')" name="third">
+                  <!-- <el-tab-pane :label="$t('tableIndex')" name="third">
                     <TableIndex
                       :modelDesc="props.row"
                       :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
                       :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
                       v-if="props.row.tabTypes === 'third'" />
-                  </el-tab-pane>
+                  </el-tab-pane> -->
                   <el-tab-pane label="JSON" name="forth">
                     <ModelJson v-if="props.row.tabTypes === 'forth'" :model="props.row.uuid"/>
                   </el-tab-pane>
