@@ -310,7 +310,7 @@ export default class SettingAdvanced extends Vue {
           if (await this.$refs['yarn-setting-form'].validate()) {
             let submitData = _getYarnNameSetting(this.form)
             submitData = 'yarn_queue' in submitData && {project: submitData.project, queue_name: submitData.yarn_queue}
-            this.updateYarnQueue(submitData)
+            await this.updateYarnQueue(submitData)
           } else {
             errorCallback()
           }
