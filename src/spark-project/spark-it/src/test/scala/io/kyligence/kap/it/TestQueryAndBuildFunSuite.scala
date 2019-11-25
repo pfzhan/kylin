@@ -98,7 +98,7 @@ class TestQueryAndBuildFunSuite
   val noneCompare = List(
     FloderInfo("sql_current_date"),
     FloderInfo("sql_distinct"),
-    FloderInfo("sql_grouping"),
+    FloderInfo("sql_grouping", List("query07.sql", "query08.sql")),
     FloderInfo("sql_h2_uncapable"),
     //    FloderInfo("sql_intersect_count"),
     FloderInfo("sql_percentile"),

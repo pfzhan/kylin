@@ -25,6 +25,7 @@ package org.apache.spark.sql
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.plans.logical.GroupingSets
 import org.apache.spark.sql.types.StructType
 
 object SparkOperation {
@@ -65,7 +66,17 @@ object SparkOperation {
   }
 
   def agg(aggArgc: AggArgc): DataFrame = {
-    if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty) {
+    if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty && aggArgc.groupSets.nonEmpty) {
+      Dataset.ofRows(
+        aggArgc.dataFrame.sparkSession,
+        GroupingSets(
+          aggArgc.groupSets.map(gs => gs.map(_.expr)),
+          aggArgc.group.map(_.expr),
+          aggArgc.dataFrame.queryExecution.logical,
+          aggArgc.group.map(_.named) ++ aggArgc.agg.map(_.named)
+        )
+      )
+    } else if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty) {
       aggArgc.dataFrame
         .groupBy(aggArgc.group: _*)
         .agg(aggArgc.agg.head, aggArgc.agg.drop(1): _*)
@@ -95,4 +106,4 @@ object SparkOperation {
   */
 }
 
-case class AggArgc(dataFrame: DataFrame, group: List[Column], agg: List[Column])
+case class AggArgc(dataFrame: DataFrame, group: List[Column], agg: List[Column], groupSets: List[List[Column]])

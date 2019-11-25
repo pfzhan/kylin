@@ -56,11 +56,15 @@ object AggregatePlan extends Logging {
     val start = System.currentTimeMillis()
     var dataFrame = inputs.get(0)
     val schemaNames = dataFrame.schema.fieldNames
-    val groupList = rel.getGroupSet.asScala
+    val groupList = rel.getRewriteGroupKeys.asScala
       .map(groupId => col(schemaNames.apply(groupId)))
       .toList
 
-    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched() && isExactlyMatched(rel) && onlyHasOneSeg(rel) && isAnsweredByAggIndex(rel)) {
+    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched()
+      && isExactlyMatched(rel)
+      && onlyHasOneSeg(rel)
+      && isAnsweredByAggIndex(rel)
+      && !containsGroupSets(rel)) {
 
       // exactly match, skip agg, direct project.
       val aggCols = rel.getRewriteAggCalls.asScala
@@ -72,7 +76,9 @@ object AggregatePlan extends Logging {
     } else {
       dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
       val aggList = buildAgg(dataFrame.schema, rel)
-      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList))
+      val groupSets = rel.getRewriteGroupSets.asScala
+        .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
+      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets))
     }
     logInfo(s"Gen aggregate cost Time :${System.currentTimeMillis() - start} ")
     df
@@ -102,6 +108,10 @@ object AggregatePlan extends Logging {
       case e: Throwable => logWarning("Error occurred when generate filters", e)
         dataFrame
     }
+  }
+
+  private def containsGroupSets(rel: KapAggregateRel): Boolean = {
+    return !rel.isSimpleGroupType
   }
 
   private def onlyHasOneSeg(rel: KapAggregateRel): Boolean = {
@@ -221,10 +231,14 @@ object AggregatePlan extends Logging {
           case SqlKind.SINGLE_VALUE.sql =>
             first(argNames.head).alias(aggName)
           case FunctionDesc.FUNC_GROUPING =>
-            if (rel.getGroupSet.get(call.getArgList.get(0))) {
-              k_lit(0).alias(aggName)
+            if (!rel.isSimpleGroupType) {
+              grouping(argNames.head).alias(aggName)
             } else {
-              k_lit(1).alias(aggName)
+              if (rel.getRewriteGroupKeys.contains(call.getArgList.get(0))) {
+                k_lit(0).alias(aggName)
+              } else {
+                k_lit(1).alias(aggName)
+              }
             }
           case _ =>
             throw new IllegalArgumentException(

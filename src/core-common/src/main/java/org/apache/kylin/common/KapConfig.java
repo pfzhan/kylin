@@ -69,6 +69,8 @@ public class KapConfig {
 
     private static final String FALSE = "false";
 
+    private static final String TRUE = "true";
+
     public static final String FI_PLATFORM = "FI";
 
     private KapConfig(KylinConfig config) {
@@ -690,6 +692,10 @@ public class KapConfig {
 
     public boolean shouldMockMetadataWithoutDictStore() {
         return Boolean.valueOf(config.getOptional("kap.metadata.mock.no-dict-store", FALSE));
+    }
+
+    public boolean splitGroupSetsIntoUnion() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.split-group-sets-into-union", TRUE));
     }
 
     /**

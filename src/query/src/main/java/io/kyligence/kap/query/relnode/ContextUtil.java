@@ -171,9 +171,7 @@ public class ContextUtil {
                 continue;
             inputColsIndex.addAll(aggregateCall.getArgList());
         }
-        for (int i = aggRel.groupSet.nextSetBit(0); i >= 0; i = aggRel.groupSet.nextSetBit(i + 1)) {
-            inputColsIndex.add(i);
-        }
+        inputColsIndex.addAll(aggRel.getRewriteGroupKeys());
         return inputColsIndex;
     }
 

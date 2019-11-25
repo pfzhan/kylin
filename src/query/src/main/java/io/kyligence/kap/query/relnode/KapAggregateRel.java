@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -64,7 +65,10 @@ import io.kyligence.kap.query.util.ICutContextStrategy;
  *
  */
 public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
-    ImmutableBitSet groupSet;
+
+
+    private ImmutableList<Integer> rewriteGroupKeys; // preserve the ordering of group keys after CC replacement
+    private List<ImmutableBitSet> rewriteGroupSets; // group sets with cc replaced
     List<AggregateCall> aggCalls;
     private Set<TblColRef> groupByInnerColumns = new HashSet<>(); // inner columns in group keys, for CC generation
 
@@ -76,8 +80,9 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                            ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
             throws InvalidRelException {
         super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
-        this.groupSet = groupSet;
+        this.rewriteGroupKeys = ImmutableList.copyOf(groupSet.toList());
         this.aggCalls = aggCalls;
+        this.rewriteGroupSets = groupSets;
     }
 
     @Override
@@ -166,10 +171,33 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     @Override
     protected void buildGroups() {
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        buildGroupSet();
+        buildGroupSets();
+    }
+    
+    private void buildGroupSet() {
         List<TblColRef> groups = new ArrayList<>();
         List<Integer> groupKeys = new LinkedList<>();
-        for (int i = getGroupSet().nextSetBit(0); i >= 0; i = getGroupSet().nextSetBit(i + 1)) {
+        doBuildGroupSet(getGroupSet(), groups, groupKeys);
+        this.groups = groups;
+        this.rewriteGroupKeys = ImmutableList.copyOf(groupKeys);
+    }
+
+    private void buildGroupSets() {
+        List<ImmutableBitSet> newRewriteGroupSets = new LinkedList<>();
+        for (ImmutableBitSet subGroup : this.groupSets) {
+            List<TblColRef> groups = new ArrayList<>();
+            List<Integer> groupKeys = new LinkedList<>();
+            doBuildGroupSet(subGroup, groups, groupKeys);
+            ImmutableBitSet rewriteGroupSet = ImmutableBitSet.of(groupKeys);
+            newRewriteGroupSets.add(rewriteGroupSet);
+        }
+        this.rewriteGroupSets = newRewriteGroupSets;
+    }
+
+    private void doBuildGroupSet(ImmutableBitSet groupSet, List<TblColRef> groups, List<Integer> groupKeys) {
+        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        for (int i = groupSet.nextSetBit(0); i >= 0; i = groupSet.nextSetBit(i + 1)) {
             TblColRef originalColumn = inputColumnRowType.getColumnByIndex(i);
             if (groupCCColRewriteMapping.containsKey(originalColumn)) {
                 groups.add(groupCCColRewriteMapping.get(originalColumn));
@@ -184,8 +212,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 this.groupByInnerColumns.add(originalColumn);
             }
         }
-        this.groups = groups;
-        this.groupSet = ImmutableBitSet.of(groupKeys);
     }
 
     public void reBuildGroups(Map<TblColRef, TblColRef> colReplacementMapping) {
@@ -339,8 +365,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     public RelWriter explainTerms(RelWriter pw) {
         pw.input("input", getInput());
         pw
-                .item("group-set", groupSet)
-                .itemIf("group-sets", groupSets, getGroupType() != Group.SIMPLE)
+                .item("group-set", rewriteGroupKeys)
+                .itemIf("group-sets", rewriteGroupSets, getGroupType() != Group.SIMPLE)
                 .item("groups", groups)
                 .itemIf("indicator", indicator, indicator)
                 .itemIf("aggs", rewriteAggCalls, pw.nest());
@@ -352,6 +378,18 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         pw.item("ctx",
                 context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
         return pw;
+    }
+
+    public List<ImmutableBitSet> getRewriteGroupSets() {
+        return rewriteGroupSets;
+    }
+
+    public ImmutableList<Integer> getRewriteGroupKeys() {
+        return rewriteGroupKeys;
+    }
+
+    public boolean isSimpleGroupType() {
+        return getGroupType() == Group.SIMPLE;
     }
 
 }

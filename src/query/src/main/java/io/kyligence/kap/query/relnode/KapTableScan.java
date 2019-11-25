@@ -136,7 +136,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         //        if (!KapConfig.getInstanceFromEnv().getSkipCorrReduceRule()) {
         //            planner.addRule(CorrReduceFunctionRule.INSTANCE);
         //        }
-        if (KapConfig.getInstanceFromEnv().isSparderEnabled()) {
+        if (KapConfig.getInstanceFromEnv().isSparderEnabled() && KapConfig.getInstanceFromEnv().splitGroupSetsIntoUnion()) {
             planner.addRule(AggregateMultipleExpandRule.INSTANCE);
         }
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
