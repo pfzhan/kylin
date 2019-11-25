@@ -22,7 +22,7 @@
           <div class="detail-content">
             <el-row :gutter="15" type="flex">
               <el-col :span="14" :style="{height: flexHeight}">
-                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" :isAbridge="true" v-model="props.row.sql_text">
+                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" :isAbridge="true" v-model="props.row.sql_text" v-bind="elementAttr(props)">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -173,6 +173,10 @@ export default class QueryHistoryTable extends Vue {
       const sql = sqlFormatter.format(element.sql_text).split('\n')
       element['sql_limit'] = sql.length > sqlRowsLimit ? [...sql.slice(0, sqlRowsLimit), '...'].join('\n') : element.sql_text
     })
+  }
+
+  elementAttr (props) {
+    return props.row.sql_text.split('\n').length > sqlRowsLimit && {'height': 215}
   }
 
   expandChange () {

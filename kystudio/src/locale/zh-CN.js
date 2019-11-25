@@ -176,7 +176,7 @@ exports.default = {
     reset: '重置',
     comma: '，',
     dot: '。',
-    sqlLimitTip: '当前默认仅展示前100行SQL语句，如需查看完整的查询语句，请点击右侧的复制按钮至其他文本工具中查看。'
+    sqlLimitTip: '当前默认仅展示前100行 SQL 语句，请点击复制按钮获取完整的查询语句'
   },
   model: {
     generateModel: 'SQL 建模',

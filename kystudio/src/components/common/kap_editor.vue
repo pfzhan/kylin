@@ -1,10 +1,11 @@
 <template>
-  <div class="smyles_editor_wrap" :style="editorStyle">
+  <div class="smyles_editor_wrap" :style="wrapStyle">
     <template v-if="!isAbridge">
       <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
     </template>
     <template v-else>
       <editor class="smyles_editor" v-model="formatData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+      <div class="limit-sql-tip" v-if="showLimitTip">{{$t('kylinLang.common.sqlLimitTip')}}</div>
     </template>
     <div class="smyles_dragbar" v-if="dragable" v-drag:change.height="editorDragData"></div>
     <el-popover
@@ -69,7 +70,8 @@ export default {
       editorDragData: {
         height: +this.height || 0,
         width: this.width
-      }
+      },
+      showLimitTip: false
     }
   },
   computed: {
@@ -80,6 +82,12 @@ export default {
       return {
         height: this.editorDragData.height ? this.editorDragData.height + 'px' : '100%',
         width: this.editorDragData.width ? this.editorDragData.width : '100%'
+      }
+    },
+    wrapStyle () {
+      return {
+        height: this.isAbridge && this.showLimitTip ? 'auto' : this.editorStyle.height,
+        width: this.editorStyle.width
       }
     }
   },
@@ -112,7 +120,8 @@ export default {
     // 截取前100行sql
     abridgeData () {
       const data = this.editorData.split('\n')
-      this.formatData = data.length > sqlRowsLimit ? [...data.slice(0, sqlRowsLimit), `-- ${this.$t('kylinLang.common.sqlLimitTip')}`].join('\n') : this.editorData
+      data.length > sqlRowsLimit && (this.showLimitTip = true)
+      this.formatData = data.length > sqlRowsLimit ? data.slice(0, sqlRowsLimit).join('\n') : this.editorData
     },
     getAbridgeType () {
       this.isAbridge && this.abridgeData()
@@ -268,6 +277,19 @@ export default {
       .el-icon-circle-check {
         color: @normal-color-1;
       }
+    }
+    .limit-sql-tip {
+      width: calc(~'100% + 2px');
+      height: 36px;
+      text-align: center;
+      line-height: 36px;
+      font-size: 12px;
+      background: @fff;
+      color: @text-normal-color;
+      border: 1px solid @line-border-color;
+      border-bottom: none;
+      box-sizing: border-box;
+      margin-left: -1px;
     }
   }
 </style>
