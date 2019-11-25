@@ -270,23 +270,33 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      target: 'getPartitionRangeDataBtn'
+      target: 'getPartitionColumnFormat'
     },
     {
       eventID: 2,
       done: false,
-      target: 'getPartitionRangeDataBtn' // 点击加载输入范围
+      target: 'getPartitionColumnFormat' // 获得分区列的时间格式
     },
-    {
-      eventID: 21,
-      done: false,
-      target: 'getPartitionRangeData' // 点击加载输入范围
-    },
-    {
-      eventID: 51,
-      done: false,
-      target: 'checkPartitionDataRangeHasData'
-    },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   target: 'getPartitionRangeDataBtn'
+    // },
+    // {
+    //   eventID: 2,
+    //   done: false,
+    //   target: 'getPartitionRangeDataBtn' // 点击加载输入范围
+    // },
+    // {
+    //   eventID: 21,
+    //   done: false,
+    //   target: 'getPartitionRangeData' // 点击加载输入范围
+    // },
+    // {
+    //   eventID: 51,
+    //   done: false,
+    //   target: 'checkPartitionDataRangeHasData'
+    // },
     {
       eventID: 1,
       done: false,
