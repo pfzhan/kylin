@@ -23,11 +23,15 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.rest.response.IndexResponse.Source.AUTO_TABLE;
+import static io.kyligence.kap.rest.response.IndexResponse.Source.MANUAL_TABLE;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -68,6 +72,7 @@ import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import lombok.val;
 import lombok.var;
@@ -648,6 +653,85 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 .modelId("741ca86a-1f13-46da-a59f-95fb68615e3a").aggregationGroups(aggGroups).build();
 
         return indexPlanService.calculateAggIndexCount(request);
+    }
+
+    @Test
+    public void testRemoveIndex() throws NoSuchFieldException, IllegalAccessException {
+        testUpdateSingleRuleBasedCuboid();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        var indexPlan = indexPlanManager.getIndexPlan(modelId);
+        val manualAgg = indexPlan.getCuboidLayout(1010001L);
+        Assert.assertNotNull(manualAgg);
+        Assert.assertTrue(manualAgg.isManual());
+        indexPlanService.removeIndex(getProject(), modelId, manualAgg.getId());
+        indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertNull(indexPlan.getCuboidLayout(1010001L));
+        val autoTable = indexPlan.getCuboidLayout(20000000001L);
+        Assert.assertNotNull(autoTable);
+        Assert.assertTrue(autoTable.isAuto());
+        indexPlanService.removeIndex(getProject(), modelId, autoTable.getId());
+        indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertNull(indexPlan.getCuboidLayout(20000000001L));
+
+    }
+
+    @Test
+    public void testGetIndexes() throws NoSuchFieldException, IllegalAccessException {
+        testUpdateSingleRuleBasedCuboid();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        var indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", "data_size", true,
+                Lists.newArrayList());
+        Assert.assertEquals(25, indexResponses.size());
+        Assert.assertEquals(1000001L, indexResponses.get(0).getId().longValue());
+
+        indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", "data_size", true,
+                Lists.newArrayList(AUTO_TABLE, MANUAL_TABLE));
+
+        Assert.assertTrue(indexResponses.stream().allMatch(indexResponse -> indexResponse.getSource().equals(AUTO_TABLE)
+                || indexResponse.getSource().equals(MANUAL_TABLE)));
+
+        // test default order by
+        indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", null, false, null);
+        Assert.assertSame(indexResponses.get(0).getStatus(), IndexResponse.Status.EMPTY);
+        IndexResponse prev = null;
+        for (IndexResponse current : indexResponses) {
+            if (prev == null) {
+                prev = current;
+                continue;
+            }
+            if (current.getStatus() == IndexResponse.Status.AVAILABLE) {
+                Assert.assertTrue(current.getDataSize() >= prev.getDataSize());
+            }
+            prev = current;
+        }
+    }
+
+    @Test
+    public void testGetIndexes_WithKey() {
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        // find normal column, and measure parameter
+        var response = indexPlanService.getIndexes(getProject(), modelId, "PRICE", "data_size", false, null);
+        var ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(20, response.size());
+        Assert.assertTrue(ids.contains(20000020001L));
+        Assert.assertTrue(ids.contains(10001L));
+
+        // find CC column as dimension
+        response = indexPlanService.getIndexes(getProject(), modelId, "NEST3", "data_size", false, null);
+        ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(2, response.size());
+        Assert.assertTrue(ids.contains(20000020001L));
+        Assert.assertTrue(ids.contains(1000001L));
+
+        // find CC column as measure
+        response = indexPlanService.getIndexes(getProject(), modelId, "NEST4", "data_size", false, null);
+        ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(14, response.size());
+        for (IndexResponse res : response) {
+            Assert.assertTrue(res.getColOrder().stream().map(IndexResponse.ColOrderPair::getKey)
+                    .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));
+        }
     }
 
 }

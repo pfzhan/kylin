@@ -54,7 +54,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -73,9 +72,8 @@ import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
@@ -127,11 +125,7 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
-            for (NDataModelResponse modelDesc : modelService.getModels(modelAlias, project, exactMatch, owner, status,
-                    sortBy, reverse)) {
-                Preconditions.checkState(!modelDesc.isDraft());
-                models.add(modelDesc);
-            }
+            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse));
         } else {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }

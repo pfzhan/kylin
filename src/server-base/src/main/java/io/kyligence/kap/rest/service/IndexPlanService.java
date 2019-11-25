@@ -24,16 +24,22 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
@@ -56,6 +62,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
@@ -63,6 +70,8 @@ import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.IndexGraphResponse;
+import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Setter;
@@ -72,6 +81,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service("indexPlanService")
 public class IndexPlanService extends BasicService {
+
+    public static final String DATA_SIZE = "data_size";
+    public static final String LAST_MODIFIED_TIME = "last_modified_time";
 
     @Setter
     @Autowired
@@ -216,6 +228,7 @@ public class IndexPlanService extends BasicService {
         return new BuildIndexResponse();
     }
 
+    @Deprecated
     @Transaction(project = 0)
     public void removeTableIndex(String project, String model, final long id) {
         aclEvaluate.checkProjectWritePermission(project);
@@ -231,13 +244,28 @@ public class IndexPlanService extends BasicService {
         Preconditions.checkNotNull(layout);
         Preconditions.checkState(layout.isManual());
 
-        val savedIndexPlan = indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.removeLayouts(Sets.newHashSet(id), LayoutEntity::equals, false, true);
         });
-        if (savedIndexPlan.getCuboidLayout(id) != null) {
-            return;
-        }
-        handleRemoveLayout(project, indexPlan.getUuid(), Sets.newHashSet(id), true, false);
+    }
+
+    @Transaction(project = 0)
+    public void removeIndex(String project, String model, final long id) {
+        aclEvaluate.checkProjectWritePermission(project);
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+
+        val indexPlan = getIndexPlan(project, model);
+        Preconditions.checkNotNull(indexPlan);
+        val layout = indexPlan.getCuboidLayout(id);
+        Preconditions.checkNotNull(layout);
+
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
+                copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+            }
+            copyForWrite.removeLayouts(Sets.newHashSet(id), LayoutEntity::equals, true, true);
+        });
     }
 
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
@@ -295,17 +323,6 @@ public class IndexPlanService extends BasicService {
         }
     }
 
-    public void handleRemoveLayout(String project, String modelId, Set<Long> layoutIds, boolean includeAuto,
-            boolean includeManual) {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        val df = dfMgr.getDataflow(modelId);
-        val cpMgr = NIndexPlanManager.getInstance(kylinConfig, project);
-        cpMgr.updateIndexPlan(modelId, copyForWrite -> copyForWrite.removeLayouts(layoutIds, LayoutEntity::equals,
-                includeAuto, includeManual));
-        dfMgr.removeLayouts(df, layoutIds);
-    }
-
     @Transaction(project = 0)
     public void updateShardByColumns(String project, AggShardByColumnsRequest request) {
         aclEvaluate.checkProjectReadPermission(project);
@@ -350,10 +367,120 @@ public class IndexPlanService extends BasicService {
         List<TableIndexResponse> result = Lists.newArrayList();
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
-                result.add(convertToResponse(cuboidLayout, indexPlan.getModel()));
+                result.add(convertToTableIndexResponse(cuboidLayout, indexPlan.getModel()));
             }
         }
         return result;
+    }
+
+    public List<IndexResponse> getIndexes(String project, String modelId, String key, String orderBy, Boolean desc,
+            List<IndexResponse.Source> sources) {
+
+        val indexPlan = getIndexPlan(project, modelId);
+        Preconditions.checkState(indexPlan != null);
+        val model = indexPlan.getModel();
+        val layouts = indexPlan.getAllLayouts();
+        if (StringUtils.isEmpty(key) || StringUtils.isEmpty(key.trim())) {
+            return sortAndFilterLayouts(
+                    layouts.stream().map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel())),
+                    orderBy, desc, sources);
+        }
+
+        val trimmedKey = key.trim();
+        val matchCCs = model.getComputedColumnDescs().stream()
+                .filter(cc -> cc.getFullName().contains(trimmedKey) || cc.getInnerExpression().contains(trimmedKey))
+                .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
+        val matchDimensions = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .filter(c -> c.getAliasDotColumn().contains(trimmedKey) || c.getName().contains(trimmedKey)
+                        || matchCCs.contains(c.getAliasDotColumn()))
+                .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
+        val matchMeasures = model.getAllMeasures().stream().filter(m -> !m.isTomb())
+                .filter(m -> m.getName().contains(trimmedKey) || m.getFunction().getParameters().stream()
+                        .anyMatch(p -> p.getType().equals(FunctionDesc.PARAMETER_TYPE_COLUMN)
+                                && (p.getValue().contains(trimmedKey) || matchCCs.contains(p.getValue()))))
+                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
+
+        return sortAndFilterLayouts(layouts.stream().filter(index -> {
+            val cols = Sets.newHashSet(index.getColOrder());
+            return String.valueOf(index.getId()).equals(trimmedKey)
+                    || !Sets.intersection(matchDimensions, cols).isEmpty()
+                    || !Sets.intersection(matchMeasures, cols).isEmpty();
+        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel())), orderBy, desc, sources);
+    }
+
+    public IndexGraphResponse getIndexGraph(String project, String modelId, int maxSize) {
+        val indexPlan = getIndexPlan(project, modelId);
+        Preconditions.checkNotNull(indexPlan);
+        val indexes = indexPlan.getAllLayouts();
+        val indexResponses = sortAndFilterLayouts(
+                indexes.stream().map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel())), DATA_SIZE,
+                true, Lists.newArrayList());
+        val indexGraphResponse = new IndexGraphResponse();
+
+        indexGraphResponse.setProject(project);
+        indexGraphResponse.setModel(modelId);
+        indexGraphResponse.setTotalIndexes(indexResponses.size());
+        indexGraphResponse.setEmptyIndexes(
+                indexResponses.stream().filter(r -> r.getStatus().equals(IndexResponse.Status.EMPTY)).count());
+
+        Function<IndexResponse, IndexGraphResponse.Index> responseConverter = res -> {
+            val index = new IndexGraphResponse.Index();
+            BeanUtils.copyProperties(res, index);
+            return index;
+        };
+        indexGraphResponse.setAutoAggIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
+                .filter(r -> r.getSource().equals(IndexResponse.Source.AUTO_AGG)).map(responseConverter)));
+        indexGraphResponse.setManualAggIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
+                .filter(r -> r.getSource().equals(IndexResponse.Source.MANUAL_AGG)).map(responseConverter)));
+        indexGraphResponse.setAutoTableIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
+                .filter(r -> r.getSource().equals(IndexResponse.Source.AUTO_TABLE)).map(responseConverter)));
+        indexGraphResponse.setManualTableIndexes(convertToIndexList(indexResponses.stream().limit(maxSize)
+                .filter(r -> r.getSource().equals(IndexResponse.Source.MANUAL_TABLE)).map(responseConverter)));
+
+        val dataflow = NDataflowManager.getInstance(indexPlan.getConfig(), indexPlan.getProject())
+                .getDataflow(indexPlan.getId());
+        val readySegments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging().stream()
+                .filter(seg -> !SegmentStatusEnum.NEW.equals(seg.getStatus()))
+                .collect(Collectors.toCollection(Segments::new));
+
+        if (CollectionUtils.isEmpty(readySegments)) {
+            return indexGraphResponse;
+        }
+        long startTime = Long.MAX_VALUE;
+        long endTime = 0L;
+        for (NDataSegment seg : readySegments) {
+            long start = Long.parseLong(seg.getSegRange().getStart().toString());
+            long end = Long.parseLong(seg.getSegRange().getEnd().toString());
+            startTime = Math.min(startTime, start);
+            endTime = Math.max(endTime, end);
+        }
+        indexGraphResponse.setStartTime(startTime);
+        indexGraphResponse.setEndTime(endTime);
+        return indexGraphResponse;
+    }
+
+    private List<IndexResponse> sortAndFilterLayouts(Stream<IndexResponse> layouts, String orderBy, boolean reverse,
+            List<IndexResponse.Source> sources) {
+        if (CollectionUtils.isNotEmpty(sources)) {
+            layouts = layouts.filter(r -> sources.contains(r.getSource()));
+        }
+        Comparator<IndexResponse> comparator;
+        // default EMPTY layout at first then order by data_size ascending;
+        if (StringUtils.isEmpty(orderBy)) {
+            comparator = Comparator.<IndexResponse> comparingInt(res -> res.getStatus().ordinal())
+                    .thenComparing(propertyComparator(DATA_SIZE, true));
+        } else {
+            comparator = propertyComparator(orderBy, !reverse);
+        }
+        return layouts.sorted(comparator).collect(Collectors.toList());
+    }
+
+    private IndexGraphResponse.IndexList convertToIndexList(Stream<IndexGraphResponse.Index> stream) {
+        val indexList = new IndexGraphResponse.IndexList();
+        indexList.setIndexes(stream.collect(Collectors.toList()));
+        indexList.setTotalSize(indexList.getIndexes().stream().mapToLong(IndexGraphResponse.Index::getDataSize).sum());
+        return indexList;
+
     }
 
     public NRuleBasedIndex getRule(String project, String model) {
@@ -362,7 +489,7 @@ public class IndexPlanService extends BasicService {
         return indexPlan.getRuleBasedIndex();
     }
 
-    private TableIndexResponse convertToResponse(LayoutEntity cuboidLayout, NDataModel model) {
+    private TableIndexResponse convertToTableIndexResponse(LayoutEntity cuboidLayout, NDataModel model) {
         val response = new TableIndexResponse();
         BeanUtils.copyProperties(cuboidLayout, response);
         response.setColOrder(convertColumnIdName(cuboidLayout.getColOrder(), model));
@@ -390,6 +517,42 @@ public class IndexPlanService extends BasicService {
         return response;
     }
 
+    private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {
+        val response = new IndexResponse();
+        BeanUtils.copyProperties(layoutEntity, response);
+        response.setColOrder(convertColumnOrMeasureIdName(layoutEntity.getColOrder(), model));
+        response.setShardByColumns(convertColumnIdName(layoutEntity.getShardByColumns(), model));
+        response.setSortByColumns(convertColumnIdName(layoutEntity.getSortByColumns(), model));
+        response.setProject(model.getProject());
+        response.setModel(model.getUuid());
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val dataflow = dfMgr.getDataflow(layoutEntity.getIndex().getIndexPlan().getUuid());
+        IndexResponse.Status status = IndexResponse.Status.AVAILABLE;
+        long dataSize = 0L;
+        int readyCount = 0;
+        for (NDataSegment segment : dataflow.getSegments()) {
+            val dataCuboid = segment.getLayout(layoutEntity.getId());
+            if (dataCuboid == null) {
+                continue;
+            }
+            readyCount++;
+            dataSize += dataCuboid.getByteSize();
+        }
+        if (readyCount != dataflow.getSegments().size() || CollectionUtils.isEmpty(dataflow.getSegments())) {
+            status = IndexResponse.Status.EMPTY;
+        } else {
+            response.setDataSize(dataSize);
+        }
+        response.setStatus(status);
+        response.setLastModifiedTime(layoutEntity.getUpdateTime());
+        if (dataflow.getLayoutHitCount().get(layoutEntity.getId()) != null) {
+            response.setUsage(dataflow.getLayoutHitCount().get(layoutEntity.getId()).getDateFrequency().values()
+                    .stream().mapToInt(Integer::intValue).sum());
+        }
+        return response;
+    }
+
     private IndexPlan getIndexPlan(String project, String model) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
@@ -401,9 +564,26 @@ public class IndexPlanService extends BasicService {
             return Lists.newArrayList();
         }
         val result = Lists.<String> newArrayList();
-        for (Integer column : ids) {
-            val name = model.getColumnNameByColumnId(column);
+        for (Integer columnId : ids) {
+            val name = (columnId < NDataModel.MEASURE_ID_BASE) ? model.getColumnNameByColumnId(columnId)
+                    : model.getMeasureNameByMeasureId(columnId);
             result.add(name);
+        }
+        return result;
+
+    }
+
+    private List<IndexResponse.ColOrderPair> convertColumnOrMeasureIdName(List<Integer> ids, NDataModel model) {
+        if (CollectionUtils.isEmpty(ids)) {
+            return Lists.newArrayList();
+        }
+        val result = Lists.<IndexResponse.ColOrderPair> newArrayList();
+        for (Integer id : ids) {
+            if (id < NDataModel.MEASURE_ID_BASE) {
+                result.add(new IndexResponse.ColOrderPair(model.getColumnNameByColumnId(id), "column"));
+            } else {
+                result.add(new IndexResponse.ColOrderPair(model.getMeasureNameByMeasureId(id), "measure"));
+            }
         }
         return result;
 

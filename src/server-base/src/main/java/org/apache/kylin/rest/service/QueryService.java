@@ -792,7 +792,7 @@ public class QueryService extends BasicService {
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         for (String modelId : projectInstance.getModels()) {
             NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project).getDataModelDesc(modelId);
-            if (dataModelDesc != null && !dataModelDesc.isDraft()) {
+            if (dataModelDesc != null) {
                 clarifyTblTypeToFactOrLookup(dataModelDesc, tableMap);
                 clarifyPkFkCols(dataModelDesc, columnMap);
             }

@@ -96,11 +96,8 @@ public class NDataModelManager {
                     throw new ModelBrokenException();
                 }
 
-                if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(),
-                            listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()),
-                            project);
-                }
+                model.init(config, getAllTablesMap(),
+                        listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()), project);
                 postModelRepairEvent(model);
                 return model;
             }
@@ -264,9 +261,8 @@ public class NDataModelManager {
 
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
-        if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(),
-                    crud.listAll().stream().filter(model -> !model.isBroken()).collect(Collectors.toList()), project);
+        dataModelDesc.init(config, this.getAllTablesMap(),
+                crud.listAll().stream().filter(model -> !model.isBroken()).collect(Collectors.toList()), project);
 
         crud.save(dataModelDesc);
 

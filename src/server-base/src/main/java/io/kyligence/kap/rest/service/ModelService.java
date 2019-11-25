@@ -1317,7 +1317,6 @@ public class ModelService extends BasicService {
      */
     public ComputedColumnDesc checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
 
-        dataModelDesc.setDraft(false);
         if (dataModelDesc.getUuid() == null)
             dataModelDesc.updateRandomUuid();
 

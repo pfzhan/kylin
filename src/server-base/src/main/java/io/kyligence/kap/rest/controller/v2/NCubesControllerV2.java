@@ -23,17 +23,14 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.request.CubeRebuildRequest;
-import io.kyligence.kap.rest.request.SegmentMgmtRequest;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
-import io.kyligence.kap.rest.service.ModelService;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
@@ -50,13 +47,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.request.CubeRebuildRequest;
+import io.kyligence.kap.rest.request.SegmentMgmtRequest;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
+import io.kyligence.kap.rest.service.ModelService;
 
 @RestController
 @RequestMapping(value = "/api/cubes")
@@ -78,11 +79,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        List<NDataModel> models = new ArrayList<>();
-        for (NDataModelResponse modelDesc : modelService.getCubes(modelAlias, project)) {
-            Preconditions.checkState(!modelDesc.isDraft());
-            models.add(modelDesc);
-        }
+        List<NDataModel> models = new ArrayList<>(modelService.getCubes(modelAlias, project));
 
         HashMap<String, Object> modelResponse = getDataResponse("cubes", models, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");

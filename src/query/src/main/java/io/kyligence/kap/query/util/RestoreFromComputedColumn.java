@@ -245,12 +245,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         //give each data model a chance to rewrite, choose the model that generates most changes
         for (NDataModel modelDesc : dataModelDescs.values()) {
 
-            NDataModel forMatchModel = modelDesc;
-            if (modelDesc.isDraft() && dataModelDescs.containsKey(modelDesc.getUuid())) {
-                forMatchModel = dataModelDescs.get(modelDesc.getUuid());
-            }
-
-            QueryAliasMatchInfo info = queryAliasMatcher.match(forMatchModel, sqlSelect);
+            QueryAliasMatchInfo info = queryAliasMatcher.match(modelDesc, sqlSelect);
             if (info == null) {
                 continue;
             }

@@ -161,10 +161,6 @@ public class NDataModel extends RootPersistentEntity {
     private long configLastModified;
 
     @EqualsAndHashCode.Include
-    @JsonProperty("is_draft")
-    private boolean isDraft;
-
-    @EqualsAndHashCode.Include
     @JsonProperty("description")
     private String description;
 
@@ -355,7 +351,6 @@ public class NDataModel extends RootPersistentEntity {
         this.version = other.version;
         this.alias = other.alias;
         this.owner = other.owner;
-        this.isDraft = other.isDraft;
         this.description = other.description;
         this.rootFactTableName = other.rootFactTableName;
         this.joinTables = other.joinTables;
@@ -1281,7 +1276,6 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public String getColumnNameByColumnId(int id) {
-        Preconditions.checkArgument(allNamedColumns != null);
         for (NamedColumn col : allNamedColumns) {
             if (col.id == id)
                 return col.aliasDotColumn;
@@ -1290,10 +1284,17 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public String getNameByColumnId(int id) {
-        Preconditions.checkArgument(allNamedColumns != null);
         for (NamedColumn col : allNamedColumns) {
             if (col.id == id)
                 return col.name;
+        }
+        return null;
+    }
+
+    public String getMeasureNameByMeasureId(int id) {
+        for (val measure : allMeasures) {
+            if (measure.id == id)
+                return measure.getName();
         }
         return null;
     }

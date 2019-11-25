@@ -23,6 +23,10 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import java.util.List;
+
+import javax.validation.Valid;
+
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +43,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import lombok.val;
-
-import javax.validation.Valid;
 
 @RestController
 @RequestMapping(value = "/api/index_plans")
@@ -114,9 +117,44 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val tableIndexs = indexPlanService.getTableIndexs(project, modelId);
+        val tableIndexes = indexPlanService.getTableIndexs(project, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                getDataResponse("table_indexs", tableIndexs, offset, limit), "");
+                getDataResponse("table_indexs", tableIndexes, offset, limit), "");
+    }
+
+    @GetMapping(value = "/index", produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getIndex(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId,
+            @RequestParam(value = "sort_by", required = false, defaultValue = "") String order,
+            @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
+            @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexResponse.Source> sources,
+            @RequestParam(value = "key", required = false, defaultValue = "") String key,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        val indexes = indexPlanService.getIndexes(project, modelId, key, order, desc, sources);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("indexes", indexes, offset, limit),
+                "");
+    }
+
+    @GetMapping(value = "/index_graph", produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getIndexGraph(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model") String modelId,
+            @RequestParam(value = "order", required = false, defaultValue = "100") Integer size) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        val indexes = indexPlanService.getIndexGraph(project, modelId, size);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, indexes, "");
+    }
+
+    @DeleteMapping(value = "/index/{project}/{model}/{id}", produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse deleteIndex(@PathVariable(value = "project") String project,
+            @PathVariable(value = "model") String modelId, @PathVariable(value = "id") long layoutId) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        indexPlanService.removeIndex(project, modelId, layoutId);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
 }
