@@ -197,6 +197,9 @@ export default {
   getTableIndexContentList: (para) => {
     return Vue.resource(apiUrl + 'models/recommendations/table_index').get(para)
   },
+  getIndexContentList: (para) => {
+    return Vue.resource(apiUrl + 'models/recommendations/index').get(para)
+  },
   suggestModel: (para) => {
     return Vue.resource(apiUrl + 'models/suggest_model').save(para)
   },

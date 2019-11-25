@@ -53,6 +53,15 @@
           {{scope.row.cc.expression}}
         </template>
       </el-table-column>
+      <el-table-column
+        width="180"
+        prop="create_time"
+        :label="$t('th_updateDate')"
+        sortable>
+        <template slot-scope="scope">
+          {{scope.row.create_time | utcTimeOrInt}}
+        </template>
+      </el-table-column>
     </el-table>
   </div>
 </template>

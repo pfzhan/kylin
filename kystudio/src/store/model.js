@@ -263,6 +263,9 @@ export default {
     [types.GET_TABLE_INDEX_CONTENTLIST] ({ commit }, paras) {
       return api.model.getTableIndexContentList(paras)
     },
+    [types.GET_INDEX_CONTENTLIST] (_, paras) {
+      return api.model.getIndexContentList(paras)
+    },
     [types.SUGGEST_MODEL] ({ commit }, paras) {
       return api.model.suggestModel(paras)
     },

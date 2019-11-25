@@ -34,7 +34,7 @@
               v-on:computedColumnSelectedChange="refreshSelected"
               :list="dialogInfo.cc_recommendations"></ComputedColumn>
           </el-tab-pane>
-          <el-tab-pane :label="aggIndexTabTitle" name="aggIndex">
+          <!-- <el-tab-pane :label="aggIndexTabTitle" name="aggIndex">
             <AggIndex
               ref="aggIndexRecom"
               v-if="dialogInfoLoaded"
@@ -49,6 +49,15 @@
               :modelDesc="modelDesc"
               v-on:tableIndexSelectedChange="refreshSelected"
               :list="dialogInfo.table_index_recommendations"></TableIndex>
+          </el-tab-pane> -->
+          <el-tab-pane :label="indexTabTitle" name="index">
+            <IndexGroup
+              ref="indexGroup"
+              v-if="dialogInfoLoaded"
+              :modelDesc="modelDesc"
+              v-on:indexSelectedChange="refreshSelected"
+              :list="dialogInfo.index_recommendations">
+            </IndexGroup>
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -71,8 +80,9 @@
   import Dimension from './tabView/dimension'
   import Measure from './tabView/measure'
   import ComputedColumn from './tabView/computedColumn'
-  import AggIndex from './tabView/aggIndex'
-  import TableIndex from './tabView/tableIndex'
+  // import AggIndex from './tabView/aggIndex'
+  // import TableIndex from './tabView/tableIndex'
+  import IndexGroup from './tabView/indexGroup'
 
   vuex.registerModule(['modals', 'ModelRecommendModal'], store)
 
@@ -91,8 +101,9 @@
       Dimension,
       Measure,
       ComputedColumn,
-      AggIndex,
-      TableIndex
+      // AggIndex,
+      // TableIndex,
+      IndexGroup
     },
     methods: {
       ...mapActions({
@@ -119,15 +130,13 @@
       dimension_selectedLen: 0,
       measure_selectedLen: 0,
       cc_selectedLen: 0,
-      agg_index_selectedLen: 0,
-      table_index_selectedLen: 0
+      index_selectedLen: 0
     }
     dialogInfo = {
       dimension_recommendations: [],
       measure_recommendations: [],
       cc_recommendations: [],
-      agg_index_recommendations: [],
-      table_index_recommendations: []
+      index_recommendations: []
     }
 
     @Watch('isShow')
@@ -144,15 +153,13 @@
         dimension_recommendations: [],
         measure_recommendations: [],
         cc_recommendations: [],
-        agg_index_recommendations: [],
-        table_index_recommendations: []
+        index_recommendations: []
       }
       // 初始化数字
       this.selectedObj['dimension_selectedLen'] = 0
       this.selectedObj['measure_selectedLen'] = 0
       this.selectedObj['cc_selectedLen'] = 0
-      this.selectedObj['agg_index_selectedLen'] = 0
-      this.selectedObj['table_index_selectedLen'] = 0
+      this.selectedObj['index_selectedLen'] = 0
 
       // 弹窗显示的时候，才进行数据请求
       if (val) {
@@ -161,8 +168,8 @@
     }
     // 弹窗标题
     get dialogTitle () {
-      let selectedTotal = this.selectedObj.dimension_selectedLen + this.selectedObj.measure_selectedLen + this.selectedObj.cc_selectedLen + this.selectedObj.agg_index_selectedLen + this.selectedObj.table_index_selectedLen
-      let total = this.dialogInfo.dimension_recommendations.length + this.dialogInfo.measure_recommendations.length + this.dialogInfo.cc_recommendations.length + this.dialogInfo.agg_index_recommendations.length + this.dialogInfo.table_index_recommendations.length
+      let selectedTotal = this.selectedObj.dimension_selectedLen + this.selectedObj.measure_selectedLen + this.selectedObj.cc_selectedLen + this.selectedObj.index_selectedLen
+      let total = this.dialogInfo.dimension_recommendations.length + this.dialogInfo.measure_recommendations.length + this.dialogInfo.cc_recommendations.length + this.dialogInfo.index_recommendations.length
       return this.$t('recommendModalTitle', {selected: selectedTotal, total: total})
     }
     // 几个 tab 标题
@@ -178,23 +185,27 @@
       return this.$t('tabCC', {selected: this.selectedObj.cc_selectedLen, total: this.dialogInfo.cc_recommendations.length})
     }
 
-    get aggIndexTabTitle () {
-      return this.$t('tabAggIndex', {selected: this.selectedObj.agg_index_selectedLen, total: this.dialogInfo.agg_index_recommendations.length})
-    }
+    // get aggIndexTabTitle () {
+    //   return {selected: this.selectedObj.agg_index_selectedLen, total: this.dialogInfo.agg_index_recommendations.length}
+    // }
 
-    get tableIndexTabTitle () {
-      return this.$t('tabTableIndex', {selected: this.selectedObj.table_index_selectedLen, total: this.dialogInfo.table_index_recommendations.length})
+    // get tableIndexTabTitle () {
+    //   return {selected: this.selectedObj.table_index_selectedLen, total: this.dialogInfo.table_index_recommendations.length}
+    // }
+
+    get indexTabTitle () {
+      return this.$t('index', {selected: this.selectedObj.index_selectedLen, total: this.dialogInfo.index_recommendations.length})
     }
 
     // 控制提交按钮是否可点 - 有一条建议选中就可以点了
     get canSubmitRecom () {
       // 提交按钮必须是数据已经加载进来，并且有选择的内容
-      return this.dialogInfoLoaded && (this.selectedObj.dimension_selectedLen || this.selectedObj.measure_selectedLen || this.selectedObj.cc_selectedLen || this.selectedObj.agg_index_selectedLen || this.selectedObj.table_index_selectedLen)
+      return this.dialogInfoLoaded && (this.selectedObj.dimension_selectedLen || this.selectedObj.measure_selectedLen || this.selectedObj.cc_selectedLen || this.selectedObj.index_selectedLen)
     }
 
     // 控制清空按钮是否可点 - 有一条建议就可以点了
     get canClearRecom () {
-      return this.dialogInfo.dimension_recommendations.length || this.dialogInfo.measure_recommendations.length || this.dialogInfo.cc_recommendations.length || this.dialogInfo.agg_index_recommendations.length || this.dialogInfo.table_index_recommendations.length
+      return this.dialogInfo.dimension_recommendations.length || this.dialogInfo.measure_recommendations.length || this.dialogInfo.cc_recommendations.length || this.dialogInfo.index_recommendations.length
     }
 
     // 各tab 中table 选中变更，tab 上的数字要跟着变
@@ -230,14 +241,14 @@
       // 每次打开弹窗将所有的选项都设为选中
       let tempData = objectClone(data)
       for (var prop in tempData) {
-        if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'agg_index_recommendations' || prop === 'table_index_recommendations') {
+        if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'index_recommendations') {
           tempData[prop].forEach((item, i) => {
             // 选中状态的初始化
             item.isSelected = true
             // 名字校验用到的字段初始化
             item.validateNameRule = false
             item.validateSameName = false
-            if (prop === 'agg_index_recommendations' || prop === 'table_index_recommendations') {
+            if (prop === 'index_recommendations') {
               item.contentShow = []
             }
           })
@@ -255,8 +266,8 @@
       this.selectedObj['dimension_selectedLen'] = this.getSelectLen('dimension')
       this.selectedObj['measure_selectedLen'] = this.getSelectLen('measure')
       this.selectedObj['cc_selectedLen'] = this.getSelectLen('cc')
-      this.selectedObj['agg_index_selectedLen'] = this.getSelectLen('agg_index')
-      this.selectedObj['table_index_selectedLen'] = this.getSelectLen('table_index')
+      // this.selectedObj['agg_index_selectedLen'] = this.getSelectLen('agg_index')
+      this.selectedObj['index_selectedLen'] = this.getSelectLen('index')
     }
 
     // 获取当前 model 的优化建议数据
@@ -330,19 +341,16 @@
     }
 
     dealParams (prop) {
-      let params = []
-      params = this.dialogInfo[prop].filter((item) => {
-        return item.isSelected
-      })
+      let params = this.dialogInfo[prop].filter(item => item.isSelected)
       let temp = objectClone(params) // 直接用params 去delete 属性，会导致 dialogInfo 的属性也跟着变
       temp.forEach((item) => {
         delete item.validateNameRule
         delete item.validateSameName
         delete item.isSelected
-        if (prop === 'agg_index_recommendations' || prop === 'table_index_recommendations') {
-          delete item.contentShow
-        }
       })
+      if (prop === 'index_recommendations') {
+        return params.map(item => item.item_id)
+      }
       return temp
     }
 
@@ -365,8 +373,7 @@
         dimension_recommendations: this.dealParams('dimension_recommendations'),
         measure_recommendations: this.dealParams('measure_recommendations'),
         cc_recommendations: this.dealParams('cc_recommendations'),
-        agg_index_recommendations: this.dealParams('agg_index_recommendations'),
-        table_index_recommendations: this.dealParams('table_index_recommendations')
+        index_recommendation_item_ids: this.dealParams('index_recommendations')
       }
       this.saveModelRecommendations(params).then((res) => {
         this.btnLoading = false
