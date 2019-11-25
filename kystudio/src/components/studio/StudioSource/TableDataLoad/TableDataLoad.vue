@@ -24,12 +24,13 @@
               <span class="ky-option-sub-info">{{ item.datatype }}</span>
             </el-option>
           </el-select>
-          <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top" v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig">
+          <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
             <el-button
               size="medium"
               class="ksd-ml-10"
-              v-guide.getPartitionColumnFormat
               :loading="isLoadingFormat"
+              v-guide.getPartitionColumnFormat
+              v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig"
               icon="el-icon-ksd-data_range_search"
               @click="handleLoadFormat">
             </el-button>

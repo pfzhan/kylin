@@ -29,12 +29,14 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="3" class="ksd-pl-5" v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig">
+        <el-col :span="3" class="ksd-pl-5" >
           <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
             <el-button
               size="medium"
               :loading="isLoadingFormat"
               icon="el-icon-ksd-data_range_search"
+              v-guide.getPartitionColumnFormat
+              v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
               @click="handleLoadFormat">
             </el-button>
           </el-tooltip>
