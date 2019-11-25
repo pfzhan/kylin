@@ -209,7 +209,7 @@ export default class ModelPartitionModal extends Vue {
   async handleLoadFormat () {
     try {
       this.isLoadingFormat = true
-      const response = await this.fetchPartitionFormat({ project: this.currentSelectedProject, table: this.selectedTable.name, partitionColumn: this.partitionMeta.column })
+      const response = await this.fetchPartitionFormat({ project: this.currentSelectedProject, table: this.selectedTable.name, partition_column: this.partitionMeta.column })
       this.partitionMeta.format = await handleSuccessAsync(response)
       this.isLoadingFormat = false
     } catch (e) {

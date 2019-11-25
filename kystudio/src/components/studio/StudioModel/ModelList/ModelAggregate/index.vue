@@ -455,9 +455,9 @@ export default class ModelAggregate extends Vue {
         model: this.model.uuid
       }, this.filterArgs))
       const data = await handleSuccessAsync(res)
-      this.indexDatas = data.indexes
+      this.indexDatas = data.value
       this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
-      this.totalSize = data.size
+      this.totalSize = data.total_size
     } catch (e) {
       handleError(e)
     }

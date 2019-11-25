@@ -133,8 +133,8 @@ export default class SecurityUser extends Vue {
   totalSize = 0
   filterTimer = null
   pagination = {
-    pageSize: pageCount,
-    pageOffset: 0
+    page_size: pageCount,
+    page_offset: 0
   }
   get currentGroup () {
     return this.$route.params.groupName
@@ -152,7 +152,7 @@ export default class SecurityUser extends Vue {
       admin: user.authorities.some(role => role.authority === 'ROLE_ADMIN'),
       modeler: user.authorities.some(role => role.authority === 'ROLE_MODELER'),
       analyst: user.authorities.some(role => role.authority === 'ROLE_ANALYST'),
-      defaultPassword: user.defaultPassword,
+      default_password: user.default_password,
       authorities: user.authorities,
       groups: user.authorities.map(role => role.authority),
       uuid: user.uuid
@@ -168,8 +168,8 @@ export default class SecurityUser extends Vue {
   }
 
   handleCurrentChange (pager, pageSize) {
-    this.pagination.pageOffset = pager
-    this.pagination.pageSize = pageSize
+    this.pagination.page_offset = pager
+    this.pagination.page_size = pageSize
     this.loadUsers(this.currentGroup)
   }
 
@@ -179,14 +179,15 @@ export default class SecurityUser extends Vue {
         ...this.pagination,
         project: this.currentSelectedProject,
         name,
-        groupName: this.currentGroup
+        group_name: this.currentGroup
       }
       const res = !this.currentGroup
         ? await this.loadUsersList(parameter)
         : await this.loadUserListByGroupName(parameter)
 
-      this.userData = res.data.data && (res.data.data.users || res.data.data.groupMembers) || []
-      this.totalSize = res.data.data && res.data.data.size || 0
+      // this.userData = res.data.data && (res.data.data.users || res.data.data.groupMembers) || []
+      this.userData = res.data.data && res.data.data.value || []
+      this.totalSize = res.data.data && res.data.data.total_size || 0
       if (res.status !== 200) {
         handleError(res)
       }

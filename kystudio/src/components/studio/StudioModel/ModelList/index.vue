@@ -315,11 +315,11 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 export default class ModelList extends Vue {
   mockSQL = mockSQL
   filterArgs = {
-    pageOffset: 0,
-    pageSize: 10,
+    page_offset: 0,
+    page_size: 10,
     exact: false,
     model: '',
-    sortBy: 'last_modify',
+    sort_by: 'last_modify',
     reverse: true
   }
   currentEditModel = null
@@ -442,10 +442,10 @@ export default class ModelList extends Vue {
       const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
       isSubmit && this.loadModelsList()
     } else if (command === 'dataLoad') {
-      this.getModelByModelName({model: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
+      this.getModelByModelName({model_name: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
-          if (data.models && data.models.length) {
-            this.modelData = data.models[0]
+          if (data && data.value && data.value.length) {
+            this.modelData = data.value[0]
             this.modelData.project = this.currentSelectedProject
             let cloneModelDesc = objectClone(this.modelData)
             this.callModelPartitionDialog({
@@ -539,9 +539,9 @@ export default class ModelList extends Vue {
     })
   }
   onSortChange ({ column, prop, order }) {
-    this.filterArgs.sortBy = prop
+    this.filterArgs.sort_by = prop
     if (prop === 'gmtTime') {
-      this.filterArgs.sortBy = 'last_modify'
+      this.filterArgs.sort_by = 'last_modify'
     }
     this.filterArgs.reverse = !(order === 'ascending')
     if (this.filterArgs.project) {
@@ -587,8 +587,8 @@ export default class ModelList extends Vue {
   }
   // 分页
   pageCurrentChange (size, count) {
-    this.filterArgs.pageOffset = size
-    this.filterArgs.pageSize = count
+    this.filterArgs.page_offset = size
+    this.filterArgs.page_size = count
     this.loadModelsList()
   }
   // 搜索模型

@@ -334,7 +334,7 @@ export default class SourceHive extends Vue {
         return false
       }
       this.hasClickRefreshBtn = false
-      this.reloadHiveTablesStatus.isRunning = res.data.data.isRunning
+      this.reloadHiveTablesStatus.isRunning = res.data.data.is_running
       this.reloadHiveTablesStatus.time = res.data.data.time
       this.pollingReloadStatus()
     }, (res) => {
@@ -384,10 +384,10 @@ export default class SourceHive extends Vue {
     this.$emit('input', { selectedTables })
   }
   setNextPagination (pagination) {
-    pagination.pageOffset++
+    pagination.page_offset++
   }
   clearPagination (pagination) {
-    pagination.pageOffset = 0
+    pagination.page_offset = 0
   }
   hideNodeLoading (data) {
     data.isLoading = false
@@ -462,7 +462,7 @@ export default class SourceHive extends Vue {
     const databaseName = database.id
     const pagination = database.pagination
     const response = await this.fetchTables({ projectName, sourceType, databaseName, tableName, ...pagination })
-    const { size, tables } = await handleSuccessAsync(response)
+    const { total_size: size, value: tables } = await handleSuccessAsync(response)
     this.getTableTree(database, { size, tables }, isTableReset)
     this.setNextPagination(pagination)
     // this.$emit('input', { selectedTables: [...this.selectedTables] })
@@ -476,8 +476,8 @@ export default class SourceHive extends Vue {
       let params = {
         projectName: this.currentSelectedProject,
         sourceType: this.sourceType,
-        pageOffset: 0,
-        pageSize: pageSizeMapping.TABLE_TREE,
+        page_offset: 0,
+        page_size: pageSizeMapping.TABLE_TREE,
         table: filterText || ''
       }
       const res = await this.fetctDatabaseAndTables(params)

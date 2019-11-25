@@ -163,7 +163,7 @@ export default class ModelSegment extends Vue {
     sortBy: 'last_modify'
   }
   pagination = {
-    pageOffset: 0,
+    page_offset: 0,
     pageSize: pageCount
   }
   selectedSegmentIds = []
@@ -197,11 +197,11 @@ export default class ModelSegment extends Vue {
     } else {
       this.filter.reverse = true
     }
-    this.filter.sortBy = prop
+    this.filter.sortBy = prop === 'storage' ? 'bytes_size' : prop
     this.loadSegments()
   }
   handleCurrentChange (pager, count) {
-    this.pagination.pageOffset = pager
+    this.pagination.page_offset = pager
     this.pagination.pageSize = count
     this.loadSegments()
   }
@@ -214,10 +214,10 @@ export default class ModelSegment extends Vue {
       const endTime = endDate && transToUTCMs(endDate)
       this.isSegmentLoading = true
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, sortBy, reverse, ...this.pagination })
-      const { size, segments } = await handleSuccessAsync(res)
-      const formatedSegments = formatSegments(this, segments)
+      const { total_size, value } = await handleSuccessAsync(res)
+      const formatedSegments = formatSegments(this, value)
       this.segments = formatedSegments
-      this.totalSegmentCount = size
+      this.totalSegmentCount = total_size
       this.isSegmentLoading = false
     } catch (e) {
       handleError(e)

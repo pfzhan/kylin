@@ -8,19 +8,19 @@
     @close="isShow && closeHandler(false)">
     <el-form :model="form" :rules="rules" ref="form" v-if="isFormShow">
       <!-- 表单：组名 -->
-      <el-form-item :label="$t('kylinLang.common.groupName')" prop="groupName" v-if="isFieldShow('groupName')">
-        <el-input auto-complete="off" @input="value => inputHandler('groupName', value.trim())" :value="form.groupName"></el-input>
+      <el-form-item :label="$t('kylinLang.common.groupName')" prop="group_name" v-if="isFieldShow('group_name')">
+        <el-input auto-complete="off" @input="value => inputHandler('group_name', value.trim())" :value="form.group_name"></el-input>
       </el-form-item>
       <!-- 表单：分配用户 -->
       <el-form-item v-if="isFieldShow('users')">
         <el-transfer
           filterable
           :data="totalUsers"
-          :value="form.selectedUsers"
+          :value="form.selected_users"
           :before-query="queryHandler"
           :total-elements="totalSizes"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
-          @change="value => transferInputHandler('selectedUsers', value)">
+          @change="value => transferInputHandler('selected_users', value)">
             <div class="load-more-uers" slot="left-remote-load-more" v-if="isShowLoadMore" @click="loadMoreUsers(searchValueLeft)">{{$t('kylinLang.common.loadMore')}}</div>
         </el-transfer>
       </el-form-item>
@@ -83,13 +83,13 @@ export default class GroupEditModal extends Vue {
   isFormShow = false
   // Data: el-form表单验证规则
   rules = {
-    groupName: [{
+    group_name: [{
       validator: this.validate(GROUP_NAME), trigger: 'blur', required: true
     }]
   }
 
   // 获取user分页页码
-  pageOffset = 0
+  page_offset = 0
   // 每页请求数量
   pageSize = 1000
 
@@ -116,7 +116,7 @@ export default class GroupEditModal extends Vue {
   }
 
   get isShowLoadMore () {
-    return this.pageOffset < Math.ceil(this.totalUsersSize / this.pageSize) - 1
+    return this.page_offset < Math.ceil(this.totalUsersSize / this.pageSize) - 1
   }
 
   // Computed Method: 计算每个Form的field是否显示
@@ -129,7 +129,7 @@ export default class GroupEditModal extends Vue {
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
-      this.pageOffset = 0
+      this.page_offset = 0
       this.setModal({totalUsers: []})
       this.editType === 'assign' && this.fetchUsers('')
     } else {
@@ -152,7 +152,7 @@ export default class GroupEditModal extends Vue {
   async queryHandler (title, query) {
     const that = this
     if (title === this.$t('willCheckGroup')) {
-      this.pageOffset = 0
+      this.page_offset = 0
       this.setModal({totalUsers: []})
       clearTimeout(this.timer)
       this.timer = setTimeout(function () {
@@ -170,7 +170,7 @@ export default class GroupEditModal extends Vue {
 
   // 匹配搜索结果的用户
   searchResults (content) {
-    return this.form.selectedUsers.filter(user => user.toLowerCase().indexOf(content.toString().toLowerCase()) >= 0)
+    return this.form.selected_users.filter(user => user.toLowerCase().indexOf(content.toString().toLowerCase()) >= 0)
   }
 
   // Action: 修改Form函数
@@ -222,26 +222,26 @@ export default class GroupEditModal extends Vue {
     this.searchValueLeft = typeof value === 'undefined' ? '' : value
 
     const { data: { data } } = await this.loadUsersList({
-      pageSize: this.pageSize,
-      pageOffset: this.pageOffset,
+      page_size: this.pageSize,
+      page_offset: this.page_offset,
       project: this.currentSelectedProject,
       name: value
     })
 
-    const remoteUsers = data.users
+    const remoteUsers = data.value
       .map(user => ({ key: user.username, value: user.username }))
 
-    const filterNotSelected = this.totalUsers.filter(item => !this.form.selectedUsers.includes(item.key))
+    const filterNotSelected = this.totalUsers.filter(item => !this.form.selected_users.includes(item.key))
 
-    const selectedUsersNotInRemote = this.form.selectedUsers
+    const selectedUsersNotInRemote = this.form.selected_users
       .map(sItem => ({key: sItem, value: sItem}))
       .filter(sItem => !remoteUsers.some(user => user.key === sItem.key))
 
-    const searchUserIsSelected = (typeof value !== 'undefined' && value) ? this.form.selectedUsers.filter(user => user.toLowerCase().indexOf(value.toString().toLowerCase()) >= 0) : [...this.totalUsers, ...remoteUsers].filter(user => this.form.selectedUsers.includes(user.key))
+    const searchUserIsSelected = (typeof value !== 'undefined' && value) ? this.form.selected_users.filter(user => user.toLowerCase().indexOf(value.toString().toLowerCase()) >= 0) : [...this.totalUsers, ...remoteUsers].filter(user => this.form.selected_users.includes(user.key))
 
-    this.totalUsersSize = data.size
+    this.totalUsersSize = data.total_size
 
-    typeof value !== 'undefined' && value ? (this.totalSizes = [this.totalUsersSize - searchUserIsSelected.length]) : (this.totalSizes = [data.size - this.form.selectedUsers.length])
+    typeof value !== 'undefined' && value ? (this.totalSizes = [this.totalUsersSize - searchUserIsSelected.length]) : (this.totalSizes = [data.total_size - this.form.selected_users.length])
 
     const users = [ ...filterNotSelected, ...remoteUsers, ...selectedUsersNotInRemote ]
 
@@ -253,7 +253,7 @@ export default class GroupEditModal extends Vue {
   // 判断是否自动加载更多的数据
   autoLoadMoreData (users, value) {
     this.clickLoadMore = false
-    const len = users.filter(user => this.form.selectedUsers.includes(user.key)).length
+    const len = users.filter(user => this.form.selected_users.includes(user.key)).length
     if (users.length - len < this.autoLoadLimit && this.isShowLoadMore) {
       typeof value !== 'undefined' && !value.length ? this.loadMoreUsers() : this.loadMoreUsers(value)
       return
@@ -263,7 +263,7 @@ export default class GroupEditModal extends Vue {
   loadMoreUsers (value) {
     if (this.clickLoadMore) return
     this.clickLoadMore = true
-    this.isShowLoadMore && (this.pageOffset += 1, this.fetchUsers(value))
+    this.isShowLoadMore && (this.page_offset += 1, this.fetchUsers(value))
   }
 }
 </script>

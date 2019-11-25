@@ -106,7 +106,7 @@ Vue.http.interceptors.push(function (request, next) {
   if (request.url.indexOf('kylin/api/j_spring_security_logout') >= 0) {
     request.headers.set('Accept', 'text/html')
   } else {
-    request.headers.set('Accept', 'application/vnd.apache.kylin-v2+json')
+    request.headers.set('Accept', 'application/vnd.apache.kylin-v4+json')
   }
   if (store.state.config.platform === 'cloud' || store.state.config.platform === 'iframe') { // 嵌套ifrme的平台
     nprogress.done()

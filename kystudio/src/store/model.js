@@ -49,7 +49,7 @@ export default {
     [types.LOAD_MODEL_LIST]: function ({ commit }, para) {
       return new Promise((resolve, reject) => {
         api.model.getModelList(para).then((response) => {
-          commit(types.SAVE_MODEL_LIST, { list: response.data.data.models, total: response.data.data.size })
+          commit(types.SAVE_MODEL_LIST, { list: response.data.data.value, total: response.data.total_size })
           resolve(response)
         }, (res) => {
           commit(types.SAVE_MODEL_LIST, { list: [], total: 0 })
@@ -67,7 +67,7 @@ export default {
             resolve()
             return
           }
-          commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.size, modelCount: response.data.data.optimized_model_num})
+          commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.total_size, modelCount: response.data.data.optimized_model_num})
           resolve(response)
         }, (response) => {
           commit(types.CACHE_SPEED_INFO, {reachThreshold: false, queryCount: 0, modelCount: 0})
@@ -195,7 +195,7 @@ export default {
     [types.FETCH_SEGMENTS] ({ commit }, params) {
       const startTime = !isNaN(parseInt(params.startTime)) ? String(params.startTime) : null
       const endTime = !isNaN(parseInt(params.endTime)) ? String(params.endTime) : null
-      return api.model.fetchSegments(params.modelName, params.projectName, startTime, endTime, params.sortBy, params.reverse, params.pageOffset, params.pageSize)
+      return api.model.fetchSegments(params.modelName, params.projectName, startTime, endTime, params.sortBy, params.reverse, params.page_offset, params.pageSize)
     },
     [types.FETCH_CUBOID] ({ commit }, params) {
       return api.model.fetchCuboid(params.modelId, params.projectName, params.cuboidId)

@@ -24,7 +24,7 @@
         plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
       <el-col :span="6">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subjectAlias"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject_alias"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
         </el-input>
       </el-col>
     </el-row>
@@ -491,14 +491,14 @@ export default class JobsList extends Vue {
   idsArr = []
   idsArrCopy = []
   filter = {
-    pageOffset: 0,
-    pageSize: pageCount,
-    timeFilter: 4,
-    jobNames: [],
-    sortBy: 'create_time',
+    page_offset: 0,
+    page_size: pageCount,
+    time_filter: 4,
+    job_names: [],
+    sort_by: 'create_time',
     reverse: true,
     status: '',
-    subjectAlias: ''
+    subject_alias: ''
   }
   waittingJobsFilter = {
     offset: 0,
@@ -545,8 +545,8 @@ export default class JobsList extends Vue {
   getWaittingJobs () {
     this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
       handleSuccess(res, (data) => {
-        this.waitingJob.jobsList = data.data
-        this.waitingJob.jobsSize = data.size
+        this.waitingJob.jobsList = data.value
+        this.waitingJob.jobsSize = data.total_size
       })
     })
   }
@@ -583,10 +583,10 @@ export default class JobsList extends Vue {
         ref="jobTypeFilterPopover"
         placement="bottom"
         popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.filter.jobNames} onInput={val => (this.filter.jobNames = val)} onChange={this.filterChange2}>
+        <el-checkbox-group class="filter-groups" value={this.filter.job_names} onInput={val => (this.filter.job_names = val)} onChange={this.filterChange2}>
           {items}
         </el-checkbox-group>
-        <i class={this.filter.jobNames.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+        <i class={this.filter.job_names.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
       </el-popover>
     </span>)
   }
@@ -661,11 +661,11 @@ export default class JobsList extends Vue {
     return new Promise((resolve, reject) => {
       this.loadJobsList(this.filter).then((res) => {
         handleSuccess(res, (data) => {
-          if (data.size) {
-            this.jobsList = data.jobList.map((m) => {
+          if (data.total_size) {
+            this.jobsList = data.value.map((m) => {
               if (this.selectedJob) {
                 if (m.id === this.selectedJob.id) {
-                  this.getJobDetail({project: this.selectedJob.project, jobId: m.id}).then((res) => {
+                  this.getJobDetail({project: this.selectedJob.project, job_id: m.id}).then((res) => {
                     handleSuccess(res, (data) => {
                       this.selectedJob = m
                       this.selectedJob['details'] = data
@@ -677,7 +677,7 @@ export default class JobsList extends Vue {
               }
               return m
             })
-            this.jobTotal = data.size
+            this.jobTotal = data.total_size
           } else {
             this.jobsList = []
             this.jobTotal = 0
@@ -897,8 +897,8 @@ export default class JobsList extends Vue {
     this.idsArr = []
   }
   currentChange (size, count) {
-    this.filter.pageOffset = size
-    this.filter.pageSize = count
+    this.filter.page_offset = size
+    this.filter.page_size = count
     this.resetSelection()
     this.getJobsList()
     this.closeIt()
@@ -948,7 +948,7 @@ export default class JobsList extends Vue {
     } else {
       this.filter.reverse = true
     }
-    this.filter.sortBy = prop
+    this.filter.sort_by = prop
     this.getJobsList()
   }
   async resume (jobIds, project, isBatch) {
@@ -959,7 +959,7 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    const resumeData = {jobIds: jobIds, project: project, action: 'RESUME', status: this.filter.status}
+    const resumeData = {job_ids: jobIds, project: project, action: 'RESUME', status: this.filter.status}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete resumeData.project
     }
@@ -989,7 +989,7 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    const restartData = {jobIds: jobIds, project: project, action: 'RESTART', status: this.filter.status}
+    const restartData = {job_ids: jobIds, project: project, action: 'RESTART', status: this.filter.status}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete restartData.project
     }
@@ -1019,7 +1019,7 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    const pauseData = {jobIds: jobIds, project: project, action: 'PAUSE', status: this.filter.status}
+    const pauseData = {job_ids: jobIds, project: project, action: 'PAUSE', status: this.filter.status}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
     }
@@ -1049,7 +1049,7 @@ export default class JobsList extends Vue {
       dialogType: 'warning',
       showDetailBtn: false
     })
-    const dropData = {jobIds: jobIds, project: project, status: this.filter.status}
+    const dropData = {job_ids: jobIds, project: project, status: this.filter.status}
     let removeJobType = 'removeJob'
     if (this.$store.state.project.isAllProject && isBatch) {
       delete dropData.project
@@ -1083,7 +1083,7 @@ export default class JobsList extends Vue {
       }
       this.showStep = needShow
       this.selectedJob = row
-      this.getJobDetail({project: this.selectedJob.project, jobId: row.id}).then((res) => {
+      this.getJobDetail({project: this.selectedJob.project, job_id: row.id}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.$set(this.selectedJob, 'details', data)

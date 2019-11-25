@@ -148,7 +148,7 @@ export default class AggregateModal extends Vue {
     if (val) {
       // 拉接口获取之前的高级设置
       let params = {
-        modelId: this.model.uuid,
+        model: this.model.uuid,
         project: this.currentSelectedProject
       }
       try {
@@ -341,7 +341,7 @@ export default class AggregateModal extends Vue {
       }
     })
     this.aggIndexAdvancedMeta.project = this.currentSelectedProject
-    this.aggIndexAdvancedMeta.modelId = this.model.uuid
+    this.aggIndexAdvancedMeta.model_id = this.model.uuid
     this.aggIndexAdvancedMeta.load_data = this.loadData
     this.addAggIndexAdvanced(this.aggIndexAdvancedMeta).then(successCb, errorCb)
   }

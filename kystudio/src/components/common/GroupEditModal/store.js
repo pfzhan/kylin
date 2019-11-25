@@ -13,8 +13,8 @@ const initialState = JSON.stringify({
   callback: null,
   totalUsers: [],
   form: {
-    groupName: '',
-    selectedUsers: []
+    group_name: '',
+    selected_users: []
   }
 })
 
@@ -46,8 +46,8 @@ export default {
       for (const key of Object.keys(state)) {
         switch (key) {
           case 'form':
-            payload.group && (state.form.groupName = payload.group.first)
-            payload.group && (state.form.selectedUsers = payload.group.second)
+            payload.group && (state.form.group_name = payload.group.first)
+            payload.group && (state.form.selected_users = payload.group.second)
             break
           default: {
             payload[key] && (state[key] = payload[key])

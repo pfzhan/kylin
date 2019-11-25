@@ -1,5 +1,5 @@
 export const fieldVisiableMaps = {
-  'new': ['groupName'],
+  'new': ['group_name'],
   'assign': ['users']
 }
 
@@ -14,12 +14,12 @@ export function getSubmitData (that) {
   switch (editType) {
     case 'new':
       return {
-        groupName: form.groupName
+        group_name: form.group_name
       }
     case 'assign':
       return {
-        group: form.groupName,
-        users: form.selectedUsers
+        group: form.group_name,
+        users: form.selected_users
       }
   }
 }

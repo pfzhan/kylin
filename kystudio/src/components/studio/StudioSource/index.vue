@@ -221,7 +221,7 @@ export default class StudioSource extends Vue {
   async submitSample () {
     this.sampleLoading = true
     try {
-      const res = await this.hasSamplingJob({ project: this.currentSelectedProject, qualifiedTableName: this.selectedTable.fullName })
+      const res = await this.hasSamplingJob({ project: this.currentSelectedProject, qualified_table_name: this.selectedTable.fullName })
       const isHasSamplingJob = await handleSuccessAsync(res)
       if (!isHasSamplingJob) {
         this.toSubmitSample()
@@ -240,7 +240,7 @@ export default class StudioSource extends Vue {
   }
   async toSubmitSample () {
     try {
-      const res = await this.submitSampling({ project: this.currentSelectedProject, qualifiedTableName: this.selectedTable.fullName, rows: this.samplingRows })
+      const res = await this.submitSampling({ project: this.currentSelectedProject, qualified_table_name: this.selectedTable.fullName, rows: this.samplingRows })
       await handleSuccessAsync(res)
       this.$message({ type: 'success', message: this.$t('samplingTableJobBeginTips', {tableName: this.selectedTable.fullName}) })
       this.sampleVisible = false
@@ -255,7 +255,7 @@ export default class StudioSource extends Vue {
     const projectName = this.currentSelectedProject
     const databaseName = this.selectedTable.database
     const tableName = this.selectedTable.name
-    const { hasModel, hasJob, modelSize } = await this._getAffectedModelCountAndSize()
+    const { has_model: hasModel, has_job: hasJob, model_size: modelSize } = await this._getAffectedModelCountAndSize()
     if (!hasModel) {
       this.delBtnLoading = true
       try {

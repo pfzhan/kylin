@@ -164,11 +164,11 @@ export default class NewQuery extends Vue {
       offset: pageIndex
     }).then((res) => {
       handleSuccess(res, (data) => {
-        data.saved_queries.forEach((item) => {
+        data.value.forEach((item) => {
           item['isShow'] = false
         })
-        this.savedList = this.savedList.concat(data.saved_queries)
-        this.savedSize = data.size
+        this.savedList = this.savedList.concat(data.value)
+        this.savedSize = data.total_size
       })
     }, (res) => {
       handleError(res)
@@ -259,7 +259,7 @@ export default class NewQuery extends Vue {
     if (this.checkedQueryList.length > 0) {
       this.checkedQueryList.forEach((index) => {
         var queryObj = {
-          acceptPartial: true,
+          accept_partial: true,
           limit: this.listRows,
           offset: 0,
           project: this.currentSelectedProject,

@@ -24,13 +24,13 @@
       <el-table :data="userAccessList" class="user-access-table" border key="user">
         <el-table-column type="expand">
           <template slot-scope="props">
-            <user_access :roleOrName="props.row.roleOrName" :projectName="currentProject" :type="props.row.type"></user_access>
+            <user_access :roleOrName="props.row.role_or_name" :projectName="currentProject" :type="props.row.type"></user_access>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('userOrGroup')" prop="roleOrName">
+        <el-table-column :label="$t('userOrGroup')" prop="role_or_name">
           <template slot-scope="props">
             <i :class="{'el-icon-ksd-table_admin': props.row.type === 'User', 'el-icon-ksd-table_group': props.row.type === 'Group'}"></i>
-            <span>{{props.row.roleOrName}}</span>
+            <span>{{props.row.role_or_name}}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('type')" prop="type"></el-table-column>
@@ -41,7 +41,7 @@
               <i class="el-icon-ksd-table_edit ksd-mr-10 ksd-fs-14" @click="editAuthorUser(scope.row)"></i>
             </el-tooltip><span>
             </span><el-tooltip :content="$t('kylinLang.common.delete')" effect="dark" placement="top">
-              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeAccess(scope.row.id, scope.row.roleOrName, scope.row.promission, !scope.row.sid.grantedAuthority)"></i>
+              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeAccess(scope.row.id, scope.row.role_or_name, scope.row.promission, !scope.row.sid.granted_authority)"></i>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -231,12 +231,12 @@ export default class ProjectAuthority extends Vue {
   serarchChar = ''
   searchLoading = false
   pagination = {
-    pageSize: pageCount,
-    pageOffset: 0
+    page_size: pageCount,
+    page_offset: 0
   }
   pagination1 = {
-    pageSize: pageCount,
-    pageOffset: 0
+    page_size: pageCount,
+    page_offset: 0
   }
   authorizationVisible = false
   authorForm = {name: [], editName: '', role: 'Admin'}
@@ -330,13 +330,13 @@ export default class ProjectAuthority extends Vue {
     }, 500)
   }
   handleCurrentChange (pager, pageSize) {
-    this.pagination.pageOffset = pager
-    this.pagination.pageSize = pageSize
+    this.pagination.page_offset = pager
+    this.pagination.page_size = pageSize
     this.loadAccess()
   }
   handleCurrentChange1 (pager, pageSize) {
-    this.pagination1.pageOffset = pager
-    this.pagination1.pageSize = pageSize
+    this.pagination1.page_offset = pager
+    this.pagination1.page_size = pageSize
     // this.loadUsers(this.currentGroup)
   }
   removeAccess (id, username, promission, principal) {
@@ -358,7 +358,7 @@ export default class ProjectAuthority extends Vue {
     this.accessView = view
   }
   loadUserOrGroup (filterUserName, type) {
-    var para = {data: {pageSize: 100, pageOffset: 0, project: this.projectName}}
+    var para = {data: {page_size: 100, page_offset: 0, project: this.projectName}}
     if (filterUserName) {
       para.data.name = filterUserName
     }
@@ -377,7 +377,7 @@ export default class ProjectAuthority extends Vue {
     this.userTimer = setTimeout(() => {
       this.loadUserOrGroup(filterUserName, 'user').then((res) => {
         handleSuccess(res, (data) => {
-          this.userList = data.sids
+          this.userList = data.value
         })
       }, (res) => {
         handleError(res)
@@ -389,7 +389,7 @@ export default class ProjectAuthority extends Vue {
     this.groupTimer = setTimeout(() => {
       this.loadUserOrGroup(filterUserName, 'group').then((res) => {
         handleSuccess(res, (data) => {
-          this.groupList = data.sids
+          this.groupList = data.value
         })
       }, (res) => {
         handleError(res)
@@ -411,8 +411,8 @@ export default class ProjectAuthority extends Vue {
   editAuthorUser (row) {
     this.isEditAuthor = true
     this.authorizationVisible = true
-    const sids = row.sid.grantedAuthority ? [row.sid.grantedAuthority] : [row.sid.principal]
-    this.accessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sids: sids, accessEntryId: row.id}]
+    const sids = row.sid.granted_authority ? [row.sid.granted_authority] : [row.sid.principal]
+    this.accessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sids: sids, access_entry_id: row.id}]
   }
   submitAuthor () {
     const accessMetas = objectClone(this.accessMetas)
@@ -459,15 +459,15 @@ export default class ProjectAuthority extends Vue {
   loadAccess () {
     const para = {
       data: this.pagination,
-      projectId: this.currentProjectId
+      project_id: this.currentProjectId
     }
     para.data.name = this.serarchChar
     return this.getProjectAccess(para).then((res) => {
       handleSuccess(res, (data) => {
-        this.userAccessList = data.sids
-        this.totalSize = data.size
+        this.userAccessList = data.value
+        this.totalSize = data.total_size
         this.settleAccessList = this.userAccessList && this.userAccessList.map((access) => {
-          access.roleOrName = access.sid.grantedAuthority || access.sid.principal
+          access.role_or_name = access.sid.granted_authority || access.sid.principal
           access.type = access.sid.principal ? 'User' : 'Group'
           access.promission = this.showMask[access.permission.mask]
           access.accessDetails = []
@@ -482,7 +482,7 @@ export default class ProjectAuthority extends Vue {
     this.loadAccess()
     this.getUserAccessByProject({
       project: this.currentProject,
-      notCache: true
+      not_cache: true
     }).then((res) => {
       handleSuccess(res, (data) => {
         this.projectAccess = data

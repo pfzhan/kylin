@@ -93,23 +93,23 @@ import locales from './locales'
 export default class TableStatistics extends Vue {
   filterText = ''
   pagination = {
-    pageOffset: 0,
+    page_offset: 0,
     pageSize: 10
   }
   get startIndex () {
-    const { pageOffset, pageSize } = this.pagination
-    return pageOffset * pageSize + 1
+    const { page_offset, pageSize } = this.pagination
+    return page_offset * pageSize + 1
   }
   get columns () {
     return this.table.columns
       .filter(column => column.name.toUpperCase().includes(this.filterText.toUpperCase()))
   }
   get currentColumns () {
-    const { pageOffset, pageSize } = this.pagination
-    return this.columns.slice(pageOffset * pageSize, pageOffset * pageSize + pageSize)
+    const { page_offset, pageSize } = this.pagination
+    return this.columns.slice(page_offset * pageSize, page_offset * pageSize + pageSize)
   }
-  handleCurrentChange (pageOffset, pageSize) {
-    this.pagination.pageOffset = pageOffset
+  handleCurrentChange (page_offset, pageSize) {
+    this.pagination.page_offset = page_offset
     this.pagination.pageSize = pageSize
   }
 }

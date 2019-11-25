@@ -6,10 +6,10 @@ Vue.use(VueResource)
 
 export default {
   getJobsList: (params) => {
-    return Vue.resource(apiUrl + 'jobs{?jobNames}').get(params)
+    return Vue.resource(apiUrl + 'jobs{?job_names}').get(params)
   },
   getJobDetail: (para) => {
-    return Vue.resource(apiUrl + 'jobs/detail').get(para)
+    return Vue.resource(apiUrl + 'jobs/' + para.job_id + '/detail').get(para)
   },
   losdWaittingJobModels: (para) => {
     return Vue.resource(apiUrl + 'jobs/waiting_jobs/models').get(para)
@@ -39,10 +39,10 @@ export default {
     return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
   removeJob: (para) => {
-    return Vue.resource(apiUrl + 'jobs/' + para.project + '{?jobIds}').delete(para)
+    return Vue.resource(apiUrl + 'jobs' + '{?job_ids}' + '{&project}').delete(para)
   },
   removeJobForAll: (para) => {
-    return Vue.resource(apiUrl + 'jobs' + '{?jobIds}').delete(para)
+    return Vue.resource(apiUrl + 'jobs' + '{?job_ids}').delete(para)
   },
   loadDashboardJobInfo: (para) => {
     return Vue.resource(apiUrl + 'jobs/statistics').get(para)

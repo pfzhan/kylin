@@ -89,7 +89,7 @@
           <div class="error_messages" v-if="isWhiteErrorMessage">
             <div v-for="(mes, index) in whiteMessages" :key="index">
               <div class="label">{{$t('messages')}}</div>
-              <p>{{mes.incapableReason}}</p>
+              <p>{{mes.incapable_reason}}</p>
               <div class="label ksd-mt-10">{{$t('suggestion')}}</div>
               <p>{{mes.suggestion}}</p>
             </div>
@@ -625,7 +625,7 @@ export default class UploadSqlModel extends Vue {
     } else {
       this.isWhiteErrorMessage = true
       this.inputHeight = 424 - 140
-      this.whiteMessages = sqlObj.sqlAdvices
+      this.whiteMessages = sqlObj.sql_advices
     }
     let formatterSql
     if (this.sqlFormatterObj[sqlObj.id]) {
@@ -704,14 +704,14 @@ export default class UploadSqlModel extends Vue {
               this.sqlFormatterObj[this.activeSqlObj.id] = this.whiteSql
               if (!this.whiteSqlData.data[key].capable) {
                 this.whiteSqlData.data[key].capable = true
-                this.whiteSqlData.data[key].sqlAdvices = []
+                this.whiteSqlData.data[key].sql_advices = []
                 this.whiteSqlData.capable_sql_num++
               }
               break
             }
           }
         } else {
-          this.whiteMessages = data.sqlAdvices
+          this.whiteMessages = data.sql_advices
           this.inputHeight = 424 - 140
           this.isWhiteErrorMessage = true
         }

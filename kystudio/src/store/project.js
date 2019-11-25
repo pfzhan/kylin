@@ -91,24 +91,24 @@ export default {
   actions: {
     [types.LOAD_PROJECT_LIST]: function ({ commit }, params) {
       return api.project.getProjectList(params).then((response) => {
-        commit(types.SAVE_PROJECT_LIST, {list: response.data.data.projects, size: response.data.data.size})
+        commit(types.SAVE_PROJECT_LIST, {list: response.data.data.value, size: response.data.data.total_size})
       })
     },
     [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit, state }, params) {
       return new Promise((resolve, reject) => {
-        api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
-          commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
-          let pl = response.data.data.projects && response.data.data.projects.length || 0
+        api.project.getProjectList({page_offset: 0, page_size: 100000}).then((response) => {
+          commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.value})
+          let pl = response.data.data && response.data.data.value && response.data.data.value.length || 0
           if (!((params && params.ignoreAccess) || pl === 0)) {
             let curProjectUserAccessPromise = dispatch(types.USER_ACCESS, {project: state.selected_project})
             let curProjectConfigPromise = dispatch(types.FETCH_PROJECT_SETTINGS, {projectName: state.selected_project})
             Promise.all([curProjectUserAccessPromise, curProjectConfigPromise]).then(() => {
-              resolve(response.data.data.projects)
+              resolve(response.data.data.value)
             }, () => {
-              resolve(response.data.data.projects)
+              resolve(response.data.data.value)
             })
           } else {
-            resolve(response.data.data.projects)
+            resolve(response.data.data.value)
           }
         }, () => {
           commit(types.REMOVE_ALL_PROJECTS)
@@ -138,7 +138,7 @@ export default {
       return api.project.editProjectAccess(accessData, id)
     },
     [types.GET_PROJECT_ACCESS]: function ({ commit }, para) {
-      return api.project.getProjectAccess(para.projectId, para.data)
+      return api.project.getProjectAccess(para.project_id, para.data)
     },
     [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid, userName, principal}) {
       return api.project.delProjectAccess(id, aid, userName, principal)

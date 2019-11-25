@@ -158,8 +158,8 @@
           project: this.currentSelectedProject,
           model: this.modelDesc.uuid,
           id: row.id,
-          pageOffset: page.curpage, // 每次展开默认在第一页
-          pageSize: this.perPageSize,
+          page_offset: page.curpage, // 每次展开默认在第一页
+          page_size: this.perPageSize,
           content: this.curTableInTableKeyword[row.item_id]
         }
         const response = await this.getAggIndex(params)

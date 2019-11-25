@@ -300,10 +300,10 @@ export default class DataSourceBar extends Vue {
     this.initTree()
   }
   addPagination (data) {
-    data.pagination.pageOffset++
+    data.pagination.page_offset++
   }
   clearPagination (data) {
-    data.pagination.pageOffset = 0
+    data.pagination.page_offset = 0
   }
   showLoading (data) {
     data.isLoading = true
@@ -336,10 +336,10 @@ export default class DataSourceBar extends Vue {
     this.isLoadingTreeData = true
     // 默认获取 this.datasources 的第一个元素拿到相应参数，发送接口获取数据，暂不考虑多数据源
     let params = {
-      projectName: this.datasources[0].projectName,
-      sourceType: this.datasources[0].sourceType,
-      pageOffset: 0,
-      pageSize: pageSizeMapping.TABLE_TREE,
+      project_name: this.datasources[0].projectName,
+      source_type: this.datasources[0].sourceType,
+      page_offset: 0,
+      page_size: pageSizeMapping.TABLE_TREE,
       table: filterText || ''
     }
     const response = await this.fetchDBandTables(params)

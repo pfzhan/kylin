@@ -1,7 +1,7 @@
 <template>
   <div class="setting-model">
     <div  class="ksd-mb-10 ksd-fright">
-      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.modelName"  @input="searchModels">
+      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.model_name"  @input="searchModels">
       </el-input>
     </div>
     <el-table
@@ -170,9 +170,9 @@ export default class SettingStorage extends Vue {
   modelList = []
   modelListSize = 0
   filter = {
-    pageOffset: 0,
-    pageSize: pageCount,
-    modelName: ''
+    page_offset: 0,
+    page_size: pageCount,
+    model_name: ''
   }
   ST = null
   editModelSetting = false
@@ -366,12 +366,12 @@ export default class SettingStorage extends Vue {
   async getConfigList () {
     const res = await this.loadModelConfigList(Object.assign({}, {project: this.currentSelectedProject}, this.filter))
     const resData = await handleSuccessAsync(res)
-    this.modelList = resData.model_config
-    this.modelListSize = resData.size
+    this.modelList = resData.value
+    this.modelListSize = resData.total_size
   }
   currentChange (size, count) {
-    this.filter.pageOffset = size
-    this.filter.pageSize = count
+    this.filter.page_offset = size
+    this.filter.page_size = count
     this.getConfigList()
   }
   searchModels () {

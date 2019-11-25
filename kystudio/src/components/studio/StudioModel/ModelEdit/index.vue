@@ -881,10 +881,10 @@ export default class ModelEdit extends Vue {
   }
   initModelDesc (cb) {
     if (this.extraoption.modelName && this.extraoption.action === 'edit') {
-      this.getModelByModelName({model: this.extraoption.modelName, project: this.extraoption.project}).then((response) => {
+      this.getModelByModelName({model_name: this.extraoption.modelName, project: this.extraoption.project}).then((response) => {
         handleSuccess(response, (data) => {
-          if (data.models && data.models.length) {
-            this.modelData = data.models[0]
+          if (data && data.value && data.value.length) {
+            this.modelData = data.value[0]
             this.modelData.project = this.currentSelectedProject
             cb(this.modelData)
           } else {

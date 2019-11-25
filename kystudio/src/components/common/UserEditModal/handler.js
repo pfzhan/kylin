@@ -38,7 +38,7 @@ export function getSubmitData (that) {
       return {
         uuid: form.uuid,
         username: form.username,
-        defaultPassword: form.defaultPassword,
+        default_password: form.default_password,
         disabled: form.disabled,
         authorities: form.authorities
       }

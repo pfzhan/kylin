@@ -579,7 +579,7 @@ export default class UserAccess extends Vue {
     this.tables = []
     this.rows = []
     this.columns = []
-    const response = await this.getAccessDetailsByUser({data: {authorizedOnly: authorizedOnly}, roleOrName: this.roleOrName, type: this.type, projectName: this.projectName})
+    const response = await this.getAccessDetailsByUser({data: {authorized_only: authorizedOnly, project: this.projectName}, roleOrName: this.roleOrName, type: this.type, projectName: this.projectName})
     const result = await handleSuccessAsync(response)
     if (result.length) {
       this.allTables = objectClone(result)

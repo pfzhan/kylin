@@ -280,9 +280,9 @@ export default class TableIndex extends Vue {
     }).then((res) => {
       handleSuccess(res, (data) => {
         this.tableIndexBaseList.splice(0, this.tableIndexBaseList.length - 1)
-        this.tableIndexBaseList = data.table_indexs
+        this.tableIndexBaseList = data.value
         setTimeout(() => {
-          this.currentShowTableIndex = data.table_indexs[data.table_indexs.length - 1]
+          this.currentShowTableIndex = data.value[data.value.length - 1]
         }, 0)
       })
     }, (res) => {

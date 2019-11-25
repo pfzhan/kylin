@@ -581,6 +581,25 @@ export function filterInjectScript (str) {
   }
   return ''
 }
+export function camelToUnderline (str) {
+  var temp = str.replace(/[A-Z]/g, function (match) {
+    return '_' + match.toLowerCase()
+  })
+  if (temp.slice(0, 1) === '_') { // 如果首字母是大写，执行replace时会多一个_，这里需要去掉
+    temp = temp.slice(1)
+  }
+  return temp
+}
+export function CamelToUnderlineForRequestParams (json) {
+  let newJson = {}
+  for (let key in json) {
+    if (json.hasOwnProperty(key)) {
+      let newKey = camelToUnderline(key)
+      newJson[newKey] = json[key]
+    }
+  }
+  return newJson
+}
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }

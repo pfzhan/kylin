@@ -33,7 +33,7 @@ export default {
   actions: {
     [types.LOAD_USERS_LIST]: function ({ commit, state }, para) {
       return api.user.getUsersList(para).then((response) => {
-        commit(types.SAVE_USERS_LIST, { list: response.data.data.users, size: response.data.data.size })
+        commit(types.SAVE_USERS_LIST, { list: response.data.data.value, size: response.data.data.total_size })
         return response
       }, (res) => {
         state.usersList = []
@@ -82,7 +82,7 @@ export default {
     },
     [types.GET_USERS_BY_GROUPNAME]: function ({ commit, state }, para) {
       return api.user.getUsersByGroupName(para).then((response) => {
-        commit(types.SAVE_USERS_LIST, { list: response.data.data.groupMembers, size: response.data.data.size })
+        commit(types.SAVE_USERS_LIST, { list: response.data.data.value, size: response.data.data.total_size })
         return response
       }, (res) => {
         state.usersList = []
@@ -92,13 +92,13 @@ export default {
     },
     [types.GET_GROUP_USERS_LIST]: function ({ commit }, para) {
       return api.user.getUserGroupList(para).then((response) => {
-        commit(types.SAVE_GROUP_USERS_LIST, { list: response.data.data.usersWithGroup, size: response.data.data.size })
+        commit(types.SAVE_GROUP_USERS_LIST, { list: response.data.data.value, size: response.data.data.total_size })
       })
     },
     [types.USER_ACCESS]: function ({ commit }, para) {
       return new Promise((resolve, reject) => {
         api.user.userAccess({project: para.project}).then((res) => {
-          if (!para.notCache) {
+          if (!para.not_cache) {
             commit(types.SAVE_CURRENT_USER_ACCESS, {access: res.data.data})
           }
           resolve(res)

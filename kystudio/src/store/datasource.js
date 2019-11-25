@@ -93,13 +93,13 @@ export default {
       return api.datasource.loadDataSourceExt({ext: true, project: para.project, table: para.tableName})
     },
     [types.LOAD_HIVEBASIC_DATABASE_TABLES]: function ({commit}, para) {
-      return api.datasource.loadBasicLiveDatabaseTables(para.projectName, para.sourceType, para.databaseName, para.table, para.pageOffset, para.pageSize)
+      return api.datasource.loadBasicLiveDatabaseTables(para.projectName, para.sourceType, para.databaseName, para.table, para.page_offset, para.page_size)
     },
     [types.LOAD_HIVEBASIC_DATABASE]: function ({commit}, para) {
       return api.datasource.loadBasicLiveDatabase(para.projectName, para.sourceType)
     },
     [types.LOAD_HIVE_TABLES]: function ({commit}, para) {
-      return api.datasource.loadChildTablesOfDatabase(para.projectName, para.sourceType, para.databaseName, para.tableName, para.pageOffset, para.pageSize)
+      return api.datasource.loadChildTablesOfDatabase(para.projectName, para.sourceType, para.databaseName, para.tableName, para.page_offset, para.pageSize)
     },
     [types.LOAD_HIVE_IN_PROJECT]: function ({commit}, para) {
       return api.datasource.loadHiveInProject(para)
@@ -219,7 +219,7 @@ export default {
       return api.datasource.cancelAclSetOfTable(para.tableName, para.project, para.userName, para.type)
     },
     [types.GET_ACL_BLACKLIST_TABLE]: function ({commit}, para) {
-      return api.datasource.getAclBlackListOfTable(para.tableName, para.project, para.type, para.otherPara)
+      return api.datasource.getAclBlackListOfTable(para.tableName, para.project, para.type, para.other_para)
     },
     // acl column
     [types.GET_ACL_SET_COLUMN]: function ({commit}, para) {
@@ -235,7 +235,7 @@ export default {
       return api.datasource.cancelAclSetOfColumn(para.tableName, para.project, para.userName, para.type)
     },
     [types.GET_ACL_WHITELIST_COLUMN]: function ({commit}, para) {
-      return api.datasource.getAclWhiteListOfColumn(para.tableName, para.project, para.type, para.otherPara)
+      return api.datasource.getAclWhiteListOfColumn(para.tableName, para.project, para.type, para.other_para)
     },
     // acl row
     [types.GET_ACL_SET_ROW]: function ({commit}, para) {
@@ -251,7 +251,7 @@ export default {
       return api.datasource.cancelAclSetOfRow(para.tableName, para.project, para.userName, para.type)
     },
     [types.GET_ACL_WHITELIST_ROW]: function ({commit}, para) {
-      return api.datasource.getAclWhiteListOfRow(para.tableName, para.project, para.type, para.otherPara)
+      return api.datasource.getAclWhiteListOfRow(para.tableName, para.project, para.type, para.other_para)
     },
     [types.PREVIEW_ACL_SET_ROW_SQL]: function ({commit}, para) {
       return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)
@@ -263,19 +263,19 @@ export default {
       return api.datasource.saveDataRange(body)
     },
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
-      return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName, para.modelName, para.pageOffset, para.pageSize)
+      return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName, para.modelName, para.page_offset, para.pageSize)
     },
     [types.FETCH_DB_AND_TABLES]: function ({commit}, para) { // 获取db 和 tables，参数：projectName，页码，每页条数，搜索关键字，数据源类型
-      return api.datasource.fetchDBandTables(para.projectName, para.pageOffset, para.pageSize, para.table, para.sourceType)
+      return api.datasource.fetchDBandTables(para.project_name, para.page_offset, para.page_size, para.table, para.source_type)
     },
     [types.FETCH_DATABASES]: function ({commit}, para) {
       return api.datasource.fetchDatabases(para.projectName, para.sourceType)
     },
     [types.FETCH_TABLES]: function ({commit}, para) {
-      return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.pageOffset, para.pageSize, para.isFuzzy, para.isExt)
+      return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.page_offset, para.pageSize, para.isFuzzy, para.isExt)
         .then((response) => {
           if (!para.isFuzzy && !para.isDisableCache) {
-            commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.pageOffset === 0 })
+            commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.page_offset === 0 })
           }
           return response
         })

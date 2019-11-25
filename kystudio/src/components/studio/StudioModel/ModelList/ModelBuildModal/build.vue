@@ -187,7 +187,7 @@
     }
     _buildModel ({start, end, modelId}) {
       this.buildModel({
-        modelId: modelId,
+        model_id: modelId,
         start: start,
         end: end,
         project: this.currentSelectedProject

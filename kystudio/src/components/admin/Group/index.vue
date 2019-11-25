@@ -97,8 +97,8 @@ import { handleError, kapConfirm } from 'util/business'
 })
 export default class SecurityGroup extends Vue {
   pagination = {
-    pageSize: pageCount,
-    pageOffset: 0
+    page_size: pageCount,
+    page_offset: 0
   }
   filterTimer = null
 
@@ -136,7 +136,7 @@ export default class SecurityGroup extends Vue {
   async dropGroup (groupName) {
     try {
       await kapConfirm(this.$t('confirmDelGroup', {groupName: groupName}), null, this.$t('delGroupTitle'))
-      await this.delGroup({groupName: groupName})
+      await this.delGroup({group_name: groupName})
       await this.loadGroupUsers()
     } catch (e) {
       e !== 'cancel' && handleError(e)
@@ -146,7 +146,7 @@ export default class SecurityGroup extends Vue {
   loadGroupUsers (filterGroupName) {
     this.loadGroupUsersList({
       ...this.pagination,
-      userGroupName: filterGroupName
+      user_group_name: filterGroupName
     }).then(() => {
     }, (res) => {
       handleError(res)
@@ -154,8 +154,8 @@ export default class SecurityGroup extends Vue {
   }
 
   handleCurrentChange (pager, pageSize) {
-    this.pagination.pageOffset = pager
-    this.pagination.pageSize = pageSize
+    this.pagination.page_offset = pager
+    this.pagination.page_size = pageSize
     this.loadGroupUsers()
   }
 }

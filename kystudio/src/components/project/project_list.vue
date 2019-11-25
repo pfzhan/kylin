@@ -145,8 +145,8 @@ export default {
       this.$refs.projectForm.$emit('projectFormValid')
     },
     handleCurrentChange (currentPage, pageSize) {
-      this.filterData.pageOffset = currentPage
-      this.filterData.pageSize = pageSize
+      this.filterData.page_offset = currentPage
+      this.filterData.page_size = pageSize
       this.loadProjects(this.filterData)
     },
     async newProject () {
@@ -227,7 +227,7 @@ export default {
       selected_project: localStorage.getItem('selected_project'),
       projectWidth: '440px',
       filterTimer: null,
-      filterData: {pageOffset: 0, pageSize: pageCount, exact: false, project: ''}
+      filterData: {page_offset: 0, page_size: pageCount, exact: false, project: ''}
     }
   },
   components: {

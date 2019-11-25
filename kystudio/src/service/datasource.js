@@ -17,15 +17,15 @@ export default {
   loadDataSourceExt: (para) => {
     return Vue.resource(apiUrl + 'tables').get(para)
   },
-  loadBasicLiveDatabaseTables: (project, datasourceType, database, table, pageOffset, pageSize) => {
-    return Vue.resource(apiUrl + 'tables/project_table_names').get({project, datasourceType, database, table, pageOffset, pageSize})
+  loadBasicLiveDatabaseTables: (project, datasourceType, database, table, page_offset, pageSize) => {
+    return Vue.resource(apiUrl + 'tables/project_table_names').get({project, data_source_type: datasourceType, database, table, page_offset, page_size: pageSize})
   },
   loadBasicLiveDatabase: (project, datasourceType) => {
     // return Vue.resource(apiUrl + 'tables/hive').get()
-    return Vue.resource(apiUrl + 'tables/databases').get({project, datasourceType})
+    return Vue.resource(apiUrl + 'tables/databases').get({project, datasource_type: datasourceType})
   },
-  loadChildTablesOfDatabase: (project, datasourceType, database, table, pageOffset, pageSize) => {
-    return Vue.resource(apiUrl + 'tables/names').get({project, datasourceType, database, table, pageOffset, pageSize})
+  loadChildTablesOfDatabase: (project, datasourceType, database, table, page_offset, pageSize) => {
+    return Vue.resource(apiUrl + 'tables/names').get({project, data_source_type: datasourceType, database, table, page_offset, page_size: pageSize})
   },
   loadHiveInProject: (para) => {
     return Vue.resource(apiUrl + 'tables').save(para)
@@ -65,7 +65,7 @@ export default {
     return Vue.resource(apiUrl + 'query/saved_queries').get(para)
   },
   deleteQuery: (para) => {
-    return Vue.resource(apiUrl + 'query/saved_queries/' + para.project + '/' + para.id).delete()
+    return Vue.resource(apiUrl + 'query/saved_queries/' + para.id + '?project=' + para.project).delete()
   },
   getRules: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
@@ -116,70 +116,70 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').get(para)
   },
   deleteBlack: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').delete(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/blacklist/' + para.id).delete(para)
   },
   getCandidateList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/candidates').get(para)
   },
   getEncoding: () => {
-    return Vue.resource(apiUrl + 'cubes/validEncodings').get()
+    return Vue.resource(apiUrl + 'cubes/valid_encodings').get()
   },
   getEncodingMatchs: () => {
     return Vue.resource(apiUrl + 'encodings/valid_encodings').get()
   },
   collectSampleData: (para) => {
-    return Vue.resource(apiUrl + 'table_ext/' + para.project + '/' + para.tableName + '/sample_job').save(para.data)
+    return Vue.resource(apiUrl + 'table_ext/' + para.tableName + '/sample_job?project=' + para.project).save(para.data)
   },
   getTableJob: (tableName, project) => {
-    return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName + '/job').get()
+    return Vue.resource(apiUrl + 'table_ext/' + tableName + '/job?project=' + project).get()
   },
   // acl
   getAclOfTable: (tableName, project, type, pager) => {
-    return Vue.resource(apiUrl + 'acl/table/paged/' + project + '/' + tableName).get(pager)
+    return Vue.resource(apiUrl + 'acl/table/paged/' + tableName + '?project=' + project).get(pager)
   },
   getAclBlackListOfTable: (tableName, project, type, otherPara) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/black/' + tableName).get(otherPara)
+    return Vue.resource(apiUrl + 'acl/table/' + type + '/black/' + tableName + '?project=' + project).get(otherPara)
   },
   saveAclSetOfTable: (tableName, project, userName, type) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/' + tableName + '/' + userName).save()
+    return Vue.resource(apiUrl + 'acl/table/' + type + '/' + tableName + '/' + userName + '?project=' + project).save()
   },
   cancelAclSetOfTable: (tableName, project, userName, type) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/' + tableName + '/' + userName).delete()
+    return Vue.resource(apiUrl + 'acl/table/' + type + '/' + tableName + '/' + userName + '?project=' + project).delete()
   },
   // column
   getAclOfColumn: (tableName, project, type, pager) => {
-    return Vue.resource(apiUrl + 'acl/column/paged/' + project + '/' + tableName).get(pager)
+    return Vue.resource(apiUrl + 'acl/column/paged/' + tableName + '?project=' + project).get(pager)
   },
   getAclWhiteListOfColumn: (tableName, project, type, otherPara) => {
-    return Vue.resource(apiUrl + 'acl/column/white/' + project + '/' + type + '/' + tableName).get(otherPara)
+    return Vue.resource(apiUrl + 'acl/column/white/' + type + '/' + tableName + '?project=' + project).get(otherPara)
   },
   saveAclSetOfColumn: (tableName, project, userName, columnList, type) => {
-    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).save(columnList)
+    return Vue.resource(apiUrl + 'acl/column/' + type + '/' + tableName + '/' + userName + '?project=' + project).save(columnList)
   },
   updateAclSetOfColumn: (tableName, project, userName, columnList, type) => {
-    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).update(columnList)
+    return Vue.resource(apiUrl + 'acl/column/' + type + '/' + tableName + '/' + userName + '?project=' + project).update(columnList)
   },
   cancelAclSetOfColumn: (tableName, project, userName, type) => {
-    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).delete()
+    return Vue.resource(apiUrl + 'acl/column/' + type + '/' + tableName + '/' + userName + '?project=' + project).delete()
   },
   // row
   getAclOfRow: (tableName, project, type, pager) => {
-    return Vue.resource(apiUrl + 'acl/row/paged/' + project + '/' + tableName).get(pager)
+    return Vue.resource(apiUrl + 'acl/row/paged/' + tableName + '?project=' + project).get(pager)
   },
   getAclWhiteListOfRow: (tableName, project, type, otherPara) => {
-    return Vue.resource(apiUrl + 'acl/row/white/' + project + '/' + type + '/' + tableName).get(otherPara)
+    return Vue.resource(apiUrl + 'acl/row/white/' + type + '/' + tableName + '?project=' + project).get(otherPara)
   },
   saveAclSetOfRow: (tableName, project, userName, conditions, type) => {
-    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).save(conditions)
+    return Vue.resource(apiUrl + 'acl/row/' + type + '/' + tableName + '/' + userName + '?project=' + project).save(conditions)
   },
   updateAclSetOfRow: (tableName, project, userName, conditions, type) => {
-    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).update(conditions)
+    return Vue.resource(apiUrl + 'acl/row/' + type + '/' + tableName + '/' + userName + '?project=' + project).update(conditions)
   },
   cancelAclSetOfRow: (tableName, project, userName, type) => {
-    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).delete()
+    return Vue.resource(apiUrl + 'acl/row/' + type + '/' + tableName + '/' + userName + '?project=' + project).delete()
   },
   previewAclSetOfRowSql: (tableName, project, userName, conditions) => {
-    return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName).save(conditions)
+    return Vue.resource(apiUrl + 'acl/row/preview/' + tableName + '?project=' + project).save(conditions)
   },
   saveTablePartition (body) {
     return Vue.resource(apiUrl + 'tables/partition_key').save(body)
@@ -187,30 +187,30 @@ export default {
   saveDataRange (body) {
     return Vue.resource(apiUrl + 'tables/data_range').save(body)
   },
-  fetchRelatedModels (project, table, model, pageOffset, pageSize) {
-    return Vue.resource(apiUrl + 'models').get({project, table, model, pageOffset, pageSize, withJobStatus: false})
+  fetchRelatedModels (project, table, model, page_offset, pageSize) {
+    return Vue.resource(apiUrl + 'models').get({project, table, model, page_offset, page_size: pageSize, with_job_status: false})
   },
-  fetchTables (project, database, table, pageOffset, pageSize, isFuzzy, ext) {
-    return Vue.resource(apiUrl + 'tables').get({project, database, table, pageOffset, pageSize, isFuzzy, ext})
+  fetchTables (project, database, table, page_offset, pageSize, isFuzzy, ext) {
+    return Vue.resource(apiUrl + 'tables').get({project, database, table, page_offset, page_size: pageSize, is_fuzzy: isFuzzy, ext})
   },
   fetchDatabases (project, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasourceType})
+    return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasource_type: datasourceType})
   },
-  fetchDBandTables (project, pageOffset, pageSize, table, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/project_tables').get({project, pageOffset, pageSize, table, datasourceType})
+  fetchDBandTables (project, page_offset, pageSize, table, datasourceType) {
+    return Vue.resource(apiUrl + 'tables/project_tables').get({project, page_offset, page_size: pageSize, table, datasource_type: datasourceType})
   },
   reloadHiveDBAndTables (para) {
-    return Vue.resource(apiUrl + 'tables/reload_hive_tablename').get(para)
+    return Vue.resource(apiUrl + 'tables/reload_hive_table_name').get(para)
   },
   updateTopTable (project, table, top) {
     return Vue.resource(apiUrl + 'tables/top').save({project, table, top})
   },
   deleteTable (project, database, table, cascade) {
     const para = { cascade }
-    return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete(para)
+    return Vue.resource(apiUrl + `tables/${database}/${table}?project=${project}`).delete(para)
   },
   prepareUnload (para) {
-    return Vue.resource(apiUrl + `tables/${para.projectName}/${para.databaseName}/${para.tableName}/prepare_unload`).get()
+    return Vue.resource(apiUrl + `tables/${para.databaseName}/${para.tableName}/prepare_unload?project=${para.projectName}`).get()
   },
   fetchChangeTypeInfo (project, table, action) {
     return Vue.resource(apiUrl + `models/affected_models`).get({ project, table, action })
@@ -219,22 +219,22 @@ export default {
     return Vue.resource(apiUrl + `tables/affected_data_range`).get({ project, table, start, end })
   },
   freshRangeData (project, table, refreshStart, refreshEnd, affectedStart, affectedEnd) {
-    return Vue.resource(apiUrl + `tables/data_range`).update({ project, table, refreshStart, refreshEnd, affectedStart, affectedEnd })
+    return Vue.resource(apiUrl + `tables/data_range`).update({ project, table, refresh_start: refreshStart, refresh_end: refreshEnd, affected_start: affectedStart, affected_end: affectedEnd })
   },
   fetchMergeConfig (project, model, table) {
     return Vue.resource(apiUrl + `tables/auto_merge_config`).get({ project, model, table })
   },
   updateMergeConfig (project, model, table, autoMergeEnabled, autoMergeTimeRanges, volatileRangeEnabled, volatileRangeNumber, volatileRangeType) {
-    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, autoMergeEnabled, autoMergeTimeRanges, volatileRangeNumber, volatileRangeType, volatileRangeEnabled })
+    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, auto_merge_enabled: autoMergeEnabled, auto_merge_time_ranges: autoMergeTimeRanges, volatile_range_number: volatileRangeNumber, volatile_range_type: volatileRangeType, volatile_range_enabled: volatileRangeEnabled })
   },
   fetchPushdownConfig (project, table) {
     return Vue.resource(apiUrl + `tables/pushdown_mode`).get({ project, table })
   },
   updatePushdownConfig (project, table, pushdownRangeLimited) {
-    return Vue.resource(apiUrl + `tables/pushdown_mode`).update({ project, table, pushdownRangeLimited })
+    return Vue.resource(apiUrl + `tables/pushdown_mode`).update({ project, table, pushdown_range_limited: pushdownRangeLimited })
   },
   discardTableModel (project, modelId, status) {
-    return Vue.resource(apiUrl + `models/management_type`).update({ project, modelId })
+    return Vue.resource(apiUrl + `models/${modelId}/management_type`).update({ project, model_id: modelId })
   },
   fetchNewestTableRange (project, table) {
     return Vue.resource(apiUrl + `tables/data_range/latest_data`).get({ project, table })

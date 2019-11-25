@@ -138,7 +138,7 @@ export function getDatabaseObj (that, datasource, databaseItem) {
     projectName,
     parent: datasource,
     pagination: {
-      pageOffset: 0,
+      page_offset: 0,
       pageSize: pageSizeMapping.TABLE_TREE
     }
   }
@@ -161,7 +161,7 @@ export function getDatabaseTablesObj (that, datasource, databaseItem) {
     projectName,
     parent: datasource,
     pagination: {
-      pageOffset: 0,
+      page_offset: 0,
       pageSize: pageSizeMapping.TABLE_TREE
     }
   }

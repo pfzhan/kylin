@@ -3,7 +3,7 @@ export function _getPartitionInfo (project, table, partitionColumn, format) {
     project: project.name,
     table: `${table.database}.${table.name}`,
     column: partitionColumn,
-    partitionColumnFormat: format
+    partition_column_format: format
   }
 }
 

@@ -65,9 +65,9 @@ export default class ModelAddModal extends Vue {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else {
-      this.getModelByModelName({model: value, project: this.currentSelectedProject}).then((response) => {
+      this.getModelByModelName({model_name: value, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
-          if (data.models && data.models.length) {
+          if (data && data.value && data.value.length) {
             callback(new Error(this.$t('kylinLang.model.sameModelName')))
           } else {
             callback()

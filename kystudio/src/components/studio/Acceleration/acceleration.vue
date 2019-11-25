@@ -42,37 +42,37 @@
           <span slot="label">{{$t('waitingList', {num: listSizes.waiting})}}</span>
           <acceleration_table
             v-if="activeList=='waiting'"
-            :favoriteTableData="favQueList.favorite_queries"
+            :favoriteTableData="favQueList.value"
             v-on:sortTable="sortFavoriteList"
             v-on:filterFav="filterFav"
             v-on:pausePolling="pausePolling"
             v-on:reCallPolling="reCallPolling"
             tab="waiting"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="not_accelerated">
           <span slot="label">{{$t('not_accelerated', {num: listSizes.not_accelerated})}}</span>
           <acceleration_table
             v-if="activeList=='not_accelerated'"
-            :favoriteTableData="favQueList.favorite_queries"
+            :favoriteTableData="favQueList.value"
             v-on:sortTable="sortFavoriteList"
             v-on:filterFav="filterFav"
             v-on:pausePolling="pausePolling"
             v-on:reCallPolling="reCallPolling"
             tab="not_accelerated"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
           <span slot="label">{{$t('accelerated',  {num: listSizes.accelerated})}}</span>
           <acceleration_table
             v-if="activeList=='accelerated'"
-            :favoriteTableData="favQueList.favorite_queries"
+            :favoriteTableData="favQueList.value"
             v-on:sortTable="sortFavoriteList"
             v-on:filterFav="filterFav"
             v-on:pausePolling="pausePolling"
             v-on:reCallPolling="reCallPolling"
             tab="accelerated"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -94,13 +94,13 @@
       <el-row :gutter="15">
         <el-col :span="16">
           <div class="clearfix ksd-mb-10">
-            <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList1', {size: blackSqlData.size})}}
+            <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList1', {size: blackSqlData.total_size})}}
             </span>
             <div class="ksd-fright ksd-inline searchInput">
               <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
-          <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
+          <el-table :data="blackSqlData.value" border @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
             <el-table-column prop="sql_pattern" label="SQL" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text" style="width: 289px;">{{props.row.sql_pattern}}</span>
@@ -119,7 +119,7 @@
                </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="blackSqlData.size" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="blackSqlData.total_size" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.total_size"></kap-pager>
         </el-col>
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
@@ -145,13 +145,13 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryFrequency')}}</span>
-            <el-switch size="small" v-model="rulesObj.countEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.count_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
-              <el-form-item prop="countValue">
+              <el-form-item prop="count_value">
                 <span>{{$t('AccQueryStart')}}</span>
-                <el-input-number :min="1" :max="1000" v-model.trim="rulesObj.countValue" v-number="rulesObj.countValue" size="small" class="rule-setting-input count-input" :disabled="!rulesObj.countEnable" :controls="false"></el-input-number> 
+                <el-input-number :min="1" :max="1000" v-model.trim="rulesObj.count_value" v-number="rulesObj.count_value" size="small" class="rule-setting-input count-input" :disabled="!rulesObj.count_enable" :controls="false"></el-input-number> 
                 <span>{{$t('AccQueryEnd')}}</span>
               </el-form-item>
             </div>
@@ -161,7 +161,7 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('querySubmitter')}}</span>
-            <el-switch size="small" v-model="rulesObj.submitterEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.submitter_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content">
             <div class="vip-users-block">
@@ -171,9 +171,9 @@
                   <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item prop="userGroups">
+              <el-form-item prop="user_groups">
               <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
-              <el-select v-model="rulesObj.userGroups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-5" multiple style="width:100%">
+              <el-select v-model="rulesObj.user_groups" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User Group" class="ksd-mt-5" multiple style="width:100%">
                 <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
               </el-select>
               </el-form-item>
@@ -184,17 +184,17 @@
         <div class="conds">
           <div class="conds-title">
             <span>{{$t('queryDuration')}}</span>
-            <el-switch size="small" v-model="rulesObj.durationEnable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
+            <el-switch size="small" v-model="rulesObj.duration_enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')"></el-switch>
           </div>
           <div class="conds-content clearfix">
             <div class="ksd-mt-10 ksd-fs-14">
               {{$t('from')}}
-              <el-form-item prop="minDuration" style="display: inline-block;">
-                <el-input v-model.trim="rulesObj.minDuration" v-number="rulesObj.minDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
+              <el-form-item prop="min_duration" style="display: inline-block;">
+                <el-input v-model.trim="rulesObj.min_duration" v-number="rulesObj.min_duration" size="small" class="rule-setting-input" :disabled="!rulesObj.duration_enable"></el-input>
               </el-form-item>
               {{$t('to')}}
-              <el-form-item prop="maxDuration" style="display: inline-block;">
-              <el-input v-model.trim="rulesObj.maxDuration" v-number="rulesObj.maxDuration" size="small" class="rule-setting-input" :disabled="!rulesObj.durationEnable"></el-input>
+              <el-form-item prop="max_duration" style="display: inline-block;">
+              <el-input v-model.trim="rulesObj.max_duration" v-number="rulesObj.max_duration" size="small" class="rule-setting-input" :disabled="!rulesObj.duration_enable"></el-input>
               </el-form-item>
               {{$t('secondes')}}
             </div>
@@ -345,7 +345,7 @@ export default class FavoriteQuery extends Vue {
   sqlLoading = false
   activeSqlObj = null
   sqlFormatterObj = {}
-  blackSqlData = {size: 0, sqls: []}
+  blackSqlData = {total_size: 0, value: []}
   blackSql = ''
   isReadOnly = true
   initTimer = null
@@ -361,26 +361,26 @@ export default class FavoriteQuery extends Vue {
   stCycle = null
   isPausePolling = false
   rulesObj = {
-    countEnable: true,
-    countValue: 0,
-    submitterEnable: true,
+    count_enable: true,
+    count_value: 0,
+    submitter_enable: true,
     users: [],
-    userGroups: [],
-    durationEnable: false,
-    minDuration: 0,
-    maxDuration: 0
+    user_groups: [],
+    duration_enable: false,
+    min_duration: 0,
+    max_duration: 0
   }
   allSubmittersOptions = {
     user: [],
     group: []
   }
   rulesSettingRules = {
-    countValue: [{validator: this.validatePass, trigger: 'blur'}],
-    minDuration: [{validator: this.validatePass, trigger: 'blur'}],
-    maxDuration: [{validator: this.validatePass, trigger: 'blur'}]
+    count_value: [{validator: this.validatePass, trigger: 'blur'}],
+    min_duration: [{validator: this.validatePass, trigger: 'blur'}],
+    max_duration: [{validator: this.validatePass, trigger: 'blur'}]
   }
   validatePass (rule, value, callback) {
-    if ((!value && value !== 0) && (rule.field === 'countValue' && this.rulesObj.countEnable || rule.field.indexOf('Duration') !== -1 && this.rulesObj.durationEnable)) {
+    if ((!value && value !== 0) && (rule.field === 'count_value' && this.rulesObj.count_enable || rule.field.indexOf('duration') !== -1 && this.rulesObj.duration_enable)) {
       callback(new Error(null))
     } else {
       callback()
@@ -554,7 +554,7 @@ export default class FavoriteQuery extends Vue {
         limit: this.filterData.pageSize,
         offset: this.filterData.offset,
         status: !this.checkedStatus.length ? this.statusMap[this.activeList] : this.checkedStatus,
-        sortBy: this.filterData.sortBy,
+        sort_by: this.filterData.sortBy,
         reverse: this.filterData.reverse
       })
       const data = await handleSuccessAsync(res)
@@ -650,13 +650,13 @@ export default class FavoriteQuery extends Vue {
       sql: this.blackSqlFilter
     })
     const data = await handleSuccessAsync(res)
-    if (data && data.size > 0) {
+    if (data && data.total_size > 0) {
       this.blackSqlData = data
       this.$nextTick(() => {
-        this.viewBlackSql(this.blackSqlData.sqls[0])
+        this.viewBlackSql(this.blackSqlData.value[0])
       })
     } else {
-      this.blackSqlData = {size: 0, sqls: []}
+      this.blackSqlData = {total_size: 0, value: []}
       this.blackSql = ''
       this.activeSqlObj = null
     }

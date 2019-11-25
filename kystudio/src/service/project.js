@@ -12,7 +12,7 @@ export default {
     return Vue.resource(apiUrl + 'projects/' + projectName).delete()
   },
   updateProject: (project) => {
-    return Vue.resource(apiUrl + 'projects').update({ formerProjectName: project.name, projectDescData: project.desc })
+    return Vue.resource(apiUrl + 'projects').update({ former_project_name: project.name, project_desc_data: project.desc })
   },
   saveProject: (projectDesc) => {
     return Vue.resource(apiUrl + 'projects').save(projectDesc)
@@ -31,71 +31,71 @@ export default {
   },
   delProjectAccess: (projectId, aid, userName, principal) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).delete({
-      accessEntryId: aid,
+      access_entry_id: aid,
       sid: userName,
       principal: principal
     })
   },
   submitAccessData: (projectName, userType, roleOrName, accessData) => {
-    return Vue.resource(apiUrl + `acl/${projectName}/sid/${userType}/${roleOrName}`).save(accessData)
+    return Vue.resource(apiUrl + `acl/sid/${userType}/${roleOrName}?project=${projectName}`).update(accessData)
   },
   saveProjectFilter: (filterData) => {
-    return Vue.resource(apiUrl + 'extFilter/saveExtFilter').save(filterData)
+    return Vue.resource(apiUrl + 'ext_filter/save_ext_filter').save(filterData)
   },
   getProjectFilter: (project) => {
-    return Vue.resource(apiUrl + 'extFilter').get({
+    return Vue.resource(apiUrl + 'ext_filter').get({
       project: project
     })
   },
   delProjectFilter: (project, filterName) => {
-    return Vue.resource(apiUrl + 'extFilter/' + filterName + '/' + project).delete()
+    return Vue.resource(apiUrl + 'ext_filter/' + filterName + '/' + project).delete()
   },
   updateProjectFilter: (filterData) => {
-    return Vue.resource(apiUrl + 'extFilter/updateExtFilter').update(filterData)
+    return Vue.resource(apiUrl + 'ext_filter/update_ext_filter').update(filterData)
   },
   backupProject: (project) => {
-    return Vue.resource(apiUrl + 'projects/backup/' + project.name).save()
+    return Vue.resource(apiUrl + 'projects/' + project.name + '/backup').save()
   },
   accessAvailableUserOrGroup: (sidType, uuid, data) => {
     return Vue.resource(apiUrl + 'access/available/' + sidType + '/' + uuid).get(data)
   },
   getQuotaInfo: (para) => {
-    return Vue.resource(apiUrl + 'projects/storage_volume_info').get(para)
+    return Vue.resource(apiUrl + 'projects/' + para.project + '/storage_volume_info').get()
   },
   clearTrash: (para) => {
-    return Vue.resource(apiUrl + 'projects/storage?project=' + para.project).update()
+    return Vue.resource(apiUrl + 'projects/' + para.project + '/storage').update()
   },
   fetchProjectSettings: (project) => {
-    return Vue.resource(apiUrl + 'projects/project_config').get({ project })
+    return Vue.resource(apiUrl + 'projects/' + project + '/project_config').get()
   },
   updateProjectGeneralInfo (body) {
-    return Vue.resource(apiUrl + 'projects/project_general_info').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/project_general_info').update(body)
   },
   updateSegmentConfig (body) {
-    return Vue.resource(apiUrl + 'projects/segment_config').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/segment_config').update(body)
   },
   updatePushdownConfig (body) {
-    return Vue.resource(apiUrl + 'projects/push_down_config').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/push_down_config').update(body)
   },
   updateStorageQuota (body) {
-    return Vue.resource(apiUrl + 'projects/garbage_cleanup_config').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/garbage_cleanup_config').update(body)
   },
   updateAccelerationSettings (body) {
-    return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/query_accelerate_threshold').update(body)
   },
   updateJobAlertSettings (body) {
-    return Vue.resource(apiUrl + 'projects/job_notification_config').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/job_notification_config').update(body)
   },
   updateProjectDatasource (body) {
-    return Vue.resource(apiUrl + 'projects/source_type').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/source_type').update(body)
   },
   resetConfig (para) {
     return Vue.resource(apiUrl + 'projects/' + para.project + '/project_config').update({reset_item: para.reset_item})
   },
   updateDefaultDBSettings (body) {
-    return Vue.resource(apiUrl + 'projects/default_database').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/default_database').update({default_database: body.default_database})
   },
   updateYarnQueue (body) {
-    return Vue.resource(apiUrl + 'projects/yarn_queue').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/yarn_queue').update(body)
   }
 }

@@ -155,7 +155,7 @@ export default class TableDataLoad extends Vue {
   async handleLoadFormat () {
     try {
       this.isLoadingFormat = true
-      const res = await this.fetchPartitionFormat({ project: this.project.name, table: this.table.fullName, partitionColumn: this.table.partitionColumn })
+      const res = await this.fetchPartitionFormat({ project: this.project.name, table: this.table.fullName, partition_column: this.table.partitionColumn })
       const data = await handleSuccessAsync(res)
       this.handleChangePartitionFormat(data)
       this.isLoadingFormat = false

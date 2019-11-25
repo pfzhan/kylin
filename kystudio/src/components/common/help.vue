@@ -99,7 +99,7 @@
           company: '',
           username: '',
           lang: 'en',
-          productType: 'kap',
+          product_type: 'kap',
           category: '4.x'
         },
         applyLoading: false,

@@ -12,7 +12,7 @@ export function getDatabaseTablesTree (databases) {
     isLoading: false,
     isSelected: false,
     pagination: {
-      pageOffset: 0,
+      page_offset: 0,
       pageSize: pageSizeMapping.TABLE_TREE
     },
     render: (h, { node, data, store }) => {
@@ -44,7 +44,7 @@ export function getDatabaseTree (databases) {
     isLoading: true,
     isSelected: false,
     pagination: {
-      pageOffset: 0,
+      page_offset: 0,
       pageSize: pageSizeMapping.TABLE_TREE
     },
     render: (h, { node, data, store }) => {

@@ -153,13 +153,13 @@
           project: this.currentSelectedProject,
           model: this.modelDesc.uuid,
           id: row.id,
-          pageOffset: page.curpage, // 每次展开默认在第一页
-          pageSize: this.perPageSize,
+          page_offset: page.curpage, // 每次展开默认在第一页
+          page_size: this.perPageSize,
           content: this.curTableInTableKeyword[row.item_id]
         }
         const response = await this.getTableIndex(params)
         const result = await handleSuccessAsync(response)
-        row.size = result.size
+        row.size = result.total_size
         row.contentShow = []
         for (let i = 0; i < result.columns.length; i++) {
           let obj = {
