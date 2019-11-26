@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,7 +49,7 @@ import lombok.val;
 import lombok.var;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommendationItem> {
+public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommendationItem> implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(LayoutRecommendationItem.class);
 
     public static final String QUERY_HISTORY = "query_history";
@@ -245,7 +246,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         val identifier = item.createIndexIdentifier();
         if (context.getAllIndexesMap().containsKey(identifier)) {
             val indexEntity = context.getAllIndexesMap().get(identifier);
-            val layout = item.getLayout();
+            LayoutEntity layout = item.getLayout();
             if (item.isAggIndex() && layout.isManual()) {
                 context.getIndexPlan().addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
                 return;

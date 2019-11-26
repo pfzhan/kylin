@@ -386,7 +386,7 @@ public class IndexPlanService extends BasicService {
                     orderBy, desc, sources);
         }
 
-        val trimmedKey = key.trim();
+        String trimmedKey = key.trim();
         val matchCCs = model.getComputedColumnDescs().stream()
                 .filter(cc -> cc.getFullName().contains(trimmedKey) || cc.getInnerExpression().contains(trimmedKey))
                 .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());

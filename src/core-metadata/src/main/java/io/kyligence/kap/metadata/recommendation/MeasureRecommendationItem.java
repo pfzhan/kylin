@@ -29,7 +29,6 @@ import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.kylin.common.util.JsonUtil;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
@@ -53,12 +52,6 @@ public class MeasureRecommendationItem extends RecommendationItem<MeasureRecomme
     @Setter
     @JsonProperty("measure_id")
     private int measureId;
-
-    @Getter
-    @Setter
-    @JsonProperty("is_auto_change_name")
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    private boolean isAutoChangeName = true;
 
     @Override
     public MeasureRecommendationItem copy() {

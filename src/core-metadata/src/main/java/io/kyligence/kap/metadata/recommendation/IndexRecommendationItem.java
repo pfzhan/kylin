@@ -71,12 +71,12 @@ public class IndexRecommendationItem extends RecommendationItem<IndexRecommendat
 
     @Override
     public void checkDependencies(OptimizeContext context, boolean real) {
-
+        // implement for default
     }
 
     @Override
     public void apply(OptimizeContext context, boolean real) {
-
+        // implement for default
     }
 
     @Override
@@ -91,6 +91,7 @@ public class IndexRecommendationItem extends RecommendationItem<IndexRecommendat
 
     @Override
     public void translate(OptimizeContext context) {
+        // implement for default
     }
 
 }
