@@ -252,7 +252,7 @@ public class CnMessage extends Message {
     }
 
     public String getDUPLICATE_TABLE_INDEX_NAME() {
-        return "表明细索引名称 '%s' 已存在，不能被创建";
+        return "明细索引名称 '%s' 已存在，不能被创建";
     }
 
     public String getDUPLICATE_MEASURE_NAME() {

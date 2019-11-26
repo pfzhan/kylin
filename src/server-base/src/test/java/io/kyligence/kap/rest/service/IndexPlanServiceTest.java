@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.service;
 import static io.kyligence.kap.rest.response.IndexResponse.Source.AUTO_TABLE;
 import static io.kyligence.kap.rest.response.IndexResponse.Source.MANUAL_TABLE;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +38,7 @@ import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
@@ -66,11 +66,14 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
@@ -654,14 +657,14 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testExtendPartitionColumns() {
-        NDataModelManager.getInstance(getTestConfig(), getProject()).updateDataModel("741ca86a-1f13-46da-a59f-95fb68615e3a",
-                modeDesc -> modeDesc.setStorageType(2));
+        NDataModelManager.getInstance(getTestConfig(), getProject())
+                .updateDataModel("741ca86a-1f13-46da-a59f-95fb68615e3a", modeDesc -> modeDesc.setStorageType(2));
         NIndexPlanManager instance = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         IndexPlan indexPlan = instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         checkLayoutEntityPartitionCoulumns(instance, indexPlan);
         instance.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", index -> {
             List<Integer> extendPartitionColumns = new ArrayList<>(index.getExtendPartitionColumns());
-            extendPartitionColumns.add(1);  
+            extendPartitionColumns.add(1);
             index.setExtendPartitionColumns(extendPartitionColumns);
         });
         indexPlan = instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -677,10 +680,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
             partitionColumns.add(colId);
         }
         instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getAllIndexes().stream()
-                .flatMap(indexEntity -> indexEntity.getLayouts().stream())
-                .filter(LayoutEntity::isManual)
-                .filter(layoutEntity -> !layoutEntity.isAuto())
-                .forEach(layoutEntity -> {
+                .flatMap(indexEntity -> indexEntity.getLayouts().stream()).filter(LayoutEntity::isManual)
+                .filter(layoutEntity -> !layoutEntity.isAuto()).forEach(layoutEntity -> {
                     if (layoutEntity.getOrderedDimensions().keySet().containsAll(partitionColumns)) {
                         if (!ListUtils.isEqualList(layoutEntity.getPartitionByColumns(), partitionColumns)) {
                             throw new RuntimeException("Partition column is not match.");
@@ -773,6 +774,43 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
             Assert.assertTrue(res.getColOrder().stream().map(IndexResponse.ColOrderPair::getKey)
                     .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));
         }
+
+        response = indexPlanService.getIndexes(getProject(), modelId, "nest4", "data_size", false, null);
+        ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(14, response.size());
+        for (IndexResponse res : response) {
+            Assert.assertTrue(res.getColOrder().stream().map(IndexResponse.ColOrderPair::getKey)
+                    .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));
+        }
+    }
+
+    @Test
+    public void testGetIndexGraph_EmptyFullLoad() {
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            copyForWrite.setPartitionDesc(null);
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
+        dataflowManager.dropDataflow(modelId);
+        indexManager.dropIndexPlan(modelId);
+        val indexPlan = new IndexPlan();
+        indexPlan.setUuid(modelId);
+        indexManager.createIndexPlan(indexPlan);
+        val dataflow = new NDataflow();
+        dataflow.setUuid(modelId);
+        dataflowManager.createDataflow(indexPlan, "ADMIN");
+        val df = dataflowManager.getDataflow(modelId);
+        dataflowManager.fillDfManually(df,
+                Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+
+        val response = indexPlanService.getIndexGraph(getProject(), modelId, 100);
+        Assert.assertEquals(0, response.getStartTime());
+        Assert.assertEquals(0, response.getEndTime());
+        Assert.assertFalse(response.isFullLoaded());
+
     }
 
 }

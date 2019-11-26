@@ -388,16 +388,17 @@ public class IndexPlanService extends BasicService {
 
         String trimmedKey = key.trim();
         val matchCCs = model.getComputedColumnDescs().stream()
-                .filter(cc -> cc.getFullName().contains(trimmedKey) || cc.getInnerExpression().contains(trimmedKey))
+                .filter(cc -> containsIgnoreCase(cc.getFullName(), trimmedKey)
+                        || containsIgnoreCase(cc.getInnerExpression(), trimmedKey))
                 .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
         val matchDimensions = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
-                .filter(c -> c.getAliasDotColumn().contains(trimmedKey) || c.getName().contains(trimmedKey)
-                        || matchCCs.contains(c.getAliasDotColumn()))
+                .filter(c -> containsIgnoreCase(c.getAliasDotColumn(), trimmedKey)
+                        || containsIgnoreCase(c.getName(), trimmedKey) || matchCCs.contains(c.getAliasDotColumn()))
                 .map(NDataModel.NamedColumn::getId).collect(Collectors.toSet());
         val matchMeasures = model.getAllMeasures().stream().filter(m -> !m.isTomb())
-                .filter(m -> m.getName().contains(trimmedKey) || m.getFunction().getParameters().stream()
+                .filter(m -> containsIgnoreCase(m.getName(), trimmedKey) || m.getFunction().getParameters().stream()
                         .anyMatch(p -> p.getType().equals(FunctionDesc.PARAMETER_TYPE_COLUMN)
-                                && (p.getValue().contains(trimmedKey) || matchCCs.contains(p.getValue()))))
+                                && (containsIgnoreCase(p.getValue(), trimmedKey) || matchCCs.contains(p.getValue()))))
                 .map(NDataModel.Measure::getId).collect(Collectors.toSet());
 
         return sortAndFilterLayouts(layouts.stream().filter(index -> {
@@ -406,6 +407,10 @@ public class IndexPlanService extends BasicService {
                     || !Sets.intersection(matchDimensions, cols).isEmpty()
                     || !Sets.intersection(matchMeasures, cols).isEmpty();
         }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel())), orderBy, desc, sources);
+    }
+
+    private boolean containsIgnoreCase(String s1, String s2) {
+        return s1.toUpperCase().contains(s2.toUpperCase());
     }
 
     public IndexGraphResponse getIndexGraph(String project, String modelId, int maxSize) {
@@ -443,7 +448,8 @@ public class IndexPlanService extends BasicService {
                 .filter(seg -> !SegmentStatusEnum.NEW.equals(seg.getStatus()))
                 .collect(Collectors.toCollection(Segments::new));
 
-        if (CollectionUtils.isEmpty(readySegments)) {
+        if (CollectionUtils.isEmpty(readySegments)
+                || (readySegments.size() == 1 && readySegments.getFirstSegment().getLayoutsMap().isEmpty())) {
             return indexGraphResponse;
         }
         long startTime = Long.MAX_VALUE;
