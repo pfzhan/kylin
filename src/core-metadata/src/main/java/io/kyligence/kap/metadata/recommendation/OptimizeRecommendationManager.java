@@ -127,7 +127,7 @@ public class OptimizeRecommendationManager {
     private List<LayoutRecommendationItem> convertIndexToLayout(List<IndexRecommendationItem> indexRecommendations) {
         return indexRecommendations.stream()
                 .flatMap(item -> item.getEntity().getLayouts().stream()
-                        .map(layoutEntity -> createRecommendation(layoutEntity, item.isAdd(), item.isAdd())))
+                        .map(layoutEntity -> createRecommendation(layoutEntity, item.isAdd(), item.isAggIndex())))
                 .collect(Collectors.toList());
     }
 
@@ -182,6 +182,7 @@ public class OptimizeRecommendationManager {
         recommendation.setLayout(layoutEntity);
         recommendation.setAggIndex(isAgg);
         recommendation.setAdd(isAdd);
+        recommendation.setCreateTime(System.currentTimeMillis());
         val recommendationType = isAdd ? RecommendationType.ADDITION : RecommendationType.REMOVAL;
         recommendation.setRecommendationType(recommendationType);
         return recommendation;

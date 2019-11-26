@@ -8,7 +8,7 @@
   "next_cc_recommendation_item_id": 2,
   "next_dimension_recommendation_item_id": 3,
   "next_measure_recommendation_item_id": 6,
-  "next_index_recommendation_item_id": 3,
+  "next_index_recommendation_item_id": 5,
   "cc_recommendations": [
     {
       "item_id": 0,
@@ -306,6 +306,77 @@
       "is_agg_index": false,
       "is_add": true,
       "recommendation_type": "ADDITION"
+    },
+    {
+      "item_id": 3,
+      "index_entity": {
+        "id": 150000,
+        "dimensions": [
+          0,
+          12
+        ],
+        "measures": [
+          100000,
+          100001
+        ],
+        "layouts": [
+          {
+            "id": 150001,
+            "auto": true,
+            "col_order": [
+              0,
+              12,
+              100000,
+              100001
+            ],
+            "storage_type": 20
+          },
+          {
+            "id": 150002,
+            "auto": true,
+            "col_order": [
+              12,
+              0,
+              100000,
+              100001
+            ],
+            "storage_type": 20
+          }
+        ]
+      },
+      "is_agg_index": true,
+      "is_add": false,
+      "recommendation_type": "REMOVAL"
+    },
+    {
+      "item_id": 4,
+      "index_entity": {
+        "id": 20000000000,
+        "dimensions": [
+          0,
+          1,
+          2
+        ],
+        "measures": [],
+        "layouts": [
+          {
+            "id": 20000000001,
+            "manual": true,
+            "col_order": [
+              0,
+              1,
+              2
+            ],
+            "sort_by_columns": [
+              0
+            ],
+            "storage_type": 20
+          }
+        ]
+      },
+      "is_agg_index": false,
+      "is_add": false,
+      "recommendation_type": "REMOVAL"
     }
   ]
 }

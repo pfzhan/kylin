@@ -44,8 +44,8 @@ public class LayoutRecommendationResponse {
     @JsonProperty("usage")
     private long usage;
 
-    @JsonProperty("created_time")
-    private long createdTime;
+    @JsonProperty("create_time")
+    private long createTime;
 
     @JsonProperty("columns_and_measures_size")
     private int columnsAndMeasuresSize;

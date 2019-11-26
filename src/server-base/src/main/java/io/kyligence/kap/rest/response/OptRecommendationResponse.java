@@ -105,7 +105,7 @@ public class OptRecommendationResponse {
         val response = new LayoutRecommendationResponse();
         response.setInfo(item.getExtraInfo());
         response.setItemId(item.getItemId());
-        response.setCreatedTime(item.getCreateTime());
+        response.setCreateTime(item.getCreateTime());
         val layout = item.getLayout();
         response.setId(layout.getId());
         response.setColumnsAndMeasuresSize(layout.getColOrder().size());

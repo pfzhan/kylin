@@ -184,6 +184,13 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(3, recommendation.getLayoutRecommendations().size());
         Assert.assertTrue(recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAggIndex())
                 .allMatch(item -> item.getLayout() != null));
+        Assert.assertTrue(recommendation.getCcRecommendations().stream().allMatch(item -> item.getCreateTime() > 0));
+        Assert.assertTrue(
+                recommendation.getDimensionRecommendations().stream().allMatch(item -> item.getCreateTime() > 0));
+        Assert.assertTrue(
+                recommendation.getMeasureRecommendations().stream().allMatch(item -> item.getCreateTime() > 0));
+        Assert.assertTrue(
+                recommendation.getLayoutRecommendations().stream().allMatch(item -> item.getCreateTime() > 0));
 
     }
 
@@ -1165,7 +1172,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(0, recommendation.getIndexRecommendations().size());
-        Assert.assertEquals(3, recommendation.getLayoutRecommendations().size());
+        Assert.assertEquals(6, recommendation.getLayoutRecommendations().size());
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(3).isAggIndex());
+        Assert.assertTrue(recommendation.getLayoutRecommendations().get(4).isAggIndex());
+        Assert.assertFalse(recommendation.getLayoutRecommendations().get(5).isAggIndex());
     }
 
 }
