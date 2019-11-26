@@ -16,7 +16,7 @@ export default {
   'zh-cn': {
     addTableIndexTitle: '添加明细索引',
     editTableIndexTitle: '编辑明细索引',
-    tableIndexName: '明细索引名',
+    tableIndexName: '明细索引名称',
     tableIndexContent: '索引内容：',
     selectColumns: '选择列',
     selectAllColumns: '选择所有列',

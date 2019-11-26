@@ -282,6 +282,7 @@
       this.hideModal()
       this.btnLoading = false
       this.tableIndexMeta.name = ''
+      this.searchColumn = ''
       this.$refs.tableIndexForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback({

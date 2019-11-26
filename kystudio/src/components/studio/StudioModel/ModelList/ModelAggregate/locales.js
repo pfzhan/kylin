@@ -30,7 +30,9 @@ export default {
     editIndex: 'Edit',
     ID: 'ID',
     column: 'Column',
-    sort: 'Order'
+    sort: 'Order',
+    aggDetailTitle: 'Aggregate Detail',
+    tabelDetailTitle: 'Table Index Detail'
   },
   'zh-cn': {
     aggregateGroup: '聚合索引',
@@ -63,6 +65,8 @@ export default {
     editIndex: '编辑索引',
     ID: 'ID',
     column: '列',
-    sort: '顺序'
+    sort: '顺序',
+    aggDetailTitle: '聚合索引详情',
+    tabelDetailTitle: '明细索引详情'
   }
 }

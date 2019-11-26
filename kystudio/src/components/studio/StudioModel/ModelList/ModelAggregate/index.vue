@@ -2,14 +2,14 @@
   <div class="model-aggregate ksd-mb-15" v-if="model">
     <div class="aggregate-actions" v-if="isShowAggregateAction">
       <el-button-group>
-        <el-button type="primary" size="small" v-guide.addAggBtn icon="el-icon-ksd-add_2" @click="handleAggregateGroup" v-if="isShowEditAgg">
+        <el-button type="primary" plain size="small" v-guide.addAggBtn icon="el-icon-ksd-add_2" @click="handleAggregateGroup" v-if="isShowEditAgg">
           {{$t('aggregateGroup')}}
         </el-button>
-        <el-button v-if="!isAutoProject" size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
+        <el-button v-if="!isAutoProject" type="primary" plain size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
       </el-button-group><el-button
-        type="primary" size="small" class="ksd-ml-10" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex()">{{$t('tableIndex')}}
+        type="primary" plain size="small" class="ksd-ml-10" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex()">{{$t('tableIndex')}}
       </el-button><el-button
-        type="primary" size="small" class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
+        type="primary" plain size="small" class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
         {{$t('buildIndex')}}
       </el-button>
     </div>
@@ -63,7 +63,7 @@
                 nested
                 border
                 :data="indexDatas"
-                class="index-table"
+                class="indexes-table"
                 size="medium"
                 @sort-change="onSortChange"
                 :row-class-name="tableRowClassName">
@@ -101,7 +101,7 @@
     </div>
 
     <el-dialog class="lincense-result-box"
-      :title="$t('aggregateDetail')"
+      :title="indexDetailTitle"
       width="480px"
       :limited-area="true"
       :close-on-press-escape="false"
@@ -279,6 +279,7 @@ export default class ModelAggregate extends Vue {
   currentCount = 10
   totalTableIndexColumnSize = 0
   isFullLoaded = false
+  indexDetailTitle = ''
   // 打开高级设置
   openAggAdvancedModal () {
     this.callAggAdvancedModal({
@@ -363,6 +364,7 @@ export default class ModelAggregate extends Vue {
   showDetail (row) {
     this.cuboidData = row
     this.detailType = row.source.indexOf('AGG') >= 0 ? 'aggDetail' : 'tabelIndexDetail'
+    this.indexDetailTitle = row.source.indexOf('AGG') >= 0 ? this.$t('aggDetailTitle') : this.$t('tabelDetailTitle')
     this.indexDetailShow = true
   }
   async removeIndex (row) {
@@ -456,7 +458,6 @@ export default class ModelAggregate extends Vue {
       }, this.filterArgs))
       const data = await handleSuccessAsync(res)
       this.indexDatas = data.value
-      this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
       this.totalSize = data.total_size
     } catch (e) {
       handleError(e)
@@ -482,7 +483,10 @@ export default class ModelAggregate extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-aggregate {
-  .index-table {
+  .el-button-group .el-button--primary:last-child {
+    border-left-color: @base-color;
+  }
+  .indexes-table {
     .empty-index {
       background: @warning-color-2;
     }
@@ -587,7 +591,7 @@ export default class ModelAggregate extends Vue {
       font-size: 14px;
       &.fix {
         width: calc(~'100% - 130px');
-        max-width: 200px;
+        max-width: 250px;
         .el-input.search-input {
           width: 100%;
         }

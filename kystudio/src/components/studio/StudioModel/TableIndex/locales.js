@@ -68,7 +68,7 @@ export default {
     thisWeek: '本周',
     lastWeek: '上周',
     longAgo: '很久以前',
-    tableIndexName: '明细索引名：',
+    tableIndexName: '明细索引名称：',
     tableIndexId: '明细索引 ID：',
     searchTip: '搜索明细索引 ID',
     broken: '破损',
