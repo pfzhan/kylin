@@ -220,6 +220,7 @@ public class NModelController extends NBasicController {
                 "");
     }
 
+    @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")
     @GetMapping(value = "/{model:.+}/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@PathVariable(value = "model") String modelId,

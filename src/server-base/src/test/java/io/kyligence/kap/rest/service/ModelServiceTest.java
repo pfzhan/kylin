@@ -297,7 +297,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Mockito.doReturn(recommendationManager).when(modelService).getOptRecommendationManager("default");
 
         val allModels = modelService.getModels("", "default", false, "", "", "recommendations_count", true);
-        Assert.assertEquals(4, allModels.get(0).getRecommendationsCount());
+        Assert.assertEquals(5, allModels.get(0).getRecommendationsCount());
         Assert.assertEquals(2, allModels.get(1).getRecommendationsCount());
     }
 
