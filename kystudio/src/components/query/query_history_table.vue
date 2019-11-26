@@ -176,7 +176,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   elementAttr (props) {
-    return props.row.sql_text.split('\n').length > sqlRowsLimit && {'height': 215}
+    return sqlFormatter.format(props.row.sql_text).split('\n').length > sqlRowsLimit && {'height': 215}
   }
 
   expandChange () {

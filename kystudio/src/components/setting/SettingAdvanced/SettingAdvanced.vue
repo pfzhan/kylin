@@ -119,8 +119,8 @@
       :is-keep-editing="true"
       :is-edited="isFormEdited(form, 'yarn-name')"
       :is-editable="userType"
-      @submit="(scb, ecb) => handleSubmit('yarn-name', scb, ecb)"
-      @cancel="(scb, ecb) => handleResetForm('yarn-name', scb, ecb)">
+      :is-reset="false"
+      @submit="(scb, ecb) => handleSubmit('yarn-name', scb, ecb)">
       <el-form ref="yarn-setting-form" :model="form" :rules="yarnQueueRules" :inline-message="true">
         <div class="setting-item">
           <div class="setting-label font-medium">{{$t('yarnQueue')}}</div>
@@ -353,13 +353,13 @@ export default class SettingAdvanced extends Vue {
           this.$refs['setDefaultDB'].clearValidate() */
           break
         }
-        case 'yarn-name': {
-          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'yarn_queue'})
-          const data = await handleSuccessAsync(res)
-          this.form = { ...this.form, ..._getYarnNameSetting(data) }
-          this.$refs['yarn-setting-form'].clearValidate()
-          break
-        }
+        // case 'yarn-name': {
+        //   const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'yarn_queue'})
+        //   const data = await handleSuccessAsync(res)
+        //   this.form = { ...this.form, ..._getYarnNameSetting(data) }
+        //   this.$refs['yarn-setting-form'].clearValidate()
+        //   break
+        // }
       }
       successCallback()
       this.$emit('reload-setting')

@@ -33,12 +33,12 @@
             </el-input>
             </p>
             <el-table
-            size="medium"
-            class="ksd-mt-10"
-            :data="scope.row.contentShow"
-            nested
-            border
-            style="width: 100%">
+              size="small"
+              class="ksd-mt-10"
+              :data="scope.row.contentShow"
+              nested
+              border
+              style="width: 100%">
             <el-table-column
                 label="Order"
                 type="index"
@@ -74,7 +74,7 @@
                 </el-input>
             </p>
             <el-table
-                size="medium"
+                size="small"
                 class="ksd-mt-10"
                 :data="scope.row.contentShow"
                 nested
@@ -112,7 +112,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        width="110"
+        width="160"
         :renderHeader="renderRecommendType"
         prop="type">
         <template slot-scope="scope">
@@ -269,14 +269,7 @@
         const result = await handleSuccessAsync(response)
         row.size = result.size
         if (row.type.split('_').includes('TABLE')) {
-          row.contentShow = []
-          for (let i = 0; i < result.columns_and_measures.length; i++) {
-            let obj = {
-              column: result.columns_and_measures[i],
-              shared: result.shard_by_columns.indexOf(result.columns_and_measures[i]) > -1
-            }
-            row.contentShow.push(obj)
-          }
+          row.contentShow = result.columns_and_measures.map(res => ({column: res, shared: result.shard_by_columns.includes(res)}))
         } else {
           row.contentShow = result.columns_and_measures.map(re => ({content: re}))
         }
@@ -395,11 +388,10 @@
   @import '../../../../../../assets/styles/variables.less';
   .index-table {
     td, th {
-      padding: 0;
       height: 36px;
+      padding: 0;
     }
     .cell {
-      line-height: 24px;
       .col-tab-note {
         padding-top: 5px;
       }
