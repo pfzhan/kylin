@@ -112,7 +112,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        width="160"
+        width="170"
         :renderHeader="renderRecommendType"
         prop="type">
         <template slot-scope="scope">
@@ -147,12 +147,12 @@
         sortable>
       </el-table-column>
       <el-table-column
-        width="180"
+        width="170"
         prop="create_time"
         :label="$t('th_updateDate')"
         sortable>
         <template slot-scope="scope">
-          {{scope.row.created_time | utcTimeOrInt}}
+          {{scope.row.create_time | utcTimeOrInt}}
         </template>
       </el-table-column>
       <el-table-column
