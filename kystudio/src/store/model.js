@@ -67,7 +67,7 @@ export default {
             resolve()
             return
           }
-          commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.total_size, modelCount: response.data.data.optimized_model_num})
+          commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.size, modelCount: response.data.data.optimized_model_num})
           resolve(response)
         }, (response) => {
           commit(types.CACHE_SPEED_INFO, {reachThreshold: false, queryCount: 0, modelCount: 0})
