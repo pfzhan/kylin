@@ -43,7 +43,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -118,6 +117,7 @@ import io.kyligence.kap.rest.request.ReloadTableContext;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.PreReloadTableResponse;
 import io.kyligence.kap.rest.response.PreUnloadTableResponse;
@@ -1230,6 +1230,9 @@ public class TableService extends BasicService {
                         .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
             });
             copyForWrite.setRuleBasedIndex(rule);
+            copyForWrite.setAggShardByColumns(copyForWrite.getAggShardByColumns().stream()
+                    .anyMatch(id -> removeDims.contains(id) || removeColumnIds.contains(id)) ? Lists.newArrayList()
+                            : copyForWrite.getAggShardByColumns());
         });
         if (indexPlan.getRuleBasedIndex() != null) {
             semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),

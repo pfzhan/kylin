@@ -32,6 +32,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
@@ -65,6 +65,8 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -72,6 +74,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDictionaryDesc;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
@@ -422,9 +425,53 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(isTableIndexContainColumn(indexManager, model.getAlias(), 11));
     }
 
+    @Test
+    public void testReload_RemoveAggShardByColumns() throws Exception {
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        testReload_AggShardByColumns(newRule, Lists.newArrayList(14, 15), Lists.newArrayList());
+
+    }
+
+    @Test
+    public void testReload_KeepAggShardByColumns() throws Exception {
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(13, 14, 15));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [13,14,15],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        testReload_AggShardByColumns(newRule, Lists.newArrayList(13, 14), Lists.newArrayList(13, 14));
+
+    }
+
+    private void testReload_AggShardByColumns(NRuleBasedIndex ruleBasedIndex, List<Integer> beforeAggShardBy,
+            List<Integer> endAggShardBy) throws Exception {
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val updatedIndexPlan = indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(ruleBasedIndex);
+            copyForWrite.setAggShardByColumns(beforeAggShardBy);
+        });
+        Assert.assertEquals(beforeAggShardBy, updatedIndexPlan.getAggShardByColumns());
+        prepareTableExt("DEFAULT.TEST_ORDER");
+        removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_ORDER");
+
+        // index_plan with rule
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        val model = modelManager.getDataModelDescByAlias("nmodel_basic");
+        val indexPlan = indexManager.getIndexPlan(model.getId());
+        Assert.assertEquals(endAggShardBy, indexPlan.getAggShardByColumns());
+    }
+
     private boolean isTableIndexContainColumn(NIndexPlanManager indexPlanManager, String modelAlias, Integer col) {
-        for(IndexEntity indexEntity: indexPlanManager.getIndexPlanByModelAlias(modelAlias).getIndexes()) {
-            if(indexEntity.getDimensions().contains(col)) {
+        for (IndexEntity indexEntity : indexPlanManager.getIndexPlanByModelAlias(modelAlias).getIndexes()) {
+            if (indexEntity.getDimensions().contains(col)) {
                 return true;
             }
         }
