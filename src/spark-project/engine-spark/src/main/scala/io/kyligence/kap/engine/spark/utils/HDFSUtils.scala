@@ -23,7 +23,7 @@ package io.kyligence.kap.engine.spark.utils
 
 import java.io.FileNotFoundException
 
-import io.kyligence.kap.engine.spark.cleanup.{HDFSResourceCheck, SnapshotChecker}
+import io.kyligence.kap.engine.spark.cleanup.HDFSResourceCheck
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileContext, FileStatus, Path}
 import org.apache.kylin.common.util.HadoopUtil

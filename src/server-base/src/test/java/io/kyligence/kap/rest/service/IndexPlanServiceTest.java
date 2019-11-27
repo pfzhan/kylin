@@ -26,13 +26,16 @@ package io.kyligence.kap.rest.service;
 import static io.kyligence.kap.rest.response.IndexResponse.Source.AUTO_TABLE;
 import static io.kyligence.kap.rest.response.IndexResponse.Source.MANUAL_TABLE;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
@@ -60,6 +63,7 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -646,6 +650,43 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         request.setShardByColumns(
                 Lists.newArrayList("TEST_KYLIN_FACT.CAL_DT", wrongColumn, "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"));
         indexPlanService.updateShardByColumns("default", request);
+    }
+
+    @Test
+    public void testExtendPartitionColumns() {
+        NDataModelManager.getInstance(getTestConfig(), getProject()).updateDataModel("741ca86a-1f13-46da-a59f-95fb68615e3a",
+                modeDesc -> modeDesc.setStorageType(2));
+        NIndexPlanManager instance = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        IndexPlan indexPlan = instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        checkLayoutEntityPartitionCoulumns(instance, indexPlan);
+        instance.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", index -> {
+            List<Integer> extendPartitionColumns = new ArrayList<>(index.getExtendPartitionColumns());
+            extendPartitionColumns.add(1);  
+            index.setExtendPartitionColumns(extendPartitionColumns);
+        });
+        indexPlan = instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        checkLayoutEntityPartitionCoulumns(instance, indexPlan);
+
+    }
+
+    private void checkLayoutEntityPartitionCoulumns(NIndexPlanManager instance, IndexPlan indexPlan) {
+        ArrayList<Integer> partitionColumns = new ArrayList<>(indexPlan.getExtendPartitionColumns());
+        if (indexPlan.getModel().getPartitionDesc().getPartitionDateColumnRef() != null) {
+            Integer colId = indexPlan.getModel()
+                    .getColId(indexPlan.getModel().getPartitionDesc().getPartitionDateColumnRef());
+            partitionColumns.add(colId);
+        }
+        instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getAllIndexes().stream()
+                .flatMap(indexEntity -> indexEntity.getLayouts().stream())
+                .filter(LayoutEntity::isManual)
+                .filter(layoutEntity -> !layoutEntity.isAuto())
+                .forEach(layoutEntity -> {
+                    if (layoutEntity.getOrderedDimensions().keySet().containsAll(partitionColumns)) {
+                        if (!ListUtils.isEqualList(layoutEntity.getPartitionByColumns(), partitionColumns)) {
+                            throw new RuntimeException("Partition column is not match.");
+                        }
+                    }
+                });
     }
 
     private AggIndexResponse calculateCount(List<NAggregationGroup> aggGroups) {

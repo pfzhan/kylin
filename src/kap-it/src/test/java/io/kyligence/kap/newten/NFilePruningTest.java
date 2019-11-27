@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.junit.TimeZoneTestRunner;
 import java.util.ArrayList;
 import java.util.List;
-
 import java.util.UUID;
+
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -51,10 +50,12 @@ import org.junit.runner.RunWith;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
+
 
 @RunWith(TimeZoneTestRunner.class)
 public class NFilePruningTest extends NLocalWithSparkSessionTest {
@@ -116,87 +117,6 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
                 true);
         assertResultsAndScanFiles(base, 1);
     }
-
-    @Test
-    public void testSegPruningWithStringDate() throws Exception {
-        // build three segs
-        // [2009-01-01 00:00:00, 2011-01-01 00:00:00)
-        // [2011-01-01 00:00:00, 2013-01-01 00:00:00)
-        // [2013-01-01 00:00:00, 2015-01-01 00:00:00)
-        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c78", 10001);
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        val no_pruning1 = "select count(*) from TEST_KYLIN_FACT";
-        val no_pruning2 = "select count(*) from TEST_KYLIN_FACT where CAL_DT > '2010-01-01' and CAL_DT < '2015-01-01'";
-
-        val seg_pruning1 = "select count(*) from TEST_KYLIN_FACT where CAL_DT < '2013-01-01'";
-        val seg_pruning2 = "select count(*) from TEST_KYLIN_FACT where CAL_DT > '2013-01-01'";
-        assertResultsAndScanFiles(no_pruning1, 3);
-        assertResultsAndScanFiles(no_pruning2, 3);
-        assertResultsAndScanFiles(seg_pruning1, 2);
-        assertResultsAndScanFiles(seg_pruning2, 1);
-    }
-
-    @Test
-    public void testSegPruningWithStringTimeStamp() throws Exception {
-        // build three segs
-        // [2009-01-01 00:00:00, 2011-01-01 00:00:00)
-        // [2011-01-01 00:00:00, 2013-01-01 00:00:00)
-        // [2013-01-01 00:00:00, 2015-01-01 00:00:00)
-        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c79", 10001);
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        String base = "select count(*)  FROM TEST_ORDER_STRING_TS LEFT JOIN TEST_KYLIN_FACT ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER_STRING_TS.ORDER_ID ";
-
-        String and_pruning0 = base
-                + "where TEST_TIME_ENC > '2011-01-01 00:00:00' and TEST_TIME_ENC < '2013-01-01 00:00:00'";
-        String and_pruning1 = base
-                + "where TEST_TIME_ENC > '2011-01-01 00:00:00' and TEST_TIME_ENC = '2016-01-01 00:00:00'";
-
-        String or_pruning0 = base
-                + "where TEST_TIME_ENC > '2011-01-01 00:00:00' or TEST_TIME_ENC = '2016-01-01 00:00:00'";
-        String or_pruning1 = base
-                + "where TEST_TIME_ENC < '2009-01-01 00:00:00' or TEST_TIME_ENC > '2015-01-01 00:00:00'";
-
-        String pruning0 = base + "where TEST_TIME_ENC < '2009-01-01 00:00:00'";
-        String pruning1 = base + "where TEST_TIME_ENC <= '2009-01-01 00:00:00'";
-        String pruning2 = base + "where TEST_TIME_ENC >= '2015-01-01 00:00:00'";
-
-        String not0 = base + "where TEST_TIME_ENC <> '2012-01-01 00:00:00'";
-
-        String in_pruning0 = base
-                + "where TEST_TIME_ENC in ('2009-01-01 00:00:00', '2008-01-01 00:00:00', '2016-01-01 00:00:00')";
-        String in_pruning1 = base
-                + "where TEST_TIME_ENC in ('2008-01-01 00:00:00', '2016-01-01 00:00:00')";
-
-        assertResultsAndScanFiles(base, 3);
-
-        assertResultsAndScanFiles(and_pruning0, 1);
-        assertResultsAndScanFiles(and_pruning1, 0);
-
-        assertResultsAndScanFiles(or_pruning0, 2);
-        assertResultsAndScanFiles(or_pruning1, 0);
-
-        assertResultsAndScanFiles(pruning0, 0);
-        assertResultsAndScanFiles(pruning1, 1);
-        assertResultsAndScanFiles(pruning2, 0);
-
-        // pruning with "not" is not supported
-        assertResultsAndScanFiles(not0, 3);
-
-        assertResultsAndScanFiles(in_pruning0, 1);
-        assertResultsAndScanFiles(in_pruning1, 0);
-
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("base", base));
-        query.add(Pair.newPair("and_pruning0", and_pruning0));
-        query.add(Pair.newPair("and_pruning1", and_pruning1));
-        query.add(Pair.newPair("or_pruning0", or_pruning0));
-        query.add(Pair.newPair("or_pruning1", or_pruning1));
-        query.add(Pair.newPair("pruning0", pruning0));
-        query.add(Pair.newPair("pruning1", pruning1));
-        query.add(Pair.newPair("pruning2", pruning2));
-        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "default");
-    }
-
 
     @Test
     public void testSegPruningWithTimeStamp() throws Exception {
@@ -261,40 +181,35 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     @Test
     public void testShardPruning() throws Exception {
         System.setProperty("kap.storage.columnar.shard-rowcount", "100");
-        try {
-            buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
 
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
 
-            basicPruningScenario();
-            pruningWithVariousTypesScenario();
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-        } finally {
-            System.clearProperty("kap.storage.columnar.shard-rowcount");
-        }
+        basicPruningScenario();
+        pruningWithVariousTypesScenario();
+
+        System.clearProperty("kap.storage.columnar.shard-rowcount");
     }
 
     @Test
     public void testPruningWithChineseCharacter() throws Exception {
         System.setProperty("kap.storage.columnar.shard-rowcount", "1");
-        try {
-            fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
-            populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
 
-            val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
-            val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
+        val chinese0 = "select count(*) from TEST_MEASURE where name1 = '中国'";
+        val chinese1 = "select count(*) from TEST_MEASURE where name1 <> '中国'";
 
-            assertResultsAndScanFiles(chinese0, 1);
-            assertResultsAndScanFiles(chinese1, 3);
+        assertResultsAndScanFiles(chinese0, 1);
+        assertResultsAndScanFiles(chinese1, 3);
 
-            List<Pair<String, String>> query = new ArrayList<>();
-            query.add(Pair.newPair("", chinese0));
-            query.add(Pair.newPair("", chinese1));
-            NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(Pair.newPair("", chinese0));
+        query.add(Pair.newPair("", chinese1));
+        NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
 
-        } finally {
-            System.clearProperty("kap.storage.columnar.shard-rowcount");
-        }
+        System.clearProperty("kap.storage.columnar.shard-rowcount");
     }
 
     private void pruningWithVariousTypesScenario() throws Exception {

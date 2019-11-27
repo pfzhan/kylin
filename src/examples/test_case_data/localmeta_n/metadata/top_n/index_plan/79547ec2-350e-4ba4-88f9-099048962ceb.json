@@ -22,7 +22,8 @@
             100000,
             100002
           ],
-          "storage_type": 20
+          "storage_type": 20,
+          "auto": "true"
         }
       ]
     },
@@ -43,7 +44,8 @@
             100000,
             100003
           ],
-          "storage_type": 20
+          "storage_type": 20,
+          "auto": "true"
         }
       ]
     },
@@ -66,7 +68,8 @@
             100002,
             100003
           ],
-          "storage_type": 20
+          "storage_type": 20,
+          "auto": "true"
         }
       ]
     }

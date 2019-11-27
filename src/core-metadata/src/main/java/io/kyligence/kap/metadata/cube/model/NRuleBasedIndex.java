@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
@@ -283,6 +284,12 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         long proposalId = indexStartId + 1;
         BitSet bitSet = new BitSet(1024);
         val measures = getMeasuresBitSet().mutable();
+        ArrayList<Integer> partitionColumns = new ArrayList<>(indexPlan.getExtendPartitionColumns());
+        if (getModel().getStorageType() == 2 && getModel().getPartitionDesc() != null &&
+                getModel().getPartitionDesc().getPartitionDateColumnRef() != null) {
+            Integer colId = getModel().getColId(getModel().getPartitionDesc().getPartitionDateColumnRef());
+            partitionColumns.add(colId);
+        }
         //convert all legacy cuboids generated from rules to LayoutEntity
         for (int i = 0; i < allCuboidIds.size(); i++) {
             BigInteger cuboidId = allCuboidIds.get(i);
@@ -296,6 +303,9 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             layout.setColOrder(colOrder);
             if (colOrder.containsAll(indexPlan.getAggShardByColumns())) {
                 layout.setShardByColumns(indexPlan.getAggShardByColumns());
+            }
+            if (colOrder.containsAll(partitionColumns)) {
+                layout.setPartitionByColumns(partitionColumns);
             }
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 

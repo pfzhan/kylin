@@ -236,6 +236,10 @@ public class KapConfig {
     /**
      * parquet shard size, in MB
      */
+    public int getMinBucketsNumber() {
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.bucket-num", "1"));
+    }
+
     public int getParquetStorageShardSizeMB() {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-size-mb", "128"));
     }

@@ -89,8 +89,9 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     @Test
     public void testTopNWithMultiDims() throws Exception {
         String dfID = "79547ec2-350e-4ba4-88f9-099048962ceb";
+        NDataflow dataflow = dfMgr.getDataflow(dfID);
         buildCuboid(dfID, TimePartitionedSegmentRange.createInfinite(),
-                Sets.newHashSet(dfMgr.getDataflow(dfID).getIndexPlan().getCuboidLayout(101001L)), true);
+                Sets.newHashSet(dataflow.getIndexPlan().getCuboidLayout(101001L)), true);
 
         populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
         List<Pair<String, String>> query = new ArrayList<>();

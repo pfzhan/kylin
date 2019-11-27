@@ -42,7 +42,7 @@ public class RepartitionerTest {
         ContentSummary sc = mock(ContentSummary.class);
         when(sc.getFileCount()).thenReturn(2L);
         when(sc.getLength()).thenReturn(1024 * 1024L);
-        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null);
+        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null, null);
         Assert.assertTrue(helper.needRepartitionForFileSize());
         Assert.assertFalse(helper.needRepartitionForShardByColumns());
         Assert.assertTrue(helper.needRepartition());
@@ -53,7 +53,7 @@ public class RepartitionerTest {
         ContentSummary sc = mock(ContentSummary.class);
         when(sc.getFileCount()).thenReturn(1L);
         when(sc.getLength()).thenReturn(512 * 1024L);
-        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null);
+        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null, null);
         Assert.assertFalse(helper.needRepartitionForFileSize());
         Assert.assertFalse(helper.needRepartitionForShardByColumns());
         Assert.assertFalse(helper.needRepartition());
@@ -65,7 +65,7 @@ public class RepartitionerTest {
         ContentSummary sc = mock(ContentSummary.class);
         when(sc.getFileCount()).thenReturn(2L);
         when(sc.getLength()).thenReturn(3 * 1024 * 1024L);
-        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, shardByColumns);
+        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, shardByColumns, null);
         Assert.assertTrue(helper.needRepartitionForShardByColumns());
         Assert.assertFalse(helper.needRepartitionForFileSize());
         Assert.assertTrue(helper.needRepartition());
@@ -76,7 +76,7 @@ public class RepartitionerTest {
         ContentSummary sc = mock(ContentSummary.class);
         when(sc.getFileCount()).thenReturn(6L);
         when(sc.getLength()).thenReturn(4 * 1024 * 1024L);
-        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null);
+        Repartitioner helper = new Repartitioner(2, 1, 1000L, 1000L, sc, null, null);
         Assert.assertEquals(2, helper.getRepartitionNumByStorage());
     }
 
@@ -85,7 +85,7 @@ public class RepartitionerTest {
         ContentSummary sc = mock(ContentSummary.class);
         when(sc.getFileCount()).thenReturn(6L);
         when(sc.getLength()).thenReturn(4 * 1024 * 1024L);
-        Repartitioner helper = new Repartitioner(2, 1, 2000L, 500L, sc, null);
+        Repartitioner helper = new Repartitioner(2, 1, 2000L, 500L, sc, null, null);
         // size = (4M/2M - 2000/500)/2 + min(4M/2M)
         Assert.assertEquals(3, helper.getRepartitionNumByStorage());
     }
@@ -95,7 +95,7 @@ public class RepartitionerTest {
         ContentSummary sc = mock(ContentSummary.class);
         when(sc.getFileCount()).thenReturn(3L);
         when(sc.getLength()).thenReturn(4 * 1024 * 1024L);
-        Repartitioner helper = new Repartitioner(2, 2, 1500L, 500L, sc, null);
+        Repartitioner helper = new Repartitioner(2, 2, 1500L, 500L, sc, null, null);
         // size = 2000/500
         Assert.assertTrue(!helper.needRepartition());
     }

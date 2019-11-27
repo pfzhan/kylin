@@ -1005,6 +1005,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.storage.default", "20"));
     }
 
+    public int getDefaultStorageType() {
+        return Integer.parseInt(getOptional("kylin.storage.default-storage-type", "0"));
+    }
+
     private static final Pattern JOB_JAR_NAME_PATTERN = Pattern.compile("newten-job(.?)\\.jar");
 
     private static String getFileName(String homePath, Pattern pattern) {

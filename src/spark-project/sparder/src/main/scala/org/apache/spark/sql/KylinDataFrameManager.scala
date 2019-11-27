@@ -22,7 +22,10 @@
 
 package org.apache.spark.sql
 
-import org.apache.spark.sql.execution.datasource.{KylinRelation, FilePruner}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
+import org.apache.kylin.storage.StorageFactory
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory
+import org.apache.spark.sql.execution.datasource.{FilePruner, KylinRelation}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.types.StructType
 
@@ -30,14 +33,13 @@ import scala.collection.mutable.{HashMap => MutableHashMap}
 
 
 class KylinDataFrameManager(sparkSession: SparkSession) {
-  private var source: String = sparkSession.sessionState.conf.defaultDataSourceName
   private var extraOptions = new MutableHashMap[String, String]()
   private var userSpecifiedSchema: Option[StructType] = None
 
 
   /** File format for table */
   def format(source: String): KylinDataFrameManager = {
-    this.source = source
+    option("source", source)
     this
   }
 
@@ -62,23 +64,12 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     option(key, value.toString)
   }
 
-  def cuboidTable(relation: KylinRelation): DataFrame = {
-    schema(relation.schema)
-    option("project", relation.dataflow.getProject)
-    option("dataflowId", relation.dataflow.getUuid)
-    option("cuboidId", relation.cuboid.getId)
-
-    require(userSpecifiedSchema.isDefined, "for query qps, must provide schema")
-    val cls = DataSource.lookupDataSource(source, sparkSession.sessionState.conf)
-    val indexCatalog = new FilePruner(sparkSession, options = extraOptions.toMap, userSpecifiedSchema.get)
-    sparkSession.baseRelationToDataFrame(
-      HadoopFsRelation(
-        indexCatalog,
-        partitionSchema = indexCatalog.partitionSchema,
-        dataSchema = indexCatalog.dataSchema.asNullable,
-        bucketSpec = None,
-        cls.newInstance().asInstanceOf[FileFormat],
-        options = extraOptions.toMap)(sparkSession))
+  def cuboidTable(dataflow: NDataflow, layout: LayoutEntity): DataFrame = {
+    option("project", dataflow.getProject)
+    option("dataflowId", dataflow.getUuid)
+    option("cuboidId", layout.getId)
+    StorageStoreFactory.create(dataflow.getModel.getStorageType)
+      .read(dataflow, layout, sparkSession, extraOptions.toMap)
   }
 
   /**

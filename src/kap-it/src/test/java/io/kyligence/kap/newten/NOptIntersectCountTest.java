@@ -83,7 +83,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 100001);
         ParquetStorage storage = new ParquetStorage();
-        List<Row> rows = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss).collectAsList();
+        List<Row> rows = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss).collectAsList();
         Assert.assertEquals(9, rows.size());
 
         String ret = rows.stream().map(row -> {

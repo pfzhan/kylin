@@ -53,8 +53,15 @@ object KylinSourceStrategy extends Strategy with Logging {
 
   def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
     case PhysicalOperation(projects, filters,
-    l@LogicalRelation(fsRelation: HadoopFsRelation, _, table, _))
-      if fsRelation.location.isInstanceOf[FilePruner] =>
+        l @ LogicalRelation(
+        fsRelation @ HadoopFsRelation(
+        _: FilePruner,
+        _,
+        _,
+        _,
+        _,
+        _),
+        _, table, _)) =>
       // Filters on this relation fall into four categories based on where we can use them to avoid
       // reading unneeded data:
       //  - partition keys only - used to prune directories to read
@@ -74,7 +81,7 @@ object KylinSourceStrategy extends Strategy with Logging {
       }
 
       val partitionColumns = l.resolve(
-          fsRelation.partitionSchema, fsRelation.sparkSession.sessionState.analyzer.resolver)
+        fsRelation.partitionSchema, fsRelation.sparkSession.sessionState.analyzer.resolver)
       val partitionSet = AttributeSet(partitionColumns)
       val partitionKeyFilters =
         ExpressionSet(normalizedFilters
@@ -128,9 +135,7 @@ object KylinSourceStrategy extends Strategy with Logging {
       } else {
         execution.ProjectExec(projects, withFilter)
       }
-
       withProjections :: Nil
-
     case _ => Nil
   }
 }

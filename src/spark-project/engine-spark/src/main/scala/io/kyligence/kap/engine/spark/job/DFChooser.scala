@@ -33,6 +33,7 @@ import io.kyligence.kap.metadata.model.NDataModel.TableKind
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.datasource.storage.StorageStoreUtils
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Dataset, Row, SaveMode, SparkSession}
 
@@ -106,7 +107,7 @@ class DFChooser(toBuildTree: NSpanningTree,
         ss.sparkContext.setJobDescription("Persist flat table.")
         df.write.mode(SaveMode.Overwrite).parquet(path)
         logInfo(s"Persist flat table into:$path. Selected cols in table are $columns.")
-        flatTableSource.setParentStoragePath(path)
+        flatTableSource.setParentStorageDF(ss.read.parquet(path))
       }
     }
     path
@@ -138,7 +139,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     val segDetails = seg.getSegDetails
     val dataCuboid = segDetails.getLayoutById(layout.getId)
     Preconditions.checkState(dataCuboid != null)
-    buildSource.setParentStoragePath(NSparkCubingUtil.getStoragePath(dataCuboid))
+    buildSource.setParentStorageDF(StorageStoreUtils.toDF(seg, layout, ss))
     buildSource.setSparkSession(ss)
     buildSource.setCount(dataCuboid.getRows)
     buildSource.setLayoutId(layout.getId)

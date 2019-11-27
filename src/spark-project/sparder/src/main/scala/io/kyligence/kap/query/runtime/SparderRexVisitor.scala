@@ -39,8 +39,8 @@ import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DateType, LongType, TimestampType}
-import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.unsafe.types.UTF8String
 
 import scala.collection.JavaConverters._

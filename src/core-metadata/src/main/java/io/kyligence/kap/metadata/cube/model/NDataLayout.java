@@ -25,6 +25,8 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfigExt;
 
@@ -70,6 +72,10 @@ public class NDataLayout implements Serializable {
     // partition num may be diff with file num
     @JsonProperty("partition_num")
     private int partitionNum;
+
+    @JsonProperty("partition_values")
+    private List<String> partitionValues = new ArrayList<>();
+
     @Getter
     @JsonProperty("create_time")
     private long createTime;
@@ -169,6 +175,14 @@ public class NDataLayout implements Serializable {
     public void setPartitionNum(int partitionNum) {
         checkIsNotCachedAndShared();
         this.partitionNum = partitionNum;
+    }
+
+    public List<String> getPartitionValues() {
+        return partitionValues;
+    }
+
+    public void setPartitionValues(List<String> partitionValues) {
+        this.partitionValues = partitionValues;
     }
 
     // ============================================================================

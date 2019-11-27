@@ -33,6 +33,8 @@ import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
+import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,9 +82,8 @@ public class DFLayoutMergeAssist implements Serializable {
     public Dataset<Row> merge() {
         Dataset<Row> mergeDataset = null;
         for (int i = 0; i < toMergeCuboids.size(); i++) {
-            Dataset<Row> layoutDataset = StorageFactory
-                    .createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                    .getFrom(NSparkCubingUtil.getStoragePath(toMergeCuboids.get(i)), ss);
+            NDataLayout nDataLayout = toMergeCuboids.get(i);
+            Dataset<Row> layoutDataset = StorageStoreUtils.toDF(nDataLayout.getSegDetails().getDataSegment(), nDataLayout.getLayout(), ss);
 
             if (mergeDataset == null) {
                 mergeDataset = layoutDataset;

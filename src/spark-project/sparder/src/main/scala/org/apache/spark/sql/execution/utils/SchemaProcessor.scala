@@ -26,12 +26,12 @@ package org.apache.spark.sql.execution.utils
 import java.util
 
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager, NDataSegment}
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.kylin.common.util.ImmutableBitSet
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.{ColumnDesc, FunctionDesc}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{LayoutEntityConverter, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.{SparderConstants, SparderTypeUtil}
 
@@ -42,9 +42,9 @@ object SchemaProcessor {
 
   def buildGTSchema(cuboid: LayoutEntity,
                     mapping: NCuboidToGridTableMapping,
-                    tableName: String): (StructType, Seq[String]) = {
+                    tableName: String):Seq[String] = {
 
-    (genCuboidSchemaFromNCuboidLayout(cuboid),genColumnNames(tableName, cuboid, mapping))
+    genColumnNames(tableName, cuboid, mapping)
   }
 
   private def genColumnNames(tableName: String, cuboid: LayoutEntity, mapping: NCuboidToGridTableMapping) = {
@@ -61,22 +61,6 @@ object SchemaProcessor {
         .toSeq
   }
 
-  def genCuboidSchemaFromNCuboidLayout(cuboid: LayoutEntity) : StructType = {
-    StructType(cuboid.getOrderedDimensions.asScala.map { i =>
-      StructField(
-        i._1.toString,
-        SparderTypeUtil.toSparkType(i._2.getType),
-        nullable = true
-      )
-    }.toSeq ++
-      cuboid.getOrderedMeasures.asScala.map{
-      i =>
-        StructField(
-          i._1.toString,
-          generateFunctionReturnDataType(i._2.getFunction),
-          nullable = true)
-    }.toSeq)
-  }
 
   def initColumnNameMapping(cuboid: LayoutEntity): Array[(String, String)] = {
     val cols = cuboid.getColumns.asScala.map(col =>
@@ -131,7 +115,7 @@ object SchemaProcessor {
     for (nCuboidLayout <- allCuboidLayouts) {
       val path: String = TableScanPlan.toCuboidPath(df, nCuboidLayout.getId, base, latestReadySegment)
       val schema: StructType = sparkSession.read.parquet(path).schema
-      val schemaFromNCuboidLayout: StructType = SchemaProcessor.genCuboidSchemaFromNCuboidLayout(nCuboidLayout)
+      val schemaFromNCuboidLayout: StructType = LayoutEntityConverter.genCuboidSchemaFromNCuboidLayout(nCuboidLayout)
       if (!(schema == schemaFromNCuboidLayout)) {
         throw new RuntimeException(s"Check schema failed : dfName: $dfName, layoutId: ${nCuboidLayout.getId}, actual: ${schemaFromNCuboidLayout.treeString}, expect: ${schema.treeString}")
       }

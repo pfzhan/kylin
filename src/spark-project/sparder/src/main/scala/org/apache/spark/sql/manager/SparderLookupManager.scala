@@ -31,8 +31,8 @@ import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.DeriveTableColumnInfo
 import org.apache.spark.sql.types.{StructField, StructType}
-import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv}
+import org.apache.spark.sql.util.SparderTypeUtil
 
 // scalastyle:off
 object SparderLookupManager extends Logging {

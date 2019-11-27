@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.pushdown;
 
+import io.kyligence.kap.metadata.query.StructField;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;

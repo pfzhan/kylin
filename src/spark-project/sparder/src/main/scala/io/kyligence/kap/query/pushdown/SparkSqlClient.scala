@@ -26,6 +26,7 @@ package io.kyligence.kap.query.pushdown
 
 import java.util.{UUID, List => JList}
 
+import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.common.exceptions.KylinTimeoutException
 import org.apache.kylin.common.util.{HadoopUtil, Pair}
@@ -36,8 +37,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._

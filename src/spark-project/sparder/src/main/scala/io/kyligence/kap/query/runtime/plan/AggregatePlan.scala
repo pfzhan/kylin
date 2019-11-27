@@ -27,7 +27,7 @@ import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
-import org.apache.kylin.common.{KapConfig}
+import org.apache.kylin.common.KapConfig
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.spark.internal.Logging

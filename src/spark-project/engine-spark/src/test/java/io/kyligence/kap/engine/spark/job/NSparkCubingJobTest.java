@@ -407,7 +407,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(10000, seg.getLayout(20000000001L).getRows());
 
         ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, layout.getId()), ss);
         List<Row> rows = ret.collectAsList();
         Assert.assertEquals("Ebay", rows.get(0).apply(1).toString());
         Assert.assertEquals("Ebaymotors", rows.get(1).apply(1).toString());

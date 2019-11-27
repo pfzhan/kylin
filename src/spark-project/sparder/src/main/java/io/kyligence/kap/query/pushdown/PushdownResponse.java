@@ -42,6 +42,7 @@
  */
 package io.kyligence.kap.query.pushdown;
 
+import io.kyligence.kap.metadata.query.StructField;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

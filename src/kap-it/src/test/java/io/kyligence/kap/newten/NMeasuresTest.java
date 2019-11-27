@@ -127,7 +127,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 1);
         ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss);
         for (Row row : ret.collectAsList()) {
             if (row.apply(0).toString().equals("10000000157")) {
                 WrappedArray topnArray = (WrappedArray) row.apply(6);
@@ -223,7 +223,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 1);
         ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss);
 
         double delta = 0.0001;
         for (Row row : ret.collectAsList()) {

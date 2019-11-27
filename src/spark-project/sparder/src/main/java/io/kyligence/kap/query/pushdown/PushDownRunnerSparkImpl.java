@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.query.pushdown;
 
+import io.kyligence.kap.metadata.query.StructField;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;

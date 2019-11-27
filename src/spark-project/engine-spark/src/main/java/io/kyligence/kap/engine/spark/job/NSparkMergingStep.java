@@ -40,7 +40,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -101,11 +100,11 @@ public class NSparkMergingStep extends NSparkExecutable {
         allSegments.add(mergedSeg);
         for (NDataSegment seg : allSegments) {
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
-                val dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layout.getId());
-                String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(dataCuboid.getSegDetails(),
-                        dataCuboid.getLayoutId());
+                String path = "/" +  NSparkCubingUtil.getStoragePathWithoutPrefix(project,
+                        dataflowId, seg.getId(), layout.getId());
                 result.add(path);
-                result.add(path + DFBuildJob.TEMP_DIR_SUFFIX);
+                result.add(path + "_temp1");
+                result.add(path + "_temp2");
             }
         }
 

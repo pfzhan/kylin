@@ -66,7 +66,7 @@ trait SharedSparkSession
       .config("spark.sql.columnVector.offheap.enabled", "true")
       .config("spark.memory.fraction", "0.1")
       .config("fs.file.impl", classOf[DebugFilesystem].getCanonicalName)
-      //      .config("spark.sql.adaptive.enabled", "true")
+      .config("spark.sql.adaptive.enabled", "true")
       .config(conf)
       .getOrCreate
     _jsc = new JavaSparkContext(_spark.sparkContext)

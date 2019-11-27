@@ -231,6 +231,7 @@ public class NDataModelManager {
         NCircuitBreaker.verifyModelCreation(allModels.size());
 
         copy.setOwner(owner);
+        copy.setStorageType(getConfig().getDefaultStorageType());
         desc = saveDataModelDesc(copy);
 
         return desc;

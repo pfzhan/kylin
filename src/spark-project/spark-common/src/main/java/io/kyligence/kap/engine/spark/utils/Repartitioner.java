@@ -35,19 +35,15 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 
 public class Repartitioner {
-    private static String tempDirSuffix = "_temp";
-    protected static final Logger logger = LoggerFactory.getLogger(SparkConfHelper.class);
+    protected static final Logger logger = LoggerFactory.getLogger(Repartitioner.class);
 
     private int MB = 1024 * 1024;
     private int shardSize;
@@ -56,9 +52,10 @@ public class Repartitioner {
     private long rowCountThreshold;
     private ContentSummary contentSummary;
     private List<Integer> shardByColumns = new ArrayList<>();
+    private List<Integer> sortByColumns;
 
     public Repartitioner(int shardSize, int fileLengthThreshold, long totalRowCount, long rowCountThreshold,
-            ContentSummary contentSummary, List<Integer> shardByColumns) {
+            ContentSummary contentSummary, List<Integer> shardByColumns, List<Integer> sortByColumns) {
         this.shardSize = shardSize;
         this.fileLengthThreshold = fileLengthThreshold;
         this.totalRowCount = totalRowCount;
@@ -67,6 +64,7 @@ public class Repartitioner {
         if (shardByColumns != null) {
             this.shardByColumns = shardByColumns;
         }
+        this.sortByColumns = sortByColumns;
     }
 
     boolean needRepartitionForFileSize() {
@@ -130,22 +128,8 @@ public class Repartitioner {
         return partitionSize;
     }
 
-    public void setShardSize(int shardSize) {
-        this.shardSize = shardSize;
-    }
-
-    public void setFileLengthThreshold(int fileLengthThreshold) {
-        this.fileLengthThreshold = fileLengthThreshold;
-    }
-
-    public void setContentSummary(ContentSummary contentSummary) {
-        this.contentSummary = contentSummary;
-    }
-
-    public void doRepartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, int repartitionNum, Column[] sortCols, SparkSession ss)
-            throws IOException {
-        String tempPath = path + tempDirSuffix;
-        Path tempResourcePath = new Path(tempPath);
+    public void doRepartition(String outputPath, String inputPath, int repartitionNum, SparkSession ss) throws IOException {
+        Path tempResourcePath = new Path(inputPath);
 
         FileSystem readFileSystem = HadoopUtil.getWorkingFileSystem();
         if (needRepartition()) {
@@ -156,40 +140,50 @@ public class Repartitioner {
 
             if (needRepartitionForShardByColumns()) {
                 ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", "false");
-                data = storage.getFrom(tempPath, ss).repartition(repartitionNum,
-                        NSparkCubingUtil.getColumns(getShardByColumns()))
-                        .sortWithinPartitions(sortCols);
+                data = ss.read().parquet(inputPath)
+                        .repartition(repartitionNum, convertIntegerToColumns(getShardByColumns()))
+                        .sortWithinPartitions(convertIntegerToColumns(sortByColumns));
             } else {
                 // repartition for single file size is too small
                 logger.info("repartition to {}", repartitionNum);
-                data = storage.getFrom(tempPath, ss).repartition(repartitionNum)
-                        .sortWithinPartitions(sortCols);
+                data = ss.read().parquet(inputPath).repartition(repartitionNum)
+                        .sortWithinPartitions(convertIntegerToColumns(sortByColumns));
             }
 
-            storage.saveTo(path, data, ss);
+            data.write().mode(SaveMode.Overwrite).parquet(outputPath);
             if (needRepartitionForShardByColumns()) {
                 ss.sessionState().conf().setLocalProperty("spark.sql.adaptive.enabled", null);
             }
             if (readFileSystem.delete(tempResourcePath, true)) {
-                logger.info("Delete temp cuboid path successful. Temp path: {}.", tempPath);
+                logger.info("Delete temp cuboid path successful. Temp path: {}.", inputPath);
             } else {
-                logger.error("Delete temp cuboid path wrong, leave garbage. Temp path: {}.", tempPath);
+                logger.error("Delete temp cuboid path wrong, leave garbage. Temp path: {}.", inputPath);
             }
             long end = System.currentTimeMillis();
             logger.info("Repartition and rewrite ends. Cost: {} ms.", end - start);
         } else {
-            Path goalPath = new Path(path);
+            Path goalPath = new Path(outputPath);
             if (readFileSystem.exists(goalPath)) {
                 logger.info("Path {} is exists, delete it.", goalPath);
                 readFileSystem.delete(goalPath, true);
             }
-            if (readFileSystem.rename(new Path(tempPath), goalPath)) {
-                logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", tempPath,
-                        path);
+            if (readFileSystem.rename(new Path(inputPath), goalPath)) {
+                logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", inputPath,
+                        outputPath);
             } else {
                 throw new RuntimeException(String.format(
-                        "Rename temp path to target path wrong. Temp path: %s, target path: %s.", tempPath, path));
+                        "Rename temp path to target path wrong. Temp path: %s, target path: %s.", inputPath, outputPath));
             }
         }
+    }
+
+    private Column[] convertIntegerToColumns(List<Integer> indices) {
+        Column[] ret = new Column[indices.size()];
+        int index = 0;
+        for (Integer i : indices) {
+            ret[index] = new Column(String.valueOf(i));
+            index++;
+        }
+        return ret;
     }
 }

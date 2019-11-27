@@ -157,6 +157,14 @@ class CuboidSuggester {
         return shardBy;
     }
 
+    private List<Integer> suggestPartitionBy(NDataModel nDataModel, IndexPlan indexPlan) {
+        Integer colId = nDataModel.getColId(nDataModel.getPartitionDesc().getPartitionDateColumnRef());
+        ArrayList<Integer> partitionColumns = new ArrayList<>();
+        partitionColumns.add(colId);
+        partitionColumns.addAll(indexPlan.getExtendPartitionColumns());
+        return partitionColumns;
+    }
+
     private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
 
         List<Integer> dimIds;
@@ -180,21 +188,24 @@ class CuboidSuggester {
         }
 
         LayoutEntity layout = new LayoutEntity();
+        layout.setColOrder(suggestColOrder(dimIds, measureIds, layout.getShardByColumns()));
         layout.setId(suggestLayoutId(indexEntity));
-        layout.setColOrder(suggestColOrder(dimIds, measureIds));
         layout.setIndex(indexEntity);
         layout.setAuto(true);
         layout.setUpdateTime(System.currentTimeMillis());
         layout.setDraftVersion(smartContext.getDraftVersion());
         layout.setInProposing(true);
-
+        List<Integer> partitionColumns = Lists.newArrayList();
+        if (isQualifiedSuggestPartitionBy(ctx, model, dimIds)) {
+            partitionColumns = suggestPartitionBy(model, indexPlan);
+        }
+        layout.setPartitionByColumns(partitionColumns);
         if (!indexEntity.isTableIndex() && CollectionUtils.isNotEmpty(indexPlan.getAggShardByColumns())
                 && layout.getColOrder().containsAll(indexPlan.getAggShardByColumns())) {
             layout.setShardByColumns(indexPlan.getAggShardByColumns());
         } else if (isQualifiedSuggestShardBy(ctx)) {
             layout.setShardByColumns(suggestShardBy(dimIds));
         }
-
         String modelId = model.getUuid();
         int semanticVersion = model.getSemanticVersion();
         for (LayoutEntity l : indexEntity.getLayouts()) {
@@ -214,6 +225,14 @@ class CuboidSuggester {
             if (TblColRef.FilterColEnum.EQUAL_FILTER == colRef.getFilterLevel()) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private boolean isQualifiedSuggestPartitionBy(OLAPContext context, NDataModel nDataModel, List<Integer> dimIds) {
+        if (nDataModel.getStorageType() ==2 && (nDataModel.getPartitionDesc().getPartitionDateColumnRef() != null))  {
+            Integer colId = nDataModel.getColId(nDataModel.getPartitionDesc().getPartitionDateColumnRef());
+            return dimIds.contains(colId);
         }
         return false;
     }
@@ -340,9 +359,12 @@ class CuboidSuggester {
         return indexEntity;
     }
 
-    private List<Integer> suggestColOrder(final List<Integer> orderedDimIds, Set<Integer> measureIds) {
+    private List<Integer> suggestColOrder(final List<Integer> orderedDimIds, Set<Integer> measureIds, List<Integer> shardBy) {
+        ArrayList<Integer> copyDimension = new ArrayList<>(orderedDimIds);
+        copyDimension.removeAll(shardBy);
         List<Integer> colOrder = Lists.newArrayList();
-        colOrder.addAll(orderedDimIds);
+        colOrder.addAll(shardBy);
+        colOrder.addAll(copyDimension);
         colOrder.addAll(measureIds);
         return colOrder;
     }

@@ -39,9 +39,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.engine.spark.utils.BuildUtils;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
 public class BuildLayoutWithUpdate {
     protected static final Logger logger = LoggerFactory.getLogger(BuildLayoutWithUpdate.class);
@@ -80,7 +81,10 @@ public class BuildLayoutWithUpdate {
                     throw new RuntimeException(result.getThrowable());
                 }
                 for (NDataLayout layout : result.getLayouts()) {
-                    BuildUtils.updateDataFlow(seg, layout, config, project);
+                    logger.info("Update layout {} in dataflow {}, segment {}", layout.getLayoutId(), seg.getDataflow().getUuid(), seg.getId());
+                    NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
+                    update.setToAddOrUpdateLayouts(layout);
+                    NDataflowManager.getInstance(config, project).updateDataflow(update);
                 }
             } catch (InterruptedException | ExecutionException e) {
                 shutDownPool();

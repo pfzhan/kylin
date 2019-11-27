@@ -116,6 +116,7 @@ public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
     public static final int MEASURE_ID_BASE = 100000;
 
+
     public enum TableKind implements Serializable {
         FACT, LOOKUP
     }
@@ -200,6 +201,9 @@ public class NDataModel extends RootPersistentEntity {
 
     @JsonProperty("semantic_version")
     private int semanticVersion;
+
+    @JsonProperty("storage_type")
+    private int storageType;
 
     // computed attributes
     @EqualsAndHashCode.Include

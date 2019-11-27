@@ -122,7 +122,7 @@ public class MockedDFBuildJob extends SparkApplication {
                     dataCuboid.setFileCount(123);
                     dataCuboid.setByteSize(123);
                     StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                            .saveTo(NSparkCubingUtil.getStoragePath(dataCuboid), ds, ss);
+                            .saveTo(NSparkCubingUtil.getStoragePath(seg, layout.getId()), ds, ss);
 
                     NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
                     update.setToAddOrUpdateLayouts(dataCuboid);

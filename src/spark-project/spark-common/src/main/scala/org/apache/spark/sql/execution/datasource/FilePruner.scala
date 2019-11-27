@@ -24,7 +24,7 @@ package org.apache.spark.sql.execution.datasource
 
 import java.sql.{Date, Timestamp}
 
-import io.kyligence.kap.metadata.cube.model.{IndexEntity, LayoutEntity, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.common.{KapConfig, KylinConfig}
@@ -32,7 +32,7 @@ import org.apache.kylin.metadata.model.PartitionDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
-import org.apache.spark.sql.catalyst.{InternalRow, expressions}
+import org.apache.spark.sql.catalyst.{expressions, InternalRow}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
@@ -431,4 +431,8 @@ case class SegFilters(start: Long, end: Long, patten: String) extends Logging {
         Trivial(true)
     }
   }
+}
+
+case class Trivial(value: Boolean) extends Filter {
+  override def references: Array[String] = findReferences(value)
 }

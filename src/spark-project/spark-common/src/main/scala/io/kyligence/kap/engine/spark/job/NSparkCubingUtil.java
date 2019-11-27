@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
 import org.spark_project.guava.collect.Sets;
@@ -143,16 +144,14 @@ public class NSparkCubingUtil {
         return String.format("(%s) t", sql);
     }
 
-    public static String getStoragePath(NDataLayout dataCuboid) {
-        NDataSegDetails segDetails = dataCuboid.getSegDetails();
-        KapConfig config = KapConfig.wrap(dataCuboid.getConfig());
-        String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
-        return hdfsWorkingDir + getStoragePathWithoutPrefix(segDetails, dataCuboid.getLayoutId());
+    public static String getStoragePath(NDataSegment nDataSegment, Long layoutId) {
+        String hdfsWorkingDir = KapConfig.wrap(nDataSegment.getConfig()).getReadHdfsWorkingDirectory();
+        return   hdfsWorkingDir +
+                getStoragePathWithoutPrefix(nDataSegment.getProject(), nDataSegment.getDataflow().getId(), nDataSegment.getId(), layoutId);
     }
 
-    public static String getStoragePathWithoutPrefix(NDataSegDetails segDetails, long layoutId) {
-        return segDetails.getProject() + "/parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
-                + segDetails.getUuid() + "/" + layoutId;
+    public static String getStoragePathWithoutPrefix(String project, String dataflowId, String segmentId, long layoutId) {
+        return     project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
     }
 
     private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\D+)");

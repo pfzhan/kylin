@@ -38,11 +38,13 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import com.clearspring.analytics.util.Lists;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 
 public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
@@ -76,10 +78,8 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
         if (JobTypeEnum.INDEX_MERGE.equals(jobType)) {
-            Optional<Long> reduce = toRemoveSegments.stream()
-                    .map(NDataSegment::getSourceBytesSize)
-                    .filter(size -> size != -1)
-                    .reduce(Long::sum);
+            Optional<Long> reduce = toRemoveSegments.stream().map(NDataSegment::getSourceBytesSize)
+                    .filter(size -> size != -1).reduce(Long::sum);
             if (reduce.isPresent()) {
                 long totalSourceSize = reduce.get();
                 mergedSegment.setSourceBytesSize(totalSourceSize);
@@ -97,6 +97,12 @@ public class AfterMergeOrRefreshResourceMerger extends SparkJobMetadataMerger {
 
         mgr.updateDataflow(update);
 
+        IndexPlan remoteIndexPlan = distMgr.getDataflow(dataflowId).getIndexPlan();
+        IndexPlan indexPlan = mgr.getDataflow(dataflowId).getIndexPlan();
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            copyForWrite.setLayoutBucketNumMapping(remoteIndexPlan.getLayoutBucketNumMapping());
+        });
         return update.getToAddOrUpdateLayouts();
     }
 

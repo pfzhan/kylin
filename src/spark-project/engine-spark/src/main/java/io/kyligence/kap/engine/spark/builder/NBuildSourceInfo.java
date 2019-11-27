@@ -27,7 +27,6 @@ package io.kyligence.kap.engine.spark.builder;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -47,7 +46,7 @@ public class NBuildSourceInfo {
     private long byteSize;
     private long count;
     private long layoutId;
-    private String parentStoragePath;
+    private Dataset<Row> parentDF;
     private Collection<IndexEntity> toBuildCuboids = new LinkedHashSet<>();
 
     public long getByteSize() {
@@ -67,10 +66,9 @@ public class NBuildSourceInfo {
     }
 
     public Dataset<Row> getParentDS() {
-        if (!StringUtils.isBlank(parentStoragePath)) {
-            logger.info("parent storage path exists, read from it. path:{}", parentStoragePath);
+        if (parentDF != null) {
             Preconditions.checkNotNull(ss, "SparkSession is null is NBuildSourceInfo.");
-            return ss.read().parquet(parentStoragePath);
+            return parentDF;
         } else {
             Preconditions.checkState(flattableDS != null, "Path and DS can no be empty at the same time.");
             logger.info("parent storage path not exists, use flattable dataset.");
@@ -118,7 +116,7 @@ public class NBuildSourceInfo {
         this.toBuildCuboids.add(cuboid);
     }
 
-    public void setParentStoragePath(String parentStoragePath) {
-        this.parentStoragePath = parentStoragePath;
+    public void setParentStorageDF(Dataset<Row> parentDF) {
+        this.parentDF = parentDF;
     }
 }

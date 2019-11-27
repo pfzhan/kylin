@@ -31,8 +31,8 @@ import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.QueryMetricUtils
-import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv}
+import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
 

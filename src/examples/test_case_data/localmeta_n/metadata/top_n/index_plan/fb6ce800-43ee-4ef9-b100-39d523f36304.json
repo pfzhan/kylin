@@ -24,7 +24,8 @@
             100001,
             100002
           ],
-          "storage_type": 20
+          "storage_type": 20,
+          "auto": "true"
         }
       ]
     }

@@ -134,6 +134,15 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @JsonProperty("agg_shard_by_columns")
     private List<Integer> aggShardByColumns = Lists.newArrayList();
 
+    @Getter
+    @JsonProperty("extend_partition_columns")
+    private List<Integer> extendPartitionColumns = Lists.newArrayList();
+
+    @Setter
+    @Getter
+    @JsonProperty("layout_bucket_num")
+    private Map<Long, Integer> layoutBucketNumMapping = Maps.newHashMap();
+
     // computed fields below
     @Setter
     private String project;
@@ -527,6 +536,19 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             this.ruleBasedLayouts = Lists.newArrayList(ruleBasedIndex.genCuboidLayouts());
         }
         this.aggShardByColumns = aggShardByColumns;
+        updateNextId();
+    }
+
+    public void setExtendPartitionColumns(List<Integer> extendPartitionColumns) {
+        checkIsNotCachedAndShared();
+        if (ruleBasedIndex != null) {
+            val ruleLayouts = ruleBasedIndex.genCuboidLayouts();
+            this.extendPartitionColumns = extendPartitionColumns;
+            ruleBasedIndex.setLayoutIdMapping(Lists.newArrayList());
+            ruleBasedIndex.genCuboidLayouts(ruleLayouts);
+            this.ruleBasedLayouts = Lists.newArrayList(ruleBasedIndex.genCuboidLayouts());
+        }
+        this.extendPartitionColumns = extendPartitionColumns;
         updateNextId();
     }
 

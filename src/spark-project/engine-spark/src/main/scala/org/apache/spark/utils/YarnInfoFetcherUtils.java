@@ -22,13 +22,14 @@
 
 package org.apache.spark.utils;
 
-import io.kyligence.kap.engine.spark.utils.BuildUtils;
+import java.io.IOException;
+
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 
-import java.io.IOException;
+import io.kyligence.kap.engine.spark.utils.StorageUtils;
 
 public class YarnInfoFetcherUtils {
 
@@ -37,7 +38,7 @@ public class YarnInfoFetcherUtils {
 
     public static String getTrackingUrl(String applicationId) throws IOException, YarnException {
         try (YarnClient yarnClient = YarnClient.createYarnClient()) {
-            yarnClient.init(BuildUtils.getCurrentYarnConfiguration());
+            yarnClient.init(StorageUtils.getCurrentYarnConfiguration());
             yarnClient.start();
 
             String[] array = applicationId.split("_");

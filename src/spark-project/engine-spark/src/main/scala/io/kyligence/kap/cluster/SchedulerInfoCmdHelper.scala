@@ -24,14 +24,14 @@ package io.kyligence.kap.cluster
 
 import java.io.{BufferedReader, InputStreamReader}
 
-import io.kyligence.kap.engine.spark.utils.BuildUtils
+import io.kyligence.kap.engine.spark.utils.StorageUtils
 import io.netty.util.internal.ThrowableUtil
 import org.apache.hadoop.yarn.conf.{HAUtil, YarnConfiguration}
 import org.apache.kylin.common.util.{JsonUtil, ShellException}
 import org.apache.spark.internal.Logging
 
 object SchedulerInfoCmdHelper extends Logging {
-  private val useHttps: Boolean = YarnConfiguration.useHttps(BuildUtils.getCurrentYarnConfiguration)
+  private val useHttps: Boolean = YarnConfiguration.useHttps(StorageUtils.getCurrentYarnConfiguration)
 
   def schedulerInfo: String = {
     val cmds = getSocketAddress.map(address => genCmd(address._1, address._2))
@@ -54,7 +54,7 @@ object SchedulerInfoCmdHelper extends Logging {
   }
 
   private[cluster] def getSocketAddress: Map[String, Int] = {
-    val conf = BuildUtils.getCurrentYarnConfiguration
+    val conf = StorageUtils.getCurrentYarnConfiguration
     val addresses = if (HAUtil.isHAEnabled(conf)) {
       val haIds = HAUtil.getRMHAIds(conf).toArray
       require(haIds.nonEmpty, "Ha ids is empty, please check your yarn-site.xml.")

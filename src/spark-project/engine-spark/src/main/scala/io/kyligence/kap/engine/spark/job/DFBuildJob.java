@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.FileStatus;
@@ -43,9 +42,12 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.datasource.storage.StorageStore;
+import org.apache.spark.sql.datasource.storage.StorageStoreFactory;
+import org.apache.spark.sql.datasource.storage.StorageStoreUtils;
+import org.apache.spark.sql.datasource.storage.WriteTaskStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,14 +56,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
-import io.kyligence.kap.engine.spark.utils.BuildUtils;
-import io.kyligence.kap.engine.spark.utils.JobMetrics;
-import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
-import io.kyligence.kap.engine.spark.utils.Metrics;
-import io.kyligence.kap.engine.spark.utils.QueryExecutionCache;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -73,6 +69,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
@@ -158,6 +155,11 @@ public class DFBuildJob extends SparkApplication {
         }
         update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
         dfMgr.updateDataflow(update);
+
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
+        indexPlanManager.updateIndexPlan(dataflowId, copyForWrite -> {
+            copyForWrite.setLayoutBucketNumMapping(indexPlanManager.getIndexPlan(dataflowId).getLayoutBucketNumMapping());
+        });
     }
 
     @Override
@@ -264,9 +266,8 @@ public class DFBuildJob extends SparkApplication {
                 val theRootLevelBuildInfos = new NBuildSourceInfo();
                 theRootLevelBuildInfos.setSparkSession(ss);
                 LayoutEntity layout = new ArrayList<>(st.getLayouts(index)).get(0);
-                String path = NSparkCubingUtil.getStoragePath(getDataCuboid(seg, layout.getId()));
                 theRootLevelBuildInfos.setLayoutId(layout.getId());
-                theRootLevelBuildInfos.setParentStoragePath(path);
+                theRootLevelBuildInfos.setParentStorageDF(StorageStoreUtils.toDF(seg, layout, ss));
                 theRootLevelBuildInfos.setToBuildCuboids(children);
                 childrenBuildSourceInfos.add(theRootLevelBuildInfos);
             }
@@ -319,40 +320,27 @@ public class DFBuildJob extends SparkApplication {
     private NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
             throws IOException {
         long layoutId = layout.getId();
-
-        NDataLayout dataCuboid = getDataCuboid(seg, layoutId);
-
-        // for spark metrics
-        String queryExecutionId = UUID.randomUUID().toString();
-        ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), queryExecutionId);
-
-        NSparkCubingEngine.NSparkCubingStorage storage = StorageFactory.createEngineAdapter(layout,
-                NSparkCubingEngine.NSparkCubingStorage.class);
-        String path = NSparkCubingUtil.getStoragePath(dataCuboid);
-        String tempPath = path + TEMP_DIR_SUFFIX;
-        // save to temp path
-        storage.saveTo(tempPath, dataset, ss);
-
-        JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
-        dataCuboid.setBuildJobId(jobId);
-        long rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT());
+        NDataLayout dataLayout = getDataLayout(seg, layoutId);
+        val path = NSparkCubingUtil.getStoragePath(seg, layoutId);
+        int storageType = layout.getModel().getStorageType();
+        StorageStore storage = StorageStoreFactory.create(storageType);
+        WriteTaskStats taskStats = storage.save(layout, new Path(path), KapConfig.wrap(config), dataset);
+        dataLayout.setBuildJobId(jobId);
+        long rowCount = taskStats.numRows();
         if (rowCount == -1) {
-            infos.recordAbnormalLayouts(dataCuboid.getLayoutId(),
-                    "'Job metrics seems null, use count() to collect cuboid rows.'");
-            logger.warn("Can not get cuboid row cnt.");
+            KylinBuildEnv.get().buildJobInfos().recordAbnormalLayouts(layout.getId(), "Job metrics seems null, use count() to collect cuboid rows.");
+            logger.info("Can not get cuboid row cnt.");
         }
-        dataCuboid.setRows(rowCount);
-        dataCuboid.setSourceRows(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT()));
-        val partitionNum = BuildUtils.repartitionIfNeed(layout, dataCuboid, storage, path, tempPath,
-                KapConfig.wrap(config), ss);
-        dataCuboid.setPartitionNum(partitionNum);
-        ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
-        QueryExecutionCache.removeQueryExecution(queryExecutionId);
-        BuildUtils.fillCuboidInfo(dataCuboid);
-        return dataCuboid;
+        dataLayout.setRows(rowCount);
+        dataLayout.setSourceRows(taskStats.sourceRows());
+        dataLayout.setPartitionNum(taskStats.numBucket());
+        dataLayout.setPartitionValues(taskStats.partitionValues());
+        dataLayout.setFileCount(taskStats.numFiles());
+        dataLayout.setByteSize(taskStats.numBytes());
+        return dataLayout;
     }
 
-    private NDataLayout getDataCuboid(NDataSegment seg, long layoutId) {
+    private NDataLayout getDataLayout(NDataSegment seg, long layoutId) {
         return NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
     }
 

@@ -30,7 +30,6 @@ import java.sql.{Date, Timestamp, Types}
 import java.util.regex.Pattern
 import java.util.{GregorianCalendar, TimeZone}
 
-import io.kyligence.kap.query.pushdown.StructField
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
@@ -424,8 +423,8 @@ object SparderTypeUtil extends Logging {
     columns
   }
 
-  def convertSparkFieldToJavaField(field: org.apache.spark.sql.types.StructField): StructField = {
-    val builder = new StructField.StructFieldBuilder
+  def convertSparkFieldToJavaField(field: org.apache.spark.sql.types.StructField): io.kyligence.kap.metadata.query.StructField = {
+    val builder = new io.kyligence.kap.metadata.query.StructField.StructFieldBuilder
     builder.setName(field.name)
     val typeName = if (field.dataType.sql.startsWith("DECIMAL")) {
       "DECIMAL"

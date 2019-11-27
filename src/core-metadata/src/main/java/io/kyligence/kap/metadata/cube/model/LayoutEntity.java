@@ -81,6 +81,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     @EqualsAndHashCode.Include
     @JsonProperty("shard_by_columns")
     private List<Integer> shardByColumns = Lists.newArrayList();
+    
+    @JsonProperty("partition_by_columns")
+    private List<Integer> partitionByColumns = Lists.newArrayList();// Current case auto and manual are same partition columns
 
     @EqualsAndHashCode.Include
     @JsonProperty("sort_by_columns")
@@ -230,8 +233,21 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         this.shardByColumns = shardByColumns;
     }
 
+    public List<Integer> getPartitionByColumns() {
+        return isCachedAndShared() ? Lists.newArrayList(partitionByColumns) : partitionByColumns;
+    }
+
+    public void setPartitionByColumns(List<Integer> partitionByColumns) {
+        checkIsNotCachedAndShared();
+        this.partitionByColumns = partitionByColumns;
+    }
+
     public List<Integer> getSortByColumns() {
         return isCachedAndShared() ? Lists.newArrayList(sortByColumns) : sortByColumns;
+    }
+
+    public int getBucketNum() {
+        return this.getIndex().getIndexPlan().getLayoutBucketNumMapping().get(id);
     }
 
     public void setSortByColumns(List<Integer> sortByColumns) {

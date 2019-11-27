@@ -27,7 +27,7 @@ import java.util
 
 import com.google.common.collect.Lists
 import io.kyligence.kap.engine.spark.storage.ParquetStorage
-import io.kyligence.kap.engine.spark.utils.{BuildUtils, Repartitioner}
+import io.kyligence.kap.engine.spark.utils.{Repartitioner, StorageUtils}
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.{ContentSummary, FSDataOutputStream, Path}
@@ -84,8 +84,9 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
         val repartitionNum = 2
         storage.saveTo(tempPath, origin, spark)
         val sortCols = origin.schema.fields.map(f => new Column(f.name))
-        val repartitioner = genMockHelper(2, Lists.newArrayList(Integer.valueOf(2)))
-        repartitioner.doRepartition(storage, path, repartitioner.getRepartitionNumByStorage, sortCols, spark)
+        val repartitioner = genMockHelper(2, Lists.newArrayList(Integer.valueOf(1), Integer.valueOf(2)),
+          Lists.newArrayList(Integer.valueOf(2)))
+        repartitioner.doRepartition(path, path + "_temp", repartitioner.getRepartitionNumByStorage, spark)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet")).sortBy(_.getName)
         assert(files.length == repartitionNum)
         storage.getFrom(files.apply(0).getPath, spark).collect().map(_.getString(1)).foreach {
@@ -106,8 +107,8 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
         storage.saveTo(tempPath, origin, spark)
         val repartitionNum = 3
         val sortCols = origin.schema.fields.map(f => new Column(f.name))
-        val repartitioner = genMockHelper(3)
-        repartitioner.doRepartition(storage, path, repartitioner.getRepartitionNumByStorage, sortCols, spark)
+        val repartitioner = genMockHelper(3, Lists.newArrayList(Integer.valueOf(1), Integer.valueOf(2)))
+        repartitioner.doRepartition(path, path + "_temp", repartitioner.getRepartitionNumByStorage, spark)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
         assert(files.length == repartitionNum)
       }
@@ -117,7 +118,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
       "do not repartition" in {
         val origin = generateOriginData()
         storage.saveTo(tempPath, origin, spark)
-        val mockHelper = genMockHelper(1)
+        val mockHelper = genMockHelper(1, Lists.newArrayList(Integer.valueOf(1), Integer.valueOf(2)))
 
         var stream: FSDataOutputStream = null
         try {
@@ -129,7 +130,7 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
           }
         }
         val sortCols = origin.schema.fields.map(f => new Column(f.name))
-        mockHelper.doRepartition(storage, path, mockHelper.getRepartitionNumByStorage, sortCols, spark)
+        mockHelper.doRepartition(path, path + "_temp", mockHelper.getRepartitionNumByStorage, spark)
         val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
         assert(files.length == spark.conf.get("spark.sql.shuffle.partitions").toInt)
       }
@@ -141,15 +142,15 @@ class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession w
     "has countDistinct" in {
          val manager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv, "default")
       val entity = manager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getIndexEntity(1000000).getLastLayout
-      Assert.assertTrue(BuildUtils.findCountDistinctMeasure(entity))
+      Assert.assertTrue(StorageUtils.findCountDistinctMeasure(entity))
     }
   }
 
-  def genMockHelper(repartitionNum: Int, isShardByColumn: util.List[Integer] = null): Repartitioner = {
+  def genMockHelper(repartitionNum: Int, sortByColumns: util.List[Integer], isShardByColumn: util.List[Integer] = null): Repartitioner = {
     val sc = jmock(classOf[ContentSummary])
     when(sc.getFileCount).thenReturn(1L)
     when(sc.getLength).thenReturn(repartitionNum * 1024 * 1024L)
-    val helper = new Repartitioner(1, 1, repartitionNum * 100, 100, sc, isShardByColumn)
+    val helper = new Repartitioner(1, 1, repartitionNum * 100, 100, sc, isShardByColumn, sortByColumns)
     Assert.assertEquals(repartitionNum, helper.getRepartitionNumByStorage)
     helper
   }
