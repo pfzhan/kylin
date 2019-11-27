@@ -60,12 +60,13 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     @Override
     void propose() {
         initAccelerationInfo(sqls);
-        List<NDataModel> models = kylinConfig.isSemiAutoMode() ? Lists.newArrayList() : getOriginModels();
+        List<NDataModel> models = smartContext.isReuseExistedModel() ? getOriginModels() : Lists.newArrayList();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
                 models, DEFAULT_THREAD_NUM)) {
             extractor.execute();
             logFailedQuery(extractor);
 
+            //TODO refactor this logic to somewhere like initialOrMergeModel
             final List<NModelContext> modelContexts = new GreedyModelTreesBuilder(kylinConfig, project, smartContext)
                     .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null).stream()
                     .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()).map(smartContext::createModelContext)

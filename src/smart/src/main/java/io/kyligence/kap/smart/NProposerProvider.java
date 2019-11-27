@@ -47,6 +47,10 @@ public class NProposerProvider {
         return new NModelOptProposer(smartContext);
     }
 
+    public NAbstractProposer getAutoOrSemiModeInfoAdjustProposer() {
+        return new NAutoOrSemiModelInfoAdjustProposer(smartContext);
+    }
+
     public NAbstractProposer getIndexPlanSelectProposer() {
         return new NIndexPlanSelectProposer(smartContext);
     }

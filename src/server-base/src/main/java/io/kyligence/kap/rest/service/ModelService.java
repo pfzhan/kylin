@@ -116,6 +116,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
@@ -131,7 +132,8 @@ import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NRecomendedDataModelResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -948,7 +950,17 @@ public class ModelService extends BasicService {
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             for (ModelRequest modelRequest : modelRequests) {
-                saveModel(project, modelRequest);
+                if (modelRequest.getIndexPlan() != null) {
+                    saveModel(project, modelRequest);
+                    saveIndexPlan(project, modelRequest.getIndexPlan());
+                }
+
+                if (modelRequest.getRecommendation() != null) {
+                    OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
+                            .getInstance(KylinConfig.getInstanceFromEnv(), project);
+                    optRecMgr.save(modelRequest.getRecommendation());
+                    optRecMgr.logOptimizeRecommendation(modelRequest.getId(), modelRequest.getRecommendation());
+                }
             }
             return null;
         }, project);
@@ -963,48 +975,72 @@ public class ModelService extends BasicService {
         return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest), project);
     }
 
-    public List<NRecomendedDataModelResponse> suggestModel(String project, List<String> sqls) {
-        aclEvaluate.checkProjectWritePermission(project);
-        if (CollectionUtils.isEmpty(sqls)) {
-            return Lists.newArrayList();
-        }
+    public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
+        if (CollectionUtils.isEmpty(sqls))
+            return true;
 
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
-        smartMaster.analyzeSQLs();
-        smartMaster.optimizeModel();
-        smartMaster.renameModel();
+        smartMaster.selectExistedModel();
+        return CollectionUtils.isNotEmpty(smartMaster.getRecommendedModels());
+    }
 
-        List<NRecomendedDataModelResponse> dataModelResponseList = Lists.newArrayList();
-        for (NSmartContext.NModelContext modelCtx : smartMaster.getContext().getModelContexts()) {
-            if (modelCtx.withoutTargetModel()) {
+    public NRecomendationListResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            return null;
+        }
+
+        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
+                sqls.toArray(new String[0]), reuseExistedModel, true);
+        val recommendationsMap = reuseExistedModel ? smartMaster.selectAndGenRecommendation()
+                : smartMaster.recommendNewModelAndIndex();
+        return constructModelRecommendResponse(recommendationsMap, smartMaster.getContext());
+    }
+
+    private NRecomendationListResponse constructModelRecommendResponse(
+            Map<NDataModel, OptimizeRecommendation> recommendationsMap, NSmartContext context) {
+        List<NRecomendationListResponse.NRecomendedDataModelResponse> newDataModelResponseList = Lists.newArrayList();
+        List<NRecomendationListResponse.NRecomendedDataModelResponse> originDataModelResponseList = Lists
+                .newArrayList();
+
+        for (NSmartContext.NModelContext modelContext : context.getModelContexts()) {
+            if (modelContext.getTargetModel() == null) {
                 continue;
             }
-            NDataModel model = modelCtx.getTargetModel();
-            model.setManagementType(ManagementType.MODEL_BASED);
 
-            // TEMP IMPLEMENTATION
-            // set join table kind to look up
-            for (JoinTableDesc joinTableDesc : model.getJoinTables()) {
-                if (!joinTableDesc.getTableRef().equals(model.getRootFactTableRef())) {
-                    joinTableDesc.setKind(NDataModel.TableKind.LOOKUP);
-                }
+            NRecomendationListResponse.NRecomendedDataModelResponse response = new NRecomendationListResponse.NRecomendedDataModelResponse(
+                    modelContext.getTargetModel());
+            Set<String> acceleratedSqls = Sets.newHashSet();
+            modelContext.getModelTree().getOlapContexts().forEach(ctx -> acceleratedSqls.add(ctx.sql));
+            response.setDimensions(modelContext.getTargetModel().getAllNamedColumns().stream()
+                    .filter(dim -> dim.isDimension()).collect(Collectors.toList()));
+            response.setSqls(Lists.newArrayList(acceleratedSqls));
+
+            if (recommendationsMap.get(modelContext.getTargetModel()) != null) {
+                response.setRecommendationResponse(
+                        new OptRecommendationResponse(recommendationsMap.get(modelContext.getTargetModel()), null));
+            } else {
+                // build Agg && Table index
+                IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+                if (indexPlan.getSegmentRangeEnd() == Long.MAX_VALUE)
+                    indexPlan.setSegmentRangeEnd(indexPlan.getRetentionRange() - 193);
+                response.setIndices(indexPlan);
             }
-
-            NRecomendedDataModelResponse response = new NRecomendedDataModelResponse(model);
-            List<String> acceleratedSqls = Lists.newArrayList();
-            modelCtx.getModelTree().getOlapContexts().forEach(context -> acceleratedSqls.add(context.sql));
-            response.setDimensions(
-                    model.getAllNamedColumns().stream().filter(dim -> dim.isDimension()).collect(Collectors.toList()));
-            response.setSqls(acceleratedSqls);
-            dataModelResponseList.add(response);
+            if (modelContext.getOriginModel() == null) {
+                newDataModelResponseList.add(response);
+            } else {
+                originDataModelResponseList.add(response);
+            }
         }
-        return dataModelResponseList;
+        return new NRecomendationListResponse(originDataModelResponseList, newDataModelResponseList);
     }
 
     private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) throws Exception {
 
-        checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
+        if (modelRequest.getRecommendation() == null) {
+            // new model
+            checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
+        }
         checkModelRequest(modelRequest);
 
         //remove some attributes in modelResponse to fit NDataModel
@@ -1047,6 +1083,22 @@ public class ModelService extends BasicService {
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
+    }
+
+    void saveIndexPlan(String project, IndexPlan indexPlan) {
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        indexPlanManager.updateIndexPlan(indexPlan.getId(), (copyForWrite) -> {
+            if (indexPlan.getAggShardByColumns() != null) {
+                copyForWrite.setAggShardByColumns(indexPlan.getAggShardByColumns());
+            }
+            // TODO add test
+            if (indexPlan.getIndexes() == null) {
+                copyForWrite.setIndexes(indexPlan.getIndexes());
+            }
+            copyForWrite.setEngineType(indexPlan.getEngineType());
+            copyForWrite.setIndexPlanOverrideIndexes(indexPlan.getIndexPlanOverrideIndexes());
+            copyForWrite.setLastModified(System.currentTimeMillis());
+        });
     }
 
     private NDataModel getBrokenModel(String project, String modelId) {

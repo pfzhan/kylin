@@ -342,6 +342,7 @@ public class GreedyModelTreesBuilder {
                     } else if (JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
                             && JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
                             && !oldJoinTable.getKind().equals(newJoinTable.getKind())) {
+                        // this case is deprecated, the join table is FACT by default
                         // same join info but table kind differ: LOOKUP vs FACT, use FACT
                         newJoinTable.setKind(NDataModel.TableKind.FACT);
                         alias2JoinTablesUpdates.put(joinTableAlias, newJoinTable);

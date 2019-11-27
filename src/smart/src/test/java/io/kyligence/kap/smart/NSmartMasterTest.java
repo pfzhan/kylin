@@ -39,6 +39,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -596,6 +597,77 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertTrue(accelerationInfoMap.get(sqls[1]).isFailed());
         Assert.assertEquals("Duplicate measure name occurs: COUNT_TEST_ACCOUNT_ACCOUNT_COUNTRY",
                 accelerationInfoMap.get(sqls[1]).getFailedCause().getMessage());
+    }
+
+    @Test
+    public void testProposeNewModel() {
+        // normal case 1. create totally new model and index (without rule-based-index), check the model and index_plan
+        String[] sqls = new String[] {
+                "select test_account.account_id, test_account1.account_id, count(test_account.account_country) \n"
+                        + "from \"DEFAULT\".test_account inner join \"DEFAULT\".test_account1 on test_account.account_id = test_account1.account_id\n"
+                        + "group by test_account.account_id, test_account1.account_id" };
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls, false);
+        smartMaster.recommendNewModelAndIndex();
+        smartMaster.saveModelOnlyForTest();
+        Assert.assertFalse(smartMaster.getContext().getModelContexts().get(0).withoutTargetModel());
+        val newModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, newModel.getJoinTables().size());
+        Assert.assertEquals("TEST_ACCOUNT", newModel.getRootFactTable().getTableName());
+        Assert.assertEquals(2, newModel.getAllMeasures().size());
+        Assert.assertEquals("COUNT", newModel.getAllMeasures().get(0).getFunction().getExpression());
+        Assert.assertEquals("COUNT", newModel.getAllMeasures().get(1).getFunction().getExpression());
+        Assert.assertEquals(10, newModel.getAllNamedColumns().size());
+        Assert.assertEquals(2, newModel.getEffectiveDimensions().size());
+        val index_plan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, index_plan.getAllIndexes().size());
+        Assert.assertEquals(0, index_plan.getRuleBaseLayouts().size());
+
+        // case 2. repropose new model and won't reuse the origin model, check the models' info is equaled with origin model
+        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), "newten", sqls, false);
+        smartMaster1.recommendNewModelAndIndex();
+        smartMaster1.saveModelOnlyForTest();
+        val reproposalModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertNotEquals(reproposalModel.getId(), newModel.getId());
+        Assert.assertTrue(reproposalModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap(), false));
+        Assert.assertTrue(
+                CollectionUtils.isEqualCollection(reproposalModel.getAllMeasures(), newModel.getAllMeasures()));
+        Assert.assertTrue(
+                CollectionUtils.isEqualCollection(reproposalModel.getAllNamedColumns(), newModel.getAllNamedColumns()));
+        val reproposalIndexPlan = smartMaster1.getContext().getModelContexts().get(0).getTargetIndexPlan();
+        Assert.assertTrue(
+                CollectionUtils.isEqualCollection(index_plan.getAllLayouts(), reproposalIndexPlan.getAllLayouts()));
+
+        // case 3. reuse the origin model
+        NSmartMaster smartMaster2 = new NSmartMaster(getTestConfig(), "newten", sqls);
+        smartMaster2.selectAndOptimize();
+        val model2 = smartMaster2.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertTrue(model2.getId().equals(reproposalModel.getId()) || model2.getId().equals(newModel.getId()));
+
+        // case 4. reuse origin model and generate recommendation
+        String[] scondSqls = new String[] { "select max(test_account1.ACCOUNT_CONTACT) from "
+                + "\"DEFAULT\".test_account inner join \"DEFAULT\".test_account1 "
+                + "on test_account.account_id = test_account1.account_id" };
+        NSmartMaster smartMaster3 = new NSmartMaster(getTestConfig(), "newten", scondSqls);
+        val modelAndRecMap = smartMaster3.selectAndGenRecommendation();
+        Assert.assertEquals(1, modelAndRecMap.size());
+        val reusedModel = modelAndRecMap.keySet().iterator().next();
+        Assert.assertTrue(
+                reusedModel.getId().equals(reproposalModel.getId()) || reusedModel.getId().equals(newModel.getId()));
+        Assert.assertEquals(0, modelAndRecMap.get(reusedModel).getCcRecommendations().size());
+        Assert.assertEquals(1, modelAndRecMap.get(reusedModel).getLayoutRecommendations().size());
+        Assert.assertEquals(1, modelAndRecMap.get(reusedModel).getMeasureRecommendations().size());
+
+        // case 5. create a new model and without recommendation
+        String[] thirdSqls = new String[] { "select test_kylin_fact.cal_dt, test_cal_dt.cal_dt, sum(price) \n"
+                + "from test_kylin_fact inner join edw.test_cal_dt\n"
+                + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
+                + "group by test_kylin_fact.cal_dt, test_cal_dt.cal_dt" };
+        NSmartMaster smartMaster4 = new NSmartMaster(getTestConfig(), "newten", thirdSqls);
+        val modelAndRecMap4 = smartMaster4.selectAndGenRecommendation();
+        Assert.assertEquals(0, modelAndRecMap4.size());
+        Assert.assertFalse(smartMaster4.getContext().getModelContexts().get(0).withoutTargetModel());
+        val model4 = smartMaster4.getContext().getModelContexts().get(0).getTargetModel();
+        Assert.assertEquals(1, model4.getJoinTables().size());
     }
 
     private NDataModel proposeModel(String[] sqlStatements) {

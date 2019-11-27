@@ -840,6 +840,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(4, result.size());
     }
 
+    @Test
+    public void testSuggestModel() {
+        List<String> sqls = Lists.newArrayList();
+        val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
+        Assert.assertTrue(result);
+
+        List<String> sqls1 = Lists.newArrayList();
+    }
+
     private void prepareTwoOnlineModels() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");

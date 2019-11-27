@@ -37,7 +37,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.TableColRefWIthRel;
 import org.apache.kylin.query.routing.RealizationChooser;
@@ -49,7 +48,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
@@ -175,11 +173,11 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 logger.trace(parserDesc);
                 candidates.add(parserDesc);
             }
-            if (col.getColumnDesc().isComputedColumn()) {
-                final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-                if (projectInstance.isSemiAutoMode()) {
-                    candidates.add(col.getExpressionInSourceDB());
-                }
+
+            // if create totally new model, it won't reuse CC. So it need to be create its own new ComputedCols.
+            if (col.getColumnDesc().isComputedColumn()
+                    && !this.getModelContext().getSmartContext().isReuseExistedModel()) {
+                candidates.add(col.getExpressionInSourceDB());
             }
         }
         return candidates;

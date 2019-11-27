@@ -35,7 +35,6 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
@@ -46,7 +45,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 
@@ -96,9 +94,8 @@ public class NModelSelectProposer extends NAbstractProposer {
             modelContext.setTargetModel(targetModel);
         }
 
-        // In expert mode and semi-auto mode, if selected model is null, record pending message
-        final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        if (projectInstance.isExpertMode() || projectInstance.isSemiAutoMode()) {
+        //if cannot create new model, record pending message
+        if (!smartContext.isCouldCreateNewModel()) {
             smartContext.getModelContexts().forEach(modelCtx -> {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {

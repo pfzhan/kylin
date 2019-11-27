@@ -22,62 +22,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.function.BiFunction;
-
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.Getter;
 import lombok.Setter;
 
-@Getter
 @Setter
-public class ModelRequest extends NDataModel {
+@Getter
+public class NRecomendationListResponse {
+    @JsonProperty("origin_model")
+    List<NRecomendedDataModelResponse> originModels;
+    @JsonProperty("new_model")
+    List<NRecomendedDataModelResponse> newModels;
 
-    @JsonProperty("project")
-    private String project;
-
-    @JsonProperty("start")
-    private String start;
-
-    @JsonProperty("end")
-    private String end;
-
-    @JsonProperty("dimensions")
-    private List<NamedColumn> dimensions = Lists.newArrayList();
-
-    @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
-
-    @JsonProperty("simplified_dimensions")
-    private List<NamedColumn> simplifiedDimensions = Lists.newArrayList();
-
-    @JsonProperty("recommendation")
-    private OptimizeRecommendation recommendation;
-
-    @JsonProperty("index_plan")
-    private IndexPlan indexPlan;
-
-    private transient BiFunction<TableDesc, Boolean, Collection<ColumnDesc>> columnsFetcher = TableRef::filterColumns;
-
-    public ModelRequest() {
-        super();
+    public NRecomendationListResponse(List<NRecomendedDataModelResponse> originModels,
+            List<NRecomendedDataModelResponse> newModels) {
+        this.originModels = originModels;
+        this.newModels = newModels;
     }
 
-    public ModelRequest(NDataModel dataModel) {
-        super(dataModel);
-    }
+    @Getter
+    @Setter
+    public static class NRecomendedDataModelResponse extends NDataModel {
+        @JsonProperty("sqls")
+        private List<String> sqls;
+        @JsonProperty("dimensions")
+        private List<NamedColumn> dimensions;
+        @JsonProperty("recommendation")
+        private OptRecommendationResponse recommendationResponse;
+        @JsonProperty("index_plan")
+        private IndexPlan indices;
 
+        public NRecomendedDataModelResponse(NDataModel other) {
+            super(other);
+        }
+
+        public NRecomendedDataModelResponse() {
+        }
+    }
 }

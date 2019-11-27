@@ -43,6 +43,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
@@ -58,6 +59,10 @@ public class NSmartContext {
     private final SmartConfig smartConfig;
     private final String project;
     private final String[] sqls;
+    // if false, it will create totally new model and won't reuse CC.
+    private final boolean reuseExistedModel;
+
+    private final boolean couldCreateNewModel;
 
     @Setter
     private boolean skipEvaluateCC;
@@ -71,6 +76,40 @@ public class NSmartContext {
     private Map<String, AccelerateInfo> accelerateInfoMap;
 
     private final NTableMetadataManager tableMetadataManager;
+
+    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
+        this(kylinConfig, project, sqls);
+        this.draftVersion = draftVersion;
+    }
+
+    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, boolean reuseExistedModel,
+            boolean couldCreateNewModel) {
+        this.kylinConfig = kylinConfig;
+        this.project = project;
+        this.sqls = sqls;
+        this.smartConfig = SmartConfig.wrap(this.kylinConfig);
+        this.accelerateInfoMap = Maps.newHashMap();
+        this.reuseExistedModel = reuseExistedModel;
+
+        tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
+        val prjInstance = NProjectManager.getInstance(this.kylinConfig).getProject(project);
+        Preconditions.checkArgument(!prjInstance.isExpertMode() || couldCreateNewModel,
+                "In Expert Mode, it CANNOT create new model !!!");
+        this.couldCreateNewModel = couldCreateNewModel;
+    }
+
+    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
+        this.kylinConfig = kylinConfig;
+        this.project = project;
+        this.sqls = sqls;
+        this.smartConfig = SmartConfig.wrap(this.kylinConfig);
+        this.accelerateInfoMap = Maps.newHashMap();
+        this.reuseExistedModel = true;
+        val prjInstance = NProjectManager.getInstance(this.kylinConfig).getProject(project);
+        this.couldCreateNewModel = prjInstance.isSmartMode();
+
+        tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
+    }
 
     /**
      * Erase the layout in accelerate info map
@@ -162,18 +201,4 @@ public class NSmartContext {
         return new NModelContext(this, modelTree);
     }
 
-    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
-        this(kylinConfig, project, sqls);
-        this.draftVersion = draftVersion;
-    }
-
-    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
-        this.kylinConfig = kylinConfig;
-        this.project = project;
-        this.sqls = sqls;
-        this.smartConfig = SmartConfig.wrap(this.kylinConfig);
-        this.accelerateInfoMap = Maps.newHashMap();
-
-        tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
-    }
 }

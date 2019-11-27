@@ -24,17 +24,18 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
+import org.apache.kylin.rest.request.SqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -59,17 +60,6 @@ import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
-import io.kyligence.kap.rest.response.AffectedModelsResponse;
-import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
-import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.IndicesResponse;
-import io.kyligence.kap.rest.response.ModelConfigResponse;
-import io.kyligence.kap.rest.response.ModelInfoResponse;
-import io.kyligence.kap.rest.response.NRecomendedDataModelResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
-import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.request.AggShardByColumnsRequest;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
@@ -83,16 +73,27 @@ import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.response.AffectedModelsResponse;
+import io.kyligence.kap.rest.response.AggShardByColumnsResponse;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
+import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
+import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.OptimizeRecommendationService;
 import io.kyligence.kap.rest.service.ProjectService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/models")
@@ -194,10 +195,10 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "suggestModel (check)", notes = "; need check")
     @PostMapping(value = "/suggest_model", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<List<NRecomendedDataModelResponse>> suggestModel(@RequestBody FavoriteRequest request) {
+    public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody SqlAccerelateRequest request) {
         checkProjectName(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                modelService.suggestModel(request.getProject(), request.getSqls()), "");
+                modelService.suggestModel(request.getProject(), request.getSqls(), request.getReuseExistedModel()), "");
     }
 
     /**
@@ -218,6 +219,17 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, !modelService
                 .checkModelAliasUniqueness(modelRequest.getUuid(), modelRequest.getAlias(), modelRequest.getProject()),
                 "");
+    }
+
+    @ApiOperation(value = "checkIfCanAnsweredByExistedModel (check)", notes = "")
+    @PostMapping(value = "/can_answered_by_existed_model", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request)
+            throws Exception {
+        checkProjectName(request.getProject());
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                modelService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
     }
 
     @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")
@@ -245,7 +257,7 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/{model:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
-            @PathVariable(value = "model") String modelId, // 
+            @PathVariable(value = "model") String modelId, //
             @RequestParam(value = "project") String project,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
@@ -384,7 +396,7 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/affected_models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<AffectedModelsResponse> getAffectedModelsBySourceTableAction(
-            @RequestParam(value = "table") String tableName, // 
+            @RequestParam(value = "table") String tableName, //
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "action") String action) {
         checkProjectName(project);
@@ -612,7 +624,7 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/{model:.+}/recommendations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<OptRecommendationResponse> getOptimizeRecommendations(
-            @PathVariable(value = "model") String modelId, // 
+            @PathVariable(value = "model") String modelId, //
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
         checkProjectName(project);
