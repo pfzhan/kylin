@@ -70,9 +70,9 @@ object SparderLookupManager extends Logging {
           columns(index).getName).toString,
           SparderTypeUtil.toSparkType(columns(index).getType))
       }))
-
     val rsourcePath = KapConfig.getInstanceFromEnv.getReadHdfsWorkingDirectory + sourcePath
     SparderEnv.getSparkSession.read
+      .schema(StructType(tableDesc.getColumns.map(column => StructField(column.getName, SparderTypeUtil.toSparkType(column.getType))).toSeq))
       .parquet(rsourcePath)
       .toDF(schema.fieldNames: _*)
   }
