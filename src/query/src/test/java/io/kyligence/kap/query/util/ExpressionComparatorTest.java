@@ -27,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.LinkedHashMap;
 
+import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.Pair;
@@ -107,6 +108,42 @@ public class ExpressionComparatorTest {
 
             QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
             assertEquals(true, ExpressionComparator.isNodeEqual(sn2, sn0, matchInfo, new AliasDeduceImpl(matchInfo)));
+        }
+
+    }
+
+    @Test
+    public void testNoNPE() {
+        //https://github.com/Kyligence/KAP/issues/10934
+        String sql0 = "select a.a + a.b + a.c from t as a";
+        String sql1 = "select a.a + a.b + a.c from t as a";
+        String sql2 = "select 1";
+        String sql3 = "select 1";
+
+        SqlNode sn0 = CalciteParser.getOnlySelectNode(sql0);
+        SqlNode sn1 = CalciteParser.getOnlySelectNode(sql1);
+        SqlNode sn2 = CalciteParser.getOnlySelectNode(sql2);
+        SqlNode sn3 = CalciteParser.getOnlySelectNode(sql3);
+        {
+            AliasMapping aliasMapping = null;
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+
+            assertEquals(false, matchInfo.isSqlNodeEqual(sn0, sn1));
+        }
+        {
+            AliasMapping aliasMapping = new AliasMapping(null);
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            assertEquals(false, matchInfo.isSqlNodeEqual(sn0, sn1));
+        }
+        {
+            AliasMapping aliasMapping = null;
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            assertEquals(true, matchInfo.isSqlNodeEqual(sn2, sn3));
+        }
+        {
+            AliasMapping aliasMapping = new AliasMapping(null);
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            assertEquals(true, matchInfo.isSqlNodeEqual(sn2, sn3));
         }
 
     }

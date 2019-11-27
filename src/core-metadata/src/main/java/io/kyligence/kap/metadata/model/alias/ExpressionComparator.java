@@ -80,6 +80,9 @@ public class ExpressionComparator {
         }
 
         protected boolean isSqlIdentifierEqual(SqlIdentifier querySqlIdentifier, SqlIdentifier exprSqlIdentifier) {
+            if (aliasMapping == null || aliasMapping.getAliasMapping() == null) {
+                return false;
+            }
             Preconditions.checkState(exprSqlIdentifier.names.size() == 2);
             String queryAlias = null, queryCol = null;
             if (querySqlIdentifier.isStar()) {
