@@ -4,7 +4,7 @@
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
       <div  class="ksd-mtb-10 ksd-fright">
-        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
+        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model_name"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
       <div class="ky-no-br-space">
@@ -242,7 +242,7 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
       }
       if (to.params.modelAlias) {
         vm.currentEditModel = to.params.modelAlias
-        vm.filterArgs.model = to.params.modelAlias
+        vm.filterArgs.model_name = to.params.modelAlias
         vm.filterArgs.exact = true
       }
       // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的
@@ -318,7 +318,7 @@ export default class ModelList extends Vue {
     page_offset: 0,
     page_size: 10,
     exact: false,
-    model: '',
+    model_name: '',
     sort_by: 'last_modify',
     reverse: true
   }
@@ -573,7 +573,7 @@ export default class ModelList extends Vue {
   // 加载模型列表
   loadModelsList () {
     return this.loadModels(this.filterArgs).then(() => {
-      if (this.filterArgs.model || this.modelsPagerRenderData.list.length) {
+      if (this.filterArgs.model_name || this.modelsPagerRenderData.list.length) {
         this.showSearchResult = true
       } else {
         this.showSearchResult = false
