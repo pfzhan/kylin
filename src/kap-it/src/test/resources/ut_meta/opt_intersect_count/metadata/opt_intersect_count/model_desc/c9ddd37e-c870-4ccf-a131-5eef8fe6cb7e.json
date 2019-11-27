@@ -24,6 +24,12 @@
     },
     {
       "id": 3,
+      "name": "GENDER",
+      "column": "TEST_INTERSECT_COUNT.GENDER",
+      "status": "EXIST"
+    },
+    {
+      "id": 4,
       "name": "TAG",
       "column": "TEST_INTERSECT_COUNT.TAG",
       "status": "EXIST"

@@ -10,7 +10,8 @@
       "dimensions": [
         1,
         2,
-        3
+        3,
+        4
       ],
       "measures": [
         100001
@@ -23,6 +24,7 @@
             1,
             2,
             3,
+            4,
             100001
           ],
           "storage_type": 20
@@ -33,7 +35,7 @@
       "id": 100002,
       "dimensions": [
         2,
-        3
+        4
       ],
       "measures": [
         100001
@@ -44,7 +46,49 @@
           "auto": true,
           "col_order": [
             2,
-            3,
+            4,
+            100001
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 100004,
+      "dimensions": [
+        1,
+        2
+      ],
+      "measures": [
+        100001
+      ],
+      "layouts": [
+        {
+          "id": 100005,
+          "auto": true,
+          "col_order": [
+            1,
+            2,
+            100001
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 100007,
+      "dimensions": [
+        1
+      ],
+      "measures": [
+        100001
+      ],
+      "layouts": [
+        {
+          "id": 100008,
+          "auto": true,
+          "col_order": [
+            1,
             100001
           ],
           "storage_type": 20

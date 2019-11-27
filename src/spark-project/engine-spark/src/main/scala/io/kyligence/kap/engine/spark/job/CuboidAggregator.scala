@@ -132,9 +132,9 @@ object CuboidAggregator {
 
             if (isBitmap && parameters.size == 2) {
               require(measures.size() == 1, "Opt intersect count can only has one measure.")
-              taggedColIndex = columnIndex.apply(flatTableDesc.getColumnIndex(parameters.last.getColRef)).toInt
-              val tagCol = col(taggedColIndex.toString)
               if (!reuseLayout) {
+                taggedColIndex = columnIndex.apply(flatTableDesc.getColumnIndex(parameters.last.getColRef)).toInt
+                val tagCol = col(taggedColIndex.toString)
                 val separator = KapConfig.getInstanceFromEnv.getIntersectCountSeparator
                 cdCol = wrapEncodeColumn(columns.head)
                 new Column(OptIntersectCount(cdCol.expr, split(tagCol, s"\\$separator").expr).toAggregateExpression())

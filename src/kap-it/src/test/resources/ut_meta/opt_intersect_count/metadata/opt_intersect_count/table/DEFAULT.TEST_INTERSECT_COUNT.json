@@ -23,6 +23,12 @@
     },
     {
       "id": "4",
+      "name": "GENDER",
+      "datatype": "string",
+      "index": "T"
+    },
+    {
+      "id": "5",
       "name": "TAG",
       "datatype": "string",
       "index": "T"

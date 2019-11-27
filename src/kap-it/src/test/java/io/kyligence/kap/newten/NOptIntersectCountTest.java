@@ -83,24 +83,30 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
                 .getLatestReadySegment();
         NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), 100001);
         ParquetStorage storage = new ParquetStorage();
-        List<Row> rows = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss).collectAsList();
+        List<Row> rows = storage.getFrom(NSparkCubingUtil.getStoragePath(seg, dataCuboid.getLayoutId()), ss)
+                .collectAsList();
         Assert.assertEquals(9, rows.size());
 
         String ret = rows.stream().map(row -> {
             List<String> list = new ArrayList<>();
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 4; i++) {
                 list.add(row.get(i).toString());
             }
-            list.add(String.valueOf(getCountDistinctValue((byte[]) (row.get(3)))));
+            list.add(String.valueOf(getCountDistinctValue((byte[]) (row.get(4)))));
             return list;
         }).collect(Collectors.toList()).toString();
 
-        Assert.assertEquals(
-                "[[18, Shenzhen, handsome, 1], " + "[18, Shenzhen, rich, 1], " + "[18, Shenzhen, tall, 1], "
-                        + "[19, Beijing, handsome, 1], " + "[19, Beijing, rich, 1], " + "[19, Beijing, tall, 2], "
-                        + "[20, Shanghai, handsome, 2], " + "[20, Shanghai, rich, 2], " + "[20, Shanghai, tall, 1]]",
-                ret);
+        Assert.assertEquals("[[18, Shenzhen, male, handsome, 1]," + //
+                " [18, Shenzhen, male, rich, 1]," + //
+                " [18, Shenzhen, male, tall, 1]," + //
+                " [19, Beijing, female, handsome, 1]," + //
+                " [19, Beijing, female, rich, 1]," + //
+                " [19, Beijing, female, tall, 2]," + //
+                " [20, Shanghai, male, handsome, 2]," + //
+                " [20, Shanghai, male, rich, 2]," + //
+                " [20, Shanghai, male, tall, 1]]" //
+                , ret);
     }
 
     private int getCountDistinctValue(byte[] bytes) {
@@ -144,8 +150,7 @@ public class NOptIntersectCountTest extends NLocalWithSparkSessionTest {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
-        String query1 = "select AGE, CITY, "
-                + "intersect_count(USER_ID, TAG, array['rich','tall','handsome']) "
+        String query1 = "select AGE, CITY, " + "intersect_count(USER_ID, TAG, array['rich','tall','handsome']) "
                 + "from TEST_INTERSECT_COUNT group by AGE, CITY";
         List<String> r1 = NExecAndComp.queryCube(getProject(), query1).collectAsList().stream()
                 .map(row -> row.toSeq().mkString(",")).collect(Collectors.toList());
