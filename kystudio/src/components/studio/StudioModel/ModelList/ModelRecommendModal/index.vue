@@ -309,14 +309,9 @@
         model: this.modelDesc.uuid
       }
       for (var prop in this.dialogInfo) {
-        if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'table_index_recommendations') {
+        if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'index_recommendations') {
           let temp = this.dialogInfo[prop].map((item) => {
             return item.item_id
-          })
-          params[prop] = temp.length > 0 ? temp.join(',') : ''
-        } else if (prop === 'agg_index_recommendations') {
-          let temp = this.dialogInfo[prop].map((item) => {
-            return item.item_ids
           })
           params[prop] = temp.length > 0 ? temp.join(',') : ''
         }

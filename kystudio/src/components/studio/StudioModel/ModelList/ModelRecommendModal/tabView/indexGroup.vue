@@ -303,17 +303,6 @@
       this.$emit('indexSelectedChange', {type: 'index', selectType: 'single', data: row})
     }
 
-    filterFav () { // 筛选建议类型
-      if (this.checkedStatus.length === 0) {
-        this.tableShowList = objectClone(this.list)
-      } else {
-        this.tableShowList = this.list.filter((item) => {
-          return this.checkedStatus.indexOf(item.type) > -1
-        })
-      }
-      renderTableColumnSelected(this.tableShowList, this, 'aggIndexList')
-    }
-
     handleTableInTableFilter (row) {
       clearTimeout(this.ST)
       this.ST = setTimeout(() => {
@@ -334,7 +323,7 @@
           ref="ipFilterPopover"
           placement="bottom"
           popperClass="filter-popover">
-          <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)} onChange={this.filterFav}>
+          <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)} onChange={this.filterType}>
             {items}
           </el-checkbox-group>
           <i class={this.checkedStatus.length > 0 && this.checkedStatus.length < 3 ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
@@ -352,7 +341,7 @@
             ref="sourcePopover"
             placement="bottom"
             popperClass="filter-popover">
-            <el-checkbox-group class="filter-groups" value={this.sourceCheckedStatus} onInput={val => (this.sourceCheckedStatus = val)} onChange={this.filterSourceType}>
+            <el-checkbox-group class="filter-groups" value={this.sourceCheckedStatus} onInput={val => (this.sourceCheckedStatus = val)} onChange={this.filterType}>
               {content}
             </el-checkbox-group>
             <i class={this.sourceCheckedStatus.length > 0 && this.sourceCheckedStatus.length < 3 ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
@@ -360,9 +349,12 @@
         </span>)
     }
 
-    filterSourceType () {
-      if (this.sourceCheckedStatus.length) {
-        this.tableShowList = this.list.filter(item => item.source && this.sourceCheckedStatus.includes(item.source))
+    // 筛选建议类型和来源
+    filterType () {
+      if (this.sourceCheckedStatus.length && this.checkedStatus.length) {
+        this.tableShowList = this.list.filter(item => (item.source && this.sourceCheckedStatus.includes(item.source)) && (item.type && this.checkedStatus.includes(item.type)))
+      } else if (this.sourceCheckedStatus.length || this.checkedStatus.length) {
+        this.tableShowList = this.list.filter(item => (item.source && this.sourceCheckedStatus.includes(item.source)) || (item.type && this.checkedStatus.includes(item.type)))
       } else {
         this.tableShowList = objectClone(this.list)
       }
@@ -390,6 +382,14 @@
     td, th {
       height: 36px;
       padding: 0;
+    }
+    .el-icon-ksd-filter {
+      &:hover {
+        color: @base-color;
+      }
+      &.isFilter {
+        color: @base-color;
+      }
     }
     .cell {
       .col-tab-note {
