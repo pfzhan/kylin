@@ -289,6 +289,9 @@ export default {
     },
     [types.FETCH_INDEX_GRAPH] ({ commit }, paras) {
       return api.model.fetchIndexGraph(paras)
+    },
+    [types.SUGGEST_IS_BY_ANSWERED] ({ commit }, paras) {
+      return api.model.suggestIsByAnswered(paras)
     }
   },
   getters: {

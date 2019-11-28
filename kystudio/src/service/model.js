@@ -223,5 +223,8 @@ export default {
   },
   fetchIndexGraph: (para) => {
     return Vue.resource(apiUrl + 'index_plans/index_graph').get(para)
+  },
+  suggestIsByAnswered: (para) => {
+    return Vue.resource(apiUrl + 'models/can_answered_by_existed_model').save(para)
   }
 }

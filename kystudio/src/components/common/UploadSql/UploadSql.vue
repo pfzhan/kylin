@@ -98,47 +98,40 @@
       </el-col>
     </el-row>
     <div v-if="uploadFlag==='step3'">
-      <div class="ky-list-title ksd-mb-10">
+      <div class="ky-list-title ksd-mb-10" v-if="isShowSuggestModels">
         {{$t('kylinLang.model.modelList')}} ({{selectModels.length}}/{{suggestModels.length}})
       </div>
-      <el-table
-        :data="suggestModels"
-        class="model-table"
-        border
-        ref="modelsTable"
-        style="width: 100%"
-        @select="handleSelectionModel"
-        @selection-change="handleSelectionModelChange"
-        @select-all="handleSelectionAllModel"
-        max-height="430">
-        <el-table-column type="selection" width="44"></el-table-column>
-        <el-table-column type="expand" width="44">
-          <template slot-scope="scope">
-            <el-table :data="sqlsTable(scope.row.sqls)" border :show-header="false" stripe>
-              <el-table-column prop="sql" show-overflow-tooltip></el-table-column>
-            </el-table>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.model.modelNameGrid')" prop="alias">
-          <template slot-scope="scope">
-            <el-input v-model="scope.row.alias" :class="{'name-error': scope.row.isNameError}" size="small" @change="handleRename(scope.row)"></el-input>
-            <div class="rename-error" v-if="scope.row.isNameError">{{modelNameError}}</div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.fact')" prop="fact_table" show-overflow-tooltip width="140"></el-table-column>
-        <el-table-column :label="$t('kylinLang.common.dimension')" prop="dimensions" show-overflow-tooltip width="95" align="right">
-          <template slot-scope="scope">{{scope.row.dimensions.length}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.measure')" prop="all_measures" width="90" align="right">
-          <template slot-scope="scope">{{scope.row.all_measures.length}}</template>
-        </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="computed_columns" width="150" align="right">
-          <template slot-scope="scope">{{scope.row.computed_columns.length}}</template>
-        </el-table-column>
-        <el-table-column label="SQL" prop="sqls" width="60" align="right">
-          <template slot-scope="scope">{{scope.row.sqls.length}}</template>
-        </el-table-column>
-      </el-table>
+      <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
+        {{$t('recommendations')}} ({{selectOriginModels.length}}/{{originModels.length}})
+      </div>
+      <SuggestModel
+        v-if="isShowSuggestModels"
+        tableRef="modelsTable"
+        :suggestModels="suggestModels"
+        @isValidated="isValidated"
+        @getSelectModels="getSelectModels" />
+      <SuggestModel
+        v-if="isShowOriginModels"
+        tableRef="originModelsTable"
+        :suggestModels="originModels"
+        :isOriginModelsTable="true"
+        @getSelectModels="getSelectOriginModels" />
+      <el-tabs v-model="modelType" type="card" v-if="isShowTabModels">
+        <el-tab-pane :label="$t('kylinLang.model.modelList') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
+          <SuggestModel
+            tableRef="modelsTable"
+            :suggestModels="suggestModels"
+            @isValidated="isValidated"
+            @getSelectModels="getSelectModels" />
+        </el-tab-pane>
+        <el-tab-pane :label="$t('recommendations') + ` (${selectOriginModels.length}/${originModels.length})`" name="origin">
+          <SuggestModel
+            tableRef="originModelsTable"
+            :suggestModels="originModels"
+            :isOriginModelsTable="true"
+            @getSelectModels="getSelectOriginModels" />
+        </el-tab-pane>
+      </el-tabs>
     </div>
     <span slot="footer" class="dialog-footer">
       <div class="ksd-fleft query-count">
@@ -155,7 +148,7 @@
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
         <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!selectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </span>
   </el-dialog>
@@ -171,7 +164,7 @@ import locales from './locales'
 import store, { types } from './store'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, kapConfirm } from '../../../util/business'
-import { NamedRegex } from 'config'
+import SuggestModel from './SuggestModel.vue'
 
 vuex.registerModule(['modals', 'UploadSqlModel'], store)
 @Component({
@@ -194,7 +187,8 @@ vuex.registerModule(['modals', 'UploadSqlModel'], store)
       validateWhite: 'VALIDATE_WHITE_SQL',
       suggestModel: 'SUGGEST_MODEL',
       saveSuggestModels: 'SAVE_SUGGEST_MODELS',
-      validateModelName: 'VALIDATE_MODEL_NAME'
+      validateModelName: 'VALIDATE_MODEL_NAME',
+      suggestIsByAnswered: 'SUGGEST_IS_BY_ANSWERED'
     }),
     // Store方法注入
     ...mapMutations('UploadSqlModel', {
@@ -203,6 +197,9 @@ vuex.registerModule(['modals', 'UploadSqlModel'], store)
       setModalForm: types.SET_MODAL_FORM,
       resetModalForm: types.RESET_MODAL_FORM
     })
+  },
+  components: {
+    SuggestModel
   },
   locales
 })
@@ -237,7 +234,9 @@ export default class UploadSqlModel extends Vue {
   isNameErrorModelExisted = false
   suggestModels = []
   selectModels = []
-  modelNameError = ''
+  originModels = []
+  selectOriginModels = []
+  modelType = 'suggest'
   handleClose () {
     this.hideModal()
     this.resetModalForm()
@@ -246,7 +245,6 @@ export default class UploadSqlModel extends Vue {
   resetImport () {
     this.uploadFlag = 'step1'
     this.uploadItems = []
-    this.whiteSqlData = null
     this.activeSqlObj = null
     this.pagerTableData = []
     this.whiteSqlFilter = ''
@@ -255,22 +253,34 @@ export default class UploadSqlModel extends Vue {
     this.generateLoading = false
     this.suggestModels = []
     this.selectModels = []
+    this.selectOriginModels = []
+    this.originModels = []
     this.submitModelLoading = false
     this.isNameErrorModelExisted = false
-    this.modelNameError = ''
+    this.modelType = 'suggest'
     this.messageInstance && this.messageInstance.close()
   }
   get uploadTitle () {
     if (this.isGenerateModel) {
-      return this.$t('generateModel')
+      const totalSelectNum = this.selectModels.length + this.selectOriginModels.length
+      const totalSuggestNum = this.suggestModels.length + this.originModels.length
+      if (this.uploadFlag === 'step3') {
+        return this.$t('generateModel') + ` (${totalSelectNum}/${totalSuggestNum})`
+      } else {
+        return this.$t('generateModel')
+      }
     } else {
       return this.$t('importSql')
     }
   }
-  sqlsTable (sqls) {
-    return sqls.map((s) => {
-      return {sql: s}
-    })
+  get isShowSuggestModels () {
+    return this.suggestModels.length > 0 && this.originModels.length === 0
+  }
+  get isShowOriginModels () {
+    return this.suggestModels.length === 0 && this.originModels.length > 0
+  }
+  get isShowTabModels () {
+    return this.suggestModels.length > 0 && this.originModels.length > 0
   }
   @Watch('inputHeight')
   onHeightChange (val) {
@@ -304,42 +314,17 @@ export default class UploadSqlModel extends Vue {
       this.delWhite(id)
     })
   }
-  handleRename (model) {
-    let suggestListRename = false
-    model.isNameError = false
-    this.modelNameError = ''
-    if (model.isChecked) {
-      if (!NamedRegex.test(model.alias.trim())) {
-        model.isNameError = true
-        suggestListRename = true
-        this.modelNameError = this.$t('kylinLang.common.nameFormatValidTip')
-        this.checkRenameModelExisted()
-      }
-      if (!suggestListRename) {
-        for (let m = 0; m < this.suggestModels.length; m++) {
-          if (this.suggestModels[m].uuid !== model.uuid && this.suggestModels[m].alias === model.alias.trim()) {
-            model.isNameError = true
-            suggestListRename = true
-            this.modelNameError = this.$t('modelNameError')
-            this.checkRenameModelExisted()
-            break
-          }
-        }
-      }
-      if (!suggestListRename) {
-        this.validateModelName({alias: model.alias.trim(), uuid: model.uuid, project: this.currentSelectedProject}).then((res) => {
-          handleSuccess(res, (data) => {
-            if (data) {
-              model.isNameError = true
-              this.modelNameError = this.$t('modelNameError')
-            }
-            this.checkRenameModelExisted()
-          })
-        }, (res) => {
-          handleError(res)
-        })
-      }
-    }
+  getSelectModels (models) {
+    this.selectModels = models
+  }
+  getSelectOriginModels (models) {
+    this.selectOriginModels = models
+  }
+  get getFinalSelectModels () {
+    return [...this.selectModels, ...this.selectOriginModels]
+  }
+  isValidated (isNameErrorModelExisted) {
+    this.isNameErrorModelExisted = isNameErrorModelExisted
   }
   delWhite (id) {
     for (const key in this.whiteSqlData.data) {
@@ -441,40 +426,14 @@ export default class UploadSqlModel extends Vue {
       }
     }
   }
-  handleSelectionModel (selection, row) {
-    row.isChecked = !row.isChecked
-    this.handleRename(row)
-  }
-  handleSelectionModelChange (selection) {
-    this.selectModels = selection
-  }
-  handleSelectionAllModel (selection) {
-    if (selection.length) {
-      selection.forEach((m) => {
-        m.isChecked = true
-        this.handleRename(m)
-      })
-    } else {
-      this.suggestModels.forEach((m) => {
-        m.isChecked = false
-        this.handleRename(m)
-      })
-    }
-  }
-  checkRenameModelExisted () {
-    this.isNameErrorModelExisted = false
-    for (let i = 0; i < this.suggestModels.length; i++) {
-      if (this.suggestModels[i].isChecked && this.suggestModels[i].isNameError) {
-        this.isNameErrorModelExisted = true
-        break
-      }
-    }
-  }
   submitModels () {
     this.submitModelLoading = true
-    let models = objectClone(this.selectModels)
+    let models = objectClone(this.getFinalSelectModels)
     models.forEach((m) => {
       delete m.sqls
+      if (m.index_plan) {
+        delete m.index_plan.segment_range_end
+      }
     })
     this.saveSuggestModels({project: this.currentSelectedProject, models: models}).then((res) => {
       handleSuccess(res, (data) => {
@@ -531,26 +490,43 @@ export default class UploadSqlModel extends Vue {
       })
     } else {
       this.generateLoading = true
-      this.suggestModel({project: this.currentSelectedProject, sqls: sqls}).then((res) => {
+      this.suggestIsByAnswered({project: this.currentSelectedProject, sqls: sqls}).then((res) => {
         handleSuccess(res, (data) => {
-          this.suggestModels = data.map((d) => {
-            d.isChecked = true
-            d.isNameError = false
-            return d
-          })
-          this.generateLoading = false
-          this.uploadFlag = 'step3'
-          this.$nextTick(() => {
-            this.suggestModels.forEach((model) => {
-              this.$refs.modelsTable.toggleRowSelection(model)
+          if (!data) {
+            this.getSuggestModels(sqls, data)
+          } else {
+            kapConfirm(this.$t('existedAnsweredModels'), {cancelButtonText: this.$t('noConvert'), confirmButtonText: this.$t('convert'), type: 'warning'}, this.$t('kylinLang.common.tip')).then(() => {
+              this.getSuggestModels(sqls, true)
+            }).catch(() => {
+              this.getSuggestModels(sqls, false)
             })
-          })
+          }
         })
       }, (res) => {
         handleError(res)
         this.generateLoading = false
       })
     }
+  }
+  getSuggestModels (sqls, reuseExistedModel) {
+    this.suggestModel({project: this.currentSelectedProject, sqls: sqls, reuse_existed_model: reuseExistedModel}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.suggestModels = data.new_model.map((d) => {
+          d.isChecked = true
+          d.isNameError = false
+          return d
+        })
+        this.originModels = data.origin_model.map((d) => {
+          d.isChecked = true
+          return d
+        })
+        this.generateLoading = false
+        this.uploadFlag = 'step3'
+      })
+    }, (res) => {
+      handleError(res)
+      this.generateLoading = false
+    })
   }
   get finalSelectSqls () {
     let finalSqls = []

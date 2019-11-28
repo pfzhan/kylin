@@ -472,6 +472,18 @@ Vue.directive('guide', {
   //     vnode.key = Object.keys(keys).join('-')
   //   }
   // },
+  update: function (el, binding, vnode) {
+    let keys = binding.modifiers
+    let storeGuide = store.state.system.guideConfig.targetList
+    if (storeGuide) {
+      for (let i in keys) {
+        storeGuide[i] = el.__vue__ || el
+      }
+      if (store.state.system.guideConfig.globalMaskVisible && binding.value) {
+        storeGuide[binding.value] = el.__vue__ || el
+      }
+    }
+  },
   inserted: function (el, binding, vnode) {
     let keys = binding.modifiers
     let storeGuide = store.state.system.guideConfig.targetList

@@ -227,6 +227,7 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
     ...mapActions({
       getFavoriteList: 'GET_FAVORITE_LIST',
       getRules: 'GET_RULES',
+      formatSql: 'FORMAT_SQL',
       getUserAndGroups: 'GET_USER_AND_GROUPS',
       updateRules: 'UPDATE_RULES',
       loadBlackList: 'LOAD_BLACK_LIST',
