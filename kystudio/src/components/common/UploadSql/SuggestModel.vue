@@ -75,10 +75,15 @@ import { Component } from 'vue-property-decorator'
 import { NamedRegex } from 'config'
 import { handleSuccess } from '../../../util/business'
 import { handleError } from '../../../util/index'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import locales from './locales'
 @Component({
   props: ['suggestModels', 'tableRef', 'isOriginModelsTable'],
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
+  },
   methods: {
     ...mapActions({
       validateModelName: 'VALIDATE_MODEL_NAME'
