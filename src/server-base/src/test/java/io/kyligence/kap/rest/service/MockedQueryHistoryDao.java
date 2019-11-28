@@ -56,7 +56,7 @@ import java.time.Instant;
 import java.util.List;
 
 public class MockedQueryHistoryDao extends QueryHistoryDAO {
-    // current time is 2018-02-01 00:00:00
+    // current time is 2018-01-02 00:00:00
     private long currentTime;
 
     @Setter

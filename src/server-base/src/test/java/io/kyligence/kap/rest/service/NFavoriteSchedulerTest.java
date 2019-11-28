@@ -531,8 +531,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     private void setUpTimeOffset() {
         QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(),
                 PROJECT);
-        String date = "2018-01-01";
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        String date = "2018-01-01 23:59:00";
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         long autoFavoriteTimeOffset = 0;
         long updateFavoriteTimeOffset = 0;
         try {
@@ -552,8 +552,8 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         There already have three favorite queries loaded in database, whose sql patterns are "sql1", "sql2", "sql3",
         so these three sql patterns will not be marked as favorite queries.
         
-        The mocked query history service will be generating test data from 2018-02-01 00:00:00 to 2018-02-01 00:02:30 every 30 seconds,
-        and the last auto mark time is 2018-01-01 00:00:00
+        The mocked query history service will be generating test data from 2018-01-02 00:00:00 to 2018-01-02 00:02:30 every 30 seconds,
+        and the last auto mark time is 2018-01-01 23:59:00
          */
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
@@ -562,13 +562,13 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
         NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
 
-        // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-02-01 00:00:00
+        // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-01-02 00:00:00
         Mockito.doReturn(systemTime).when(queryHistoryAccessor).getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize, favoriteQueryManager.getAll().size());
         Assert.assertEquals(0, favoriteScheduler.getFrequencyStatuses().last().getSqlPatterns().size());
 
-        // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00
+        // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-01-02 00:00:00 to 2018-02-01 00:01:00
         // scanned two queries
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(queryHistoryAccessor)
                 .getSystemTime();
@@ -586,7 +586,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory.setEngineType("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
 
-        // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00,
+        // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-01-02 00:01:00 to 2018-01-02 00:02:00,
         // scanned three new queries, and inserted them into database
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(queryHistoryAccessor)
                 .getSystemTime();
@@ -711,7 +711,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testMergeLayoutFrequency() throws ParseException, JsonProcessingException {
-        System.setProperty("kylin.favorite.query-history-scan-period.minutes", "30");
+        System.setProperty("kylin.favorite.query-history-scan-period.minutes", "240");
 
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
