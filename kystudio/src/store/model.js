@@ -49,7 +49,7 @@ export default {
     [types.LOAD_MODEL_LIST]: function ({ commit }, para) {
       return new Promise((resolve, reject) => {
         api.model.getModelList(para).then((response) => {
-          commit(types.SAVE_MODEL_LIST, { list: response.data.data.value, total: response.data.total_size })
+          commit(types.SAVE_MODEL_LIST, { list: response.data.data.value, total: response.data.data.total_size })
           resolve(response)
         }, (res) => {
           commit(types.SAVE_MODEL_LIST, { list: [], total: 0 })
