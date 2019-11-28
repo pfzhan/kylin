@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -354,6 +355,14 @@ public class ModelSemanticHelper extends BasicService {
             val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
             newRule.setMeasures(Lists.newArrayList(measures));
             newRule.setLayoutIdMapping(Lists.newArrayList());
+
+            if (newRule.getAggregationGroups() != null) {
+                for (NAggregationGroup aggGroup : newRule.getAggregationGroups()) {
+                    val aggMeasures = Sets.newHashSet(aggGroup.getMeasures());
+                    aggGroup.setMeasures(Sets.intersection(aggMeasures, measures).toArray(new Integer[0]));
+                }
+            }
+
             copyForWrite.setRuleBasedIndex(newRule);
         });
     }

@@ -26,7 +26,7 @@ package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.Set;
+import java.util.List;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
@@ -57,7 +57,7 @@ abstract public class NCuboidScheduler implements Serializable {
     /**
      * Returns all cuboids on the tree.
      */
-    abstract public Set<BigInteger> getAllCuboidIds();
+    abstract public List<BigInteger> getAllCuboidIds();
 
     /**
      * Returns the number of all cuboids.
@@ -67,7 +67,7 @@ abstract public class NCuboidScheduler implements Serializable {
     /**
      * optional
      */
-    abstract public Set<BigInteger> calculateCuboidsForAggGroup(NAggregationGroup agg);
+    abstract public List<BigInteger> calculateCuboidsForAggGroup(NAggregationGroup agg);
 
     // ============================================================================
 

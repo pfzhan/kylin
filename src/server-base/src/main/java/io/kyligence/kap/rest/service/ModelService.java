@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,6 +42,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -1646,14 +1649,26 @@ public class ModelService extends BasicService {
         val indexPlan = cubeManager.getIndexPlan(modelId);
         // check agg group contains removed dimensions
         val rule = indexPlan.getRuleBasedIndex();
-        if (rule != null && !copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
-            val allDimensions = rule.getDimensions();
-            val dimensionNames = allDimensions.stream()
-                    .filter(id -> !copyModel.getEffectiveDimenionsMap().containsKey(id))
-                    .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+        if (rule != null) {
+            if (!copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
+                val allDimensions = rule.getDimensions();
+                val dimensionNames = allDimensions.stream()
+                        .filter(id -> !copyModel.getEffectiveDimenionsMap().containsKey(id))
+                        .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
 
-            throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                    + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                        + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+            }
+
+            for (NAggregationGroup agg : rule.getAggregationGroups()) {
+                if (!copyModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
+                    val measureNames = Arrays.stream(agg.getMeasures()).filter(measureId -> !copyModel.getEffectiveMeasureMap().containsKey(measureId))
+                            .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
+
+                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid() + "'s agg group still contains measures " + measureNames);
+                }
+
+            }
         }
 
         preProcessBeforeModelSave(copyModel, project);
@@ -1886,8 +1901,17 @@ public class ModelService extends BasicService {
         });
         val indexPlan = getIndexPlan(modelId, project);
         val indexPlanManager = getIndexPlanManager(project);
+        val overrideProps = request.getOverrideProps();
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.setOverrideProps(request.getOverrideProps());
+            copyForWrite.setOverrideProps(overrideProps);
+
+            // affected by "kylin.cube.aggrgroup.is-base-cuboid-always-valid" config
+            if (copyForWrite.getRuleBasedIndex() != null) {
+                val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
+                newRule.setLastModifiedTime(System.currentTimeMillis());
+                newRule.setLayoutIdMapping(Lists.newArrayList());
+                copyForWrite.setRuleBasedIndex(newRule);
+            }
         });
     }
 

@@ -24,15 +24,18 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -53,16 +56,20 @@ import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 public class NKECuboidScheduler extends NCuboidScheduler {
 
     // smaller is better
-    final static Comparator<BigInteger> cuboidSelectComparator = (o1, o2) -> ComparisonChain.start()
-            .compare(o1.bitCount(), o2.bitCount()).compare(o1, o2).result();
+    final static Comparator<CuboidBigInteger> cuboidSelectComparator = (o1, o2) -> ComparisonChain.start()
+            .compare(o1.dimMeas.bitCount(), o2.dimMeas.bitCount()).compare(o1.dimMeas, o2.dimMeas).result();
 
     private final BigInteger max;
-    private final Set<BigInteger> allCuboidIds;
+    private final int measureSize;
+    private boolean isBaseCuboidValid;
+    private final Set<CuboidBigInteger> allCuboidIds;
 
     NKECuboidScheduler(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
         super(indexPlan, ruleBasedAggIndex);
 
         this.max = ruleBasedAggIndex.getFullMask();
+        this.measureSize = ruleBasedAggIndex.getMeasures().size();
+        this.isBaseCuboidValid = ruleBasedAggIndex.getIndexPlan().getConfig().isBaseCuboidAlwaysValid();
 
         // handle nRuleBasedCuboidDesc has 0 dimensions
         if (max.bitCount() == 0) {
@@ -78,34 +85,35 @@ public class NKECuboidScheduler extends NCuboidScheduler {
     }
 
     @Override
-    public Set<BigInteger> getAllCuboidIds() {
-        return Sets.newHashSet(allCuboidIds);
+    public List<BigInteger> getAllCuboidIds() {
+        return Sets.newHashSet(allCuboidIds).stream().map(cuboidId -> cuboidId.dimMeas).collect(Collectors.toList());
     }
 
-    private BigInteger getOnTreeParent(BigInteger child) {
-        Set<BigInteger> candidates = getOnTreeParents(child);
+    private CuboidBigInteger getOnTreeParent(CuboidBigInteger child) {
+        Set<CuboidBigInteger> candidates = getOnTreeParents(child);
         if (candidates == null || candidates.isEmpty()) {
-            return BigInteger.valueOf(-1);
+            return new CuboidBigInteger(BigInteger.valueOf(-1));
         }
         return Collections.min(candidates, cuboidSelectComparator);
     }
 
-    private Map<BigInteger, Set<BigInteger>> childParents = Maps.newConcurrentMap();
+    private Map<CuboidBigInteger, Set<CuboidBigInteger>> childParents = Maps.newConcurrentMap();
 
-    private Set<BigInteger> getOnTreeParents(BigInteger child) {
+    private Set<CuboidBigInteger> getOnTreeParents(CuboidBigInteger child) {
         if (childParents.containsKey(child)) {
             return childParents.get(child);
         }
-        Set<BigInteger> parentCandidate = new HashSet<>();
+        Set<CuboidBigInteger> parentCandidate = new HashSet<>();
+        BigInteger childBits = child.dimMeas;
 
-        if (child.equals(ruleBasedAggIndex.getFullMask())) {
+        if (isBaseCuboidValid && childBits.equals(ruleBasedAggIndex.getFullMask())) {
             return parentCandidate;
         }
 
         for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
-            if (child.equals(agg.getPartialCubeFullMask())) {
-                parentCandidate.add(ruleBasedAggIndex.getFullMask());
-            } else if (child.equals(BigInteger.ZERO) || agg.isOnTree(child)) {
+            if (childBits.equals(agg.getPartialCubeFullMask()) && isBaseCuboidValid) {
+                parentCandidate.add(new CuboidBigInteger(ruleBasedAggIndex.getFullMask()));
+            } else if (childBits.equals(BigInteger.ZERO) || agg.isOnTree(childBits)) {
                 parentCandidate.addAll(getOnTreeParents(child, agg));
             }
         }
@@ -126,16 +134,17 @@ public class NKECuboidScheduler extends NCuboidScheduler {
      *
      * @return Cuboid collection
      */
-    private Set<BigInteger> buildTreeBottomUp() {
+    private Set<CuboidBigInteger> buildTreeBottomUp() {
         int forward = ruleBasedAggIndex.getParentForward();
         KylinConfig config = indexPlan.getConfig();
         long maxCombination = config.getCubeAggrGroupMaxCombination() * 10;
         maxCombination = maxCombination < 0 ? Long.MAX_VALUE : maxCombination;
 
-        Set<BigInteger> cuboidHolder = new HashSet<>();
+        Set<CuboidBigInteger> cuboidHolder = new HashSet<>();
 
         // build tree structure
-        Set<BigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(BigInteger.ZERO)); // lowest level cuboids
+        Set<CuboidBigInteger> children = getOnTreeParentsByLayer(
+                Sets.newHashSet(new CuboidBigInteger(BigInteger.ZERO))); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() > maxCombination) {
                 throw new OutOfMaxCombinationException("Too many cuboids for the cube. Cuboid combination reached "
@@ -144,16 +153,19 @@ public class NKECuboidScheduler extends NCuboidScheduler {
             cuboidHolder.addAll(children);
             children = getOnTreeParentsByLayer(children);
         }
-        cuboidHolder.add(ruleBasedAggIndex.getFullMask());
+
+        if (isBaseCuboidValid) {
+            cuboidHolder.add(new CuboidBigInteger(ruleBasedAggIndex.getFullMask()));
+        }
 
         // fill padding cuboids
-        Queue<BigInteger> cuboidScan = new ArrayDeque<>();
+        Queue<CuboidBigInteger> cuboidScan = new ArrayDeque<>();
         cuboidScan.addAll(cuboidHolder);
         while (!cuboidScan.isEmpty()) {
-            BigInteger current = cuboidScan.poll();
-            BigInteger parent = getParentOnPromise(current, cuboidHolder, forward);
+            CuboidBigInteger current = cuboidScan.poll();
+            CuboidBigInteger parent = getParentOnPromise(current, cuboidHolder, forward);
 
-            if (parent.compareTo(BigInteger.ZERO) > 0) {
+            if (parent.dimMeas.compareTo(BigInteger.ZERO) > 0) {
                 if (!cuboidHolder.contains(parent)) {
                     cuboidScan.add(parent);
                     cuboidHolder.add(parent);
@@ -164,10 +176,10 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         return cuboidHolder;
     }
 
-    private BigInteger getParentOnPromise(BigInteger child, Set<BigInteger> coll, int forward) {
-        BigInteger parent = getOnTreeParent(child);
-        if (parent.compareTo(BigInteger.ZERO) < 0) {
-            return BigInteger.valueOf(-1);
+    private CuboidBigInteger getParentOnPromise(CuboidBigInteger child, Set<CuboidBigInteger> coll, int forward) {
+        CuboidBigInteger parent = getOnTreeParent(child);
+        if (parent.dimMeas.compareTo(BigInteger.ZERO) < 0) {
+            return new CuboidBigInteger(BigInteger.valueOf(-1));
         }
 
         if (coll.contains(parent) || forward == 0) {
@@ -183,27 +195,29 @@ public class NKECuboidScheduler extends NCuboidScheduler {
      * @param children children cuboids
      * @return all parents cuboids
      */
-    private Set<BigInteger> getOnTreeParentsByLayer(Collection<BigInteger> children) {
+    private Set<CuboidBigInteger> getOnTreeParentsByLayer(Collection<CuboidBigInteger> children) {
         //debugPrint(children, "children");
-        Set<BigInteger> parents = new HashSet<>();
-        for (BigInteger child : children) {
+        Set<CuboidBigInteger> parents = new HashSet<>();
+        for (CuboidBigInteger child : children) {
             parents.addAll(getOnTreeParents(child));
         }
 
         //debugPrint(parents, "parents");
-        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<BigInteger>() {
+        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<CuboidBigInteger>() {
             @Override
-            public boolean apply(@Nullable BigInteger cuboidId) {
+            public boolean apply(@Nullable CuboidBigInteger cuboidId) {
                 if (cuboidId == null) {
                     return false;
                 }
 
-                if (cuboidId.equals(ruleBasedAggIndex.getFullMask())) {
+                BigInteger cuboidBits = cuboidId.dimMeas;
+
+                if (cuboidBits.equals(ruleBasedAggIndex.getFullMask()) && isBaseCuboidValid) {
                     return true;
                 }
 
                 for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
-                    if (agg.isOnTree(cuboidId) && checkDimCap(agg, cuboidId)) {
+                    if (agg.isOnTree(cuboidBits) && checkDimCap(agg, cuboidBits)) {
                         return true;
                     }
                 }
@@ -242,11 +256,12 @@ public class NKECuboidScheduler extends NCuboidScheduler {
      * @return cuboidId list
      */
     @Override
-    public Set<BigInteger> calculateCuboidsForAggGroup(NAggregationGroup agg) {
-        Set<BigInteger> cuboidHolder = new HashSet<>();
+    public List<BigInteger> calculateCuboidsForAggGroup(NAggregationGroup agg) {
+        Set<CuboidBigInteger> cuboidHolder = new HashSet<>();
 
         // build tree structure
-        Set<BigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(BigInteger.ZERO), agg); // lowest level cuboids
+        Set<CuboidBigInteger> children = getOnTreeParentsByLayer(Sets.newHashSet(new CuboidBigInteger(BigInteger.ZERO)),
+                agg); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() > indexPlan.getConfig().getCubeAggrGroupMaxCombination()) {
                 throw new TooManyCuboidException("Holder size larger than kylin.cube.aggrgroup.max-combination");
@@ -255,32 +270,33 @@ public class NKECuboidScheduler extends NCuboidScheduler {
             children = getOnTreeParentsByLayer(children, agg);
         }
 
-        return cuboidHolder;
+        return cuboidHolder.stream().map(cuboidBigInteger -> cuboidBigInteger.dimMeas).collect(Collectors.toList());
     }
 
-    private Set<BigInteger> getOnTreeParentsByLayer(Collection<BigInteger> children, final NAggregationGroup agg) {
-        Set<BigInteger> parents = new HashSet<>();
-        for (BigInteger child : children) {
+    private Set<CuboidBigInteger> getOnTreeParentsByLayer(Collection<CuboidBigInteger> children,
+            final NAggregationGroup agg) {
+        Set<CuboidBigInteger> parents = new HashSet<>();
+        for (CuboidBigInteger child : children) {
             parents.addAll(getOnTreeParents(child, agg));
         }
-        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<BigInteger>() {
+        parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<CuboidBigInteger>() {
             @Override
-            public boolean apply(@Nullable BigInteger cuboidId) {
-                return checkDimCap(agg, cuboidId);
+            public boolean apply(@Nullable CuboidBigInteger cuboidId) {
+                return checkDimCap(agg, cuboidId.dimMeas);
             }
         }));
         return parents;
     }
 
-    private Set<BigInteger> getOnTreeParents(BigInteger child, NAggregationGroup agg) {
-        Set<BigInteger> parentCandidate = new HashSet<>();
+    private Set<CuboidBigInteger> getOnTreeParents(CuboidBigInteger child, NAggregationGroup agg) {
+        Set<CuboidBigInteger> parentCandidate = new HashSet<>();
 
-        BigInteger tmpChild = child;
+        BigInteger tmpChild = child.dimMeas;
         if (tmpChild.equals(agg.getPartialCubeFullMask())) {
             return parentCandidate;
         }
 
-        if (!agg.getMandatoryColumnMask().equals(BigInteger.ZERO)) {
+        if (!agg.getMandatoryColumnMask().equals(agg.getMeasureMask())) {
             if (agg.isMandatoryOnlyValid()) {
                 if (fillBit(tmpChild, agg.getMandatoryColumnMask(), parentCandidate)) {
                     return parentCandidate;
@@ -290,7 +306,7 @@ public class NKECuboidScheduler extends NCuboidScheduler {
             }
         }
 
-        for (BigInteger normal : agg.getNormalDims()) {
+        for (BigInteger normal : agg.getNormalDimMeas()) {
             fillBit(tmpChild, normal, parentCandidate);
         }
 
@@ -309,9 +325,10 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         return parentCandidate;
     }
 
-    private boolean fillBit(BigInteger origin, BigInteger other, Set<BigInteger> coll) {
+    private boolean fillBit(BigInteger origin, BigInteger other, Set<CuboidBigInteger> coll) {
+        // if origin contains does not all elements in other
         if (!(origin.and(other)).equals(other)) {
-            coll.add(origin.or(other));
+            coll.add(new CuboidBigInteger(origin.or(other)));
             return true;
         }
         return false;
@@ -329,23 +346,50 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         //            dimCount++;
         //        }
 
-        for (BigInteger normal : agg.getNormalDims()) {
-            if (!(cuboidID.and(normal)).equals(BigInteger.ZERO)) {
+        for (BigInteger normal : agg.getNormalDimMeas()) {
+            if (!(cuboidID.and(normal)).equals(agg.getMeasureMask())) {
                 dimCount++;
             }
         }
 
         for (BigInteger joint : agg.getJoints()) {
-            if (!(cuboidID.and(joint)).equals(BigInteger.ZERO))
+            if (!(cuboidID.and(joint)).equals(agg.getMeasureMask()))
                 dimCount++;
         }
 
         for (NAggregationGroup.HierarchyMask hierarchy : agg.getHierarchyMasks()) {
-            if (!(cuboidID.and(hierarchy.getFullMask())).equals(BigInteger.ZERO))
+            if (!(cuboidID.and(hierarchy.getFullMask())).equals(agg.getMeasureMask()))
                 dimCount++;
         }
 
         return dimCount <= dimCap;
     }
 
+    private class CuboidBigInteger implements Serializable {
+        private BigInteger dimMeas;
+        private BigInteger dims;
+
+        public CuboidBigInteger(BigInteger bigInteger) {
+            this.dimMeas = bigInteger;
+            this.dims = dimMeas.shiftRight(measureSize);
+        }
+
+        @Override
+        public int hashCode() {
+            return dims.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null)
+                return false;
+
+            if (this.getClass() != obj.getClass())
+                return false;
+
+            CuboidBigInteger that = (CuboidBigInteger) obj;
+
+            return this.dimMeas.equals(that.dimMeas);
+        }
+    }
 }

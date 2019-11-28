@@ -54,7 +54,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -228,39 +227,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         waitForEventFinished(0);
 
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-
-        // update measures
-        updateMeasureRequest();
-
-        // job is running
-        val cube1 = dfMgr.getDataflow(MODEL_ID).getIndexPlan();
-        var actions1 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
-                .param("project", DEFAULT_PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
-        for (LayoutEntity layout : cube1.getRuleBaseLayouts()) {
-            actions1 = actions1
-                    .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status").value("EMPTY"))
-                    .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.storage_size")
-                            .value(0));
-        }
-        val results1 = actions1.andReturn();
-
-        // after finish
-        waitForEventFinished(0);
-
-        val cube2 = dfMgr.getDataflow(MODEL_ID).getIndexPlan();
-        var actions2 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
-                .param("project", DEFAULT_PROJECT).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)));
-        for (LayoutEntity layout : cube2.getRuleBaseLayouts()) {
-            actions2 = actions2.andExpect(MockMvcResultMatchers
-                    .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status").value("AVAILABLE"))
-                    .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.storage_size")
-                            .value(246));
-        }
-        val results = actions2.andReturn();
+        // update measures, throws an exception
+        updateMeasureWithAgg();
     }
 
     private void changeModelRequest() throws Exception {
@@ -284,6 +252,23 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     }
 
     private void updateMeasureRequest() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(getModelRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+    }
+
+    private void updateMeasureWithAgg() throws Exception {
+        val errorMessage = mockMvc
+                .perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(getModelRequest()))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().is(500)).andReturn().getResponse().getContentAsString();
+
+        Assert.assertTrue(errorMessage.contains("model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains measures [SUM_DEAL_AMOUNT]"));
+    }
+
+    private ModelRequest getModelRequest() throws Exception {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val model = modelManager.getDataModelDesc(MODEL_ID);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
@@ -300,10 +285,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream()
                 .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(request.getJoinTables());
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        return request;
     }
 
     private List<DefaultChainedExecutable> genMockJobs(int size, ExecutableState state) {

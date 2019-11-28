@@ -593,6 +593,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public void setOverrideProps(LinkedHashMap<String, String> overrideProps) {
         checkIsNotCachedAndShared();
         this.overrideProps = overrideProps;
+        initConfig4IndexPlan(this.config);
     }
 
     public long[] getAutoMergeTimeRanges() {

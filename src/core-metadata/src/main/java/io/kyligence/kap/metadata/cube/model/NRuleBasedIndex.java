@@ -27,7 +27,6 @@ package io.kyligence.kap.metadata.cube.model;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,8 +34,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -119,7 +121,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     private ImmutableSet<TblColRef> dimensionSet = null;
     @Getter
     private ImmutableSet<NDataModel.Measure> measureSet = null;
-    private Map<Integer, Integer> dim2bitIndex;//dim id -> bit index in rowkey, same as in org.apache.kylin.cube.model.CubeDesc.getColumnByBitIndex()
+    private Map<Integer, Integer> dimMea2bitIndex; // dim id/measure id -> bit index
     @Getter
     private BigInteger fullMask = BigInteger.ZERO;
     private NCuboidScheduler cuboidScheduler = null;
@@ -144,13 +146,20 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         this.orderedMeasures = measuresBuilder.build();
         this.measureSet = orderedMeasures.values();
 
-        dim2bitIndex = Maps.newHashMap();
+        dimMea2bitIndex = Maps.newHashMap();
+        int bitSize = dimensions.size() + measures.size();
         for (int i = 0; i < dimensions.size(); i++) {
-            dim2bitIndex.put(dimensions.get(i), dimensions.size() - i - 1);
+            dimMea2bitIndex.put(dimensions.get(i), bitSize - i - 1);
         }
 
-        for (int i = 0; i < dimensions.size(); i++) {
-            fullMask = fullMask.setBit(i);
+        for (int i = 0; i < measures.size(); i++) {
+            dimMea2bitIndex.put(measures.get(i), measures.size() - i - 1);
+        }
+
+        if (CollectionUtils.isNotEmpty(dimensions)) {
+            for (int i = 0; i < dimensions.size() + measures.size(); i++) {
+                fullMask = fullMask.setBit(i);
+            }
         }
 
         for (NAggregationGroup nAggregationGroup : aggregationGroups) {
@@ -171,7 +180,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     }
 
     public int getColumnBitIndex(Integer colId) {
-        return dim2bitIndex.get(colId);
+        return dimMea2bitIndex.get(colId);
     }
 
     public Set<LayoutEntity> genCuboidLayouts() {
@@ -182,7 +191,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
 
     public int getColumnBitIndex(TblColRef tblColRef) {
         int dimensionId = effectiveDimCols.inverse().get(tblColRef);
-        return dim2bitIndex.get(dimensionId);
+        return dimMea2bitIndex.get(dimensionId);
     }
 
     public boolean dimensionsDerive(TblColRef... dimensions) {
@@ -210,6 +219,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         result.addAll(measures);
         return result;
     }
+
 
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
@@ -270,7 +280,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
 
     void genCuboidLayouts(Set<LayoutEntity> result) {
         NCuboidScheduler initialCuboidScheduler = getInitialCuboidScheduler();
-        List<BigInteger> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
+        List<BigInteger> allCuboidIds = initialCuboidScheduler.getAllCuboidIds();
         Map<LayoutEntity, Long> layoutIdMap = Maps.newHashMap();
         for (LayoutEntity layout : result) {
             layoutIdMap.put(layout, layout.getId());
@@ -282,8 +292,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 Collectors.groupingBy(IndexEntity::createIndexIdentifier, Collectors.reducing(null, (l, r) -> r)));
         val needAllocationId = layoutIdMapping.isEmpty();
         long proposalId = indexStartId + 1;
-        BitSet bitSet = new BitSet(1024);
-        val measures = getMeasuresBitSet().mutable();
+        BitSet dimBitSet = new BitSet(1024);
+        BitSet meaBitSet = new BitSet(1024);
         ArrayList<Integer> partitionColumns = new ArrayList<>(indexPlan.getExtendPartitionColumns());
         if (needAddModelPartitionColumn()) {
             Integer colId = getModel().getColId(getModel().getPartitionDesc().getPartitionDateColumnRef());
@@ -297,8 +307,11 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             val layout = new LayoutEntity();
             layout.setManual(true);
 
-            List<Integer> colOrder = Lists.newArrayList(tailor(getDimensions(), cuboidId));
-            colOrder.addAll(getMeasures());
+            val dimsAndMeas = extractDimAndMeaFromCuboidId(getDimensions(), getMeasures(), cuboidId);
+            val dimensionsInLayout = dimsAndMeas.getFirst();
+            val measuresInLayout = dimsAndMeas.getSecond();
+            List<Integer> colOrder = Stream.concat(dimensionsInLayout.stream(), measuresInLayout.stream())
+                    .collect(Collectors.toList());
             layout.setColOrder(colOrder);
             if (colOrder.containsAll(indexPlan.getAggShardByColumns())) {
                 layout.setShardByColumns(indexPlan.getAggShardByColumns());
@@ -308,12 +321,14 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             }
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
-            val dimensionsInLayout = tailor(getDimensions(), cuboidId);
             for (Integer integer : dimensionsInLayout) {
-                bitSet.set(integer);
+                dimBitSet.set(integer);
+            }
+            for (Integer integer : measuresInLayout) {
+                meaBitSet.set(integer);
             }
             // if a cuboid is same as the layout's one, then reuse it
-            val indexIdentifier = new IndexEntity.IndexIdentifier(bitSet, measures, false);
+            val indexIdentifier = new IndexEntity.IndexIdentifier(dimBitSet, meaBitSet, false);
             var maybeIndex = identifierIndexMap.get(indexIdentifier);
             // if two layout is equal, the id should be same
             Long prevId = layoutIdMap.get(layout);
@@ -338,7 +353,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 maybeIndex.setId(indexId);
                 maybeIndex.setLayouts(Lists.newArrayList(layout));
                 maybeIndex.setDimensions(dimensionsInLayout);
-                maybeIndex.setMeasures(getMeasures());
+                maybeIndex.setMeasures(measuresInLayout);
                 maybeIndex.setIndexPlan(indexPlan);
                 maybeIndex.setNextLayoutOffset(layout.getId() % IndexEntity.INDEX_ID_STEP + 1);
             } else {
@@ -349,7 +364,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             layout.setIndex(maybeIndex);
 
             result.add(layout);
-            bitSet.clear();
+            dimBitSet.clear();
+            meaBitSet.clear();
         }
 
         // remove layout in blacklist
@@ -361,21 +377,23 @@ public class NRuleBasedIndex implements Serializable, IKeep {
                 getModel().getPartitionDesc().getPartitionDateColumnRef() != null;
     }
 
-    private List<Integer> tailor(List<Integer> complete, BigInteger cuboidId) {
+    private Pair<List<Integer>, List<Integer>> extractDimAndMeaFromCuboidId(List<Integer> allDims, List<Integer> allMeas, BigInteger cuboidId) {
+        val dims = Lists.<Integer> newArrayList();
+        val meas = Lists.<Integer> newArrayList();
 
-        int bitCount = cuboidId.bitCount();
+        int size = allDims.size() + allMeas.size();
 
-        Integer[] ret = new Integer[bitCount];
-
-        int next = 0;
-        int size = complete.size();
         for (int i = 0; i < size; i++) {
             int shift = size - i - 1;
-            if ((cuboidId.testBit(shift))) {
-                ret[next++] = complete.get(i);
+            if (cuboidId.testBit(shift)) {
+                if (i >= allDims.size()) {
+                    meas.add(allMeas.get(i - allDims.size()));
+                } else {
+                    dims.add(allDims.get(i));
+                }
             }
         }
 
-        return Arrays.asList(ret);
+        return new Pair<>(dims, meas);
     }
 }

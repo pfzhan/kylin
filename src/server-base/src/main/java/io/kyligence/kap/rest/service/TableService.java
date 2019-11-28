@@ -1197,6 +1197,8 @@ public class TableService extends BasicService {
 
         UnaryOperator<Integer[]> dimFilter = input -> Stream.of(input).filter(i -> !removeDims.contains(i))
                 .toArray(Integer[]::new);
+        UnaryOperator<Integer[]> meaFilter = input -> Stream.of(input).filter(i -> !removeAffectedModel.getMeasures().contains(i))
+                .toArray(Integer[]::new);
         val indexPlan = indexManager.getIndexPlan(model.getId());
         val removeIndexes = removeAffectedModel.getIndexes();
         val newIndexPlan = indexManager.updateIndexPlan(model.getId(), copyForWrite -> {
@@ -1223,6 +1225,7 @@ public class TableService extends BasicService {
                     .collect(Collectors.toList()));
             rule.getAggregationGroups().forEach(group -> {
                 group.setIncludes(dimFilter.apply(group.getIncludes()));
+                group.setMeasures(meaFilter.apply(group.getMeasures()));
                 group.getSelectRule().mandatoryDims = dimFilter.apply(group.getSelectRule().mandatoryDims);
                 group.getSelectRule().hierarchyDims = Stream.of(group.getSelectRule().hierarchyDims).map(dimFilter)
                         .filter(dims -> dims.length > 0).toArray(Integer[][]::new);

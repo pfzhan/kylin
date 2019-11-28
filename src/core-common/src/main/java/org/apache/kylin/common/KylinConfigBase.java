@@ -608,6 +608,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(this.getOptional("kylin.cube.frequency-time-window", "30"));
     }
 
+    public boolean isBaseCuboidAlwaysValid() {
+        return Boolean.parseBoolean(this.getOptional("kylin.cube.aggrgroup.is-base-cuboid-always-valid", "true"));
+    }
+
     // ============================================================================
     // Cube Planner
     // ============================================================================

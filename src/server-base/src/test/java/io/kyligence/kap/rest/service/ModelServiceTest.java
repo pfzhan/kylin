@@ -63,6 +63,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -2828,6 +2829,40 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelConfigResponses.forEach(modelConfigResponse -> {
             Assert.assertTrue(modelConfigResponse.getAlias().contains("nmodel"));
         });
+    }
+
+    @Test
+    public void testUpdateModelConfig_BaseCuboid() {
+        val configKey = "kylin.cube.aggrgroup.is-base-cuboid-always-valid";
+        val project = "default";
+        val model = "82fa7671-a935-45f5-8779-85703601f49a";
+        val modelConfigRequest = new ModelConfigRequest();
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
+        long initialSize = indexPlanManager.getIndexPlan(model)
+                .getRuleBaseLayouts().size();
+
+        modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>() {
+            {
+                put(configKey, "false");
+            }
+        });
+        modelService.updateModelConfig(project, model, modelConfigRequest);
+
+        long updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        Assert.assertEquals(initialSize - 1, updatedSize);
+
+        var modelConfigResponses = modelService.getModelConfig(project, null);
+        modelConfigResponses.forEach(modelConfigResponse -> {
+            if (modelConfigResponse.getModel().equals(model)) {
+                Assert.assertEquals("false", modelConfigResponse.getOverrideProps().get(configKey));
+            }
+        });
+
+        modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>());
+
+        modelService.updateModelConfig(project, model, modelConfigRequest);
+        updatedSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
+        Assert.assertEquals(initialSize, updatedSize);
     }
 
     private List<AbstractExecutable> mockJobs() {
