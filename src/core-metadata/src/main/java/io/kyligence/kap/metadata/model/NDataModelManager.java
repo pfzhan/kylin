@@ -200,6 +200,15 @@ public class NDataModelManager {
         return desc;
     }
 
+    public NDataModel dropModel(String id) {
+        val model = getDataModelDesc(id);
+        if (model == null) {
+            return null;
+        }
+        crud.delete(model);
+        return model;
+    }
+
     public Set<String> listAllModelAlias() {
         return crud.listAll().stream().map(NDataModel::getAlias).collect(Collectors.toSet());
     }

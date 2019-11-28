@@ -43,6 +43,7 @@ import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeContext;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
@@ -51,23 +52,29 @@ import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
+import lombok.var;
 
 @Component("optimizeRecommendationService")
 public class OptimizeRecommendationService extends BasicService {
 
     public OptRecommendationResponse getRecommendationByModel(String project, String modelId, List<String> sources) {
-        val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
-        if (optRecommendation == null)
-            return null;
+        var optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
+        if (optRecommendation == null) {
+            optRecommendation = new OptimizeRecommendation();
+            optRecommendation.setUuid(modelId);
+            optRecommendation.setProject(project);
+        }
 
         return new OptRecommendationResponse(optRecommendation, sources);
     }
 
     public OptRecommendationResponse getRecommendationByModel(String project, String modelId) {
-        val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
-        if (optRecommendation == null)
-            return null;
-
+        var optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
+        if (optRecommendation == null) {
+            optRecommendation = new OptimizeRecommendation();
+            optRecommendation.setUuid(modelId);
+            optRecommendation.setProject(project);
+        }
         return new OptRecommendationResponse(optRecommendation, null);
     }
 
@@ -108,7 +115,7 @@ public class OptimizeRecommendationService extends BasicService {
     }
 
     public LayoutRecommendationDetailResponse getLayoutRecommendationContent(String project, String modelId,
-                                                                             String content, long itemId, int offset, int size) {
+            String content, long itemId, int offset, int size) {
         val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
         if (optRecommendation == null)
             return null;

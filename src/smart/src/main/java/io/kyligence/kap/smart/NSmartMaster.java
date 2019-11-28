@@ -30,11 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.sql.parser.impl.ParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -202,7 +204,8 @@ public class NSmartMaster {
 
     public Map<NDataModel, OptimizeRecommendation> selectAndGenRecommendation() {
         selectAndOptimize();
-        return genOptRecommendations();
+        return genOptRecommendations().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getFirst()));
     }
 
     private void createNewModelAndIndex() {
@@ -268,8 +271,8 @@ public class NSmartMaster {
                 @Override
                 public Object process() {
                     selectAndOptimize();
-                    Map<NDataModel, OptimizeRecommendation> recommendationMap = genOptRecommendations();
-                    recommendationMap.forEach((model, recommendation) -> saveRecommendation(model, recommendation));
+                    Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = genOptRecommendations();
+                    recommendationMap.forEach((model, pair) -> saveRecommendation(model, pair));
                     if (hook != null) {
                         hook.accept(getContext());
                     }
@@ -372,10 +375,10 @@ public class NSmartMaster {
     }
 
     // it must be wrapped by a transaction for OptManager.getOrCrate will write metadata !!!
-    private Map<NDataModel, OptimizeRecommendation> genOptRecommendations() {
+    private Map<NDataModel, Pair<OptimizeRecommendation, Long>> genOptRecommendations() {
         log.info("Semi-Auto-Mode project:{} start to generate optimized recommendations.", project);
 
-        Map<NDataModel, OptimizeRecommendation> recommendationMap = Maps.newHashMap();
+        Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = Maps.newHashMap();
         UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
             @Override
             public Object process() throws Exception {
@@ -392,9 +395,14 @@ public class NSmartMaster {
                     NDataModel model = modelCtx.getTargetModel();
                     IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
                     if (modelCtx.getOriginModel() != null) {
+                        long beforeLayoutItemId = 0;
+                        OptimizeRecommendation before = optRecMgr.getOptimizeRecommendation(model.getId());
+                        if (before != null) {
+                            beforeLayoutItemId = before.getNextLayoutRecommendationItemId();
+                        }
                         OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
                         optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
-                        recommendationMap.putIfAbsent(model, recommendations);
+                        recommendationMap.putIfAbsent(model, new Pair<>(recommendations, beforeLayoutItemId));
                     }
                     log.info("Semi-Auto-Mode project:{} successfully generate optimized recommendations.", project);
                 }
@@ -405,17 +413,12 @@ public class NSmartMaster {
         return recommendationMap;
     }
 
-    private void saveRecommendation(NDataModel model, OptimizeRecommendation recommendations) {
+    private void saveRecommendation(NDataModel model, Pair<OptimizeRecommendation, Long> pair) {
         log.info("Semi-Auto-Mode project:{} optimized recommendations are successfully saved to metadata.", project);
         OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
         try {
-            long indexItemId = 0;
-            val oldRecommendations = optRecMgr.getOptimizeRecommendation(model.getId());
-            if (oldRecommendations != null) {
-                indexItemId = oldRecommendations.getNextLayoutRecommendationItemId();
-            }
-            long finalIndexItemId = indexItemId;
+            long layoutItemId = pair.getSecond();
             boolean isQueryHistory = getContext().getAccelerateInfoMap().entrySet().stream().noneMatch(entry -> {
                 String sql = entry.getKey();
                 FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
@@ -423,11 +426,11 @@ public class NSmartMaster {
                 return favoriteQueryManager.get(sql).getChannel().equals(CHANNEL_FROM_IMPORTED);
             });
             optRecMgr.updateOptimizeRecommendation(model.getId(), recommendation -> {
-                recommendation.getLayoutRecommendations().stream().filter(item -> item.getItemId() >= finalIndexItemId)
+                recommendation.getLayoutRecommendations().stream().filter(item -> item.getItemId() >= layoutItemId)
                         .forEach(item -> item.setSource(isQueryHistory ? LayoutRecommendationItem.QUERY_HISTORY
                                 : LayoutRecommendationItem.IMPORTED));
             });
-            optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
+            optRecMgr.logOptimizeRecommendation(model.getId(), pair.getFirst());
         } catch (Exception e) {
             log.error("Semi-Auto-Mode project:{} model({}) failed to generate recommendations", project,
                     model.getUuid(), e);

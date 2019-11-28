@@ -35,7 +35,6 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -114,21 +113,10 @@ public class OptimizeRecommendationManager {
                 OptimizeRecommendation.class) {
             @Override
             protected OptimizeRecommendation initEntityAfterReload(OptimizeRecommendation entity, String resourceName) {
-                if (CollectionUtils.isEmpty(entity.getIndexRecommendations())) {
-                    return entity;
-                }
-                entity.addLayoutRecommendations(convertIndexToLayout(entity.getIndexRecommendations()));
-                entity.setIndexRecommendations(Lists.newArrayList());
+                entity.init();
                 return entity;
             }
         };
-    }
-
-    private List<LayoutRecommendationItem> convertIndexToLayout(List<IndexRecommendationItem> indexRecommendations) {
-        return indexRecommendations.stream()
-                .flatMap(item -> item.getEntity().getLayouts().stream()
-                        .map(layoutEntity -> createRecommendation(layoutEntity, item.isAdd(), item.isAggIndex())))
-                .collect(Collectors.toList());
     }
 
     public KylinConfig getConfig() {
@@ -155,29 +143,28 @@ public class OptimizeRecommendationManager {
         return crud.save(recommendation);
     }
 
-    public static CCRecommendationItem createRecommendation(ComputedColumnDesc computedColumnDesc) {
+    static CCRecommendationItem createRecommendation(ComputedColumnDesc computedColumnDesc) {
         val recommendation = new CCRecommendationItem();
         recommendation.setCc(computedColumnDesc);
         recommendation.setCreateTime(System.currentTimeMillis());
         return recommendation;
     }
 
-    private static DimensionRecommendationItem createRecommendation(NDataModel.NamedColumn column) {
+    static DimensionRecommendationItem createRecommendation(NDataModel.NamedColumn column) {
         val recommendation = new DimensionRecommendationItem();
         recommendation.setColumn(column);
         recommendation.setCreateTime(System.currentTimeMillis());
         return recommendation;
     }
 
-    private static MeasureRecommendationItem createRecommendation(NDataModel.Measure measure) {
+    static MeasureRecommendationItem createRecommendation(NDataModel.Measure measure) {
         val recommendation = new MeasureRecommendationItem();
         recommendation.setMeasure(measure);
         recommendation.setCreateTime(System.currentTimeMillis());
         return recommendation;
     }
 
-    private static LayoutRecommendationItem createRecommendation(LayoutEntity layoutEntity, boolean isAdd,
-                                                                 boolean isAgg) {
+    static LayoutRecommendationItem createRecommendation(LayoutEntity layoutEntity, boolean isAdd, boolean isAgg) {
         val recommendation = new LayoutRecommendationItem();
         recommendation.setLayout(layoutEntity);
         recommendation.setAggIndex(isAgg);

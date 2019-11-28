@@ -24,7 +24,9 @@
 package io.kyligence.kap.metadata.recommendation;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -135,4 +137,27 @@ public class OptimizeRecommendation extends RootPersistentEntity {
         return itemId;
     }
 
+    private List<LayoutRecommendationItem> convertIndexToLayout(List<IndexRecommendationItem> indexRecommendations) {
+        return indexRecommendations.stream()
+                .flatMap(
+                        item -> item.getEntity().getLayouts().stream().map(layoutEntity -> OptimizeRecommendationManager
+                                .createRecommendation(layoutEntity, item.isAdd(), item.isAggIndex())))
+                .collect(Collectors.toList());
+    }
+
+    public void init() {
+        setDefaultCreateTime(this.getCcRecommendations());
+        setDefaultCreateTime(this.getDimensionRecommendations());
+        setDefaultCreateTime(this.getMeasureRecommendations());
+        if (CollectionUtils.isEmpty(this.getIndexRecommendations())) {
+            return;
+        }
+        this.addLayoutRecommendations(convertIndexToLayout(this.getIndexRecommendations()));
+        this.setIndexRecommendations(Lists.newArrayList());
+    }
+
+    private <T extends RecommendationItem> void setDefaultCreateTime(List<T> items) {
+        items.stream().filter(item -> item.getCreateTime() == 0)
+                .forEach(item -> item.setCreateTime(System.currentTimeMillis()));
+    }
 }
