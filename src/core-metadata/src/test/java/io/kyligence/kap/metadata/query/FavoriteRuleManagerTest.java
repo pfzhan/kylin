@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KapConfig;
 import org.junit.After;
@@ -102,16 +103,38 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testAppendSqlsToBlacklist() {
         // add a sql to blacklist
-        FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition("test_sql1");
-        manager.appendSqlPatternToBlacklist(sqlCondition);
+        FavoriteRuleManager mockManager = Mockito.spy(manager);
+        AtomicBoolean setted = new AtomicBoolean(false);
+        Mockito.doAnswer(invocation -> {
+            String name = invocation.getArgument(0);
+            if (FavoriteRule.BLACKLIST_NAME.equals(name) && !setted.get()) {
+                return null;
+            }
+            return manager.getByName(name);
+        }).when(mockManager).getByName(Mockito.anyString());
 
-        FavoriteRule blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
+        Mockito.doAnswer(invocation -> {
+            FavoriteRule rule = invocation.getArgument(0);
+            if (FavoriteRule.BLACKLIST_NAME.equals(rule.getName()) && !setted.get()) {
+                setted.set(true);
+                return null;
+            }
+            manager.createRule(rule);
+            return null;
+        }).when(mockManager).createRule(Mockito.any(FavoriteRule.class));
+
+        Assert.assertNull(mockManager.getByName(FavoriteRule.BLACKLIST_NAME));
+        FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition("test_sql1");
+        mockManager.appendSqlPatternToBlacklist(sqlCondition);
+        Assert.assertNotNull(mockManager.getByName(FavoriteRule.BLACKLIST_NAME));
+
+        FavoriteRule blacklist = mockManager.getByName(FavoriteRule.BLACKLIST_NAME);
         Assert.assertEquals(2, blacklist.getConds().size());
 
         // append a existed sql to blacklist
         sqlCondition.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
-        manager.appendSqlPatternToBlacklist(sqlCondition);
-        blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
+        mockManager.appendSqlPatternToBlacklist(sqlCondition);
+        blacklist = mockManager.getByName(FavoriteRule.BLACKLIST_NAME);
         Assert.assertEquals(2, blacklist.getConds().size());
     }
 

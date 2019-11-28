@@ -92,6 +92,9 @@ public class FavoriteRuleManager {
     }
 
     public void appendSqlPatternToBlacklist(FavoriteRule.SQLCondition newCondition) {
+        if (getByName(FavoriteRule.BLACKLIST_NAME) == null) {
+            createRule(new FavoriteRule(Lists.newArrayList(), FavoriteRule.BLACKLIST_NAME, true));
+        }
         FavoriteRule blacklist = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
         List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
 
