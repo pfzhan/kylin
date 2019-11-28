@@ -39,6 +39,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -423,7 +424,7 @@ public class ModelService extends BasicService {
         val segs = getSegmentsByRange(modelId, project, start, end);
         for (NDataSegment segment : segs) {
             if (StringUtils.isNotEmpty(status)
-                    && status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
+                    && !status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
                 continue;
             }
             NDataSegmentResponse nDataSegmentResponse = new NDataSegmentResponse(segment);
@@ -1445,6 +1446,7 @@ public class ModelService extends BasicService {
                     MODEL + dataModel.getAlias() + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
+        checkSegmentsExist(model, project, ids);
         checkSegmentsLocked(model, project, ids);
         checkDeleteSegmentLegally(model, project, ids);
         val indexPlan = getIndexPlan(model, project);
@@ -1459,6 +1461,22 @@ public class ModelService extends BasicService {
             }
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
+    }
+
+    private void checkSegmentsExist(String model, String project, String[] ids) {
+        Preconditions.checkNotNull(model);
+        Preconditions.checkNotNull(project);
+        Preconditions.checkNotNull(ids);
+
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        IndexPlan indexPlan = getIndexPlan(model, project);
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
+
+        List<String> notExistIds = Stream.of(ids).filter(segmentId -> null == dataflow.getSegment(segmentId))
+                .filter(Objects::nonNull).collect(Collectors.toList());
+        if (!CollectionUtils.isEmpty(notExistIds)) {
+            throw new BadRequestException(String.format("Can not find the Segments by ids [%s]", StringUtils.join(notExistIds, ",")));
+        }
     }
 
     private void checkSegmentsLocked(String model, String project, String[] ids) {
@@ -1509,6 +1527,7 @@ public class ModelService extends BasicService {
         val indexPlan = getIndexPlan(modelId, project);
         val df = dfManager.getDataflow(indexPlan.getUuid());
 
+        checkSegmentsExist(modelId, project, ids);
         checkSegmentsLocked(modelId, project, ids);
 
         long start = Long.MAX_VALUE;
@@ -1561,6 +1580,7 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(modelId, project);
         NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
 
+        checkSegmentsExist(modelId, project, ids);
         checkSegmentsLocked(modelId, project, ids);
 
         for (String id : ids) {

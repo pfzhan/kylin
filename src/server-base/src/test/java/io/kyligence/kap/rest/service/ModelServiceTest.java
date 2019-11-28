@@ -381,7 +381,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetSegmentsResponse() {
         List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-                "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+                "default", "0", "" + Long.MAX_VALUE, "start_time", false, "ONLINE");
         Assert.assertEquals(1, segments.size());
         Assert.assertEquals(3380224, segments.get(0).getBytesSize());
         Assert.assertEquals("16", segments.get(0).getAdditionalInfo().get("file_count"));
@@ -938,6 +938,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testDeleteSegmentById_isNotExist() {
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel dataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
+        //refresh exception
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { "not_exist_01" });
+    }
+
+    @Test
     public void testDeleteSegmentById_TableOrientedModel_Exception() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -1113,6 +1128,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
+    }
+
+    @Test
+    public void testRefreshSegmentById_isNotExist() {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
+        //refresh exception
+        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { "not_exist_01" });
     }
 
     @Test
