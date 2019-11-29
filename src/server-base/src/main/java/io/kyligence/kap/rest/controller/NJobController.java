@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +34,6 @@ import java.util.Objects;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.response.JobStatisticsResponse;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -61,9 +61,9 @@ import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.service.JobService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/jobs")
@@ -93,13 +93,13 @@ public class NJobController extends NBasicController {
         checkJobStatus(status);
         JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
-        List<ExecutableResponse> executables;
+        DataResult<List<ExecutableResponse>> executables;
         if (!StringUtils.isEmpty(project)) {
-            executables = jobService.listJobs(jobFilter);
+            executables = jobService.listJobs(jobFilter, pageOffset, pageSize);
         } else {
-            executables = jobService.listGlobalJobs(jobFilter);
+            executables = jobService.listGlobalJobs(jobFilter, pageOffset, pageSize);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(executables, pageOffset, pageSize), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, executables, "");
     }
 
     @ApiOperation(value = "getWaitingJobs (update)", notes = "Update Response: total_size")

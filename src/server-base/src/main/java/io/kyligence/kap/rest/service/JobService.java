@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.response.ExecutableSortBean;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -65,8 +66,10 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,6 +140,49 @@ public class JobService extends BasicService {
         return executableResponse;
     }
 
+    private DataResult<List<ExecutableResponse>> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs,
+            int offset, int limit) {
+        Preconditions.checkNotNull(jobFilter);
+        Preconditions.checkNotNull(jobs);
+
+        Comparator<ExecutableSortBean> comparator = propertyComparator(
+                StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
+                !jobFilter.isReverse());
+
+        List<ExecutableSortBean> sortBeanList = jobs.stream()
+                .filter(((Predicate<AbstractExecutable>) (abstractExecutable -> {
+                    if (StringUtils.isEmpty(jobFilter.getStatus())) {
+                        return true;
+                    }
+                    ExecutableState state = abstractExecutable.getStatus();
+                    return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())))
+                            || JobStatusEnum.valueOf(jobFilter.getStatus()).equals(parseToJobStatus(state));
+                })).and(abstractExecutable -> {
+                    String subject = jobFilter.getSubjectAlias();
+                    if (StringUtils.isEmpty(subject)) {
+                        return true;
+                    }
+                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject);
+                }).and(abstractExecutable -> {
+                    List<String> jobNames = jobFilter.getJobNames();
+                    if (CollectionUtils.isEmpty(jobNames)) {
+                        return true;
+                    }
+                    return jobNames.contains(abstractExecutable.getName());
+                }).and(abstractExecutable -> {
+                    String subject = jobFilter.getSubject();
+                    if (StringUtils.isEmpty(subject)) {
+                        return true;
+                    }
+                    //if filter on uuid, then it must be accurate
+                    return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
+                })).map(ExecutableSortBean::create).sorted(comparator).collect(Collectors.toList());
+
+        List<ExecutableResponse> result = PagingUtil.cutPage(sortBeanList, offset, limit).stream()
+                .map(ExecutableSortBean::getExecutable).map(this::convert).collect(Collectors.toList());
+        return new DataResult<>(result, sortBeanList.size(), offset, limit);
+    }
+
     private List<ExecutableResponse> filterAndSort(final JobFilter jobFilter, List<AbstractExecutable> jobs) {
         Preconditions.checkNotNull(jobFilter);
         Preconditions.checkNotNull(jobs);
@@ -171,9 +217,7 @@ public class JobService extends BasicService {
             }
             //if filter on uuid, then it must be accurate
             return abstractExecutable.getTargetSubject().equals(jobFilter.getSubject().trim());
-        })).map(abstractExecutable -> {
-            return convert(abstractExecutable);
-        }).sorted(comparator).collect(Collectors.toList());
+        })).map(this::convert).sorted(comparator).collect(Collectors.toList());
     }
 
     private List<AbstractExecutable> listJobs0(final JobFilter jobFilter) {
@@ -193,6 +237,11 @@ public class JobService extends BasicService {
     public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
         aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
         return filterAndSort(jobFilter, listJobs0(jobFilter));
+    }
+
+    public DataResult<List<ExecutableResponse>> listJobs(final JobFilter jobFilter, int offset, int limit) {
+        aclEvaluate.checkProjectOperationPermission(jobFilter.getProject());
+        return filterAndSort(jobFilter, listJobs0(jobFilter), offset, limit);
     }
 
     public List<ExecutableResponse> addOldParams(List<ExecutableResponse> executableResponseList) {
@@ -232,7 +281,7 @@ public class JobService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
-    public List<ExecutableResponse> listGlobalJobs(final JobFilter jobFilter) {
+    public DataResult<List<ExecutableResponse>> listGlobalJobs(final JobFilter jobFilter, int offset, int limit) {
         List<AbstractExecutable> jobs = new ArrayList<>();
         for (ProjectInstance project : getReadableProjects()) {
             jobFilter.setProject(project.getName());
@@ -240,7 +289,7 @@ public class JobService extends BasicService {
         }
         jobFilter.setProject(null);
 
-        return filterAndSort(jobFilter, jobs);
+        return filterAndSort(jobFilter, jobs, offset, limit);
     }
 
     private long getTimeStartInMillis(Calendar calendar, JobTimeFilterEnum timeFilter) {

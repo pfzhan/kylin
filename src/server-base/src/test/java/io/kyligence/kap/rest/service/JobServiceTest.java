@@ -267,7 +267,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         List<String> jobNames = Lists.newArrayList();
         JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "", "", "", true);
-        List<ExecutableResponse> jobs = jobService.listGlobalJobs(jobFilter);
+        List<ExecutableResponse> jobs = jobService.listGlobalJobs(jobFilter, 0, 10).getValue();
         Assert.assertEquals(4, jobs.size());
         Assert.assertEquals("default1", jobs.get(3).getProject());
     }

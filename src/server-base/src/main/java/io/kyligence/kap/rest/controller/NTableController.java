@@ -24,17 +24,13 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.rest.response.BatchLoadTableResponse;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.NInitTablesResponse;
-import io.kyligence.kap.rest.response.PreReloadTableResponse;
-import io.kyligence.kap.rest.response.PreUnloadTableResponse;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -71,8 +67,13 @@ import io.kyligence.kap.rest.request.ReloadTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
+import io.kyligence.kap.rest.response.NInitTablesResponse;
+import io.kyligence.kap.rest.response.PreReloadTableResponse;
+import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
@@ -80,9 +81,8 @@ import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/tables")

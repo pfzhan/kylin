@@ -446,7 +446,11 @@ public abstract class AbstractExecutable implements Executable {
     }
 
     public final long getLastModified() {
-        return getOutput().getLastModified();
+        return getLastModified(getOutput());
+    }
+
+    public static long getLastModified(Output output) {
+        return output.getLastModified();
     }
 
     public void notifyUserIfNecessary(NDataLayout[] addOrUpdateCuboids) {
