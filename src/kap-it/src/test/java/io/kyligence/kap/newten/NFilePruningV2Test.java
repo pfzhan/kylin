@@ -38,7 +38,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.execution.FileSourceScanExec;
+import org.apache.spark.sql.execution.LayoutFileSourceScanExec;
 import org.apache.spark.sql.execution.SparkPlan;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.junit.After;
@@ -431,11 +431,11 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         return actualNum;
     }
 
-    private FileSourceScanExec findFileSourceScanExec(SparkPlan plan) {
-        return (FileSourceScanExec) plan.find(new AbstractFunction1<SparkPlan, Object>() {
+    private LayoutFileSourceScanExec findFileSourceScanExec(SparkPlan plan) {
+        return (LayoutFileSourceScanExec) plan.find(new AbstractFunction1<SparkPlan, Object>() {
             @Override
             public Object apply(SparkPlan p) {
-                return p instanceof FileSourceScanExec;
+                return p instanceof LayoutFileSourceScanExec;
             }
         }).get();
     }

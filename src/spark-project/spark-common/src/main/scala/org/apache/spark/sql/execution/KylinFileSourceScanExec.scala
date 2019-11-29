@@ -42,7 +42,7 @@ class KylinFileSourceScanExec(
     override val partitionFilters: Seq[Expression],
     val optionalShardSpec: Option[ShardSpec],
     override val dataFilters: Seq[Expression],
-    override val tableIdentifier: Option[TableIdentifier]) extends FileSourceScanExec(
+    override val tableIdentifier: Option[TableIdentifier]) extends LayoutFileSourceScanExec(
   relation, output, requiredSchema, partitionFilters, None, dataFilters, tableIdentifier) {
 
   @transient private lazy val selectedPartitions: Seq[PartitionDirectory] = {
@@ -173,12 +173,8 @@ class KylinFileSourceScanExec(
     val defaultMaxSplitBytes =
       fsRelation.sparkSession.sessionState.conf.filesMaxPartitionBytes
     val openCostInBytes = fsRelation.sparkSession.sessionState.conf.filesOpenCostInBytes
-    val defaultParallelism = fsRelation.sparkSession.sparkContext.defaultParallelism
-    val totalBytes = selectedPartitions.flatMap(_.files.map(_.getLen + openCostInBytes)).sum
-    val bytesPerCore = totalBytes / defaultParallelism
 
-    val maxSplitBytes = Math.min(defaultMaxSplitBytes, Math.max(openCostInBytes, bytesPerCore))
-    logInfo(s"Planning scan with bin packing, max size: $maxSplitBytes bytes, " +
+    logInfo(s"Planning scan with bin packing, max size is: $defaultMaxSplitBytes bytes, " +
       s"open cost is considered as scanning $openCostInBytes bytes.")
 
     val splitFiles = selectedPartitions.flatMap { partition =>
@@ -186,9 +182,9 @@ class KylinFileSourceScanExec(
         val blockLocations = getBlockLocations(file)
         if (fsRelation.fileFormat.isSplitable(
           fsRelation.sparkSession, fsRelation.options, file.getPath)) {
-          (0L until file.getLen by maxSplitBytes).map { offset =>
+          (0L until file.getLen by defaultMaxSplitBytes).map { offset =>
             val remaining = file.getLen - offset
-            val size = if (remaining > maxSplitBytes) maxSplitBytes else remaining
+            val size = if (remaining > defaultMaxSplitBytes) defaultMaxSplitBytes else remaining
             val hosts = getBlockHosts(blockLocations, offset, size)
             PartitionedFile(
               partition.values, file.getPath.toUri.toString, offset, size, hosts)
@@ -220,7 +216,7 @@ class KylinFileSourceScanExec(
 
     // Assign files to partitions using "Next Fit Decreasing"
     splitFiles.foreach { file =>
-      if (currentSize + file.length > maxSplitBytes) {
+      if (currentSize + file.length > defaultMaxSplitBytes) {
         closePartition()
       }
       // Add the given file to the current partition.

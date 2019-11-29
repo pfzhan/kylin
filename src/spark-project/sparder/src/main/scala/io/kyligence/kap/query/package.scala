@@ -22,7 +22,7 @@
 
 package io.kyligence.kap.query
 
-import org.apache.spark.sql.execution.datasource.KylinSourceStrategy
+import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
 import org.apache.spark.sql.{KylinDataFrameManager, SparkSession}
 
 import scala.language.implicitConversions
@@ -32,7 +32,7 @@ class QueryContext(session: SparkSession) {
     // check that index strategy is included
     val strategies = session.experimental.extraStrategies
     if (!strategies.contains(KylinSourceStrategy)) {
-      session.experimental.extraStrategies = strategies :+ KylinSourceStrategy
+      session.experimental.extraStrategies = strategies :+ KylinSourceStrategy  :+ LayoutFileSourceStrategy
     }
 
     new KylinDataFrameManager(session)

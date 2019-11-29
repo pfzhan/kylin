@@ -34,7 +34,7 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
 import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.execution.datasource.KylinSourceStrategy
+import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.Utils
@@ -126,7 +126,10 @@ object SparderEnv extends Logging {
                   SparkSession.builder
                     .master("local")
                     .appName("sparder-test-sql-context")
-                    .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
+                    .withExtensions{ ext =>
+                      ext.injectPlannerStrategy(_ => KylinSourceStrategy)
+                      ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+                    }
                     .enableHiveSupport()
                     .getOrCreateKylinSession()
                 case _ =>
@@ -135,7 +138,10 @@ object SparderEnv extends Logging {
                     .master("yarn-client")
                     //if user defined other master in kylin.properties,
                     // it will get overwrite later in org.apache.spark.sql.KylinSession.KylinBuilder.initSparkConf
-                    .withExtensions(ext => ext.injectPlannerStrategy(_ => KylinSourceStrategy))
+                    .withExtensions { ext =>
+                      ext.injectPlannerStrategy(_ => KylinSourceStrategy)
+                      ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
+                    }
                     .enableHiveSupport()
                     .getOrCreateKylinSession()
               }
