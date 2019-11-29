@@ -214,6 +214,9 @@ public class FavoriteRuleService extends BasicService {
 
     public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {
         FavoriteRule blacklist = getFavoriteRuleManager(project).getByName(FavoriteRule.BLACKLIST_NAME);
+        if (blacklist == null) {
+            return Lists.newArrayList();
+        }
         String formattedSql = formatSql(sql);
         return blacklist.getConds().stream().map(cond -> (FavoriteRule.SQLCondition) cond)
                 .filter(sqlCondition -> StringUtils.isEmpty(sql)

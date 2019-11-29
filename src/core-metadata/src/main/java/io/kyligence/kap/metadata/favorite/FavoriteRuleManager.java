@@ -92,10 +92,11 @@ public class FavoriteRuleManager {
     }
 
     public void appendSqlPatternToBlacklist(FavoriteRule.SQLCondition newCondition) {
-        if (getByName(FavoriteRule.BLACKLIST_NAME) == null) {
+        FavoriteRule blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
+        if (blacklist == null) {
             createRule(new FavoriteRule(Lists.newArrayList(), FavoriteRule.BLACKLIST_NAME, true));
         }
-        FavoriteRule blacklist = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
+        blacklist = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
         List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
 
         if (conditions.contains(newCondition))
@@ -110,8 +111,12 @@ public class FavoriteRuleManager {
     }
 
     public void removeSqlPatternFromBlacklist(String id) {
-        FavoriteRule rule = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
-        List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
+        FavoriteRule blacklist = getByName(FavoriteRule.BLACKLIST_NAME);
+        if (blacklist == null) {
+            return;
+        }
+        blacklist = crud.copyForWrite(blacklist);
+        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
 
         for (int i = 0; i < conditions.size(); i++) {
             FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
@@ -120,8 +125,8 @@ public class FavoriteRuleManager {
             }
         }
 
-        rule.setConds(conditions);
-        crud.save(rule);
+        blacklist.setConds(conditions);
+        crud.save(blacklist);
     }
 
     public void updateRule(List<FavoriteRule.Condition> conditions, boolean isEnabled, String ruleName) {
