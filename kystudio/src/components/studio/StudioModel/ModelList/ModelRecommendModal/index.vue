@@ -239,6 +239,7 @@
     // 初始化弹窗上每个 tab 需要的信息，以及 tab 上的选中数据的个数
     initDialogInfo (data) {
       // 每次打开弹窗将所有的选项都设为选中
+      if (!data) return
       let tempData = objectClone(data)
       for (var prop in tempData) {
         if (prop === 'dimension_recommendations' || prop === 'measure_recommendations' || prop === 'cc_recommendations' || prop === 'index_recommendations') {
