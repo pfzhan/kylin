@@ -385,6 +385,11 @@ public class ProjectServiceTest extends ServiceTestBase {
         var response = projectService.getProjectConfig(project);
         Assert.assertEquals(description, response.getDescription());
 
+        request.setSemiAutoMode(true);
+        projectService.updateProjectGeneralInfo(project, request);
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(false, response.isSemiAutomaticMode());
+
         Assert.assertNull(response.getDefaultDatabase());
         projectService.updateDefaultDatabase(project, "EDW");
         Assert.assertEquals("EDW", projectService.getProjectConfig(project).getDefaultDatabase());

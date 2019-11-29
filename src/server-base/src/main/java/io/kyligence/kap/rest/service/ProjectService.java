@@ -411,6 +411,9 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
+        if (getProjectManager().getProject(project).isSmartMode()) {
+            projectGeneralInfoRequest.setSemiAutoMode(false);
+        }
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
             copyForWrite.getOverrideKylinProps().put("kap.metadata.semi-automatic-mode",
