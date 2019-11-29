@@ -39,13 +39,13 @@ export default {
           if (p.name === selectedProject) {
             hasMatch = true
             state.selected_project = p.name // 之前没这句，在其他tab 切换了project，顶部会不变
-            state.isSemiAutomatic = p.override_kylin_properties && p.override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true' // 获取当前project 是否含有半自动的标志
+            state.isSemiAutomatic = !speedProjectTypes.includes(p.maintain_model_type) && p.override_kylin_properties && p.override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true' // 获取当前project 是否含有半自动的标志,且项目是专家模式
             state.projectDefaultDB = p.default_database
           }
         })
         if (!hasMatch) {
           state.selected_project = state.allProject[0].name
-          state.isSemiAutomatic = state.allProject[0].override_kylin_properties && state.allProject[0].override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true'
+          state.isSemiAutomatic = !speedProjectTypes.includes(state.allProject[0].maintain_model_type) && state.allProject[0].override_kylin_properties && state.allProject[0].override_kylin_properties['kap.metadata.semi-automatic-mode'] === 'true'
           cacheSessionStorage('projectName', state.selected_project)
           cacheLocalStorage('projectName', state.selected_project)
           state.projectDefaultDB = state.allProject[0].default_database
@@ -176,7 +176,8 @@ export default {
         commit(types.CACHE_PROJECT_DEFAULT_DB, {projectDefaultDB: response.data.data.default_database})
         commit(types.CACHE_PROJECT_PUSHDOWN_CONFIG, {projectPushdownConfig: response.data.data.push_down_enabled})
         // 更新是否是半自动档标志
-        commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, response.data.data.semi_automatic_mode)
+        let notAutoProjectFlag = !speedProjectTypes.includes(response.data.data.maintain_model_type)
+        commit(types.UPDATE_PROJECT_SEMI_AUTOMATIC_STATUS, notAutoProjectFlag && response.data.data.semi_automatic_mode)
         return response
       })
     },
