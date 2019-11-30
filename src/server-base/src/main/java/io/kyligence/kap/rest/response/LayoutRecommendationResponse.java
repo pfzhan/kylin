@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,7 +32,7 @@ import com.google.common.collect.Maps;
 import lombok.Data;
 
 @Data
-public class LayoutRecommendationResponse {
+public class LayoutRecommendationResponse implements Serializable {
     @JsonProperty("id")
     private long id;
 

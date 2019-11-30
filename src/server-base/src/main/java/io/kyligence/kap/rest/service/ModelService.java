@@ -953,7 +953,7 @@ public class ModelService extends BasicService {
             for (ModelRequest modelRequest : modelRequests) {
                 if (modelRequest.getIndexPlan() != null) {
                     saveModel(project, modelRequest);
-                    saveIndexPlan(project, modelRequest.getIndexPlan());
+                    updateIndexPlan(project, modelRequest.getIndexPlan());
                 }
 
                 if (modelRequest.getRecommendation() != null) {
@@ -1086,14 +1086,13 @@ public class ModelService extends BasicService {
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
-    void saveIndexPlan(String project, IndexPlan indexPlan) {
+    void updateIndexPlan(String project, IndexPlan indexPlan) {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         indexPlanManager.updateIndexPlan(indexPlan.getId(), (copyForWrite) -> {
             if (indexPlan.getAggShardByColumns() != null) {
                 copyForWrite.setAggShardByColumns(indexPlan.getAggShardByColumns());
             }
-            // TODO add test
-            if (indexPlan.getIndexes() == null) {
+            if (CollectionUtils.isNotEmpty(indexPlan.getIndexes())) {
                 copyForWrite.setIndexes(indexPlan.getIndexes());
             }
             copyForWrite.setEngineType(indexPlan.getEngineType());

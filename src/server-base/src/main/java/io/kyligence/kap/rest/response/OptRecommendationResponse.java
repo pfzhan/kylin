@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,7 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @Getter
 @Setter
 @Slf4j
-public class OptRecommendationResponse {
+public class OptRecommendationResponse implements Serializable {
     public static final int PAGING_OFFSET = 0;
     public static final int PAGING_SIZE = 10;
 

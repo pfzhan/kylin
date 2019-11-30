@@ -845,8 +845,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<String> sqls = Lists.newArrayList();
         val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
-
-        List<String> sqls1 = Lists.newArrayList();
     }
 
     private void prepareTwoOnlineModels() {

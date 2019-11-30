@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.smart;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -33,13 +32,8 @@ import lombok.val;
 
 public class NAutoOrSemiModelInfoAdjustProposer extends NAbstractProposer {
 
-    final String project;
-    final KylinConfig kylinConfig;
-
-    public NAutoOrSemiModelInfoAdjustProposer(NSmartContext smartContext) {
+    NAutoOrSemiModelInfoAdjustProposer(NSmartContext smartContext) {
         super(smartContext);
-        project = smartContext.getProject();
-        kylinConfig = smartContext.getKylinConfig();
     }
 
     @Override
