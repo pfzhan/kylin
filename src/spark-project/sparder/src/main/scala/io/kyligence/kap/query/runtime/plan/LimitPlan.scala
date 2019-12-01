@@ -28,13 +28,19 @@ import org.apache.spark.sql.DataFrame
 
 object LimitPlan {
   def limit(inputs: java.util.List[DataFrame],
-            rel: KapLimitRel,
-            dataContext: DataContext): DataFrame = {
+    rel: KapLimitRel,
+    dataContext: DataContext): DataFrame = {
     //    val schema = statefulDF.indexSchema
-    inputs
-      .get(0)
-      .limit(BigDecimal(
-        rel.localFetch.asInstanceOf[RexLiteral].getValue.toString).toInt)
-
+    val limit = BigDecimal(rel.localFetch.asInstanceOf[RexLiteral].getValue.toString).toInt
+    if (rel.localOffset == null) {
+      inputs
+        .get(0)
+        .limit(limit)
+    } else {
+      val offset = BigDecimal(rel.localOffset.asInstanceOf[RexLiteral].getValue.toString).toInt
+      inputs
+        .get(0)
+        .limitRange(offset, offset + limit)
+    }
   }
 }
