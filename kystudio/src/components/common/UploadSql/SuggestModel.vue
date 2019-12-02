@@ -11,7 +11,7 @@
       @selection-change="handleSelectionModelChange"
       @select-all="handleSelectionAllModel"
       max-height="430">
-      <el-table-column type="selection" width="44"></el-table-column>
+      <el-table-column type="selection" width="44" v-if="!isOriginModelsTable"></el-table-column>
       <el-table-column type="expand" width="44">
         <template slot-scope="scope">
           <el-table :data="sqlsTable(scope.row.sqls)" border :show-header="false" stripe>
@@ -97,7 +97,7 @@ export default class SuggestModel extends Vue {
   selectModels = []
   mounted () {
     this.$nextTick(() => {
-      if (this.suggestModels.length) {
+      if (this.suggestModels.length && !this.isOriginModelsTable) {
         this.suggestModels.forEach((model) => {
           this.$refs[this.tableRef].toggleRowSelection(model)
         })

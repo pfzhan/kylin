@@ -102,7 +102,7 @@
         {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
       </div>
       <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
-        {{$t('recommendations')}} ({{selectOriginModels.length}}/{{originModels.length}})
+        {{$t('recommendations')}}
       </div>
       <SuggestModel
         v-if="isShowSuggestModels"
@@ -114,8 +114,7 @@
         v-if="isShowOriginModels"
         tableRef="originModelsTable"
         :suggestModels="originModels"
-        :isOriginModelsTable="true"
-        @getSelectModels="getSelectOriginModels" />
+        :isOriginModelsTable="true" />
       <el-tabs v-model="modelType" type="card" v-if="isShowTabModels">
         <el-tab-pane :label="$t('kylinLang.model.modelList') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
           <SuggestModel
@@ -124,12 +123,11 @@
             @isValidated="isValidated"
             @getSelectModels="getSelectModels" />
         </el-tab-pane>
-        <el-tab-pane :label="$t('recommendations') + ` (${selectOriginModels.length}/${originModels.length})`" name="origin">
+        <el-tab-pane :label="$t('recommendations')" name="origin">
           <SuggestModel
             tableRef="originModelsTable"
             :suggestModels="originModels"
-            :isOriginModelsTable="true"
-            @getSelectModels="getSelectOriginModels" />
+            :isOriginModelsTable="true" />
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -144,11 +142,12 @@
         </span>
       </div>
       <div class="ky-no-br-space">
-        <el-button size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button size="medium" @click="handleClose" v-if="!isShowOriginModels">{{$t('kylinLang.common.close')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
         <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel&&!isShowOriginModels" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleClose">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </span>
   </el-dialog>
@@ -262,13 +261,7 @@ export default class UploadSqlModel extends Vue {
   }
   get uploadTitle () {
     if (this.isGenerateModel) {
-      const totalSelectNum = this.selectModels.length + this.selectOriginModels.length
-      const totalSuggestNum = this.suggestModels.length + this.originModels.length
-      if (this.uploadFlag === 'step3') {
-        return this.$t('generateModel') + ` (${totalSelectNum}/${totalSuggestNum})`
-      } else {
-        return this.$t('generateModel')
-      }
+      return this.$t('generateModel')
     } else {
       return this.$t('importSql')
     }
