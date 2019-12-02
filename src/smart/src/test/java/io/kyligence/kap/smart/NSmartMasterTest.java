@@ -395,19 +395,13 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
             final Map<String, AccelerateInfo> accelerateInfoMapCase3 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase3.get(sqls[0]).getRelatedLayouts().size());
 
-            String expectedMessage = "The join of model [AUTO_MODEL_KYLIN_SALES_1] has some difference with the joins of this query. "
-                    + "Please adjust model's join to match the query.";
+            String expectedMessage = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
             final String pendingMsg3 = accelerateInfoMapCase3.get(sqls[0]).getPendingMsg();
             Assert.assertNotNull(pendingMsg3);
             Assert.assertEquals(expectedMessage, pendingMsg3);
 
             final NDataModel targetModelCase3 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-            final List<NDataModel.Measure> allMeasuresCase3 = targetModelCase3.getAllMeasures();
-            final List<NDataModel.NamedColumn> allNamedColumnsCase3 = targetModelCase3.getAllNamedColumns();
-            final List<JoinTableDesc> joinTablesCase3 = targetModel.getJoinTables();
-            Assert.assertEquals("measures changed unexpected", allMeasures, allMeasuresCase3);
-            Assert.assertEquals("named columns changed unexpected", allNamedColumns, allNamedColumnsCase3);
-            Assert.assertEquals("join tables changed unexpected", joinTables, joinTablesCase3);
+            Assert.assertNull(targetModelCase3);
         }
         // -------------- case 4: add extra dimension -----------------------
         {
