@@ -58,6 +58,25 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.8 release note
+
+- **Enhancement**
+- In AI Augmented Mode, support custom SQL to generate new models, indices and optimize existing models
+- In AI Augmented Mode, remove the upper limit of dimensions in the aggregation group
+- Support deleting indices manually
+- Add source and reason information in the recommendation page
+- Provide basic Rest API
+- Support filtering query status in query history page
+
+**Bugfix**
+
+- The raw query result may inaccurate if a table is defined as the fact table and the lookup table in different models and also used in table index
+- The table index editing page cannot be shown properly in low resolution
+- Queries cannot be accelerated when comparing time type columns with string type columns
+- Diagnosis package cannot be generated if the log file is too large
+- Precise Count Distinct measure (bitmap) cannot be changed to Approximate Count Distinct (hllc) after saving the model
+- Query may fail if the window is used in filter condition and the subquery contains order by clause
+
 #### Kyligence Enterprise 4.0.7 release note
 
 **Enhancement**
