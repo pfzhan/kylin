@@ -91,9 +91,10 @@
         width="180"
         prop="create_time"
         :label="$t('th_updateDate')"
-        sortable>
+        sortable
+        show-overflow-tooltip>
         <template slot-scope="scope">
-          {{scope.row.create_time | utcTimeOrInt}}
+          {{transToGmtTime(scope.row.create_time)}}
         </template>
       </el-table-column>
     </el-table>
@@ -105,7 +106,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import { checkNameRegex, renderTableColumnSelected } from '../handler'
   // import vuex from '../../../../store'
-  // import { handleError, kapMessage, handleSuccess } from 'util/business'
+  import { transToGmtTime } from 'util/business'
   import { objectClone } from 'util/index'
   import locales from '../locales'
   
@@ -124,6 +125,7 @@
       })
     },
     methods: {
+      transToGmtTime: transToGmtTime,
       ...mapActions({
       }),
       ...mapMutations({

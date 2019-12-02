@@ -147,7 +147,7 @@
         <el-button type="primary" size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel&&!isShowOriginModels" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
-        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleClose">{{$t('kylinLang.common.ok')}}</el-button>
+        <el-button type="primary" size="medium" plain v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleCloseAcceptModal">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </span>
   </el-dialog>
@@ -418,6 +418,12 @@ export default class UploadSqlModel extends Vue {
         this.selectSqls.splice(index, 1)
       }
     }
+  }
+  handleCloseAcceptModal () {
+    this.hideModal()
+    this.resetModalForm()
+    this.resetImport()
+    this.$emit('reloadModelList')
   }
   submitModels () {
     this.submitModelLoading = true
