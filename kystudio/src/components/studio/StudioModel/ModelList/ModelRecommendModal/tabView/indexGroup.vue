@@ -112,9 +112,10 @@
         </template>
       </el-table-column>
       <el-table-column
-        width="170"
+        width="160"
         :renderHeader="renderRecommendType"
-        prop="type">
+        prop="type"
+        show-overflow-tooltip>
         <template slot-scope="scope">
           {{$t(scope.row.type)}}
         </template>
@@ -125,7 +126,7 @@
         label="Index ID">
       </el-table-column>
       <el-table-column
-        width="100"
+        width="110"
         :render-header="renderSource">
         <template slot-scope="scope">
           {{$t(scope.row.source)}}
@@ -141,13 +142,13 @@
         </template>
       </el-table-column>
       <el-table-column
-        width="110"
+        width="105"
         prop="usage"
         :label="$t('th_useCount')"
         sortable>
       </el-table-column>
       <el-table-column
-        width="170"
+        width="175"
         prop="create_time"
         :label="$t('th_updateDate')"
         sortable>
