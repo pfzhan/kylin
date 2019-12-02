@@ -30,14 +30,18 @@ import java.util.Set;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.CustomizedGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class IndexCleaner implements MetadataCleaner {
 
     public void cleanup(String project) {
@@ -48,21 +52,29 @@ public class IndexCleaner implements MetadataCleaner {
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId());
 
-            val garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow);
+            Map<Long, GarbageLayoutType> garbageLayouts;
+            if (config.isCustomizedGcStrategyEnabled()) {
+                log.info("Routing to CustomizedGarbageCleaner to collect garbage layouts.");
+                garbageLayouts = CustomizedGarbageCleaner.findGarbageLayouts(dataflow);
+            } else {
+                log.info("Routing to DefaultGarbageCleaner to collect garbage layouts.");
+                garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow);
+            }
 
-            if (MapUtils.isNotEmpty(garbageLayouts)) {
-                if (projectInstance.isSemiAutoMode()) {
-                    transferToRecommendation(model.getUuid(), project, garbageLayouts);
-                }
-                if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
-                    cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
-                }
+            if (MapUtils.isEmpty(garbageLayouts)) {
+                continue;
+            }
+
+            if (projectInstance.isSemiAutoMode()) {
+                transferToRecommendation(model.getUuid(), project, garbageLayouts);
+            }
+            if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
+                cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
             }
         }
     }
 
-    private void transferToRecommendation(String modelId, String project,
-            Map<Long, LayoutGarbageCleaner.LayoutGarbageType> garbageLayouts) {
+    private void transferToRecommendation(String modelId, String project, Map<Long, GarbageLayoutType> garbageLayouts) {
         OptimizeRecommendationManager recMgr = OptimizeRecommendationManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
         recMgr.removeLayouts(modelId, garbageLayouts);

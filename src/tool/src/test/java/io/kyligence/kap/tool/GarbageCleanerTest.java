@@ -335,9 +335,13 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
 
         indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        Assert.assertEquals(3, layouts.size());
+        Assert.assertEquals(7, layouts.size());
         Assert.assertTrue(layouts.contains(10001L));
         Assert.assertTrue(layouts.contains(10002L));
+        Assert.assertTrue(layouts.contains(40001L));
+        Assert.assertTrue(layouts.contains(40002L));
+        Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 20001));
+        Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 30001));
         Assert.assertTrue(layouts.contains(IndexEntity.TABLE_INDEX_START_ID + 40001));
 
         Assert.assertEquals(2, favoriteQueryManager.getAll().size());
@@ -379,9 +383,13 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         GarbageCleaner.cleanupMetadataAtScheduledTime(PROJECT);
         indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         autoLayouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        Assert.assertEquals(3, autoLayouts.size());
+        Assert.assertEquals(7, autoLayouts.size());
         Assert.assertTrue(autoLayouts.contains(10001L));
         Assert.assertTrue(autoLayouts.contains(10002L));
+        Assert.assertTrue(autoLayouts.contains(40001L));
+        Assert.assertTrue(autoLayouts.contains(40002L));
+        Assert.assertTrue(autoLayouts.contains(IndexEntity.TABLE_INDEX_START_ID + 20001));
+        Assert.assertTrue(autoLayouts.contains(IndexEntity.TABLE_INDEX_START_ID + 30001));
         // manual created index
         Assert.assertTrue(autoLayouts.contains(20000040001L));
 

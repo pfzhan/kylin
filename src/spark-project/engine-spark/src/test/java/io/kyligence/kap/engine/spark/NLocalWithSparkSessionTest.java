@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -64,7 +63,6 @@ import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -88,27 +86,9 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
 
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
-    private Map<String, String> systemProp = Maps.newHashMap();
+
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
-
-    protected void overwriteSystemProp(String key, String value) {
-        systemProp.put(key, System.getProperty(key));
-        System.setProperty(key, value);
-    }
-
-    protected void restoreAllSystemProp() {
-        systemProp.forEach((prop, value) -> {
-            if (value == null) {
-                log.info("Clear {}", prop);
-                System.clearProperty(prop);
-            } else {
-                log.info("restore {}", prop);
-                System.setProperty(prop, value);
-            }
-        });
-        systemProp.clear();
-    }
 
     @BeforeClass
     public static void beforeClass() {

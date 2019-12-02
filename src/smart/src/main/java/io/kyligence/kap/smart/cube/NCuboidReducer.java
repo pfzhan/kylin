@@ -57,18 +57,13 @@ class NCuboidReducer extends NAbstractCubeProposer {
         List<IndexEntity> allProposedIndexes = indexPlan.getIndexes();
 
         // collect redundant layouts
-        List<IndexEntity> aggIndexList = allProposedIndexes.stream() //
-                .filter(indexEntity -> !indexEntity.isTableIndex()) //
-                .collect(Collectors.toList());
-        List<IndexEntity> tableIndexList = allProposedIndexes.stream() //
-                .filter(IndexEntity::isTableIndex) //
-                .collect(Collectors.toList());
-        Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
-        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfAggIndex(aggIndexList, false));
-        if (KylinConfig.getInstanceFromEnv().isRemoveTableIndexRedundantLayoutEnabled()) {
-            redundantToReservedMap
-                    .putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, false));
+        List<LayoutEntity> layoutsToHandle = indexPlan.getAllLayouts();
+        if (KylinConfig.getInstanceFromEnv().isOnlyTailorAggIndex()) {
+            layoutsToHandle.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
         }
+        Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
+        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectIncludedLayouts(layoutsToHandle, false));
+
         redundantToReservedMap.forEach((redundant, reserved) -> {
             val indexEntityOptional = allProposedIndexes.stream()
                     .filter(index -> index.getId() == redundant.getIndexId()) //

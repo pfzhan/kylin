@@ -82,7 +82,7 @@ import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
  * Subclass can override methods in this class to extend the content of the 'properties',
  * with some override values for example.
  */
-abstract public class KylinConfigBase implements Serializable {
+public abstract class KylinConfigBase implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LoggerFactory.getLogger(KylinConfigBase.class);
 
@@ -150,7 +150,7 @@ abstract public class KylinConfigBase implements Serializable {
         this.properties = force ? props : BCC.check(props);
     }
 
-    final protected String getOptional(String prop) {
+    protected final String getOptional(String prop) {
         return getOptional(prop, null);
     }
 
@@ -1705,12 +1705,24 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "60"));
     }
 
-    public int getQueryTimesThresholdOfGarbageStorage() {
-        return Integer.parseInt(getOptional("kylin.garbage.storage.query-times-threshold", "5"));
+    public boolean isCustomizedGcStrategyEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.garbage.customized-strategy-enabled", "false"));
     }
 
-    public boolean isRemoveTableIndexRedundantLayoutEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.garbage.remove-table-index-redundant-layout", "false"));
+    public String getLowFreqGarbageStrategyTarget() {
+        return getOptional("kylin.garbage.low-freq-strategy-target", "");
+    }
+
+    public String getIncludedGarbageStrategyTarget() {
+        return getOptional("kylin.garbage.included-strategy-target", "");
+    }
+
+    public boolean isOnlyTailorAggIndex() {
+        return Boolean.parseBoolean(getOptional("kylin.garbage.only-tailor-agg-index", "false"));
+    }
+
+    public boolean isRemoveIncludedTableIndexEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.garbage.remove-included-table-index", "false"));
     }
 
     public long getExecutableSurvivalTimeThreshold() {

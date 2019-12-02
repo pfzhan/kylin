@@ -52,7 +52,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -859,7 +859,7 @@ public class OptimizeRecommendationManager {
         return res;
     }
 
-    public void removeLayouts(String id, Map<Long, LayoutGarbageCleaner.LayoutGarbageType> removeLayouts) {
+    public void removeLayouts(String id, Map<Long, GarbageLayoutType> removeLayouts) {
         Preconditions.checkNotNull(id);
         Preconditions.checkNotNull(removeLayouts);
         logger.info("Semi-Auto-Mode project:{} start to clean the useless layouts [model:{}, layouts:{}]", project, id,

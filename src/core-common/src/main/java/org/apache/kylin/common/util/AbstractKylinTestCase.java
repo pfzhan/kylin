@@ -42,17 +42,44 @@
 
 package org.apache.kylin.common.util;
 
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+
+import com.google.common.collect.Maps;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author ysong1
  *
  */
+@Slf4j
 public abstract class AbstractKylinTestCase {
 
     static {
         System.setProperty("needCheckCC", "true");
+    }
+
+    private Map<String, String> systemProp = Maps.newHashMap();
+
+    protected void overwriteSystemProp(String key, String value) {
+        systemProp.put(key, System.getProperty(key));
+        System.setProperty(key, value);
+    }
+
+    protected void restoreAllSystemProp() {
+        systemProp.forEach((prop, value) -> {
+            if (value == null) {
+                log.info("Clear {}", prop);
+                System.clearProperty(prop);
+            } else {
+                log.info("restore {}", prop);
+                System.setProperty(prop, value);
+            }
+        });
+        systemProp.clear();
     }
 
     public abstract void createTestMetadata(String... overlayMetadataDirs) throws Exception;

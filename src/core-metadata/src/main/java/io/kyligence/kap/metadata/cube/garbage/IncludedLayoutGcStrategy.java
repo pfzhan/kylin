@@ -25,47 +25,36 @@
 package io.kyligence.kap.metadata.cube.garbage;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.apache.kylin.common.KylinConfig;
-
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-public class RedundantLayoutGcStrategy implements IGarbageCleanerStrategy {
+/**
+ * IncludedLayoutGcStrategy will search all garbage agg-layouts of the inputLayouts by default, but if
+ * `kylin.garbage.remove-included-table-index` is true, it will also search garbage tableIndex-layouts.
+ */
+@Slf4j
+public class IncludedLayoutGcStrategy extends AbstractGcStrategy {
+
+    public IncludedLayoutGcStrategy() {
+        this.setType(GarbageLayoutType.INCLUDED);
+    }
 
     @Override
-    public Set<Long> collectGarbageLayouts(NDataflow dataflow) {
+    public Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow) {
         Set<Long> garbageLayouts = Sets.newHashSet();
-        IndexPlan indexPlan = dataflow.getIndexPlan();
-        // reduce redundant layouts and indexes
-        List<IndexEntity> indexes = indexPlan.getAllIndexes();
-        List<IndexEntity> aggIndexList = indexes.stream() //
-                .filter(indexEntity -> !indexEntity.isTableIndex()) //
-                .collect(Collectors.toList());
-        List<IndexEntity> tableIndexList = indexes.stream() //
-                .filter(IndexEntity::isTableIndex) //
-                .collect(Collectors.toList());
-        Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
-        redundantToReservedMap.putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfAggIndex(aggIndexList, true));
-        if (KylinConfig.getInstanceFromEnv().isRemoveTableIndexRedundantLayoutEnabled()) {
-            redundantToReservedMap
-                    .putAll(IndexPlanReduceUtil.collectRedundantLayoutsOfTableIndex(tableIndexList, true));
-        }
-        redundantToReservedMap.forEach((redundant, reserved) -> garbageLayouts.add(redundant.getId()));
+        val fromGarbageToAliveMap = IndexPlanReduceUtil.collectIncludedLayouts(inputLayouts, true);
+        fromGarbageToAliveMap.forEach((redundant, reserved) -> garbageLayouts.add(redundant.getId()));
+        shiftLayoutHitCount(fromGarbageToAliveMap, dataflow);
+        log.info("In dataflow({}), IncludedLayoutGcStrategy found garbage laoyouts: {}", dataflow.getId(),
+                fromGarbageToAliveMap);
         return garbageLayouts;
     }
 
-    @Override
-    public LayoutGarbageCleaner.LayoutGarbageType getType() {
-        return LayoutGarbageCleaner.LayoutGarbageType.INCLUDED;
-    }
 }

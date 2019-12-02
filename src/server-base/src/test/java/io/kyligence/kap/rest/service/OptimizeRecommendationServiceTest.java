@@ -52,7 +52,7 @@ import org.mockito.Mockito;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -247,7 +247,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         response = service.getRecommendationByModel(projectDefault, id, Lists.newArrayList("query_history"));
 
         Assert.assertEquals(3, response.getIndexRecommendations().size());
-        Assert.assertTrue(response.getIndexRecommendations().stream().allMatch(r -> r.getSource().equals("query_history")));
+        Assert.assertTrue(
+                response.getIndexRecommendations().stream().allMatch(r -> r.getSource().equals("query_history")));
 
     }
 
@@ -365,10 +366,10 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         }
     }
 
-    private Map<Long, LayoutGarbageCleaner.LayoutGarbageType> createRemoveLayoutIds(Long... ids) {
-        var removeLayoutsId = Maps.<Long, LayoutGarbageCleaner.LayoutGarbageType> newHashMap();
+    private Map<Long, GarbageLayoutType> createRemoveLayoutIds(Long... ids) {
+        var removeLayoutsId = Maps.<Long, GarbageLayoutType> newHashMap();
         for (Long layoutId : ids) {
-            removeLayoutsId.put(layoutId, LayoutGarbageCleaner.LayoutGarbageType.LOW_FREQUENCY);
+            removeLayoutsId.put(layoutId, GarbageLayoutType.LOW_FREQUENCY);
         }
         return removeLayoutsId;
     }

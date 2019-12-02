@@ -82,11 +82,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
@@ -128,7 +132,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
     @Before
     public void setup() {
-        System.setProperty("HADOOP_USER_NAME", "root");
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        //        overwriteSystemProp("kylin.garbage.remove-included-table-index", "true");
         staticCreateTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
@@ -141,6 +146,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @After
     public void tearDown() {
         staticCleanupTestMetadata();
+        restoreAllSystemProp();
     }
 
     @Test
@@ -269,10 +275,12 @@ public class ProjectServiceTest extends ServiceTestBase {
         Mockito.doNothing().when(asyncTaskService).cleanupStorage();
         projectService.cleanupGarbage(PROJECT);
         val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(MODEL_ID);
-        Assert.assertEquals(2, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(4, indexPlan.getAllLayouts().size());
         val allLayoutsIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         Assert.assertTrue(allLayoutsIds.contains(1L));
         Assert.assertTrue(allLayoutsIds.contains(1000001L));
+        Assert.assertTrue(allLayoutsIds.contains(20_000_020_001L));
+        Assert.assertTrue(allLayoutsIds.contains(20_000_030_001L));
         // layout 10001 is not connected with a low frequency fq
         Assert.assertFalse(allLayoutsIds.contains(10001L));
 
@@ -296,7 +304,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertNotNull(acl);
 
         // when broken model is in MANUAL_MAINTAIN project
-        var dataflowManager = NDataflowManager.getInstance(getTestConfig(), "broken_test");
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "broken_test");
         Assert.assertEquals(3, dataflowManager.listUnderliningDataModels(true).size());
 
         // there are no any favorite queries
@@ -311,20 +319,25 @@ public class ProjectServiceTest extends ServiceTestBase {
             }
 
             for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
-                val indexPlan = dataflowManager.getDataflow(model.getId()).getIndexPlan();
+                NDataflow dataflow = dataflowManager.getDataflow(model.getId());
+                IndexPlan indexPlan = dataflow.getIndexPlan();
                 if (model.getId().equals(MODEL_ID)) {
                     val layouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId)
                             .collect(Collectors.toSet());
-                    Assert.assertEquals(2, layouts.size());
-                    Assert.assertTrue(layouts.contains(1L));
-                    Assert.assertTrue(layouts.contains(1000001L));
+                    Assert.assertEquals(4, layouts.size());
+                    Assert.assertEquals(Sets.newHashSet(1L, 1000001L, 20000020001L, 20000030001L), layouts);
                     continue;
                 }
 
-                // all auto index layouts are deleted
-                Assert.assertEquals(0, indexPlan.getWhitelistLayouts().size());
-                for (LayoutEntity layoutEntity : indexPlan.getAllLayouts()) {
-                    Assert.assertFalse(layoutEntity.isAuto());
+                // all ready auto index layouts are deleted
+                NDataSegment latestReadySegment = dataflow.getLatestReadySegment();
+                if (latestReadySegment != null) {
+                    List<LayoutEntity> allLayouts = dataflow.getIndexPlan().getAllLayouts();
+                    List<LayoutEntity> autoLayouts = dataflow.getIndexPlan().getWhitelistLayouts();
+                    autoLayouts.removeIf(layout -> !latestReadySegment.getLayoutsMap().containsKey(layout.getId()));
+                    allLayouts.removeIf(layout -> !latestReadySegment.getLayoutsMap().containsKey(layout.getId()));
+                    Assert.assertTrue(autoLayouts.isEmpty());
+                    allLayouts.forEach(layout -> Assert.assertTrue(layout.isManual()));
                 }
             }
         }

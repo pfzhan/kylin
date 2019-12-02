@@ -27,8 +27,11 @@ package io.kyligence.kap.metadata.cube.storage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.TimeUtil;
 import org.junit.After;
@@ -38,17 +41,22 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
 import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
-import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.IncludedLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.garbage.LowFreqLayoutGcStrategy;
-import io.kyligence.kap.metadata.cube.garbage.RedundantLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 
@@ -57,19 +65,22 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     private String PROJECT = "default";
     private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
+    private static final long DAY_IN_MILLIS = 24 * 60 * 60 * 1000L;
+
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         this.cleanupTestMetadata();
     }
 
     @Test
     public void testGetStorageVolumeInfo() {
         initTestData();
+
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
                 StorageInfoEnum.TOTAL_STORAGE);
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
@@ -77,15 +88,14 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfo.getStorageQuotaSize());
         Assert.assertEquals(4346979L, storageVolumeInfo.getGarbageStorageSize());
-        Assert.assertEquals(5, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(7, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
+        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
+        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
 
         //  layout 1L and 20_000_040_001L with low frequency => garbage
         Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_040_001L));
-
-        // without frequency hit layout => garbage
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_020_001L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20001L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(30001L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1000001L));
 
         // layout 10_001L, 10002L, 40_001L, 40_002L and 20_000_010_001L were not considered as garbage
         Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(10001L));
@@ -101,7 +111,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         initTestData();
         NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         NDataflow dataflow = instance.getDataflow(MODEL_ID);
-        Set<Long> garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow, new LowFreqLayoutGcStrategy());
+        Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new LowFreqLayoutGcStrategy());
 
         //  layout 1L and 20_000_040_001L with low frequency => garbage
         Assert.assertTrue(garbageLayouts.contains(1L));
@@ -120,10 +130,9 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     }
 
     @Test
-    public void testRedundantLayoutGcStrategy() {
-        NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow dataflow = instance.getDataflow(MODEL_ID);
+    public void testIncludedLayoutGcStrategy() {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         IndexPlan indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             LayoutEntity layout1 = new LayoutEntity();
@@ -144,19 +153,42 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
             index2.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
             index2.setLayouts(Lists.newArrayList(layout2));
 
-            copyForWrite.setIndexes(Lists.newArrayList());
-            copyForWrite.getIndexes().add(index1);
-            copyForWrite.getIndexes().add(index2);
+            copyForWrite.setIndexes(Lists.newArrayList(index1, index2));
         });
 
-        getTestConfig().setProperty("kylin.garbage.remove-table-index-redundant-layout", "false");
-        Set<Long> garbageLayouts = LayoutGarbageCleaner.findGarbageLayouts(dataflow, new RedundantLayoutGcStrategy());
+        IndexPlan indexPlanAfter = indexPlanManager.getIndexPlan(MODEL_ID);
+        long currentTime = System.currentTimeMillis();
+        long currentDate = TimeUtil.getDayStart(currentTime);
+        dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {
+            Map<Long, FrequencyMap> frequencyMap = Maps.newHashMap();
+            indexPlanAfter.getAllLayouts().forEach(layout -> {
+                TreeMap<Long, Integer> hit = Maps.newTreeMap();
+                hit.put(currentDate - 3 * DAY_IN_MILLIS, 100);
+                frequencyMap.putIfAbsent(layout.getId(), new FrequencyMap(hit));
+            });
+            copyForWrite.setLayoutHitCount(frequencyMap);
+        });
+
+        // change all layouts' status to ready.
+        NDataflow dataflow = dataflowManager.getDataflow(MODEL_ID);
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getUuid());
+        NDataSegment latestReadySegment = dataflow.getLatestReadySegment();
+        Set<Long> ids = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        update.setToAddOrUpdateLayouts(genCuboids(dataflow, latestReadySegment.getId(), ids));
+        dataflowManager.updateDataflow(update);
+
+        dataflow = dataflowManager.getDataflow(MODEL_ID);
+        getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "false");
+        Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new IncludedLayoutGcStrategy());
         Assert.assertTrue(garbageLayouts.isEmpty());
 
-        getTestConfig().setProperty("kylin.garbage.remove-table-index-redundant-layout", "true");
-        Set<Long> garbageLayouts2 = LayoutGarbageCleaner.findGarbageLayouts(dataflow, new RedundantLayoutGcStrategy());
+        getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "true");
+        Set<Long> garbageLayouts2 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new IncludedLayoutGcStrategy());
+        Map<Long, FrequencyMap> layoutHitCount = dataflowManager.getDataflow(MODEL_ID).getLayoutHitCount();
         Assert.assertEquals(1, garbageLayouts2.size());
         Assert.assertTrue(garbageLayouts2.contains(20_000_050_001L));
+        NavigableMap<Long, Integer> dateFrequency = layoutHitCount.get(20_000_040_001L).getDateFrequency();
+        Assert.assertEquals(new Integer(200), dateFrequency.get(currentDate - 3 * DAY_IN_MILLIS));
     }
 
     private void initTestData() {
@@ -166,52 +198,51 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
         long currentTime = System.currentTimeMillis();
         long currentDate = TimeUtil.getDayStart(currentTime);
-        long dayInMillis = 24 * 60 * 60 * 1000L;
 
-        dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {
-            copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
-                {
-                    put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 7 * dayInMillis, 1);
-                            put(currentDate - 31 * dayInMillis, 100);
-                        }
-                    }));
-                    put(40001L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 7 * dayInMillis, 1);
-                            put(currentDate, 2);
-                        }
-                    }));
-                    put(40002L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 7 * dayInMillis, 1);
-                            put(currentDate, 2);
-                        }
-                    }));
-                    put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 30 * dayInMillis, 10);
-                        }
-                    }));
-                    put(10002L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 30 * dayInMillis, 10);
-                        }
-                    }));
-                    put(IndexEntity.TABLE_INDEX_START_ID + 10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 7 * dayInMillis, 100);
-                        }
-                    }));
-                    put(IndexEntity.TABLE_INDEX_START_ID + 1L, new FrequencyMap(new TreeMap<Long, Integer>() {
-                        {
-                            put(currentDate - 7 * dayInMillis, 100);
-                        }
-                    }));
-                }
-            });
-        });
+        dataflowManager.updateDataflow(MODEL_ID,
+                copyForWrite -> copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
+                    {
+                        put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 7 * DAY_IN_MILLIS, 1);
+                                put(currentDate - 31 * DAY_IN_MILLIS, 100);
+                            }
+                        }));
+                        put(40001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 7 * DAY_IN_MILLIS, 1);
+                                put(currentDate, 2);
+                            }
+                        }));
+                        put(40002L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 7 * DAY_IN_MILLIS, 1);
+                                put(currentDate, 2);
+                            }
+                        }));
+                        put(10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 30 * DAY_IN_MILLIS, 10);
+                            }
+                        }));
+                        put(10002L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 30 * DAY_IN_MILLIS, 10);
+                            }
+                        }));
+                        put(IndexEntity.TABLE_INDEX_START_ID + 10001L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 7 * DAY_IN_MILLIS, 100);
+                            }
+                        }));
+                        put(IndexEntity.TABLE_INDEX_START_ID + 1L, new FrequencyMap(new TreeMap<Long, Integer>() {
+                            {
+                                put(currentDate - 7 * DAY_IN_MILLIS, 100);
+                            }
+                        }));
+                    }
+                }));
+
         // add some new layouts for cube
         indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
@@ -222,12 +253,12 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
             layout.setId(40001);
             layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100000, 100001, 100005));
             layout.setAuto(true);
-            layout.setUpdateTime(currentTime - 8 * dayInMillis);
+            layout.setUpdateTime(currentTime - 8 * DAY_IN_MILLIS);
             val layout3 = new LayoutEntity();
             layout3.setId(40002);
             layout3.setColOrder(Lists.newArrayList(3, 2, 1, 4, 100000, 100001, 100005));
             layout3.setAuto(true);
-            layout3.setUpdateTime(currentTime - 8 * dayInMillis);
+            layout3.setUpdateTime(currentTime - 8 * DAY_IN_MILLIS);
             newDesc.setLayouts(Lists.newArrayList(layout, layout3));
 
             val newDesc2 = new IndexEntity();
@@ -243,6 +274,20 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
             copyForWrite.getIndexes().add(newDesc);
             copyForWrite.getIndexes().add(newDesc2);
         });
+
+        // change all layouts' status to ready.
+        NDataflow df = dataflowManager.getDataflow(MODEL_ID);
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        NDataSegment latestReadySegment = df.getLatestReadySegment();
+        Set<Long> ids = Sets.newHashSet(2_000_020_001L, 2_000_030_001L, 2_000_040_001L, 40_001L, 40_002L);
+        update.setToAddOrUpdateLayouts(genCuboids(df, latestReadySegment.getId(), ids));
+        dataflowManager.updateDataflow(update);
+    }
+
+    private NDataLayout[] genCuboids(NDataflow df, String segId, Set<Long> layoutIds) {
+        List<NDataLayout> realLayouts = Lists.newArrayList();
+        layoutIds.forEach(id -> realLayouts.add(NDataLayout.newDataLayout(df, segId, id)));
+        return realLayouts.toArray(new NDataLayout[0]);
     }
 
     @Test

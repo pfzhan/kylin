@@ -50,7 +50,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.garbage.LayoutGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -226,10 +226,10 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals(0, recommendation.getLayoutRecommendations().size());
     }
 
-    private Map<Long, LayoutGarbageCleaner.LayoutGarbageType> createRemoveLayoutIds(Long... ids) {
-        var removeLayoutsId = Maps.<Long, LayoutGarbageCleaner.LayoutGarbageType> newHashMap();
+    private Map<Long, GarbageLayoutType> createRemoveLayoutIds(Long... ids) {
+        var removeLayoutsId = Maps.<Long, GarbageLayoutType> newHashMap();
         for (Long layoutId : ids) {
-            removeLayoutsId.put(layoutId, LayoutGarbageCleaner.LayoutGarbageType.LOW_FREQUENCY);
+            removeLayoutsId.put(layoutId, GarbageLayoutType.LOW_FREQUENCY);
         }
         return removeLayoutsId;
     }

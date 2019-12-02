@@ -36,20 +36,26 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.extern.slf4j.Slf4j;
 
-public class LowFreqLayoutGcStrategy implements IGarbageCleanerStrategy {
+/**
+ * LowFreqLayoutGcStrategy will search all garbage layout in inputLayouts.
+ */
+@Slf4j
+public class LowFreqLayoutGcStrategy extends AbstractGcStrategy {
+
+    public LowFreqLayoutGcStrategy() {
+        this.setType(GarbageLayoutType.LOW_FREQUENCY);
+    }
 
     @Override
-    public Set<Long> collectGarbageLayouts(NDataflow dataflow) {
+    public Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow) {
         ProjectInstance projectInstance = NProjectManager.getInstance(dataflow.getConfig())
                 .getProject(dataflow.getProject());
         Map<Long, FrequencyMap> hitFrequencyMap = dataflow.getLayoutHitCount();
         int days = projectInstance.getConfig().getFrequencyTimeWindowInDays();
         Set<Long> garbageLayouts = Sets.newHashSet();
-        List<LayoutEntity> waitHandlingLayouts = projectInstance.isExpertMode() //
-                ? dataflow.getIndexPlan().getWhitelistLayouts()
-                : dataflow.getIndexPlan().getAllLayouts();
-        waitHandlingLayouts.forEach(layout -> {
+        inputLayouts.forEach(layout -> {
             if (TimeUtil.minusDays(System.currentTimeMillis(), days) >= layout.getUpdateTime()) {
                 FrequencyMap frequencyMap = hitFrequencyMap.get(layout.getId());
                 if (frequencyMap == null || frequencyMap.isLowFrequency(dataflow.getProject())) {
@@ -57,11 +63,11 @@ public class LowFreqLayoutGcStrategy implements IGarbageCleanerStrategy {
                 }
             }
         });
+        log.info("In dataflow({}), LowFreqLayoutGcStrategy found garbageLayouts: {}", dataflow.getId(), garbageLayouts);
         return garbageLayouts;
     }
 
     @Override
-    public LayoutGarbageCleaner.LayoutGarbageType getType() {
-        return LayoutGarbageCleaner.LayoutGarbageType.LOW_FREQUENCY;
+    protected void skipGcTableIndex(List<LayoutEntity> inputLayouts) {
     }
 }

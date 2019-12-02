@@ -24,11 +24,6 @@
 
 package io.kyligence.kap.metadata.cube.garbage;
 
-import java.util.Set;
-
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-
-public interface IGarbageCleanerStrategy {
-    Set<Long> collectGarbageLayouts(NDataflow dataflow);
-    LayoutGarbageCleaner.LayoutGarbageType getType();
+public enum GarbageLayoutType {
+    LOW_FREQUENCY, INCLUDED, SIMILAR
 }

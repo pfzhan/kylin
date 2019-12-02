@@ -32,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -260,6 +261,20 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
             return FunctionDesc.newCountOne();
         }
         return aggrFunc;
+    }
+
+    public List<LayoutEntity> extractReadyLayouts() {
+        NDataSegment latestReadySegment = getLatestReadySegment();
+        if (latestReadySegment == null) {
+            return Lists.newArrayList();
+        }
+
+        List<LayoutEntity> allLayouts = getIndexPlan().getAllLayouts();
+        Set<Long> readyLayoutSet = latestReadySegment.getLayoutsMap().values().stream() //
+                .map(NDataLayout::getLayoutId).collect(Collectors.toSet());
+
+        allLayouts.removeIf(layout -> !readyLayoutSet.contains(layout.getId()));
+        return allLayouts;
     }
 
     @Override
