@@ -24,10 +24,14 @@
 
 package io.kyligence.kap.tool.setup;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.kyligence.kap.tool.common.HadoopConfExtractor;
-import lombok.val;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -36,13 +40,11 @@ import org.apache.kylin.job.common.PatternedLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.kyligence.kap.tool.util.HadoopConfExtractor;
+import lombok.val;
 
 public class KapGetClusterInfo {
     private static final Logger logger = LoggerFactory.getLogger(KapGetClusterInfo.class);

@@ -25,7 +25,6 @@ package io.kyligence.kap.tool;
 
 import java.util.List;
 
-import lombok.val;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -40,7 +39,9 @@ import org.apache.kylin.job.lock.ZookeeperAclBuilder;
 import org.apache.kylin.job.lock.ZookeeperUtil;
 import org.apache.zookeeper.data.Stat;
 
+import io.kyligence.kap.tool.discovery.ServiceInstanceSerializer;
 import io.kyligence.kap.tool.kerberos.KerberosLoginTask;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -93,21 +94,20 @@ public class CuratorOperator implements AutoCloseable {
 
     public String getAddress() throws Exception {
         String identifier = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix();
-        ServiceDiscovery serviceDiscovery = ServiceDiscoveryBuilder.builder(Object.class)
-                .client(zkClient)
+        ServiceDiscovery serviceDiscovery = ServiceDiscoveryBuilder.builder(Object.class).client(zkClient)
                 .basePath("/kylin/" + identifier + "/services")
-                .serializer(new ServiceInstanceSerializer<>(Object.class))
-                .build();
+                .serializer(new ServiceInstanceSerializer<>(Object.class)).build();
         serviceDiscovery.start();
 
-        ServiceProvider provider = serviceDiscovery.serviceProviderBuilder()
-                .serviceName("all")
-                .providerStrategy(new RandomStrategy<>())
-                .build();
+        ServiceProvider provider = serviceDiscovery.serviceProviderBuilder().serviceName("all")
+                .providerStrategy(new RandomStrategy<>()).build();
         provider.start();
 
         ServiceInstance serviceInstance = provider.getInstance();
 
+        if (serviceInstance == null) {
+            return null;
+        }
         return serviceInstance.getAddress() + ":" + serviceInstance.getPort();
     }
 }

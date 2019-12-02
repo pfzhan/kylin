@@ -197,6 +197,8 @@
 
         <!-- JVM Args for Testing -->
         <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
+
+        <guava20.shade>io.kyligence.kap.guava20.shaded</guava20.shade>
     </properties>
 
     <modules>
@@ -278,6 +280,11 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-external-guava20</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -591,7 +598,11 @@
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-core</artifactId>
+                <version>6.1.0</version>
+            </dependency>
             <!-- Hive dependencies -->
             <dependency>
                 <groupId>org.apache.hive</groupId>

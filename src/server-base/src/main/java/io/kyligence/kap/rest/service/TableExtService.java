@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -44,7 +45,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
-import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {
@@ -131,7 +131,7 @@ public class TableExtService extends BasicService {
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, "");
-            List<String> identities = Lists.transform(tables, s -> database + "." + s);
+            List<String> identities = tables.stream().map(s -> database + "." + s).collect(Collectors.toList());
             String[] tableToLoad = new String[identities.size()];
             LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project);
             loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());

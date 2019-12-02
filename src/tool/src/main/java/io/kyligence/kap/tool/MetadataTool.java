@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.tool;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.tool.util.ServiceDiscoveryUtil.runWithCurator;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -70,8 +73,6 @@ import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Slf4j
 public class MetadataTool extends ExecutableApplication {
@@ -132,66 +133,39 @@ public class MetadataTool extends ExecutableApplication {
         options.addOption(OPERATE_COMPRESS);
     }
 
+    public static void backup(KylinConfig kylinConfig) throws IOException {
+        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
+        String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
+        val backupTool = new MetadataTool();
+        backupTool.execute(args);
+    }
+
     public static void main(String[] args) {
         val tool = new MetadataTool();
 
-        int retFlag = 0;
-        OptionsHelper optionsHelper = new OptionsHelper();
-        try (val curatorOperator = new CuratorOperator()) {
-            optionsHelper.parseOptions(tool.getOptions(), args);
-            boolean isBackup = isBackupOption(optionsHelper);
-            if (!curatorOperator.isJobNodeExist()) {
+        int retFlag = runWithCurator((isLocal, address) -> {
+            if (isLocal) {
                 tool.execute(args);
-            } else {
-                if (!isBackup) {
-                    log.warn("Fail to restore, please stop all job nodes first");
-                    retFlag = 1;
-                } else {
-                    val address = curatorOperator.getAddress();
-                    log.info(
-                            "found a job node running, backup will be delegated to it at server: {}, this may be a remote server.",
-                            address);
-                    val ret = remoteBackup(address, optionsHelper);
-                    if ("000".equals(ret.get("code"))) {
-                        log.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
-                    } else {
-                        log.error("backup failed");
-                        retFlag = 1;
-                    }
-                }
+                return 0;
             }
-
-        } catch (Exception e) {
-            log.error("metadata tool error: ", e);
-            retFlag = 1;
-        }
+            boolean isBackup = tool.isBackupOption();
+            if (!isBackup) {
+                log.warn("Fail to restore, please stop all job nodes first");
+                return 1;
+            }
+            log.info(
+                    "found a job node running, backup will be delegated to it at server: {}, this may be a remote server.",
+                    address);
+            val ret = tool.remoteBackup(address);
+            if ("000".equals(ret.get("code"))) {
+                log.info("backup successfully at {}", tool.getOptions().getOption(OPTION_DIR.getOpt()).getValue());
+                return 0;
+            } else {
+                log.error("backup failed");
+                return 1;
+            }
+        });
         System.exit(retFlag);
-    }
-
-    private static Map remoteBackup(String address, OptionsHelper optionsHelper) throws Exception {
-        val restTemplate = new RestTemplate();
-
-        Map<String, String> map = new HashMap<>();
-        map.put("backup_path", optionsHelper.getOptionValue(MetadataTool.OPTION_DIR));
-        if (optionsHelper.hasOption(MetadataTool.OPTION_PROJECT)) {
-            map.put("project", optionsHelper.getOptionValue(MetadataTool.OPTION_PROJECT));
-        }
-        if (optionsHelper.hasOption(MetadataTool.OPERATE_COMPRESS)) {
-            map.put("compress", "true");
-        }
-        ObjectMapper objectMapper = new ObjectMapper();
-        byte[] body = objectMapper.writeValueAsBytes(map);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.put(HttpHeaders.CONTENT_TYPE, Lists.newArrayList(HTTP_VND_APACHE_KYLIN_JSON));
-
-        val response = restTemplate.postForEntity("http://" + address + "/kylin/api/system/backup",
-                new HttpEntity<>(body, headers), Map.class);
-        return response.getBody();
-    }
-
-    private static boolean isBackupOption(OptionsHelper optionsHelper) {
-        return optionsHelper.hasOption(OPERATE_BACKUP);
     }
 
     @Override
@@ -320,7 +294,30 @@ public class MetadataTool extends ExecutableApplication {
         log.info("backup successfully at {}", path);
     }
 
-    public void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,
+    private Map remoteBackup(String address) throws Exception {
+        val restTemplate = new RestTemplate();
+        val options = getOptions();
+
+        Map<String, String> map = new HashMap<>();
+        map.put("backup_path", options.getOption(MetadataTool.OPTION_DIR.getOpt()).getValue());
+        if (options.hasOption(MetadataTool.OPTION_PROJECT.getOpt())) {
+            map.put("project", options.getOption(MetadataTool.OPTION_PROJECT.getOpt()).getValue());
+        }
+        if (options.hasOption(MetadataTool.OPERATE_COMPRESS.getOpt())) {
+            map.put("compress", "true");
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        byte[] body = objectMapper.writeValueAsBytes(map);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.put(HttpHeaders.CONTENT_TYPE, Lists.newArrayList(HTTP_VND_APACHE_KYLIN_JSON));
+
+        val response = restTemplate.postForEntity("http://" + address + "/kylin/api/system/backup",
+                new HttpEntity<>(body, headers), Map.class);
+        return response.getBody();
+    }
+
+    private void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,
             boolean isProjectLevel) {
         srcResourceStore.copy(projectPath, destResourceStore);
         if (isProjectLevel) {
@@ -334,7 +331,7 @@ public class MetadataTool extends ExecutableApplication {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         val restorePath = optionsHelper.getOptionValue(OPTION_DIR);
 
-        val restoreMetadataUrl = getMetadataUrl(restorePath);
+        val restoreMetadataUrl = getMetadataUrl(restorePath, false);
         val restoreConfig = KylinConfig.createKylinConfig(kylinConfig);
         restoreConfig.setMetadataUrl(restoreMetadataUrl);
         log.info("The restore metadataUrl is {} and restore path is {} ", restoreMetadataUrl, restorePath);
@@ -392,13 +389,6 @@ public class MetadataTool extends ExecutableApplication {
 
     }
 
-    public static void backup(KylinConfig kylinConfig) throws IOException {
-        HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
-        val backupTool = new MetadataTool();
-        backupTool.execute(args);
-    }
-
     private int doRestore(MetadataStore restoreMetadataStore, Set<String> destResources, Set<String> srcResources)
             throws IOException {
         val threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
@@ -428,10 +418,6 @@ public class MetadataTool extends ExecutableApplication {
         return 0;
     }
 
-    private String getMetadataUrl(String rootPath) {
-        return getMetadataUrl(rootPath, false);
-    }
-
     String getMetadataUrl(String rootPath, boolean compressed) {
         if (rootPath.startsWith("hdfs://")) {
             val url = String.format(HDFS_METADATA_URL_FORMATTER,
@@ -447,4 +433,9 @@ public class MetadataTool extends ExecutableApplication {
 
         }
     }
+
+    private boolean isBackupOption() {
+        return getOptions().hasOption(OPERATE_BACKUP.getOpt());
+    }
+
 }

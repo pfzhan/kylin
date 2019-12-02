@@ -46,6 +46,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -82,7 +83,6 @@ import lombok.val;
 
 @SuppressWarnings("serial")
 public class IndexPlan extends RootPersistentEntity implements Serializable, IEngineAware, IKeep {
-    public static final String INDEX_PLAN_RESOURCE_ROOT = "/index_plan";
 
     @JsonProperty("description")
     @Getter
@@ -325,7 +325,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public static String concatResourcePath(String name, String project) {
-        return new StringBuilder().append("/").append(project).append(INDEX_PLAN_RESOURCE_ROOT).append("/").append(name)
+        return new StringBuilder().append("/").append(project).append(ResourceStore.INDEX_PLAN_RESOURCE_ROOT).append("/").append(name)
                 .append(MetadataConstants.FILE_SURFIX).toString();
     }
 

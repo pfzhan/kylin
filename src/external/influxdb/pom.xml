@@ -63,7 +63,7 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>20.0</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
         <!-- cover log4j from parent pom-->
         <dependency>
@@ -132,7 +132,7 @@
                                 </relocation>
                                 <relocation>
                                     <pattern>com.google</pattern>
-                                    <shadedPattern>${shadeBase}.com.google.common</shadedPattern>
+                                    <shadedPattern>${guava20.shade}</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>

@@ -97,6 +97,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String PROJECT_ROOT = GLOBAL_PROJECT + "/project";
 
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
+    public static final String INDEX_PLAN_RESOURCE_ROOT = "/index_plan";
     public static final String TABLE_EXD_RESOURCE_ROOT = "/table_exd";
     public static final String TEMP_STATMENT_RESOURCE_ROOT = "/temp_statement";
     public static final String TABLE_RESOURCE_ROOT = "/table";
@@ -247,6 +248,10 @@ public abstract class ResourceStore implements AutoCloseable {
 
     public final RawResource getResource(String resPath) {
         return getResourceImpl(norm(resPath));
+    }
+
+    public final List<RawResource> getAllResources(String folderPath) {
+        return getAllResourcesImpl(folderPath, Long.MIN_VALUE, Long.MAX_VALUE);
     }
 
     /**

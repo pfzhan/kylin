@@ -75,7 +75,7 @@ public class NIndexPlanManager implements IKeepNames {
                     System.identityHashCode(cfg), project);
         this.config = cfg;
         this.project = project;
-        String resourceRootPath = "/" + project + IndexPlan.INDEX_PLAN_RESOURCE_ROOT;
+        String resourceRootPath = "/" + project + ResourceStore.INDEX_PLAN_RESOURCE_ROOT;
         this.crud = new CachedCrudAssist<IndexPlan>(getStore(), resourceRootPath, IndexPlan.class) {
             @Override
             protected IndexPlan initEntityAfterReload(IndexPlan indexPlan, String resourceName) {

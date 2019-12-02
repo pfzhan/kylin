@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.tool.common;
+package io.kyligence.kap.tool.util;
 
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;

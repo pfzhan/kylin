@@ -42,7 +42,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <shadeBase>io.kyligence.kap.shaded.swagger</shadeBase>
         <swagger.version>2.9.2</swagger.version>
     </properties>
 
@@ -74,7 +73,7 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>20.0</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <!--overwrite parent, need to upgrade this when upgrade grpc-->
@@ -97,12 +96,15 @@
                                 <excludes>
                                     <exclude>log4j:*</exclude>
                                     <exclude>org.slf4j:*</exclude>
+                                    <exclude>com.google.guava:*</exclude>
+                                    <exclude>com.fasterxml.jackson.core:*</exclude>
+                                    <exclude>com.fasterxml:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>
                                 <relocation>
                                     <pattern>com.google</pattern>
-                                    <shadedPattern>${shadeBase}.com.google.common</shadedPattern>
+                                    <shadedPattern>${guava20.shade}</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>

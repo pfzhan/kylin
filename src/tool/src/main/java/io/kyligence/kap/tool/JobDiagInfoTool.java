@@ -23,7 +23,12 @@
  */
 package io.kyligence.kap.tool;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.io.File;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
@@ -33,11 +38,9 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import com.google.common.annotations.VisibleForTesting;
+
+import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
 
 public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");

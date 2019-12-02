@@ -66,17 +66,17 @@ function checkIfStopUserSameAsStartUser() {
 }
 
 function quit {
-        echo "$@"
-        if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
-            echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
-        fi
-        if [ $# == 2 ]
-        then
-            exit $2
-        else
-            exit 1
-        fi
-    }
+    echo "$@"
+    if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
+        echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
+    fi
+    if [ $# == 2 ]
+    then
+        exit $2
+    else
+        exit 1
+    fi
+}
 
 
 function prepareFairScheduler() {

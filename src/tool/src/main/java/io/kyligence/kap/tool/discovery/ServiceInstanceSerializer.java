@@ -21,32 +21,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.tool;
+package io.kyligence.kap.tool.discovery;
 
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
 
-import java.io.File;
+import org.apache.curator.x.discovery.ServiceInstance;
+import org.apache.curator.x.discovery.ServiceType;
+import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 
-public class DiagnosticFilesChecker {
-    private static final Logger logger = LoggerFactory.getLogger("diag");
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-    private DiagnosticFilesChecker() {
+
+public class ServiceInstanceSerializer<T> extends JsonInstanceSerializer<T> {
+
+    private ObjectMapper mapper = new ObjectMapper();
+
+    public ServiceInstanceSerializer(Class<T> payloadClass) {
+        super(payloadClass);
     }
 
-    public static void writeMsgToFile(String msg, Long time, File file) {
-        if (Thread.currentThread().isInterrupted()) {
-            logger.info("Current thread is interrupted, skip write {} to file {}", msg, file.getName());
-            return;
-        }
+    @Override
+    public ServiceInstance<T> deserialize(byte[] bytes) throws Exception {
+        String content = new String(bytes);
+        Map map = mapper.readValue(content, Map.class);
+        return castToServiceInstance(map);
+    }
 
-        String cmd = String.format("echo TIME OF EXTRACT %s : %dms>>%s", msg, time, file.getAbsolutePath());
-        logger.info("The command is: {}", cmd);
-        try {
-            new CliCommandExecutor().execute(cmd, null);
-        } catch (Exception e) {
-            logger.error("Failed to execute cmd", e);
-        }
+    private ServiceInstance<T> castToServiceInstance(Map map) {
+        String name = (String) map.getOrDefault("name", "");
+        String id = (String) map.getOrDefault("id", "");
+        String address = (String) map.getOrDefault("address", null);
+        Integer port = (Integer) map.getOrDefault("port", null);
+
+        return new ServiceInstance(name, id, address, port, null, null, 0L, ServiceType.DYNAMIC, null);
     }
 }

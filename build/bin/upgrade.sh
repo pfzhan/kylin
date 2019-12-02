@@ -160,6 +160,18 @@ with open('${upgrade_log}', 'a+') as upgrade_log:
 PY
     info "...................................................[DONE]"
 
+    logging "Upgrade Metadata"
+    ret=`sh -c "${new_kylin_home}/bin/kylin.sh io.kyligence.kap.tool.metadata.UpgradeMetadataCLI -info >> $upgrade_log"; echo $?`
+    if [[ $ret == 2 ]]; then
+        ${new_kylin_home}/bin/metastore.sh backup >> $upgrade_log || fail
+        ${new_kylin_home}/bin/kylin.sh io.kyligence.kap.tool.metadata.UpgradeMetadataCLI || fail
+        info "...................................................[DONE]"
+    elif [[ $ret != 0 ]]; then
+        fail
+    else
+        warn "...................................................[SKIP]"
+    fi
+
     logging "Install"
     if prompt "'${new_kylin_home}' -> '${old_kylin_home}'"; then
         install_dir=$(dirname $old_kylin_home)

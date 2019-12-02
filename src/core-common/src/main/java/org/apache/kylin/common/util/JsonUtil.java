@@ -109,6 +109,10 @@ public class JsonUtil {
         return mapper.readValue(src, valueTypeRef);
     }
 
+    public static <T> T readValue(InputStream src, TypeReference<T> valueTypeRef) throws IOException {
+        return mapper.readValue(src, valueTypeRef);
+    }
+
     public static Map<String, String> readValueAsMap(String content) throws IOException {
         TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {
         };
@@ -133,6 +137,10 @@ public class JsonUtil {
 
     public static byte[] writeValueAsBytes(Object value) throws JsonProcessingException {
         return mapper.writeValueAsBytes(value);
+    }
+
+    public static byte[] writeValueAsIndentBytes(Object value) throws JsonProcessingException {
+        return indentMapper.writeValueAsBytes(value);
     }
 
     public static String writeValueAsIndentString(Object value) throws JsonProcessingException {

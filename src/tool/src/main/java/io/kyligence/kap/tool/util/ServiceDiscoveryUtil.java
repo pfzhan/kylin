@@ -21,31 +21,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.config;
 
-import org.springframework.util.ClassUtils;
+package io.kyligence.kap.tool.util;
 
-import io.kyligence.kap.guava20.shaded.common.base.Function;
-import io.kyligence.kap.guava20.shaded.common.base.Optional;
-import io.kyligence.kap.guava20.shaded.common.base.Predicate;
-import springfox.documentation.RequestHandler;
+import io.kyligence.kap.tool.CuratorOperator;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-public class KylinRequestHandlerSelectors {
-    private KylinRequestHandlerSelectors() {
+@Slf4j
+public class ServiceDiscoveryUtil {
+
+    public static int runWithCurator(RunWithCuratorCallback callback) {
+        int retCode;
+        try (val curatorOperator = new CuratorOperator()) {
+            retCode = callback.execute(!curatorOperator.isJobNodeExist(), curatorOperator.getAddress());
+        } catch (Exception e) {
+            log.warn("Execute failed", e);
+            retCode = 1;
+        }
+        return retCode;
     }
 
-    private static Optional<? extends Class<?>> declaringClass(RequestHandler input) {
-        return Optional.fromNullable(input.declaringClass());
-    }
+    public interface RunWithCuratorCallback {
 
-    public static Predicate<RequestHandler> baseCurrentPackage(final String basePackage) {
-        return input -> (Boolean) KylinRequestHandlerSelectors.declaringClass(input)
-                .transform(KylinRequestHandlerSelectors.handlerPackage(basePackage)).or(false);
-    }
+        int execute(boolean isLocal, String address) throws Exception;
 
-    private static Function<Class<?>, Boolean> handlerPackage(final String basePackage) {
-        return input -> ClassUtils.getPackageName(input).startsWith(basePackage)
-                && 1 == ClassUtils.getPackageName(input).substring(basePackage.length()).split(".").length;
     }
-
 }

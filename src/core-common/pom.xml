@@ -66,6 +66,10 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kylin-external-htrace</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-external-guava20</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.github.joshelser</groupId>
