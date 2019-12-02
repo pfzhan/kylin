@@ -34,6 +34,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.BiMap;
@@ -43,6 +44,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
@@ -154,8 +156,10 @@ public class NModelMaster {
                     modelContext.getSmartContext()) //
                             .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
+            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(project);
             for (ModelTree modelTree : modelTrees) {
-                if (NModelSelectProposer.matchModelTree(dataModel, modelTree)) {
+                if (NModelSelectProposer.matchModelTree(dataModel, modelTree, projectInstance.isSmartMode())) {
                     updatedModelTree = modelTree;
                     break;
                 }

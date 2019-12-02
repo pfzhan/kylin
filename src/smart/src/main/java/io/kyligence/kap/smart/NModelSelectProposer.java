@@ -30,11 +30,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
@@ -45,6 +47,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 
@@ -113,9 +116,12 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel selectExistedModel(ModelTree modelTree) {
+        ProjectInstance pojectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(this.smartContext.getProject());
         List<NDataModel> originModels = getOriginModels();
         for (NDataModel model : originModels) {
-            if (matchModelTree(model, modelTree) && isContainAllCcColsInModel(model, modelTree)) {
+            if (matchModelTree(model, modelTree, pojectInstance.isSmartMode())
+                    && isContainAllCcColsInModel(model, modelTree)) {
                 return model;
             }
         }
@@ -139,7 +145,7 @@ public class NModelSelectProposer extends NAbstractProposer {
         return true;
     }
 
-    public static boolean matchModelTree(NDataModel model, ModelTree modelTree) {
+    public static boolean matchModelTree(NDataModel model, ModelTree modelTree, boolean couldModifyExistedModel) {
         if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
             List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
             TableRef factTblRef = null;
@@ -160,8 +166,13 @@ public class NModelSelectProposer extends NAbstractProposer {
                 }
             }
             JoinsGraph joinsGraph = new JoinsGraph(factTblRef, modelTreeJoins);
-            return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap())
-                    || joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
+
+            if (couldModifyExistedModel) {
+                return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap())
+                        || joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
+            } else {
+                return joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
+            }
         }
         return false;
     }

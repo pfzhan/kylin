@@ -954,13 +954,6 @@ public class ModelService extends BasicService {
                 if (modelRequest.getIndexPlan() != null) {
                     saveModelAndIndexInMem(modelRequest, modelRequest.getIndexPlan(), modelRequest.getProject());
                 }
-
-                if (modelRequest.getRecommendation() != null) {
-                    OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
-                            .getInstance(KylinConfig.getInstanceFromEnv(), project);
-                    optRecMgr.save(modelRequest.getRecommendation());
-                    optRecMgr.logOptimizeRecommendation(modelRequest.getId(), modelRequest.getRecommendation());
-                }
             }
             return null;
         }, project);

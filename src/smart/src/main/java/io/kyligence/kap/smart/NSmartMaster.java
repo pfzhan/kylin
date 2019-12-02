@@ -204,7 +204,9 @@ public class NSmartMaster {
 
     public Map<NDataModel, OptimizeRecommendation> selectAndGenRecommendation() {
         selectAndOptimize();
-        return genOptRecommendations().entrySet().stream()
+        val recommendationMap = genOptRecommendations();
+        recommendationMap.forEach(this::saveRecommendation);
+        return recommendationMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getFirst()));
     }
 
