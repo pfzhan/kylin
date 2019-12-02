@@ -205,7 +205,6 @@ public class NSmartMaster {
     public Map<NDataModel, OptimizeRecommendation> selectAndGenRecommendation() {
         selectAndOptimize();
         val recommendationMap = genOptRecommendations();
-        recommendationMap.forEach(this::saveRecommendation);
         return recommendationMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getFirst()));
     }
@@ -273,8 +272,7 @@ public class NSmartMaster {
                 @Override
                 public Object process() {
                     selectAndOptimize();
-                    Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = genOptRecommendations();
-                    recommendationMap.forEach((model, pair) -> saveRecommendation(model, pair));
+                    genOptRecommendations();
                     if (hook != null) {
                         hook.accept(getContext());
                     }
@@ -405,6 +403,7 @@ public class NSmartMaster {
                         OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
                         optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
                         recommendationMap.putIfAbsent(model, new Pair<>(recommendations, beforeLayoutItemId));
+                        saveRecommendation(model, recommendationMap.get(model));
                     }
                     log.info("Semi-Auto-Mode project:{} successfully generate optimized recommendations.", project);
                 }
@@ -425,7 +424,8 @@ public class NSmartMaster {
                 String sql = entry.getKey();
                 FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
                         .getInstance(getContext().getKylinConfig(), project);
-                return favoriteQueryManager.get(sql).getChannel().equals(CHANNEL_FROM_IMPORTED);
+                return favoriteQueryManager.get(sql) == null
+                        || favoriteQueryManager.get(sql).getChannel().equals(CHANNEL_FROM_IMPORTED);
             });
             optRecMgr.updateOptimizeRecommendation(model.getId(), recommendation -> {
                 recommendation.getLayoutRecommendations().stream().filter(item -> item.getItemId() >= layoutItemId)

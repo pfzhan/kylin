@@ -104,12 +104,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @JsonProperty("override_properties")
     private LinkedHashMap<String, String> overrideProps = Maps.newLinkedHashMap();
 
-    @Getter
-    @JsonProperty("segment_range_start")
-    private long segmentRangeStart = 0L;
-    @Getter
-    @JsonProperty("segment_range_end")
-    private long segmentRangeEnd = Long.MAX_VALUE;
     @JsonProperty("auto_merge_time_ranges")
     private long[] autoMergeTimeRanges;
     @Getter
@@ -599,16 +593,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public void setOverrideProps(LinkedHashMap<String, String> overrideProps) {
         checkIsNotCachedAndShared();
         this.overrideProps = overrideProps;
-    }
-
-    public void setSegmentRangeStart(long segmentRangeStart) {
-        checkIsNotCachedAndShared();
-        this.segmentRangeStart = segmentRangeStart;
-    }
-
-    public void setSegmentRangeEnd(long segmentRangeEnd) {
-        checkIsNotCachedAndShared();
-        this.segmentRangeEnd = segmentRangeEnd;
     }
 
     public long[] getAutoMergeTimeRanges() {

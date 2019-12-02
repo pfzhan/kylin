@@ -692,8 +692,6 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         IndexPlan copy = indexPlanManager.copy(indexPlan);
         copy.setUuid(newModelId);
-        copy.setSegmentRangeStart(0L);
-        copy.setSegmentRangeEnd(0L);
         copy.setLastModified(0L);
         copy.setMvcc(-1);
         indexPlanManager.createIndexPlan(copy);
@@ -1015,8 +1013,6 @@ public class ModelService extends BasicService {
             } else {
                 // build Agg && Table index
                 IndexPlan indexPlan = modelContext.getTargetIndexPlan();
-                if (indexPlan.getSegmentRangeEnd() == Long.MAX_VALUE)
-                    indexPlan.setSegmentRangeEnd(indexPlan.getRetentionRange() - 193);
                 response.setIndices(indexPlan);
             }
             if (modelContext.getOriginModel() == null) {
