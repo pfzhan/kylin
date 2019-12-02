@@ -952,8 +952,7 @@ public class ModelService extends BasicService {
         UnitOfWork.doInTransactionWithRetry(() -> {
             for (ModelRequest modelRequest : modelRequests) {
                 if (modelRequest.getIndexPlan() != null) {
-                    saveModel(project, modelRequest);
-                    updateIndexPlan(project, modelRequest.getIndexPlan());
+                    saveModelAndIndexInMem(modelRequest, modelRequest.getIndexPlan(), modelRequest.getProject());
                 }
 
                 if (modelRequest.getRecommendation() != null) {
@@ -1056,6 +1055,25 @@ public class ModelService extends BasicService {
         preProcessBeforeModelSave(dataModel, project);
         checkFlatTableSql(dataModel);
         return dataModel;
+    }
+
+    private void saveModelAndIndexInMem(NDataModel model, IndexPlan indexPlan, String project) {
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
+            dataModelManager.updateDataModelDesc(model);
+        } else {
+            dataModelManager.createDataModelDesc(model, model.getOwner());
+        }
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val emptyIndex = new IndexPlan();
+        emptyIndex.setUuid(model.getUuid());
+        indexPlanManager.createIndexPlan(emptyIndex);
+        dataflowManager.createDataflow(emptyIndex, model.getOwner());
+
+        updateIndexPlan(project, indexPlan);
+        UnitOfWorkContext context = UnitOfWork.get();
+        context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
     }
 
     private NDataModel saveModel(String project, ModelRequest modelRequest) {
