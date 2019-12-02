@@ -494,7 +494,7 @@ export default class UploadSqlModel extends Vue {
           if (!data) {
             this.getSuggestModels(sqls, data)
           } else {
-            kapConfirm(this.$t('existedAnsweredModels'), {cancelButtonText: this.$t('noConvert'), confirmButtonText: this.$t('convert'), type: 'warning'}, this.$t('kylinLang.common.tip')).then(() => {
+            kapConfirm(this.$t('existedAnsweredModels'), {cancelButtonText: this.$t('noConvert'), confirmButtonText: this.$t('convert'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then(() => {
               this.getSuggestModels(sqls, true)
             }).catch(() => {
               this.getSuggestModels(sqls, false)
