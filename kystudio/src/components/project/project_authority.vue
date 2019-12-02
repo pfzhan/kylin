@@ -41,7 +41,7 @@
               <i class="el-icon-ksd-table_edit ksd-mr-10 ksd-fs-14" @click="editAuthorUser(scope.row)"></i>
             </el-tooltip><span>
             </span><el-tooltip :content="$t('kylinLang.common.delete')" effect="dark" placement="top">
-              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeAccess(scope.row.id, scope.row.role_or_name, scope.row.promission, !scope.row.sid.granted_authority)"></i>
+              <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeAccess(scope.row.id, scope.row.role_or_name, scope.row.promission, !scope.row.sid.grantedAuthority)"></i>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -411,7 +411,7 @@ export default class ProjectAuthority extends Vue {
   editAuthorUser (row) {
     this.isEditAuthor = true
     this.authorizationVisible = true
-    const sids = row.sid.granted_authority ? [row.sid.granted_authority] : [row.sid.principal]
+    const sids = row.sid.grantedAuthority ? [row.sid.grantedAuthority] : [row.sid.principal]
     this.accessMetas = [{permission: row.permission.mask, principal: row.type === 'User', sids: sids, access_entry_id: row.id}]
   }
   submitAuthor () {
@@ -467,7 +467,7 @@ export default class ProjectAuthority extends Vue {
         this.userAccessList = data.value
         this.totalSize = data.total_size
         this.settleAccessList = this.userAccessList && this.userAccessList.map((access) => {
-          access.role_or_name = access.sid.granted_authority || access.sid.principal
+          access.role_or_name = access.sid.grantedAuthority || access.sid.principal
           access.type = access.sid.principal ? 'User' : 'Group'
           access.promission = this.showMask[access.permission.mask]
           access.accessDetails = []
