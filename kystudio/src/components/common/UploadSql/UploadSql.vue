@@ -99,7 +99,7 @@
     </el-row>
     <div v-if="uploadFlag==='step3'">
       <div class="ky-list-title ksd-mb-10" v-if="isShowSuggestModels">
-        {{$t('kylinLang.model.modelList')}} ({{selectModels.length}}/{{suggestModels.length}})
+        {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
       </div>
       <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
         {{$t('recommendations')}} ({{selectOriginModels.length}}/{{originModels.length}})

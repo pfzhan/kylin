@@ -36,7 +36,7 @@
         <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="computed_columns" width="150" align="right">
           <template slot-scope="scope">{{scope.row.computed_columns.length}}</template>
         </el-table-column>
-        <el-table-column :label="$t('index')" prop="index_plan.indexes" width="150" align="right">
+        <el-table-column :label="$t('index')" prop="index_plan.indexes" width="70" align="right">
           <template slot-scope="scope">{{scope.row.index_plan.indexes.length}}</template>
         </el-table-column>
         <el-table-column label="SQL" prop="sqls" width="60" align="right">
@@ -58,7 +58,7 @@
         <el-table-column :label="$t('kylinLang.common.computedColumn')" prop="recommendation.cc_recommendations" width="150" align="right">
           <template slot-scope="scope">{{scope.row.recommendation.cc_recommendations.length}}</template>
         </el-table-column>
-        <el-table-column :label="$t('index')" prop="recommendation.index_recommendations" width="150" align="right">
+        <el-table-column :label="$t('index')" prop="recommendation.index_recommendations" width="70" align="right">
           <template slot-scope="scope">{{scope.row.recommendation.index_recommendations.length}}</template>
         </el-table-column>
         <el-table-column label="SQL" prop="sqls" width="60" align="right">
