@@ -88,7 +88,7 @@ export function jsPlumbTool () {
       var transformOrigin = [0.5, 0.5]
       var el = plumbInstance.getContainer()
       var p = [ 'webkit', 'moz', 'ms', 'o' ]
-      var s = 'scale(' + zoom + ')'
+      var s = 'scale(' + zoom + ') translateZ(0)'
       var oString = (transformOrigin[0] * 100) + '% ' + (transformOrigin[1] * 100) + '%'
       for (var i = 0; i < p.length; i++) {
         el.style[p[i] + 'Transform'] = s
