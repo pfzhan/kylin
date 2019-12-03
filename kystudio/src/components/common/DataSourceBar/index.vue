@@ -393,7 +393,19 @@ export default class DataSourceBar extends Vue {
       this.hideLoading(database)
       this.cacheDatasourceInStore(index, resultTables, isReset)
     })
+    this.recoverySelectedTable()
   }
+
+  // 恢复之前选中的表名
+  recoverySelectedTable () {
+    for (let item of this.tableArray) {
+      if (item.label === this.dataSourceSelectedLabel) {
+        item.isSelected = !item.isSelected
+        return
+      }
+    }
+  }
+
   cacheDatasourceInStore (index, tables, isSourceReset) {
     const isReset = isSourceReset && index === 0
     const project = this.projectName
@@ -461,7 +473,7 @@ export default class DataSourceBar extends Vue {
     if (type) {
       for (let item of this.tableArray) {
         if (item.isSelected) {
-          this.dataSourceSelectedLabel = item.label
+          // this.dataSourceSelectedLabel = item.label
           item.isSelected = !item.isSelected
           return
         }
@@ -477,6 +489,7 @@ export default class DataSourceBar extends Vue {
   }
   setSelectedTable (data) {
     for (const table of this.tableArray) {
+      data.id === table.id && (this.dataSourceSelectedLabel = table.label)
       table.isSelected = data.id === table.id
     }
   }
