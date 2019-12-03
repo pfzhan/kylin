@@ -151,8 +151,8 @@ import Guide from 'util/guide'
   },
   locales: {
     'en': {
-      expertMode: 'Expert mode',
-      smartMode: 'Smart mode',
+      expertMode: 'AI Augmented Mode',
+      smartMode: 'Smart Mode',
       start: 'Start',
       next: 'Next',
       end: 'End',
@@ -169,7 +169,7 @@ import Guide from 'util/guide'
       timeoutInGuide: 'The step has been time out, and the guide couldn\'t continue. You may retry the step or exit the guide.'
     },
     'zh-cn': {
-      expertMode: '专家模式',
+      expertMode: 'AI 增强模式',
       smartMode: '智能模式',
       start: '开始',
       next: '下一步',

@@ -6,7 +6,7 @@
     :close-on-press-escape="false"
     @close="isShow && closeHandler(false)">
     
-    <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
+    <el-form :model="form" @submit.native.prevent label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
       <div class="el-form-item is-required" v-if="isFieldShow('type')">
         <label for="name" class="el-form-item__label">{{$t('projectType')}}</label>
         <el-row :gutter="20">

@@ -9,16 +9,24 @@
       </el-button-group><el-button
         type="primary" plain size="small" class="ksd-ml-10" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex()">{{$t('tableIndex')}}
       </el-button><el-button
-        type="primary" plain size="small" class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
+        type="primary" plain size="small" class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex&&cuboidCount">
         {{$t('buildIndex')}}
-      </el-button>
+      </el-button><common-tip :content="$t('noIndexTips')" v-if="isShowBulidIndex&&!cuboidCount"><el-button
+        type="primary" plain size="small" disabled class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
+        {{$t('buildIndex')}}
+      </el-button></common-tip>
     </div>
     <div class="aggregate-view">
       <el-row :gutter="15">
         <el-col :span="12">
           <el-card class="agg-detail-card agg_index">
             <div slot="header" class="clearfix">
-              <div class="left font-medium">{{$t('aggregateIndexTree')}}</div>
+              <div class="left font-medium">
+                <span>{{$t('aggregateIndexTree')}}</span>
+                <el-tooltip :content="$t('treemapTips')" placement="left">
+                  <i class="el-icon-ksd-what"></i>
+                </el-tooltip>
+              </div>
               <div class="right">
                 <span>{{$t('aggregateAmount')}}</span>{{cuboidCount}}
                 <!-- <el-input v-model.trim="cuboidCount" :readonly="true" size="small"></el-input> -->

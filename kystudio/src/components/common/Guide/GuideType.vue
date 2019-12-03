@@ -53,18 +53,18 @@
     locales: {
       'en': {
         start: 'Start',
-        exportMode: 'Expert mode',
-        smartMode: 'Smart mode',
+        exportMode: 'AI Augmented Mode',
+        smartMode: 'Smart Mode',
         switchModeTitle: 'Which mode do you want to explore?',
-        exportModeDesc: 'The expert mode is recommended for analysis based on multi-dimensional models.',
+        exportModeDesc: 'The AI augmented mode is recommended for analysis based on multi-dimensional models.',
         smartModeDesc: 'The smart mode is recommended for exploring data via Business Intelligence tools, and SQL statements will be accelerated transparently by the system.'
       },
       'zh-cn': {
         start: '开始',
-        exportMode: '专家模式',
+        exportMode: 'AI 增强模式',
         smartMode: '智能模式',
         switchModeTitle: '请选择你想探索的模式',
-        exportModeDesc: '专家模式适用于对多维建模进行分析。',
+        exportModeDesc: 'AI 增强模式适用于对多维建模进行分析。',
         smartModeDesc: '智能模式适用于直接通过 BI 探索数据，系统将透明地加速 BI 发出的 SQL 语句。'
       }
     }
@@ -111,7 +111,7 @@
 @import '../../../assets/styles/variables.less';
  .guide-box {
    .guide-type-content {
-     width:220px;
+     width:228px;
      margin: 0 auto;
    }
     .guide-pic{

@@ -257,7 +257,7 @@ export default {
   locales: {
     'en': {
       autoType: 'Smart Mode',
-      manualType: 'Expert Mode',
+      manualType: 'AI Augmented Mode',
       project: 'Project',
       name: 'Name',
       type: 'Type',
@@ -287,7 +287,7 @@ export default {
     },
     'zh-cn': {
       autoType: '智能模式',
-      manualType: '专家模式',
+      manualType: 'AI 增强模式',
       project: '项目',
       name: '名称',
       type: '类型',

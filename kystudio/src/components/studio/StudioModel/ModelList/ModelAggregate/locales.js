@@ -32,7 +32,9 @@ export default {
     column: 'Column',
     sort: 'Order',
     aggDetailTitle: 'Aggregate Detail',
-    tabelDetailTitle: 'Table Index Detail'
+    tabelDetailTitle: 'Table Index Detail',
+    noIndexTips: 'You should add indexes first before building.',
+    treemapTips: 'You can intuitively see the data size and usage of different indexes through the index treemap. The larger area represents the larger data size, and the darker color represents the higher usage of indexes. Different types of indexes are displayed in multiple blocks.'
   },
   'zh-cn': {
     aggregateGroup: '聚合索引',
@@ -67,6 +69,8 @@ export default {
     column: '列',
     sort: '顺序',
     aggDetailTitle: '聚合索引详情',
-    tabelDetailTitle: '明细索引详情'
+    tabelDetailTitle: '明细索引详情',
+    noIndexTips: '您需要先添加索引，才可以进行构建。',
+    treemapTips: '您可以通过索引展示图直观地看到不同索引的数据大小和使用次数，面积越大代表数据大小越大，颜色越深代表使用次数越高。不同类型的索引将分为多块显示。'
   }
 }

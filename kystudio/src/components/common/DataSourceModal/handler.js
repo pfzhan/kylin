@@ -83,7 +83,7 @@ function _getKafkaSubmitData (form) {
   return {}
 }
 
-// 专家模式创建csv数据源
+// AI 增强模式创建csv数据源
 function _getExpertModelCreateCsv (form) {
   let csvSetting = form.csvSettings
   return {

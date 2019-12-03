@@ -64,6 +64,30 @@ export default class TreemapChart extends Vue {
     if (!data) {
       return
     }
+    const colorSaturationMax = 0.9
+    const colorSaturationMin = 0.6
+    data.forEach((d) => {
+      const usageArr = d.children.map((i) => {
+        return i.usage
+      })
+      let ratio = 0
+      let usageMax = 0
+      if (usageArr.length) {
+        usageMax = Math.max(...usageArr)
+        if (usageMax) {
+          ratio = (colorSaturationMax - colorSaturationMin) / usageMax
+        }
+      }
+      d.children = d.children.map((c) => {
+        const r = usageMax ? (colorSaturationMax - (c.usage * ratio)).toFixed(4) : colorSaturationMax
+        return {
+          name: c.name,
+          value: c.value,
+          usage: c.usage,
+          itemStyle: {color: '#81c6f4', colorSaturation: r}
+        }
+      })
+    })
     var result = {
       type: 'treemap',
       data: [{
@@ -134,8 +158,6 @@ export default class TreemapChart extends Vue {
           }
         },
         {
-          color: ['#81c6f4', '#81c6f4', '#81c6f4', '#81c6f4'],
-          colorMappingBy: 'id',
           itemStyle: {
             normal: {
               gapWidth: 5
@@ -143,7 +165,6 @@ export default class TreemapChart extends Vue {
           }
         },
         {
-          colorSaturation: [0.9, 0.7],
           itemStyle: {
             normal: {
               gapWidth: 1

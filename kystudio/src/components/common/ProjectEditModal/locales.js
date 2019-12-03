@@ -15,8 +15,8 @@ export default {
     propertyCannotChange: '[{keyName}] cannot be edited',
     propertyEmptyKey: 'Project Config name is required.',
     propertyEmptyValue: 'Project Config value is required.',
-    projectType2: 'Expert Mode',
-    projectType2Desc: 'Expert Mode: Drag and drop source tables to your own model from blank.',
+    projectType2: 'AI Augmented Mode',
+    projectType2Desc: 'AI Augmented Mode: Drag and drop source tables to your own model from blank.',
     projectType4: 'Smart Mode',
     projectType4Desc: 'Smart Mode: Building index for source table, the system will accelerate your desired SQL statements.'
   },
@@ -36,8 +36,8 @@ export default {
     propertyCannotChange: '[{keyName}] 不可被修改',
     propertyEmptyKey: '项目配置名不能为空',
     propertyEmptyValue: '项目配置值不能为空',
-    projectType2: '专家模式',
-    projectType2Desc: '专家模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。',
+    projectType2: 'AI 增强模式',
+    projectType2Desc: 'AI 增强模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。',
     projectType4: '智能模式',
     projectType4Desc: '智能模式：通过对表创建索引，系统将加速常用的分析查询语句。'
   }

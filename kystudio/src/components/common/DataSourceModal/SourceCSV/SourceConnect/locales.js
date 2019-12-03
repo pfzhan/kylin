@@ -10,7 +10,7 @@ export default {
     testConnect: 'Test Connection',
     createTableKind: 'Create Table Method',
     guideMode: 'Wizard Mode',
-    expertMode: 'Expert Mode (SQL)'
+    expertMode: 'AI Augmented Mode (SQL)'
   },
   'zh-cn': {
     url: 'CSV 路径或 URL',
@@ -23,6 +23,6 @@ export default {
     testConnect: '测试连接',
     createTableKind: '建表方式',
     guideMode: '向导模式',
-    expertMode: '专家模式（SQL）'
+    expertMode: 'AI 增强模式（SQL）'
   }
 }

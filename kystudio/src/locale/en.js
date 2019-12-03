@@ -440,8 +440,8 @@ exports.default = {
     status: 'Status'
   },
   guide: {
-    addProjectTip: 'When you add a new project, choose a proper project type is essential. To analysis based on multi-dimensional models, you may choose the expert mode. You may choose the smart mode to explore data via Business Intelligence tools, and the system will accelerate SQL statements received.',
-    addProjectTipAuto: 'When you add a new project, choose a proper project type is essential. To explore data via Business Intelligence tools, you may choose the smart mode, and the system will accelerate SQL statements transparently. If you want to analysis based on multi-dimensional models, please choose the expert mode.',
+    addProjectTip: 'When you add a new project, choose a proper project type is essential. To analysis based on multi-dimensional models, you may choose the AI augmented mode. You may choose the smart mode to explore data via Business Intelligence tools, and the system will accelerate SQL statements received.',
+    addProjectTipAuto: 'When you add a new project, choose a proper project type is essential. To explore data via Business Intelligence tools, you may choose the smart mode, and the system will accelerate SQL statements transparently. If you want to analysis based on multi-dimensional models, please choose the AI augmented mode.',
     // loadTableTipAuto: 'The Kyligence Enterprise platform may need to connect with your source data. Choose your desired dataset and sync its schema. Here we use the SSB dataset to do further tasks.',
     queryTipAuto: 'Once source tables synced, you can explore data among the SSB dataset.',
     speedTipAuto: 'SQL statements in the Waiting List are filtered by the system. You can adjust these rules to manage accelerating workload.',
