@@ -32,6 +32,9 @@ public class HttpConstant {
     /** KAP 2x and 3x api client accept */
     public static final String HTTP_VND_APACHE_KYLIN_V2_JSON = "application/vnd.apache.kylin-v2+json";
 
+    /** Some dirty compatibility client accept, delete it after KI use v4 api */
+    public static final String HTTP_VND_APACHE_KYLIN_V3_JSON = "application/vnd.apache.kylin-v3+json";
+
     /** KAP 4x api client accept */
     public static final String HTTP_VND_APACHE_KYLIN_V4_JSON = "application/vnd.apache.kylin-v4+json";
 
