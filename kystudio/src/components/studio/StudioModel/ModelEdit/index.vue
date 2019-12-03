@@ -148,22 +148,24 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content" v-if="allDimension.length" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll.observe>
-              <ul class="dimension-list">
-                <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
-                  <span class="ksd-nobr-text">
-                    <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
-                    <span v-else :title="d.name">{{d.name}}</span>
-                    <span class="icon-group">
-                      <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
-                      <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
-                      <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+            <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "dimension")}'>
+              <div class="content-scroll-layout" v-if="allDimension.length" v-scroll.observe>
+                <ul class="dimension-list">
+                  <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
+                    <span class="ksd-nobr-text">
+                      <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
+                      <span v-else :title="d.name">{{d.name}}</span>
+                      <span class="icon-group">
+                        <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
+                        <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
+                        <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+                      </span>
                     </span>
-                  </span>
-                </li>
-              </ul>
+                  </li>
+                </ul>
+              </div>
+              <kap-nodata v-else></kap-nodata>
             </div>
-            <kap-nodata v-if="!allDimension.length"></kap-nodata>
             <!-- 拖动操纵 -->
             <DragBar :dragData="panelAppear.dimension"/>
             <!-- 拖动操纵 -->
@@ -223,22 +225,24 @@
                 </span>
               </div>
             </div>
-            <div class="panel-main-content" v-if="allMeasure.length"  @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll.obverse>
-              <ul class="measure-list" >
-                <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
-                  <span class="ksd-nobr-text">
-                    <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
-                    <span v-else>{{m.name}}</span>
-                    <span class="icon-group">
-                      <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
-                      <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
-                      <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+            <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' @drop='(e) => {dropColumnToPanel(e, "measure")}'>
+              <div class="content-scroll-layout" v-if="allMeasure.length" v-scroll.observe>
+                <ul class="measure-list">
+                  <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
+                    <span class="ksd-nobr-text">
+                      <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
+                      <span v-else>{{m.name}}</span>
+                      <span class="icon-group">
+                        <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
+                        <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
+                        <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                      </span>
                     </span>
-                  </span>
-                </li>
-              </ul>
+                  </li>
+                </ul>
+              </div>
+              <kap-nodata v-else></kap-nodata>
             </div>
-            <kap-nodata v-if="!allMeasure.length"></kap-nodata>
             <!-- 拖动操纵 -->
             <DragBar :dragData="panelAppear.measure"/>
             <!-- 拖动操纵 -->
@@ -1824,6 +1828,9 @@ export default class ModelEdit extends Vue {
         left:0;
         .ksd-nobr-text {
           width: calc(~'100% - 80px');
+        }
+        .content-scroll-layout {
+          height: 100%;
         }
         ul {
           list-style: circle;
