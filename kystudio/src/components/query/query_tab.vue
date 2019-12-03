@@ -9,7 +9,7 @@
       <div class="clearfix operatorBox">
         <p class="tips_box">
           <el-button size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.query.saveQuery')}}</el-button><el-button
-          size="small" plain="plain" @click.native="resetQuery" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
+          size="small" @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
         </p>
         <p class="operator" v-if="isWorkspace">
           <el-form :inline="true" class="demo-form-inline">
@@ -20,7 +20,7 @@
             </el-form-item><el-form-item>
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
             </el-form-item><el-form-item>
-              <el-button type="primary" v-guide.workSpaceSubmit  plain size="small" class="ksd-btn-minwidth" :disabled="!sourceSchema" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" v-guide.workSpaceSubmit size="small" class="ksd-btn-minwidth" :disabled="!sourceSchema" :loading="isLoading" @click="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
             </el-form-item>
           </el-form>
         </p>
@@ -138,7 +138,10 @@ export default class QueryTab extends Vue {
   openSaveQueryDialog () {
     this.saveQueryFormVisible = true
   }
-  closeModal () {
+  closeModal (needRefreshData) {
+    if (needRefreshData) {
+      this.$emit('refreshSaveQueryCount')
+    }
     this.saveQueryFormVisible = false
   }
   handleInputChange (value) {

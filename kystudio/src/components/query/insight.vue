@@ -17,8 +17,8 @@
         <div class="ksd_right_box">
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
-              <el-button size="small" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
-              size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
+              <el-button size="small" :disabled="editableTabs.length<2" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
+              size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}({{savedSize}})</el-button>
             </div>
             <tab class="insight_tab" type="card" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
               <template slot-scope="props">
@@ -26,6 +26,7 @@
                   v-on:addTab="addTab"
                   v-on:changeView="changeTab"
                   v-on:resetQuery="resetQuery"
+                  v-on:refreshSaveQueryCount="loadSavedQuerySize"
                   :completeData="completeData"
                   :tipsName="tipsName"
                   :tabsItem="props.item"></queryTab>
@@ -156,6 +157,23 @@ export default class NewQuery extends Vue {
   }
   toggleDetail (index) {
     this.savedList[index].isShow = !this.savedList[index].isShow
+  }
+  loadSavedQuerySize () {
+    this.getSavedQueries({
+      project: this.currentSelectedProject || null,
+      limit: 10,
+      offset: 0
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        if (data) {
+          this.savedSize = data.total_size
+        } else {
+          this.savedSize = 0
+        }
+      })
+    }, (res) => {
+      this.savedSize = 0
+    })
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
@@ -324,6 +342,7 @@ export default class NewQuery extends Vue {
       index: 0,
       cancelQuery: false
     }]
+    this.loadSavedQuerySize()
   }
 }
 </script>

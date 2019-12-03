@@ -57,7 +57,7 @@ export default class saveQueryDialog extends Vue {
         this.saveQueryToServer(this.saveQueryMeta).then((response) => {
           this.isSubmit = false
           this.$message({type: 'success', message: this.$t('kylinLang.common.saveSuccess')})
-          this.closeSaveQueryDialog()
+          this.closeSaveQueryDialog(true)
         }, (res) => {
           this.isSubmit = false
           handleError(res)
@@ -66,11 +66,11 @@ export default class saveQueryDialog extends Vue {
       }
     })
   }
-  closeSaveQueryDialog () {
+  closeSaveQueryDialog (needRefreshData) {
     this.saveQueryMeta.name = ''
     this.saveQueryMeta.description = ''
     this.saveQueryFormVisible = false
-    this.$emit('closeModal')
+    this.$emit('closeModal', needRefreshData)
   }
   checkName (rule, value, callback) {
     if (!value) {
