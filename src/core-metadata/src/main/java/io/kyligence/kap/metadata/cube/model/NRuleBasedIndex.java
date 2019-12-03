@@ -285,8 +285,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         BitSet bitSet = new BitSet(1024);
         val measures = getMeasuresBitSet().mutable();
         ArrayList<Integer> partitionColumns = new ArrayList<>(indexPlan.getExtendPartitionColumns());
-        if (getModel().getStorageType() == 2 && getModel().getPartitionDesc() != null &&
-                getModel().getPartitionDesc().getPartitionDateColumnRef() != null) {
+        if (needAddModelPartitionColumn()) {
             Integer colId = getModel().getColId(getModel().getPartitionDesc().getPartitionDateColumnRef());
             partitionColumns.add(colId);
         }
@@ -355,6 +354,11 @@ public class NRuleBasedIndex implements Serializable, IKeep {
 
         // remove layout in blacklist
         result.removeIf(layout -> layoutBlackList.contains(layout.getId()));
+    }
+
+    private boolean needAddModelPartitionColumn() {
+        return getModel().getStorageType() == 2 && getModel().getPartitionDesc() != null &&
+                getModel().getPartitionDesc().getPartitionDateColumnRef() != null;
     }
 
     private List<Integer> tailor(List<Integer> complete, BigInteger cuboidId) {
