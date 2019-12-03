@@ -18,9 +18,9 @@
           <span class="label">{{$t('kylinLang.query.duration')}}: </span>
           <span class="text">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
         </p>
-        <p class="resultText" :class="{'guide-queryAnswerBy': isWorkspace}">
+        <p class="resultText query-obj" :class="{'guide-queryAnswerBy': isWorkspace}">
           <span class="label">{{$t('kylinLang.query. answered_by')}}: </span>
-          <span class="text">{{answeredBy}}</span>
+          <span class="text" :title="answeredBy">{{answeredBy}}</span>
         </p>
         <el-button plain size="mini" @click="toggleDetail" class="show-more-btn">
           {{$t('kylinLang.common.seeDetail')}}
@@ -295,6 +295,16 @@ export default class queryResult extends Vue {
         }
         a {
           color: @base-color;
+        }
+        &.query-obj {
+          .text {
+            width: calc(~'100% - 85px');
+            display: inline-block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: absolute;
+            margin-left: 5px;
+          }
         }
       }
     }
