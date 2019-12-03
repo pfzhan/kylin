@@ -120,7 +120,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     String resourcePath(String resourceName) {
-        if (StringUtils.isEmpty(resourceName) || StringUtils.containsWhitespace(resourceName)) {
+        if (StringUtils.isEmpty(resourceName)) {
             logger.error("the resourceName \"{}\" cannot contain white character", resourceName);
             throw new IllegalArgumentException(
                     "the resourceName \"" + resourceName + "\" cannot contain white character");

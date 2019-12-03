@@ -56,7 +56,6 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
 
@@ -89,7 +88,7 @@ public class KylinUserServiceTest extends NLocalFileMetadataTestCase {
 
     @Test(expected = UsernameNotFoundException.class)
     public void testLoadUserWithWhiteSpace() {
-        String username = "ADMIN ";
+        String username = "ADMI N";
         kylinUserService.loadUserByUsername(username);
     }
 }
