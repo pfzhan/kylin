@@ -171,7 +171,8 @@ public class NModelSelectProposer extends NAbstractProposer {
                 return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap())
                         || joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
             } else {
-                return joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
+                return joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap(),
+                        KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
             }
         }
         return false;
