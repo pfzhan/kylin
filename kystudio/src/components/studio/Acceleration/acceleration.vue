@@ -215,7 +215,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapMutations, mapGetters } from 'vuex'
+import { mapActions, mapMutations, mapGetters, mapState } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
@@ -245,8 +245,12 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'datasourceActions'
-    ])
+      'datasourceActions',
+      'isAutoProject'
+    ]),
+    ...mapState({
+      isSemiAutomatic: state => state.project.isSemiAutomatic
+    })
   },
   components: {
     'acceleration_table': accelerationTable,
@@ -427,10 +431,12 @@ export default class FavoriteQuery extends Vue {
     })
   }
   flyEvent (event) {
-    var targetArea = $('#monitor')
-    var targetDom = targetArea.find('.menu-icon')
-    var offset = targetDom.offset()
-    var flyer = $('<span class="fly-box"></span>')
+    const flyElements = {
+      smartPattern: {targetArea: $('#monitor'), targetDom: $('#monitor').find('.menu-icon'), offset: $('#monitor').find('.menu-icon').offset(), rotateIcon: true, flyer: true},
+      expertPattern: {targetArea: $('#studioModel'), targetDom: $('#studioModel'), offset: $('#studioModel').offset(), rotateIcon: false, flyer: true}
+    }
+    const currentPattern = !this.isAutoProject && this.isSemiAutomatic ? flyElements.expertPattern : flyElements.smartPattern
+    const flyer = $('<span class="fly-box"></span>')
     let leftOffset = 64
     if (this.$lang === 'en') {
       leftOffset = 74
@@ -444,22 +450,30 @@ export default class FavoriteQuery extends Vue {
         top: event.pageY
       },
       end: {
-        left: offset.left + leftOffset,
-        top: offset.top,
+        left: currentPattern.offset.left + leftOffset,
+        top: currentPattern.offset.top,
         width: 4,
         height: 4
       },
       onEnd: function () {
-        targetDom.addClass('rotateY')
-        setTimeout(() => {
-          targetDom.fadeTo('slow', 0.5, function () {
-            targetDom.removeClass('rotateY')
-            targetDom.fadeTo('fast', 1)
-          })
-          flyer.fadeOut(1500, () => {
-            flyer.remove()
-          })
-        }, 3000)
+        if (currentPattern.rotateIcon && currentPattern.flyer) {
+          currentPattern.targetDom.addClass('rotateY')
+          setTimeout(() => {
+            currentPattern.targetDom.fadeTo('slow', 0.5, function () {
+              currentPattern.targetDom.removeClass('rotateY')
+              currentPattern.targetDom.fadeTo('fast', 1)
+            })
+            flyer.fadeOut(1500, () => {
+              flyer.remove()
+            })
+          }, 3000)
+        } else {
+          setTimeout(() => {
+            flyer.fadeOut(1500, () => {
+              flyer.remove()
+            })
+          }, 3000)
+        }
       }
     })
   }

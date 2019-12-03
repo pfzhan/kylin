@@ -31,7 +31,7 @@
                       </span>
                     </template>
                     <template v-else>
-                      <span style="position:relative;">
+                      <span style="position:relative;" id="studioModel">
                         {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
                       </span>
                       <div class="number-icon" v-if="reachThresholdVisible">1</div>
@@ -199,7 +199,8 @@ let MessageBox = ElementUI.MessageBox
   },
   computed: {
     ...mapState({
-      cachedHistory: state => state.config.cachedHistory
+      cachedHistory: state => state.config.cachedHistory,
+      isSemiAutomatic: state => state.project.isSemiAutomatic
     }),
     ...mapGetters([
       'currentPathNameGet',
@@ -387,13 +388,12 @@ export default class LayoutLeftRightTop extends Vue {
   }
   flyer = null
   flyEvent (event) {
-    var targetArea = $('#monitor')
-    var targetDom = targetArea.find('.menu-icon')
-    var offset = targetDom.offset()
-    if (this.flyer) {
-      this.flyer.remove()
+    const flyElements = {
+      smartPattern: {targetArea: $('#monitor'), targetDom: $('#monitor').find('.menu-icon'), offset: $('#monitor').find('.menu-icon').offset(), rotateIcon: true, flyer: true},
+      expertPattern: {targetArea: $('#studioModel'), targetDom: $('#studioModel'), offset: $('#studioModel').offset(), rotateIcon: false, flyer: true}
     }
-    this.flyer = $('<span class="fly-box"></span>')
+    const currentPattern = !this.isAutoProject && this.isSemiAutomatic ? flyElements.expertPattern : flyElements.smartPattern
+    const flyer = $('<span class="fly-box"></span>')
     let leftOffset = 64
     if (this.$lang === 'en') {
       leftOffset = 74
@@ -401,28 +401,36 @@ export default class LayoutLeftRightTop extends Vue {
     if (this.briefMenuGet) {
       leftOffset = 20
     }
-    this.flyer.fly({
+    flyer.fly({
       start: {
         left: event.pageX,
         top: event.pageY
       },
       end: {
-        left: offset.left + leftOffset,
-        top: offset.top,
+        left: currentPattern.offset.left + leftOffset,
+        top: currentPattern.offset.top,
         width: 4,
         height: 4
       },
-      onEnd: () => {
-        targetDom.addClass('rotateY')
-        setTimeout(() => {
-          targetDom.fadeTo('slow', 0.5, function () {
-            targetDom.removeClass('rotateY')
-            targetDom.fadeTo('fast', 1)
-          })
-          this.flyer.fadeOut(1500, () => {
-            this.flyer.remove()
-          })
-        }, 3000)
+      onEnd: function () {
+        if (currentPattern.rotateIcon && currentPattern.flyer) {
+          currentPattern.targetDom.addClass('rotateY')
+          setTimeout(() => {
+            currentPattern.targetDom.fadeTo('slow', 0.5, function () {
+              currentPattern.targetDom.removeClass('rotateY')
+              currentPattern.targetDom.fadeTo('fast', 1)
+            })
+            flyer.fadeOut(1500, () => {
+              flyer.remove()
+            })
+          }, 3000)
+        } else {
+          setTimeout(() => {
+            flyer.fadeOut(1500, () => {
+              flyer.remove()
+            })
+          }, 3000)
+        }
       }
     })
   }
