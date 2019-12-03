@@ -18,7 +18,7 @@
       key="measureList"
       ref="measureList"
       border
-      class="ksd-mt-10"
+      class="ksd-mt-10 measure-table"
       :data="tableShowList"
       style="width: 100%"
       @select-all="selectionAllChange"
@@ -283,4 +283,14 @@
 </script>
 <style lang="less">
   @import '../../../../../../assets/styles/variables.less';
+  .measure-table {
+    .el-icon-ksd-filter {
+      &:hover {
+        color: @base-color;
+      }
+      &.isFilter {
+        color: @base-color;
+      }
+    }
+  }
 </style>

@@ -18,7 +18,7 @@
       key="ccList"
       ref="ccList"
       border
-      class="ksd-mt-10"
+      class="ksd-mt-10 cc-table"
       :data="tableShowList"
       style="width: 100%"
       @select-all="selectionAllChange"
@@ -209,4 +209,14 @@
 </script>
 <style lang="less">
   @import '../../../../../../assets/styles/variables.less';
+  .cc-table {
+    .el-icon-ksd-filter {
+      &:hover {
+        color: @base-color;
+      }
+      &.isFilter {
+        color: @base-color;
+      }
+    }
+  }
 </style>

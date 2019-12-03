@@ -18,7 +18,7 @@
       key="dimensionList"
       ref="dimensionList"
       border
-      class="ksd-mt-10"
+      class="ksd-mt-10 dimension-table"
       :data="tableShowList"
       style="width: 100%"
       @select-all="selectionAllChange"
@@ -216,4 +216,14 @@
 </script>
 <style lang="less">
   @import '../../../../../../assets/styles/variables.less';
+  .dimension-table {
+    .el-icon-ksd-filter {
+      &:hover {
+        color: @base-color;
+      }
+      &.isFilter {
+        color: @base-color;
+      }
+    }
+  }
 </style>
