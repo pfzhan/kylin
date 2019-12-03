@@ -48,6 +48,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -209,13 +210,15 @@ public class NAutoBasicTest extends NAutoTestBase {
         accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertFalse(accelerateInfoMap.get(sqls[0]).isNotSucceed());
         Assert.assertFalse(accelerateInfoMap.get(sqls[1]).isNotSucceed());
-        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        NDataModel model = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject())
+                .applyModel(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
         NDataModel.Measure newMeasure = model.getAllMeasures().stream().filter(measure -> measure.getId() == 10100001L)
                 .findFirst().orElse(null);
         Assert.assertNotNull(newMeasure);
         Assert.assertFalse(newMeasure.isTomb());
         NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().stream()
+                .filter(column -> column.getId() >= OptimizeRecommendationManager.ID_OFFSET)
                 .filter(column -> column.getAliasDotColumn().equalsIgnoreCase("test_kylin_fact.cc_auto_1")) //
                 .findFirst().orElse(null);
         Assert.assertNotNull(namedColumn);

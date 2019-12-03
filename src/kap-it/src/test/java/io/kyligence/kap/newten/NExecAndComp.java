@@ -43,6 +43,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -58,7 +59,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.newten.auto.NAutoTestBase;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
@@ -107,10 +107,10 @@ public class NExecAndComp {
         execAndCompareNew(queries, prj, compareLevel, joinType, null);
     }
 
-    public static void execAndCompareDynamic(NAutoTestBase.TestScenario testScenario, String prj, String joinType,
-            Map<String, CompareEntity> recAndQueryResult) {
+    public static void execAndCompareDynamic(List<Pair<String, String>> queries, String prj, CompareLevel compareLevel,
+            String joinType, Map<String, CompareEntity> recAndQueryResult) {
 
-        for (Pair<String, String> path2Sql : testScenario.getQueries()) {
+        for (Pair<String, String> path2Sql : queries) {
             try {
                 logger.info("Exec and compare query ({}) :{}", joinType, path2Sql.getFirst());
                 String sql = KylinTestBase.changeJoinType(path2Sql.getSecond(), joinType);
@@ -125,7 +125,7 @@ public class NExecAndComp {
                 Dataset<Row> sparkResult = queryWithSpark(prj, path2Sql.getSecond(), path2Sql.getFirst());
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
-                if (!compareResults(normRows(sparkRows), normRows(kapRows), testScenario.getCompareLevel())) {
+                if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {
                     logger.error("Failed on compare query ({}) :{}", joinType, sql);
                     throw new IllegalArgumentException("query (" + joinType + ") :" + sql + " result not match");
                 }
@@ -180,6 +180,30 @@ public class NExecAndComp {
         }
     }
 
+    public static void execAndFail(List<Pair<String, String>> queries, String prj, String joinType,
+            Map<String, CompareEntity> recAndQueryResult) {
+        for (Pair<String, String> query : queries) {
+            logger.info("Exec and compare query ({}) :{}", joinType, query.getFirst());
+
+            String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
+
+            try {
+                if (recAndQueryResult == null) {
+                    queryWithKap(prj, joinType, Pair.newPair(sql, sql));
+                } else {
+                    queryWithKap(prj, joinType, Pair.newPair(sql, sql), recAndQueryResult);
+                }
+
+            } catch (RuntimeException e) {
+                if ((e.getCause().getCause() instanceof NoRealizationFoundException)) {
+                    logger.info("The query ({}) : {} fail", joinType, query);
+                    return;
+                }
+            }
+            throw new IllegalStateException("query " + query + " not fail");
+        }
+    }
+
     public static boolean execAndCompareQueryResult(Pair<String, String> queryForKap,
             Pair<String, String> queryForSpark, String joinType, String prj,
             Map<String, CompareEntity> recAndQueryResult) {
@@ -195,7 +219,7 @@ public class NExecAndComp {
         return sparkRows.equals(kapRows);
     }
 
-    private static List<Row> normRows(List<Row> rows) {
+    public static List<Row> normRows(List<Row> rows) {
         List<Row> rowList = Lists.newArrayList();
         rows.forEach(row -> {
             rowList.add(SparderQueryTest.prepareRow(row));

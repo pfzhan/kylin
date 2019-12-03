@@ -264,6 +264,10 @@ public class NSmartMaster {
         }, project);
     }
 
+    public void runOptRecommendation() {
+        runOptRecommendation(null);
+    }
+
     // optimize recommendation
     public void runOptRecommendation(Consumer<NSmartContext> hook) {
         long start = System.currentTimeMillis();

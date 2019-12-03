@@ -402,6 +402,9 @@ public class OptimizeRecommendationManager {
         logger.info("Semi-Auto-Mode project:{} start to optimize Model:{} and IndexPlan: {}", project, model.getId(),
                 indexPlan.getId());
 
+        val optimizedModel = JsonUtil.deepCopyQuietly(model, NDataModel.class);
+        val optimizedIndexPlan = JsonUtil.deepCopyQuietly(indexPlan, IndexPlan.class);
+
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
         val modelInCache = modelManager.getDataModelDesc(model.getId());
         val indexManager = NIndexPlanManager.getInstance(getConfig(), project);
@@ -413,8 +416,8 @@ public class OptimizeRecommendationManager {
                 getOrCreate(model.getId()));
         val appliedModel = context.getModel();
         val appliedIndexPlan = context.getIndexPlan();
-        val translations = optimizeModel(model, appliedModel);
-        optimizeIndexPlan(indexPlan, appliedIndexPlan, translations);
+        val translations = optimizeModel(optimizedModel, appliedModel);
+        optimizeIndexPlan(optimizedIndexPlan, appliedIndexPlan, translations);
         cleanInEffective(model.getId());
         return getOptimizeRecommendation(model.getId());
     }
@@ -918,4 +921,11 @@ public class OptimizeRecommendationManager {
         logger.info("Semi-Auto-Mode project:{} deleted recommendation, id:{}", project, id);
     }
 
+    public List<OptimizeRecommendation> listAllOptimizeRecommendations() {
+        return crud.listAll();
+    }
+
+    public List<String> listAllOptimizeRecommendationIds() {
+        return crud.listAll().stream().map(OptimizeRecommendation::getUuid).collect(Collectors.toList());
+    }
 }
