@@ -8,7 +8,7 @@
     v-model="selected_project"
     @change="changeProject">
     <el-option v-if="isAdmin && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
-    <span slot="prefix" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
+    <span slot="prefix" v-if="projectList.length" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
       class="project_option"
