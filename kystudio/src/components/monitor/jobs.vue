@@ -21,7 +21,7 @@
           <el-button plain size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-table_delete" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group><el-button
-        plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
+        plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
       <el-col :span="6">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject_alias"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
@@ -37,6 +37,7 @@
     <el-table class="ksd-el-table jobs-table"
       tooltip-effect="dark"
       border
+      ref="jobsTable"
       :data="jobsList"
       highlight-current-row
       :default-sort = "{prop: 'create_time', order: 'descending'}"
@@ -297,7 +298,7 @@ import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
 import { pageCount } from '../../config'
 import { transToGmtTime, handleError, handleSuccess } from 'util/business'
-import { cacheLocalStorage } from 'util/index'
+import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/index'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -614,18 +615,16 @@ export default class JobsList extends Vue {
   autoFilter () {
     clearTimeout(this.stCycle)
     this.stCycle = setTimeout(() => {
-      if (!this.isPausePolling) {
-        this.refreshJobs().then((res) => {
-          handleSuccess(res, (data) => {
-            if (this._isDestroyed) {
-              return
-            }
-            this.autoFilter()
-          })
-        }, (res) => {
-          handleError(res)
+      this.refreshJobs().then((res) => {
+        handleSuccess(res, (data) => {
+          if (this._isDestroyed) {
+            return
+          }
+          this.autoFilter()
         })
-      }
+      }, (res) => {
+        handleError(res)
+      })
     }, 5000)
   }
   created () {
@@ -662,21 +661,32 @@ export default class JobsList extends Vue {
       this.loadJobsList(this.filter).then((res) => {
         handleSuccess(res, (data) => {
           if (data.total_size) {
-            this.jobsList = data.value.map((m) => {
-              if (this.selectedJob) {
-                if (m.id === this.selectedJob.id) {
-                  this.getJobDetail({project: this.selectedJob.project, job_id: m.id}).then((res) => {
-                    handleSuccess(res, (data) => {
-                      this.selectedJob = m
-                      this.selectedJob['details'] = data
-                    })
-                  }, (resError) => {
-                    handleError(resError)
+            this.jobsList = data.value
+            if (this.selectedJob) {
+              const selectedIndex = indexOfObjWithSomeKey(this.jobsList, 'id', this.selectedJob.id)
+              if (selectedIndex !== -1) {
+                this.getJobDetail({project: this.selectedJob.project, job_id: this.selectedJob.id}).then((res) => {
+                  handleSuccess(res, (data) => {
+                    this.selectedJob = this.jobsList[selectedIndex]
+                    this.selectedJob['details'] = data
+                  })
+                }, (resError) => {
+                  handleError(resError)
+                })
+              }
+            }
+            if (this.multipleSelection.length) {
+              const cloneSelections = objectClone(this.multipleSelection)
+              this.multipleSelection = []
+              cloneSelections.forEach((m) => {
+                const index = indexOfObjWithSomeKey(this.jobsList, 'id', m.id)
+                if (index !== -1) {
+                  this.$nextTick(() => {
+                    this.$refs.jobsTable.toggleRowSelection(this.jobsList[index])
                   })
                 }
-              }
-              return m
-            })
+              })
+            }
             this.jobTotal = data.total_size
           } else {
             this.jobsList = []
@@ -769,11 +779,7 @@ export default class JobsList extends Vue {
   }
   reCallPolling () {
     this.isPausePolling = false
-    this.getJobsList()
-    if (!this.$store.state.project.isAllProject) {
-      this.getWaittingJobModels()
-    }
-    this.autoFilter()
+    this.loadList()
   }
   handleSelectionChange (val) {
     if (val && val.length) {
@@ -787,7 +793,8 @@ export default class JobsList extends Vue {
         return item.id
       })
     } else {
-      this.reCallPolling()
+      this.isPausePolling = false
+      this.multipleSelection = []
       this.batchBtnsEnabled = {
         resume: false,
         discard: false,
@@ -893,6 +900,7 @@ export default class JobsList extends Vue {
     this.isSelectAllShow = false
     this.isSelectAll = false
     this.multipleSelection = []
+    this.$refs.jobsTable.clearSelection()
     this.idsArrCopy = []
     this.idsArr = []
   }
@@ -917,7 +925,7 @@ export default class JobsList extends Vue {
     this.searchLoading = true
     clearTimeout(this.lockST)
     this.lockST = setTimeout(() => {
-      this.refreshJobs()
+      this.manualRefreshJobs()
       this.showStep = false
     }, 1000)
   }
@@ -925,7 +933,7 @@ export default class JobsList extends Vue {
     if (this.allStatus.indexOf(status) !== -1) {
       this.filter.status = status === 'ALL' ? '' : status
     }
-    this.refreshJobs()
+    this.manualRefreshJobs()
     this.showStep = false
   }
   tableRowClassName ({row, rowIndex}) {
@@ -933,13 +941,26 @@ export default class JobsList extends Vue {
       return 'current-row2'
     }
   }
-  refreshJobs () {
+  loadList () {
     if (this.$store.state.project.isAllProject) {
       delete this.filter.project
       return this.getJobsList()
     } else {
       this.filter.project = this.currentSelectedProject
       return Promise.all([this.getJobsList(), this.getWaittingJobModels()])
+    }
+  }
+  manualRefreshJobs () {
+    this.resetSelection()
+    this.loadList()
+  }
+  refreshJobs () {
+    if (!this.isPausePolling) {
+      return this.loadList()
+    } else {
+      return new Promise((resolve) => {
+        resolve()
+      })
     }
   }
   sortJobList ({ column, prop, order }) {
@@ -949,7 +970,7 @@ export default class JobsList extends Vue {
       this.filter.reverse = true
     }
     this.filter.sort_by = prop
-    this.getJobsList()
+    this.manualRefreshJobs()
   }
   async resume (jobIds, project, isBatch) {
     await this.callGlobalDetailDialog({
@@ -964,19 +985,16 @@ export default class JobsList extends Vue {
       delete resumeData.project
     }
     this.resumeJob(resumeData).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.actionSuccess')
-      })
       if (isBatch) {
         if (isBatch === 'batchAll') {
           this.filter.status = ''
         }
-        this.reCallPolling()
-        this.resetSelection()
-      } else {
-        this.refreshJobs()
       }
+      this.manualRefreshJobs()
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
+      })
     }).catch((res) => {
       handleError(res)
     })
@@ -994,19 +1012,16 @@ export default class JobsList extends Vue {
       delete restartData.project
     }
     this.restartJob(restartData).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.actionSuccess')
-      })
       if (isBatch) {
         if (isBatch === 'batchAll') {
           this.filter.status = ''
         }
-        this.reCallPolling()
-        this.resetSelection()
-      } else {
-        this.refreshJobs()
       }
+      this.manualRefreshJobs()
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
+      })
     }).catch((res) => {
       handleError(res)
     })
@@ -1024,19 +1039,16 @@ export default class JobsList extends Vue {
       delete pauseData.project
     }
     this.pauseJob(pauseData).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.actionSuccess')
-      })
       if (isBatch) {
         if (isBatch === 'batchAll') {
           this.filter.status = ''
         }
-        this.reCallPolling()
-        this.resetSelection()
-      } else {
-        this.refreshJobs()
       }
+      this.manualRefreshJobs()
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
+      })
     }).catch((res) => {
       handleError(res)
     })
@@ -1056,19 +1068,16 @@ export default class JobsList extends Vue {
       removeJobType = 'removeJobForAll'
     }
     this[removeJobType](dropData).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.delSuccess')
-      })
       if (isBatch) {
         if (isBatch === 'batchAll') {
           this.filter.status = ''
         }
-        this.reCallPolling()
-        this.resetSelection()
-      } else {
-        this.refreshJobs()
       }
+      this.manualRefreshJobs()
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.delSuccess')
+      })
     }).catch((res) => {
       handleError(res)
     })
