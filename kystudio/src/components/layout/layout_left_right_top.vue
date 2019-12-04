@@ -24,17 +24,22 @@
                 </template>
                 <!-- <el-menu-item-group> -->
                   <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
-                    <template v-if="child.name !== 'modelList'">
-                      <span style="position:relative;">
+                    <template v-if="child.name === 'job'">
+                      <span style="position:relative;" id="monitorJobs">
                         {{$t('kylinLang.menu.' + child.name)}}
-                        <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'acceleration'"></span>
                       </span>
                     </template>
-                    <template v-else>
+                    <template v-else-if="child.name === 'modelList'">
                       <span style="position:relative;" id="studioModel">
                         {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.modelList')}}
                       </span>
                       <div class="number-icon" v-if="reachThresholdVisible">1</div>
+                    </template>
+                    <template v-else>
+                      <span style="position:relative;">
+                        {{$t('kylinLang.menu.' + child.name)}}
+                        <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'acceleration'"></span>
+                      </span>
                     </template>
                   </el-menu-item>
                 <!-- </el-menu-item-group> -->
@@ -335,7 +340,6 @@ export default class LayoutLeftRightTop extends Vue {
   async handleSwitchAdmin () {
     this.setGlobalMask(this.isAdminView ? 'leaveAdmin' : 'enterAdmin')
     await delayMs(1700)
-
     if (this.isAdminView) {
       const nextLocation = this.cachedHistory ? this.cachedHistory : '/'
       this.isAnimation = true
@@ -388,13 +392,19 @@ export default class LayoutLeftRightTop extends Vue {
   }
   flyer = null
   flyEvent (event) {
-    const flyElements = {
-      smartPattern: {targetArea: $('#monitor'), targetDom: $('#monitor').find('.menu-icon'), offset: $('#monitor').find('.menu-icon').offset(), rotateIcon: true, flyer: true},
-      expertPattern: {targetArea: $('#studioModel'), targetDom: $('#studioModel'), offset: $('#studioModel').offset(), rotateIcon: false, flyer: true}
+    let navOpen = (element) => {
+      let targetDom = ''
+      let rotateIcon = false
+      const dom = {
+        monitor: {parent: $('#monitor').find('.menu-icon'), children: $('#monitorJobs')},
+        studio: {parent: $('#studio').find('.menu-icon'), children: $('#studioModel')}
+      }
+      document.querySelector(element).classList.value.indexOf('is-opened') >= 0 ? (targetDom = dom[element.replace(/^[.|#]/, '')].children) : (targetDom = dom[element.replace(/^[.|#]/, '')].parent, rotateIcon = true)
+      return { targetDom, offset: targetDom.offset(), rotateIcon, flyer: true }
     }
-    const currentPattern = !this.isAutoProject && this.isSemiAutomatic ? flyElements.expertPattern : flyElements.smartPattern
+    const currentPattern = !this.isAutoProject && this.isSemiAutomatic ? navOpen('#studio') : navOpen('#monitor')
     const flyer = $('<span class="fly-box"></span>')
-    let leftOffset = 64
+    let leftOffset = 80
     if (this.$lang === 'en') {
       leftOffset = 74
     }
@@ -1037,4 +1047,3 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
 </style>
-

@@ -431,13 +431,19 @@ export default class FavoriteQuery extends Vue {
     })
   }
   flyEvent (event) {
-    const flyElements = {
-      smartPattern: {targetArea: $('#monitor'), targetDom: $('#monitor').find('.menu-icon'), offset: $('#monitor').find('.menu-icon').offset(), rotateIcon: true, flyer: true},
-      expertPattern: {targetArea: $('#studioModel'), targetDom: $('#studioModel'), offset: $('#studioModel').offset(), rotateIcon: false, flyer: true}
+    let navOpen = (element) => {
+      let targetDom = ''
+      let rotateIcon = false
+      const dom = {
+        monitor: {parent: $('#monitor').find('.menu-icon'), children: $('#monitorJobs')},
+        studio: {parent: $('#studio').find('.menu-icon'), children: $('#studioModel')}
+      }
+      document.querySelector(element).classList.value.indexOf('is-opened') >= 0 ? (targetDom = dom[element.replace(/^[.|#]/g, '')].children) : (targetDom = dom[element.replace(/^[.|#]/g, '')].parent, rotateIcon = true)
+      return { targetDom, offset: targetDom.offset(), rotateIcon, flyer: true }
     }
-    const currentPattern = !this.isAutoProject && this.isSemiAutomatic ? flyElements.expertPattern : flyElements.smartPattern
+    const currentPattern = !this.isAutoProject && this.isSemiAutomatic ? navOpen('#studio') : navOpen('#monitor')
     const flyer = $('<span class="fly-box"></span>')
-    let leftOffset = 64
+    let leftOffset = 80
     if (this.$lang === 'en') {
       leftOffset = 74
     }
