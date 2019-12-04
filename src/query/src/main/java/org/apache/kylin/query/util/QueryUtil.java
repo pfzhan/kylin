@@ -50,6 +50,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
@@ -88,6 +89,7 @@ public class QueryUtil {
         String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
         massagedSql = transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
         logger.info("SQL massage result: {}", massagedSql);
+        QueryContext.current().record("messsage");
         return massagedSql;
     }
 

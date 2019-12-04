@@ -197,7 +197,9 @@ class FilePruner(val session: SparkSession,
     // segment pruning
     var selected = afterPruning("segment", timePartitionFilters, segmentDirs) {
       pruneSegments
-    }.par.map { e =>
+    }
+    QueryContext.current().record("seg_pruning")
+    selected = selected.par.map { e =>
       val path = new Path(s"$workingDir${dataflow.getUuid}/${e.segmentID}/${layout.getId}")
       val maybeStatuses = fsc.getLeafFiles(path)
       if (maybeStatuses.isDefined) {
@@ -208,12 +210,12 @@ class FilePruner(val session: SparkSession,
         SegmentDirectory(e.segmentID, statuses)
       }
     }.toIterator.toSeq
-
+    QueryContext.current().record("fetch_file_status")
     // shards pruning
     selected = afterPruning("shard", dataFilters, selected) {
       pruneShards
     }
-
+    QueryContext.current().record("shard_pruning")
     setShufflePartitions(selected)
 
     if (selected.isEmpty) {

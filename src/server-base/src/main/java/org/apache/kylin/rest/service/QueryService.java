@@ -345,6 +345,8 @@ public class QueryService extends BasicService {
         stringBuilder.append("Is Prepare: ").append(response.isPrepare()).append(newLine);
         stringBuilder.append("Is Timeout: ").append(response.isTimeout()).append(newLine);
         stringBuilder.append("Trace URL: ").append(response.getTraceUrl()).append(newLine);
+        stringBuilder.append("Time Line Schema: ").append(QueryContext.current().getSchema()).append(newLine);
+        stringBuilder.append("Time Line: ").append(QueryContext.current().getTimeLine()).append(newLine);
         stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
         stringBuilder.append("==========================[QUERY]===============================").append(newLine);
 

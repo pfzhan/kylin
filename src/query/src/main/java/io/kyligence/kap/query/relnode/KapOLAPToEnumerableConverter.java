@@ -68,7 +68,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
         //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", this);
-
+        QueryContext.current().record("end_plan");
         QueryContext.current().setWithoutSyntaxError(true);
         List<OLAPContext> contexts = QueryContextCutter.selectRealization(this,
                 BackdoorToggles.getIsQueryFromAutoModeling());
@@ -112,6 +112,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
                         Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
                 list.add(Expressions.return_(null, enumerable));
             }
+            QueryContext.current().record("end_rewrite");
             return enumImplementor.result(physType, list.toBlock());
         }
     }

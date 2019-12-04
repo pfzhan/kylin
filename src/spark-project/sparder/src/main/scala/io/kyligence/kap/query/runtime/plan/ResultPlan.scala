@@ -95,7 +95,10 @@ object ResultPlan extends Logging {
       QueryContext.current().getSql,
       interruptOnCancel = true)
     try {
+      df.queryExecution.executedPlan
+      QueryContext.current.record("executed_plan")
       val rows = df.collect()
+      QueryContext.current.record("collect_result")
       logInfo("End of data collection.")
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().setScanRows(scanRows)
@@ -114,6 +117,7 @@ object ResultPlan extends Logging {
         }
         }.toArray
       }
+      QueryContext.current.record("transform_result")
       logInfo("End of row transformation.")
       dt
     } catch {

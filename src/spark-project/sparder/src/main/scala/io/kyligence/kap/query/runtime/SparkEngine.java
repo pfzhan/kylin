@@ -28,6 +28,7 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.kylin.common.QueryContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
@@ -62,6 +63,7 @@ public class SparkEngine implements QueryEngine {
         long t = System.currentTimeMillis();
         calciteToSparkPlaner.go(relNode);
         long takeTime = System.currentTimeMillis() - start;
+        QueryContext.current().record("to_spark_plan");
         log.info("Plan take {} ms", takeTime);
         return calciteToSparkPlaner.getResult();
     }

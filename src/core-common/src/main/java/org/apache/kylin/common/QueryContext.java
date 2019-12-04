@@ -42,7 +42,10 @@
 
 package org.apache.kylin.common;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -87,6 +90,8 @@ public class QueryContext {
     private boolean hasLike;
 
     private long queryStartMillis;
+    private long recordMillis;
+
     private boolean isSparderUsed;
     private boolean isTableIndex;
 
@@ -133,6 +138,7 @@ public class QueryContext {
         // use QueryContext.current() instead
         queryStartMillis = System.currentTimeMillis();
         queryId = UUID.randomUUID().toString();
+        recordMillis = queryStartMillis;
     }
 
     public static QueryContext current() {
@@ -294,6 +300,22 @@ public class QueryContext {
         isHighPriorityQuery = true;
     }
 
+    LinkedHashMap<String, String> queryRecord = new LinkedHashMap<>();
+
+    public String getSchema() {
+        return String.join(",", queryRecord.keySet());
+    }
+
+    public String getTimeLine() {
+        return String.join(",", queryRecord.values());
+    }
+
+    public void record(String message) {
+        long current = System.currentTimeMillis();
+        long takeTime = current - recordMillis;
+        queryRecord.put(message, takeTime + "");
+        recordMillis = current;
+    }
     /*
 
     public Set<Future> getAllRunningTasks() {
