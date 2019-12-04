@@ -397,6 +397,7 @@
     .cell {
       .col-tab-note {
         padding-top: 5px;
+        margin-left: -5px;
       }
       .th-note-tag {
         max-width: 100px;
