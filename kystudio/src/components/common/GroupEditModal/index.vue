@@ -6,7 +6,7 @@
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     @close="isShow && closeHandler(false)">
-    <el-form :model="form" :rules="rules" ref="form" v-if="isFormShow">
+    <el-form :model="form" @submit.native.prevent :rules="rules" ref="form" v-if="isFormShow">
       <!-- 表单：组名 -->
       <el-form-item :label="$t('kylinLang.common.groupName')" prop="group_name" v-if="isFieldShow('group_name')">
         <el-input auto-complete="off" @input="value => inputHandler('group_name', value.trim())" :value="form.group_name"></el-input>
