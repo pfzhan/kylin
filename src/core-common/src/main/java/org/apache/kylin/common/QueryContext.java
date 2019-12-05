@@ -295,88 +295,88 @@ public class QueryContext {
     }
 
     /*
-    
+
     public Set<Future> getAllRunningTasks() {
         return allRunningTasks;
     }
-    
+
     public void addRunningTasks(Future task) {
         this.allRunningTasks.add(task);
     }
-    
+
     public void removeRunningTask(Future task) {
         this.allRunningTasks.remove(task);
     }
-    
-    
-    
+
+
+
     public long getQueryStartMillis() {
         return queryStartMillis;
     }
-    
+
     public void checkMillisBeforeDeadline() {
         if (Thread.interrupted()) {
             throw new KylinTimeoutException("Query timeout");
         }
     }
-    
+
     public int getScannedShards() {
         return scannedShards.get();
     }
-    
+
     public void addScannedShards(int deltaFiles) {
         scannedShards.addAndGet(deltaFiles);
     }
-    
+
     public long addAndGetScannedRows(long deltaRows) {
         return scannedRows.addAndGet(deltaRows);
     }
-    
+
     public long addAndGetScannedBytes(long deltaBytes) {
         return scannedBytes.addAndGet(deltaBytes);
     }
-    
+
     public Object getCalcitePlan() {
         return calcitePlan;
     }
-    
+
     public void setCalcitePlan(Object calcitePlan) {
         this.calcitePlan = calcitePlan;
     }
-    
-    
+
+
     public boolean isSparderAppliable() {
         return isSparderAppliable;
     }
-    
+
     public void setSparderAppliable(boolean isSparderAppliable) {
         this.isSparderAppliable = isSparderAppliable;
     }
-    
+
     public boolean isSparderUsed() {
         return isSparderUsed;
     }
-    
+
     public boolean isLateDecodeEnabled() {
         return isLateDecodeEnabled;
     }
-    
+
     public void setLateDecodeEnabled(boolean lateDecodeEnabled) {
         isLateDecodeEnabled = lateDecodeEnabled;
     }
-    
+
     public boolean isHasLike() {
         return hasLike;
     }
-    
+
     public void setHasLike(boolean hasLike) {
         this.hasLike = hasLike;
     }
-    
+
     public boolean isHasAdvance() {
         return hasAdvance;
     }
-    
+
     public void setHasAdvance(boolean hasAdvance) {
         this.hasAdvance = hasAdvance;
     }

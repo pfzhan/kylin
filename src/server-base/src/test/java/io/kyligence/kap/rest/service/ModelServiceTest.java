@@ -971,7 +971,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "Can not remove or refresh segment (ID:" + dataSegment.getId() + "), because the segment is LOCKED.");
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() });
+                new String[] { dataSegment.getId() }, false);
     }
 
     @Test
@@ -1063,7 +1063,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'nmodel_basic_inner' is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { dataSegment.getId() });
+                new String[] { dataSegment.getId() }, false);
     }
 
     @Test
@@ -1260,14 +1260,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         eventDao.deleteAllEvents();
         //remove normally
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { segments.get(0).getId() });
+                new String[] { segments.get(0).getId() }, false);
         List<Event> events = eventDao.getEvents();
         //2 dataflows
         val df2 = dataflowManager.getDataflow(dataModel.getUuid());
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Only consecutive segments in head or tail can be removed!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { segments.get(2).getId(), segments.get(3).getId() });
+                new String[] { segments.get(2).getId(), segments.get(3).getId() }, false);
     }
 
     @Test

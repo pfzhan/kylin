@@ -1579,7 +1579,7 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void deleteSegmentById(String model, String project, String[] ids) {
+    public void deleteSegmentById(String model, String project, String[] ids, boolean force) {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
@@ -1589,7 +1589,10 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExist(model, project, ids);
         checkSegmentsLocked(model, project, ids);
-        checkDeleteSegmentLegally(model, project, ids);
+
+        if (!force)
+            checkDeleteSegmentLegally(model, project, ids);
+
         val indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Set<String> idsToDelete = Sets.newHashSet();

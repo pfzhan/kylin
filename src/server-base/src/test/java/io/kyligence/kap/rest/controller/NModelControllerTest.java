@@ -348,14 +348,14 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("project", "default").param("purge", "true")
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, null);
+        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, false, null);
     }
 
     @Test
     public void testDeleteSegmentsByIds() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         Mockito.doNothing().when(modelService).deleteSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                request.getIds());
+                request.getIds(), false);
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .param("project", "default").param("purge", "false")
@@ -363,7 +363,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", false,
-                request.getIds());
+                false, request.getIds());
     }
 
     @Test

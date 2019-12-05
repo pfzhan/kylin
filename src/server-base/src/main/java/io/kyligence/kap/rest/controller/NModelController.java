@@ -491,6 +491,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
             @RequestParam("project") String project, //
             @RequestParam("purge") Boolean purge, //
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
             @RequestParam(value = "ids", required = false) String[] ids) {
         checkProjectName(project);
 
@@ -499,7 +500,7 @@ public class NModelController extends NBasicController {
         } else if (ArrayUtils.isEmpty(ids)) {
             throw new BadRequestException("Segments id list can not empty!");
         } else {
-            modelService.deleteSegmentById(model, project, ids);
+            modelService.deleteSegmentById(model, project, ids, force);
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
