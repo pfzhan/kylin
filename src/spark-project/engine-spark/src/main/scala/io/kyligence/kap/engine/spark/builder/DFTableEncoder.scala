@@ -24,6 +24,7 @@ package io.kyligence.kap.engine.spark.builder
 import java.util
 
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.ENCODE_SUFFIX
+import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.metadata.model.TblColRef
@@ -32,7 +33,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.functions.{col, _}
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.{Dataset, Row}
+import org.apache.spark.sql.{Column, Dataset, Row}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable._
@@ -47,9 +48,8 @@ object DFTableEncoder extends Logging {
     val sourceCnt = ds.count()
     val bucketThreshold = seg.getConfig.getGlobalDictV2ThresholdBucketSize
     val minBucketSize: Long = sourceCnt / bucketThreshold
-
-    cols.asScala.foreach(
-      ref => {
+    val encodingArgs = cols.asScala.map{
+      ref =>
         val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
         val bucketSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions)
         val enlargedBucketSize = (((minBucketSize / bucketSize) + 1) * bucketSize).toInt
@@ -61,13 +61,30 @@ object DFTableEncoder extends Logging {
           .mkString(SEPARATOR)
         val aliasName = structType.apply(columnIndex).name.concat(ENCODE_SUFFIX)
         val encodeCol = dict_encode(col(encodeColRef).cast(StringType), lit(dictParams), lit(bucketSize).cast(StringType)).as(aliasName)
-        val columns = partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(encodeCol)
-
-        partitionedDs = partitionedDs
-          .repartition(enlargedBucketSize, col(encodeColRef).cast(StringType))
-          .select(columns: _*)
+        val columns = encodeCol
+        (enlargedBucketSize, col(encodeColRef).cast(StringType), columns, aliasName)
       }
-    )
+    if (KylinBuildEnv.get() != null && KylinBuildEnv.get().encodingDataSkew) {
+      encodingArgs.foreach {
+        case (enlargedBucketSize, repartitionColumn, projects, aliasName) =>
+          val ds = partitionedDs.filter(repartitionColumn.isNull).select(partitionedDs.schema.map(sc => col(sc.name))
+            ++ Seq(lit(null).as(aliasName)): _*)
+          val encoding = partitionedDs.filter(repartitionColumn.isNotNull)
+            .repartition(enlargedBucketSize, repartitionColumn)
+            .select(partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(projects): _*)
+          partitionedDs = ds.union(encoding)
+      }
+    } else {
+      encodingArgs.foreach {
+        case (enlargedBucketSize, repartitionColumn, projects, aliasName) =>
+          partitionedDs = partitionedDs
+            .repartition(enlargedBucketSize, repartitionColumn)
+            .select(partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(projects): _*)
+      }
+    }
+
+
+
     ds.sparkSession.sparkContext.setJobDescription(null)
     partitionedDs
   }

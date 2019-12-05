@@ -120,6 +120,7 @@ class TestQueryAndBuildFunSuite
 
   override def beforeAll(): Unit = {
     System.setProperty("calcite.keep-in-clause", "true")
+    System.setProperty("kylin.dictionary.null-encoding-opt-threshold", "1")
     val timeZones = Array("GMT", "GMT+8", "CST")
     val timeZoneStr = timeZones.apply((System.currentTimeMillis() % 3).toInt)
     TimeZone.setDefault(TimeZone.getTimeZone(timeZoneStr))

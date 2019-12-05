@@ -582,6 +582,11 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.dictionary.globalV2-version-ttl", "259200000"));
     }
 
+    public long getNullEncodingOptimizeThreshold() {
+        return Long.parseLong(getOptional("kylin.dictionary.null-encoding-opt-threshold", "40000000"));
+    }
+
+
     // ============================================================================
     // CUBE
     // ============================================================================

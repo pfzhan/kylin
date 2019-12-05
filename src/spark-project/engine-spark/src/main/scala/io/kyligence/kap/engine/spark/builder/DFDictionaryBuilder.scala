@@ -23,8 +23,9 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.io.IOException
 import java.util
+import java.util.UUID
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
+import io.kyligence.kap.engine.spark.job.{KylinBuildEnv, NSparkCubingUtil}
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.common.lock.DistributedLock
@@ -41,11 +42,14 @@ import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
+import io.kyligence.kap.engine.spark.utils.QueryExecutionCache
+import org.apache.spark.sql.execution.FilterExec
 
-class DFDictionaryBuilder(val dataset: Dataset[Row],
-                          val seg: NDataSegment,
-                          val ss: SparkSession,
-                          val colRefSet: util.Set[TblColRef]) extends Logging with Serializable {
+class DFDictionaryBuilder(
+  val dataset: Dataset[Row],
+  val seg: NDataSegment,
+  val ss: SparkSession,
+  val colRefSet: util.Set[TblColRef]) extends Logging with Serializable {
 
   @transient
   val lock: DistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory.lockForCurrentThread
@@ -62,16 +66,16 @@ class DFDictionaryBuilder(val dataset: Dataset[Row],
     val sourceColumn = ref.getIdentity
     lock.lock(getLockPath(sourceColumn), Long.MaxValue)
     try
-        if (lock.lock(getLockPath(sourceColumn))) {
-          val dictColDistinct = dataset.select(wrapCol(ref)).distinct
-          ss.sparkContext.setJobDescription("Calculate bucket size " + ref.getIdentity)
-          val bucketPartitionSize = DictionaryBuilderHelper.calculateBucketSize(seg, ref, dictColDistinct)
-          val m = s"Building global dictionaries V2 for $sourceColumn"
-          time(m, build(ref, bucketPartitionSize, dictColDistinct))
-        }
+      if (lock.lock(getLockPath(sourceColumn))) {
+        val dictColDistinct = dataset.select(wrapCol(ref)).distinct
+        ss.sparkContext.setJobDescription("Calculate bucket size " + ref.getIdentity)
+        val bucketPartitionSize = DictionaryBuilderHelper.calculateBucketSize(seg, ref, dictColDistinct)
+        val m = s"Building global dictionaries V2 for $sourceColumn"
+        time(m, build(ref, bucketPartitionSize, dictColDistinct))
+      }
     finally lock.unlock(getLockPath(sourceColumn))
   }
-
+                            
   @throws[IOException]
   private[builder] def build(ref: TblColRef, bucketPartitionSize: Int, afterDistinct: Dataset[Row]): Unit = {
     logInfo(s"Start building global dict V2 for column ${ref.getIdentity}.")
@@ -82,7 +86,7 @@ class DFDictionaryBuilder(val dataset: Dataset[Row],
 
     ss.sparkContext.setJobDescription("Build dict " + ref.getIdentity)
     val dictCol = col(afterDistinct.schema.fields.head.name)
-    afterDistinct
+    val df = afterDistinct
       .filter(dictCol.isNotNull)
       .repartition(bucketPartitionSize, dictCol)
       .mapPartitions {
@@ -96,7 +100,41 @@ class DFDictionaryBuilder(val dataset: Dataset[Row],
           bucketDict.saveBucketDict(partitionID)
           ListBuffer.empty.iterator
       }(RowEncoder.apply(schema = afterDistinct.schema))
-      .count()
+    val queryExecutionId = UUID.randomUUID.toString
+    ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, queryExecutionId)
+    df.count()
+    val execution = QueryExecutionCache.getQueryExecution(queryExecutionId)
+    if (execution != null) {
+      val filterExec = execution.executedPlan.collectFirst {
+        case a: FilterExec =>
+          a.asInstanceOf[FilterExec]
+      }
+      if (filterExec.isDefined) {
+        val filterMetrics = filterExec.get.metrics.get("numOutputRows")
+        val filtered = if (filterMetrics.isDefined) {
+          filterMetrics.get.value
+        } else {
+          logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
+          0
+        }
+        val tableScanMetrics = filterExec.get.child.metrics.get("numOutputRows")
+        val fileOut = if (tableScanMetrics.isDefined) {
+          tableScanMetrics.get.value
+        } else {
+          logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
+          0
+        }
+        logInfo(s"Null value number is ${fileOut - filtered}")
+        if (!KylinBuildEnv.get().encodingDataSkew) {
+          KylinBuildEnv.get().encodingDataSkew = (fileOut - filtered) > seg.getConfig.getNullEncodingOptimizeThreshold
+          logInfo(s"Encoding data skew is ${KylinBuildEnv.get().encodingDataSkew} because the " +
+            s"difference values is ${fileOut - filtered} > ${seg.getConfig.getNullEncodingOptimizeThreshold}")
+        }
+      } else {
+        logInfo(s"Can not find FilterExec whit plan ${execution.executedPlan.toString()}")
+      }
+    }
+    ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, null)
 
     globalDict.writeMetaDict(bucketPartitionSize, seg.getConfig.getGlobalDictV2MaxVersions, seg.getConfig.getGlobalDictV2VersionTTL)
   }

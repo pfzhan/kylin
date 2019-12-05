@@ -40,6 +40,12 @@ class KylinBuildEnv(config: KylinConfig) {
   val kylinConfig: KylinConfig = config
 
   lazy val clusterInfoFetcher: ClusterInfoFetcher = ClusterInfoFetcherFactory.create(config)
+
+  var encodingDataSkew = false
+
+  def setEncodingDataSkew(boolean: Boolean): Unit = {
+    encodingDataSkew = boolean;
+  }
 }
 
 object KylinBuildEnv {

@@ -91,6 +91,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("additionalInfo")
     private Map<String, String> additionalInfo = Maps.newLinkedHashMap();
 
+    @JsonProperty("is_encoding_data_skew")
+    private boolean isEncodingDataSkew = false;
+
+
 
     // computed fields below
 
@@ -354,6 +358,14 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public void setSourceBytesSize(long sourceBytesSize) {
         checkIsNotCachedAndShared();
         this.sourceBytesSize = sourceBytesSize;
+    }
+
+    public boolean isEncodingDataSkew() {
+        return isEncodingDataSkew;
+    }
+
+    public void setEncodingDataSkew(boolean encodingDataSkew) {
+        isEncodingDataSkew = encodingDataSkew;
     }
 
     public String getProject() {

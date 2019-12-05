@@ -109,13 +109,22 @@ public class DFBuildJob extends SparkApplication {
             for (String segId : segmentIds) {
                 NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
                 NDataSegment seg = getSegment(segId);
+                if (seg.isEncodingDataSkew()) {
+                    logger.info("Encoding data skew , set it to true");
+                    KylinBuildEnv.get().setEncodingDataSkew(true);
+                }
+                if (seg == null || seg.getSegRange() == null || seg.getModel() == null || seg.getIndexPlan() == null) {  // vivo
+                    logger.info("Skip segment {}", segId);
+                    if (seg != null)
+                        logger.info("Args is {} {} {}", seg.getSegRange(), seg.getModel(), seg.getIndexPlan());
+                    continue;
+                }
 
                 // choose source
                 DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
                 datasetChooser.decideSources();
                 NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
                 Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
-
                 infos.clearCuboidsNumPerLayer(segId);
                 // build cuboids from flat table
                 if (buildFromFlatTable != null) {
@@ -160,6 +169,9 @@ public class DFBuildJob extends SparkApplication {
             NDataSegment segment = newDF.getSegment(entry.getKey());
             segment.setSourceBytesSize((Long) entry.getValue());
             segment.setLastBuildTime(System.currentTimeMillis());
+            if (KylinBuildEnv.get().encodingDataSkew()) {
+                segment.setEncodingDataSkew(true);
+            }
             nDataSegments.add(segment);
         }
         update.setToUpdateSegs(nDataSegments.toArray(new NDataSegment[0]));
