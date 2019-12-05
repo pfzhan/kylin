@@ -26,7 +26,7 @@ import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rex.RexInputRef
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.KapFunctions._
 
 import scala.collection.JavaConverters._
@@ -39,6 +39,7 @@ object ProjectPlan extends Logging {
 
     val start = System.currentTimeMillis()
     val df = inputs.get(0)
+    val duplicatedColumnsCount = collection.mutable.Map[Column, Int]()
     val selectedColumns = rel.rewriteProjects.asScala
       .map(rex => {
         val visitor = new SparderRexVisitor(df,
@@ -54,6 +55,16 @@ object ProjectPlan extends Logging {
           k_lit(c._1._1)
         } else {
           k_lit(c._1._1).as(s"${System.identityHashCode(rel)}_prj${c._2}")
+        }
+      })
+      .map(c => { // find and rename the duplicated columns KAP#16751
+        if (!(duplicatedColumnsCount contains c)) {
+          duplicatedColumnsCount += (c -> 0)
+          c
+        } else {
+          val columnCnt = duplicatedColumnsCount(c) + 1
+          duplicatedColumnsCount += (c -> columnCnt)
+          c.as(s"${c.toString}_duplicated$columnCnt")
         }
       })
 
