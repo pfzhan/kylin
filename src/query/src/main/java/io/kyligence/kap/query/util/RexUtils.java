@@ -43,6 +43,10 @@ import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlOperator;
 
+import io.kyligence.kap.query.relnode.KapAggregateRel;
+import io.kyligence.kap.query.relnode.KapJoinRel;
+import io.kyligence.kap.query.relnode.KapProjectRel;
+
 public class RexUtils {
 
     /**
@@ -125,5 +129,67 @@ public class RexUtils {
         return rexCall.getOperands().stream()
                 .flatMap(rexNode -> getAllInputRefs(rexNode).stream())
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * check if the columns on the given rel, are referencing the table column directly,
+     * instead of referencing some rexCall
+     * @param rel
+     * @param columnIndexes
+     * @return true if the columns on the given rel are directly referencing the underneath table columns
+     * false if any of the columns points to a rexCall in the child rels
+     */
+    public static boolean isMerelyTableColumnReference(RelNode rel, Collection<Integer> columnIndexes) {
+        // project and aggregations may change the columns
+        if (rel instanceof KapProjectRel) {
+            Set<Integer> nextInputRefKeys = new HashSet<>();
+            KapProjectRel project = (KapProjectRel) rel;
+            for (Integer columnIdx : columnIndexes) {
+                if (!(project.getProjects().get(columnIdx) instanceof RexInputRef)) {
+                    return false;
+                }
+                nextInputRefKeys.add(((RexInputRef) project.getProjects().get(columnIdx)).getIndex());
+            }
+            return isMerelyTableColumnReference(project.getInput(), nextInputRefKeys);
+        } else if (rel instanceof KapAggregateRel) {
+            Set<Integer> nextInputRefKeys = new HashSet<>();
+            KapAggregateRel agg = (KapAggregateRel) rel;
+            for (Integer columnIdx : columnIndexes) {
+                if (columnIdx >= agg.getRewriteGroupKeys().size()) { // pointing to agg calls
+                    return false;
+                } else {
+                    nextInputRefKeys.add(agg.getRewriteGroupKeys().get(columnIdx));
+                }
+            }
+            return isMerelyTableColumnReference(agg.getInput(), nextInputRefKeys);
+        } else if (rel instanceof KapJoinRel) { // test each sub queries of a join
+            int offset = 0;
+            for (RelNode inputRel : rel.getInputs()) {
+                Set<Integer> nextInputRefKeys = new HashSet<>();
+                for (Integer columnIdx : columnIndexes) {
+                    if (columnIdx - offset >= 0 && columnIdx - offset < inputRel.getRowType().getFieldCount()) {
+                        nextInputRefKeys.add(columnIdx - offset);
+                    }
+                }
+                if (!isMerelyTableColumnReference(inputRel, nextInputRefKeys)) {
+                    return false;
+                }
+                offset += inputRel.getRowType().getFieldCount();
+            }
+            return true;
+        } else { // other rel nodes won't changes the columns, just pass column idx down
+            for (RelNode inputRel : rel.getInputs()) {
+                if (!isMerelyTableColumnReference(inputRel, columnIndexes)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public static boolean isMerelyTableColumnReference(KapJoinRel rel, RexNode condition) {
+        // since join rel's columns are just consist of the all the columns from all sub queries
+        // we can simply use the input ref index extracted from the condition rex node as the column idx of the join rel
+        return isMerelyTableColumnReference(rel, getAllInputRefs(condition).stream().map(RexSlot::getIndex).collect(Collectors.toSet()));
     }
 }

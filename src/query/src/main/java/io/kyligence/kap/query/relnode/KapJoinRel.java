@@ -122,7 +122,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
                 leftState.setHasFreeTable(false);
             } else if (leftState.hasFreeTable() && rightState.hasFreeTable() && (isCrossJoin()
                     || hasSameFirstTable(leftState, rightState) || isRightSideIncrementalTable(rightState)
-                    || RexUtils.joinMoreThanOneTable(this))) {
+                    || RexUtils.joinMoreThanOneTable(this)
+                    || !RexUtils.isMerelyTableColumnReference(this, condition))) {
                 olapContextImplementor.allocateContext((KapRel) left, this);
                 olapContextImplementor.allocateContext((KapRel) right, this);
                 leftState.setHasFreeTable(false);
