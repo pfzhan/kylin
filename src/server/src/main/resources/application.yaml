@@ -34,6 +34,9 @@ spring:
     jdbc:
       table-name: ${kylin.metadata.url.identifier}_session
 
+flyway:
+  enabled: false
+
 ---
 spring:
   profiles: dev
