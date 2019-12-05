@@ -206,7 +206,7 @@ object ExpressionConverter {
             new Column(StringLocate(k_lit(children.apply(1)).expr, k_lit(children.head).expr, lit(pos).expr)) //strpos(str,substr,start)
           case "position" =>
             val pos =
-              if (children.length == 2) 0
+              if (children.length == 2) 1
               else children.apply(2).asInstanceOf[Int]
             new Column(StringLocate(k_lit(children.head).expr, k_lit(children.apply(1)).expr, lit(pos).expr)) //position(substr,str,start)
           case "concat" =>
