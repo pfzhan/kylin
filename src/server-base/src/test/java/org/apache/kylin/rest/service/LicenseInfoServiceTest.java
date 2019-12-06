@@ -145,7 +145,7 @@ public class LicenseInfoServiceTest extends NLocalFileMetadataTestCase {
         parameters.add("category", licenseRequest.getCategory());
         RemoteLicenseResponse response = new RemoteLicenseResponse();
         response.setSuccess(true);
-        Mockito.when(restTemplate.postForObject(url, parameters, RemoteLicenseResponse.class)).thenReturn(response);
+        Mockito.doAnswer(x -> response).when(restTemplate).postForObject(url, parameters, RemoteLicenseResponse.class);
 
         RemoteLicenseResponse remoteLicenseResponse = licenseInfoService.getTrialLicense(licenseRequest);
         Assert.assertEquals(remoteLicenseResponse, response);
