@@ -144,6 +144,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.project = other.project;
         this.database.setName(other.getDatabase());
         this.identity = other.identity;
+        this.lastSnapshotPath = other.lastSnapshotPath;
         setMvcc(other.getMvcc());
     }
 

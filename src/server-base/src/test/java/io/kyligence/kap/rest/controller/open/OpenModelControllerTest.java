@@ -212,12 +212,12 @@ public class OpenModelControllerTest {
         mockGetModelName(modelName, project, modelId);
 
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, true, null);
+                .deleteSegments(modelId, project, true, false, null);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/open/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).deleteSegments(modelName, "default", true, null);
+        Mockito.verify(openModelController).deleteSegments(modelName, "default", true, false, null);
     }
 
     @Test
@@ -230,12 +230,12 @@ public class OpenModelControllerTest {
         SegmentsRequest request = new SegmentsRequest();
         request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
-                .deleteSegments(modelId, project, false, request.getIds());
+                .deleteSegments(modelId, project, false, false, request.getIds());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/open/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "false").param("ids", request.getIds())
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).deleteSegments(modelName, "default", false, request.getIds());
+        Mockito.verify(openModelController).deleteSegments(modelName, "default", false, false, request.getIds());
     }
 
     @Test

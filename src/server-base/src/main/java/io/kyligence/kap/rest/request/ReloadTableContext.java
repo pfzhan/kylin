@@ -58,8 +58,12 @@ public class ReloadTableContext {
     @Getter(lazy = true)
     private final Set<String> removeColumnFullnames = initRemoveColumnFullnames();
 
-    Set<String> initRemoveColumnFullnames() {
+    private Set<String> initRemoveColumnFullnames() {
         return removeColumns.stream().map(col -> tableDesc.getName() + "." + col).collect(Collectors.toSet());
+    }
+
+    public boolean isChanged() {
+        return !addColumns.isEmpty() || !removeColumns.isEmpty() || !changeTypeColumns.isEmpty();
     }
 
 }

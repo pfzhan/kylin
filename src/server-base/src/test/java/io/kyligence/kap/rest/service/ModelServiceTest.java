@@ -986,7 +986,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
-                new String[] { "not_exist_01" });
+                new String[] { "not_exist_01" }, false);
     }
 
     @Test
@@ -1006,7 +1006,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
 
-        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" });
+        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" }, false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
 

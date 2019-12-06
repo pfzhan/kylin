@@ -176,7 +176,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         // IndexPlan [89af4ee2-2cdb-4b07-b39e-4c29856309aa(nmodel_basic)]: 20000000000
         Assert.assertEquals(58, response.getRemoveIndexesCount());
     }
-
     @Test
     public void testReload_BrokenModelInAutoProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
@@ -234,6 +233,22 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(17, originModel.getAllMeasures().size());
         Assert.assertEquals(34, originModel.getAllNamedColumns().size());
     }
+
+    @Test
+    public void testNothingChanged() throws Exception {
+        prepareReload();
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        val TARGET_TABLE = "DEFAULT.TEST_ACCOUNT";
+
+        val copy = tableManager.copyForWrite(tableManager.getTableDesc(TARGET_TABLE));
+        copy.setLastSnapshotPath("/path/to/snapshot");
+        tableManager.updateTableDesc(copy);
+
+        tableService.innerReloadTable(PROJECT, TARGET_TABLE);
+        val newTable = tableManager.getTableDesc(TARGET_TABLE);
+        Assert.assertNotNull(newTable.getLastSnapshotPath());
+    }
+
 
     @Test
     public void testReload_GetAndEditJoinBrokenModelInManualProject() throws Exception {

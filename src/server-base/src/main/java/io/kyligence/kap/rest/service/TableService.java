@@ -1304,7 +1304,11 @@ public class TableService extends BasicService {
             copy.setColumns(originColMap.values().toArray(new ColumnDesc[0]));
             loadDesc = copy;
         }
-        loadDesc.setLastSnapshotPath(null);
+        if (context.isChanged()) {
+            loadDesc.setLastSnapshotPath(null);
+        } else {
+            loadDesc.setLastSnapshotPath(originTable.getLastSnapshotPath());
+        }
         loadTableToProject(loadDesc, context.getTableExtDesc(), projectName);
     }
 
