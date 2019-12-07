@@ -48,6 +48,7 @@ public class CustomizedGarbageCleaner {
 
     private static final LowFreqLayoutGcStrategy LOW_FREQ_GC_STRATEGY = new LowFreqLayoutGcStrategy();
     private static final IncludedLayoutGcStrategy INCLUDED_GC_STRATEGY = new IncludedLayoutGcStrategy();
+    private static final SimilarLayoutGcStrategy SIMILAR_GC_STRATEGY = new SimilarLayoutGcStrategy();
 
     private CustomizedGarbageCleaner() {
     }
@@ -58,9 +59,11 @@ public class CustomizedGarbageCleaner {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String includeStrategyTarget = kylinConfig.getIncludedGarbageStrategyTarget();
         String lowFreqStrategyTarget = kylinConfig.getLowFreqGarbageStrategyTarget();
+        String similarStrategyTarget = kylinConfig.getSimilarGarbageStrategyTarget();
 
         findGarbage(dataflow, garbageMap, readyLayouts, INCLUDED_GC_STRATEGY, includeStrategyTarget);
         findGarbage(dataflow, garbageMap, readyLayouts, LOW_FREQ_GC_STRATEGY, lowFreqStrategyTarget);
+        findGarbage(dataflow, garbageMap, readyLayouts, SIMILAR_GC_STRATEGY, similarStrategyTarget);
 
         return garbageMap;
     }

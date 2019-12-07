@@ -25,7 +25,6 @@
 package io.kyligence.kap.metadata.cube.garbage;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
@@ -35,7 +34,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -69,26 +67,6 @@ public abstract class AbstractGcStrategy {
         if (!KylinConfig.getInstanceFromEnv().isRemoveIncludedTableIndexEnabled()) {
             inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
         }
-    }
-
-    /**
-     * Put hit frequency of removed layouts to reserved layouts.
-     */
-    protected void shiftLayoutHitCount(Map<LayoutEntity, LayoutEntity> removedToReservedMap, NDataflow dataflow) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dfManager = NDataflowManager.getInstance(kylinConfig, dataflow.getProject());
-        Map<Long, FrequencyMap> layoutHitCount = dataflow.getLayoutHitCount();
-        removedToReservedMap.forEach((removedLayout, reservedLayout) -> {
-            FrequencyMap removedFreqMap = layoutHitCount.get(removedLayout.getId());
-            if (removedFreqMap == null) {
-                return;
-            }
-            layoutHitCount.putIfAbsent(reservedLayout.getId(), new FrequencyMap());
-            Map<Long, Integer> reservedHitFreq = layoutHitCount.get(reservedLayout.getId()).getDateFrequency();
-            Map<Long, Integer> removedHitFreq = removedFreqMap.getDateFrequency();
-            removedHitFreq.forEach((date, hitCount) -> reservedHitFreq.merge(date, hitCount, Integer::sum));
-        });
-        dfManager.updateDataflow(dataflow.getUuid(), copyForWrite -> copyForWrite.setLayoutHitCount(layoutHitCount));
     }
 
     private void afterCollect(List<LayoutEntity> inputLayouts, Set<Long> garbages) {

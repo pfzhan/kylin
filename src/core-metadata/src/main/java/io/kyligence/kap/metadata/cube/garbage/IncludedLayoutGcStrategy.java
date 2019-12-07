@@ -25,12 +25,16 @@
 package io.kyligence.kap.metadata.cube.garbage;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +59,24 @@ public class IncludedLayoutGcStrategy extends AbstractGcStrategy {
         log.info("In dataflow({}), IncludedLayoutGcStrategy found garbage laoyouts: {}", dataflow.getId(),
                 fromGarbageToAliveMap);
         return garbageLayouts;
+    }
+
+    /**
+     * Put hit frequency of removed layouts to reserved layouts.
+     */
+    private void shiftLayoutHitCount(Map<LayoutEntity, LayoutEntity> removedToReservedMap, NDataflow dataflow) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dfManager = NDataflowManager.getInstance(kylinConfig, dataflow.getProject());
+        Map<Long, FrequencyMap> layoutHitCount = dataflow.getLayoutHitCount();
+        removedToReservedMap.forEach((removedLayout, reservedLayout) -> {
+            FrequencyMap removedFreqMap = layoutHitCount.get(removedLayout.getId());
+            if (removedFreqMap == null) {
+                return;
+            }
+            layoutHitCount.putIfAbsent(reservedLayout.getId(), new FrequencyMap());
+            layoutHitCount.get(reservedLayout.getId()).merge(removedFreqMap);
+        });
+        dfManager.updateDataflow(dataflow.getUuid(), copyForWrite -> copyForWrite.setLayoutHitCount(layoutHitCount));
     }
 
 }

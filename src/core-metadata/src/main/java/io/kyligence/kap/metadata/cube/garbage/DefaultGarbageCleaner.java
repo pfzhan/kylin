@@ -64,8 +64,10 @@ public class DefaultGarbageCleaner {
 
         ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(dataflow.getProject());
         if (projectInstance.isSemiAutoMode() || projectInstance.isExpertMode()) {
-            // val manual = readyLayouts.stream().filter(LayoutEntity::isManual).collect(Collectors.toList())
-            // TODO another strategy to handle manual layouts
+            val manual = readyLayouts.stream().filter(LayoutEntity::isManual).collect(Collectors.toList());
+            AbstractGcStrategy strategy = new SimilarLayoutGcStrategy();
+            strategy.collectGarbageLayouts(manual, dataflow)
+                    .forEach(id -> garbageLayoutTypeMap.put(id, strategy.getType()));
         }
 
         val autoLayouts = readyLayouts.stream().filter(LayoutEntity::isAuto).collect(Collectors.toList());

@@ -49,6 +49,7 @@ import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
 import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.garbage.IncludedLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.garbage.LowFreqLayoutGcStrategy;
+import io.kyligence.kap.metadata.cube.garbage.SimilarLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -62,8 +63,10 @@ import lombok.val;
 
 public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase {
 
-    private String PROJECT = "default";
-    private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+    private static final String GC_PROJECT = "gc_test";
+    private static final String GC_MODEL_ID = "e0e90065-e7c3-49a0-a801-20465ca64799";
+    private static final String DEFAULT_PROJECT = "default";
+    private static final String DEFAULT_MODEL_BASIC_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     private static final long DAY_IN_MILLIS = 24 * 60 * 60 * 1000L;
 
@@ -84,33 +87,35 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
                 StorageInfoEnum.TOTAL_STORAGE);
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
+        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfo.getStorageQuotaSize());
         Assert.assertEquals(4346979L, storageVolumeInfo.getGarbageStorageSize());
         Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).size());
+        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).size());
 
         //  layout 1L and 20_000_040_001L with low frequency => garbage
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20001L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(30001L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(1000001L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(1L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20001L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(30001L));
+        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(1000001L));
 
         // layout 10_001L, 10002L, 40_001L, 40_002L and 20_000_010_001L were not considered as garbage
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(10001L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(10002L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40001L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(40002L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_000_001L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(MODEL_ID).contains(20_000_010_001L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(10001L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(10002L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(40001L));
+        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(40002L));
+        Assert.assertFalse(
+                storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_000_001L));
+        Assert.assertFalse(
+                storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_010_001L));
     }
 
     @Test
     public void testLowFreqLayoutStrategy() {
         initTestData();
-        NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        NDataflow dataflow = instance.getDataflow(MODEL_ID);
+        NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataflow dataflow = instance.getDataflow(DEFAULT_MODEL_BASIC_ID);
         Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new LowFreqLayoutGcStrategy());
 
         //  layout 1L and 20_000_040_001L with low frequency => garbage
@@ -131,9 +136,9 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
 
     @Test
     public void testIncludedLayoutGcStrategy() {
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        IndexPlan indexPlan = indexPlanManager.getIndexPlan(MODEL_ID);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(DEFAULT_MODEL_BASIC_ID);
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             LayoutEntity layout1 = new LayoutEntity();
             layout1.setId(20_000_040_001L);
@@ -156,50 +161,122 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
             copyForWrite.setIndexes(Lists.newArrayList(index1, index2));
         });
 
-        IndexPlan indexPlanAfter = indexPlanManager.getIndexPlan(MODEL_ID);
+        IndexPlan indexPlanAfter = indexPlanManager.getIndexPlan(DEFAULT_MODEL_BASIC_ID);
         long currentTime = System.currentTimeMillis();
         long currentDate = TimeUtil.getDayStart(currentTime);
-        dataflowManager.updateDataflow(MODEL_ID, copyForWrite -> {
-            Map<Long, FrequencyMap> frequencyMap = Maps.newHashMap();
-            indexPlanAfter.getAllLayouts().forEach(layout -> {
-                TreeMap<Long, Integer> hit = Maps.newTreeMap();
-                hit.put(currentDate - 3 * DAY_IN_MILLIS, 100);
-                frequencyMap.putIfAbsent(layout.getId(), new FrequencyMap(hit));
-            });
-            copyForWrite.setLayoutHitCount(frequencyMap);
-        });
+        updateLayoutHitCount(dataflowManager, indexPlanAfter, currentDate, DEFAULT_MODEL_BASIC_ID, 100);
 
         // change all layouts' status to ready.
-        NDataflow dataflow = dataflowManager.getDataflow(MODEL_ID);
+        NDataflow dataflow = dataflowManager.getDataflow(DEFAULT_MODEL_BASIC_ID);
         NDataflowUpdate update = new NDataflowUpdate(dataflow.getUuid());
         NDataSegment latestReadySegment = dataflow.getLatestReadySegment();
         Set<Long> ids = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         update.setToAddOrUpdateLayouts(genCuboids(dataflow, latestReadySegment.getId(), ids));
         dataflowManager.updateDataflow(update);
 
-        dataflow = dataflowManager.getDataflow(MODEL_ID);
+        dataflow = dataflowManager.getDataflow(DEFAULT_MODEL_BASIC_ID);
         getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "false");
         Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new IncludedLayoutGcStrategy());
         Assert.assertTrue(garbageLayouts.isEmpty());
 
         getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "true");
         Set<Long> garbageLayouts2 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new IncludedLayoutGcStrategy());
-        Map<Long, FrequencyMap> layoutHitCount = dataflowManager.getDataflow(MODEL_ID).getLayoutHitCount();
+        Map<Long, FrequencyMap> layoutHitCount = dataflowManager.getDataflow(DEFAULT_MODEL_BASIC_ID)
+                .getLayoutHitCount();
         Assert.assertEquals(1, garbageLayouts2.size());
         Assert.assertTrue(garbageLayouts2.contains(20_000_050_001L));
         NavigableMap<Long, Integer> dateFrequency = layoutHitCount.get(20_000_040_001L).getDateFrequency();
         Assert.assertEquals(new Integer(200), dateFrequency.get(currentDate - 3 * DAY_IN_MILLIS));
     }
 
-    private void initTestData() {
-        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        val cube = indexPlanManager.getIndexPlan(MODEL_ID);
+    @Test
+    public void testSimilarLayoutGcStrategy() {
+        /*
+         * -- without * is rulebased, 60001 --> 40001           (similar)
+         * --                                   40001 --> 30001 (similar)
+         * --                         60001 ------------> 30001 (similar)
+         * --                         60001 --> 20001           (not similar)
+         * --                                   20001 --> 1     (not similar)
+         * --                         60001 ------------> 1     (not similar)
+         * --                                   20001 --> 10001 (not similar)
+         * --                         60001 ------------> 10001 (not similar)
+         * --                         60001 --> 50001           (similar)
+         * --                                   50001 --> 70001 (similar)
+         * --                                   50001 --> 1     (not similar)
+         * --                                   40001 --> 1     (not similar)
+         * --                         60001 ------------> 70001 (similar)
+         * --
+         * --                                             --------------------------
+         * --                                              layout_id |     rows
+         * --                                             --------------------------
+         * --                     60001                    60001     |  115_000_000
+         * --                   /   |   \                  20001     |   81_000_000
+         * --                  /    |    \                 50001     |  114_050_000
+         * --              20001  50001  40001             40001     |  113_000_000
+         * --             /  |     /| \ /  |               30001     |  112_000_000
+         * --            /   |    / | /\   |               10001     |   68_000_000
+         * --           /    |   /  |/  \  |                   1     |    4_000_000
+         * --          /     |  /  /|    \ |               70001     |  112_000_000
+         * --        10001   | / /  |     \|              --------------------------
+         * --                |//    |     30001
+         * --                |/  70001(*)
+         * --                1
+         */
+
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), GC_PROJECT);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), GC_PROJECT);
 
         long currentTime = System.currentTimeMillis();
         long currentDate = TimeUtil.getDayStart(currentTime);
 
-        dataflowManager.updateDataflow(MODEL_ID,
+        IndexPlan oriIndexPlan = indexPlanManager.getIndexPlan(GC_MODEL_ID);
+        updateLayoutHitCount(dataflowManager, oriIndexPlan, currentDate, GC_MODEL_ID, 3);
+        NDataflow dataflow = dataflowManager.getDataflow(GC_MODEL_ID);
+        Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new SimilarLayoutGcStrategy());
+        Assert.assertEquals(Sets.newHashSet(30001L, 40001L, 50001L, 70001L), garbageLayouts);
+        NavigableMap<Long, Integer> dateFrequency = dataflow.getLayoutHitCount().get(60001L).getDateFrequency();
+        Assert.assertEquals(15, dateFrequency.get(currentDate - 3 * DAY_IN_MILLIS).intValue());
+
+        // set kylin.garbage.reject-similarity-threshold to 1_000_000
+        getTestConfig().setProperty("kylin.garbage.reject-similarity-threshold", "1000000");
+        oriIndexPlan = indexPlanManager.getIndexPlan(GC_MODEL_ID);
+        updateLayoutHitCount(dataflowManager, oriIndexPlan, currentDate, GC_MODEL_ID, 3);
+        dataflow = dataflowManager.getDataflow(GC_MODEL_ID);
+        Set<Long> garbageLayouts2 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new SimilarLayoutGcStrategy());
+        val dateFrequency60001 = dataflow.getLayoutHitCount().get(60001L).getDateFrequency();
+        val dateFrequency40001 = dataflow.getLayoutHitCount().get(40001L).getDateFrequency();
+        Assert.assertEquals(Sets.newHashSet(30001L, 50001L), garbageLayouts2);
+        Assert.assertEquals(6, dateFrequency60001.get(currentDate - 3 * DAY_IN_MILLIS).intValue());
+        Assert.assertEquals(6, dateFrequency40001.get(currentDate - 3 * DAY_IN_MILLIS).intValue());
+
+        // test TableIndex
+        getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "true");
+        Set<Long> garbageLayouts3 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new SimilarLayoutGcStrategy());
+        Assert.assertEquals(Sets.newHashSet(30001L, 50001L, 20000010001L, 20000020001L), garbageLayouts3);
+    }
+
+    private void updateLayoutHitCount(NDataflowManager dataflowManager, IndexPlan indexPlan, long currentDate,
+            String gcModelId, int i) {
+        dataflowManager.updateDataflow(gcModelId, copyForWrite -> {
+            Map<Long, FrequencyMap> frequencyMap = Maps.newHashMap();
+            indexPlan.getAllLayouts().forEach(layout -> {
+                TreeMap<Long, Integer> hit = Maps.newTreeMap();
+                hit.put(currentDate - 3 * DAY_IN_MILLIS, i);
+                frequencyMap.putIfAbsent(layout.getId(), new FrequencyMap(hit));
+            });
+            copyForWrite.setLayoutHitCount(frequencyMap);
+        });
+    }
+
+    private void initTestData() {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val indexPlan = indexPlanManager.getIndexPlan(DEFAULT_MODEL_BASIC_ID);
+
+        long currentTime = System.currentTimeMillis();
+        long currentDate = TimeUtil.getDayStart(currentTime);
+
+        dataflowManager.updateDataflow(DEFAULT_MODEL_BASIC_ID,
                 copyForWrite -> copyForWrite.setLayoutHitCount(new HashMap<Long, FrequencyMap>() {
                     {
                         put(1L, new FrequencyMap(new TreeMap<Long, Integer>() {
@@ -244,7 +321,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
                 }));
 
         // add some new layouts for cube
-        indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             val newDesc = new IndexEntity();
             newDesc.setId(40000);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));
@@ -276,7 +353,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         });
 
         // change all layouts' status to ready.
-        NDataflow df = dataflowManager.getDataflow(MODEL_ID);
+        NDataflow df = dataflowManager.getDataflow(DEFAULT_MODEL_BASIC_ID);
         NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         NDataSegment latestReadySegment = df.getLatestReadySegment();
         Set<Long> ids = Sets.newHashSet(2_000_020_001L, 2_000_030_001L, 2_000_040_001L, 40_001L, 40_002L);
@@ -294,7 +371,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     public void testGetStorageVolumeInfoEmpty() {
         List<StorageInfoEnum> storageInfoEnumList = Lists.newArrayList();
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
+        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
 
         Assert.assertEquals(-1L, storageVolumeInfo.getStorageQuotaSize());
         Assert.assertEquals(-1L, storageVolumeInfo.getTotalStorageSize());
@@ -314,7 +391,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Mockito.doThrow(new RuntimeException("catch me")).when(totalStorageCollector).collect(Mockito.any(),
                 Mockito.anyString(), Mockito.any(StorageVolumeInfo.class));
 
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
+        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
 
         Assert.assertEquals(-1L, storageVolumeInfo.getTotalStorageSize());
         Assert.assertEquals(1, storageVolumeInfo.getThrowableMap().size());

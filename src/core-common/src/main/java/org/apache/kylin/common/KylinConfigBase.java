@@ -89,6 +89,9 @@ public abstract class KylinConfigBase implements Serializable {
     private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
     private static final String KYLIN_ROOT = "/kylin";
 
+    public static final long REJECT_SIMILARITY_THRESHOLD = 100_000_000L;
+    public static final double SIMILARITY_THRESHOLD = 0.9;
+
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
      *
@@ -1713,12 +1716,24 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.garbage.customized-strategy-enabled", "false"));
     }
 
+    public double getLayoutSimilarityThreshold() {
+        return safeParseDouble(getOptional("kylin.garbage.layout-relative-similarity-threshold"), SIMILARITY_THRESHOLD);
+    }
+
+    public long getSimilarityStrategyRejectThreshold() {
+        return safeParseLong(getOptional("kylin.garbage.reject-similarity-threshold"), REJECT_SIMILARITY_THRESHOLD);
+    }
+
     public String getLowFreqGarbageStrategyTarget() {
         return getOptional("kylin.garbage.low-freq-strategy-target", "");
     }
 
     public String getIncludedGarbageStrategyTarget() {
         return getOptional("kylin.garbage.included-strategy-target", "");
+    }
+
+    public String getSimilarGarbageStrategyTarget() {
+        return getOptional("kylin.garbage.similar-strategy-target", "");
     }
 
     public boolean isOnlyTailorAggIndex() {
@@ -1825,5 +1840,25 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean getLoadHiveTablenameEnabled() {
         return Boolean.parseBoolean(getOptional("kap.table.load-hive-tablename-enabled", "true"));
+    }
+
+    private double safeParseDouble(String value, double defaultValue) {
+        double rst = defaultValue;
+        try {
+            rst = Double.parseDouble(value.trim());
+        } catch (Exception e) {
+            logger.error("Detect a malformed double value, set to a default value {}", defaultValue);
+        }
+        return rst;
+    }
+
+    private long safeParseLong(String value, long defaultValue) {
+        long rst = defaultValue;
+        try {
+            rst = Long.parseLong(value.trim());
+        } catch (Exception e) {
+            logger.error("Detect a malformed long value, set to a default value {}", defaultValue);
+        }
+        return rst;
     }
 }

@@ -1,0 +1,18 @@
+{
+  "uuid" : "e0e90065-e7c3-49a0-a801-20465ca64799",
+  "last_modified" : 1575725169601,
+  "create_time" : 1575725006899,
+  "version" : "4.0.0.0",
+  "project" : "gc_test",
+  "last_verified_time" : 1575725169617,
+  "next_cc_recommendation_item_id" : 0,
+  "next_dimension_recommendation_item_id" : 0,
+  "next_measure_recommendation_item_id" : 1,
+  "next_index_recommendation_item_id" : 0,
+  "next_layout_recommendation_item_id" : 2,
+  "cc_recommendations" : [ ],
+  "dimension_recommendations" : [ ],
+  "measure_recommendations" : [ ],
+  "index_recommendations" : [ ],
+  "layout_recommendations" : [ ]
+}
