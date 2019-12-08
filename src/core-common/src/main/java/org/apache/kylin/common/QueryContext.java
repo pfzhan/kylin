@@ -78,6 +78,7 @@ public class QueryContext {
     private String username;
     private Set<String> groups;
     private AtomicLong sourceScanBytes = new AtomicLong();
+    private AtomicLong sourceScanRows = new AtomicLong();
     private String sql;
     private boolean isTimeout;
     private String project;
@@ -200,6 +201,13 @@ public class QueryContext {
 
     public long addAndGetSourceScanBytes(long bytes) {
         return sourceScanBytes.addAndGet(bytes);
+    }
+    public long getSourceScanRows() {
+        return sourceScanRows.get();
+    }
+
+    public long addAndGetSourceScanRows(long bytes) {
+        return sourceScanRows.addAndGet(bytes);
     }
 
     public String getSql() {

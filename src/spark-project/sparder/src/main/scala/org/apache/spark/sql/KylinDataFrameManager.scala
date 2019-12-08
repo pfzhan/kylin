@@ -23,10 +23,7 @@
 package org.apache.spark.sql
 
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
-import org.apache.kylin.storage.StorageFactory
 import org.apache.spark.sql.datasource.storage.StorageStoreFactory
-import org.apache.spark.sql.execution.datasource.{FilePruner, KylinRelation}
-import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.{HashMap => MutableHashMap}

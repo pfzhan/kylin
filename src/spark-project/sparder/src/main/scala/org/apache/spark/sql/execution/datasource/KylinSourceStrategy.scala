@@ -117,7 +117,8 @@ object KylinSourceStrategy extends Strategy with Logging {
       logInfo(s"Output Data Schema: ${outputSchema.simpleString(5)}")
 
       val outputAttributes = readDataColumns ++ partitionColumns
-
+      // to trigger setShufflePartitions
+      filePruner.listFiles(partitionKeyFilters.iterator.toSeq, dataFilters.iterator.toSeq)
       val scan =
         new KylinFileSourceScanExec(
           fsRelation,

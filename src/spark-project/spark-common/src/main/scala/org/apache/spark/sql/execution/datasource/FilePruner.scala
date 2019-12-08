@@ -23,16 +23,17 @@
 package org.apache.spark.sql.execution.datasource
 
 import java.sql.{Date, Timestamp}
+import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.DateFormat
-import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model.PartitionDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
-import org.apache.spark.sql.catalyst.{expressions, InternalRow}
+import org.apache.spark.sql.catalyst.{InternalRow, expressions}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
@@ -44,14 +45,14 @@ import scala.collection.JavaConverters._
 case class SegmentDirectory(segmentID: String, files: Seq[FileStatus])
 
 /**
- * A container for shard information.
- * Sharding is a technology for decomposing data sets into more manageable parts, and the number
- * of shards is fixed so it does not fluctuate with data.
- *
- * @param numShards number of shards.
- * @param shardColumnNames the names of the columns that used to generate the shard id.
- * @param sortColumnNames the names of the columns that used to sort data in each shard.
- */
+* A container for shard information.
+* Sharding is a technology for decomposing data sets into more manageable parts, and the number
+* of shards is fixed so it does not fluctuate with data.
+*
+* @param numShards        number of shards.
+* @param shardColumnNames the names of the columns that used to generate the shard id.
+* @param sortColumnNames  the names of the columns that used to sort data in each shard.
+*/
 case class ShardSpec(numShards: Int,
                      shardColumnNames: Seq[String],
                      sortColumnNames: Seq[String]) {
@@ -89,36 +90,25 @@ class FilePruner(val session: SparkSession,
     dataflow.getIndexPlan.getCuboidLayout(cuboidId)
   }
 
+  val workingDir: String = KapConfig.wrap(dataflow.getConfig).getReadParquetStoragePath(dataflow.getProject)
+
   override def rootPaths: Seq[Path] = {
-    val basePath = KapConfig.wrap(dataflow.getConfig).getReadParquetStoragePath(dataflow.getProject)
     dataflow.getQueryableSegments.asScala.map(
-      seg => new Path(s"$basePath${dataflow.getUuid}/${seg.getId}/${layout.getId}")
+      seg => new Path(s"$workingDir${dataflow.getUuid}/${seg.getId}/${layout.getId}")
     )
   }
 
   private lazy val segmentDirs: Seq[SegmentDirectory] = {
-    rootPaths.map(path => {
-      // path like that: base/dataflowID/segID/layoutID
-      val segID = path.getParent.getName
-
-      val files = new InMemoryFileIndex(session,
-        path :: Nil,
-        options,
-        Some(dataSchema),
-        FileStatusCache.getOrCreate(session))
-        .listFiles(Nil, Nil)
-        .flatMap(_.files)
-        .filter(_.isFile)
-
-      SegmentDirectory(segID, files)
-    }).filter(_.files.nonEmpty)
+    dataflow.getQueryableSegments.asScala.map(seg => SegmentDirectory(seg.getId, null))
   }
 
   override lazy val partitionSchema: StructType = {
     // we did not use the partitionBy mechanism of spark
     new StructType()
   }
-   var patten: String = _
+
+  var pattern: String = _
+
   lazy val timePartitionSchema: StructType = {
     val desc: PartitionDesc = dataflow.getModel.getPartitionDesc
     StructType(
@@ -129,7 +119,7 @@ class FilePruner(val session: SparkSession,
         val id = layout.getOrderedDimensions.inverse().get(ref)
         if (id != null && (ref.getType.isDateTimeFamily || ref.getType.isStringFamily)) {
           if (ref.getType.isStringFamily) {
-            patten = desc.getPartitionDateFormat
+            pattern = desc.getPartitionDateFormat
           }
           dataSchema.filter(_.name == id.toString)
 
@@ -181,9 +171,8 @@ class FilePruner(val session: SparkSession,
       logInfo("Shard by column is empty or segments have a different number of shards, skip shard join opt.")
       None
     } else {
-
       val sortColumns = if (segs.size() == 1) {
-          layout.getOrderedDimensions.keySet.asScala.map(_.toString).toSeq
+        layout.getOrderedDimensions.keySet.asScala.map(_.toString).toSeq
       } else {
         logInfo("Sort order will lost in multi segments.")
         Seq.empty
@@ -193,30 +182,65 @@ class FilePruner(val session: SparkSession,
     }
   }
 
+  var cached = new java.util.HashMap[(Seq[Expression], Seq[Expression]), Seq[PartitionDirectory]]()
+
   override def listFiles(partitionFilters: Seq[Expression], dataFilters: Seq[Expression]): Seq[PartitionDirectory] = {
+    if (cached.containsKey((partitionFilters, dataFilters))) {
+      return cached.get((partitionFilters, dataFilters))
+    }
     require(isResolved)
     val timePartitionFilters = getSpecFilter(dataFilters, timePartitionColumn)
     logInfo(s"Applying time partition filters: ${timePartitionFilters.mkString(",")}")
 
+    val fsc = FilePruner.getFileStatusCache(session)
+
+    // segment pruning
     var selected = afterPruning("segment", timePartitionFilters, segmentDirs) {
       pruneSegments
-    }
+    }.par.map { e =>
+      val path = new Path(s"$workingDir${dataflow.getUuid}/${e.segmentID}/${layout.getId}")
+      val maybeStatuses = fsc.getLeafFiles(path)
+      if (maybeStatuses.isDefined) {
+        SegmentDirectory(e.segmentID, maybeStatuses.get)
+      } else {
+        val statuses = path.getFileSystem(session.sparkContext.hadoopConfiguration).listStatus(path)
+        fsc.putLeafFiles(path, statuses)
+        SegmentDirectory(e.segmentID, statuses)
+      }
+    }.toIterator.toSeq
 
+    // shards pruning
     selected = afterPruning("shard", dataFilters, selected) {
       pruneShards
     }
 
+    setShufflePartitions(selected)
+
     if (selected.isEmpty) {
-      Seq.empty
+      val value = Seq.empty[PartitionDirectory]
+      cached.put((partitionFilters, dataFilters), value)
+      value
     } else {
-      Seq(PartitionDirectory(InternalRow.empty, selected.flatMap(_.files)))
+      val value = Seq(PartitionDirectory(InternalRow.empty, selected.flatMap(_.files)))
+      cached.put((partitionFilters, dataFilters), value)
+      value
     }
 
   }
 
+  private def setShufflePartitions(selected: Seq[SegmentDirectory]): Unit = {
+    QueryContext.current().addAndGetSourceScanBytes(selected.flatMap(partition => partition.files).map(_.getLen).sum)
+    val defaultParallelism = session.sparkContext.defaultParallelism
+    val partitionsNum = Math.min(QueryContext.current().getSourceScanBytes / (
+      KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 * 2) + 1,
+      defaultParallelism).toInt
+    session.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
+    logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getSourceScanBytes}")
+  }
+
   private def afterPruning(pruningType: String, specFilters: Seq[Expression], inputs: Seq[SegmentDirectory])
                           (pruningFunc: (Seq[Expression], Seq[SegmentDirectory]) => Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
-    val filteredPartitions = if (specFilters.isEmpty) {
+    if (specFilters.isEmpty) {
       inputs
     } else {
       var selected = inputs
@@ -231,10 +255,6 @@ class FilePruner(val session: SparkSession,
       }
       selected
     }
-
-    logInfo(s"Selected files after $pruningType pruning:" + filteredPartitions.flatMap(_.files).map(_.getPath.toString).mkString(";"))
-
-    filteredPartitions
   }
 
   private def getSpecFilter(dataFilters: Seq[Expression], col: Attribute): Seq[Expression] = {
@@ -244,18 +264,21 @@ class FilePruner(val session: SparkSession,
   private def pruneSegments(filters: Seq[Expression],
                             segDirs: Seq[SegmentDirectory]): Seq[SegmentDirectory] = {
 
-    // reduce filters to supported only
-    val reducedFilter = filters.flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
-
-    val filteredStatuses = segDirs.filter {
-      e => {
-        val tsRange = dataflow.getSegment(e.segmentID).getTSRange
-        SegFilters(tsRange.getStart, tsRange.getEnd, patten).foldFilter(reducedFilter) match {
-          case Trivial(true) => true
-          case Trivial(false) => false
+    val filteredStatuses = if (filters.isEmpty) {
+      segDirs
+    } else {
+      val reducedFilter = filters.flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
+      segDirs.filter {
+        e => {
+          val tsRange = dataflow.getSegment(e.segmentID).getTSRange
+          SegFilters(tsRange.getStart, tsRange.getEnd, pattern).foldFilter(reducedFilter) match {
+            case Trivial(true) => true
+            case Trivial(false) => false
+          }
         }
       }
     }
+    logInfo(s"Selected files after segments pruning:" + filteredStatuses.map(_.segmentID))
     filteredStatuses
   }
 
@@ -266,7 +289,7 @@ class FilePruner(val session: SparkSession,
     } else {
       val normalizedFiltersAndExpr = filters.reduce(expressions.And)
 
-      segDirs.map { case SegmentDirectory(segID, files) =>
+      val pruned = segDirs.map { case SegmentDirectory(segID, files) =>
         val partitionNumber = dataflow.getSegment(segID).getLayout(layout.getId).getPartitionNum
         require(partitionNumber > 0, "Shards num with shard by col should greater than 0.")
 
@@ -278,17 +301,17 @@ class FilePruner(val session: SparkSession,
         })
         SegmentDirectory(segID, selected)
       }
+      logInfo(s"Selected files after shards pruning:" + pruned.flatMap(_.files).map(_.getPath.toString).mkString(";"))
+      pruned
     }
     filteredStatuses
   }
 
-  override lazy val inputFiles: Array[String] = segmentDirs.flatMap { e =>
-    e.files.map(_.getPath.toString)
-  }.toArray
+  override lazy val inputFiles: Array[String] = Array.empty[String]
 
-  override lazy val sizeInBytes: Long = segmentDirs.flatMap { e =>
-    e.files.map(_.getLen)
-  }.sum
+  override lazy val sizeInBytes: Long = {
+    dataflow.getQueryableSegments.asScala.map(seg => seg.getLayout(layout.getId).getByteSize).sum
+  }
 
   override def refresh(): Unit = {}
 
@@ -339,6 +362,15 @@ class FilePruner(val session: SparkSession,
 }
 
 object FilePruner {
+  var fsc: AtomicReference[FileStatusCache] = new AtomicReference[FileStatusCache]
+
+  def getFileStatusCache(session: SparkSession): FileStatusCache = {
+    if (fsc.get() == null) {
+      fsc.set(FileStatusCache.getOrCreate(session))
+    }
+    fsc.get()
+  }
+
   def getPartitionId(p: Path): Int = {
     // path like: part-00001-91f13932-3d5e-4f85-9a56-d1e2b47d0ccb-c000.snappy.parquet
     // we need to get 00001.
@@ -347,7 +379,7 @@ object FilePruner {
   }
 }
 
-case class SegFilters(start: Long, end: Long, patten: String) extends Logging {
+case class SegFilters(start: Long, end: Long, pattern: String) extends Logging {
 
   private def insurance(value: Any)
                        (func: Long => Filter): Filter = {
@@ -356,10 +388,10 @@ case class SegFilters(start: Long, end: Long, patten: String) extends Logging {
         // see SPARK-27546
         val ts = DateFormat.stringToMillis(v.toString)
         func(ts)
-      case v: String if patten != null =>
-          val format = DateFormat.getDateFormat(patten)
-          val time = format.parse(v.toString).getTime
-          func(time)
+      case v: String if pattern != null =>
+        val format = DateFormat.getDateFormat(pattern)
+        val time = format.parse(v.toString).getTime
+        func(time)
       case v: Timestamp =>
         func(v.getTime)
       case _ =>

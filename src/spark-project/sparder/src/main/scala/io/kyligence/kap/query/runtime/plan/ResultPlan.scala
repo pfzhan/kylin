@@ -90,14 +90,17 @@ object ResultPlan extends Logging {
     sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
+    sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getSourceScanRows.toString)
     sparkContext.setJobGroup(jobGroup,
       QueryContext.current().getSql,
       interruptOnCancel = true)
     try {
       val rows = df.collect()
+      logInfo("End of data collection.")
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().setScanRows(scanRows)
       QueryContext.current().setScanBytes(scanBytes)
+      logInfo("Start transforming rows.")
       val dt = rows.map { row =>
         var rowIndex = 0
         row.toSeq.map { cell => {
@@ -111,6 +114,7 @@ object ResultPlan extends Logging {
         }
         }.toArray
       }
+      logInfo("End of row transformation.")
       dt
     } catch {
       case e: InterruptedException =>

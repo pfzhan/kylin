@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 import com.google.common.collect.{Lists, Sets}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -37,20 +37,17 @@ import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.execution.datasource.KylinRelation
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.hive.utils.ResourceDetectUtils
 import org.apache.spark.sql.manager.SparderLookupManager
 import org.apache.spark.sql.types.{ArrayType, DoubleType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, _}
 import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.{DataFrame, _}
 
 import scala.collection.JavaConverters._
 
 // scalastyle:off
 object TableScanPlan extends Logging {
-  private val kylinConfig: KapConfig = KapConfig.getInstanceFromEnv
 
   def listSegmentsForQuery(cube: NDataflow): util.List[NDataSegment] = {
     val r = new util.ArrayList[NDataSegment]
@@ -84,8 +81,8 @@ object TableScanPlan extends Logging {
         QueryContext.current().setTableIndex(true)
       }
 
-      val sourceBytes = segments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
-      QueryContext.current().addAndGetSourceScanBytes(sourceBytes)
+      val sourceRows = segments.asScala.map(_.getLayout(cuboidLayout.getId).getRows).sum
+      QueryContext.current().addAndGetSourceScanRows(sourceRows)
 
       val tableName = olapContext.firstTableScan.getBackupAlias
       val mapping = new NCuboidToGridTableMapping(cuboidLayout)
@@ -131,7 +128,6 @@ object TableScanPlan extends Logging {
       val dimensionsD = new util.LinkedHashSet[TblColRef]
       dimensionsD.addAll(groupsD)
       dimensionsD.addAll(otherDimsD)
-      //          var df = session.baseRelationToDataFrame(relation)
       val gtColIdx = mapping.getDimIndices(dimensionsD) ++ mapping
         .getMetricsIndices(context.getMetrics)
 
@@ -142,9 +138,6 @@ object TableScanPlan extends Logging {
         context.getCandidate)
       if (derived.hasDerived) {
         df = derived.joinDerived(df)
-        val paths = ResourceDetectUtils.getPaths(df.queryExecution.sparkPlan)
-        val sourceTableSize = ResourceDetectUtils.getResourceSize(paths: _*)
-        QueryContext.current().addAndGetSourceScanBytes(sourceTableSize - sourceBytes)
       }
 
       var topNMapping: Map[Int, Column] = Map.empty
