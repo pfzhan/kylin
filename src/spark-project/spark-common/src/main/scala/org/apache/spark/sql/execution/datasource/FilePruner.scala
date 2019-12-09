@@ -231,9 +231,14 @@ class FilePruner(val session: SparkSession,
   private def setShufflePartitions(selected: Seq[SegmentDirectory]): Unit = {
     QueryContext.current().addAndGetSourceScanBytes(selected.flatMap(partition => partition.files).map(_.getLen).sum)
     val defaultParallelism = session.sparkContext.defaultParallelism
-    val partitionsNum = Math.min(QueryContext.current().getSourceScanBytes / (
-      KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 * 2) + 1,
-      defaultParallelism).toInt
+    val kapConfig = KapConfig.getInstanceFromEnv
+    val partitionsNum = if (kapConfig.getSparkSqlShufflePartitions != -1) {
+      kapConfig.getSparkSqlShufflePartitions
+    } else {
+      Math.min(QueryContext.current().getSourceScanBytes / (
+        KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 * 2) + 1,
+        defaultParallelism).toInt
+    }
     session.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
     logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getSourceScanBytes}")
   }
