@@ -43,7 +43,7 @@ import scala.collection.JavaConverters._
 object WindowPlan extends Logging {
   // the function must have sort
   val sortSpecified =
-    List("CUME_DIST", "LEAD", "RANK", "DENSE_RANK", "ROW_NUMBER", "NTILE")
+    List("CUME_DIST", "LEAD", "RANK", "DENSE_RANK", "ROW_NUMBER", "NTILE", "LAG")
 
   // the function must row range
   val rowSpecified =
