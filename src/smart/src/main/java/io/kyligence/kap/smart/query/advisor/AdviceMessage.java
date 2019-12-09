@@ -67,7 +67,7 @@ public class AdviceMessage {
 
     // ==========================================================
 
-    String getDefaultReason() {
+    public String getDefaultReason() {
         return DEFAULT_REASON;
     }
 

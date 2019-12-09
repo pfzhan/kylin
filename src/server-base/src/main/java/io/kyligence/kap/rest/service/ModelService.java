@@ -69,6 +69,7 @@ import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.SourceFactory;
+import org.apache.kylin.source.adhocquery.HivePushDownConverter;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -142,6 +143,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.query.advisor.AdviceMessage;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
@@ -897,21 +899,23 @@ public class ModelService extends BasicService {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return;
         }
-
         try {
             SparkSession ss = SparderEnv.getSparkSession();
-            ss.sql(JoinedFlatTable.generateSelectDataStatement(dataModel, false));
+            String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
+            String pushdownSql = new HivePushDownConverter().convert(flatTableSql, "", "default", false);
+            ss.sql(pushdownSql);
         } catch (Exception e) {
             Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns: \\[(.*?),(.*?)];");
             Matcher matcher = pattern.matcher(e.getMessage().replaceAll("`", ""));
             if (matcher.find()) {
-                String str = matcher.group(1);
-                String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), str,
-                        str.substring(0, str.lastIndexOf('.')));
+                String column = matcher.group(1);
+                String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
+                String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), column, table);
                 throw new RuntimeException(error);
             } else {
-                String errorMsg = null != e.getMessage() ? StringUtils.substring(e.getMessage(), 0, 200) : "null";
-                throw new RuntimeException(errorMsg, e);
+                String errorMsg = String.format(AdviceMessage.getInstance().getDefaultReason(),
+                        null != e.getMessage() ? e.getMessage() : "null");
+                throw new RuntimeException(errorMsg);
             }
         }
     }
@@ -1423,6 +1427,11 @@ public class ModelService extends BasicService {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
 
+        String originFilterCondition = model.getFilterCondition();
+        if (originFilterCondition != null) {
+            String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition);
+            model.setFilterCondition(newFilterCondition);
+        }
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
             String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc);
@@ -1481,7 +1490,8 @@ public class ModelService extends BasicService {
         List<String> notExistIds = Stream.of(ids).filter(segmentId -> null == dataflow.getSegment(segmentId))
                 .filter(Objects::nonNull).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(notExistIds)) {
-            throw new BadRequestException(String.format("Can not find the Segments by ids [%s]", StringUtils.join(notExistIds, ",")));
+            throw new BadRequestException(
+                    String.format("Can not find the Segments by ids [%s]", StringUtils.join(notExistIds, ",")));
         }
     }
 
@@ -1691,6 +1701,7 @@ public class ModelService extends BasicService {
                 && !modelRequest.getPartitionDesc().equals(broken.getPartitionDesc())) {
             broken.setPartitionDesc(modelRequest.getPartitionDesc());
         }
+        broken.setFilterCondition(modelRequest.getFilterCondition());
         broken.setJoinTables(modelRequest.getJoinTables());
         broken.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
@@ -1937,5 +1948,11 @@ public class ModelService extends BasicService {
         long jobSize = getExecutableManager(project).countByModelAndStatus(model, ExecutableState::isProgressing);
         response.setRelatedJobSize(jobSize);
         return response;
+    }
+
+    public void checkFilterCondition(ModelRequest modelRequest) {
+        NDataModel dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        preProcessBeforeModelSave(dataModel, modelRequest.getProject());
+        checkFlatTableSql(dataModel);
     }
 }

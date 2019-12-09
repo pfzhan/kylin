@@ -86,6 +86,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.event.manager.EventDao;
@@ -1065,4 +1066,22 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertNotEquals(response, null);
     }
 
+    @Test
+    public void testIsSqlContainsColumns() {
+        Assert.assertFalse(tableService.isSqlContainsColumns("a > 10", "DB.A", Sets.newHashSet("b")));
+        Assert.assertTrue(tableService.isSqlContainsColumns("a > 10 AND b < 1", "DB.A", Sets.newHashSet("a", "b")));
+        Assert.assertTrue(tableService.isSqlContainsColumns("a > 10 OR b < 1", "DB.A", Sets.newHashSet("b")));
+        Assert.assertFalse(
+                tableService.isSqlContainsColumns("A.a > 10 AND B.b < 1", "DB.C", Sets.newHashSet("a", "b")));
+        Assert.assertTrue(tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A",
+                Sets.newHashSet("a", "b", "c")));
+        Assert.assertFalse(tableService.isSqlContainsColumns("(A.a > 10 AND B.b < 1) OR C.c != 'string'", "DB.B",
+                Sets.newHashSet("a", "c")));
+        Assert.assertFalse(tableService.isSqlContainsColumns("(A.a > 10 AND B.b < 1) OR C.c != 'string'", "DB.D",
+                Sets.newHashSet("a", "b", "c")));
+        Assert.assertTrue(tableService.isSqlContainsColumns("(A.a > 10) AND B.b < 1", "A", Sets.newHashSet("a")));
+        Assert.assertTrue(tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A",
+                Sets.newHashSet("a", "b", "c")));
+
+    }
 }

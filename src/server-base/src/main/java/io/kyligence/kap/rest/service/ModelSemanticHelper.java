@@ -161,6 +161,7 @@ public class ModelSemanticHelper extends BasicService {
         originModel.setRootFactTableName(expectedModel.getRootFactTableName());
         originModel.setRootFactTableAlias(expectedModel.getRootFactTableAlias());
         originModel.setPartitionDesc(expectedModel.getPartitionDesc());
+        originModel.setFilterCondition(expectedModel.getFilterCondition());
 
         // handle computed column updates
         List<ComputedColumnDesc> currentComputedColumns = originModel.getComputedColumnDescs();
@@ -300,6 +301,7 @@ public class ModelSemanticHelper extends BasicService {
         val newModel = modelMgr.getDataModelDesc(model);
 
         if (isSignificantChange(originModel, newModel)) {
+            log.info("model { " + originModel.getAlias() + " } reload data from datasource");
             val savedIndexPlan = handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(),
                     indePlanManager);
             removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
@@ -332,11 +334,13 @@ public class ModelSemanticHelper extends BasicService {
         }
     }
 
-    // if partitionDesc, mpCol, joinTable changed, we need reload data from datasource
+    // if partitionDesc, mpCol, joinTable, FilterCondition changed, we need reload data from datasource
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
-                || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables());
+                || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables())
+                || !Objects.equals(StringUtils.trim(originModel.getFilterCondition()),
+                        StringUtils.trim(newModel.getFilterCondition()));
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,

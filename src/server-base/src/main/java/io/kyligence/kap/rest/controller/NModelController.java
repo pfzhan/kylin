@@ -728,4 +728,13 @@ public class NModelController extends NBasicController {
             throw new BadRequestException("Partition column does not exist!");
         }
     }
+
+    @ApiOperation(value = "checkFilterCondition (check)")
+    @PostMapping(value = "/filter_condition/check", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<String> checkFilterCondition(@RequestBody ModelRequest modelRequest) {
+        modelService.checkFilterCondition(modelRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
 }

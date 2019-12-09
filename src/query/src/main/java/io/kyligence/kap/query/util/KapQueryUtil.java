@@ -52,11 +52,11 @@ public class KapQueryUtil {
     private KapQueryUtil() {
     }
 
-    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc) {
+    public static String massageExpression(NDataModel model, String project, String expression) {
         String tempConst = "'" + UUID.randomUUID().toString() + "'";
         StringBuilder forCC = new StringBuilder();
         forCC.append("select ");
-        forCC.append(cc.getExpression());
+        forCC.append(expression);
         forCC.append(" ,").append(tempConst);
         forCC.append(" ");
         appendJoinStatement(model, forCC, false);
@@ -73,6 +73,10 @@ public class KapQueryUtil {
         }
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1).trim();
+    }
+
+    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc) {
+        return massageExpression(model, project, cc.getExpression());
     }
 
     public static void appendJoinStatement(NDataModel model, StringBuilder sql, boolean singleLine) {

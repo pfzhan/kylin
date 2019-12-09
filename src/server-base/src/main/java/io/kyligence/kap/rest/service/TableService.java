@@ -1331,7 +1331,15 @@ public class TableService extends BasicService {
                     keyColumns.add(model.getPartitionDesc().getPartitionDateColumnRef().getIdentity());
                 }
             }
-            affectedModel.setBroken(!Sets.intersection(affectedModel.getColumns(), keyColumns).isEmpty());
+            if (!Sets.intersection(affectedModel.getColumns(), keyColumns).isEmpty()) {
+                affectedModel.setBroken(true);
+            }
+            if (isSqlContainsColumns(model.getFilterCondition(), tableIdentity, context.getRemoveColumns())
+                    || isSqlContainsColumns(model.getFilterCondition(), tableIdentity,
+                            context.getChangeTypeColumns())) {
+                logger.warn("reload table would affect model {" + model.getAlias() + "} filter_condition");
+                affectedModel.setBroken(true);
+            }
         }
         for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
             val affectedModel = calcAffectedModel(project, model, context.getChangeTypeColumns(), tableIdentity);
@@ -1347,6 +1355,24 @@ public class TableService extends BasicService {
                 .map(FavoriteQuery::getId).collect(Collectors.toSet()));
 
         return context;
+    }
+
+    boolean isSqlContainsColumns(String sql, String reloadTable, Set<String> cols) {
+        if (sql == null) {
+            sql = "";
+        }
+        sql = sql.toUpperCase();
+        if (reloadTable.contains(".")) {
+            reloadTable = reloadTable.split("\\.")[1];
+        }
+        for (String col : cols) {
+            col = col.toUpperCase();
+            String colWithTableName = reloadTable + "." + col;
+            if (sql.contains(colWithTableName) || !sql.contains("." + col) && sql.contains(col)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     ReloadTableAffectedModelContext calcAffectedModel(String project, NDataModel model, Set<String> changedColumns,

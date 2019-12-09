@@ -950,4 +950,12 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         return models;
     }
 
+    @Test
+    public void testCheckFilterCondition() {
+        ModelRequest modelRequest = new ModelRequest();
+        Mockito.doNothing().when(modelService).checkFilterCondition(Mockito.any());
+        nModelController.checkFilterCondition(modelRequest);
+        Mockito.verify(nModelController).checkFilterCondition(modelRequest);
+    }
+
 }
