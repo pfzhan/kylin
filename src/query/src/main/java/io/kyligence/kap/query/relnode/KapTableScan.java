@@ -291,7 +291,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
             }
 
             if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel || parent instanceof KapMinusRel
-                    || parent instanceof KapWindowRel || parent instanceof KapAggregateRel) {
+                    || parent instanceof KapAggregateRel) {
                 topProjParent = null;
             }
         }

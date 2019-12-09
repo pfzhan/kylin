@@ -25,12 +25,13 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -44,7 +45,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPProjectRel;
@@ -54,6 +54,7 @@ import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 import lombok.Setter;
 
@@ -206,15 +207,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         if (isMerelyPermutation || this.rewriting || this.afterAggregate)
             return;
 
-        for (Set<TblColRef> colRefs : this.columnRowType.getSourceColumns()) {
-            for (TblColRef colRef : colRefs) {
-                for (OLAPContext context : subContexts) {
-                    if (colRef != null && context.belongToContextTables(colRef)) {
-                        context.allColumns.add(colRef);
-                    }
-                }
-            }
-        }
+        ContextUtil.updateSubContexts(this.columnRowType.getSourceColumns().stream().flatMap(Collection::stream).collect(Collectors.toSet()), subContexts);
     }
 
     @Override

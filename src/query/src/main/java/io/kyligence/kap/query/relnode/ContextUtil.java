@@ -43,6 +43,7 @@ import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
@@ -239,5 +240,15 @@ public class ContextUtil {
 
     private static Set<Integer> collectColsFromFilterRel(RexCall filterCondition) {
         return RexUtils.getAllInputRefs(filterCondition).stream().map(RexSlot::getIndex).collect(Collectors.toSet());
+    }
+
+    public static void updateSubContexts(Collection<TblColRef> colRefs, Set<OLAPContext> subContexts) {
+        for (TblColRef colRef : colRefs) {
+            for (OLAPContext context : subContexts) {
+                if (colRef != null && context.belongToContextTables(colRef)) {
+                    context.allColumns.add(colRef);
+                }
+            }
+        }
     }
 }

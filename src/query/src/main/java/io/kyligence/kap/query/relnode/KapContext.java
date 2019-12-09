@@ -67,6 +67,9 @@ public class KapContext {
         } else if (kapRel instanceof KapValuesRel) {
             ((KapRel) kapRel).getColumnRowType().getAllColumns().stream().filter(context::isOriginAndBelongToCtxTables)
                     .forEach(context.allColumns::add);
+        } else if (kapRel instanceof KapWindowRel) {
+            ((KapWindowRel) kapRel).getGroupingColumns().stream().filter(context::isOriginAndBelongToCtxTables)
+                    .forEach(context.allColumns::add);
         } else if (kapRel instanceof KapJoinRel) {
             amendAllColsIfNoAgg(kapRel.getInput(0));
             amendAllColsIfNoAgg(kapRel.getInput(1));

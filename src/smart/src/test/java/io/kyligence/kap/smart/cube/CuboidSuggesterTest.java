@@ -455,4 +455,29 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(2L, layout2);
         Assert.assertEquals(IndexEntity.INDEX_ID_STEP + 1, layout3);
     }
+
+    @Test
+    public void testCubiodWithWindow() {
+
+        String[] sqls = new String[] {
+                "select first_value(price) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"first\",\n" +
+                        "last_value(price) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"current\",\n" +
+                        "lag(price, 1, 0.0) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"prev\",\n" +
+                        "lead(price, 1, 0.0) over(partition by lstg_format_name order by part_dt, lstg_format_name) as \"next\",\n" +
+                        "ntile(4) over (partition by lstg_format_name order by part_dt, lstg_format_name) as \"quarter\"\n" +
+                        "from kylin_sales\n" +
+                        "where part_dt < '2012-02-01'\n"};
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        smartMaster.runAll();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
+        final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
+        Assert.assertEquals(Lists.newArrayList(7, 3, 8), allCuboids.get(0).getDimensions());
+        Assert.assertEquals("{3, 7, 8}", allCuboids.get(0).getDimensionBitset().toString());
+        Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
+        Assert.assertTrue(layout.getUpdateTime() > 0);
+    }
 }

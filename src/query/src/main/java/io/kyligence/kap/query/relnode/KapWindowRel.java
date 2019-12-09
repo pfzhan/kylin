@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -36,12 +38,15 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPWindowRel;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
+import io.kyligence.kap.query.util.RexUtils;
 
 /**
  */
@@ -106,7 +111,24 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
             this.context.hasWindow = true;
             if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
+        } else {
+            ContextUtil.updateSubContexts(getGroupingColumns(), subContexts);
         }
+    }
+
+    public Collection<TblColRef> getGroupingColumns() {
+        ColumnRowType inputColumnRowType = ((KapRel)getInput()).getColumnRowType();
+        Set<TblColRef> tblColRefs = new HashSet<>();
+        for (Group group : groups) {
+            group.keys.forEach(grpKey -> tblColRefs.add(inputColumnRowType.getColumnByIndex(grpKey)));
+            group.orderKeys.getFieldCollations().forEach(f -> tblColRefs.add(inputColumnRowType.getColumnByIndex(f.getFieldIndex())));
+            group.aggCalls.stream()
+                    .flatMap(call -> RexUtils.getAllInputRefs(call).stream())
+                    .filter(inRef -> inRef.getIndex() < inputColumnRowType.size()) // if idx >= input column cnt, it is referencing to come constants
+                    .flatMap(inRef -> inputColumnRowType.getColumnByIndex(inRef.getIndex()).getSourceColumns().stream())
+                    .forEach(tblColRefs::add);
+        }
+        return tblColRefs;
     }
 
     @Override
