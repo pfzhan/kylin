@@ -12,7 +12,8 @@ const initialState = JSON.stringify({
   callback: null,
   form: {
     modelDesc: '',
-    modelInstance: null
+    modelInstance: null,
+    mode: ''
   }
 })
 
@@ -31,6 +32,7 @@ export default {
     [types.SET_MODAL]: (state, payload) => {
       state.form.modelDesc = payload.modelDesc
       state.form.modelInstance = payload.modelInstance
+      state.form.mode = payload.mode
       state.callback = payload.callback
     },
     // 还原Modal中的值为初始值
@@ -39,9 +41,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { modelDesc, modelInstance }) {
+    [types.CALL_MODAL] ({ commit }, { modelDesc, modelInstance, mode }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { modelDesc: modelDesc, modelInstance: modelInstance, callback: resolve })
+        commit(types.SET_MODAL, { modelDesc: modelDesc, modelInstance: modelInstance, mode: mode, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

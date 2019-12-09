@@ -226,5 +226,8 @@ export default {
   },
   suggestIsByAnswered: (para) => {
     return Vue.resource(apiUrl + 'models/can_answered_by_existed_model').save(para)
+  },
+  checkFilterConditon: (para) => {
+    return Vue.resource(apiUrl + 'models/filter_condition/check').save(para)
   }
 }

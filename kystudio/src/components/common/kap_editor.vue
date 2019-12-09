@@ -59,6 +59,9 @@ export default {
     isAbridge: {
       type: Boolean,
       default: false
+    },
+    placeholder: {
+      default: ''
     }
   },
   data () {
@@ -93,6 +96,7 @@ export default {
   },
   methods: {
     changeInput () {
+      this.updateEditor(this.$refs.kapEditor.editor)
       this.$emit('input', this.editorData)
     },
     setOption (option) {
@@ -125,6 +129,25 @@ export default {
     },
     getAbridgeType () {
       this.isAbridge && this.abridgeData()
+    },
+    updateEditor (editor) {
+      if (this.placeholder) {
+        let shouldShow = !editor.session.getValue().length
+        let node = editor.renderer.emptyMessageNode
+        if (!shouldShow && node) {
+          editor.renderer.scroller.removeChild(editor.renderer.emptyMessageNode)
+          editor.renderer.emptyMessageNode = null
+        } else if (shouldShow && !node) {
+          node = document.createElement('div')
+          editor.renderer.emptyMessageNode = node
+          node.innerHTML = this.placeholder
+          node.className = 'ace_invisible ace_emptyMessage'
+          node.style.padding = '0 5px'
+          node.style.position = 'absolute'
+          node.style.zIndex = 5
+          editor.renderer.scroller.appendChild(node)
+        }
+      }
     }
   },
   mounted () {
@@ -132,6 +155,7 @@ export default {
     // editor.setOption('wrap', 'free')
     // var editorWrap = this.$el
     // var smylesEditor = this.$el.querySelector('.smyles_editor')
+    this.updateEditor(editor)
     if (this.readOnly) {
       editor.setReadOnly(this.readOnly)
     }

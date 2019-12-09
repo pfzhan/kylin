@@ -292,6 +292,9 @@ export default {
     },
     [types.SUGGEST_IS_BY_ANSWERED] ({ commit }, paras) {
       return api.model.suggestIsByAnswered(paras)
+    },
+    [types.CHECK_FILTER_CONDITION] ({ commit }, paras) {
+      return api.model.checkFilterConditon(paras)
     }
   },
   getters: {

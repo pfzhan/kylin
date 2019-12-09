@@ -1,6 +1,6 @@
 <template>
   <el-dialog 
-    :title="$t('modelPartitionSet')"
+    :title="partitionTitle"
     width="560px"
     append-to-body
     limited-area
@@ -10,15 +10,18 @@
     :close-on-press-escape="false" 
     :close-on-click-modal="false">
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
+    <div class="partition-set ksd-title-label ksd-mb-10" v-if="mode === 'saveModel'">
+      <span>*</span>{{$t('modelPartitionSet')}}
+    </div>
     <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top"> 
       <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
-        <el-col :span="10">
+        <el-col :span="12">
           <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" class="ksd-mr-5">
             <el-option :label="$t('noPartition')" value=""></el-option>
             <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
           </el-select>
         </el-col>
-        <el-col :span="11" class="ksd-pl-5">
+        <el-col :span="12" class="ksd-pl-5" v-if="partitionMeta.table">
           <el-form-item prop="column">
             <el-select :disabled="isLoadingNewRange"
             v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:100%">
@@ -29,80 +32,41 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="3" class="ksd-pl-5" >
-          <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
-            <el-button
-              size="medium"
-              :loading="isLoadingFormat"
-              icon="el-icon-ksd-data_range_search"
-              v-guide.getPartitionColumnFormat
-              v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
-              @click="handleLoadFormat">
-            </el-button>
-          </el-tooltip>
-        </el-col>
       </el-form-item>
-      <el-form-item  :label="$t('dateFormat')">
-        <el-select :disabled="isLoadingFormat" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:41.66667%">
+      <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
+        <el-select :disabled="isLoadingFormat" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:50%">
           <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
           <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
         </el-select>
+        <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
+          <el-button
+            size="medium"
+            :loading="isLoadingFormat"
+            icon="el-icon-ksd-data_range_search"
+            v-guide.getPartitionColumnFormat
+            v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
+            @click="handleLoadFormat">
+          </el-button>
+        </el-tooltip>
       </el-form-item>
-    </el-form> 
-    <!-- <template v-if="showDataRange">
-      <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
-      <el-alert
-        :title="$t('kylinLang.dataSource.rangeInfoTip')"
-        type="info"
-        :show-background="false"
-        :closable="false"
-        show-icon>
-      </el-alert>
-    <el-form :model="modelBuildMeta" ref="rangeForm" :rules="rules"  label-width="85px" label-position="top"> 
-      <el-form-item class="custom-load"  prop="dataRangeVal" :rule="[{
-      validator: this.validateRange, trigger: 'blur'
-    }]">
-        <div class="ky-no-br-space">
-          <el-date-picker
-              type="datetime"
-              v-model="modelBuildMeta.dataRangeVal[0]"
-              :is-auto-complete="true"
-              class="ksd-mr-5"
-              :disabled="isLoadingNewRange"
-              value-format="timestamp"
-              format="yyyy/MM/dd"
-              :placeholder="$t('kylinLang.common.startTime')">
-            </el-date-picker>
-            <el-date-picker
-              type="datetime"
-              v-model="modelBuildMeta.dataRangeVal[1]"
-              :is-auto-complete="true"
-              :disabled="isLoadingNewRange"
-              value-format="timestamp"
-              format="yyyy/MM/dd"
-              :placeholder="$t('kylinLang.common.endTime')">
-            </el-date-picker>
-            <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
-              <el-button
-                v-if="isShow&&$store.state.project.projectPushdownConfig"
-                size="medium"
-                class="ksd-ml-10"
-                :loading="isLoadingNewRange"
-                v-guide.getPartitionRangeDataBtn
-                icon="el-icon-ksd-data_range_search"
-                @click="handleLoadNewestRange">
-              </el-button>
-            </el-tooltip>
-
-            <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
-            <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
-        </div>
-      </el-form-item>
-      </el-form>
-    </template> -->
+    </el-form>
+    <template v-if="mode === 'saveModel'">
+      <div class="divider"></div>
+      <div class="ksd-title-label ksd-mb-10">
+        {{$t('dataFilterCond')}}
+        <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
+          <i class="el-icon-ksd-what"></i>
+        </el-tooltip>
+      </div>
+      <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
+      <div class="error-msg-box ksd-mt-10" v-if="filterErrorMsg">
+        <div class="error-tag">{{$t('errorMsg')}}</div>
+        <div v-html="filterErrorMsg"></div>
+      </div>
+    </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -119,7 +83,7 @@ import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { isDatePartitionType, objectClone } from '../../../../../util'
-import { transToUTCMs } from 'util/business'
+import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 
@@ -131,6 +95,7 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
     // Store数据注入
     ...mapState('ModelPartitionModal', {
       isShow: state => state.isShow,
+      mode: state => state.form.mode,
       modelDesc: state => state.form.modelDesc,
       modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
       callback: state => state.callback
@@ -153,7 +118,8 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
       saveSampleData: 'SAVE_SAMPLE_DATA',
       setModelPartition: 'MODEL_PARTITION_SET',
       fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE',
-      fetchPartitionFormat: 'FETCH_PARTITION_FORMAT'
+      fetchPartitionFormat: 'FETCH_PARTITION_FORMAT',
+      checkFilterConditon: 'CHECK_FILTER_CONDITION'
     })
   },
   locales
@@ -163,6 +129,7 @@ export default class ModelPartitionModal extends Vue {
   isFormShow = false
   isLoadingNewRange = false
   isLoadingFormat = false
+  isLoadingSave = false
   partitionMeta = {
     table: '',
     column: '',
@@ -177,6 +144,7 @@ export default class ModelPartitionModal extends Vue {
   partitionRules = {
     column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
   }
+  filterErrorMsg = ''
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
     if ((startValue && endValue && transToUTCMs(startValue) < transToUTCMs(endValue)) || !startValue && !endValue) {
@@ -217,26 +185,6 @@ export default class ModelPartitionModal extends Vue {
       handleError(e)
     }
   }
-  // async handleLoadNewestRange () {
-  //   this.isLoadingNewRange = true
-  //   try {
-  //     let tableInfo = this.modelInstance.getTableByAlias(this.partitionMeta.table)
-  //     const submitData = {
-  //       project: this.currentSelectedProject,
-  //       table: tableInfo.name,
-  //       partitionColumn: this.partitionMeta.column
-  //     }
-  //     const response = await this.fetchNewestModelRange(submitData)
-  //     const result = await handleSuccessAsync(response)
-  //     const startTime = +result.start_time
-  //     const endTime = +result.end_time
-  //     this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
-  //     this.$refs.partitionForm.validate()
-  //   } catch (e) {
-  //     handleError(e)
-  //   }
-  //   this.isLoadingNewRange = false
-  // }
   filterCondition = ''
   dateFormats = [
     {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
@@ -247,6 +195,13 @@ export default class ModelPartitionModal extends Vue {
     // {label: 'yyyy-MM', value: 'yyyy-MM'},
     // {label: 'yyyyMM', value: 'yyyyMM'}
   ]
+  get partitionTitle () {
+    if (this.mode === 'saveModel') {
+      return this.$t('modelSaveSet')
+    } else {
+      return this.$t('modelPartitionSet')
+    }
+  }
   get partitionTables () {
     let result = []
     if (this.isShow && this.modelInstance) {
@@ -346,11 +301,20 @@ export default class ModelPartitionModal extends Vue {
         this.partitionMeta.table = named[0]
         this.partitionMeta.column = named[1]
         this.partitionMeta.format = this.modelDesc.partition_desc.partition_date_format
-        this.partitionMeta.filter_condition = this.modelDesc.filter_condition
       }
+      this.filterCondition = this.modelDesc.filter_condition
     } else {
       this.resetForm()
     }
+  }
+  @Watch('filterCondition')
+  filterConditionChange (val, oldVal) {
+    if (val !== oldVal) {
+      this.resetMsg()
+    }
+  }
+  resetMsg () {
+    this.filterErrorMsg = ''
   }
   partitionTableChange () {
     this.partitionMeta.column = ''
@@ -368,6 +332,8 @@ export default class ModelPartitionModal extends Vue {
       format: ''
     }
     this.filterCondition = ''
+    this.isLoadingSave = false
+    this.isLoadingFormat = false
   }
   async savePartition () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
@@ -386,7 +352,20 @@ export default class ModelPartitionModal extends Vue {
       this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0]))
       this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1]))
     }
-    this.handleClose(true)
+    if (this.mode === 'saveModel') {
+      this.isLoadingSave = true
+      this.checkFilterConditon(this.modelDesc).then((res) => {
+        handleSuccess(res, () => {
+          this.handleClose(true)
+          this.isLoadingSave = false
+        })
+      }, (errorRes) => {
+        this.filterErrorMsg = errorRes.data.msg
+        this.isLoadingSave = false
+      })
+    } else {
+      this.handleClose(true)
+    }
   }
   handleClose (isSubmit) {
     this.isLoadingFormat = false
@@ -405,6 +384,25 @@ export default class ModelPartitionModal extends Vue {
 <style lang="less">
 @import '../../../../../assets/styles/variables.less';
 .model-partition-dialog {
+  .error-msg-box {
+    border: 1px solid @line-border-color;
+    height: 55px;
+    overflow: auto;
+    font-size: 12px;
+    padding: 10px;
+    .error-tag {
+      color: @error-color-1;
+    }
+  }
+  .partition-set {
+    span {
+      color: @error-color-1;
+    }
+  }
+  .divider {
+    margin: 15px 0;
+    border-bottom: 1px solid @line-split-color;
+  }
   .item-desc {
     font-size: 12px;
     line-height: 1;

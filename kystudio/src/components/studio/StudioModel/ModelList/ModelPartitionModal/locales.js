@@ -18,9 +18,14 @@ export default {
     invaildDate: 'Please input vaild date.',
     detectAvailableRange: 'Detect available range',
     modelPartitionSet: 'Model Partition',
+    modelSaveSet: 'Save',
+    dataFilterCond: 'Data Filter Condition',
+    dataFilterCondTips: 'Data filter condition is an addition data filter during data loading. E.g. you can filter out those records with null values or specific records according to your business rules.',
     noColumnFund: 'Column not found',
     pleaseInputColumn: 'Please select a partition column',
-    detectFormat: 'Detect partition format'
+    detectFormat: 'Detect partition format',
+    errorMsg: 'Error Message:',
+    filterPlaceholder: 'Please input your filter condition and no clause "WHERE" needed. If you have several filter conditions, you should combine them with "AND" or "OR". E.g. BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -41,8 +46,13 @@ export default {
     invaildDate: '请输入合法的时间区间。',
     detectAvailableRange: '获取最新数据范围',
     modelPartitionSet: '分区设置',
+    modelSaveSet: '保存',
+    dataFilterCond: '数据筛选条件',
+    dataFilterCondTips: '您可以通过数据筛选在保存模型时过滤掉空值数据或是符合特定条件的数据。',
     noColumnFund: '找不到该列',
     pleaseInputColumn: '请选择分区列',
-    detectFormat: '获取分区格式'
+    detectFormat: '获取分区格式',
+    errorMsg: '错误信息：',
+    filterPlaceholder: '请输入过滤条件，多个条件使用AND或OR连接，不需要写WHERE。例如：BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
   }
 }
