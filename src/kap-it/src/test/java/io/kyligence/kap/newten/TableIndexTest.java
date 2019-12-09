@@ -97,6 +97,33 @@ public class TableIndexTest extends NLocalWithSparkSessionTest {
         query.add(Pair.newPair("query_agg_index1", "select sum(ORDER_ID) from TEST_KYLIN_FACT"));
         query.add(Pair.newPair("query_agg_index2", "select sum(ORDER_ID),LSTG_FORMAT_NAME from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));
 
+        query.add(Pair.newPair("query_agg_inner_col_index1",
+                "select \n" +
+                        "  sum(ORDER_ID + 1), \n" +
+                        "  count( distinct \n" +
+                        "    case when LSTG_FORMAT_NAME <> '' then LSTG_FORMAT_NAME else 'unknown' end\n" +
+                        "  ) from TEST_KYLIN_FACT \n" +
+                        "group by \n" +
+                        "  LSTG_FORMAT_NAME\n"));
+        query.add(Pair.newPair("query_agg_inner_col_index2",
+        "select \n" +
+                "  sum(ORDER_ID + 1), \n" +
+                "  count( distinct \n" +
+                "    case when LSTG_FORMAT_NAME <> '' then LSTG_FORMAT_NAME else 'unknown' end\n" +
+                "  ) \n" +
+                "from \n" +
+                "  (\n" +
+                "    select \n" +
+                "      a1.ORDER_ID - 10 as ORDER_ID, \n" +
+                "      a1.LSTG_FORMAT_NAME\n" +
+                "    from \n" +
+                "      TEST_KYLIN_FACT a1\n" +
+                "  ) \n" +
+                "where \n" +
+                "  order_id > 10 \n" +
+                "group by \n" +
+                "  LSTG_FORMAT_NAME\n"));
+
         NExecAndComp.execAndCompareNew(query, getProject(), CompareLevel.SAME, "left", null);
     }
 }

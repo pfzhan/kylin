@@ -170,7 +170,7 @@ public class RealizationChooser {
                 for (FunctionDesc aggregation : aggregations) {
                     List<ParameterDesc> parameters = aggregation.getParameters();
                     for (ParameterDesc aggParameter : parameters) {
-                        needDimensions.add(aggParameter.getColRef());
+                        needDimensions.addAll(aggParameter.getColRef().getSourceColumns());
                     }
                 }
                 context.storageContext.getDimensions().addAll(needDimensions);
