@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -73,6 +74,10 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         val oldRule = newPlan.getRuleBasedIndex();
         logLayouts(newPlan.getAllLayouts());
         Assert.assertEquals(12, newPlan.getAllLayouts().size());
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        dataflowManager.createDataflow(newPlan, "ADMIN");
+
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new NRuleBasedIndex();
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
@@ -178,6 +183,9 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         logLayouts(newPlan.getAllLayouts());
         Assert.assertEquals(13, newPlan.getAllLayouts().size());
 
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        dataflowManager.createDataflow(newPlan, "ADMIN");
+
         val indexPlan = indexPlanManager.updateIndexPlan(newPlan.getUuid(), copyForWrite -> {
             val newRule = new NRuleBasedIndex();
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
@@ -229,6 +237,10 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         val oldRule = newPlan.getRuleBasedIndex();
         logLayouts(newPlan.getAllLayouts());
         Assert.assertEquals(12, newPlan.getAllLayouts().size());
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        dataflowManager.createDataflow(newPlan, "ADMIN");
+
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new NRuleBasedIndex();
             newRule.setDimensions(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
@@ -272,6 +284,14 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
 
         newPlan = indexPlanManager.createIndexPlan(newPlan);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        dataflowManager.createDataflow(newPlan, "ADMIN");
+        NDataflow df = dataflowManager.getDataflow(newPlan.getId());
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df, df.getLatestReadySegment().getId(), 30001L));
+        dataflowManager.updateDataflow(update);
+
         logLayouts(newPlan.getAllLayouts());
         Assert.assertEquals(12, newPlan.getAllLayouts().size());
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
@@ -290,15 +310,15 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
                         + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [\n"
                         + "            [3,4]\n" + "          ]\n" + "        }\n" + "}", NAggregationGroup.class);
                 newRule.setAggregationGroups(Arrays.asList(group1, group2));
-                copyForWrite.setRuleBasedIndex(newRule);
+                copyForWrite.setRuleBasedIndex(newRule, false, true);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
-
         val copy = indexPlan.copy();
         copy.setRuleBasedIndex(copy.getRuleBasedIndex(), true);
         Assert.assertEquals(JsonUtil.writeValueAsIndentString(indexPlan), JsonUtil.writeValueAsIndentString(copy));
+        Assert.assertTrue(CollectionUtils.isNotEmpty(indexPlan.getToBeDeletedIndexes()));
     }
 
     @Test

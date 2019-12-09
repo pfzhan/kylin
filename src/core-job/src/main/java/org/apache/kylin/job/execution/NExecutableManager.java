@@ -327,6 +327,18 @@ public class NExecutableManager {
         }
     }
 
+    public List<AbstractExecutable> getExecutablesByStatusList(Set<ExecutableState> statusList) {
+        Preconditions.checkNotNull(statusList);
+
+        val executables = getAllExecutables();
+        if (CollectionUtils.isNotEmpty(statusList)) {
+            return executables.stream().filter(t -> statusList.isEmpty() || statusList.contains(t.getStatus()))
+                    .collect(Collectors.toList());
+        } else {
+            return executables;
+        }
+    }
+
     public List<AbstractExecutable> getExecutablesByStatus(ExecutableState status) {
 
         val executables = getAllExecutables();

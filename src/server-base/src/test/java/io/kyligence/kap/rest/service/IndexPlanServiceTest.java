@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -460,6 +461,31 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testUpdateTableIndex_markToBeDeleted() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        long existLayoutId = 20000010001L;
+        long maxTableLayoutId = indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId)
+                .getWhitelistLayouts().stream().map(LayoutEntity::getId).max(Long::compare).get();
+        indexPlanService.updateTableIndex(project,
+                CreateTableIndexRequest.builder().id(existLayoutId).project(project).modelId(modelId)
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")).isLoadData(false).build());
+
+        Assert.assertTrue(indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId).getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == existLayoutId));
+        Assert.assertTrue(indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId).getToBeDeletedIndexes()
+                .stream().map(IndexEntity::getLayouts).flatMap(List::stream).anyMatch(l -> l.getId() == existLayoutId));
+        Assert.assertTrue(indexPlanService.getIndexPlanManager(project).getIndexPlan(modelId).getAllLayouts().stream()
+                .anyMatch(l -> l.getId() == maxTableLayoutId + IndexEntity.INDEX_ID_STEP));
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(modelId);
+        NDataSegment segment = df.getLatestReadySegment();
+        Assert.assertNotNull(segment.getLayout(existLayoutId));
+    }
+
+    @Test
     public void testGetTableIndex() {
         val originSize = indexPlanService.getTableIndexs("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").size();
         indexPlanService.createTableIndex("default",
@@ -716,25 +742,30 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         indexPlan = indexPlanManager.getIndexPlan(modelId);
         Assert.assertNull(indexPlan.getCuboidLayout(20000000001L));
 
+        testUpdateTableIndex_markToBeDeleted();
+        indexPlanService.removeIndex(getProject(), modelId, 20000010001L);
+        indexPlan = indexPlanManager.getIndexPlan(modelId);
+        Assert.assertNull(indexPlan.getCuboidLayout(20000010001L));
     }
 
     @Test
     public void testGetIndexes() throws NoSuchFieldException, IllegalAccessException {
         testUpdateSingleRuleBasedCuboid();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        var indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", "data_size", true,
-                Lists.newArrayList());
+        var indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), "data_size",
+                true, Lists.newArrayList());
         Assert.assertEquals(25, indexResponses.size());
         Assert.assertEquals(1000001L, indexResponses.get(0).getId().longValue());
 
-        indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", "data_size", true,
+        indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), "data_size", true,
                 Lists.newArrayList(AUTO_TABLE, MANUAL_TABLE));
 
         Assert.assertTrue(indexResponses.stream().allMatch(indexResponse -> indexResponse.getSource().equals(AUTO_TABLE)
                 || indexResponse.getSource().equals(MANUAL_TABLE)));
 
         // test default order by
-        indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", null, false, null);
+        indexResponses = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList(), null, false,
+                null);
         Assert.assertSame(indexResponses.get(0).getStatus(), IndexResponse.Status.EMPTY);
         IndexResponse prev = null;
         for (IndexResponse current : indexResponses) {
@@ -753,21 +784,24 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testGetIndexes_WithKey() {
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         // find normal column, and measure parameter
-        var response = indexPlanService.getIndexes(getProject(), modelId, "PRICE", "data_size", false, null);
+        var response = indexPlanService.getIndexes(getProject(), modelId, "PRICE", Lists.newArrayList(), "data_size",
+                false, null);
         var ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(20, response.size());
         Assert.assertTrue(ids.contains(20000020001L));
         Assert.assertTrue(ids.contains(10001L));
 
         // find CC column as dimension
-        response = indexPlanService.getIndexes(getProject(), modelId, "NEST3", "data_size", false, null);
+        response = indexPlanService.getIndexes(getProject(), modelId, "NEST3", Lists.newArrayList(), "data_size", false,
+                null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(2, response.size());
         Assert.assertTrue(ids.contains(20000020001L));
         Assert.assertTrue(ids.contains(1000001L));
 
         // find CC column as measure
-        response = indexPlanService.getIndexes(getProject(), modelId, "NEST4", "data_size", false, null);
+        response = indexPlanService.getIndexes(getProject(), modelId, "NEST4", Lists.newArrayList(), "data_size", false,
+                null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(14, response.size());
         for (IndexResponse res : response) {
@@ -775,13 +809,48 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                     .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));
         }
 
-        response = indexPlanService.getIndexes(getProject(), modelId, "nest4", "data_size", false, null);
+        response = indexPlanService.getIndexes(getProject(), modelId, "nest4", Lists.newArrayList(), "data_size", false,
+                null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
         Assert.assertEquals(14, response.size());
         for (IndexResponse res : response) {
             Assert.assertTrue(res.getColOrder().stream().map(IndexResponse.ColOrderPair::getKey)
                     .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));
         }
+    }
+
+    @Test
+    public void testGetIndexes_WithStatus() throws Exception {
+        testUpdateTableIndex_markToBeDeleted();
+
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        // find normal column, and measure parameter
+        var response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("EMPTY"), "data_size",
+                false, null);
+        var ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(3, response.size());
+        Assert.assertTrue(ids.contains(20000020001L));
+        Assert.assertTrue(ids.contains(20000030001L));
+
+        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("AVAILABLE"), "data_size",
+                false, null);
+        ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(7, response.size());
+        Assert.assertFalse(ids.contains(20000010001L));
+        Assert.assertTrue(ids.contains(10001L));
+
+        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("TO_BE_DELETED"),
+                "data_size", false, null);
+        ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(1, response.size());
+        Assert.assertTrue(ids.contains(20000010001L));
+
+        Mockito.doReturn(Sets.newHashSet(20000020001L)).when(indexPlanService).getLayoutsByRunningJobs(getProject());
+        response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("BUILDING"), "data_size",
+                false, null);
+        ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
+        Assert.assertEquals(1, response.size());
+        Assert.assertTrue(ids.contains(20000020001L));
     }
 
     @Test

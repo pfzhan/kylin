@@ -30,10 +30,13 @@ import static org.apache.kylin.job.execution.AbstractExecutable.PARENT_ID;
 import static org.apache.kylin.job.execution.AbstractExecutable.SUBMITTER;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -103,7 +106,6 @@ public class ExecutableParams {
         return users;
     }
 
-
     public Pair<String, String> formatNotifications(EmailNotificationContent content) {
         if (content == null) {
             return null;
@@ -129,4 +131,15 @@ public class ExecutableParams {
         return Optional.ofNullable(getParam(P_DATA_RANGE_START)).map(Long::parseLong).orElse(0L);
     }
 
+    public Set<Long> getToBeDeletedLayoutIds() {
+        Set<Long> layoutIdList = new LinkedHashSet<>();
+        String idStr = getParam(NBatchConstants.P_LAYOUT_IDS);
+        if (StringUtils.isNotBlank(idStr)) {
+            for (String id : idStr.split(",")) {
+                layoutIdList.add(Long.parseLong(id));
+            }
+        }
+
+        return layoutIdList;
+    }
 }

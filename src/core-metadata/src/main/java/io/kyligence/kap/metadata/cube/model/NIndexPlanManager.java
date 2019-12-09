@@ -260,7 +260,7 @@ public class NIndexPlanManager implements IKeepNames {
         Preconditions.checkState(allDistinct, "there are layouts have same id");
 
         // make sure cube_plan does not have duplicate indexes, duplicate index means two indexes have same dimensions and measures
-        val allIndexes = indexPlan.getAllIndexes();
+        val allIndexes = indexPlan.getAllIndexes(false);
         val tableIndexSize = allIndexes.stream().filter(IndexEntity::isTableIndex).map(IndexEntity::getDimensionBitset)
                 .distinct().count();
         val aggIndexSize = allIndexes.stream().filter(i -> !i.isTableIndex())

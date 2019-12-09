@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.Sets;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -77,6 +80,15 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         NSmartMaster master = new NSmartMaster(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
         master.runAll();
 
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT)
+                    .updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+                        copyForWrite.markTableIndexesToBeDeleted("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                                Sets.newHashSet(20000010001L));
+                    });
+            return null;
+        }, DEFAULT_PROJECT);
+
         AddCuboidEvent event = new AddCuboidEvent();
         event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         event.setOwner("ADMIN");
@@ -97,6 +109,7 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
                 ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
         Assert.assertEquals("20000020001,20000030001,1010001",
                 ((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam(NBatchConstants.P_LAYOUT_IDS));
+        Assert.assertEquals("20000010001", job.getParam(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS));
     }
 
     @Test

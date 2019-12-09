@@ -72,8 +72,13 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
 
         // be process layouts = all layouts - ready layouts
         val lastReadySeg = readySegs.getLatestReadySegment();
+        Set<LayoutEntity> toBeDeletedLayouts = Sets.newHashSet();
         Set<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
         for (LayoutEntity layout : indexPlan.getAllLayouts()) {
+            if (layout.isToBeDeleted()) {
+                toBeDeletedLayouts.add(layout);
+                continue;
+            }
             NDataLayout nc = lastReadySeg.getLayout(layout.getId());
             if (nc == null) {
                 toBeProcessedLayouts.add(layout);
@@ -86,7 +91,7 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
         }
 
         return NSparkCubingJob.create(Sets.newLinkedHashSet(readySegs), toBeProcessedLayouts, event.getOwner(),
-                JobTypeEnum.INDEX_BUILD, event.getJobId());
+                JobTypeEnum.INDEX_BUILD, event.getJobId(), toBeDeletedLayouts);
     }
 
 }

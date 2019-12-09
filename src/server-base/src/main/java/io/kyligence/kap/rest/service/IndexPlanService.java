@@ -24,19 +24,28 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -107,7 +116,7 @@ public class IndexPlanService extends BasicService {
         val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
             val newRuleBasedCuboid = request.convertToRuleBasedIndex();
             newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
-            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid);
+            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
         });
         BuildIndexResponse response = new BuildIndexResponse();
         if (request.isLoadData()) {
@@ -137,7 +146,24 @@ public class IndexPlanService extends BasicService {
                 return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
             }
         }
-        removeTableIndex(project, request.getModelId(), request.getId());
+
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataflow(request.getModelId());
+
+        val readySegs = df.getSegments(SegmentStatusEnum.READY);
+        if (readySegs.isEmpty()) {
+            removeIndex(project, request.getModelId(), request.getId());
+        } else {
+            NDataSegment segment = readySegs.getLatestReadySegment();
+            NDataLayout dataLayout = segment.getLayout(request.getId());
+            // may no data before the last ready segments but have a add cuboid job.
+            if (null == dataLayout) {
+                removeIndex(project, request.getModelId(), request.getId());
+            } else {
+                addTableIndexToBeDeleted(project, request.getModelId(), Lists.newArrayList(request.getId()));
+            }
+        }
+
         return createTableIndex(project, request);
     }
 
@@ -202,7 +228,7 @@ public class IndexPlanService extends BasicService {
                 newCuboid.setDimensions(Lists.newArrayList(newLayout.getColOrder()));
                 newCuboid.setLayouts(Arrays.asList(newLayout));
                 newCuboid.setIndexPlan(copyForWrite);
-                IndexEntity lookForIndex = copyForWrite.getAllIndexesMap().get(newCuboid.createIndexIdentifier());
+                IndexEntity lookForIndex = copyForWrite.getWhiteListIndexesMap().get(newCuboid.createIndexIdentifier());
                 if (lookForIndex == null) {
                     copyForWrite.getIndexes().add(newCuboid);
                 } else {
@@ -265,7 +291,27 @@ public class IndexPlanService extends BasicService {
                 copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
             }
             copyForWrite.removeLayouts(Sets.newHashSet(id), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayoutsFromToBeDeletedList(Sets.newHashSet(id), LayoutEntity::equals, true, true);
         });
+    }
+
+    private boolean addTableIndexToBeDeleted(String project, String modelId, Collection<Long> layoutIds) {
+        aclEvaluate.checkProjectWritePermission(project);
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
+
+        val indexPlan = getIndexPlan(project, modelId);
+        Preconditions.checkNotNull(indexPlan);
+        for (Long id : layoutIds) {
+            val layout = indexPlan.getCuboidLayout(id);
+            Preconditions.checkNotNull(layout);
+        }
+
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+            copyForWrite.markTableIndexesToBeDeleted(indexPlan.getUuid(), Sets.newHashSet(layoutIds));
+        });
+
+        return true;
     }
 
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
@@ -373,16 +419,22 @@ public class IndexPlanService extends BasicService {
         return result;
     }
 
-    public List<IndexResponse> getIndexes(String project, String modelId, String key, String orderBy, Boolean desc,
-            List<IndexResponse.Source> sources) {
+    public List<IndexResponse> getIndexes(String project, String modelId, String key, List<String> status,
+            String orderBy, Boolean desc, List<IndexResponse.Source> sources) {
+
+        Set<IndexResponse.Status> statusSet = Sets.newHashSet();
+        Optional.ofNullable(status).ifPresent(stringStatus -> statusSet
+                .addAll(stringStatus.stream().map(IndexResponse.Status::valueOf).collect(Collectors.toSet())));
 
         val indexPlan = getIndexPlan(project, modelId);
         Preconditions.checkState(indexPlan != null);
         val model = indexPlan.getModel();
         val layouts = indexPlan.getAllLayouts();
-        if (StringUtils.isEmpty(key) || StringUtils.isEmpty(key.trim())) {
-            return sortAndFilterLayouts(
-                    layouts.stream().map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel())),
+        if (StringUtils.isBlank(key)) {
+            return sortAndFilterLayouts(layouts.stream()
+                    .map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(),
+                            getLayoutsByRunningJobs(project)))
+                    .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())),
                     orderBy, desc, sources);
         }
 
@@ -406,7 +458,9 @@ public class IndexPlanService extends BasicService {
             return String.valueOf(index.getId()).equals(trimmedKey)
                     || !Sets.intersection(matchDimensions, cols).isEmpty()
                     || !Sets.intersection(matchMeasures, cols).isEmpty();
-        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel())), orderBy, desc, sources);
+        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(), getLayoutsByRunningJobs(project)))
+                .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())), orderBy,
+                desc, sources);
     }
 
     private boolean containsIgnoreCase(String s1, String s2) {
@@ -523,7 +577,22 @@ public class IndexPlanService extends BasicService {
         return response;
     }
 
+    @VisibleForTesting
+    public Set<Long> getLayoutsByRunningJobs(String project) {
+        List<AbstractExecutable> runningJobList = NExecutableManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getExecutablesByStatusList(Sets.newHashSet(
+                        ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED, ExecutableState.ERROR));
+
+        return runningJobList.stream().map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
+
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {
+        return convertToResponse(layoutEntity, model, Sets.newHashSet());
+    }
+
+    private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model,
+            Set<Long> layoutIdsOfRunningJobs) {
         val response = new IndexResponse();
         BeanUtils.copyProperties(layoutEntity, response);
         response.setColOrder(convertColumnOrMeasureIdName(layoutEntity.getColOrder(), model));
@@ -534,7 +603,6 @@ public class IndexPlanService extends BasicService {
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflow = dfMgr.getDataflow(layoutEntity.getIndex().getIndexPlan().getUuid());
-        IndexResponse.Status status = IndexResponse.Status.AVAILABLE;
         long dataSize = 0L;
         int readyCount = 0;
         for (NDataSegment segment : dataflow.getSegments()) {
@@ -545,12 +613,22 @@ public class IndexPlanService extends BasicService {
             readyCount++;
             dataSize += dataCuboid.getByteSize();
         }
-        if (readyCount != dataflow.getSegments().size() || CollectionUtils.isEmpty(dataflow.getSegments())) {
+
+        IndexResponse.Status status;
+        if (readyCount <= 0) {
             status = IndexResponse.Status.EMPTY;
+            if (layoutIdsOfRunningJobs.contains(layoutEntity.getId())) {
+                status = IndexResponse.Status.BUILDING;
+            }
         } else {
-            response.setDataSize(dataSize);
+            status = IndexResponse.Status.AVAILABLE;
+        }
+
+        if (layoutEntity.isToBeDeleted()) {
+            status = IndexResponse.Status.TO_BE_DELETED;
         }
         response.setStatus(status);
+        response.setDataSize(dataSize);
         response.setLastModifiedTime(layoutEntity.getUpdateTime());
         if (dataflow.getLayoutHitCount().get(layoutEntity.getId()) != null) {
             response.setUsage(dataflow.getLayoutHitCount().get(layoutEntity.getId()).getDateFrequency().values()

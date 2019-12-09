@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event.handle;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
@@ -31,12 +32,19 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
@@ -60,6 +68,25 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
                     .filter(task -> task instanceof NSparkExecutable) //
                     .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
                     .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
+
+            Optional.ofNullable(executable.getParams()).ifPresent(params -> {
+                String toBeDeletedLayoutIdsStr = params.get(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS);
+                if (StringUtils.isNotBlank(toBeDeletedLayoutIdsStr)) {
+                    logger.info("Try to delete the toBeDeletedLayoutIdsStr: {}, jobId: {}", toBeDeletedLayoutIdsStr,
+                            jobId);
+                    Set<Long> toBeDeletedLayoutIds = new LinkedHashSet<>();
+                    for (String id : toBeDeletedLayoutIdsStr.split(",")) {
+                        toBeDeletedLayoutIds.add(Long.parseLong(id));
+                    }
+
+                    NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                            .updateIndexPlan(event.getModelId(), copyForWrite -> {
+                                copyForWrite.removeLayoutsFromToBeDeletedList(toBeDeletedLayoutIds,
+                                        LayoutEntity::equals, true, true);
+                            });
+                }
+            });
+
             handleFavoriteQuery(eventContext);
             finishEvent(project, event.getId());
         } catch (Throwable throwable) {

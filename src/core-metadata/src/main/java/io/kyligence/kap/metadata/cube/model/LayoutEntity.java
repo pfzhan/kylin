@@ -81,7 +81,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     @EqualsAndHashCode.Include
     @JsonProperty("shard_by_columns")
     private List<Integer> shardByColumns = Lists.newArrayList();
-    
+
     @JsonProperty("partition_by_columns")
     private List<Integer> partitionByColumns = Lists.newArrayList();// Current case auto and manual are same partition columns
 
@@ -119,6 +119,10 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
      */
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
     private ImmutableBiMap<Integer, Measure> orderedMeasures;
+
+    @Setter
+    @Getter
+    private boolean toBeDeleted = false;
 
     public LayoutEntity() {
         // Only used by Jackson

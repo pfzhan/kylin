@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -56,6 +57,17 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     // for test use only
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter) {
         return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString());
+    }
+
+    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,
+            JobTypeEnum jobType, String jobId, Set<LayoutEntity> toBeDeletedLayouts) {
+
+        NSparkCubingJob sparkCubingJob = create(segments, layouts, submitter, jobType, jobId);
+        if (CollectionUtils.isNotEmpty(toBeDeletedLayouts)) {
+            sparkCubingJob.setParam(NBatchConstants.P_TO_BE_DELETED_LAYOUT_IDS,
+                    NSparkCubingUtil.ids2Str(NSparkCubingUtil.toLayoutIds(toBeDeletedLayouts)));
+        }
+        return sparkCubingJob;
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<LayoutEntity> layouts, String submitter,

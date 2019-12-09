@@ -149,11 +149,12 @@ public class NIndexPlanController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "false") Boolean desc,
             @RequestParam(value = "sources", required = false, defaultValue = "") List<IndexResponse.Source> sources,
             @RequestParam(value = "key", required = false, defaultValue = "") String key,
+            @RequestParam(value = "status", required = false, defaultValue = "") List<String> status,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
-        val indexes = indexPlanService.getIndexes(project, modelId, key, order, desc, sources);
+        val indexes = indexPlanService.getIndexes(project, modelId, key, status, order, desc, sources);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 
