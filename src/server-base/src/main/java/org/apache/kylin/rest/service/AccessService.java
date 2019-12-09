@@ -42,7 +42,6 @@
 
 package org.apache.kylin.rest.service;
 
-import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -110,7 +109,7 @@ public class AccessService extends BasicService {
 
     @Transaction
     public MutableAclRecord init(AclEntity ae, Permission initPermission) {
-        MutableAclRecord acl = null;
+        MutableAclRecord acl;
         ObjectIdentity objectIdentity = new ObjectIdentityImpl(ae);
 
         try {
@@ -129,9 +128,15 @@ public class AccessService extends BasicService {
         return acl;
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public boolean checkAuthorized(AclEntity ae) {
+        return true;
+    }
+
     @Transaction
     public void batchGrant(List<AccessRequest> requests, String type, String uuid) {
         AclEntity ae = getAclEntity(type, uuid);
+        checkAuthorized(ae);
         Map<Sid, Permission> sid2perm = requests.stream().map(r -> {
             Sid sid = getSid(r.getSid(), r.isPrincipal());
             Permission permission = AclPermissionFactory.getPermission(r.getPermission());
@@ -144,9 +149,8 @@ public class AccessService extends BasicService {
         batchGrant(ae, sid2perm);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     @Transaction
-    public void batchGrant(AclEntity ae, Map<Sid, Permission> sidToPerm) {
+    void batchGrant(AclEntity ae, Map<Sid, Permission> sidToPerm) {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
@@ -165,9 +169,8 @@ public class AccessService extends BasicService {
         aclService.batchUpsertAce(acl, sidToPerm);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     @Transaction
-    public MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
+    MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
@@ -188,15 +191,15 @@ public class AccessService extends BasicService {
     }
 
     @Transaction
-    public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission)
-            throws IOException {
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission) {
         AclEntity ae = getAclEntity(type, uuid);
         Sid sid = getSid(identifier, isPrincipal);
         grant(ae, AclPermissionFactory.getPermission(permission), sid);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     @Transaction
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public MutableAclRecord update(AclEntity ae, int accessEntryIndex, Permission newPermission) {
         Message msg = MsgPicker.getMsg();
 
@@ -213,8 +216,8 @@ public class AccessService extends BasicService {
         return aclService.upsertAce(acl, sid, newPermission);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     @Transaction
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public MutableAclRecord revoke(AclEntity ae, int accessEntryIndex) {
         Message msg = MsgPicker.getMsg();
 
@@ -232,7 +235,7 @@ public class AccessService extends BasicService {
     /**
      * The method is not used at the moment
      */
-    public void inherit(AclEntity ae, AclEntity parentAe) {
+    void inherit(AclEntity ae, AclEntity parentAe) {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
@@ -287,8 +290,8 @@ public class AccessService extends BasicService {
         }
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     @Transaction
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void clean(AclEntity ae, boolean deleteChildren) {
         Message msg = MsgPicker.getMsg();
 

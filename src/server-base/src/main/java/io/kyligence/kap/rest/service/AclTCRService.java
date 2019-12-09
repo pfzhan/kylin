@@ -42,12 +42,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.clearspring.analytics.util.Lists;
@@ -74,8 +74,11 @@ public class AclTCRService extends BasicService {
 
     private static final String IDENTIFIER_FORMAT = "%s.%s";
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
+        // permission already has been checked in AccessService#revokeAcl
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
                 .ifPresent(prj -> UnitOfWork.doInTransactionWithRetry(() -> {
                     revokePrjAclTCR(prj.getName(), sid, principal);
@@ -83,8 +86,9 @@ public class AclTCRService extends BasicService {
                 }, prj.getName()));
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void revokeAclTCR(String sid, boolean principal) {
+        // only global admin has permission
+        // permission already has been checked in UserController, UserGroupController
         UnitOfAllWorks.doInTransaction(() -> {
             getProjectManager().listAllProjects().forEach(prj -> revokePrjAclTCR(prj.getName(), sid, principal));
             return null;
@@ -102,9 +106,9 @@ public class AclTCRService extends BasicService {
         getAclTCRManager(project).unloadTable(dbTblName);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public List<AclTCRResponse> getAclTCRResponse(String project, String sid, boolean principal,
             boolean authorizedOnly) {
+        aclEvaluate.checkProjectAdminPermission(project);
         AclTCR authorized = getAclTCRManager(project).getAclTCR(sid, principal);
         if (Objects.isNull(authorized)) {
             return Lists.newArrayList();
@@ -120,16 +124,16 @@ public class AclTCRService extends BasicService {
         return getAclTCRResponse(project, getDbAclTable(project, authorized));
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
+        aclEvaluate.checkProjectAdminPermission(project);
         UnitOfWork.doInTransactionWithRetry(() -> {
             updateAclTCR(project, sid, principal, transformRequests(project, requests));
             return null;
         }, project);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void updateAclTCR(String uuid, List<AccessRequest> requests) {
+        // permission already has been checked in AccessService#grant, batchGrant
         final boolean defaultAuthorized = KapConfig.getInstanceFromEnv().isProjectInternalDefaultPermissionGranted();
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
                 .ifPresent(prj -> UnitOfWork.doInTransactionWithRetry(() -> {

@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -33,12 +35,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
@@ -53,7 +53,6 @@ import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.acls.model.Acl;
 import org.springframework.security.acls.model.Permission;
 import org.springframework.stereotype.Controller;
@@ -74,8 +73,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.BatchAccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/access")
@@ -113,7 +111,6 @@ public class NAccessController extends NBasicController {
     @ApiOperation(value = "getAvailableSids (update)", notes = "Update Param: sid_type, is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/available/{sid_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<String>>> getAvailableSids(@PathVariable("uuid") String uuid,
             @PathVariable("sid_type") String sidType, @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "name", required = false) String nameSeg,
@@ -122,27 +119,27 @@ public class NAccessController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
+        accessService.checkAuthorized(ae);
         Acl acl = accessService.getAcl(ae);
-        List<String> oriList = Lists.newArrayList();
+        List<String> whole = Lists.newArrayList();
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
-            oriList.addAll(getAllUserNames());
+            whole.addAll(getAllUserNames());
             List<String> users = accessService.getAllAclSids(acl, MetadataConstants.TYPE_USER);
-            oriList.removeAll(users);
+            whole.removeAll(users);
         } else {
-            oriList.addAll(userGroupService.listAllAuthorities(project));
+            whole.addAll(getAllUserGroups());
             List<String> groups = accessService.getAllAclSids(acl, MetadataConstants.TYPE_GROUP);
-            oriList.removeAll(groups);
+            whole.removeAll(groups);
         }
 
-        List<String> sids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, oriList);
-        List<String> subList = PagingUtil.cutPage(sids, pageOffset, pageSize);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, sids), "");
+        List<String> matchedSids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, whole);
+        List<String> subList = PagingUtil.cutPage(matchedSids, pageOffset, pageSize);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedSids), "");
     }
 
     @ApiOperation(value = "getAccessEntities (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
     @GetMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<AccessEntryResponse>>> getAccessEntities(@PathVariable("type") String type,
             @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
@@ -150,6 +147,7 @@ public class NAccessController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
+        accessService.checkAuthorized(ae);
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
                 nameSeg, isCaseSensitive);
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
@@ -166,27 +164,26 @@ public class NAccessController extends NBasicController {
     public EnvelopeResponse<String> grant(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, @RequestBody AccessRequest accessRequest) throws IOException {
         checkSid(accessRequest);
+        accessService.grant(entityType, uuid, accessRequest.getSid(), accessRequest.isPrincipal(),
+                accessRequest.getPermission());
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, Lists.newArrayList(accessRequest));
         }
-        accessService.grant(entityType, uuid, accessRequest.getSid(), accessRequest.isPrincipal(),
-                accessRequest.getPermission());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "batchGrant (update)", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
     @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> batchGrant(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, @RequestBody List<BatchAccessRequest> batchAccessRequests)
             throws IOException {
         List<AccessRequest> requests = transform(batchAccessRequests);
         checkSid(requests);
+        accessService.batchGrant(requests, entityType, uuid);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, requests);
         }
-        accessService.batchGrant(requests, entityType, uuid);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -210,7 +207,7 @@ public class NAccessController extends NBasicController {
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
-    
+
     @ApiOperation(value = "revokeAcl (update)", notes = "URL: entity_type; Update Param: entity_type; Update Body: access_entry_id")
     @DeleteMapping(value = "/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
@@ -230,6 +227,10 @@ public class NAccessController extends NBasicController {
 
     private List<String> getAllUserNames() throws IOException {
         return userService.listUsers().stream().map(ManagedUser::getUsername).collect(Collectors.toList());
+    }
+
+    private List<String> getAllUserGroups() throws IOException {
+        return userGroupService.getAllUserGroups();
     }
 
     private void checkSid(AccessRequest request) throws IOException {

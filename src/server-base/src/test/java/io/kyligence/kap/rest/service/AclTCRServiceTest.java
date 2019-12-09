@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,6 +52,7 @@ import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
@@ -72,9 +75,15 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
+
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
+        ReflectionTestUtils.setField(aclTCRService, "aclEvaluate", aclEvaluate);
 
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
