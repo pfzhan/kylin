@@ -61,7 +61,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
         , getterVisibility = JsonAutoDetect.Visibility.NONE //
         , isGetterVisibility = JsonAutoDetect.Visibility.NONE //
         , setterVisibility = JsonAutoDetect.Visibility.NONE) //
-//all row conds in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
+//all row conditions in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
 public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.Cond>> implements Serializable, IKeep {
 
     public ColumnToConds() {
@@ -97,6 +97,9 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
 
     static String concatConds(ColumnToConds condsWithCol, Map<String, String> columnWithType) {
         StrBuilder result = new StrBuilder();
+        if (condsWithCol.keySet().size() > 1) {
+            result.append("(");
+        }
         int j = 0;
         for (String col : condsWithCol.keySet()) {
             String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type not found");
@@ -121,6 +124,9 @@ public class ColumnToConds extends CaseInsensitiveStringMap<List<ColumnToConds.C
                 result.append(" AND ");
             }
             j++;
+        }
+        if (j > 1) {
+            result.append(")");
         }
         return result.toString();
     }

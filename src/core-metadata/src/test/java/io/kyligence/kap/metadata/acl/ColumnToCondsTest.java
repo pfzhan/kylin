@@ -92,7 +92,7 @@ public class ColumnToCondsTest extends NLocalFileMetadataTestCase {
         condsWithCol.put("COL3", cond7);
         ColumnToConds columnToConds = new ColumnToConds(condsWithCol);
         Assert.assertEquals(
-                "((COL1='a') OR (COL1='b') OR (COL1='a''b')) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND (COL3>7 AND COL3<=100)",
+                "(((COL1='a') OR (COL1='b') OR (COL1='a''b')) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND (COL3>7 AND COL3<=100))",
                 concatConds(columnToConds, columnWithType));
     }
 

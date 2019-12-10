@@ -115,7 +115,7 @@ public class RowFilterTest extends NLocalFileMetadataTestCase {
         final String originSql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
         final String convertedSql = rowFilter.convert(originSql, PROJECT, SCHEMA, false);
         final String expectedSql = originSql
-                + " WHERE ((T1.ITEM_COUNT=11) OR (T1.ITEM_COUNT=22) OR (T1.ITEM_COUNT=33) OR (T1.ITEM_COUNT=44) OR (T1.ITEM_COUNT=55) OR (T1.ITEM_COUNT=66)) AND ((T2.BUYER_ID=900902) OR (T2.BUYER_ID=900901) OR (T2.BUYER_ID=900900))";
+                + " WHERE (((T1.ITEM_COUNT=11) OR (T1.ITEM_COUNT=22) OR (T1.ITEM_COUNT=33)) OR ((T1.ITEM_COUNT=44) OR (T1.ITEM_COUNT=55) OR (T1.ITEM_COUNT=66))) AND ((T2.BUYER_ID=900902) OR (T2.BUYER_ID=900901) OR (T2.BUYER_ID=900900))";
         assertRoughlyEquals(convertedSql, expectedSql);
     }
 

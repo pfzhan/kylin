@@ -49,6 +49,7 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
 
     private final String allAuthorizedUser1 = "a1u1";
     private final String allAuthorizedGroup1 = "a1g1";
+    private final String allAuthorizedGroup2 = "a1g2";
 
     private final String projectDefault = "default";
 
@@ -214,7 +215,6 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         AclTCR.RealRow g1rr3 = new AclTCR.RealRow();
         g1rr3.add("name_a");
         g1rr3.add("name_b");
-        g1rr3.add("name_c");
         g1r1.put("NAME", g1rr3);
         g1r1.put("LONGITUDE", null);
         g1cr1.setRow(g1r1);
@@ -224,17 +224,42 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         g1a1.setTable(g1t1);
         manager.updateAclTCR(g1a1, group1, false);
 
-        Map<String, String> whereConds = manager.getTableColumnConcatWhereCondition(user1, Sets.newHashSet(group1));
+        // group2
+        AclTCR g2a1 = new AclTCR();
+        AclTCR.Table g2t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g2cr1 = new AclTCR.ColumnRow();
+        AclTCR.Row g2r1 = new AclTCR.Row();
+        AclTCR.RealRow g2rr1 = new AclTCR.RealRow();
+        g2rr1.add("country_b");
+        g2r1.put("COUNTRY", g2rr1);
+        AclTCR.RealRow g2rr2 = new AclTCR.RealRow();
+        g2rr2.add("33.33");
+        g2rr2.add("44.44");
+        g2r1.put("LATITUDE", g2rr2);
+        AclTCR.RealRow g2rr3 = new AclTCR.RealRow();
+        g2rr3.add("name_c");
+        g2r1.put("NAME", g2rr3);
+        g2r1.put("LONGITUDE", null);
+        g2cr1.setRow(g2r1);
+        g2t1.put("DEFAULT.TEST_COUNTRY", g2cr1);
+        //TEST_ACCOUNT
+        g2t1.put("DEFAULT.TEST_ACCOUNT", null);
+        g2a1.setTable(g2t1);
+        manager.updateAclTCR(g2a1, group2, false);
+
+        Map<String, String> whereConds = manager.getTableColumnConcatWhereCondition(user1,
+                Sets.newHashSet(group1, group2));
         Assert.assertEquals(
-                "(ORDER_ID=1001001) AND ((TEST_DATE_ENC=DATE '2001-01-01') OR (TEST_DATE_ENC=DATE '2010-10-10'))",
+                "((ORDER_ID=1001001) AND ((TEST_DATE_ENC=DATE '2001-01-01') OR (TEST_DATE_ENC=DATE '2010-10-10')))",
                 whereConds.get("DEFAULT.TEST_ORDER"));
         Assert.assertEquals(
-                "(COUNTRY='country_a') AND ((LATITUDE=22.22) OR (LATITUDE=11.11)) AND ((NAME='name_c') OR (NAME='name_b') OR (NAME='name_a'))",
+                "(((COUNTRY='country_a') AND ((LATITUDE=22.22) OR (LATITUDE=11.11)) AND ((NAME='name_b') OR (NAME='name_a'))) OR ((COUNTRY='country_b') AND ((LATITUDE=33.33) OR (LATITUDE=44.44)) AND (NAME='name_c')))",
                 whereConds.get("DEFAULT.TEST_COUNTRY"));
 
         manager.updateAclTCR(new AclTCR(), allAuthorizedUser1, true);
         manager.updateAclTCR(new AclTCR(), allAuthorizedGroup1, false);
-        whereConds = manager.getTableColumnConcatWhereCondition(allAuthorizedUser1, Sets.newHashSet(group1));
+        manager.updateAclTCR(new AclTCR(), allAuthorizedGroup2, false);
+        whereConds = manager.getTableColumnConcatWhereCondition(allAuthorizedUser1, Sets.newHashSet(group1, group2));
         Assert.assertEquals(0, whereConds.size());
     }
 

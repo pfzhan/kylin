@@ -231,51 +231,48 @@ public class AclTCRManager {
 
     public Map<String, String> getTableColumnConcatWhereCondition(String username, Set<String> groups) {
         // <DB1.TABLE1, COLUMN_CONCAT_WHERE_CONDITION>
+        Map<String, String> result = Maps.newHashMap();
         final List<AclTCR> all = getAclTCRs(username, groups);
         if (isTablesAuthorized(all)) {
-            return Maps.newHashMap();
+            return result;
         }
-        Map<String, Map<String, Set<String>>> dbTblColRow = Maps.newHashMap();
-        all.forEach(aclTCR -> aclTCR.getTable().forEach((dbTblName, columnRow) -> {
-            if (dbTblColRow.containsKey(dbTblName) && Objects.isNull(dbTblColRow.get(dbTblName))) {
-                return;
-            }
-            if (Objects.isNull(columnRow) || Objects.isNull(columnRow.getRow()) || columnRow.getRow().entrySet()
-                    .stream().allMatch(entry -> CollectionUtils.isEmpty(entry.getValue()))) {
-                dbTblColRow.put(dbTblName, null);
-                return;
-            }
-            if (Objects.isNull(dbTblColRow.get(dbTblName))) {
-                dbTblColRow.put(dbTblName, Maps.newHashMap());
-            }
-            getRows(dbTblName, columnRow, dbTblColRow);
-        }));
 
-        return convertConditions(dbTblColRow);
-    }
+        final Map<String, List<PrincipalRowSet>> dbTblPrincipals = getTblPrincipalSet(all);
 
-    private Map<String, String> convertConditions(Map<String, Map<String, Set<String>>> dbTblColRow) {
-        Map<String, String> result = Maps.newHashMap();
+        if (MapUtils.isEmpty(dbTblPrincipals)) {
+            return result;
+        }
 
-        dbTblColRow.entrySet().stream().filter(e -> MapUtils.isNotEmpty(e.getValue())).forEach(t -> {
-            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(t.getKey());
+        dbTblPrincipals.forEach((dbTblName, principals) -> {
+            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(dbTblName);
             if (Objects.isNull(tableDesc)) {
                 return;
             }
-            Map<String, String> columnType = Optional.ofNullable(tableDesc.getColumns()).map(Arrays::stream)
+            final Map<String, String> columnType = Optional.ofNullable(tableDesc.getColumns()).map(Arrays::stream)
                     .orElseGet(Stream::empty)
                     .map(columnDesc -> new AbstractMap.SimpleEntry<>(columnDesc.getName(), columnDesc.getTypeName()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            ColumnToConds columnToConds = new ColumnToConds();
-            t.getValue().entrySet().stream().filter(e -> CollectionUtils.isNotEmpty(e.getValue()))
-                    .forEach(c -> columnToConds.put(c.getKey(),
-                            c.getValue().stream().map(ColumnToConds.Cond::new).collect(Collectors.toList())));
-            if (MapUtils.isNotEmpty(columnToConds)) {
-                result.put(t.getKey(), ColumnToConds.concatConds(columnToConds, columnType));
-            }
+
+            result.put(dbTblName, concatPrincipalConditions(principals.stream().map(p -> {
+                final ColumnToConds columnConditions = new ColumnToConds();
+                p.getRowSets().forEach(r -> columnConditions.put(r.getColumnName(),
+                        r.getValues().stream().map(ColumnToConds.Cond::new).collect(Collectors.toList())));
+                return ColumnToConds.concatConds(columnConditions, columnType);
+            }).collect(Collectors.toList())));
         });
 
         return result;
+    }
+
+    private String concatPrincipalConditions(List<String> conditions) {
+        final String joint = String.join(" OR ", conditions);
+        if (conditions.size() > 1) {
+            StringBuilder sb = new StringBuilder("(");
+            sb.append(joint);
+            sb.append(")");
+            return sb.toString();
+        }
+        return joint;
     }
 
     public Optional<Set<String>> getAuthorizedRows(String dbTblName, String colName, List<AclTCR> aclTCRS) {
@@ -303,22 +300,42 @@ public class AclTCRManager {
         return Optional.of(rows);
     }
 
-    private void getRows(String dbTblName, AclTCR.ColumnRow columnRow,
-            Map<String, Map<String, Set<String>>> dbTblColRow) {
-        columnRow.getRow().forEach((colName, realRow) -> {
-            if (dbTblColRow.get(dbTblName).containsKey(colName)
-                    && Objects.isNull(dbTblColRow.get(dbTblName).get(colName))) {
+    private boolean isRowAuthorized(String dbTblName, String colName, final AclTCR e) {
+        if (!e.getTable().containsKey(dbTblName)) {
+            return false;
+        }
+        if (Objects.isNull(e.getTable().get(dbTblName)) || Objects.isNull(e.getTable().get(dbTblName).getRow())) {
+            return true;
+        }
+        if (!e.getTable().get(dbTblName).getRow().containsKey(colName)) {
+            return false;
+        }
+        return Objects.isNull(e.getTable().get(dbTblName).getRow().get(colName));
+    }
+
+    private Map<String, List<PrincipalRowSet>> getTblPrincipalSet(final List<AclTCR> acls) {
+        final Map<String, List<PrincipalRowSet>> dbTblPrincipals = Maps.newHashMap();
+        acls.forEach(tcr -> tcr.getTable().forEach((dbTblName, columnRow) -> {
+            if (Objects.isNull(columnRow) || Objects.isNull(columnRow.getRow())) {
                 return;
             }
-            if (CollectionUtils.isEmpty(realRow)) {
-                dbTblColRow.get(dbTblName).put(colName, null);
+            final PrincipalRowSet principal = new PrincipalRowSet();
+            columnRow.getRow().forEach((colName, realRow) -> {
+                if (Objects.isNull(realRow) || acls.stream().filter(e -> !e.equals(tcr))
+                        .anyMatch(e -> isRowAuthorized(dbTblName, colName, e))) {
+                    return;
+                }
+                principal.getRowSets().add(new RowSet(colName, realRow));
+            });
+            if (CollectionUtils.isEmpty(principal.getRowSets())) {
                 return;
             }
-            if (Objects.isNull(dbTblColRow.get(dbTblName).get(colName))) {
-                dbTblColRow.get(dbTblName).put(colName, Sets.newHashSet());
+            if (!dbTblPrincipals.containsKey(dbTblName)) {
+                dbTblPrincipals.put(dbTblName, Lists.newArrayList());
             }
-            dbTblColRow.get(dbTblName).get(colName).addAll(realRow);
-        });
+            dbTblPrincipals.get(dbTblName).add(principal);
+        }));
+        return dbTblPrincipals;
     }
 
     private boolean isTablesAuthorized(List<AclTCR> all) {
