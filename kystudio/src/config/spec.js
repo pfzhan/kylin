@@ -177,7 +177,7 @@ export default {
       "keyPattern": "groupRole-projectRole",
       "entries": [
         { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions" },
-        { "key": "systemUser-admin", "value": "editProject,backUpProject" },
+        { "key": "systemUser-admin", "value": "editProject,backUpProject,accessActions" },
         { "key": "systemUser-[management,operation,read]", "value": "none" }
       ]
     }
