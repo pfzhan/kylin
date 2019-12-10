@@ -25,7 +25,7 @@ class NModel {
     this.owner = options.owner || ''
     this.canvas = options.canvas // 模型布局坐标
     this.broken_reason = options.broken_reason // 破损原因
-    this.filter_condition = options.filter_condition || null
+    this.filter_condition = options.filter_condition || ''
     this.column_correlations = options.column_correlations || []
     this.computed_columns = options.computed_columns || []
     this.last_modified = options.last_modified || 0
