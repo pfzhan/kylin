@@ -39,8 +39,11 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -407,6 +410,51 @@ public class NAutoBasicTest extends NAutoTestBase {
         val accelerateInfoAfterOptIndexPlan = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertTrue(accelerateInfoAfterOptIndexPlan.get(sql).isNotSucceed());
         Assert.assertTrue(accelerateInfoAfterOptIndexPlan.get(sql).getRelatedLayouts().isEmpty());
+    }
+
+    @Test
+    public void testIndexReducer() {
+        // use smart-model to prepare a model
+        KylinConfig kylinConfig = getTestConfig();
+        String project = getProject();
+
+        String[] sqls = {
+                "select LSTG_FORMAT_NAME,slr_segment_cd ,sum(price) as GMV from test_kylin_fact\n"
+                        + " group by LSTG_FORMAT_NAME ,slr_segment_cd",
+                "select LSTG_FORMAT_NAME,slr_segment_cd ,sum(price) as GMV, min(price) as MMV from test_kylin_fact\n"
+                        + " group by LSTG_FORMAT_NAME ,slr_segment_cd" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, sqls);
+        smartMaster.runAll();
+
+        NSmartContext smartContext = smartMaster.getContext();
+        Map<String, AccelerateInfo> accelerationInfoMap = smartContext.getAccelerateInfoMap();
+        val relatedLayoutsForSql0 = accelerationInfoMap.get(sqls[0]).getRelatedLayouts();
+        val relatedLayoutsForSql1 = accelerationInfoMap.get(sqls[1]).getRelatedLayouts();
+        long layoutForSql0 = relatedLayoutsForSql0.iterator().next().getLayoutId();
+        long layoutForSql1 = relatedLayoutsForSql1.iterator().next().getLayoutId();
+        Assert.assertNotEquals(layoutForSql0, layoutForSql1);
+
+        // set to semi-auto to check tailoring layouts
+        overwriteSystemProp("kap.metadata.semi-automatic-mode", "true");
+        final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
+        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        NProjectManager.getInstance(kylinConfig).updateProject(projectInstance);
+        NSmartContext.NModelContext modelContext = smartContext.getModelContexts().get(0);
+        NDataModel targetModel = modelContext.getTargetModel();
+        NIndexPlanManager.getInstance(kylinConfig, project).updateIndexPlan(targetModel.getUuid(), copyForWrite -> {
+            copyForWrite.setIndexes(Lists.newArrayList());
+        });
+
+        smartMaster = new NSmartMaster(kylinConfig, project, sqls);
+        smartMaster.runOptRecommendation(null);
+
+        smartContext = smartMaster.getContext();
+        accelerationInfoMap = smartContext.getAccelerateInfoMap();
+        val relatedLayoutsSemiForSql0 = accelerationInfoMap.get(sqls[0]).getRelatedLayouts();
+        val relatedLayoutsSemiForSql1 = accelerationInfoMap.get(sqls[1]).getRelatedLayouts();
+        long layoutSemiForSql0 = relatedLayoutsSemiForSql0.iterator().next().getLayoutId();
+        long layoutSemiForSql1 = relatedLayoutsSemiForSql1.iterator().next().getLayoutId();
+        Assert.assertEquals(layoutSemiForSql0, layoutSemiForSql1);
     }
 
     private NSmartMaster proposeWithSmartMaster(List<Pair<String, String>> queries) {

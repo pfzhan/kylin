@@ -325,8 +325,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public static String concatResourcePath(String name, String project) {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.INDEX_PLAN_RESOURCE_ROOT).append("/").append(name)
-                .append(MetadataConstants.FILE_SURFIX).toString();
+        return new StringBuilder().append("/").append(project).append(ResourceStore.INDEX_PLAN_RESOURCE_ROOT)
+                .append("/").append(name).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     public String getProject() {
@@ -402,6 +402,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             val copy = JsonUtil.deepCopyQuietly(indexEntity, IndexEntity.class);
             retSubscriptMap.put(indexEntity.getId(), retSubscript);
             mergedIndexes.add(copy);
+            Map<Long, LayoutEntity> layouts = Maps.newHashMap();
+            indexEntity.getLayouts().forEach(layout -> layouts.putIfAbsent(layout.getId(), layout));
+            copy.getLayouts().forEach(layout -> layout.setInProposing(layouts.get(layout.getId()).isInProposing()));
             retSubscript++;
         }
         for (LayoutEntity ruleBasedLayout : ruleBasedLayouts) {
