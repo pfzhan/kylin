@@ -1287,9 +1287,9 @@
         </repository>
 
         <repository>
-            <id>${nexus.id}</id>
-            <name>${nexus.name}</name>
-            <url>${nexus.url}</url>
+            <id>local-nexus</id>
+            <name>local private nexus</name>
+            <url>http://10.1.30.102:8081/repository/maven-public/</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -1297,6 +1297,19 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+
+        <repository>
+            <id>remote-nexus</id>
+            <name>remote private nexus</name>
+            <url>hhttp://repository.kyligence.io:8081/repository/maven-public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+
         <repository>
             <id>cloudera</id>
             <url>https://repository.cloudera.com/artifactory/cloudera-repos/
