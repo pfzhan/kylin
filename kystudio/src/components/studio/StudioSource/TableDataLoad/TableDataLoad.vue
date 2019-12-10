@@ -44,15 +44,17 @@
             </el-option>
           </el-select>
           <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
-            <el-button
-              size="medium"
-              class="ksd-ml-10"
-              :loading="isLoadingFormat"
-              v-guide.getPartitionColumnFormat
-              v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig"
-              icon="el-icon-ksd-data_range_search"
-              @click="handleLoadFormat">
-            </el-button>
+            <div style="display: inline-block;">
+              <el-button
+                size="medium"
+                class="ksd-ml-10"
+                :loading="isLoadingFormat"
+                v-guide.getPartitionColumnFormat
+                v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig"
+                icon="el-icon-ksd-data_range_search"
+                @click="handleLoadFormat">
+              </el-button>
+            </div>
           </el-tooltip>
         </span>
       </div>

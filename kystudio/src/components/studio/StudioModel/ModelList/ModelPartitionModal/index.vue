@@ -39,14 +39,16 @@
           <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
         </el-select>
         <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
-          <el-button
-            size="medium"
-            :loading="isLoadingFormat"
-            icon="el-icon-ksd-data_range_search"
-            v-guide.getPartitionColumnFormat
-            v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
-            @click="handleLoadFormat">
-          </el-button>
+          <div style="display: inline-block;">
+            <el-button
+              size="medium"
+              :loading="isLoadingFormat"
+              icon="el-icon-ksd-data_range_search"
+              v-guide.getPartitionColumnFormat
+              v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
+              @click="handleLoadFormat">
+            </el-button>
+          </div>
         </el-tooltip>
       </el-form-item>
     </el-form>
