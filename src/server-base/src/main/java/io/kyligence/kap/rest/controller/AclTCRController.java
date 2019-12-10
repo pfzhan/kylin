@@ -24,13 +24,10 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 import java.util.List;
-import java.util.regex.Pattern;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
-import io.swagger.annotations.ApiOperation;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -51,11 +48,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
 import io.kyligence.kap.rest.service.AclTCRService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/acl", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -72,8 +71,6 @@ public class AclTCRController extends NBasicController {
     @Autowired
     @Qualifier("userGroupService")
     private IUserGroupService userGroupService;
-
-    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
 
     @ApiOperation(value = "getProjectSidTCR (update)", notes = "Update URL: {project}; Update Param: project, authorized_only")
     @GetMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
@@ -128,9 +125,6 @@ public class AclTCRController extends NBasicController {
     void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
             throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
-        }
-        if (!sidPattern.matcher(sid).matches()) {
-            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
         }
 
         if (principal && !userService.userExists(sid)) {

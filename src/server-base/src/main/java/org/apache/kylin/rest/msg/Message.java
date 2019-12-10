@@ -299,7 +299,7 @@ public class Message {
     }
 
     public String getINVALID_SID() {
-        return "User/Group name should only contain alphanumerics and underscores.";
+        return "User/Group name should only contain alphanumerics, spaces and underscores.";
     }
 
     public String getEMPTY_QUERY_NAME() {

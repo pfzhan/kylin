@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -94,8 +93,6 @@ public class NAccessController extends NBasicController {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
-
-    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_]*$");
 
     /**
      * Get current user's permission in the project
@@ -249,9 +246,6 @@ public class NAccessController extends NBasicController {
     private void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
             throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
-        }
-        if (!sidPattern.matcher(sid).matches()) {
-            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
         }
 
         if (principal && !userService.userExists(sid)) {

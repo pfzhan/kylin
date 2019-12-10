@@ -24,12 +24,13 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -76,9 +77,8 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/user")
@@ -88,6 +88,7 @@ public class NUserController extends NBasicController {
 
     private static final String PROFILE = "testing";
 
+    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_ ]*$");
     @Autowired
     @Qualifier("userService")
     private UserService userService;
@@ -358,6 +359,9 @@ public class NUserController extends NBasicController {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username)) {
             throw new BadRequestException(msg.getEMPTY_USER_NAME());
+        }
+        if (!sidPattern.matcher(username).matches()) {
+            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
         }
     }
 

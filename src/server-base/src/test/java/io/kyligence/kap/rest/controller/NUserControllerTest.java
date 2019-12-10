@@ -182,7 +182,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateUser() throws Exception {
         val user = new ManagedUser();
-        user.setUsername("u1@.");
+        user.setUsername("u1");
         user.setPassword("p14532522?");
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
@@ -237,12 +237,12 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     public void testDelUser() throws Exception {
         Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1@.h")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nUserController).delete("u1@.h");
+        Mockito.verify(nUserController).delete("u1");
     }
 
     @Test

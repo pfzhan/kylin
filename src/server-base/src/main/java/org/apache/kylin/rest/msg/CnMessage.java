@@ -451,7 +451,7 @@ public class CnMessage extends Message {
     }
 
     public String getINVALID_SID() {
-        return "用户名/组名只能包含字母，数字和下划线";
+        return "用户名/组名只能包含字母，数字，空格和下划线";
     }
 
     public String getEMPTY_QUERY_NAME() {

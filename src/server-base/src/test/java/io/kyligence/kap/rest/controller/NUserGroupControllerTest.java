@@ -149,11 +149,11 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testAddGroup() throws Exception {
-        Mockito.doNothing().when(userGroupService).addGroup("g1@.h");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName:.+}", "g1@.h")
+        Mockito.doNothing().when(userGroupService).addGroup("g1");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user_group/{groupName:.+}", "g1")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nUserGroupController).addUserGroup("g1@.h");
+        Mockito.verify(nUserGroupController).addUserGroup("g1");
     }
 
     @Test

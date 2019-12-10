@@ -24,14 +24,16 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -60,13 +62,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Controller
 @RequestMapping(value = "/api/user_group")
 public class NUserGroupController extends NBasicController {
+
+    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_ ]*$");
 
     @Autowired
     @Qualifier("userGroupService")
@@ -175,6 +178,9 @@ public class NUserGroupController extends NBasicController {
     private void checkGroupName(String groupName) {
         if (StringUtils.isEmpty(groupName)) {
             throw new BadRequestException(MsgPicker.getMsg().getEMPTY_GROUP_NAME());
+        }
+        if (!sidPattern.matcher(groupName).matches()) {
+            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
         }
     }
 }
