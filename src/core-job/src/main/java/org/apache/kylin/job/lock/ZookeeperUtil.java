@@ -50,4 +50,8 @@ public class ZookeeperUtil {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         return config.getZookeeperConnectString();
     }
+
+    public static String getZKConnectString(KylinConfig config){
+        return config.getZookeeperConnectString();
+    }
 }

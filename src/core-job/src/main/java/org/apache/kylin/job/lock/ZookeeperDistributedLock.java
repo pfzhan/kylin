@@ -1,28 +1,4 @@
 /*
- * Copyright (C) 2016 Kyligence Inc. All rights reserved.
- *
- * http://kyligence.io
- *
- * This software is the confidential and proprietary information of
- * Kyligence Inc. ("Confidential Information"). You shall not disclose
- * such Confidential Information and shall use it only in accordance
- * with the terms of the license agreement you entered into with
- * Kyligence Inc.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -43,7 +19,8 @@
 package org.apache.kylin.job.lock;
 
 import java.io.Closeable;
-import java.nio.charset.Charset;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -53,14 +30,25 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLockFactory;
+import org.apache.kylin.job.exception.ZkAcquireLockException;
+import org.apache.kylin.job.exception.ZkPeekLockException;
+import org.apache.kylin.job.exception.ZkPeekLockInterruptException;
+import org.apache.kylin.job.exception.ZkReleaseLockException;
+import org.apache.kylin.job.exception.ZkReleaseLockInterruptException;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import io.kyligence.kap.common.util.ThrowableUtils;
 
 /**
  * A distributed lock based on zookeeper. Every instance is owned by a client, on whose behalf locks are acquired and/or released.
@@ -69,20 +57,19 @@ import org.slf4j.LoggerFactory;
  */
 public class ZookeeperDistributedLock implements DistributedLock, JobLock {
     private static Logger logger = LoggerFactory.getLogger(ZookeeperDistributedLock.class);
-
-    private static Charset utf8CharSet = Charset.forName("UTF-8");
+    private static final Random RANDOM = new Random();
 
     public static class Factory extends DistributedLockFactory {
 
-        private static final ConcurrentMap<KylinConfig, CuratorFramework> CACHE = new ConcurrentHashMap<KylinConfig, CuratorFramework>();
+        private static final ConcurrentMap<KylinConfig, CuratorFramework> CACHE = new ConcurrentHashMap<>();
 
         static {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                for (CuratorFramework curator : CACHE.values()) {
+                for (CuratorFramework c : CACHE.values()) {
                     try {
-                        curator.close();
+                        c.close();
                     } catch (Exception ex) {
-                        logger.error("Error at closing " + curator, ex);
+                        logger.error("Error at closing {}", c, ex);
                     }
                 }
             }));
@@ -95,7 +82,7 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
                     zkClient = CACHE.get(config);
                     if (zkClient == null) {
                         RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3);
-                        String zkConnectString = getZKConnectString();
+                        String zkConnectString = getZKConnectString(config);
                         ZookeeperAclBuilder zookeeperAclBuilder = new ZookeeperAclBuilder().invoke();
                         zkClient = zookeeperAclBuilder.setZKAclBuilder(CuratorFrameworkFactory.builder())
                                 .connectString(zkConnectString).sessionTimeoutMs(120000).connectionTimeoutMs(15000)
@@ -111,9 +98,9 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
             return zkClient;
         }
 
-        private static String getZKConnectString() {
-            // the ZKConnectString should come from KylinConfig
-            return ZookeeperUtil.getZKConnectString();
+        private static String getZKConnectString(KylinConfig config) {
+            // the ZKConnectString should come from KylinConfig, however it is taken from HBase configuration at the moment
+            return ZookeeperUtil.getZKConnectString(config);
         }
 
         final String zkPathBase;
@@ -150,7 +137,7 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
         this.curator = curator;
         this.zkPathBase = zkPathBase;
         this.client = client;
-        this.clientBytes = client.getBytes(utf8CharSet);
+        this.clientBytes = client.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -162,23 +149,42 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
     public boolean lock(String lockPath) {
         lockPath = norm(lockPath);
 
-        logger.debug(client + " trying to lock " + lockPath);
+        logger.debug("{} trying to lock {}", client, lockPath);
+        lockInternal(lockPath);
 
+        String lockOwner;
+        try {
+            lockOwner = peekLock(lockPath);
+            if (client.equals(lockOwner)) {
+                logger.info("{} acquired lock at {}", client, lockPath);
+                return true;
+            } else {
+                logger.debug("{} failed to acquire lock at {}, which is held by {}", client, lockPath, lockOwner);
+                return false;
+            }
+        } catch (ZkPeekLockInterruptException zpie) {
+            logger.error("{} peek owner of lock interrupt while acquire lock at {}, check to release lock", client,
+                    lockPath);
+            lockOwner = peekLock(lockPath);
+
+            try {
+                unlockInternal(lockOwner, lockPath);
+            } catch (Exception anyEx) {
+                // it's safe to swallow any exception here because here already been interrupted
+                logger.warn("Exception caught to release lock when lock operation has been interrupted.", anyEx);
+            }
+            throw zpie;
+        }
+    }
+
+    private void lockInternal(String lockPath) {
         try {
             curator.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(lockPath, clientBytes);
         } catch (KeeperException.NodeExistsException ex) {
-            logger.debug(client + " see " + lockPath + " is already locked");
+            logger.debug("{} see {} is already locked", client, lockPath);
         } catch (Exception ex) {
-            throw new RuntimeException(String.format("Error while %s trying to lock %s", client, lockPath), ex);
-        }
-
-        String lockOwner = peekLock(lockPath);
-        if (client.equals(lockOwner)) {
-            logger.info(client + " acquired lock at " + lockPath);
-            return true;
-        } else {
-            logger.debug(client + " failed to acquire lock at " + lockPath + ", which is held by " + lockOwner);
-            return false;
+            // don't need to catch interrupt exception when locking, it's safe to throw the exception directly
+            throw new ZkAcquireLockException("Error occurs while " + client + " trying to lock " + lockPath, ex);
         }
     }
 
@@ -192,22 +198,21 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
         if (timeout <= 0)
             timeout = Long.MAX_VALUE;
 
-        logger.debug(client + " will wait for lock path " + lockPath);
+        logger.debug("{} will wait for lock path {}", client, lockPath);
         long waitStart = System.currentTimeMillis();
-        Random random = new Random();
-        long sleep = 10 * 1_000L; // 10 seconds
+        long sleep = 10 * 1000L; // 10 seconds
 
         while (System.currentTimeMillis() - waitStart <= timeout) {
             try {
-                Thread.sleep((long) (1000 + sleep * random.nextDouble()));
+                Thread.sleep((long) (1000 + sleep * RANDOM.nextDouble()));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Failed lock path:" + lockPath, e);
+                return false;
             }
 
             if (lock(lockPath)) {
-                logger.debug(client + " waited " + (System.currentTimeMillis() - waitStart) + " ms for lock path "
-                        + lockPath);
+                logger.debug("{} waited {} ms for lock path {}", client, System.currentTimeMillis() - waitStart,
+                        lockPath);
                 return true;
             }
         }
@@ -216,17 +221,29 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
         return false;
     }
 
+    /**
+     * Need to handle interrupt exception when using this peekLock during unlock
+     */
     @Override
     public String peekLock(String lockPath) {
-        lockPath = norm(lockPath);
+        try {
+            return peekLockInternal(lockPath);
+        } catch (Exception ex) {
+            if (ThrowableUtils.isInterruptedException(ex)) {
+                throw new ZkPeekLockInterruptException("Peeking owner of lock was interrupted at" + lockPath, ex);
+            } else {
+                throw new ZkPeekLockException("Error while peeking at " + lockPath, ex);
+            }
+        }
+    }
 
+    private String peekLockInternal(String lockPath) throws Exception {
+        lockPath = norm(lockPath);
         try {
             byte[] bytes = curator.getData().forPath(lockPath);
-            return new String(bytes, utf8CharSet);
+            return new String(bytes, StandardCharsets.UTF_8);
         } catch (KeeperException.NoNodeException ex) {
             return null;
-        } catch (Exception ex) {
-            throw new RuntimeException("Error while peeking at " + lockPath, ex);
         }
     }
 
@@ -243,25 +260,57 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
     @Override
     public void unlock(String lockPath) {
         lockPath = norm(lockPath);
+        logger.debug("{} trying to unlock {}", client, lockPath);
 
-        logger.debug(client + " trying to unlock " + lockPath);
+        // peek owner first
+        String owner;
+        ZkPeekLockInterruptException peekLockInterruptException = null;
+        try {
+            owner = peekLock(lockPath);
+        } catch (ZkPeekLockInterruptException zie) {
+            // re-peek owner of lock when interrupted
+            owner = peekLock(lockPath);
+            peekLockInterruptException = zie;
+        } catch (ZkPeekLockException ze) {
+            // this exception should be thrown to diagnose even it may cause unlock failed
+            logger.error("{} failed to peekLock when unlock at {}", client, lockPath, ze);
+            throw ze;
+        }
 
-        String owner = peekLock(lockPath);
+        // then unlock
+        ZkReleaseLockInterruptException unlockInterruptException = null;
+        try {
+            unlockInternal(owner, lockPath);
+        } catch (ZkReleaseLockInterruptException zlie) {
+            // re-unlock once when interrupted
+            unlockInternal(owner, lockPath);
+            unlockInterruptException = zlie;
+        } catch (Exception ex) {
+            throw new ZkReleaseLockException("Error while " + client + " trying to unlock " + lockPath, ex);
+        }
+
+        // need re-throw interrupt exception to avoid swallowing it
+        if (peekLockInterruptException != null) {
+            throw peekLockInterruptException;
+        }
+        if (unlockInterruptException != null) {
+            throw unlockInterruptException;
+        }
+    }
+
+    /**
+     * May throw ZkReleaseLockException or ZkReleaseLockInterruptException
+     */
+    private void unlockInternal(String owner, String lockPath) {
+        // only unlock the lock belongs itself
         if (owner == null)
             throw new IllegalStateException(
                     client + " cannot unlock path " + lockPath + " which is not locked currently");
         if (!client.equals(owner))
             throw new IllegalStateException(
                     client + " cannot unlock path " + lockPath + " which is locked by " + owner);
-
-        try {
-            curator.delete().guaranteed().deletingChildrenIfNeeded().forPath(lockPath);
-
-            logger.info(client + " released lock at " + lockPath);
-
-        } catch (Exception ex) {
-            throw new RuntimeException("Error while " + client + " trying to unlock " + lockPath, ex);
-        }
+        purgeLockInternal(lockPath);
+        logger.info("{} released lock at {}", client, lockPath);
     }
 
     @Override
@@ -269,12 +318,29 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
         lockPathRoot = norm(lockPathRoot);
 
         try {
-            curator.delete().guaranteed().deletingChildrenIfNeeded().forPath(lockPathRoot);
+            purgeLockInternal(lockPathRoot);
+            logger.info("{} purged all locks under {}", client, lockPathRoot);
+        } catch (ZkReleaseLockException zpe) {
+            throw zpe;
+        } catch (ZkReleaseLockInterruptException zpie) {
+            // re-purge lock once when interrupted
+            purgeLockInternal(lockPathRoot);
+            throw zpie;
+        }
+    }
 
-            logger.info(client + " purged all locks under " + lockPathRoot);
-
-        } catch (Exception ex) {
-            throw new RuntimeException("Error while " + client + " trying to purge " + lockPathRoot, ex);
+    @VisibleForTesting
+    void purgeLockInternal(String lockPath) {
+        try {
+            curator.delete().guaranteed().deletingChildrenIfNeeded().forPath(lockPath);
+        } catch (KeeperException.NoNodeException ex) {
+            // it's safe to purge a lock when there is no node found in lockPath
+            logger.warn("No node found when purge lock in Lock path: {}", lockPath, ex);
+        } catch (Exception e) {
+            if (ThrowableUtils.isInterruptedException(e))
+                throw new ZkReleaseLockInterruptException("Purge lock was interrupted at " + lockPath, e);
+            else
+                throw new ZkReleaseLockException("Error while " + client + " trying to purge " + lockPath, e);
         }
     }
 
@@ -285,16 +351,21 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
         PathChildrenCache cache = new PathChildrenCache(curator, lockPathRoot, true);
         try {
             cache.start();
-            cache.getListenable().addListener((client, event) -> {
-                switch (event.getType()) {
-                case CHILD_ADDED:
-                    watcher.onLock(event.getData().getPath(), new String(event.getData().getData(), utf8CharSet));
-                    break;
-                case CHILD_REMOVED:
-                    watcher.onUnlock(event.getData().getPath(), new String(event.getData().getData(), utf8CharSet));
-                    break;
-                default:
-                    break;
+            cache.getListenable().addListener(new PathChildrenCacheListener() {
+                @Override
+                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception {
+                    switch (event.getType()) {
+                    case CHILD_ADDED:
+                        watcher.onLock(event.getData().getPath(),
+                                new String(event.getData().getData(), StandardCharsets.UTF_8));
+                        break;
+                    case CHILD_REMOVED:
+                        watcher.onUnlock(event.getData().getPath(),
+                                new String(event.getData().getData(), StandardCharsets.UTF_8));
+                        break;
+                    default:
+                        break;
+                    }
                 }
             }, executor);
         } catch (Exception ex) {
@@ -312,10 +383,11 @@ public class ZookeeperDistributedLock implements DistributedLock, JobLock {
 
     private static String fixSlash(String path) {
         if (!path.startsWith("/"))
-            path = "/" + path;
+            path = File.separator + path;
         if (path.endsWith("/"))
             path = path.substring(0, path.length() - 1);
-        for (int n = Integer.MAX_VALUE; n > path.length();) {
+        int n = Integer.MAX_VALUE;
+        while (n > path.length()) {
             n = path.length();
             path = path.replace("//", "/");
         }
