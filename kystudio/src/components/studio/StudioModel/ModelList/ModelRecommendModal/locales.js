@@ -35,8 +35,10 @@ export default {
     REMOVE_TABLE: 'Delete Table Index',
     usage_time_tip: 'The usage of this index in the past {date} is lower than {time} times.',
     exist_index_tip: 'There already exists one index or more who could include this index.',
+    similar_index_tip: 'There already exists one index or more who has a high similarity with this index.',
     LOW_FREQUENCY: 'Low Frequency',
-    INCLUDED: 'Inclusion Relation'
+    INCLUDED: 'Inclusion Relation',
+    SIMILAR: 'High Similarity'
   },
   'zh-cn': {
     recommendModalTitle: '查看优化建议（{selected}/{total})',
@@ -74,7 +76,9 @@ export default {
     REMOVE_TABLE: '删除明细索引',
     usage_time_tip: '该索引在过去{date}内使用频率低于{time}次。',
     exist_index_tip: '已有索引可以包含该索引。',
+    similar_index_tip: '存在与该索引相似的索引。',
     LOW_FREQUENCY: '低频使用',
-    INCLUDED: '包含关系'
+    INCLUDED: '包含关系',
+    SIMILAR: '高相似度'
   }
 }

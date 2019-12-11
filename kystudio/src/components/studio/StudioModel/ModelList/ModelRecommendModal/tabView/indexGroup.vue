@@ -373,7 +373,8 @@
       }
       const reason = {
         'LOW_FREQUENCY': this.$t('usage_time_tip', {date: this.lowFrequency.frequency_time_window && timeMap[this.lowFrequency.frequency_time_window][this.$store.state.system.lang], time: this.lowFrequency.low_frequency_threshold}),
-        'INCLUDED': this.$t('exist_index_tip')
+        'INCLUDED': this.$t('exist_index_tip'),
+        'SIMILAR': this.$t('similar_index_tip')
       }
       return reason[data.row.info.remove_reason]
     }

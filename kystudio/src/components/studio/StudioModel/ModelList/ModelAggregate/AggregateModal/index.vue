@@ -482,6 +482,7 @@ export default class AggregateModal extends Vue {
       // id: aggregateArray.length
       id: sampleGuid()
     }
+    this.aggregateStyle = []
     this.setModalForm({ aggregateArray: [ aggregateData, ...aggregateArray ] })
     this.isWaitingCheckCuboids[aggregateData.id] = true
     this.isWaitingCheckAllCuboids = true
@@ -508,6 +509,7 @@ export default class AggregateModal extends Vue {
       this.setModalForm({ aggregateArray })
       // this.isWaitingCheckCuboids = true
       this.isWaitingCheckAllCuboids = true
+      this.aggregateStyle = []
       // this.calcCuboids()
     })
   }
@@ -782,9 +784,9 @@ export default class AggregateModal extends Vue {
 
   computeCurrentAggHeigth (index) {
     let height = this.aggregateHeight(index)
-    const showAggregate = (isShow) => {
+    const showAggregate = () => {
       setTimeout(() => {
-        this.$set(this.aggregateStyle, index, !isShow ? {'display': 'none'} : {})
+        this.aggregateStyle = []
       }, 1000)
     }
     if (this.form.aggregateArray[index].open) {
@@ -794,14 +796,14 @@ export default class AggregateModal extends Vue {
         this.$set(this.aggregateStyle, index, {'height': 0})
         this.$nextTick(() => {
           this.$set(this.aggregateStyle, index, {...this.aggregateStyle[index], ...{'height': height ? `${height}px` : 'auto'}})
-          showAggregate(true)
+          showAggregate()
         })
       })
     } else {
       this.$set(this.aggregateStyle, index, {'height': height ? `${height}px` : 'auto'})
       this.$nextTick(() => {
         this.$set(this.aggregateStyle, index, {'height': 0})
-        showAggregate(false)
+        showAggregate()
       })
     }
   }
