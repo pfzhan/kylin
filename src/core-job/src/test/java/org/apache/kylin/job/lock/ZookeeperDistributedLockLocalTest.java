@@ -59,6 +59,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLock.Watcher;
+import org.apache.kylin.job.exception.ZkReleaseLockException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -126,7 +127,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
         try {
             d.unlock(path);
             fail();
-        } catch (IllegalStateException ex) {
+        } catch (ZkReleaseLockException ex) {
             // expected
         }
 
@@ -276,7 +277,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
                 try {
                     lockIdx = rand.nextInt(nLocks);
                     client.unlock(lockPaths[lockIdx]);
-                } catch (IllegalStateException e) {
+                } catch (ZkReleaseLockException e) {
                     // ignore
                 }
             }
@@ -285,7 +286,7 @@ public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCas
             for (String lockPath : lockPaths) {
                 try {
                     client.unlock(lockPath);
-                } catch (IllegalStateException e) {
+                } catch (ZkReleaseLockException e) {
                     // ignore
                 }
             }
