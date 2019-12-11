@@ -52,6 +52,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
+import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.BeanUtils;
@@ -312,6 +313,13 @@ public class IndexPlanService extends BasicService {
         });
 
         return true;
+    }
+
+    public DiffRuleBasedIndexResponse calculateDiffRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
+        Pair<Set<LayoutEntity>, Set<LayoutEntity>> diff = getIndexPlan(request.getProject(), request.getModelId())
+                .diffRuleBasedIndex(request.convertToRuleBasedIndex());
+
+        return new DiffRuleBasedIndexResponse(request.getModelId(), diff.getFirst().size(), diff.getSecond().size());
     }
 
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {

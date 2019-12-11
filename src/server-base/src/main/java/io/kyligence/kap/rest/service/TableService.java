@@ -43,6 +43,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -1197,13 +1198,18 @@ public class TableService extends BasicService {
 
         UnaryOperator<Integer[]> dimFilter = input -> Stream.of(input).filter(i -> !removeDims.contains(i))
                 .toArray(Integer[]::new);
-        UnaryOperator<Integer[]> meaFilter = input -> Stream.of(input).filter(i -> !removeAffectedModel.getMeasures().contains(i))
-                .toArray(Integer[]::new);
+        UnaryOperator<Integer[]> meaFilter = input -> Stream.of(input)
+                .filter(i -> !removeAffectedModel.getMeasures().contains(i)).toArray(Integer[]::new);
         val indexPlan = indexManager.getIndexPlan(model.getId());
         val removeIndexes = removeAffectedModel.getIndexes();
         val newIndexPlan = indexManager.updateIndexPlan(model.getId(), copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
                     .filter(index -> !removeIndexes.contains(index.getId())).collect(Collectors.toList()));
+
+            val layouts = copyForWrite.getToBeDeletedIndexes().stream()
+                    .filter(index -> removeIndexes.contains(index.getId())).map(IndexEntity::getLayouts)
+                    .flatMap(List::stream).map(LayoutEntity::getId).collect(Collectors.toSet());
+            copyForWrite.removeLayoutsFromToBeDeletedList(layouts, LayoutEntity::equals, true, true);
 
             val overrideIndexes = Maps.newHashMap(copyForWrite.getIndexPlanOverrideIndexes());
             removeColumnIds.forEach(overrideIndexes::remove);

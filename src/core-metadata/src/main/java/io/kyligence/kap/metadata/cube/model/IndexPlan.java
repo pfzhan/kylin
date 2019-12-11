@@ -42,6 +42,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -49,6 +50,7 @@ import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -546,6 +548,26 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         updateNextId();
     }
 
+    private Set<LayoutEntity> layoutsNotIn(Set<LayoutEntity> source, Set<LayoutEntity> target) {
+        Preconditions.checkNotNull(source);
+        Preconditions.checkNotNull(target);
+        return source.stream().filter(layout -> !target.contains(layout)).collect(Collectors.toSet());
+    }
+
+    public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
+        ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+        ruleBasedIndex.setIndexStartId(nextAggregationIndexId);
+        ruleBasedIndex.setIndexPlan(this);
+        ruleBasedIndex.init();
+
+        Set<LayoutEntity> sourceLayouts = null == this.ruleBasedIndex ? Sets.newHashSet()
+                : this.ruleBasedIndex.genCuboidLayouts();
+        ruleBasedIndex.genCuboidLayouts(Sets.newHashSet(sourceLayouts));
+        Set<LayoutEntity> targetLayouts = ruleBasedIndex.genCuboidLayouts();
+
+        return new Pair<>(layoutsNotIn(sourceLayouts, targetLayouts), layoutsNotIn(targetLayouts, sourceLayouts));
+    }
+
     public void setRuleBasedIndex(NRuleBasedIndex nRuleBasedIndex, boolean reuseStartId, boolean markToBeDeleted) {
         checkIsNotCachedAndShared();
         nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
@@ -560,9 +582,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         Set<LayoutEntity> targetSet = this.ruleBasedIndex.genCuboidLayouts();
         this.ruleBasedLayouts = Lists.newArrayList(targetSet);
 
-        if (markToBeDeleted) {
-            Set<LayoutEntity> toBeDeletedSet = originSet.stream().filter(layout -> !targetSet.contains(layout))
-                    .collect(Collectors.toSet());
+        if (markToBeDeleted && CollectionUtils.isNotEmpty(layoutsNotIn(targetSet, originSet))) {
+            Set<LayoutEntity> toBeDeletedSet = layoutsNotIn(originSet, targetSet);
             if (CollectionUtils.isNotEmpty(toBeDeletedSet)) {
                 markIndexesToBeDeleted(nRuleBasedIndex.getIndexPlan().getUuid(), toBeDeletedSet);
             }
@@ -609,7 +630,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return getIndexesMap(toBeDeletedIndexes);
     }
 
-    private boolean markIndexesToBeDeleted(String indexPlanId, final Set<LayoutEntity> toBeDeletedSet) {
+    @VisibleForTesting
+    public boolean markIndexesToBeDeleted(String indexPlanId, final Set<LayoutEntity> toBeDeletedSet) {
         Preconditions.checkNotNull(indexPlanId);
         Preconditions.checkNotNull(toBeDeletedSet);
         checkIsNotCachedAndShared();

@@ -73,7 +73,7 @@ public class IndexResponse {
     private boolean isAuto;
 
     public enum Status {
-        EMPTY, AVAILABLE, TO_BE_DELETED, BUILDING
+        EMPTY, BUILDING, TO_BE_DELETED, AVAILABLE
     }
 
     public enum Source {

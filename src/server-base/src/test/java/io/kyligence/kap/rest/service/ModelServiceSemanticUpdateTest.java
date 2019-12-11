@@ -31,6 +31,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -791,6 +794,30 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(df.getUuid());
         Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getLayoutsMap().size());
+    }
+
+    @Test
+    public void testOnlyRemoveColumns_removeToBeDeletedIndex() throws Exception {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+
+        val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val originModel = getTestInnerModel();
+        modelManager.updateDataModel(originModel.getUuid(), model -> model.setAllNamedColumns(
+                model.getAllNamedColumns().stream().filter(m -> m.getId() != 25).collect(Collectors.toList())));
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataflow dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(dataflow.getUuid(), copyForWrite -> {
+            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
+                    .filter(layoutEntity -> 1000001L == layoutEntity.getId()).collect(Collectors.toSet());
+            copyForWrite.markIndexesToBeDeleted(dataflow.getUuid(), toBeDeletedSet);
+        });
+        Assert.assertTrue(CollectionUtils.isNotEmpty(
+                indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getToBeDeletedIndexes()));
+        semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
+        Assert.assertTrue(CollectionUtils.isEmpty(
+                indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getToBeDeletedIndexes()));
     }
 
     @Test

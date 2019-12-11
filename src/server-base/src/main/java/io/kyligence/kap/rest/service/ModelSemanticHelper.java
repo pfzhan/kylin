@@ -373,16 +373,29 @@ public class ModelSemanticHelper extends BasicService {
         val deprecatedLayoutIds = indexPlan.getIndexes().stream().filter(index -> !index.isTableIndex())
                 .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
                 .flatMap(index -> index.getLayouts().stream().map(LayoutEntity::getId)).collect(Collectors.toSet());
+        val toBeDeletedLayoutIds = indexPlan.getToBeDeletedIndexes().stream().filter(index -> !index.isTableIndex())
+                .filter(index -> !availableDimensions.containsAll(index.getDimensions()))
+                .flatMap(index -> index.getLayouts().stream().map(LayoutEntity::getId)).collect(Collectors.toSet());
+        deprecatedLayoutIds.addAll(toBeDeletedLayoutIds);
         if (deprecatedLayoutIds.isEmpty()) {
             return;
         }
         if (onlyDataflow) {
             val df = dataflowManager.getDataflow(indexPlan.getUuid());
             dataflowManager.removeLayouts(df, deprecatedLayoutIds);
+            if (CollectionUtils.isNotEmpty(toBeDeletedLayoutIds)) {
+                val indexPlanManager = NIndexPlanManager.getInstance(config, indexPlan.getProject());
+                indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+                    copyForWrite.removeLayoutsFromToBeDeletedList(deprecatedLayoutIds, LayoutEntity::equals, true,
+                            true);
+                });
+            }
         } else {
             val indexPlanManager = NIndexPlanManager.getInstance(config, indexPlan.getProject());
-            indexPlanManager.updateIndexPlan(indexPlan.getUuid(),
-                    copyForWrite -> copyForWrite.removeLayouts(deprecatedLayoutIds, LayoutEntity::equals, true, true));
+            indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
+                copyForWrite.removeLayouts(deprecatedLayoutIds, LayoutEntity::equals, true, true);
+                copyForWrite.removeLayoutsFromToBeDeletedList(deprecatedLayoutIds, LayoutEntity::equals, true, true);
+            });
         }
     }
 

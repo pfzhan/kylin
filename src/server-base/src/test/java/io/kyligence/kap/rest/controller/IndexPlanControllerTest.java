@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,7 +45,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -69,8 +69,8 @@ public class IndexPlanControllerTest {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(indexPlanController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(indexPlanController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -81,9 +81,8 @@ public class IndexPlanControllerTest {
 
     @Test
     public void testUpdateRule() throws Exception {
-        val request = UpdateRuleBasedCuboidRequest.builder()
-                .project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build();
+        val request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").aggregationGroups(Lists.newArrayList()).build();
         Mockito.when(indexPlanService.updateRuleBasedCuboid(Mockito.anyString(),
                 Mockito.any(UpdateRuleBasedCuboidRequest.class)))
                 .thenReturn(new Pair<>(new IndexPlan(), new BuildIndexResponse()));
@@ -94,4 +93,17 @@ public class IndexPlanControllerTest {
         Mockito.verify(indexPlanController).updateRule(Mockito.any(UpdateRuleBasedCuboidRequest.class));
     }
 
+    @Test
+    public void testCalculateDiffRuleBasedIndex() throws Exception {
+        val request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").aggregationGroups(Lists.newArrayList()).build();
+        Mockito.when(indexPlanService.calculateDiffRuleBasedIndex(Mockito.any(UpdateRuleBasedCuboidRequest.class)))
+                .thenReturn(new DiffRuleBasedIndexResponse("", 1, 1));
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule_based_index_diff")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(indexPlanController)
+                .calculateDiffRuleBasedIndex(Mockito.any(UpdateRuleBasedCuboidRequest.class));
+    }
 }

@@ -31,6 +31,7 @@ import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.swagger.annotations.ApiOperation;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +84,16 @@ public class NIndexPlanController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         val rule = indexPlanService.getRule(project, modelId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
+    }
+
+    @PutMapping(value = "/rule_based_index_diff", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    public EnvelopeResponse<DiffRuleBasedIndexResponse> calculateDiffRuleBasedIndex(
+            @RequestBody UpdateRuleBasedCuboidRequest request) {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_ID, request.getModelId());
+
+        val diffRuleBasedIndexResponse = indexPlanService.calculateDiffRuleBasedIndex(request);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, diffRuleBasedIndexResponse, "");
     }
 
     @ApiOperation(value = "calculateAggIndexCombination (update)", notes = "Update Body: model_id")

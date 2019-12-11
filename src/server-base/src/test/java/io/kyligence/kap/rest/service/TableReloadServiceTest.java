@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
@@ -660,9 +662,21 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                     .collect(Collectors.joining(",")), Joiner.on(",").join(sampleRow));
         }
 
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NIndexPlanManager.getInstance(getTestConfig(), PROJECT).updateIndexPlan(dataflow.getUuid(), copyForWrite -> {
+            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
+                    .filter(layoutEntity -> 1000001L == layoutEntity.getId()).collect(Collectors.toSet());
+            copyForWrite.markIndexesToBeDeleted(dataflow.getUuid(), toBeDeletedSet);
+        });
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(dataflow.getUuid());
+        Assert.assertTrue(CollectionUtils.isNotEmpty(indexPlan.getToBeDeletedIndexes()));
+
         removeColumn(tableIdentity, "NAME");
         tableService.innerReloadTable(PROJECT, tableIdentity);
 
+        indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(dataflow.getUuid());
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
         // check table sample
         tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");

@@ -179,11 +179,14 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         aggregationGroup2.setIncludes(new Integer[] { 4, 3, 5 });
         aggregationGroup2.setSelectRule(selectRule);
 
-        var saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
-                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
-                        .build())
-                .getFirst();
+        UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId(modelId)
+                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .build();
+        val diff1 = indexPlanService.calculateDiffRuleBasedIndex(request);
+        Assert.assertTrue(diff1.getIncreaseLayouts() > 0);
+
+        var saved = indexPlanService.updateRuleBasedCuboid("default", request).getFirst();
         Assert.assertNotNull(saved.getRuleBasedIndex());
         Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 3, 4, 5]", saved.getRuleBasedIndex().getDimensions().toString());
@@ -199,11 +202,14 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         aggregationGroup4.setIncludes(new Integer[] { 5, 4 });
         aggregationGroup4.setSelectRule(selectRule);
 
-        saved = indexPlanService.updateRuleBasedCuboid("default",
-                UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId).aggregationGroups(
+        request = UpdateRuleBasedCuboidRequest.builder().project("default").modelId(modelId)
+                .aggregationGroups(
                         Lists.newArrayList(aggregationGroup1, aggregationGroup2, aggregationGroup3, aggregationGroup4))
-                        .build())
-                .getFirst();
+                .build();
+        val diff2 = indexPlanService.calculateDiffRuleBasedIndex(request);
+        Assert.assertTrue(diff2.getDecreaseLayouts() > 0 && diff2.getIncreaseLayouts() > 0);
+
+        saved = indexPlanService.updateRuleBasedCuboid("default", request).getFirst();
 
         Assert.assertEquals(5, saved.getRuleBasedIndex().getDimensions().size());
         Assert.assertEquals("[1, 2, 5, 4, 3]", saved.getRuleBasedIndex().getDimensions().toString());
@@ -534,10 +540,12 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 NRuleBasedIndex.class);
         Assert.assertNotNull(rule);
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Lists.newArrayList(1, 2, 3));
+        newRule.setMeasures(Lists.newArrayList(1001, 1002));
+
         indePlanManager.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", copy -> {
-            val newRule = new NRuleBasedIndex();
-            newRule.setDimensions(Lists.newArrayList(1, 2, 3));
-            newRule.setMeasures(Lists.newArrayList(1001, 1002));
+
             copy.setRuleBasedIndex(newRule);
         });
         val rule2 = indexPlanService.getRule("default", "741ca86a-1f13-46da-a59f-95fb68615e3a");
