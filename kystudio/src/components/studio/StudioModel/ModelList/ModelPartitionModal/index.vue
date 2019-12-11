@@ -15,41 +15,49 @@
     </div>
     <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top"> 
       <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
-        <el-col :span="12">
-          <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%" class="ksd-mr-5">
-            <el-option :label="$t('noPartition')" value=""></el-option>
-            <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
-          </el-select>
-        </el-col>
-        <el-col :span="12" class="ksd-pl-5" v-if="partitionMeta.table">
-          <el-form-item prop="column">
-            <el-select :disabled="isLoadingNewRange"
-            v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:100%">
-              <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
-                <span style="float: left">{{ t.name }}</span>
-                <span class="ky-option-sub-info">{{ t.datatype }}</span>
-              </el-option>
+        <el-row :gutter="5">
+          <el-col :span="12">
+            <el-select :disabled="isLoadingNewRange" v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%">
+              <el-option :label="$t('noPartition')" value=""></el-option>
+              <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
-          </el-form-item>
-        </el-col>
+          </el-col>
+          <el-col :span="12" v-if="partitionMeta.table">
+            <el-form-item prop="column">
+              <el-select :disabled="isLoadingNewRange"
+              v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:100%">
+                <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
+                  <span style="float: left">{{ t.name }}</span>
+                  <span class="ky-option-sub-info">{{ t.datatype }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form-item>
       <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
-        <el-select :disabled="isLoadingFormat" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:50%">
-          <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
-          <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
-        </el-select>
-        <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
-          <div style="display: inline-block;">
-            <el-button
-              size="medium"
-              :loading="isLoadingFormat"
-              icon="el-icon-ksd-data_range_search"
-              v-guide.getPartitionColumnFormat
-              v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
-              @click="handleLoadFormat">
-            </el-button>
-          </div>
-        </el-tooltip>
+        <el-row :gutter="5">
+          <el-col :span="12">
+            <el-select :disabled="isLoadingFormat" style="width:100%" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')">
+              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
+              <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
+            </el-select>
+          </el-col>
+          <el-col :span="12">
+            <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
+              <div style="display: inline-block;">
+                <el-button
+                  size="medium"
+                  :loading="isLoadingFormat"
+                  icon="el-icon-ksd-data_range_search"
+                  v-guide.getPartitionColumnFormat
+                  v-if="partitionMeta.column&&$store.state.project.projectPushdownConfig"
+                  @click="handleLoadFormat">
+                </el-button>
+              </div>
+            </el-tooltip>
+          </el-col>
+        </el-row>
       </el-form-item>
     </el-form>
     <template v-if="mode === 'saveModel'">
@@ -60,7 +68,15 @@
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </div>
-      <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
+      <el-alert
+        :title="$t('filterCondTips')"
+        type="warning"
+        :closable="false"
+        :show-background="false"
+        style="padding-top:0px;"
+        show-icon>
+      </el-alert>
+      <kap-editor ref="dataFilterCond" :key="isShow" :placeholder="$t('filterPlaceholder')" height="95" width="99.6%" lang="sql" theme="chrome" v-model="filterCondition"></kap-editor>
       <div class="error-msg-box ksd-mt-10" v-if="filterErrorMsg">
         <div class="error-tag">{{$t('errorMsg')}}</div>
         <div v-html="filterErrorMsg"></div>
@@ -68,7 +84,7 @@
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -393,7 +409,7 @@ export default class ModelPartitionModal extends Vue {
 .model-partition-dialog {
   .error-msg-box {
     border: 1px solid @line-border-color;
-    height: 55px;
+    max-height: 55px;
     overflow: auto;
     font-size: 12px;
     padding: 10px;

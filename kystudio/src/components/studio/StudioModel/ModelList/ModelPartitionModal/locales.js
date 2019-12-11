@@ -25,6 +25,7 @@ export default {
     pleaseInputColumn: 'Please select a partition column',
     detectFormat: 'Detect partition format',
     errorMsg: 'Error Message:',
+    filterCondTips: 'Modifying the data filter conditions will result in all indexes under this model being rebuilt. Please modify with caution.',
     filterPlaceholder: 'Please input your filter condition and no clause "WHERE" needed. If you have several filter conditions, you should combine them with "AND" or "OR". E.g. BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
   },
   'zh-cn': {
@@ -53,6 +54,7 @@ export default {
     pleaseInputColumn: '请选择分区列',
     detectFormat: '获取分区格式',
     errorMsg: '错误信息：',
+    filterCondTips: '修改数据筛选条件将会导致该模型下所有索引重新构建，请谨慎修改。',
     filterPlaceholder: '请输入过滤条件，多个条件使用AND或OR连接，不需要写WHERE。例如：BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
   }
 }
