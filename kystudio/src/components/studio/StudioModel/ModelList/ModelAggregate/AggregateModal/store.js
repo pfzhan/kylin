@@ -15,6 +15,7 @@ const types = {
 export const initialAggregateData = JSON.stringify({
   id: 0,
   includes: [],
+  measures: [],
   mandatory: [],
   jointArray: [{
     id: 0,
@@ -23,7 +24,9 @@ export const initialAggregateData = JSON.stringify({
   hierarchyArray: [{
     id: 0,
     items: []
-  }]
+  }],
+  activeTab: 'dimension',
+  open: true
 })
 const initialState = JSON.stringify({
   isShow: false,
@@ -49,6 +52,12 @@ export default {
     },
     dimensionIdMapping (state, getters) {
       return getMapping(getters.dimensions)
+    },
+    measures (state) {
+      return getMeasures(state.model)
+    },
+    measureIdMapping (_, getters) {
+      return getMapping(getters.measures)
     }
   },
   mutations: {
@@ -81,10 +90,13 @@ export default {
     [types.INIT_FORM]: (state, payload) => {
       if (payload) {
         const dimensions = getDimensions(state.model)
+        const measuresList = getMeasures(state.model)
         const nameMapping = getMapping(dimensions)
+        const measuresMapping = getMapping(measuresList)
         state.form.aggregateArray = payload.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
           const id = payload.aggregation_groups.length - aggregateIdx
           const includes = aggregationGroup.includes.map(include => nameMapping[include])
+          const measures = aggregationGroup.measures.map(measures => measuresMapping[measures])
           const selectRules = aggregationGroup.select_rule
           const mandatory = selectRules.mandatory_dims.map(mandatory => nameMapping[mandatory])
           const jointArray = selectRules.joint_dims.map((jointGroup, groupIdx) => {
@@ -95,19 +107,21 @@ export default {
             const items = hierarchyGroup.map(hierarchy => nameMapping[hierarchy])
             return { id: groupIdx, items }
           })
+          const activeTab = 'dimension'
+          const open = true
           if (!hierarchyArray.length) {
             hierarchyArray.push({ id: 0, items: [] })
           }
           if (!jointArray.length) {
             jointArray.push({ id: 0, items: [] })
           }
-          return { id, includes, mandatory, jointArray, hierarchyArray }
+          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open }
         })
       }
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, projectName, model }) {
+    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model }) {
       const { dispatch } = this
 
       return new Promise(async (resolve, reject) => {
@@ -118,19 +132,28 @@ export default {
         commit(types.SHOW_MODAL)
         const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
         const aggregateGroupRule = await handleSuccessAsync(response)
+        commit(types.HIDE_LOADING)
+        if (!aggregateGroupRule) {
+          for (let item of getMeasures(state.model)) {
+            if (item.label && item.label === 'COUNT_ALL') {
+              state.form.aggregateArray[0].measures = [item.label]
+              break
+            }
+          }
+          return
+        }
         setTimeout(() => {
           commit(types.SET_MODEL_DATA_LOADED, true)
           commit(types.INIT_FORM, aggregateGroupRule)
         }, 0)
-        commit(types.HIDE_LOADING)
       })
     }
   },
   namespaced: true
 }
 
-function getMapping (dimensions) {
-  const mapping = dimensions.reduce((mapping, item) => {
+function getMapping (data) {
+  const mapping = data.reduce((mapping, item) => {
     mapping[item.value] = item.id
     return mapping
   }, {})
@@ -149,6 +172,10 @@ function getDimensions (model) {
   } else {
     return []
   }
+}
+
+function getMeasures (model) {
+  return model ? model.simplified_measures.map(measure => ({label: measure.name, value: measure.name, id: measure.id})).reverse() : []
 }
 
 export { types }

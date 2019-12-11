@@ -36,7 +36,7 @@
             element-loading-background="rgba(0, 0, 0, 0)">
         <el-alert
           class="ksd-pt-0 ksd-pb-15"
-          :title="$t('aggRuleTip')"
+          :title="$t('aggGroupTip')"
           type="info"
           :show-background="false"
           :closable="false"
@@ -45,137 +45,178 @@
         <div class="aggregate-buttons ksd-mb-15">
           <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
         </div>
-        <!-- 聚合组表单 -->
-        <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregate.id" :class="{'js_exceedLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
-          <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}} 
-            <!-- 超出上限的情况 -->
-            <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
-            <!-- 数字的情况 -->
-            <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
-            <!-- 正在检测的情况 -->
-            <i v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'" class="el-icon-loading"></i>
-          </h1>
-          <div class="actions">
-            <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
-            <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
-          </div>
-          <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
-            <!-- Include聚合组 -->
-            <div class="row ksd-mb-15">
-              <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAll')}}</el-button>
-              <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('cancelAll')}}</el-button>
-            </div>
-            <div class="row">
-              <h2 class="title font-medium">{{$t('include')}}</h2>
-              <el-select
-                v-guide.aggIncludes
-                multiple
-                filterable
-                class="mul-filter-select"
-                :class="{'reset-padding': aggregate.includes.length}"
-                :ref="`aggregate.include.${aggregateIdx}`"
-                :value="aggregate.includes"
-                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value, aggregate.id)"
-                @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
-                <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
-                <el-option
-                  v-for="dimension in dimensions"
-                  :key="dimension.value"
-                  :label="dimension.label"
-                  :value="dimension.value">
-                </el-option>
-              </el-select>
-            </div>
-            <!-- Mandatory聚合组 -->
-            <div class="row mandatory">
-              <h2 class="title font-medium">{{$t('mandatory')}}</h2>
-              <el-select
-                v-guide.aggMandatory
-                multiple
-                filterable
-                class="mul-filter-select"
-                :class="{'reset-padding': aggregate.mandatory.length}"
-                :value="aggregate.mandatory"
-                :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value, aggregate.id)">
-                <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
-                <el-option
-                  v-for="dimension in getUnusedDimensions(aggregateIdx)"
-                  :key="dimension.value"
-                  :label="dimension.label"
-                  :value="dimension.value">
-                </el-option>
-              </el-select>
-            </div>
-            <!-- Hierarchy聚合组 -->
-            <div class="row hierarchy">
-              <h2 class="title font-medium">{{$t('hierarchy')}}</h2>
-              <div class="list"
-                v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
-                :key="`hierarchy-${hierarchyRowIdx}`">
-                <el-select
-                  v-guide.aggHierarchy
-                  multiple
-                  filterable
-                  class="mul-filter-select"
-                  :class="{'reset-padding': hierarchy.items.length}"
-                  :value="hierarchy.items"
-                  :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                  @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value, aggregate.id)">
-                  <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
-                  <el-option
-                    v-for="dimension in getUnusedDimensions(aggregateIdx)"
-                    :key="dimension.value"
-                    :label="dimension.label"
-                    :value="dimension.value">
-                  </el-option>
-                </el-select>
-                <div class="list-actions clearfix">
-                  <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
-                    @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregate.id)">
-                  </el-button>
-                  <el-button circle class="delete" size="mini" icon="el-icon-minus"
-                    :disabled="aggregate.hierarchyArray.length === 1"
-                    @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx, aggregate.id)">
-                  </el-button>
-                </div>
+        <div class="content">
+          <!-- 聚合组表单 -->
+          <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregate.id" :class="{'js_exceedLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
+            <div class="header">
+              <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}} 
+                <!-- 超出上限的情况 -->
+                <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+                <!-- 数字的情况 -->
+                <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
+                <!-- 正在检测的情况 -->
+                <i v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'" class="el-icon-loading"></i>
+              </h1>
+              <div class="actions">
+                <!-- <el-button type="mini" @click="() => openAggregateItem(aggregateIdx)">{{ aggregate.open ? $t('retract') : $t('open') }}</el-button> -->
+                <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
+                <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
               </div>
             </div>
-            <!-- Joint聚合组 -->
-            <div class="row joint">
-              <h2 class="title font-medium">{{$t('joint')}}</h2>
-              <div class="list"
-                v-for="(joint, jointRowIdx) in aggregate.jointArray"
-                :key="`joint-${jointRowIdx}`">
-                <el-select
-                  v-guide.joint
-                  multiple
-                  filterable
-                  class="mul-filter-select"
-                  :class="{'reset-padding': joint.items.length}"
-                  :value="joint.items"
-                  :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                  @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value, aggregate.id)">
-                  <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
-                  <el-option
-                    v-for="dimension in getUnusedDimensions(aggregateIdx)"
-                    :key="dimension.value"
-                    :label="dimension.label"
-                    :value="dimension.value">
-                  </el-option>
-                </el-select>
-                <div class="list-actions clearfix ksd-no-br-space">
-                  <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
-                    @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
-                  </el-button>
-                  <el-button circle class="delete" size="mini" icon="el-icon-minus"
-                    :disabled="aggregate.jointArray.length === 1"
-                    @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx, aggregate.id)">
-                  </el-button>
-                </div>
+            <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx]">
+              <div class="contain">
+                <el-tabs v-model="aggregate.activeTab" type="card">
+                  <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
+                </el-tabs>
+                <template v-if="aggregate.activeTab === 'dimension'">
+                  <!-- Include聚合组 -->
+                  <div class="row">
+                    <h2 class="title font-medium">{{$t('include')}}</h2>
+                    <div class="row ksd-mb-15">
+                      <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAllDimension')}}<el-tooltip class="item tip-item" effect="dark" :content="$t('dimensionTabTip')" placement="bottom"><i class="el-icon-info"></i></el-tooltip></el-button>
+                      <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllDimension')}}</el-button>
+                    </div>
+                    <el-select
+                      v-guide.aggIncludes
+                      multiple
+                      filterable
+                      class="mul-filter-select"
+                      :class="{'reset-padding': aggregate.includes.length}"
+                      :ref="`aggregate.include.${aggregateIdx}`"
+                      :value="aggregate.includes"
+                      :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                      @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value, aggregate.id)"
+                      @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
+                      <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
+                      <el-option
+                        v-for="dimension in dimensions"
+                        :key="dimension.value"
+                        :label="dimension.label"
+                        :value="dimension.value">
+                      </el-option>
+                    </el-select>
+                  </div>
+                  <!-- Mandatory聚合组 -->
+                  <div class="row mandatory">
+                    <h2 class="title font-medium">{{$t('mandatory')}}</h2>
+                    <el-select
+                      v-guide.aggMandatory
+                      multiple
+                      filterable
+                      class="mul-filter-select"
+                      :class="{'reset-padding': aggregate.mandatory.length}"
+                      :value="aggregate.mandatory"
+                      :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                      @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value, aggregate.id)">
+                      <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
+                      <el-option
+                        v-for="dimension in getUnusedDimensions(aggregateIdx)"
+                        :key="dimension.value"
+                        :label="dimension.label"
+                        :value="dimension.value">
+                      </el-option>
+                    </el-select>
+                  </div>
+                  <!-- Hierarchy聚合组 -->
+                  <div class="row hierarchy">
+                    <h2 class="title font-medium">{{$t('hierarchy')}}</h2>
+                    <div class="list"
+                      v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
+                      :key="`hierarchy-${hierarchyRowIdx}`">
+                      <el-select
+                        v-guide.aggHierarchy
+                        multiple
+                        filterable
+                        class="mul-filter-select"
+                        :class="{'reset-padding': hierarchy.items.length}"
+                        :value="hierarchy.items"
+                        :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                        @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value, aggregate.id)">
+                        <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
+                        <el-option
+                          v-for="dimension in getUnusedDimensions(aggregateIdx)"
+                          :key="dimension.value"
+                          :label="dimension.label"
+                          :value="dimension.value">
+                        </el-option>
+                      </el-select>
+                      <div class="list-actions clearfix">
+                        <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
+                          @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregate.id)">
+                        </el-button>
+                        <el-button circle class="delete" size="mini" icon="el-icon-minus"
+                          :disabled="aggregate.hierarchyArray.length === 1"
+                          @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx, aggregate.id)">
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Joint聚合组 -->
+                  <div class="row joint">
+                    <h2 class="title font-medium">{{$t('joint')}}</h2>
+                    <div class="list"
+                      v-for="(joint, jointRowIdx) in aggregate.jointArray"
+                      :key="`joint-${jointRowIdx}`">
+                      <el-select
+                        v-guide.joint
+                        multiple
+                        filterable
+                        class="mul-filter-select"
+                        :class="{'reset-padding': joint.items.length}"
+                        :value="joint.items"
+                        :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                        @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value, aggregate.id)">
+                        <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
+                        <el-option
+                          v-for="dimension in getUnusedDimensions(aggregateIdx)"
+                          :key="dimension.value"
+                          :label="dimension.label"
+                          :value="dimension.value">
+                        </el-option>
+                      </el-select>
+                      <div class="list-actions clearfix ksd-no-br-space">
+                        <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
+                          @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
+                        </el-button>
+                        <el-button circle class="delete" size="mini" icon="el-icon-minus"
+                          :disabled="aggregate.jointArray.length === 1"
+                          @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx, aggregate.id)">
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="row">
+                    <h2 class="title font-medium">{{$t('includeMeasure')}}</h2>
+                    <div class="row ksd-mb-15">
+                      <el-button plain size="mini" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-info"></i></el-tooltip></el-button>
+                      <el-button size="mini" @click="handleRemoveAllMeasure(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllMeasures')}}</el-button>
+                    </div>
+                    <el-select
+                      multiple
+                      filterable
+                      class="mul-filter-select"
+                      :class="{'reset-padding': aggregate.measures.length}"
+                      :ref="`aggregate.measures.${aggregateIdx}`"
+                      :value="aggregate.measures"
+                      :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                      @input="value => handleInput(`aggregateArray.${aggregateIdx}.measures`, value, aggregate.id)"
+                      @remove-tag="value => handleRemoveMeasureRules(value, aggregateIdx, aggregate.id)">
+                      <i slot="prefix" v-show="!aggregate.measures.length" class="el-input__icon el-icon-search"></i>
+                      <el-option
+                        v-for="measure in measures"
+                        :key="measure.value"
+                        :label="measure.label"
+                        :disabled="measure.value === 'COUNT_ALL'"
+                        :value="measure.value">
+                      </el-option>
+                    </el-select>
+                  </div>
+                </template>
               </div>
             </div>
+            <div class="open-aggregate-group" @click="openAggregateItem(aggregateIdx)"><i :class="['el-icon-d-arrow-left', {'open': aggregate.open}]"></i></div>
           </div>
         </div>
       </div>
@@ -224,7 +265,9 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
     }),
     ...mapGetters('AggregateModal', [
       'dimensions',
-      'dimensionIdMapping'
+      'dimensionIdMapping',
+      'measures',
+      'measureIdMapping'
     ])
   },
   methods: {
@@ -232,7 +275,9 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       setModal: types.SET_MODAL,
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,
-      resetModalForm: types.RESET_MODAL_FORM
+      resetModalForm: types.RESET_MODAL_FORM,
+      showLoading: types.SHOW_LOADING,
+      hideLoading: types.HIDE_LOADING
     }),
     ...mapActions({
       updateAggregateGroups: 'UPDATE_AGGREGATE_GROUPS',
@@ -248,15 +293,19 @@ export default class AggregateModal extends Vue {
   isWaitingCheckCuboids = {}
   isWaitingCheckAllCuboids = true
   maxCombinationNum = 0
+  tabList = [
+    {name: 'dimensions', key: 'dimension', size: 0, total: 0, target: 'includes'},
+    {name: 'measures', key: 'measure', size: 0, total: 0, target: 'measures'}
+  ]
+  aggregateStyle = []
+
   get modalTitle () {
     return titleMaps[this.editType]
   }
   get isFormVaild () {
     const { aggregateArray } = this.form
-    for (const { includes } of aggregateArray) {
-      if (!includes.length) {
-        return false
-      }
+    for (const { includes, measures } of aggregateArray) {
+      if (!includes.length || !measures.length) return false
     }
 
     return true
@@ -269,6 +318,9 @@ export default class AggregateModal extends Vue {
       })
     })
     return Object.keys(dimensionMaps)
+  }
+  totalSize (name) {
+    return this[name].length
   }
   getUnusedDimensions (aggregateIdx) {
     const aggregate = this.form.aggregateArray[aggregateIdx]
@@ -308,6 +360,7 @@ export default class AggregateModal extends Vue {
       this.isWaitingCheckCuboids[prop] = false
     }
     this.calcLoading = true
+    this.showLoading()
     let paramsData = this.getSubmitData()
     if (paramsData.dimensions.length <= 0) {
       this.calcLoading = false
@@ -344,6 +397,7 @@ export default class AggregateModal extends Vue {
           }
         }
         this.calcLoading = false
+        this.hideLoading()
       })
     }, (res) => {
       this.maxCombinationNum = 0
@@ -354,6 +408,7 @@ export default class AggregateModal extends Vue {
       }
       this.resetCuboidInfo()
       this.calcLoading = false
+      this.hideLoading()
       handleError(res)
     })
   }
@@ -412,6 +467,7 @@ export default class AggregateModal extends Vue {
   }
   toggleIncludeDimension (aggregateIdx, dimensionValue, isUsed) {
     const includeSelectRefId = `aggregate.include.${aggregateIdx}`
+    if (!this.$refs[includeSelectRefId] || !this.$refs[includeSelectRefId][0]) return
     const includeSelectEl = this.$refs[includeSelectRefId][0].$el
     const includeOptEls = includeSelectEl.querySelectorAll('.el-select__tags span .el-tag')
 
@@ -422,6 +478,7 @@ export default class AggregateModal extends Vue {
     const aggregateArray = get(this.form, 'aggregateArray')
     const aggregateData = {
       ...JSON.parse(initialAggregateData),
+      ...{ measures: this.measures.map(item => item.value) },
       // id: aggregateArray.length
       id: sampleGuid()
     }
@@ -565,6 +622,7 @@ export default class AggregateModal extends Vue {
   }
   async handleSubmit () {
     this.isSubmit = true
+    this.showLoading()
     try {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
@@ -618,8 +676,10 @@ export default class AggregateModal extends Vue {
         this.handleBuildIndexTip(result)
         this.isSubmit = false
         this.handleClose(true)
+        this.hideLoading()
       } else {
         this.isSubmit = false
+        this.hideLoading()
       }
     } catch (e) {
       this.calcLoading = false
@@ -628,6 +688,7 @@ export default class AggregateModal extends Vue {
       }
       e && handleError(e)
       this.isSubmit = false
+      this.hideLoading()
     }
   }
   checkFormVaild () {
@@ -644,7 +705,7 @@ export default class AggregateModal extends Vue {
     }
   }
   getSubmitData () {
-    const { editType, form, usedDimensions, dimensionIdMapping, projectName, model } = this
+    const { editType, form, usedDimensions, dimensionIdMapping, measureIdMapping, projectName, model } = this
 
     switch (editType) {
       case EDIT: {
@@ -656,6 +717,7 @@ export default class AggregateModal extends Vue {
           dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
           aggregationGroups: aggregateArray.map(aggregate => ({
             includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
+            measures: aggregate.measures.map(measure => measureIdMapping[measure]),
             select_rule: {
               mandatory_dims: aggregate.mandatory.map(includeItem => dimensionIdMapping[includeItem]),
               hierarchy_dims: aggregate.hierarchyArray.map(hierarchys => {
@@ -686,6 +748,62 @@ export default class AggregateModal extends Vue {
       })
     })
   }
+
+  // 删除选中的度量tag
+  handleRemoveMeasureRules (value, aggregateIdx, id) {
+    value === 'COUNT_ALL' && this.handleInput(`aggregateArray.${aggregateIdx}.measures`, ['COUNT_ALL', ...this.form.aggregateArray[aggregateIdx].measures], id)
+  }
+
+  // 选择所有的度量
+  handleAddAllMeasure (aggregateIdx, id) {
+    const measures = this.measures.map(m => m.label)
+    this.handleInput(`aggregateArray.${aggregateIdx}.measures`, measures, id)
+  }
+
+  // 清除所有的度量
+  handleRemoveAllMeasure (aggregateIdx, titleId, id) {
+    kapConfirm(this.$t('clearAllMeasuresTip', {aggId: titleId}), {type: 'warning'}, this.$t('clearMeasureTitle')).then(() => {
+      this.handleInput(`aggregateArray.${aggregateIdx}.measures`, this.form.aggregateArray[aggregateIdx].measures.filter(m => ['COUNT_ALL'].includes(m)), id)
+    })
+  }
+
+  // 是否展开聚合组
+  openAggregateItem (index) {
+    this.form.aggregateArray[index].open = !this.form.aggregateArray[index].open
+    this.computeCurrentAggHeigth(index)
+    this.setModalForm(this.form)
+  }
+
+  aggregateHeight (index) {
+    return document.querySelectorAll('.aggregate-group .body').length ? (document.querySelectorAll('.aggregate-group .body')[index].offsetHeight || null) : null
+  }
+
+  computeCurrentAggHeigth (index) {
+    let height = this.aggregateHeight(index)
+    const showAggregate = (isShow) => {
+      setTimeout(() => {
+        this.$set(this.aggregateStyle, index, !isShow ? {'display': 'none'} : {})
+      }, 1000)
+    }
+    if (this.form.aggregateArray[index].open) {
+      this.$set(this.aggregateStyle, index, {'display': 'block'})
+      this.$nextTick(() => {
+        height = this.aggregateHeight(index)
+        this.$set(this.aggregateStyle, index, {'height': 0})
+        this.$nextTick(() => {
+          this.$set(this.aggregateStyle, index, {...this.aggregateStyle[index], ...{'height': height ? `${height}px` : 'auto'}})
+          showAggregate(true)
+        })
+      })
+    } else {
+      this.$set(this.aggregateStyle, index, {'height': height ? `${height}px` : 'auto'})
+      this.$nextTick(() => {
+        this.$set(this.aggregateStyle, index, {'height': 0})
+        showAggregate(false)
+      })
+    }
+  }
+
   updated () {
     this.repaintDimensionSelector()
   }
@@ -717,6 +835,9 @@ export default class AggregateModal extends Vue {
         }
       }
     }
+  }
+  .el-select {
+    width: 100%;
   }
   .mul-filter-select {
     .el-select__tags {
@@ -767,12 +888,46 @@ export default class AggregateModal extends Vue {
       color: @text-title-color;
       margin-bottom: 7px;
     }
+    .header {
+      width: 100%;
+      height: 42px;
+      background: @regular-background-color;
+      line-height: 42px;
+      padding: 0 10px;
+      box-sizing: border-box;
+      border-radius: 2px 2px 0 0;
+    }
     .body {
       border: 1px solid @line-border-color;
-      border-radius: 2px;
-      padding: 15px;
+      overflow: hidden;
+      transition: height 1s;
+      box-sizing: border-box;
       &.overLimit{
         border: 1px solid @error-color-1;
+      }
+      .contain {
+        padding: 10px 20px;
+        box-sizing: border-box;
+      }
+    }
+    .open-aggregate-group {
+      width: 100%;
+      height: 20px;
+      background: @aceditor-bg-color;
+      text-align: center;
+      border-radius: 0 0 2px 2px;
+      border: 1px solid @line-border-color;
+      border-top: 0;
+      box-sizing: border-box;
+      cursor: pointer;
+      .el-icon-d-arrow-left {
+        transform: rotate(-90deg);
+        &.open {
+          transform: rotate(90deg)
+        }
+      }
+      &:hover {
+        color: @color-primary;
       }
     }
     .row {
@@ -780,11 +935,14 @@ export default class AggregateModal extends Vue {
       &.joint {
         margin-bottom: 0;
       }
+      .el-icon-info {
+        margin-left: 5px;
+      }
     }
     .actions {
       position: absolute;
       top: -3px;
-      right: 0;
+      right: 10px;
       font-size: 16px;
       .el-button+.el-button {
         margin-left: 5px;
