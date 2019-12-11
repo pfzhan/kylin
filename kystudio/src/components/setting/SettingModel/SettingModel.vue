@@ -47,14 +47,25 @@
           </div>
           <div v-if="scope.row.override_props">
             <div v-for="(propValue, key) in scope.row.override_props" :key="key">
-              <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
-                <!-- 去掉前缀kylin.engine.spark-conf. -->
-                {{key.substring(24)}}:<span>{{propValue}}</span>
-              </span><common-tip :content="$t('kylinLang.common.edit')">
-                <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editSparkItem(scope.row, key)"></i>
-              </common-tip><common-tip :content="$t('kylinLang.common.delete')">
-                <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
-              </common-tip>
+              <template v-if="!key.split('.').includes('cube')">
+                <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
+                  <!-- 去掉前缀kylin.engine.spark-conf. -->
+                  {{key.substring(24)}}:<span>{{propValue}}</span>
+                </span><common-tip :content="$t('kylinLang.common.edit')">
+                  <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editSparkItem(scope.row, key)"></i>
+                </common-tip><common-tip :content="$t('kylinLang.common.delete')">
+                  <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
+                </common-tip>
+              </template>
+              <template v-else>
+                <span class="model-setting-item" @click="editCubeItem(scope.row, key)">
+                  {{key.split('.').slice(-1).toString()}}:<span>{{propValue}}</span>
+                </span><common-tip :content="$t('kylinLang.common.edit')">
+                  <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editCubeItem(scope.row, key)"></i>
+                </common-tip><common-tip :content="$t('kylinLang.common.delete')">
+                  <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
+                </common-tip>
+              </template>
             </div>
           </div>
         </template>
@@ -112,6 +123,18 @@
           <el-input v-model="modelSettingForm[modelSettingForm.settingItem]" v-number="modelSettingForm[modelSettingForm.settingItem]" class="retention-input"></el-input><span
           class="ksd-ml-5" v-if="modelSettingForm.settingItem==='spark.executor.memory'">G</span>
         </el-form-item>
+        <el-form-item :label="modelSettingForm.settingItem" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'is-base-cuboid-always-valid'">
+          <el-select v-model="modelSettingForm['is-base-cuboid-always-valid']">
+            <el-option
+              v-for="item in baseCuboidValid"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            >
+            </el-option>
+          </el-select>
+          <!-- <span class="ksd-ml-5" v-if="modelSettingForm.settingItem==='is-base-cuboid-always-valid'">G</span> -->
+        </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="editModelSetting = false" v-if="step=='stepOne' || (step=='stepTwo' && isEdit)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -142,7 +165,18 @@ import { pageCount } from '../../../config'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 
-const initialSettingForm = JSON.stringify({name: '', settingItem: '', autoMerge: [], volatileRange: {volatile_range_number: 0, volatile_range_type: '', volatile_range_enabled: true}, retentionThreshold: {retention_range_number: 0, retention_range_type: '', retention_range_enabled: true}, 'spark.executor.cores': null, 'spark.executor.instances': null, 'spark.executor.memory': null, 'spark.sql.shuffle.partitions': null})
+const initialSettingForm = JSON.stringify({
+  name: '',
+  settingItem: '',
+  autoMerge: [],
+  volatileRange: {volatile_range_number: 0, volatile_range_type: '', volatile_range_enabled: true},
+  retentionThreshold: {retention_range_number: 0, retention_range_type: '', retention_range_enabled: true},
+  'spark.executor.cores': null,
+  'spark.executor.instances': null,
+  'spark.executor.memory': null,
+  'spark.sql.shuffle.partitions': null,
+  'is-base-cuboid-always-valid': 0
+})
 
 @Component({
   props: {
@@ -182,6 +216,7 @@ export default class SettingStorage extends Vue {
   // settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
   mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
   units = [{label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'year', value: 'YEAR'}]
+  baseCuboidValid = [{label: 'true', value: 0}, {label: 'false', value: 1}]
   modelSettingForm = JSON.parse(initialSettingForm)
   activeRow = null
   get modelTableTitle () {
@@ -191,7 +226,7 @@ export default class SettingStorage extends Vue {
     if (this.isAutoProject) {
       return ['spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
     } else {
-      return ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
+      return ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'is-base-cuboid-always-valid']
     }
   }
   get availableRetentionRange () {
@@ -221,7 +256,8 @@ export default class SettingStorage extends Vue {
       'spark.executor.cores': this.$t('sparkCores'),
       'spark.executor.instances': this.$t('sparkInstances'),
       'spark.executor.memory': this.$t('sparkMemory'),
-      'spark.sql.shuffle.partitions': this.$t('sparkShuffle')
+      'spark.sql.shuffle.partitions': this.$t('sparkShuffle'),
+      'is-base-cuboid-always-valid': this.$t('baseCuboidConfig')
     }
   }
   get rules () {
@@ -256,6 +292,8 @@ export default class SettingStorage extends Vue {
       return true
     } else if (this.modelSettingForm.settingItem.indexOf('spark.') !== -1 && !this.modelSettingForm[this.modelSettingForm.settingItem]) {
       return true
+    } else if (this.modelSettingForm.settingItem === 'is-base-cuboid-always-valid' && this.modelSettingForm[this.modelSettingForm.settingItem] === '') {
+      return true
     } else {
       return false
     }
@@ -266,7 +304,7 @@ export default class SettingStorage extends Vue {
       rowCopy[type] = null
       rowCopy['auto_merge_enabled'] = type !== 'auto_merge_time_ranges' ? rowCopy['auto_merge_enabled'] : null
       rowCopy['retention_range'] = type !== 'auto_merge_time_ranges' ? rowCopy['retention_range'] : null
-      if (type.indexOf('spark.') !== -1) {
+      if (type.indexOf('spark.') !== -1 || type.indexOf('cube.') !== -1) {
         delete rowCopy.override_props[type]
       }
       this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, rowCopy)).then((res) => {
@@ -330,6 +368,16 @@ export default class SettingStorage extends Vue {
     this.isEdit = true
     this.editModelSetting = true
   }
+  // 编辑base-cubiod相关配置
+  editCubeItem (row, key) {
+    this.modelSettingForm.name = row.alias
+    this.modelSettingForm.settingItem = key.split('.').slice(-1).toString()
+    this.modelSettingForm[this.modelSettingForm.settingItem] = row.override_props[key]
+    this.activeRow = row
+    this.step = 'stepTwo'
+    this.isEdit = true
+    this.editModelSetting = true
+  }
   submit () {
     if (this.modelSettingForm.settingItem === 'Auto-merge') {
       this.activeRow.auto_merge_time_ranges = this.modelSettingForm.autoMerge
@@ -350,6 +398,9 @@ export default class SettingStorage extends Vue {
     }
     if (this.modelSettingForm.settingItem === 'spark.executor.memory') {
       this.activeRow.override_props['kylin.engine.spark-conf.spark.executor.memory'] = this.activeRow.override_props['kylin.engine.spark-conf.spark.executor.memory'] + 'g'
+    }
+    if (this.modelSettingForm.settingItem === 'is-base-cuboid-always-valid') {
+      this.activeRow.override_props['kylin.cube.aggrgroup.is-base-cuboid-always-valid'] = !this.modelSettingForm['is-base-cuboid-always-valid']
     }
     this.isLoading = true
     this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, this.activeRow)).then((res) => {
