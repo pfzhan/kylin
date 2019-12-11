@@ -216,7 +216,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.model + '/agg_indices/shard_columns').get(para)
   },
   loadAllIndex: (para) => {
-    return Vue.resource(apiUrl + 'index_plans/index{?sources}').get(para)
+    return Vue.resource(apiUrl + 'index_plans/index{?sources}' + '{&status}').get(para)
   },
   deleteIndex: (para) => {
     return Vue.resource(apiUrl + `index_plans/index/${para.id}?project=${para.project}&model=${para.model}`).delete()

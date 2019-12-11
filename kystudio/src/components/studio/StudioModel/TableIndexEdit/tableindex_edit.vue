@@ -53,7 +53,7 @@
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
   import { BuildIndexStatus } from 'config/model'
-  import { handleError, kapMessage, handleSuccess } from 'util/business'
+  import { handleError, kapMessage, handleSuccess, kapConfirm } from 'util/business'
   import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray, topArrByArr } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
@@ -313,42 +313,51 @@
         this.$message({message: tipMsg, type: 'success'})
       }
     }
+    confirmSubmit () {
+      this.btnLoading = true
+      let successCb = (res) => {
+        handleSuccess(res, (data) => {
+          this.handleBuildIndexTip(data)
+        })
+        this.closeModal(true)
+        this.btnLoading = false
+      }
+      let errorCb = (res) => {
+        this.btnLoading = false
+        handleError(res)
+      }
+      // 按照sort选中列的顺序对col_order进行重新排序
+      this.tableIndexMeta.col_order = []
+      this.tableIndexMeta.sort_by_columns = []
+      this.tableIndexMeta.shard_by_columns = []
+      this.allColumns.forEach((col) => {
+        if (col.isUsed) {
+          this.tableIndexMeta.col_order.push(col.fullName)
+        }
+        if (col.isShared) {
+          this.tableIndexMeta.shard_by_columns.push(col.fullName)
+        }
+        if (col.isSorted) {
+          this.tableIndexMeta.sort_by_columns.push(col.fullName)
+        }
+      })
+      this.tableIndexMeta.project = this.currentSelectedProject
+      this.tableIndexMeta.model_id = this.modelInstance.uuid
+      if (this.tableIndexMeta.id) {
+        this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+      } else {
+        this.addTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+      }
+    }
     async submit () {
       this.$refs.tableIndexForm.validate((valid) => {
         if (!valid) { return }
-        this.btnLoading = true
-        let successCb = (res) => {
-          handleSuccess(res, (data) => {
-            this.handleBuildIndexTip(data)
+        if (this.tableIndexDesc && this.tableIndexDesc.status !== 'EMPTY') {
+          kapConfirm(this.$t('cofirmEditTableIndex'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
+            this.confirmSubmit()
           })
-          this.closeModal(true)
-          this.btnLoading = false
-        }
-        let errorCb = (res) => {
-          this.btnLoading = false
-          handleError(res)
-        }
-        // 按照sort选中列的顺序对col_order进行重新排序
-        this.tableIndexMeta.col_order = []
-        this.tableIndexMeta.sort_by_columns = []
-        this.tableIndexMeta.shard_by_columns = []
-        this.allColumns.forEach((col) => {
-          if (col.isUsed) {
-            this.tableIndexMeta.col_order.push(col.fullName)
-          }
-          if (col.isShared) {
-            this.tableIndexMeta.shard_by_columns.push(col.fullName)
-          }
-          if (col.isSorted) {
-            this.tableIndexMeta.sort_by_columns.push(col.fullName)
-          }
-        })
-        this.tableIndexMeta.project = this.currentSelectedProject
-        this.tableIndexMeta.model_id = this.modelInstance.uuid
-        if (this.tableIndexMeta.id) {
-          this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
         } else {
-          this.addTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+          this.confirmSubmit()
         }
       })
     }

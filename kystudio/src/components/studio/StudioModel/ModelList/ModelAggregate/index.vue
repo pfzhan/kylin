@@ -87,6 +87,11 @@
                     <span>{{$t(scope.row.source)}}</span>
                   </template>
                 </el-table-column>
+                <el-table-column prop="status" show-overflow-tooltip :renderHeader="renderColumn2" width="100">
+                  <template slot-scope="scope">
+                    <span>{{$t(scope.row.status)}}</span>
+                  </template>
+                </el-table-column>
                 <el-table-column :label="$t('kylinLang.common.action')" width="83">
                   <template slot-scope="scope">
                     <common-tip :content="$t('viewDetail')">
@@ -276,12 +281,14 @@ export default class ModelAggregate extends Vue {
     key: '',
     sort_by: '',
     reverse: '',
-    sources: []
+    sources: [],
+    status: []
   }
   ST = null
   indexDetailShow = false
   tableIndexBaseList = []
   realFilteArr = ['AUTO_AGG', 'MANUAL_AGG', 'AUTO_TABLE', 'MANUAL_TABLE']
+  statusArr = ['EMPTY', 'AVAILABLE', 'TO_BE_DELETED', 'BUILDING']
   detailType = ''
   currentPage = 0
   currentCount = 10
@@ -297,7 +304,7 @@ export default class ModelAggregate extends Vue {
   }
 
   tableRowClassName ({row, rowIndex}) {
-    if (row.status === 'EMPTY') {
+    if (row.status === 'EMPTY' || row.status === 'BUILDING') {
       return 'empty-index'
     }
     return ''
@@ -342,6 +349,24 @@ export default class ModelAggregate extends Vue {
           {items}
         </el-checkbox-group>
         <i class={this.filterArgs.sources.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+      </el-popover>
+    </span>)
+  }
+  renderColumn2 (h) {
+    let items = []
+    for (let i = 0; i < this.statusArr.length; i++) {
+      items.push(<el-checkbox label={this.statusArr[i]} key={this.statusArr[i]}>{this.$t(this.statusArr[i])}</el-checkbox>)
+    }
+    return (<span>
+      <span>{this.$t('kylinLang.common.status')}</span>
+      <el-popover
+        ref="sourceFilterPopover"
+        placement="bottom-start"
+        popperClass="source-filter">
+        <el-checkbox-group class="filter-groups" value={this.filterArgs.status} onInput={val => (this.filterArgs.status = val)} onChange={this.loadAggIndices}>
+          {items}
+        </el-checkbox-group>
+        <i class={this.filterArgs.status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
       </el-popover>
     </span>)
   }
