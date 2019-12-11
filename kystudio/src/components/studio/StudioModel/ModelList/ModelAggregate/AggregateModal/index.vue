@@ -63,7 +63,7 @@
                 <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
               </div>
             </div>
-            <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx]">
+            <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
               <div class="contain">
                 <el-tabs v-model="aggregate.activeTab" type="card">
                   <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
@@ -72,8 +72,8 @@
                   <!-- Include聚合组 -->
                   <div class="row">
                     <h2 class="title font-medium">{{$t('include')}}</h2>
-                    <div class="row ksd-mb-15">
-                      <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAllDimension')}}<el-tooltip class="item tip-item" effect="dark" :content="$t('dimensionTabTip')" placement="bottom"><i class="el-icon-info"></i></el-tooltip></el-button>
+                    <div class="row ksd-mb-10">
+                      <el-button plain size="mini" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAllDimension')}}<el-tooltip class="item tip-item" effect="dark" :content="$t('dimensionTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
                       <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllDimension')}}</el-button>
                     </div>
                     <el-select
@@ -189,8 +189,8 @@
                 <template v-else>
                   <div class="row">
                     <h2 class="title font-medium">{{$t('includeMeasure')}}</h2>
-                    <div class="row ksd-mb-15">
-                      <el-button plain size="mini" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-info"></i></el-tooltip></el-button>
+                    <div class="row ksd-mb-10">
+                      <el-button plain size="mini" class="add-all-item" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
                       <el-button size="mini" @click="handleRemoveAllMeasure(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllMeasures')}}</el-button>
                     </div>
                     <el-select
@@ -485,6 +485,7 @@ export default class AggregateModal extends Vue {
     this.setModalForm({ aggregateArray: [ aggregateData, ...aggregateArray ] })
     this.isWaitingCheckCuboids[aggregateData.id] = true
     this.isWaitingCheckAllCuboids = true
+    this.aggregateStyle = []
     // this.calcCuboids()
   }
   handleCopyAggregate (aggregateIdx) {
@@ -497,6 +498,7 @@ export default class AggregateModal extends Vue {
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
     this.isWaitingCheckCuboids[copyedAggregate.id] = true
     this.isWaitingCheckAllCuboids = true
+    this.aggregateStyle = []
     // this.calcCuboids()
   }
   handleDeleteAggregate (aggregateIdx, titleId) {
@@ -890,15 +892,17 @@ export default class AggregateModal extends Vue {
     }
     .header {
       width: 100%;
-      height: 42px;
+      height: 36px;
       background: @regular-background-color;
-      line-height: 42px;
+      line-height: 36px;
       padding: 0 10px;
       box-sizing: border-box;
       border-radius: 2px 2px 0 0;
+      border: 1px solid @line-border-color;
     }
     .body {
       border: 1px solid @line-border-color;
+      border-top: 0;
       overflow: hidden;
       transition: height 1s;
       box-sizing: border-box;
@@ -906,7 +910,7 @@ export default class AggregateModal extends Vue {
         border: 1px solid @error-color-1;
       }
       .contain {
-        padding: 10px 20px;
+        padding: 10px 15px;
         box-sizing: border-box;
       }
     }
@@ -928,6 +932,7 @@ export default class AggregateModal extends Vue {
       }
       &:hover {
         color: @color-primary;
+        background-color: @base-color-9;
       }
     }
     .row {
@@ -935,8 +940,16 @@ export default class AggregateModal extends Vue {
       &.joint {
         margin-bottom: 0;
       }
-      .el-icon-info {
-        margin-left: 5px;
+      .add-all-item {
+        .el-icon-ksd-what {
+          margin-left: 5px;
+          color: @color-primary;
+        }
+        &:hover {
+          .el-icon-ksd-what {
+            color: @fff;
+          }
+        }
       }
     }
     .actions {

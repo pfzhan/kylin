@@ -135,10 +135,7 @@ export default {
         commit(types.HIDE_LOADING)
         if (!aggregateGroupRule) {
           for (let item of getMeasures(state.model)) {
-            if (item.label && item.label === 'COUNT_ALL') {
-              state.form.aggregateArray[0].measures = [item.label]
-              break
-            }
+            item.label && state.form.aggregateArray[0].measures.unshift(item.label)
           }
           return
         }
