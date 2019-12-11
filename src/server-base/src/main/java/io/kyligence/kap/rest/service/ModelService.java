@@ -1431,7 +1431,7 @@ public class ModelService extends BasicService {
                 getDataflowManager(project).listUnderliningDataModels(), project);
 
         String originFilterCondition = model.getFilterCondition();
-        if (originFilterCondition != null) {
+        if (StringUtils.isNotEmpty(originFilterCondition)) {
             String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition);
             model.setFilterCondition(newFilterCondition);
         }
