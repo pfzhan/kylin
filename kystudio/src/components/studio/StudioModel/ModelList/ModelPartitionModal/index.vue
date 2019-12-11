@@ -356,7 +356,12 @@ export default class ModelPartitionModal extends Vue {
     }
     if (this.mode === 'saveModel') {
       this.isLoadingSave = true
-      this.checkFilterConditon(this.modelDesc).then((res) => {
+      const checkData = objectClone(this.modelDesc)
+      // 如果未选择partition 把partition desc 设置为null
+      if (!(checkData && checkData.partition_desc && checkData.partition_desc.partition_date_column)) {
+        checkData.partition_desc = null
+      }
+      this.checkFilterConditon(checkData).then((res) => {
         handleSuccess(res, () => {
           this.handleClose(true)
           this.isLoadingSave = false
