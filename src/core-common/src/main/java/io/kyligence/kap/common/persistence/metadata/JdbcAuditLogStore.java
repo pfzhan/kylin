@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
-import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.datasourceParameters;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +57,6 @@ import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcTransactionMixin;
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import lombok.Getter;
 import lombok.val;
@@ -63,7 +64,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
+public class JdbcAuditLogStore implements AuditLogStore {
 
     static final String AUDIT_LOG_SUFFIX = "_audit_log";
 
@@ -125,7 +126,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
         val unitId = unitMessages.getUnitId();
         val operator = Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
                 .map(Principal::getName).orElse(null);
-        withTransaction(() -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table),
+        withTransaction(transactionManager, () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table),
                 unitMessages.getMessages().stream().map(e -> {
                     if (e instanceof ResourceCreateOrUpdateEvent) {
                         ResourceCreateOrUpdateEvent createEvent = (ResourceCreateOrUpdateEvent) e;
@@ -146,7 +147,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
     }
 
     public void batchInsert(List<AuditLog> auditLogs) {
-        withTransaction(() -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
+        withTransaction(transactionManager, () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
             try {
                 return new Object[] { x.getResPath(), x.getByteSource().read(), x.getTimestamp(), x.getMvcc(),
                         x.getUnitId(), x.getOperator() };
@@ -178,7 +179,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
     public void restore(ResourceStore store, long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
         consumeExecutor = Executors.newSingleThreadExecutor();
-        withTransaction(() -> {
+        withTransaction(transactionManager, () -> {
             val step = 1000L;
             val maxId = getMaxId();
             log.debug("start restore, current max_id is {}", maxId);
@@ -197,7 +198,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
 
     @Override
     public void rotate() {
-        withTransaction(() -> {
+        withTransaction(transactionManager, () -> {
             val maxSize = config.getMetadataAuditLogMaxSize();
             val deletableMaxId = getMaxId() - maxSize + 1;
             log.info("try to delete audit_logs which id less than {}", deletableMaxId);
@@ -213,7 +214,7 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
             while (!stop.get()) {
                 try {
                     long finalStartId = startId;
-                    startId = withTransaction(() -> {
+                    startId = withTransaction(transactionManager, () -> {
                         val logs = fetch(finalStartId, Integer.MAX_VALUE);
                         if (CollectionUtils.isEmpty(logs)) {
                             return finalStartId;
@@ -255,7 +256,10 @@ public class JdbcAuditLogStore implements AuditLogStore, JdbcTransactionMixin {
         return messages;
     }
 
-    void createIfNotExist() throws IOException {
+    void createIfNotExist() throws Exception {
+        if (isTableExists(jdbcTemplate.getDataSource().getConnection(), table)) {
+            return;
+        }
         String fileName = "metadata-jdbc-default.properties";
         if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
             fileName = "metadata-jdbc-postgresql.properties";

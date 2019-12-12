@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config;
 
 import java.util.Properties;
 
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
@@ -32,7 +33,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 
-import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,7 +51,7 @@ public class KylinPropertySourceConfiguration implements EnvironmentPostProcesso
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val storageURL = kylinConfig.getMetadataUrl();
         if (storageURL.getScheme().equals("jdbc")) {
-            JdbcMetadataStore.datasourceParameters(storageURL).forEach((key, value) -> {
+            JdbcUtil.datasourceParameters(storageURL).forEach((key, value) -> {
                 kylinConfig.setProperty("spring.datasource." + key, value.toString());
             });
         }

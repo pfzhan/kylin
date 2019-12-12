@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,7 +40,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -50,7 +52,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
-import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcTransactionMixin;
+import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import io.kyligence.kap.common.persistence.metadata.jdbc.RawResourceRowMapper;
 import lombok.Getter;
 import lombok.val;
@@ -58,7 +60,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionMixin {
+public class JdbcMetadataStore extends MetadataStore {
 
     private static final RowMapper<RawResource> RAW_RESOURCE_ROW_MAPPER = new RawResourceRowMapper();
 
@@ -96,7 +98,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
     public JdbcMetadataStore(KylinConfig config) throws Exception {
         super(config);
         val url = config.getMetadataUrl();
-        val props = datasourceParameters(url);
+        val props = JdbcUtil.datasourceParameters(url);
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
@@ -110,7 +112,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     @Override
     protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc) throws Exception {
-        withTransaction(new Callback<Object>() {
+        withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
             public Object handle() throws Exception {
                 if (bs != null) {
@@ -168,15 +170,15 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     @Override
     public NavigableSet<String> list(String rootPath) {
-        val allPaths = withTransaction(
+        val allPaths = withTransaction(transactionManager,
                 () -> jdbcTemplate.queryForList(String.format(SELECT_ALL_KEY_SQL, table), String.class));
         return Sets.newTreeSet(allPaths);
     }
 
     @Override
     public RawResource load(String path) throws IOException {
-        return withTransaction(() -> jdbcTemplate.queryForObject(String.format(SELECT_BY_KEY_SQL, table, path),
-                RAW_RESOURCE_ROW_MAPPER));
+        return withTransaction(transactionManager, () -> jdbcTemplate
+                .queryForObject(String.format(SELECT_BY_KEY_SQL, table, path), RAW_RESOURCE_ROW_MAPPER));
     }
 
     @Override
@@ -184,7 +186,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
         if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
             return;
         }
-        withTransaction(() -> {
+        withTransaction(transactionManager, () -> {
             super.batchUpdate(unitMessages);
             return null;
         });
@@ -214,7 +216,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     @Override
     public void dump(ResourceStore store) throws Exception {
-        withTransaction(() -> {
+        withTransaction(transactionManager, () -> {
             super.dump(store);
             return null;
         });
@@ -222,7 +224,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     @Override
     public void uploadFromFile(File folder) {
-        withTransaction(() -> {
+        withTransaction(transactionManager, () -> {
             super.uploadFromFile(folder);
             return null;
         });
@@ -230,7 +232,7 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
 
     private void restoreProject(ResourceStore store, String project) {
         val rowMapper = new RawResourceRowMapper();
-        withTransaction(() -> {
+        withTransaction(transactionManager, () -> {
             var prevKey = "/" + project + "/";
             val endKey = "/" + project + "/~";
             val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
@@ -242,7 +244,10 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
         });
     }
 
-    private void createIfNotExist() throws IOException {
+    private void createIfNotExist() throws Exception {
+        if (isTableExists(jdbcTemplate.getDataSource().getConnection(), table)) {
+            return;
+        }
         String fileName = "metadata-jdbc-default.properties";
         if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("org.postgresql.Driver")) {
             fileName = "metadata-jdbc-postgresql.properties";
@@ -258,14 +263,4 @@ public class JdbcMetadataStore extends MetadataStore implements JdbcTransactionM
                 .execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
     }
 
-    public static Properties datasourceParameters(StorageURL url) {
-        val props = new Properties();
-        props.put("driverClassName", "org.postgresql.Driver");
-        props.put("url", "jdbc:postgresql://sandbox:5432/kylin");
-        props.put("username", "postgres");
-        props.put("password", "");
-        props.put("maxTotal", "50");
-        props.putAll(url.getAllParameters());
-        return props;
-    }
 }

@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest;
 
-import java.io.IOException;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
@@ -49,7 +49,9 @@ import com.netflix.loadbalancer.ServerListFilter;
 
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Configuration
 @Profile("!dev")
 public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
@@ -61,8 +63,13 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     SessionProperties sessionProperties;
 
     @PostConstruct
-    public void initSessionTables() throws IOException {
+    public void initSessionTables() throws Exception {
         if (sessionProperties.getStoreType() != StoreType.JDBC) {
+            return;
+        }
+        val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
+        if (isTableExists(dataSource.getConnection(), tableName)) {
+            log.info("Session table {} already exists", tableName);
             return;
         }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
@@ -74,7 +81,6 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
             sqlFile = "script/schema-session-mysql.sql";
         }
         var sessionScript = IOUtils.toString(getClass().getClassLoader().getResourceAsStream(sqlFile));
-        val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
         sessionScript = sessionScript.replaceAll("SPRING_SESSION", tableName);
         populator.addScript(new InMemoryResource(sessionScript));
         populator.setContinueOnError(false);

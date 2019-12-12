@@ -23,6 +23,11 @@
  */
 package io.kyligence.kap.common.persistence.metadata.jdbc;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Properties;
+
+import org.apache.kylin.common.StorageURL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -31,20 +36,18 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import lombok.val;
 
-public interface JdbcTransactionMixin {
+public class JdbcUtil {
 
-    DataSourceTransactionManager getTransactionManager();
-
-    default <T> T withTransaction(Callback<T> consumer) {
+    public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer) {
         val definition = new DefaultTransactionDefinition();
         definition.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
-        val status = getTransactionManager().getTransaction(definition);
+        val status = transactionManager.getTransaction(definition);
         try {
             T result = consumer.handle();
-            getTransactionManager().commit(status);
+            transactionManager.commit(status);
             return result;
         } catch (Exception e) {
-            getTransactionManager().rollback(status);
+            transactionManager.rollback(status);
             if (e instanceof DataIntegrityViolationException) {
                 consumer.onError();
             }
@@ -52,7 +55,23 @@ public interface JdbcTransactionMixin {
         }
     }
 
-    interface Callback<T> {
+    public static boolean isTableExists(Connection conn, String table) throws SQLException {
+        val resultSet = conn.getMetaData().getTables(null, null, table, null);
+        return resultSet.next();
+    }
+
+    public static Properties datasourceParameters(StorageURL url) {
+        val props = new Properties();
+        props.put("driverClassName", "org.postgresql.Driver");
+        props.put("url", "jdbc:postgresql://sandbox:5432/kylin");
+        props.put("username", "postgres");
+        props.put("password", "");
+        props.put("maxTotal", "50");
+        props.putAll(url.getAllParameters());
+        return props;
+    }
+
+    public interface Callback<T> {
         T handle() throws Exception;
 
         default void onError() {

@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
-import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.datasourceParameters;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 import java.util.Arrays;
 import java.util.UUID;

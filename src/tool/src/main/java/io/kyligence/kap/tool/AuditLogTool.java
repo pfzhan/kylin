@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.tool;
 
-import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.datasourceParameters;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

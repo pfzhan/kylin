@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.event;
 
-import static io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore.datasourceParameters;
+import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 import static org.awaitility.Awaitility.await;
 
 import java.util.Comparator;
