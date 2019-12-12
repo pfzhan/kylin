@@ -117,6 +117,7 @@
       :title="indexDetailTitle"
       width="480px"
       :limited-area="true"
+      :append-to-body="true"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
       @close="resetDetail"
