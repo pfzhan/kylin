@@ -49,18 +49,45 @@ public class ModelDropAddListener {
 
     public static void onAdd(String project, String modelId, String modelAlias) {
         NDataflowManager dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        NDataflow df = dfManager.getDataflow(modelId);
         Map<String, String> tags = Maps.newHashMap();
         tags.put(NMetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
 
-        NMetricsGroup.newGauge(NMetricsName.MODEL_SEGMENTS, NMetricsCategory.PROJECT, project, tags,
-                () -> df.getSegments().size());
-        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags,
-                () -> dfManager.getDataflowStorageSize(modelId));
-        NMetricsGroup.newGauge(NMetricsName.MODEL_LAST_QUERY_TIME, NMetricsCategory.PROJECT, project, tags,
-                df::getLastQueryTime);
-        NMetricsGroup.newGauge(NMetricsName.MODEL_QUERY_COUNT, NMetricsCategory.PROJECT, project, tags,
-                df::getQueryHitCount);
+        NMetricsGroup.newGauge(NMetricsName.MODEL_SEGMENTS, NMetricsCategory.PROJECT, project, tags, () -> {
+            try {
+                NDataflow df = dfManager.getDataflow(modelId);
+                return df == null ? 0 : df.getSegments().size();
+            } catch (Exception e) {
+                log.error("exception.", e);
+            }
+            return 0;
+        });
+        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags, () -> {
+            try {
+                NDataflow df = dfManager.getDataflow(modelId);
+                return df == null ? 0 : df.getStorageBytesSize();
+            } catch (Exception e) {
+                log.error("exception.", e);
+            }
+            return 0;
+        });
+        NMetricsGroup.newGauge(NMetricsName.MODEL_LAST_QUERY_TIME, NMetricsCategory.PROJECT, project, tags, () -> {
+            try {
+                NDataflow df = dfManager.getDataflow(modelId);
+                return df == null ? 0 : df.getLastQueryTime();
+            } catch (Exception e) {
+                log.error("exception.", e);
+            }
+            return 0;
+        });
+        NMetricsGroup.newGauge(NMetricsName.MODEL_QUERY_COUNT, NMetricsCategory.PROJECT, project, tags, () -> {
+            try {
+                NDataflow df = dfManager.getDataflow(modelId);
+                return df == null ? 0 : df.getQueryHitCount();
+            } catch (Exception e) {
+                log.error("exception.", e);
+            }
+            return 0;
+        });
 
         NMetricsGroup.newCounter(NMetricsName.MODEL_BUILD_DURATION, NMetricsCategory.PROJECT, project, tags);
         NMetricsGroup.newCounter(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, project, tags);
