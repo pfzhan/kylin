@@ -598,11 +598,6 @@
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-core</artifactId>
-                <version>6.1.0</version>
-            </dependency>
             <!-- Hive dependencies -->
             <dependency>
                 <groupId>org.apache.hive</groupId>
