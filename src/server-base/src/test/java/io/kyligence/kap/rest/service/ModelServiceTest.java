@@ -171,8 +171,10 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -3390,5 +3392,31 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String originSql = "trans_id = 0 and order_id < 100";
         String newSql = modelService.addTableNameIfNotExist(originSql, model);
         Assert.assertEquals("((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100))", newSql);
+    }
+
+    @Test
+    public void testGetCubeWithExactModelName() {
+        NCubeDescResponse cube = modelService.getCubeWithExactModelName("ut_inner_join_cube_partial", "default");
+        Assert.assertTrue(cube.getDimensions().size() == 13);
+        Assert.assertTrue(cube.getMeasures().size() == 11);
+        Assert.assertTrue(cube.getAggregationGroups().size() == 2);
+        Set<String> derivedCol = Sets.newHashSet();
+        for (val dim : cube.getDimensions()) {
+            if (dim.getDerived() != null) {
+                derivedCol.add(dim.getDerived().get(0));
+            }
+        }
+        Assert.assertTrue(derivedCol.size() == 1);
+        Assert.assertTrue(derivedCol.contains("SITE_NAME"));
+    }
+
+    @Test
+    public void testGetModelDesc() {
+        NModelDescResponse model = modelService.getModelDesc("ut_inner_join_cube_partial", "default");
+        Assert.assertTrue(model.getProject().equals("default"));
+        Assert.assertTrue(model.getName().equals("ut_inner_join_cube_partial"));
+        Assert.assertTrue(model.getVersion().equals("4.0.0.0"));
+        Assert.assertTrue(model.getMeasures().size() == 11);
+        Assert.assertTrue(model.getAggregationGroups().size() == 2);
     }
 }

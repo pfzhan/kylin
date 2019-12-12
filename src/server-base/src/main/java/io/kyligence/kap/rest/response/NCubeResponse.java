@@ -39,27 +39,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.kylin.cube.model;
+package io.kyligence.kap.rest.response;
 
 import java.io.Serializable;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Data;
+public class NCubeResponse {
+    @JsonProperty("cube")
+    private Serializable cube;
 
-@Data
-public class SelectRule implements Serializable {
-    private static final long serialVersionUID = 1L;
+    public NCubeResponse() {
 
-    @JsonProperty("hierarchy_dims")
-    public Integer[][] hierarchyDims;
-    @JsonProperty("mandatory_dims")
-    public Integer[] mandatoryDims;
-    @JsonProperty("joint_dims")
-    public Integer[][] jointDims;
-    @JsonProperty("dim_cap")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Integer dimCap;
+    }
+
+    public NCubeResponse(Serializable serializable) {
+        this.cube = serializable;
+    }
 }

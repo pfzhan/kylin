@@ -140,15 +140,18 @@ import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
+import io.kyligence.kap.rest.response.AggGroupResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
+import io.kyligence.kap.rest.response.NCubeDescResponse;
 import io.kyligence.kap.rest.response.NDataModelOldParams;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
@@ -268,6 +271,100 @@ public class ModelService extends BasicService {
         }
 
         return cubes;
+    }
+
+    private boolean isAggGroupIncludeAllJoinCol(List<Set<String>> aggIncludes, List<String> needCols) {
+        for (Set<String> includes : aggIncludes) {// if one of agggroup contains all join column then the column would return
+            boolean allIn = includes.containsAll(needCols);
+            if (allIn) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<NCubeDescResponse.Dimension3X> getDimension3XES(IndexPlan indexPlan, NDataModelResponse cube,
+            List<AggGroupResponse> aggGroupResponses) {
+        String rootFactTable = cube.getRootFactTableName();
+        List<NCubeDescResponse.Dimension3X> dims = new ArrayList<>();
+        HashMap<String, String> fk2Pk = Maps.newHashMap();
+        cube.getJoinTables().stream().forEach(join -> {
+            String[] pks = join.getJoin().getPrimaryKey();
+            String[] fks = join.getJoin().getForeignKey();
+            for (int i = 0; i < pks.length; ++i)
+                fk2Pk.put(fks[i], pks[i]);
+        });
+
+        HashMap<String, List<String>> tableToAllDim = Maps.newHashMap();
+        cube.getNamedColumns().stream().forEach(namedColumn -> {
+            String aliasDotColumn = namedColumn.getAliasDotColumn();
+            String table = aliasDotColumn.split("\\.")[0];
+            String column = aliasDotColumn.split("\\.")[1];
+            if (!tableToAllDim.containsKey(table)) {
+                tableToAllDim.put(table, new ArrayList());
+            }
+            tableToAllDim.get(table).add(column);
+        });
+
+        Set<String> allAggDim = Sets.newHashSet();//table.col
+        indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> indexPlan.getEffectiveDimCols().get(x))
+                .forEach(x -> allAggDim.add(x.getIdentity()));
+
+        List<Set<String>> aggIncludes = new ArrayList<>();
+        aggGroupResponses.stream().forEach(agg -> aggIncludes.add(Sets.newHashSet(agg.getIncludes())));
+
+        cube.getNamedColumns().stream().forEach(namedColumn -> {
+            String aliasDotColumn = namedColumn.getAliasDotColumn();
+            String table = aliasDotColumn.split("\\.")[0];
+            boolean isRootFactTable = rootFactTable.endsWith("." + table);
+            if (isRootFactTable) {
+                if (allAggDim.contains(aliasDotColumn)) {
+                    dims.add(new NCubeDescResponse.Dimension3X(namedColumn, false));
+                }
+            } else {
+                List<String> needCols = new ArrayList<>();
+                List<String> dimTableCol = tableToAllDim.get(table);
+                dimTableCol.stream().filter(x -> fk2Pk.containsKey(table + "." + x)).forEach(x -> {
+                    needCols.add(x);
+                    needCols.add(fk2Pk.get(x));
+                });
+                if (isAggGroupIncludeAllJoinCol(aggIncludes, needCols)) {
+                    boolean isDerived = !allAggDim.contains(aliasDotColumn);
+                    dims.add(new NCubeDescResponse.Dimension3X(namedColumn, isDerived));
+                }
+            }
+        });
+        return dims;
+    }
+
+    public NCubeDescResponse getCubeWithExactModelName(String modelAlias, String projectName) {
+        if (getProjectManager().getProject(projectName) == null) {
+            throw new RuntimeException("project not found");
+        }
+        NDataModel dataModel = getDataModelManager(projectName).getDataModelDescByAlias(modelAlias);
+        if (dataModel == null) {
+            throw new RuntimeException("model not found");
+        }
+        NDataModelResponse cube = new NDataModelResponse(dataModel);
+        NCubeDescResponse result = new NCubeDescResponse();
+
+        result.setUuid(cube.getUuid());
+        result.setName(cube.getAlias());
+        result.setMeasures(
+                cube.getMeasures().stream().map(x -> new NCubeDescResponse.Measure3X(x)).collect(Collectors.toList()));
+
+        IndexPlan indexPlan = getIndexPlan(result.getUuid(), projectName);
+        if (indexPlan.getRuleBasedIndex() != null) {
+            List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
+                    .map(x -> new AggGroupResponse(indexPlan, x)).collect(Collectors.toList());
+            result.setAggregationGroups(aggGroupResponses);
+            result.setDimensions(getDimension3XES(indexPlan, cube, aggGroupResponses));
+        } else {
+            result.setAggregationGroups(null);
+            result.setDimensions(new ArrayList<>());
+        }
+
+        return result;
     }
 
     /**
@@ -2065,5 +2162,43 @@ public class ModelService extends BasicService {
                         SqlDialect.EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)), true)
                 .toString();
 
+    }
+
+    public NModelDescResponse getModelDesc(String modelAlias, String project) {
+        if (getProjectManager().getProject(project) == null) {
+            throw new RuntimeException("project not found");
+        }
+        NDataModel dataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        if (dataModel == null) {
+            throw new RuntimeException("model not found");
+        }
+        NDataModelResponse model = new NDataModelResponse(dataModel);
+        NModelDescResponse response = new NModelDescResponse();
+        response.setUuid(model.getUuid());
+        response.setLastModified(model.getLastModified());
+        response.setVersion(model.getVersion());
+        response.setName(model.getAlias());
+        response.setProject(model.getProject());
+        response.setDescription(model.getDescription());
+
+        response.setMeasures(model.getMeasures());
+        IndexPlan indexPlan = getIndexPlan(response.getUuid(), project);
+        if (indexPlan.getRuleBasedIndex() != null) {
+            List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
+                    .map(x -> new AggGroupResponse(indexPlan, x)).collect(Collectors.toList());
+            response.setAggregationGroups(aggGroupResponses);
+            Set<String> allAggDim = Sets.newHashSet();
+            indexPlan.getRuleBasedIndex().getDimensions().stream().map(x -> indexPlan.getEffectiveDimCols().get(x))
+                    .forEach(x -> allAggDim.add(x.getIdentity()));
+            List<NModelDescResponse.Dimension> dims = model.getNamedColumns().stream()
+                    .filter(namedColumn -> allAggDim.contains(namedColumn.getAliasDotColumn()))
+                    .map(namedColumn -> new NModelDescResponse.Dimension(namedColumn, false))
+                    .collect(Collectors.toList());
+            response.setDimensions(dims);
+        } else {
+            response.setAggregationGroups(null);
+            response.setDimensions(new ArrayList<>());
+        }
+        return response;
     }
 }

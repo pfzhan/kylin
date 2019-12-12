@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.NModelController;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.SegmentsRequest;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.mockito.ArgumentMatchers.eq;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
@@ -51,12 +52,13 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.mockito.ArgumentMatchers.eq;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.ModelService;
 
 public class OpenModelControllerTest {
 
@@ -64,6 +66,9 @@ public class OpenModelControllerTest {
 
     @Mock
     private NModelController nModelController;
+
+    @Mock
+    private ModelService modelService;
 
     @InjectMocks
     private OpenModelController openModelController = Mockito.spy(new OpenModelController());
@@ -231,6 +236,17 @@ public class OpenModelControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).deleteSegments(modelName, "default", false, request.getIds());
+    }
+
+    @Test
+    public void testGetModelDesc() throws Exception {
+        String project = "default";
+        String modelAlias = "model1";
+        Mockito.doAnswer(x -> null).when(modelService).getModelDesc(modelAlias, project);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/open/models/{project}/{model}/model_desc", project, modelAlias)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).getModelDesc(project, modelAlias);
     }
 
 }

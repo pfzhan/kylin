@@ -23,19 +23,15 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.controller.NModelController;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.SegmentsRequest;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.service.ModelService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
+import java.util.List;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -48,9 +44,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.List;
+import com.google.common.annotations.VisibleForTesting;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.service.ModelService;
 
 @Controller
 @RequestMapping(value = "/api/open/models")
@@ -141,5 +145,14 @@ public class OpenModelController extends NBasicController {
         }
         String modelId = getModel(modelName, project).getId();
         return modelController.deleteSegments(modelId, project, purge, ids);
+    }
+
+    @GetMapping(value = "/{project}/{model}/model_desc", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
+            @PathVariable("model") String modelAlias) {
+        checkProjectName(project);
+        NModelDescResponse result = modelService.getModelDesc(modelAlias, project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 }
