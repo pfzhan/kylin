@@ -42,8 +42,16 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.CalciteSqlDialect;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -62,6 +70,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -87,6 +96,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -99,6 +109,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -112,6 +123,7 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -908,7 +920,7 @@ public class ModelService extends BasicService {
             String pushdownSql = new HivePushDownConverter().convert(flatTableSql, "", "default", false);
             ss.sql(pushdownSql);
         } catch (Exception e) {
-            Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns: \\[(.*?),(.*?)];");
+            Pattern pattern = Pattern.compile("cannot resolve '(.*?)' given input columns");
             Matcher matcher = pattern.matcher(e.getMessage().replaceAll("`", ""));
             if (matcher.find()) {
                 String column = matcher.group(1);
@@ -1076,6 +1088,7 @@ public class ModelService extends BasicService {
         validatePartitionDateColumn(modelRequest);
 
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        preProcessBeforeModelSave(dataModel, project);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
@@ -1433,7 +1446,8 @@ public class ModelService extends BasicService {
         String originFilterCondition = model.getFilterCondition();
         if (StringUtils.isNotEmpty(originFilterCondition)) {
             String newFilterCondition = KapQueryUtil.massageExpression(model, project, originFilterCondition);
-            model.setFilterCondition(newFilterCondition);
+            String filterConditionAddTableName = addTableNameIfNotExist(newFilterCondition, model);
+            model.setFilterCondition(filterConditionAddTableName);
         }
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
@@ -1662,10 +1676,12 @@ public class ModelService extends BasicService {
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
                 if (!copyModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
-                    val measureNames = Arrays.stream(agg.getMeasures()).filter(measureId -> !copyModel.getEffectiveMeasureMap().containsKey(measureId))
+                    val measureNames = Arrays.stream(agg.getMeasures())
+                            .filter(measureId -> !copyModel.getEffectiveMeasureMap().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
 
-                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid() + "'s agg group still contains measures " + measureNames);
+                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                            + "'s agg group still contains measures " + measureNames);
                 }
 
             }
@@ -1977,6 +1993,77 @@ public class ModelService extends BasicService {
     public void checkFilterCondition(ModelRequest modelRequest) {
         NDataModel dataModel = semanticUpdater.convertToDataModel(modelRequest);
         preProcessBeforeModelSave(dataModel, modelRequest.getProject());
-        checkFlatTableSql(dataModel);
+    }
+
+    public String addTableNameIfNotExist(final String expr, final NDataModel model) {
+        Map<String, String> colToTable = Maps.newHashMap();
+        Set<String> ambiguityCol = Sets.newHashSet();
+        for (val col : model.getAllNamedColumns()) {
+            if (col.getStatus() == NDataModel.ColumnStatus.TOMB) {
+                continue;
+            }
+            String aliasDotColumn = col.getAliasDotColumn();
+            String table = aliasDotColumn.split("\\.")[0];
+            String column = aliasDotColumn.split("\\.")[1];
+            if (colToTable.containsKey(column)) {
+                ambiguityCol.add(column);
+            } else {
+                colToTable.put(column, table);
+            }
+        }
+
+        Set<String> aliasSet = model.getAliasMap().keySet();
+        SqlNode sqlNode = CalciteParser.getExpNode(expr);
+
+        SqlVisitor<Object> sqlVisitor = new SqlBasicVisitor<Object>() {
+            @Override
+            public Object visit(SqlIdentifier id) {
+                boolean ok = true;
+                if (id.names.size() == 1) {
+                    String column = id.names.get(0).toUpperCase().trim();
+                    if (!colToTable.containsKey(column) || ambiguityCol.contains(column)) {
+                        ok = false;
+                    } else {
+                        id.names = ImmutableList.of(colToTable.get(column), column);
+                    }
+                } else if (id.names.size() == 2) {
+                    String table = id.names.get(0).toUpperCase().trim();
+                    String column = id.names.get(1).toUpperCase().trim();
+                    if (!aliasSet.contains(table) || !colToTable.containsKey(column)) {
+                        ok = false;
+                    }
+                } else {
+                    ok = false;
+                }
+                if (!ok) {
+                    throw new IllegalArgumentException(
+                            "Unrecognized column: " + id.toString() + " in expression '" + expr + "'.");
+                }
+                return null;
+            }
+
+            @Override
+            public Object visit(SqlCall call) {
+                if (call instanceof SqlBasicCall) {
+                    if (call.getOperator() instanceof SqlAsOperator) {
+                        throw new IllegalArgumentException(
+                                String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
+                    }
+
+                    if (call.getOperator() instanceof SqlAggFunction) {
+                        throw new IllegalArgumentException(
+                                String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
+                    }
+                }
+                return call.getOperator().acceptCall(this, call);
+            }
+        };
+
+        sqlNode.accept(sqlVisitor);
+        return sqlNode
+                .toSqlString(new CalciteSqlDialect(
+                        SqlDialect.EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)), true)
+                .toString();
+
     }
 }

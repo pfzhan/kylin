@@ -76,7 +76,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -134,6 +133,7 @@ import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -464,8 +464,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             });
         });
 
-        val index = modelService.getAggIndices(getProject(), modelId, null, null, false, 0, 10, null, true)
-                .getIndices().stream().filter(aggIndex -> aggIndex.getId() == 0L).findFirst().orElse(null);
+        val index = modelService.getAggIndices(getProject(), modelId, null, null, false, 0, 10, null, true).getIndices()
+                .stream().filter(aggIndex -> aggIndex.getId() == 0L).findFirst().orElse(null);
         Assert.assertEquals(3, index.getQueryHitCount());
     }
 
@@ -2838,8 +2838,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val model = "82fa7671-a935-45f5-8779-85703601f49a";
         val modelConfigRequest = new ModelConfigRequest();
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
-        long initialSize = indexPlanManager.getIndexPlan(model)
-                .getRuleBaseLayouts().size();
+        long initialSize = indexPlanManager.getIndexPlan(model).getRuleBaseLayouts().size();
 
         modelConfigRequest.setOverrideProps(new LinkedHashMap<String, String>() {
             {
@@ -3376,10 +3375,20 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String project = "default";
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataModel okModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID != 0");
+        okModel.setFilterCondition("TEST_KYLIN_FACT.SELLER_ID > 0");
         ModelRequest okModelRequest = new ModelRequest(okModel);
         okModelRequest.setProject(project);
         Mockito.when(semanticService.convertToDataModel(okModelRequest)).thenReturn(okModel);
         modelService.checkFilterCondition(okModelRequest);
+    }
+
+    @Test
+    public void testAddTableNameIfNotExist() {
+        String project = "default";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        String originSql = "trans_id = 0 and order_id < 100";
+        String newSql = modelService.addTableNameIfNotExist(originSql, model);
+        Assert.assertEquals("((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100))", newSql);
     }
 }

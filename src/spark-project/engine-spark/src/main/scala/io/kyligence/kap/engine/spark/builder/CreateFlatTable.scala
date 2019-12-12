@@ -55,7 +55,6 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 
     val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
     var rootFactDataset = generateTableDataset(model.getRootFactTable, ccCols.toSeq, model.getRootFactTable.getAlias, ss, sourceInfo)
-    rootFactDataset = applyFilterCondition(flatTable, rootFactDataset)
 
     logInfo(s"Create flattable need join lookup tables ${needJoin}, need encode cols ${needEncode}")
 
@@ -82,6 +81,8 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
         rootFactDataset = encodeWithCols(rootFactDataset, ccCols, dictCols, encodeCols)
       case _ =>
     }
+
+    rootFactDataset = applyFilterCondition(flatTable, rootFactDataset)
 
     flatTable match {
       case joined: NCubeJoinedFlatTableDesc =>

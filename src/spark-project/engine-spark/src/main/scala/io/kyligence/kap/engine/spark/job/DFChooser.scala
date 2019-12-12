@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTre
 import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
 import io.kyligence.kap.metadata.model.NDataModel.TableKind
+import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
@@ -188,6 +189,10 @@ object DFChooser {
   def needJoinLookupTables(model: NDataModel, toBuildTree: NSpanningTree): Boolean = {
     val conf = KylinConfig.getInstanceFromEnv
     if (!conf.isFlatTableJoinWithoutLookup) {
+      return true
+    }
+
+    if (StringUtils.isNotBlank(model.getFilterCondition)) {
       return true
     }
 
