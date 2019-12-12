@@ -116,7 +116,7 @@ export default {
             jointArray.push({ id: 0, items: [] })
           }
           return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open }
-        })
+        }).reverse()
       }
     }
   },
