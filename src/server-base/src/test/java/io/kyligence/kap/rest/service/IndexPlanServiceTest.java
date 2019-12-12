@@ -275,6 +275,53 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testUpdateRuleBasedIndexWithDifferentMeasure() {
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val origin = indexPlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val aggregationGroup1 = new NAggregationGroup();
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup1.setMeasures(new Integer[] { 100000, 100001, 100002, 100003 });
+        val selectRule1 = new SelectRule();
+        selectRule1.mandatoryDims = new Integer[] { 1 };
+        selectRule1.hierarchyDims = new Integer[][] { { 2, 3 } };
+        selectRule1.jointDims = new Integer[0][0];
+        aggregationGroup1.setSelectRule(selectRule1);
+        val aggregationGroup2 = new NAggregationGroup();
+        aggregationGroup2.setIncludes(new Integer[] { 1, 3, 4, 5 });
+        aggregationGroup2.setMeasures(new Integer[] { 100001, 100003, 100004, 100005 });
+        val selectRule2 = new SelectRule();
+        selectRule2.mandatoryDims = new Integer[] { 3 };
+        selectRule2.hierarchyDims = new Integer[0][0];
+        selectRule2.jointDims = new Integer[][] { { 4, 5 } };
+        aggregationGroup2.setSelectRule(selectRule2);
+
+        val revertedBefore = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default")
+                                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2)).build())
+                .getFirst();
+        Assert.assertNotNull(revertedBefore.getRuleBasedIndex());
+        Assert.assertEquals(5, revertedBefore.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals(6, revertedBefore.getRuleBasedIndex().getMeasures().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 11, revertedBefore.getAllLayouts().size());
+
+        // revert agg groups order
+        val reverted = indexPlanService
+                .updateRuleBasedCuboid("default",
+                        UpdateRuleBasedCuboidRequest.builder().project("default")
+                                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa").isLoadData(true)
+                                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup2, aggregationGroup1)).build())
+                .getFirst();
+
+        Assert.assertEquals(5, revertedBefore.getRuleBasedIndex().getDimensions().size());
+        Assert.assertEquals(6, revertedBefore.getRuleBasedIndex().getMeasures().size());
+        Assert.assertEquals(origin.getAllLayouts().size() + 11, revertedBefore.getAllLayouts().size());
+
+        Assert.assertEquals(revertedBefore.getRuleBasedIndex().getMeasures(), reverted.getRuleBasedIndex().getMeasures());
+    }
+
+    @Test
     public void testUpdateIndexPlanWithNoSegment() {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");

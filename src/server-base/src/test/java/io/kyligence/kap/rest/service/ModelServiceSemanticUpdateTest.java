@@ -31,11 +31,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -687,7 +689,16 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             val rule = new NRuleBasedIndex();
             rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
-            rule.setMeasures(Arrays.asList(100001, 100000));
+            rule.setMeasures(Arrays.asList(100000, 100001));
+            val aggGroup = new NAggregationGroup();
+            aggGroup.setIncludes(new Integer[] { 1, 2, 3, 4, 5, 6 });
+            aggGroup.setMeasures(new Integer[] { 100000, 100001 });
+            val selectRule = new SelectRule();
+            selectRule.mandatoryDims = new Integer[0];
+            selectRule.hierarchyDims = new Integer[0][0];
+            selectRule.jointDims = new Integer[0][0];
+            aggGroup.setSelectRule(selectRule);
+            rule.setAggregationGroups(Lists.newArrayList(aggGroup));
             copyForWrite.setRuleBasedIndex(rule);
         });
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);

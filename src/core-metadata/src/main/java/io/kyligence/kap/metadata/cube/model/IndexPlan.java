@@ -38,11 +38,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -570,7 +572,11 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
     public void setRuleBasedIndex(NRuleBasedIndex nRuleBasedIndex, boolean reuseStartId, boolean markToBeDeleted) {
         checkIsNotCachedAndShared();
-        nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+        genMeasuresForRulebasedIndex(nRuleBasedIndex);
+
+        if (CollectionUtils.isEmpty(nRuleBasedIndex.getMeasures())) {
+            nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+        }
         nRuleBasedIndex.setIndexStartId(reuseStartId ? nRuleBasedIndex.getIndexStartId() : nextAggregationIndexId);
         nRuleBasedIndex.setIndexPlan(this);
         nRuleBasedIndex.init();
@@ -590,6 +596,23 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
 
         updateNextId();
+    }
+
+    private void genMeasuresForRulebasedIndex(NRuleBasedIndex ruleBasedIndex) {
+        val aggregationGroups = ruleBasedIndex.getAggregationGroups();
+
+        TreeSet<Integer> measures = new TreeSet<>();
+        if (CollectionUtils.isEmpty(aggregationGroups))
+            return;
+
+        for (NAggregationGroup agg : aggregationGroups) {
+            val aggMeasures = agg.getMeasures();
+            if (aggMeasures == null || aggMeasures.length == 0)
+                continue;
+            measures.addAll(Sets.newHashSet(aggMeasures));
+        }
+
+        ruleBasedIndex.setMeasures(Lists.newArrayList(measures));
     }
 
     public void setRuleBasedIndex(NRuleBasedIndex nRuleBasedIndex, boolean reuseStartId) {

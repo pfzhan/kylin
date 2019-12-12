@@ -244,7 +244,6 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         val indexPlan = indexPlanManager.updateIndexPlan("84e5fd14-09ce-41bc-9364-5d8d46e6481a", copyForWrite -> {
             val newRule = new NRuleBasedIndex();
             newRule.setDimensions(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
-            newRule.setMeasures(Arrays.asList(100000, 100001, 100002));
             try {
                 val group1 = JsonUtil
                         .readValue(
@@ -718,8 +717,8 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         Set<LayoutEntity> originLayouts = oldRule.genCuboidLayouts();
         Set<LayoutEntity> targetLayouts = plan.getRuleBasedIndex().genCuboidLayouts();
 
-        val difference = Sets.intersection(originLayouts, targetLayouts).stream()
+        val intersection = Sets.intersection(originLayouts, targetLayouts).stream()
                 .map(diffLayout -> diffLayout.getOrderedDimensions().keySet().asList()).collect(Collectors.toList());
-        Assert.assertTrue(CollectionUtils.isEqualCollection(difference, colOrders));
+        Assert.assertTrue(CollectionUtils.isEqualCollection(intersection, colOrders));
     }
 }

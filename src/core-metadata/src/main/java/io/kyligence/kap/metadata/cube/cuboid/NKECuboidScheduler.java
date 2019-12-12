@@ -282,6 +282,9 @@ public class NKECuboidScheduler extends NCuboidScheduler {
         parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<CuboidBigInteger>() {
             @Override
             public boolean apply(@Nullable CuboidBigInteger cuboidId) {
+                if (cuboidId == null)
+                    return false;
+
                 return checkDimCap(agg, cuboidId.dimMeas);
             }
         }));

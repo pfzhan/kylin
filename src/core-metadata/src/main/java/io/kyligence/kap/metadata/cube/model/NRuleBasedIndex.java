@@ -321,12 +321,9 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             }
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
-            for (Integer integer : dimensionsInLayout) {
-                dimBitSet.set(integer);
-            }
-            for (Integer integer : measuresInLayout) {
-                meaBitSet.set(integer);
-            }
+            dimensionsInLayout.forEach(dim -> dimBitSet.set(dim));
+            measuresInLayout.forEach(mea -> meaBitSet.set(mea));
+
             // if a cuboid is same as the layout's one, then reuse it
             val indexIdentifier = new IndexEntity.IndexIdentifier(dimBitSet, meaBitSet, false);
             var maybeIndex = identifierIndexMap.get(indexIdentifier);

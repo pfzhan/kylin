@@ -353,7 +353,6 @@ public class ModelSemanticHelper extends BasicService {
                 return;
             }
             val newRule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
-            newRule.setMeasures(Lists.newArrayList(measures));
             newRule.setLayoutIdMapping(Lists.newArrayList());
 
             if (newRule.getAggregationGroups() != null) {
