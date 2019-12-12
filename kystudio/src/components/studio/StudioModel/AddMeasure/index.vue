@@ -493,7 +493,7 @@ export default class AddMeasure extends Vue {
         delete measureClone.fromSearch
         let action = this.isEditMeasure ? 'editMeasure' : 'addMeasure'
         this.modelInstance[action](measureClone).then(() => {
-          this.resetMeasure()
+          // this.resetMeasure()
           this.handleHide(true, measureClone, this.isEditMeasure, isFromSearchAciton)
         })
       }
@@ -535,11 +535,12 @@ export default class AddMeasure extends Vue {
   onShowChange (val) {
     this.measureVisible = val
     if (this.measureVisible) {
-      this.resetMeasure()
       this.measureTitle = this.isEditMeasure ? 'editMeasureTitle' : 'addMeasureTitle'
       this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
       this.ccGroups = this.modelInstance.computed_columns
       this.initExpression()
+    } else {
+      this.resetMeasure()
     }
   }
 }
