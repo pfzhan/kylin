@@ -30,13 +30,12 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashMap;
-import java.util.TimeZone;
-import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -45,13 +44,16 @@ import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -65,6 +67,8 @@ import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
+import io.kyligence.kap.metadata.recommendation.PassConflictException;
 import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
@@ -89,6 +93,11 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     private final String baseIndexFile = indexDir + "base_index_plan.json";
     private final String optimizedModelFile = modelDir + "optimized_model.json";
     private final String optimizedIndexPlanFile = indexDir + "optimized_index_plan.json";
+    private final String optimizedIndexPlanTwiceFile = indexDir + "optimized_twice_index_plan.json";
+    private final String optimizedModelTwiceFile = modelDir + "optimized_model_twice.json";
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @InjectMocks
     private OptimizeRecommendationService service = Mockito.spy(new OptimizeRecommendationService());
@@ -517,7 +526,7 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     }
 
     @Test
-    public void testBatchAppplyRecommendationWithBrokenModel() throws IOException {
+    public void testBatchApplyRecommendationWithBrokenModel() throws IOException {
         val project = "broken_test";
 
         // broken model
@@ -552,5 +561,66 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     private List<LayoutRecommendationResponse> getAggIndexRecommendations(OptRecommendationResponse response) {
         return response.getIndexRecommendations().stream().filter(r -> r.getType().isAgg())
                 .collect(Collectors.toList());
+    }
+
+    private void prepareTwice() throws IOException {
+        prepare();
+        new OptimizeRecommendationVerifier(getTestConfig(), projectDefault, id).verifyAll();
+        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
+        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanTwiceFile);
+        val appliedModel = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        updateModelByFile(appliedModel, optimizedModelTwiceFile);
+        recommendationManager.optimize(appliedModel, indexPlanOptimized);
+    }
+
+    @Test
+    public void testApplyRecommendationCCConflict() throws IOException {
+        prepareTwice();
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val request = new ApplyRecommendationsRequest();
+        request.setProject("default");
+        request.setModelId(id);
+        request.setCcRecommendations(recommendation.getCcRecommendations());
+        request.getCcRecommendations().get(0).getCc().setColumnName("cc_AUTO_1");
+        request.setDimensionRecommendations(recommendation.getDimensionRecommendations());
+        request.setMeasureRecommendations(recommendation.getMeasureRecommendations());
+
+        thrown.expect(PassConflictException.class);
+        thrown.expectMessage("cc cc_AUTO_1 name has already used in model");
+        service.applyRecommendations(request, "default");
+    }
+
+    @Test
+    public void testApplyRecommendationDimensionConflict() throws IOException {
+        prepareTwice();
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val request = new ApplyRecommendationsRequest();
+        request.setProject("default");
+        request.setModelId(id);
+        request.setCcRecommendations(recommendation.getCcRecommendations());
+        request.setDimensionRecommendations(recommendation.getDimensionRecommendations());
+        request.getDimensionRecommendations().get(0).getColumn().setName("cc_AUTO_1");
+        request.setMeasureRecommendations(recommendation.getMeasureRecommendations());
+
+        thrown.expect(PassConflictException.class);
+        thrown.expectMessage("dimension all named column cc_AUTO_1 has already used in model");
+        service.applyRecommendations(request, "default");
+    }
+
+    @Test
+    public void testApplyRecommendationMeasureConflict() throws IOException {
+        prepareTwice();
+        val recommendation = recommendationManager.getOptimizeRecommendation(id);
+        val request = new ApplyRecommendationsRequest();
+        request.setProject("default");
+        request.setModelId(id);
+        request.setCcRecommendations(recommendation.getCcRecommendations());
+        request.setDimensionRecommendations(recommendation.getDimensionRecommendations());
+        request.setMeasureRecommendations(recommendation.getMeasureRecommendations());
+        request.getMeasureRecommendations().get(0).getMeasure().setName("max_ITEM");
+
+        thrown.expect(PassConflictException.class);
+        thrown.expectMessage("measure name max_ITEM has already used in model");
+        service.applyRecommendations(request, "default");
     }
 }

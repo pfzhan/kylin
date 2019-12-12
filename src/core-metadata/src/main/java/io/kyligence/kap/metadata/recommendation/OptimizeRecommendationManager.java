@@ -588,8 +588,8 @@ public class OptimizeRecommendationManager {
         items.forEach(r -> {
             val itemId = r.getItemId();
             val name = r.getColumn().getName();
-            if (context.getDimensionColumnNameIdMap().containsKey(name)
-                    && !context.getDimensionColumnNameIdMap().get(name).equals(r.getColumn().getId())) {
+            if (context.getDimensionColumnNameIdMap().containsKey(name.toUpperCase())
+                    && !context.getDimensionColumnNameIdMap().get(name.toUpperCase()).equals(r.getColumn().getId())) {
                 if (!r.isAutoChangeName()) {
                     throw new PassConflictException(
                             String.format("dimension all named column %s has already used in model", name));
@@ -620,7 +620,11 @@ public class OptimizeRecommendationManager {
                             measureInModel.getId());
                     context.getDeletedMeasureRecommendations().add(itemId);
                     return;
-                } else if (measureInModel.getName().equals(measure.getName())) {
+                } else if (measureInModel.getName().equalsIgnoreCase(measure.getName())) {
+                    if (!r.isAutoChangeName()) {
+                        throw new PassConflictException(
+                                String.format("measure name %s has already used in model", measure.getName()));
+                    }
                     val copy = context.copyMeasureRecommendationItem(itemId);
                     copy.getMeasure()
                             .setName(newMeasureName(copy.getMeasure().getName(), context.getVirtualMeasures()));

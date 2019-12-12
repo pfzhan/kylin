@@ -141,7 +141,7 @@ public class OptimizeRecommendationService extends BasicService {
             throw new IllegalArgumentException(String.format(
                     "model [%s] is broken, cannot apply any optimize recommendations", originalModel.getAlias()));
 
-        val copiedOrinalModel = getDataModelManager(request.getProject()).copyForWrite(originalModel);
+        val copiedOriginalModel = getDataModelManager(request.getProject()).copyForWrite(originalModel);
 
         val nameTranslations = Lists.<Pair<String, String>> newArrayList();
 
@@ -158,7 +158,7 @@ public class OptimizeRecommendationService extends BasicService {
 
                         val originalCCName = ccMapOrigin.get(updatedCCItem.getItemId()).getCc().getColumnName();
                         val updatedCCName = updatedCCItem.getCc().getColumnName();
-                        if (!originalCCName.equals(updatedCCName)) {
+                        if (!originalCCName.equalsIgnoreCase(updatedCCName)) {
                             nameTranslations.add(new Pair<>(originalCCName, updatedCCName));
                             updatedCCItem.setAutoChangeName(false);
                         }
@@ -173,6 +173,16 @@ public class OptimizeRecommendationService extends BasicService {
                     // dimension recommendation
                     val dimMapOrigin = optRecomm.getDimensionRecommendations().stream()
                             .collect(Collectors.toMap(DimensionRecommendationItem::getItemId, item -> item));
+                    request.getDimensionRecommendations().forEach(item -> {
+                        val originItem = dimMapOrigin.get(item.getItemId());
+                        if (originItem == null) {
+                            throw new IllegalArgumentException(
+                                    String.format("dimension item with id [%s] does not exist", item.getItemId()));
+                        }
+                        if (!item.getColumn().getName().equalsIgnoreCase(originItem.getColumn().getName())) {
+                            item.setAutoChangeName(false);
+                        }
+                    });
                     val dimMapUpdated = request.getDimensionRecommendations().stream()
                             .collect(Collectors.toMap(DimensionRecommendationItem::getItemId, item -> item));
 
@@ -182,6 +192,16 @@ public class OptimizeRecommendationService extends BasicService {
                     // measure recommendation
                     val measureMapOrigin = optRecomm.getMeasureRecommendations().stream()
                             .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
+                    request.getMeasureRecommendations().forEach(item -> {
+                        val originItem = measureMapOrigin.get(item.getItemId());
+                        if (originItem == null) {
+                            throw new IllegalArgumentException(
+                                    String.format("measure item with id [%s] does not exist", item.getItemId()));
+                        }
+                        if (!item.getMeasure().getName().equalsIgnoreCase(originItem.getMeasure().getName())) {
+                            item.setAutoChangeName(false);
+                        }
+                    });
                     val measureMapUpdated = request.getMeasureRecommendations().stream()
                             .collect(Collectors.toMap(MeasureRecommendationItem::getItemId, item -> item));
 
@@ -191,7 +211,7 @@ public class OptimizeRecommendationService extends BasicService {
 
         val updatedRecom = getOptRecommendationManager(request.getProject())
                 .getOptimizeRecommendation(request.getModelId());
-        val optContext = new OptimizeContext(copiedOrinalModel, updatedRecom);
+        val optContext = new OptimizeContext(copiedOriginalModel, updatedRecom);
         optContext.setNameTranslations(nameTranslations);
         updatedRecom.getCcRecommendations().forEach(ccItem -> ccItem.translate(optContext));
         updatedRecom.getDimensionRecommendations().forEach(dimensionItem -> dimensionItem.translate(optContext));
