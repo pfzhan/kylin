@@ -526,6 +526,7 @@ export default class DimensionsModal extends Vue {
   // 点击行触发事件
   rowClick (row, guid) {
     row.isSelected = !row.isSelected
+    this.getTableCheckedStatus(guid)
     this.$refs[guid][0].toggleRowSelection(row)
   }
   // 点击header上checkbox触发选择
