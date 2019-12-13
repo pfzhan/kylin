@@ -55,6 +55,6 @@ export default {
     detectFormat: '获取分区格式',
     errorMsg: '错误信息：',
     filterCondTips: '修改数据筛选条件将会导致该模型下所有索引重新构建，请谨慎修改。',
-    filterPlaceholder: '请输入过滤条件，多个条件使用AND或OR连接，不需要写WHERE。例如：BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
+    filterPlaceholder: '请输入过滤条件，多个条件使用 AND 或 OR 连接，不需要写 WHERE。例如：BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
   }
 }
