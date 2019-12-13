@@ -29,7 +29,7 @@
             <el-form   @keyup.native.enter="onLoginSubmit" :model="user" ref="loginForm" :rules="rules">
               <div class="input_group">
                 <el-form-item label="" prop="username">
-                  <el-input v-model="user.username" auto-complete="on" :autofocus="true"  :placeholder="$t('userName')" name="username"></el-input>
+                  <el-input v-model.trim="user.username" auto-complete="on" :autofocus="true"  :placeholder="$t('userName')" name="username"></el-input>
                 </el-form-item>
                 <el-form-item label="" prop="password" class="password">
                   <el-input  type="password" v-model="user.password" name="password" :placeholder="$t('password')"></el-input>
@@ -44,7 +44,6 @@
                 <kap-icon-button type="primary" class="ksd-mt-10"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
               </el-form-item>
             </el-form>
-
           </div>
         </el-col>
       </el-row>
