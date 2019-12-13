@@ -295,6 +295,9 @@ export default {
     },
     [types.CHECK_FILTER_CONDITION] ({ commit }, paras) {
       return api.model.checkFilterConditon(paras)
+    },
+    [types.GET_INDEX_DIFF] ({ commit }, params) {
+      return api.model.getIndexDiff(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp)
     }
   },
   getters: {

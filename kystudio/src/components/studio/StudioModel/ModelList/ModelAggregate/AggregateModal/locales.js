@@ -37,7 +37,10 @@ export default {
     measureTabTip: 'Select all measures defined in the model into the aggregate group.',
     clearAllMeasuresTip: 'Are you sure to clear all measures of Aggregate-Group-{aggId}?',
     clearMeasureTitle: 'Clear Measures',
-    aggGroupTip: 'You can define dimensions and measures in different aggregate groups according to your business scenario. In the dimension setting, it is recommended to select the frequently used grouping dimensions and filtering dimensions into the aggregate group in the descending order of the cardinality.'
+    aggGroupTip: 'You can define dimensions and measures in different aggregate groups according to your business scenario. In the dimension setting, it is recommended to select the frequently used grouping dimensions and filtering dimensions into the aggregate group in the descending order of the cardinality.',
+    increaseTips: 'After submitting, {increaseNum} index(indices) will be added into model {model_name}. The index(indices) can serve queries after being built. Are you sure to submit?',
+    decreaseTips: 'After submitting, {decreaseNum} index(indices) will be deleted from model {model_name}. The index(indices) cannot serve queries after being deleted, and the delete operation cannot be recovered. Are you sure to submit? ',
+    mixTips: 'After submitting, {decreaseNum} index(indices) will be deleted and {increaseNum} index(indices) will be added in model {model_name}. At this point, the influenced indices will be changed to "LOCKED" status and can still serve queries. All the changes will take effect after the new indices are built successfully. Please note that the deleted indices cannot be recovered. Are you sure to submit? '
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',
@@ -77,6 +80,9 @@ export default {
     measureTabTip: '将模型中定义的所有度量选入聚合组。',
     clearAllMeasuresTip: '你确认要清除聚合组-{aggId}的所有度量吗',
     clearMeasureTitle: '清除度量',
-    aggGroupTip: '您可以将维度和度量根据分析场景定义在不同的聚合组。在维度设置中，推荐将查询中常用的分组维度、过滤维度按照基数从大到小的方式选入聚合组。'
+    aggGroupTip: '您可以将维度和度量根据分析场景定义在不同的聚合组。在维度设置中，推荐将查询中常用的分组维度、过滤维度按照基数从大到小的方式选入聚合组。',
+    increaseTips: '提交后模型 {model_name} 中将有 {increaseNum} 个索引被添加，新索引构建完成后将服务于查询。请确认是否提交？',
+    decreaseTips: '提交后模型 {model_name} 中将有 {decreaseNum} 个索引被删除，索引删除后不能服务于查询，且删除操作不可恢复。请确认是否提交？',
+    mixTips: '提交后模型 {model_name} 中将有 {decreaseNum} 个索引被删除，{increaseNum} 个索引被添加。此时，受影响的索引将处于 "锁定" 状态，并仍可服务于查询。所有修改将在新索引构建完成后生效，请注意索引被删除后无法恢复。请确认是否提交？'
   }
 }

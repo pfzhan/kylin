@@ -229,5 +229,8 @@ export default {
   },
   checkFilterConditon: (para) => {
     return Vue.resource(apiUrl + 'models/filter_condition/check').save(para)
+  },
+  getIndexDiff: (project, modelId, dimensions, aggregationGroups, isCatchUp) => {
+    return Vue.resource(apiUrl + 'index_plans/rule_based_index_diff').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
   }
 }

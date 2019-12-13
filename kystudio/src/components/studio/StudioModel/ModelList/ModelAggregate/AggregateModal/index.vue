@@ -281,7 +281,8 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
     }),
     ...mapActions({
       updateAggregateGroups: 'UPDATE_AGGREGATE_GROUPS',
-      getCalcCuboids: 'GET_AGG_CUBOIDS'
+      getCalcCuboids: 'GET_AGG_CUBOIDS',
+      getIndexDiff: 'GET_INDEX_DIFF'
     })
   },
   locales
@@ -674,6 +675,9 @@ export default class AggregateModal extends Vue {
             }
           }
         }
+        let diffRes = await this.getIndexDiff(data)
+        let diffResult = await handleSuccessAsync(diffRes)
+        await this.confirmSubmit(diffResult)
         // 获取数字正常的情况下，才进行 submit
         let res = await this.submit(data)
         let result = await handleSuccessAsync(res)
@@ -693,6 +697,19 @@ export default class AggregateModal extends Vue {
       e && handleError(e)
       this.isSubmit = false
       this.hideLoading()
+    }
+  }
+  async confirmSubmit (diffResult) {
+    if (diffResult.decrease_layouts === 0 && diffResult.increase_layouts > 0) {
+      return kapConfirm(this.$t('increaseTips', {increaseNum: diffResult.increase_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
+    } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts === 0) {
+      return kapConfirm(this.$t('decreaseTips', {decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
+    } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts > 0) {
+      return kapConfirm(this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
+    } else {
+      return new Promise((resolve) => {
+        resolve()
+      })
     }
   }
   checkFormVaild () {
