@@ -255,7 +255,7 @@ export default class StudioSource extends Vue {
     const projectName = this.currentSelectedProject
     const databaseName = this.selectedTable.database
     const tableName = this.selectedTable.name
-    const { has_model: hasModel, has_job: hasJob, model_size: modelSize } = await this._getAffectedModelCountAndSize()
+    const { hasModel, hasJob, modelSize } = await this._getAffectedModelCountAndSize()
     if (!hasModel) {
       this.delBtnLoading = true
       try {
