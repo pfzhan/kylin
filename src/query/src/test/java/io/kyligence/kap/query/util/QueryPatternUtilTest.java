@@ -86,7 +86,7 @@ public class QueryPatternUtilTest {
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" + "UNION\n"
                 + "SELECT DISTINCT \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060102' \"PREMIUM_FLAG\"\n"
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_VIEW\" \"DIM_PERIOD_WEEK_VIEW\") \"PERIOD_D\"\n"
-                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN ASYMMETRIC CAST(CAST('1' AS BIGINT) - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST(SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) AS \"SQL_BIGINT\") > 1\n"
+                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN CAST(CAST('1' AS BIGINT) - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST(SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) AS \"SQL_BIGINT\") > 1\n"
                 + "ORDER BY \"PERIOD_CODE\" DESC";
         checkPattern(expected1, sql1);
 
@@ -96,7 +96,7 @@ public class QueryPatternUtilTest {
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" + "UNION\n"
                 + "SELECT DISTINCT \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060102' \"PREMIUM_FLAG\"\n"
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_VIEW\" \"DIM_PERIOD_WEEK_VIEW\") \"PERIOD_D\"\n"
-                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN ASYMMETRIC CAST(CAST('2010-01-01' AS \"SQL_DATE\") - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST('1' AS \"SQL_DECIMAL\") > 1\n"
+                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN CAST(CAST('2010-01-01' AS \"SQL_DATE\") - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST('1' AS \"SQL_DECIMAL\") > 1\n"
                 + "ORDER BY \"PERIOD_CODE\" DESC";
         checkPattern(expected2, sql2);
     }
@@ -147,7 +147,7 @@ public class QueryPatternUtilTest {
                 + "SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"GMV\", COUNT(*) \"TRANS_CNT\"\n" //
                 + "FROM \"TEST_KYLIN_FACT\"\n"
                 + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "WHERE \"TEST_CAL_DT\".\"WEEK_BEG_DT\" BETWEEN ASYMMETRIC DATE '2010-01-01' AND DATE '2010-01-01'\n"
+                + "WHERE \"TEST_CAL_DT\".\"WEEK_BEG_DT\" BETWEEN DATE '2010-01-01' AND DATE '2010-01-01'\n"
                 + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n"
                 + "HAVING SUM(\"PRICE\" + 2 * 4) * 1 > 1) \"TABLEAUSQL\"\n" //
                 + "GROUP BY 2\n" //
@@ -485,7 +485,7 @@ public class QueryPatternUtilTest {
         String expected = "SELECT SUM(\"L_EXTENDEDPRICE\") - SUM(\"L_SALEPRICE\") \"REVENUE\"\n"
                 + "FROM \"V_LINEITEM\"\n"
                 + "WHERE \"L_SHIPDATE\" >= DATE '2010-01-01' AND \"L_SHIPDATE\" < '2010-01-02' "
-                + "AND \"L_DISCOUNT\" BETWEEN ASYMMETRIC 1 AND 1 AND \"L_QUANTITY\" < 2";
+                + "AND \"L_DISCOUNT\" BETWEEN 1 AND 1 AND \"L_QUANTITY\" < 2";
         String sql = "select sum(l_extendedprice) - sum(l_saleprice) as revenue\n" //
                 + "from v_lineitem\n" //
                 + "where l_shipdate >= date '1993-01-01' and l_shipdate < '1994-01-01'\n"
@@ -575,11 +575,11 @@ public class QueryPatternUtilTest {
                 + "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) "
                 + "RANGE CAST(366 AS INTERVAL DAY) PRECEDING)\n" //
                 + "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n" //
-                + "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
-                + "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
-                + "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'\n"
+                + "WHERE \"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
+                + "BETWEEN '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
+                + "BETWEEN '2010-01-01' AND '2010-01-01'\n"
                 + "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\") \"T\"\n"
-                + "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'";
+                + "WHERE \"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01'";
         String sql = "select * from(\n" //
                 + "select cal_dt, lstg_format_name, sum(price) as GMV,\n"
                 + "100 * sum(price) / first_value(sum(price)) over (partition by lstg_format_name "

@@ -52,7 +52,7 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import lombok.Data;
 
 @Data
-public class AggGroupResponse {
+public class AggGroupResponse implements Serializable {
     @JsonProperty("includes")
     private String[] includes;
     @JsonProperty("select_rule")

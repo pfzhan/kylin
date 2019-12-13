@@ -59,7 +59,7 @@ public class NModelDescResponse implements Serializable {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class Dimension {
+    public static class Dimension implements Serializable {
 
         @JsonUnwrapped
         private NDataModel.NamedColumn namedColumn;

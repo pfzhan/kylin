@@ -3392,6 +3392,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String originSql = "trans_id = 0 and order_id < 100";
         String newSql = modelService.addTableNameIfNotExist(originSql, model);
         Assert.assertEquals("((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100))", newSql);
+        originSql = "trans_id between 1 and 10";
+        newSql = modelService.addTableNameIfNotExist(originSql, model);
+        Assert.assertEquals("(TEST_KYLIN_FACT.TRANS_ID BETWEEN 1 AND 10)", newSql);
     }
 
     @Test
