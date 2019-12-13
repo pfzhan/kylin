@@ -147,7 +147,7 @@ import $ from 'jquery'
       addCCTip: 'Create Computed Column',
       editMeasureTitle: 'Edit Measure',
       addMeasureTitle: 'Add Measure',
-      sameColumn: 'Column has been used'
+      sameColumn: 'Column has been defined as a measure by the same function'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -165,7 +165,7 @@ import $ from 'jquery'
       addCCTip: '创建可计算列',
       editMeasureTitle: '编辑度量',
       addMeasureTitle: '添加度量',
-      sameColumn: '该列已被其他度量使用'
+      sameColumn: '该列已被相同函数定义为度量'
     }
   }
 })
