@@ -360,7 +360,7 @@ public class ModelService extends BasicService {
             result.setAggregationGroups(aggGroupResponses);
             result.setDimensions(getDimension3XES(indexPlan, cube, aggGroupResponses));
         } else {
-            result.setAggregationGroups(null);
+            result.setAggregationGroups(new ArrayList<>());
             result.setDimensions(new ArrayList<>());
         }
 
