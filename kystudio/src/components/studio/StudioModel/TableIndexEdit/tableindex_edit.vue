@@ -352,7 +352,7 @@
     async submit () {
       this.$refs.tableIndexForm.validate((valid) => {
         if (!valid) { return }
-        if (this.tableIndexDesc && this.tableIndexDesc.status !== 'EMPTY') {
+        if (this.tableIndexDesc && this.tableIndexDesc.status && this.tableIndexDesc.status !== 'EMPTY') {
           kapConfirm(this.$t('cofirmEditTableIndex'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
             this.confirmSubmit()
           })

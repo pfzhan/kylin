@@ -14,7 +14,7 @@
       <!-- 正在检测的情况 -->
       <i v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
     </span>
-    <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
+    <!-- <div class="loading" v-if="isLoading" v-loading="isLoading"></div> -->
     <template v-if="model">
       <!-- 维度列表展示 -->
       <!-- <div class="dimension-list clearfix" v-if="isDimensionShow">
@@ -256,7 +256,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
     ...mapState('AggregateModal', {
       form: state => state.form,
       isShow: state => state.isShow,
-      isLoading: state => state.isLoading,
+      // isLoading: state => state.isLoading,
       editType: state => state.editType,
       callback: state => state.callback,
       model: state => state.model,
@@ -361,7 +361,7 @@ export default class AggregateModal extends Vue {
       this.isWaitingCheckCuboids[prop] = false
     }
     this.calcLoading = true
-    this.showLoading()
+    // this.showLoading()
     let paramsData = this.getSubmitData()
     if (paramsData.dimensions.length <= 0) {
       this.calcLoading = false
@@ -398,7 +398,7 @@ export default class AggregateModal extends Vue {
           }
         }
         this.calcLoading = false
-        this.hideLoading()
+        // this.hideLoading()
       })
     }, (res) => {
       this.maxCombinationNum = 0
@@ -409,7 +409,7 @@ export default class AggregateModal extends Vue {
       }
       this.resetCuboidInfo()
       this.calcLoading = false
-      this.hideLoading()
+      // this.hideLoading()
       handleError(res)
     })
   }
@@ -627,7 +627,7 @@ export default class AggregateModal extends Vue {
   }
   async handleSubmit () {
     this.isSubmit = true
-    this.showLoading()
+    // this.showLoading()
     try {
       if (this.checkFormVaild()) {
         const data = this.getSubmitData()
@@ -662,7 +662,7 @@ export default class AggregateModal extends Vue {
             this.$message.error(this.$t('maxCombinationTip'))
             this.calcLoading = false
             this.isSubmit = false
-            this.hideLoading()
+            // this.hideLoading()
             // 操作滚动
             this.dealScrollToFirstError()
             return false
@@ -672,7 +672,7 @@ export default class AggregateModal extends Vue {
               this.$message.error(this.$t('maxTotalCombinationTip'))
               this.calcLoading = false
               this.isSubmit = false
-              this.hideLoading()
+              // this.hideLoading()
               return false
             }
           }
@@ -688,7 +688,7 @@ export default class AggregateModal extends Vue {
         this.handleClose(true)
       } else {
         this.isSubmit = false
-        this.hideLoading()
+        // this.hideLoading()
       }
     } catch (e) {
       this.calcLoading = false
@@ -697,7 +697,7 @@ export default class AggregateModal extends Vue {
       }
       e && handleError(e)
       this.isSubmit = false
-      this.hideLoading()
+      // this.hideLoading()
     }
   }
   async confirmSubmit (diffResult) {
