@@ -96,7 +96,7 @@ export default {
         state.form.aggregateArray = payload.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
           const id = payload.aggregation_groups.length - aggregateIdx
           const includes = aggregationGroup.includes.map(include => nameMapping[include])
-          const measures = aggregationGroup.measures.map(measures => measuresMapping[measures])
+          let measures = aggregationGroup.measures.map(measures => measuresMapping[measures])
           const selectRules = aggregationGroup.select_rule
           const mandatory = selectRules.mandatory_dims.map(mandatory => nameMapping[mandatory])
           const jointArray = selectRules.joint_dims.map((jointGroup, groupIdx) => {
@@ -115,6 +115,7 @@ export default {
           if (!jointArray.length) {
             jointArray.push({ id: 0, items: [] })
           }
+          measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')]
           return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open }
         }).reverse()
       }
@@ -134,9 +135,11 @@ export default {
         const aggregateGroupRule = await handleSuccessAsync(response)
         commit(types.HIDE_LOADING)
         if (!aggregateGroupRule) {
+          let measuresList = []
           for (let item of getMeasures(state.model)) {
-            item.label && state.form.aggregateArray[0].measures.unshift(item.label)
+            item.label && (item.label === 'COUNT_ALL' ? measuresList.unshift(item.label) : measuresList.push(item.label))
           }
+          state.form.aggregateArray[0].measures = measuresList
           return
         }
         setTimeout(() => {

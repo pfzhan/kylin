@@ -662,6 +662,7 @@ export default class AggregateModal extends Vue {
             this.$message.error(this.$t('maxCombinationTip'))
             this.calcLoading = false
             this.isSubmit = false
+            this.hideLoading()
             // 操作滚动
             this.dealScrollToFirstError()
             return false
@@ -671,6 +672,7 @@ export default class AggregateModal extends Vue {
               this.$message.error(this.$t('maxTotalCombinationTip'))
               this.calcLoading = false
               this.isSubmit = false
+              this.hideLoading()
               return false
             }
           }
@@ -684,7 +686,6 @@ export default class AggregateModal extends Vue {
         this.handleBuildIndexTip(result)
         this.isSubmit = false
         this.handleClose(true)
-        this.hideLoading()
       } else {
         this.isSubmit = false
         this.hideLoading()
@@ -777,7 +778,7 @@ export default class AggregateModal extends Vue {
 
   // 选择所有的度量
   handleAddAllMeasure (aggregateIdx, id) {
-    const measures = this.measures.map(m => m.label)
+    const measures = ['COUNT_ALL', ...this.measures.map(m => m.label).filter(item => item !== 'COUNT_ALL')]
     this.handleInput(`aggregateArray.${aggregateIdx}.measures`, measures, id)
   }
 
