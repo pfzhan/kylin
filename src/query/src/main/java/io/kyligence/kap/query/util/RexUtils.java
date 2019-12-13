@@ -49,6 +49,9 @@ import io.kyligence.kap.query.relnode.KapProjectRel;
 
 public class RexUtils {
 
+    private RexUtils() {
+    }
+
     /**
      * check if there are more than two tables get involved in the join condition
      * @param join
@@ -103,12 +106,13 @@ public class RexUtils {
     public static int countOperatorCall(RexNode condition, final Class<? extends SqlOperator> sqlOperator) {
         final AtomicInteger likeCount = new AtomicInteger(0);
         RexVisitor<Void> likeVisitor = new RexVisitorImpl<Void>(true) {
+            @Override
             public Void visitCall(RexCall call) {
 
                 if (call.getOperator().getClass().equals(sqlOperator)) {
                     likeCount.incrementAndGet();
                 }
-                return (Void) super.visitCall(call);
+                return super.visitCall(call);
             }
         };
         condition.accept(likeVisitor);
@@ -142,41 +146,11 @@ public class RexUtils {
     public static boolean isMerelyTableColumnReference(RelNode rel, Collection<Integer> columnIndexes) {
         // project and aggregations may change the columns
         if (rel instanceof KapProjectRel) {
-            Set<Integer> nextInputRefKeys = new HashSet<>();
-            KapProjectRel project = (KapProjectRel) rel;
-            for (Integer columnIdx : columnIndexes) {
-                if (!(project.getProjects().get(columnIdx) instanceof RexInputRef)) {
-                    return false;
-                }
-                nextInputRefKeys.add(((RexInputRef) project.getProjects().get(columnIdx)).getIndex());
-            }
-            return isMerelyTableColumnReference(project.getInput(), nextInputRefKeys);
+            return isProjectMerelyTableColumnReference((KapProjectRel) rel, columnIndexes);
         } else if (rel instanceof KapAggregateRel) {
-            Set<Integer> nextInputRefKeys = new HashSet<>();
-            KapAggregateRel agg = (KapAggregateRel) rel;
-            for (Integer columnIdx : columnIndexes) {
-                if (columnIdx >= agg.getRewriteGroupKeys().size()) { // pointing to agg calls
-                    return false;
-                } else {
-                    nextInputRefKeys.add(agg.getRewriteGroupKeys().get(columnIdx));
-                }
-            }
-            return isMerelyTableColumnReference(agg.getInput(), nextInputRefKeys);
+            return isAggMerelyTableColumnReference((KapAggregateRel) rel, columnIndexes);
         } else if (rel instanceof KapJoinRel) { // test each sub queries of a join
-            int offset = 0;
-            for (RelNode inputRel : rel.getInputs()) {
-                Set<Integer> nextInputRefKeys = new HashSet<>();
-                for (Integer columnIdx : columnIndexes) {
-                    if (columnIdx - offset >= 0 && columnIdx - offset < inputRel.getRowType().getFieldCount()) {
-                        nextInputRefKeys.add(columnIdx - offset);
-                    }
-                }
-                if (!isMerelyTableColumnReference(inputRel, nextInputRefKeys)) {
-                    return false;
-                }
-                offset += inputRel.getRowType().getFieldCount();
-            }
-            return true;
+            return isJoinMerelyTableColumnReference(rel, columnIndexes);
         } else { // other rel nodes won't changes the columns, just pass column idx down
             for (RelNode inputRel : rel.getInputs()) {
                 if (!isMerelyTableColumnReference(inputRel, columnIndexes)) {
@@ -185,6 +159,48 @@ public class RexUtils {
             }
             return true;
         }
+    }
+
+    private static boolean isJoinMerelyTableColumnReference(RelNode rel, Collection<Integer> columnIndexes) {
+        int offset = 0;
+        for (RelNode inputRel : rel.getInputs()) {
+            Set<Integer> nextInputRefKeys = new HashSet<>();
+            for (Integer columnIdx : columnIndexes) {
+                if (columnIdx - offset >= 0 && columnIdx - offset < inputRel.getRowType().getFieldCount()) {
+                    nextInputRefKeys.add(columnIdx - offset);
+                }
+            }
+            if (!isMerelyTableColumnReference(inputRel, nextInputRefKeys)) {
+                return false;
+            }
+            offset += inputRel.getRowType().getFieldCount();
+        }
+        return true;
+    }
+
+    private static boolean isAggMerelyTableColumnReference(KapAggregateRel rel, Collection<Integer> columnIndexes) {
+        Set<Integer> nextInputRefKeys = new HashSet<>();
+        KapAggregateRel agg = rel;
+        for (Integer columnIdx : columnIndexes) {
+            if (columnIdx >= agg.getRewriteGroupKeys().size()) { // pointing to agg calls
+                return false;
+            } else {
+                nextInputRefKeys.add(agg.getRewriteGroupKeys().get(columnIdx));
+            }
+        }
+        return isMerelyTableColumnReference(agg.getInput(), nextInputRefKeys);
+    }
+
+    private static boolean isProjectMerelyTableColumnReference(KapProjectRel rel, Collection<Integer> columnIndexes) {
+        Set<Integer> nextInputRefKeys = new HashSet<>();
+        KapProjectRel project = rel;
+        for (Integer columnIdx : columnIndexes) {
+            if (!(project.getProjects().get(columnIdx) instanceof RexInputRef)) {
+                return false;
+            }
+            nextInputRefKeys.add(((RexInputRef) project.getProjects().get(columnIdx)).getIndex());
+        }
+        return isMerelyTableColumnReference(project.getInput(), nextInputRefKeys);
     }
 
     public static boolean isMerelyTableColumnReference(KapJoinRel rel, RexNode condition) {
