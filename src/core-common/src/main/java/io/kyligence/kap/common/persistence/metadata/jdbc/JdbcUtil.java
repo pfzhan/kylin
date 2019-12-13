@@ -27,6 +27,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.StorageURL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -36,7 +37,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import io.kyligence.kap.common.persistence.metadata.PersistException;
 import lombok.val;
 
-public class JdbcUtil {
+public class JdbcUtil implements IKeep {
 
     public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer) {
         val definition = new DefaultTransactionDefinition();

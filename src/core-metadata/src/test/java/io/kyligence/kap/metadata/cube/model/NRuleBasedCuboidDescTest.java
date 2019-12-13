@@ -290,6 +290,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         val group1 = JsonUtil.readValue(""
                         + "{\n"
                         + "        \"includes\": [1, 3, 4, 5, 6],\n"
+                        + "        \"measures\": [100001, 100002],\n"
                         + "        \"select_rule\": {\n"
                         + "          \"hierarchy_dims\": [],\n"
                         + "          \"mandatory_dims\": [3],\n"
@@ -315,6 +316,79 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         val result = indexPlan.diffRuleBasedIndex(newRule);
         Assert.assertTrue(CollectionUtils.isNotEmpty(result.getFirst()) && CollectionUtils.isNotEmpty(result.getSecond()));
         Assert.assertTrue(result.getFirst().stream().map(LayoutEntity::getId).collect(Collectors.toSet()).contains(30001L));
+        Assert.assertTrue(result.getSecond().stream().anyMatch(layoutEntity ->
+                layoutEntity.getOrderedMeasures().containsKey(100001)
+                        && layoutEntity.getOrderedMeasures().containsKey(100002)));
+    }
+
+    @Test
+    public void testSetRuleBasedIndex() throws Exception {
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), IndexPlan.class);
+        newPlan.setLastModified(0L);
+
+        CubeTestUtils.createTmpModel(getTestConfig(), newPlan);
+
+        newPlan = indexPlanManager.createIndexPlan(newPlan);
+        Assert.assertEquals(12, newPlan.getAllLayouts().size());
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        dataflowManager.createDataflow(newPlan, "ADMIN");
+        NDataflow df = dataflowManager.getDataflow(newPlan.getId());
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToAddOrUpdateLayouts(NDataLayout.newDataLayout(df, df.getLatestReadySegment().getId(), 30001L));
+        dataflowManager.updateDataflow(update);
+
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
+        val group1 = JsonUtil.readValue(""
+                + "{\n"
+                + "        \"includes\": [1, 3, 4, 5, 6],\n"
+                + "        \"measures\": [100001, 100002],\n"
+                + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n"
+                + "          \"mandatory_dims\": [3],\n"
+                + "          \"joint_dims\": [\n"
+                + "            [1, 5],\n"
+                + "            [4 ,6]\n"
+                + "          ]\n"
+                + "        }\n"
+                + "}", NAggregationGroup.class);
+        val group2 = JsonUtil.readValue(""
+                + "      {\n"
+                + "        \"includes\": [0, 1, 2, 3, 4, 5],\n"
+                + "        \"measures\": [\n" +
+                "      100001,\n" +
+                "      100002,\n" +
+                "      100003\n" +
+                "    ],\n"
+                + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [[0, 1, 2]],\n"
+                + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": [\n"
+                + "            [3 ,4]\n"
+                + "          ]\n"
+                + "        }\n"
+                + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Arrays.asList(group1, group2));
+
+        val newIndexPlan = indexPlanManager.updateIndexPlan(newPlan.getUuid(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule, false, true);
+        });
+
+        Assert.assertTrue(CollectionUtils.isNotEmpty(newIndexPlan.getToBeDeletedIndexes()));
+        Assert.assertTrue(newIndexPlan.getToBeDeletedIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == 30000L));
+
+        val onlyDeleteRule = new NRuleBasedIndex();
+        onlyDeleteRule.setDimensions(Arrays.asList(1, 3, 4, 5, 6));
+        onlyDeleteRule.setAggregationGroups(Lists.newArrayList(JsonUtil.deepCopyQuietly(group1, NAggregationGroup.class)));
+        val onlyDeleteIndexPlan = indexPlanManager.updateIndexPlan(newIndexPlan.getUuid(), copyForWrite -> {
+            copyForWrite.removeLayoutsFromToBeDeletedList(Sets.newHashSet(30001L), LayoutEntity::equals, true, true);
+            copyForWrite.setRuleBasedIndex(onlyDeleteRule, false, true);
+        });
+
+        Assert.assertTrue(CollectionUtils.isEmpty(onlyDeleteIndexPlan.getToBeDeletedIndexes()));
     }
 
     @Test

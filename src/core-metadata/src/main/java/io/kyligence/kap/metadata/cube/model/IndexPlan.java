@@ -557,7 +557,10 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
-        ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+        genMeasuresForRulebasedIndex(ruleBasedIndex);
+        if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
+            ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+        }
         ruleBasedIndex.setIndexStartId(nextAggregationIndexId);
         ruleBasedIndex.setIndexPlan(this);
         ruleBasedIndex.init();

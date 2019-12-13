@@ -413,7 +413,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getMetadataAuditLogMaxSize() {
-        return Long.valueOf(getOptional("kylin.metadata.audit-log.max-size", "1000000"));
+        return Long.valueOf(getOptional("kylin.metadata.audit-log.max-size", "3000000"));
     }
 
     public StorageURL getMetadataMQUrl() {
