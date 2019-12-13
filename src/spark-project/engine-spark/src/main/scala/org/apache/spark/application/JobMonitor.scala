@@ -47,6 +47,12 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
 
   def handleResourceLack(rl: ResourceLack): Unit = {
     try {
+      if (rl.throwable != null && rl.throwable.getCause != null) {
+        if (rl.throwable.getCause.isInstanceOf[NoRetryException]) {
+          eventLoop.post(JobFailed(rl.throwable.getCause.getMessage, rl.throwable.getCause))
+          return
+        }
+      }
       val buildEnv = KylinBuildEnv.get()
       retryTimes += 1
       KylinBuildEnv.get().buildJobInfos.recordRetryTimes(retryTimes)

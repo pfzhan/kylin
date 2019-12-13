@@ -25,6 +25,8 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,8 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -42,6 +46,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.spark.application.NoRetryException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.datasource.storage.StorageStore;
@@ -70,6 +75,9 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import lombok.val;
 
 public class DFBuildJob extends SparkApplication {
@@ -91,6 +99,7 @@ public class DFBuildJob extends SparkApplication {
         List<String> persistedFlatTable = new ArrayList<>();
         List<String> persistedViewFactTable = new ArrayList<>();
         Path shareDir = config.getJobTmpShareDir(project, jobId);
+        checkDateFormatIfExist(project, dataflowId);
         try {
             IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
             Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
@@ -158,7 +167,8 @@ public class DFBuildJob extends SparkApplication {
 
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, project);
         indexPlanManager.updateIndexPlan(dataflowId, copyForWrite -> {
-            copyForWrite.setLayoutBucketNumMapping(indexPlanManager.getIndexPlan(dataflowId).getLayoutBucketNumMapping());
+            copyForWrite
+                    .setLayoutBucketNumMapping(indexPlanManager.getIndexPlan(dataflowId).getLayoutBucketNumMapping());
         });
     }
 
@@ -328,7 +338,8 @@ public class DFBuildJob extends SparkApplication {
         dataLayout.setBuildJobId(jobId);
         long rowCount = taskStats.numRows();
         if (rowCount == -1) {
-            KylinBuildEnv.get().buildJobInfos().recordAbnormalLayouts(layout.getId(), "Job metrics seems null, use count() to collect cuboid rows.");
+            KylinBuildEnv.get().buildJobInfos().recordAbnormalLayouts(layout.getId(),
+                    "Job metrics seems null, use count() to collect cuboid rows.");
             logger.info("Can not get cuboid row cnt.");
         }
         dataLayout.setRows(rowCount);
@@ -352,5 +363,36 @@ public class DFBuildJob extends SparkApplication {
     public static void main(String[] args) {
         DFBuildJob nDataflowBuildJob = new DFBuildJob();
         nDataflowBuildJob.execute(args);
+    }
+
+    private void checkDateFormatIfExist(String project, String modelId) throws NoRetryException {
+        if (config.isUTEnv()) {
+            return;
+        }
+        val modelManager = NDataModelManager.getInstance(config, project);
+        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
+        val partitionDesc = modelDesc.getPartitionDesc();
+        if (partitionDesc == null || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+                || org.apache.commons.lang.StringUtils.isEmpty(partitionDesc.getPartitionDateFormat()))
+            return;
+
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
+
+        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn,
+                modelDesc.getRootFactTableName(), partitionColumn);
+        val res = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
+        if (CollectionUtils.isEmpty(res.getFirst())) {
+            return;
+        }
+        try {
+            val dateString = res.getFirst().get(0).get(0);
+            val sdf = new SimpleDateFormat(modelDesc.getPartitionDesc().getPartitionDateFormat());
+            val date = sdf.parse(dateString);
+            if (date == null || !dateString.equals(sdf.format(date))) {
+                throw new NoRetryException("date format not match");
+            }
+        } catch (ParseException | NoRetryException e) {
+            throw new NoRetryException("date format not match");
+        }
     }
 }

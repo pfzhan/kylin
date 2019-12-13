@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
@@ -42,9 +44,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.utils.SparkUtils;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
+import io.kyligence.kap.engine.spark.utils.SparkUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -52,8 +54,10 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import scala.collection.JavaConversions;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
+import scala.collection.JavaConversions;
 
 public class ResourceDetectBeforeCubingJob extends SparkApplication {
     protected volatile NSpanningTree nSpanningTree;
@@ -73,8 +77,9 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
         Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream().filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
-
-        ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()), ResourceDetectUtils.findCountDistinctMeasure(cuboids));
+        ResourceDetectUtils.write(
+                new Path(config.getJobTmpShareDir(project, jobId), ResourceDetectUtils.countDistinctSuffix()),
+                ResourceDetectUtils.findCountDistinctMeasure(cuboids));
         for (String segId : segmentIds) {
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
             DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, false);
@@ -98,14 +103,14 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
                 resourcePaths.put(String.valueOf(source.getLayoutId()), pathList);
-                layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), SparkUtils.leafNodePartitionNums(actionRdd));
+                layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()),
+                        SparkUtils.leafNodePartitionNums(actionRdd));
             }
             ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),
                     resourcePaths);
-            ResourceDetectUtils.write(
-                    new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.cubingDetectItemFileSuffix()),
-                    layoutLeafTaskNums);
+            ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
+                    segId + "_" + ResourceDetectUtils.cubingDetectItemFileSuffix()), layoutLeafTaskNums);
 
         }
     }

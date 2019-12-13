@@ -67,5 +67,8 @@ class JobWorker(application: SparkApplication, args: Array[String], eventLoop: K
   }
 }
 
-// only for test
-class NoRetryException extends java.lang.Exception
+class NoRetryException(msg: String) extends java.lang.Exception(msg) {
+  def this() {
+    this(null)
+  }
+}
