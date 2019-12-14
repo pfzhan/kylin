@@ -212,7 +212,7 @@ public class QueryPatternUtil {
             sqlNode = new SqlOrderBy(pos, sqlOrderBy.query, sqlOrderBy.orderList, offset, fetch);
         }
         patternGenerator.visit((SqlCall) sqlNode);
-        return sqlNode.toSqlString(DEFAULT_DIALECT).toString();
+        return sqlNode.toSqlString(DEFAULT_DIALECT, true).toString();
     }
 
     private static class PatternGenerator extends SqlBasicVisitor {

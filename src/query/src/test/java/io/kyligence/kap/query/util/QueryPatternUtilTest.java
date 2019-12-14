@@ -53,8 +53,7 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testJdbcFn() {
-        String expected1 = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, "
-                + "SQL_TIMESTAMP) }) } \"TEMP_TEST__2143701310__0_\", 1 \"X__ALIAS__0\"\n"
+        String expected1 = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } \"TEMP_TEST__2143701310__0_\", 1 \"X__ALIAS__0\"\n"
                 + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" //
                 + "GROUP BY 1";
         String sql1 = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } "
@@ -62,18 +61,21 @@ public class QueryPatternUtilTest {
                 + "FROM TDVT.CALCS CALCS GROUP BY 1";
         checkPattern(expected1, sql1);
 
-        String expected2 = "SELECT {fn CONVERT(1, SQL_DOUBLE) }\n" + "FROM \"KYLIN_SALES\"\n"
-                + "WHERE {fn CONVERT('1', SQL_DOUBLE) } = 1";
+        String expected2 = "SELECT {fn CONVERT(1, SQL_DOUBLE) }\n" //
+                + "FROM \"KYLIN_SALES\"\n" //
+                + "WHERE ({fn CONVERT('1', SQL_DOUBLE) } = 1)";
         String sql2 = "select {fn convert(1, double)} from kylin_sales where {fn convert('2', double)} = 2.0";
         checkPattern(expected2, sql2);
 
-        String expected3 = "SELECT {fn CONVERT(1, SQL_CHAR) }\n" + "FROM \"KYLIN_SALES\"\n"
-                + "WHERE {fn CONVERT('A', SQL_CHAR) } = 'A'";
+        String expected3 = "SELECT {fn CONVERT(1, SQL_CHAR) }\n" //
+                + "FROM \"KYLIN_SALES\"\n" //
+                + "WHERE ({fn CONVERT('A', SQL_CHAR) } = 'A')";
         String sql3 = "select {fn convert(1, char)} from kylin_sales where {fn convert('abc', char)} = 'abc'";
         checkPattern(expected3, sql3);
 
-        String expected4 = "SELECT {fn CONVERT('123.34', SQL_DOUBLE) }\nFROM \"KYLIN_SALES\"\n"
-                + "WHERE {fn CONVERT('A', SQL_VARCHAR) } = 'A'";
+        String expected4 = "SELECT {fn CONVERT('123.34', SQL_DOUBLE) }\n" //
+                + "FROM \"KYLIN_SALES\"\n" //
+                + "WHERE ({fn CONVERT('A', SQL_VARCHAR) } = 'A')";
         String sql4 = "select {fn convert('123.34', double)} from kylin_sales where {fn convert('apple', varchar)} = 'apple'";
         checkPattern(expected4, sql4);
     }
@@ -86,17 +88,18 @@ public class QueryPatternUtilTest {
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" + "UNION\n"
                 + "SELECT DISTINCT \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060102' \"PREMIUM_FLAG\"\n"
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_VIEW\" \"DIM_PERIOD_WEEK_VIEW\") \"PERIOD_D\"\n"
-                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN CAST(CAST('1' AS BIGINT) - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST(SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) AS \"SQL_BIGINT\") > 1\n"
+                + "WHERE ((((\"PERIOD_D\".\"PREMIUM_FLAG\" = 'A') AND ((SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A') BETWEEN CAST((CAST('1' AS BIGINT) - 1) AS VARCHAR(10)) AND 'A')) AND (\"PERIOD_D\".\"PERIOD_CODE\" >= 'A')) AND (CAST(SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) AS \"SQL_BIGINT\") > 1))\n"
                 + "ORDER BY \"PERIOD_CODE\" DESC";
         checkPattern(expected1, sql1);
 
         String sql2 = "SELECT period_code, period_name, premium_flag  FROM (SELECT DISTINCT dim_period_week_d.period_code AS period_code, dim_period_week_d.period_name AS period_name, '1060101' AS premium_flag  FROM frpdb. dim_period_week_d dim_period_week_d   UNION  SELECT DISTINCT dim_period_week_view.period_code AS period_code,  dim_period_week_view.period_name AS period_name, '1060102' AS premium_flag    FROM frpdb. dim_period_week_view dim_period_week_view) period_d  WHERE period_d.premium_flag = '1060101'  AND substring(period_d.period_code, 1,   6) || '01' BETWEEN   CAST(CAST('2019-04-30' AS sql_date) - 50000 AS  VARCHAR(10)) AND '20190430' AND period_d.period_code >= '200001-1'  AND CAST('2048.0' AS sql_decimal) > 2016  ORDER BY period_code DESC";
         String expected2 = "SELECT \"PERIOD_CODE\", \"PERIOD_NAME\", \"PREMIUM_FLAG\"\n"
                 + "FROM (SELECT DISTINCT \"DIM_PERIOD_WEEK_D\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_D\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060101' \"PREMIUM_FLAG\"\n"
-                + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" + "UNION\n"
+                + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_D\" \"DIM_PERIOD_WEEK_D\"\n" //
+                + "UNION\n"
                 + "SELECT DISTINCT \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_CODE\" \"PERIOD_CODE\", \"DIM_PERIOD_WEEK_VIEW\".\"PERIOD_NAME\" \"PERIOD_NAME\", '1060102' \"PREMIUM_FLAG\"\n"
                 + "FROM \"FRPDB\".\"DIM_PERIOD_WEEK_VIEW\" \"DIM_PERIOD_WEEK_VIEW\") \"PERIOD_D\"\n"
-                + "WHERE \"PERIOD_D\".\"PREMIUM_FLAG\" = 'A' AND SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A' BETWEEN CAST(CAST('2010-01-01' AS \"SQL_DATE\") - 1 AS VARCHAR(10)) AND 'A' AND \"PERIOD_D\".\"PERIOD_CODE\" >= 'A' AND CAST('1' AS \"SQL_DECIMAL\") > 1\n"
+                + "WHERE ((((\"PERIOD_D\".\"PREMIUM_FLAG\" = 'A') AND ((SUBSTRING(\"PERIOD_D\".\"PERIOD_CODE\" FROM 1 FOR 1) || 'A') BETWEEN CAST((CAST('2010-01-01' AS \"SQL_DATE\") - 1) AS VARCHAR(10)) AND 'A')) AND (\"PERIOD_D\".\"PERIOD_CODE\" >= 'A')) AND (CAST('1' AS \"SQL_DECIMAL\") > 1))\n"
                 + "ORDER BY \"PERIOD_CODE\" DESC";
         checkPattern(expected2, sql2);
     }
@@ -143,15 +146,13 @@ public class QueryPatternUtilTest {
     @Test
     public void testGroupBy() {
         String expected = "SELECT SUM(1) \"COL\", 2 \"COL2\"\n"
-                + "FROM (SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\", "
-                + "SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"GMV\", COUNT(*) \"TRANS_CNT\"\n" //
+                + "FROM (SELECT \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\", SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"GMV\", COUNT(*) \"TRANS_CNT\"\n"
                 + "FROM \"TEST_KYLIN_FACT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "WHERE \"TEST_CAL_DT\".\"WEEK_BEG_DT\" BETWEEN DATE '2010-01-01' AND DATE '2010-01-01'\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON (\"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\")\n"
+                + "WHERE (\"TEST_CAL_DT\".\"WEEK_BEG_DT\" BETWEEN DATE '2010-01-01' AND DATE '2010-01-01')\n"
                 + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n"
-                + "HAVING SUM(\"PRICE\" + 2 * 4) * 1 > 1) \"TABLEAUSQL\"\n" //
-                + "GROUP BY 2\n" //
-                + "HAVING COUNT(1) > 1";
+                + "HAVING ((SUM((\"PRICE\" + (2 * 4))) * 1) > 1)) \"TABLEAUSQL\"\n" + "GROUP BY 2\n"
+                + "HAVING (COUNT(1) > 1)";
         String sql = "select sum(1) as col, 2 as col2 \n" //
                 + " from ( \n" //
                 + "   select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt, "
@@ -208,12 +209,12 @@ public class QueryPatternUtilTest {
         {
             String expected1 = "SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
                     + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                    + "WHERE NOT \"KS\".\"PRICE\" <= 2 OR \"KS\".\"PRICE\" > 1 AND \"KS\".\"PRICE\" < 2 OR \"KS\".\"PRICE\" <= 2";
+                    + "WHERE (((NOT (\"KS\".\"PRICE\" <= 2)) OR ((\"KS\".\"PRICE\" > 1) AND (\"KS\".\"PRICE\" < 2))) OR (\"KS\".\"PRICE\" <= 2))";
             String sql1 = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
                     + "where not(ks.price <= 60.0) or (ks.price > 10 and ks.price < 20) or ks.price <= 5";
             checkPattern(expected1, sql1);
 
-            String expected2 = "SELECT \"SELLER_ID\", \"PRICE\" > 10, SUM(\"ITEM_COUNT\")\n"
+            String expected2 = "SELECT \"SELLER_ID\", (\"PRICE\" > 10), SUM(\"ITEM_COUNT\")\n"
                     + "FROM \"TEST_KYLIN_FACT\"\n" //
                     + "GROUP BY \"SELLER_ID\", \"PRICE\"";
             String sql2 = "select seller_id, price > 10, sum(item_count) from test_kylin_fact group by seller_id, price";
@@ -221,47 +222,47 @@ public class QueryPatternUtilTest {
 
             String expected3 = "SELECT {fn CONVERT('123', SQL_INTEGER) }\n" //
                     + "FROM \"KYLIN_SALES\"\n" //
-                    + "WHERE {fn CONVERT('1', SQL_INTEGER) } = 1";
+                    + "WHERE ({fn CONVERT('1', SQL_INTEGER) } = 1)";
             String sql3 = "select {fn convert('123', integer)} from kylin_sales where {fn convert('123', integer)} = 123";
             checkPattern(expected3, sql3);
 
             String expected4 = "SELECT {fn CONVERT('123.34', SQL_DOUBLE) }\n" //
                     + "FROM \"KYLIN_SALES\"\n" //
-                    + "WHERE {fn CONVERT('1', SQL_DOUBLE) } = 1";
+                    + "WHERE ({fn CONVERT('1', SQL_DOUBLE) } = 1)";
             String sql4 = "select {fn convert('123.34', double)} from kylin_sales where {fn convert('123.34', double)} = 123.34";
             checkPattern(expected4, sql4);
         }
 
         // test with SqlAbstractDateTimeLiteral
         {
-            String expected1 = "SELECT \"KS\".\"PART_DT\" <= '2008-04-23'\n" //
+            String expected1 = "SELECT (\"KS\".\"PART_DT\" <= '2008-04-23')\n" //
                     + "FROM \"KYLIN_SALES\" \"KS\"";
             String sql1 = "select ks.part_dt <= '2008-04-23' from kylin_sales as ks";
             checkPattern(expected1, sql1);
 
             String expected2 = "SELECT \"PRICE\", \"DT\"\n" //
                     + "FROM \"SALES\"\n" //
-                    + "WHERE \"DT\" <= '2010-01-02' AND \"DT\" > DATE '2010-01-01'";
+                    + "WHERE ((\"DT\" <= '2010-01-02') AND (\"DT\" > DATE '2010-01-01'))";
             String sql2 = "select price, dt from sales where dt <= '2020-08-08' and dt > date '2002-02-08'";
             checkPattern(expected2, sql2);
 
             String expected3 = "SELECT \"LDT\"\n" //
                     + "FROM \"SALES\"\n" //
-                    + "WHERE \"LDT\" > TIMESTAMP '2010-01-01 00:00:00' OR \"LDT\" < TIMESTAMP '2010-01-02 00:00:00'";
+                    + "WHERE ((\"LDT\" > TIMESTAMP '2010-01-01 00:00:00') OR (\"LDT\" < TIMESTAMP '2010-01-02 00:00:00'))";
             String sql3 = "select ldt from sales where ldt > {ts '2012-01-01 00:00:00'} or ldt < TIMESTAMP '2008-02-12 23:59:59'";
             checkPattern(expected3, sql3);
 
             String expected4 = "SELECT 1\n" //
                     + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n" //
-                    + "WHERE {fn SECOND({fn CONVERT({fn CONVERT('2010-01-01 00:00:00', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } > 1";
+                    + "WHERE ({fn SECOND({fn CONVERT({fn CONVERT('2010-01-01 00:00:00', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } > 1)";
             String sql4 = "SELECT 1 FROM TDVT.CALCS CALCS "
                     + "where {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } > 10";
             checkPattern(expected4, sql4);
 
             String expected5 = "SELECT {fn CONVERT('2016-07-15 10:11:12.123', SQL_TIMESTAMP) } \"Calculation_958703807427547136\"\n"
                     + "FROM \"TDVT\".\"CALCS\" \"Calcs\"\n"
-                    + "WHERE {fn CONVERT('2010-01-01 00:00:00', SQL_TIMESTAMP) } = TIMESTAMP '2010-01-01 00:00:00'\n"
-                    + "HAVING COUNT(1) > 1";
+                    + "WHERE ({fn CONVERT('2010-01-01 00:00:00', SQL_TIMESTAMP) } = TIMESTAMP '2010-01-01 00:00:00')\n"
+                    + "HAVING (COUNT(1) > 1)";
             String sql5 = "SELECT {fn CONVERT('2016-07-15 10:11:12.123', SQL_TIMESTAMP)} AS \"Calculation_958703807427547136\"\n"
                     + "FROM \"TDVT\".\"CALCS\" \"Calcs\"\n"
                     + "WHERE ({fn CONVERT('2016-07-15 10:11:12.123', SQL_TIMESTAMP)} = {ts '2016-07-15 10:11:12.123'})\n"
@@ -270,14 +271,14 @@ public class QueryPatternUtilTest {
 
             String expected6 = "SELECT CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)\n"
                     + "FROM \"TEST_KYLIN_FACT\"\n" //
-                    + "LIMIT 1";
+                    + "LIMIT 1"; //
             String sql6 = "select CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)"
                     + " from test_kylin_fact limit 10";
             checkPattern(expected6, sql6);
 
             String expected7 = "SELECT CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)\n"
                     + "FROM \"TEST_KYLIN_FACT\"\n"
-                    + "WHERE CAST('2010-01-01 00:00:00' AS TIMESTAMP) = TIMESTAMP '2010-01-01 00:00:00'";
+                    + "WHERE (CAST('2010-01-01 00:00:00' AS TIMESTAMP) = TIMESTAMP '2010-01-01 00:00:00')";
             String sql7 = "select CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('10:00:00' AS TIME)"
                     + " from test_kylin_fact "
                     + " where (CAST('2013-01-01 00:00:00' AS TIMESTAMP) = {ts '2013-01-01 00:00:00'})";
@@ -286,28 +287,31 @@ public class QueryPatternUtilTest {
 
         // test with SqlCharStringLiteral
         {
-            String expected = "SELECT \"SELLER_NAME\" > 'abc', \"LSTG_FORMAT_NAME\"\n" + "FROM \"SALES\"\n"
-                    + "WHERE \"LSTG_FORMAT_NAME\" = 'A'";
+            String expected = "SELECT (\"SELLER_NAME\" > 'abc'), \"LSTG_FORMAT_NAME\"\n" //
+                    + "FROM \"SALES\"\n" //
+                    + "WHERE (\"LSTG_FORMAT_NAME\" = 'A')";
             String sql = "select seller_name > 'abc', lstg_format_name from sales where lstg_format_name = 'kylin'";
             checkPattern(expected, sql);
         }
         // test two SqlCharStringLiterals
         {
-            String expected1 = "SELECT DISTINCT '1103102' \"PREMIUM_CODE\", '否' \"PREMIUM_NAME\"\n"
+            String expected1 = "(SELECT DISTINCT '1103102' \"PREMIUM_CODE\", '否' \"PREMIUM_NAME\"\n"
                     + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
-                    + "WHERE 'A' = 'A' AND 'A' = 'Z'\n" + "UNION ALL\n"
+                    + "WHERE (('A' = 'A') AND ('A' = 'Z'))\n" //
+                    + "UNION ALL\n" //
                     + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"PREMIUM_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"PREMIUM_NAME\"\n"
                     + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
-                    + "WHERE \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') AND 'A' <> 'A'";
+                    + "WHERE ((\"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A')) AND ('A' <> 'A')))";
             String sql1 = "SELECT DISTINCT '1103102' AS PREMIUM_CODE, '否' AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE '1030101' = '1030101' AND '104292' = '392101' UNION ALL SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS PREMIUM_CODE,       DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN       ('1103101', '1103102')   AND '1030101' <> '1030101'";
             checkPattern(expected1, sql1);
 
-            String expected2 = "SELECT DISTINCT '1103102' \"PREMIUM_CODE\", '否' \"PREMIUM_NAME\"\n"
+            String expected2 = "(SELECT DISTINCT '1103102' \"PREMIUM_CODE\", '否' \"PREMIUM_NAME\"\n"
                     + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
-                    + "WHERE 'A' = 'A' AND 'A' = 'A' AND 'A' = 'Z'\n" + "UNION ALL\n"
+                    + "WHERE ((('A' = 'A') AND ('A' = 'A')) AND ('A' = 'Z'))\n" //
+                    + "UNION ALL\n" //
                     + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"PREMIUM_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"PREMIUM_NAME\"\n"
                     + "FROM \"FRPDB\".\"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
-                    + "WHERE \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') AND 'A' <> 'Z'";
+                    + "WHERE ((\"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A')) AND ('A' <> 'Z')))";
             String sql2 = "SELECT DISTINCT '1103102' AS PREMIUM_CODE, '否' AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE 'kylin' = 'kylin' AND 2 = 2 AND 'table' = 'desk' UNION ALL SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS PREMIUM_CODE,       DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS PREMIUM_NAME  FROM FRPDB.DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN       ('1103101', '1103102')   AND 'dimension' <> 'measure'";
             checkPattern(expected2, sql2);
         }
@@ -315,12 +319,10 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testColumnComparison() {
-        String expected = "SELECT \"B\".\"FIRSTNAME\" \"FIRSTNAME1\", \"B\".\"LASTNAME\" \"LASTNAME1\", "
-                + "\"A\".\"FIRSTNAME\" \"FIRSTNAME2\", \"A\".\"LASTNAME\" \"LASTNAME2\", \"B\".\"CITY\", \"B\".\"COUNTRY\"\n"
+        String expected = "SELECT \"B\".\"FIRSTNAME\" \"FIRSTNAME1\", \"B\".\"LASTNAME\" \"LASTNAME1\", \"A\".\"FIRSTNAME\" \"FIRSTNAME2\", \"A\".\"LASTNAME\" \"LASTNAME2\", \"B\".\"CITY\", \"B\".\"COUNTRY\"\n"
                 + "FROM \"SALES\".\"CUSTOMER\" \"A\",\n" //
-                + "\"SALES\".\"CUSTOMER\" \"B\"\n" //
-                + "WHERE \"A\".\"ID\" <> \"B\".\"ID\" AND \"A\".\"CITY\" = \"B\".\"CITY\" "
-                + "AND \"A\".\"COUNTRY\" = \"B\".\"COUNTRY\"";
+                + "\"SALES\".\"CUSTOMER\" \"B\"\n"
+                + "WHERE (((\"A\".\"ID\" <> \"B\".\"ID\") AND (\"A\".\"CITY\" = \"B\".\"CITY\")) AND (\"A\".\"COUNTRY\" = \"B\".\"COUNTRY\"))";
         String sql = "select b.firstname as firstname1, b.lastname as lastname1,\n"
                 + "a.firstname as firstname2, a.lastname as lastname2, b.city, b.country\n"
                 + "from sales.customer a, sales.customer b\n"
@@ -331,8 +333,9 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testStringComparison() {
-        String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\"\n" + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"DT\" <= 'Z' AND \"KS\".\"DT\" > 'A'";
+        String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\"\n" //
+                + "FROM \"KYLIN_SALES\" \"KS\"\n" //
+                + "WHERE ((\"KS\".\"DT\" <= 'Z') AND (\"KS\".\"DT\" > 'A'))";
         String sql = "select ks.price as price from kylin_sales as ks \n"
                 + "where ks.dt <= '200310' and ks.dt > '2012-02'";
         checkPattern(expected, sql);
@@ -360,7 +363,7 @@ public class QueryPatternUtilTest {
         {
             String expected = "SELECT \"FIRST_NAME\", \"LAST_NAME\"\n" //
                     + "FROM \"SALES\"\n" //
-                    + "WHERE \"PHONE_NUMBER\" NOT IN (1)";
+                    + "WHERE (\"PHONE_NUMBER\" NOT IN (1))";
             String sql1 = "select first_name, last_name from sales where phone_number not in (10, 20, 30)";
             String sql2 = "select first_name, last_name from sales where phone_number not in (1000, 2000, 3000)";
             checkPattern(expected, sql1);
@@ -368,9 +371,9 @@ public class QueryPatternUtilTest {
 
             String expected3 = "SELECT \"PRODUCTNAME\"\n" //
                     + "FROM \"PRODUCT\"\n" //
-                    + "WHERE \"ID\" IN (SELECT \"PRODUCTID\"\n" //
+                    + "WHERE (\"ID\" IN (SELECT \"PRODUCTID\"\n" //
                     + "FROM \"ORDERITEM\"\n" //
-                    + "WHERE \"QUANTITY\" IN (1))";
+                    + "WHERE (\"QUANTITY\" IN (1))))";
             String sql3 = "SELECT ProductName FROM Product WHERE Id IN (SELECT ProductId \n"
                     + "FROM OrderItem WHERE Quantity IN (100, 200))";
             checkPattern(expected3, sql3);
@@ -380,13 +383,13 @@ public class QueryPatternUtilTest {
         {
             String expected1 = "SELECT \"FIRST_NAME\", \"LAST_NAME\"\n" //
                     + "FROM \"SALES\"\n" //
-                    + "WHERE \"FIRST_NAME\" IN ('A')";
+                    + "WHERE (\"FIRST_NAME\" IN ('A'))";
             String sql1 = "select first_name, last_name from sales where first_name in ('Sam', 'Jobs')";
             checkPattern(expected1, sql1);
 
             String expected2 = "SELECT SUM(\"PRICE\") \"GMV\", \"LSTG_FORMAT_NAME\" \"FORMAT_NAME\"\n"
                     + "FROM \"TEST_KYLIN_FACT\"\n"
-                    + "WHERE \"LSTG_FORMAT_NAME\" IN ('A') OR \"LSTG_FORMAT_NAME\" >= 'A' AND \"LSTG_FORMAT_NAME\" <= 'Z'\n"
+                    + "WHERE ((\"LSTG_FORMAT_NAME\" IN ('A')) OR ((\"LSTG_FORMAT_NAME\" >= 'A') AND (\"LSTG_FORMAT_NAME\" <= 'Z')))\n"
                     + "GROUP BY \"LSTG_FORMAT_NAME\"";
             String sql2 = "select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME from test_kylin_fact "
                     + "where (LSTG_FORMAT_NAME in ('ABIN')) or (LSTG_FORMAT_NAME >= 'FP-GTC' "
@@ -395,9 +398,9 @@ public class QueryPatternUtilTest {
 
             String expected3 = "SELECT \"PRODUCTNAME\"\n" //
                     + "FROM \"PRODUCT\"\n" //
-                    + "WHERE \"ID\" IN ('A', (SELECT \"PRODUCTID\"\n" //
+                    + "WHERE (\"ID\" IN ('A', (SELECT \"PRODUCTID\"\n" //
                     + "FROM \"ORDERITEM\"\n" //
-                    + "WHERE \"QUANTITY\" IN (1)))";
+                    + "WHERE (\"QUANTITY\" IN (1)))))";
             String sql3 = "SELECT ProductName FROM Product WHERE Id IN ('a', 'b', (SELECT ProductId "
                     + "FROM OrderItem WHERE Quantity IN (100, 200)))";
             checkPattern(expected3, sql3);
@@ -407,7 +410,7 @@ public class QueryPatternUtilTest {
         {
             String expected1 = "SELECT \"PART_DT\", SUM(\"PRICE\")\n" //
                     + "FROM \"KYLIN_SALES\"\n" //
-                    + "WHERE \"PART_DT\" IN (DATE '2010-01-01')\n" //
+                    + "WHERE (\"PART_DT\" IN (DATE '2010-01-01'))\n" //
                     + "GROUP BY \"PART_DT\"";
             String sql1 = "select part_dt, sum(price) from kylin_sales"
                     + " where part_dt in ({d '2012-01-01'}, {d '2012-01-01'}, {d '2012-01-01'})" //
@@ -420,7 +423,7 @@ public class QueryPatternUtilTest {
 
             String expected2 = "SELECT \"T_COL\"\n" //
                     + "FROM \"TBL\"\n" //
-                    + "WHERE \"T_COL\" IN (TIME '01:00:00')\n" //
+                    + "WHERE (\"T_COL\" IN (TIME '01:00:00'))\n" //
                     + "GROUP BY \"T_COL\"";
             String sql2 = "select t_col from tbl "
                     + "where t_col in ({t '21:07:32'}, {t '22:42:43'}, {t '04:57:51'}, {t '18:51:48'}) "
@@ -431,9 +434,10 @@ public class QueryPatternUtilTest {
                     + "group by t_col";
             checkPattern(expected2, sql2);
 
-            String expected3 = "SELECT \"TS_COL\", COUNT(\"ITEM_ID\")\n" //
+            String expected3 = "SELECT \"TS_COL\", " //
+                    + "COUNT(\"ITEM_ID\")\n" //
                     + "FROM \"TBL\"\n" //
-                    + "WHERE \"PART_DT\" IN (TIMESTAMP '2010-01-01 00:00:00')\n" //
+                    + "WHERE (\"PART_DT\" IN (TIMESTAMP '2010-01-01 00:00:00'))\n" //
                     + "GROUP BY \"PART_DT\"";
             String sql3 = "select ts_col, count(item_id) from tbl"
                     + " where part_dt in ({ts '1899-12-30 21:07:32'}, {ts '1900-01-01 04:57:51'}, {ts '1900-01-01 18:51:48'})"
@@ -447,16 +451,17 @@ public class QueryPatternUtilTest {
         // test SqlCharStringLiteral in ('blah', 'blah')
         {
             String sql = "SELECT distinct '1050101' AS TIER_CODE, '分公司' AS TIER_NAME FROM DIM_OPTIONAL_DIMENSION_D WHERE '54' not in ('52','62','63') and '56' in ('45', '56', '75') UNION ALL SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS TIER_CODE, DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS TIER_NAME FROM DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE '54' in('52','63') and '36' not in ('36', '45') and case when '54'='52' then DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN ('1050101', '1050102', '1050103', '1050104', '1050105', '1050107') when '54'='63' then DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN ('1050101', '1050102', '1050103') end union all SELECT DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE AS TIER_CODE, DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_NAME AS TIER_NAME FROM DIM_OPTIONAL_DIMENSION_D DIM_OPTIONAL_DIMENSION_D WHERE '54' = '62' and DIM_OPTIONAL_DIMENSION_D.OPTIONAL_DIMENSION_CODE IN ('1050106', '1050108', '1050109')";
-            String expected = "SELECT DISTINCT '1050101' \"TIER_CODE\", '分公司' \"TIER_NAME\"\n"
-                    + "FROM \"DIM_OPTIONAL_DIMENSION_D\"\n" + "WHERE 'Z' NOT IN ('A') AND 'A' IN ('A')\n"
-                    + "UNION ALL\n"
+            String expected = "((SELECT DISTINCT '1050101' \"TIER_CODE\", '分公司' \"TIER_NAME\"\n"
+                    + "FROM \"DIM_OPTIONAL_DIMENSION_D\"\n" //
+                    + "WHERE (('Z' NOT IN ('A')) AND ('A' IN ('A')))\n" //
+                    + "UNION ALL\n" //
                     + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"TIER_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"TIER_NAME\"\n"
                     + "FROM \"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
-                    + "WHERE 'Z' IN ('A') AND 'A' NOT IN ('A') AND CASE WHEN 'A' = 'Z' THEN \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') WHEN 'A' = 'Z' THEN \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A') ELSE NULL END\n"
-                    + "UNION ALL\n"
+                    + "WHERE ((('Z' IN ('A')) AND ('A' NOT IN ('A'))) AND (CASE WHEN ('A' = 'Z') THEN (\"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A')) WHEN ('A' = 'Z') THEN (\"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A')) ELSE NULL END)))\n"
+                    + "UNION ALL\n" //
                     + "SELECT \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" \"TIER_CODE\", \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_NAME\" \"TIER_NAME\"\n"
                     + "FROM \"DIM_OPTIONAL_DIMENSION_D\" \"DIM_OPTIONAL_DIMENSION_D\"\n"
-                    + "WHERE 'A' = 'Z' AND \"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A')";
+                    + "WHERE (('A' = 'Z') AND (\"DIM_OPTIONAL_DIMENSION_D\".\"OPTIONAL_DIMENSION_CODE\" IN ('A'))))";
             checkPattern(expected, sql);
         }
     }
@@ -464,10 +469,9 @@ public class QueryPatternUtilTest {
     @Test
     public void testLikeAndNotLike() {
         String expected = "SELECT \"META_CATEG_NAME\", \"META_CATEG_ID\", COUNT(*) \"CNT\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n" //
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
-                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "WHERE \"META_CATEG_NAME\" NOT LIKE 'A' AND \"META_CATE_ID\" LIKE 'A'\n"
+                + "FROM \"TEST_KYLIN_FACT\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON (\"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\")\n"
+                + "WHERE ((\"META_CATEG_NAME\" NOT LIKE 'A') AND (\"META_CATE_ID\" LIKE 'A'))\n"
                 + "GROUP BY \"META_CATEG_NAME\"";
         String sql = "select META_CATEG_NAME, META_CATEG_ID, count(*) as cnt \n" //
                 + "from test_kylin_fact \n" //
@@ -476,16 +480,14 @@ public class QueryPatternUtilTest {
                 + "where META_CATEG_NAME not like '%ab%'\n " //
                 + "and META_CATE_ID like '%08'" //
                 + "group by META_CATEG_NAME";
-        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        Assert.assertEquals(expected, actual);
+        checkPattern(expected, sql);
     }
 
     @Test
     public void testBetweenAnd() {
-        String expected = "SELECT SUM(\"L_EXTENDEDPRICE\") - SUM(\"L_SALEPRICE\") \"REVENUE\"\n"
+        String expected = "SELECT (SUM(\"L_EXTENDEDPRICE\") - SUM(\"L_SALEPRICE\")) \"REVENUE\"\n"
                 + "FROM \"V_LINEITEM\"\n"
-                + "WHERE \"L_SHIPDATE\" >= DATE '2010-01-01' AND \"L_SHIPDATE\" < '2010-01-02' "
-                + "AND \"L_DISCOUNT\" BETWEEN 1 AND 1 AND \"L_QUANTITY\" < 2";
+                + "WHERE ((((\"L_SHIPDATE\" >= DATE '2010-01-01') AND (\"L_SHIPDATE\" < '2010-01-02')) AND (\"L_DISCOUNT\" BETWEEN 1 AND 1)) AND (\"L_QUANTITY\" < 2))";
         String sql = "select sum(l_extendedprice) - sum(l_saleprice) as revenue\n" //
                 + "from v_lineitem\n" //
                 + "where l_shipdate >= date '1993-01-01' and l_shipdate < '1994-01-01'\n"
@@ -495,7 +497,8 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testDistinct() {
-        String expected = "SELECT DISTINCT \"LSTG_FORMAT_NAME\"\n" + "FROM \"TEST_KYLIN_FACT\"";
+        String expected = "SELECT DISTINCT \"LSTG_FORMAT_NAME\"\n" //
+                + "FROM \"TEST_KYLIN_FACT\"";
         String sql = "SELECT distinct LSTG_FORMAT_NAME from test_kylin_fact";
         checkPattern(expected, sql);
     }
@@ -503,9 +506,8 @@ public class QueryPatternUtilTest {
     @Test
     public void testH2Incapable() {
         String expected = "SELECT TIMESTAMPADD(DAY, 1, \"WEEK_BEG_DT\") \"X\", \"WEEK_BEG_DT\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n" //
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
-                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
+                + "FROM \"TEST_KYLIN_FACT\"\n"
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON (\"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\")\n"
                 + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\"";
         String sql = "SELECT timestampadd(DAY,1,WEEK_BEG_DT) as x ,WEEK_BEG_DT\n" //
                 + " FROM TEST_KYLIN_FACT \n"
@@ -516,13 +518,13 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testUnion() {
-        String expected = "SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
+        String expected = "(SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
                 + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > DATE '2010-01-01'\n" //
+                + "WHERE ((\"KS\".\"PRICE\" > 1) AND (\"KS\".\"PART_DT\" > DATE '2010-01-01'))\n" //
                 + "UNION\n" //
                 + "SELECT \"KY\".\"PRICE\" \"PRICE\", \"KY\".\"PART_DT\" \"DT\"\n" //
                 + "FROM \"KYLIN_SALES\" \"KY\"\n" //
-                + "WHERE \"KY\".\"PRICE\" < 2 AND \"KY\".\"PART_DT\" < DATE '2010-01-02'";
+                + "WHERE ((\"KY\".\"PRICE\" < 2) AND (\"KY\".\"PART_DT\" < DATE '2010-01-02')))";
         String unionSql = "select ks.price as price, ks.part_dt as dt " //
                 + "from kylin_sales ks " //
                 + "where ks.price > 50 and ks.part_dt > date '2012-08-23' " + "union " //
@@ -536,8 +538,7 @@ public class QueryPatternUtilTest {
     public void testReverseComparison() {
         String expected = "SELECT \"KY\".\"PRICE\" \"PRICE\", \"KY\".\"PART_DT\" \"DT\"\n"
                 + "FROM \"KYLIN_SALES\" \"KY\"\n"
-                + "WHERE 2 >= \"KY\".\"PRICE\" AND DATE '2010-01-01' < \"KY\".\"PART_DT\" "
-                + "AND '2010-01-02' > \"KY\".\"PART_DT\"";
+                + "WHERE (((2 >= \"KY\".\"PRICE\") AND (DATE '2010-01-01' < \"KY\".\"PART_DT\")) AND ('2010-01-02' > \"KY\".\"PART_DT\"))";
         String sql = "select ky.price as price, ky.part_dt as dt " //
                 + "from kylin_sales ky "
                 + "where 40 >= ky.price and date '2015-08-22' < ky.part_dt and '2018-01-09' > ky.part_dt";
@@ -547,14 +548,8 @@ public class QueryPatternUtilTest {
     @Test
     public void testFunction() {
         String expected = "SELECT UPPER(\"LSTG_FORMAT_NAME\") \"LSTG_FORMAT_NAME\", COUNT(*) \"CNT\"\n"
-                + "FROM \"TEST_KYLIN_FACT\"\n" //
-                + "WHERE LOWER(\"LSTG_FORMAT_NAME\") = 'A' " //
-                + "AND SUBSTRING(\"LSTG_FORMAT_NAME\" "
-                + "FROM 1 FOR 1) IN ('A') AND UPPER(\"LSTG_FORMAT_NAME\") > 'A' "
-                + "AND LOWER(\"LSTG_FORMAT_NAME\") LIKE 'A' " //
-                + "AND CHAR_LENGTH(\"LSTG_FORMAT_NAME\") < 2 " //
-                + "AND CHAR_LENGTH(\"LSTG_FORMAT_NAME\") > 1 " //
-                + "AND 'A' || \"LSTG_FORMAT_NAME\" || 'A' || 'A' || 'A' = 'A'\n" //
+                + "FROM \"TEST_KYLIN_FACT\"\n"
+                + "WHERE (((((((LOWER(\"LSTG_FORMAT_NAME\") = 'A') AND (SUBSTRING(\"LSTG_FORMAT_NAME\" FROM 1 FOR 1) IN ('A'))) AND (UPPER(\"LSTG_FORMAT_NAME\") > 'A')) AND (LOWER(\"LSTG_FORMAT_NAME\") LIKE 'A')) AND (CHAR_LENGTH(\"LSTG_FORMAT_NAME\") < 2)) AND (CHAR_LENGTH(\"LSTG_FORMAT_NAME\") > 1)) AND ((((('A' || \"LSTG_FORMAT_NAME\") || 'A') || 'A') || 'A') = 'A'))\n"
                 + "GROUP BY \"LSTG_FORMAT_NAME\"";
         String sql = "select upper(lstg_format_name) as lstg_format_name, count(*) as cnt from test_kylin_fact\n"
                 + "where lower(lstg_format_name)='abin' and substring(lstg_format_name,1,3) in ('ABI') "
@@ -567,19 +562,12 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testWindowFunction() {
-        String expected = "SELECT *\n" //
-                + "FROM (SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", "
-                + "SUM(\"PRICE\") \"GMV\", 100 * SUM(\"PRICE\") / (FIRST_VALUE(SUM(\"PRICE\")) "
-                + "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) "
-                + "RANGE INTERVAL '2' DAY PRECEDING)) \"last_day\", FIRST_VALUE(SUM(\"PRICE\")) "
-                + "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) "
-                + "RANGE CAST(366 AS INTERVAL DAY) PRECEDING)\n" //
-                + "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n" //
-                + "WHERE \"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
-                + "BETWEEN '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" "
-                + "BETWEEN '2010-01-01' AND '2010-01-01'\n"
+        String expected = "SELECT *\n"
+                + "FROM (SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", SUM(\"PRICE\") \"GMV\", ((100 * SUM(\"PRICE\")) / (FIRST_VALUE(SUM(\"PRICE\")) OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) RANGE INTERVAL '2' DAY PRECEDING))) \"last_day\", (FIRST_VALUE(SUM(\"PRICE\")) OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) RANGE CAST(366 AS INTERVAL DAY) PRECEDING))\n"
+                + "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n"
+                + "WHERE (((\"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01') OR (\"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01')) OR (\"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01'))\n"
                 + "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\") \"T\"\n"
-                + "WHERE \"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01'";
+                + "WHERE (\"CAL_DT\" BETWEEN '2010-01-01' AND '2010-01-01')";
         String sql = "select * from(\n" //
                 + "select cal_dt, lstg_format_name, sum(price) as GMV,\n"
                 + "100 * sum(price) / first_value(sum(price)) over (partition by lstg_format_name "
@@ -595,14 +583,22 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testWithSelect() {
+    public void testWithSelect() throws IOException {
         String expected = "WITH \"A\" AS (SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
-                + "FROM \"KYLIN_SALES\" \"KS\"\n" + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > '2010-01-01') "
-                + "(SELECT \"A\".\"PRICE\", \"A\".\"DT\"\n" + "FROM \"A\"\n" + "WHERE \"A\".\"DT\" < '2010-01-02')";
-        String withSelect = "with a as (" + "select ks.price as price, ks.part_dt as dt " + "from kylin_sales ks "
+                + "FROM \"KYLIN_SALES\" \"KS\"\n"
+                + "WHERE ((\"KS\".\"PRICE\" > 1) AND (\"KS\".\"PART_DT\" > '2010-01-01'))) (SELECT \"A\".\"PRICE\", \"A\".\"DT\"\n"
+                + "FROM \"A\"\n" //
+                + "WHERE (\"A\".\"DT\" < '2010-01-02'))";
+        String withSelect = "with a as (" //
+                + "select ks.price as price, ks.part_dt as dt " //
+                + "from kylin_sales ks " //
                 + "where ks.price > 50 and ks.part_dt > '2012-07-08') "
                 + "select a.price, a.dt from a where a.dt < '2015-08-09'";
         checkPattern(expected, withSelect);
+
+        String expectedSql = retrieveSql("query06.sql.expected");
+        String withSql = retrieveSql("query06.sql");
+        checkPattern(expectedSql, withSql);
     }
 
     @Test
@@ -610,8 +606,8 @@ public class QueryPatternUtilTest {
         String expected = "SELECT \"A\".\"PRICE\", \"A\".\"DT\"\n"
                 + "FROM (SELECT \"KS\".\"PRICE\" \"PRICE\", \"KS\".\"PART_DT\" \"DT\"\n"
                 + "FROM \"KYLIN_SALES\" \"KS\"\n"
-                + "WHERE \"KS\".\"PRICE\" > 1 AND \"KS\".\"PART_DT\" > '2010-01-01') \"A\"\n"
-                + "WHERE \"A\".\"DT\" < '2010-01-02'";
+                + "WHERE ((\"KS\".\"PRICE\" > 1) AND (\"KS\".\"PART_DT\" > '2010-01-01'))) \"A\"\n"
+                + "WHERE (\"A\".\"DT\" < '2010-01-02')";
         String sql = "select a.price, a.dt from ( " //
                 + "select ks.price as price, ks.part_dt as dt " + "from kylin_sales ks "//
                 + "where ks.price > 50 and ks.part_dt > '2012-07-08') a " //
@@ -624,29 +620,20 @@ public class QueryPatternUtilTest {
         String expected = "SELECT \"T1\".\"WEEK_BEG_DT\", \"T1\".\"SUM_PRICE\", \"T2\".\"CNT\"\n"
                 + "FROM (SELECT \"TEST_CAL_DT\".\"WEEK_BEG_DT\", SUM(\"TEST_KYLIN_FACT\".\"PRICE\") \"SUM_PRICE\"\n"
                 + "FROM \"DB1\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
-                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" "
-                + "AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\"\n"
-                + "WHERE \"TEST_KYLIN_FACT\".\"PRICE\" > 1\n" //
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON (\"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\")\n"
+                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" ON ((\"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\") AND (\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"))\n"
+                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" ON (\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\")\n"
+                + "WHERE (\"TEST_KYLIN_FACT\".\"PRICE\" > 1)\n" //
                 + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n" //
-                + "HAVING SUM(\"TEST_KYLIN_FACT\".\"PRICE\") > 1\n"
+                + "HAVING (SUM(\"TEST_KYLIN_FACT\".\"PRICE\") > 1)\n"
                 + "ORDER BY SUM(\"TEST_KYLIN_FACT\".\"PRICE\")) \"T1\"\n"
                 + "INNER JOIN (SELECT \"TEST_CAL_DT\".\"WEEK_BEG_DT\", COUNT(*) \"CNT\"\n"
                 + "FROM \"DB1\".\"TEST_KYLIN_FACT\" \"TEST_KYLIN_FACT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" "
-                + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" "
-                + "AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
-                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" "
-                + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\"\n"
-                + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\") \"T2\" "
-                + "ON \"T1\".\"WEEK_BEG_DT\" = \"T2\".\"WEEK_BEG_DT\"\n"
-                + "WHERE \"T1\".\"WEEK_BEG_DT\" > '2010-01-01'";
+                + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON (\"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\")\n"
+                + "INNER JOIN \"EDW\".\"TEST_CATEGORY_GROUPINGS\" \"TEST_CATEGORY_GROUPINGS\" ON ((\"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\") AND (\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"))\n"
+                + "INNER JOIN \"EDW\".\"TEST_SITES\" \"TEST_SITES\" ON (\"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\" = \"TEST_SITES\".\"SITE_ID\")\n"
+                + "GROUP BY \"TEST_CAL_DT\".\"WEEK_BEG_DT\") \"T2\" ON (\"T1\".\"WEEK_BEG_DT\" = \"T2\".\"WEEK_BEG_DT\")\n"
+                + "WHERE (\"T1\".\"WEEK_BEG_DT\" > '2010-01-01')";
         String complexSql = "select t1.week_beg_dt, t1.sum_price, t2.cnt\n" //
                 + "from (\n"//
                 + "    select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as sum_price\n"//
