@@ -50,7 +50,7 @@ public class IndexCleaner implements MetadataCleaner {
         val projectInstance = NProjectManager.getInstance(config).getProject(project);
 
         for (val model : dataflowManager.listUnderliningDataModels()) {
-            val dataflow = dataflowManager.getDataflow(model.getId());
+            val dataflow = dataflowManager.getDataflow(model.getId()).copy();
 
             Map<Long, GarbageLayoutType> garbageLayouts;
             if (config.isCustomizedGcStrategyEnabled()) {
@@ -66,9 +66,15 @@ public class IndexCleaner implements MetadataCleaner {
             }
 
             if (projectInstance.isSemiAutoMode()) {
+                // cannot update layout hit count when transfer to recommendation,
+                // but need to update layout hit count when applying recommendation
+                // refer to LayoutRecommendationItem.apply()
                 transferToRecommendation(model.getUuid(), project, garbageLayouts);
             }
             if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
+                // update layout hit count
+                dataflowManager.updateDataflow(dataflow.getUuid(),
+                        copyForWrite -> copyForWrite.setLayoutHitCount(dataflow.getLayoutHitCount()));
                 cleanupIsolatedIndex(project, model.getId(), garbageLayouts.keySet());
             }
         }

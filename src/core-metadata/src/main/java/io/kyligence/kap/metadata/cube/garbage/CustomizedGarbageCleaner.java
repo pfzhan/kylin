@@ -62,8 +62,8 @@ public class CustomizedGarbageCleaner {
         String similarStrategyTarget = kylinConfig.getSimilarGarbageStrategyTarget();
 
         findGarbage(dataflow, garbageMap, readyLayouts, INCLUDED_GC_STRATEGY, includeStrategyTarget);
-        findGarbage(dataflow, garbageMap, readyLayouts, LOW_FREQ_GC_STRATEGY, lowFreqStrategyTarget);
         findGarbage(dataflow, garbageMap, readyLayouts, SIMILAR_GC_STRATEGY, similarStrategyTarget);
+        findGarbage(dataflow, garbageMap, readyLayouts, LOW_FREQ_GC_STRATEGY, lowFreqStrategyTarget);
 
         return garbageMap;
     }

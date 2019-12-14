@@ -50,7 +50,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         long storageSize = 0L;
 
         for (val model : getModels(project)) {
-            val dataflow = getDataflow(model);
+            val dataflow = getDataflow(model).copy();
 
             val garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow).keySet();
             if (CollectionUtils.isNotEmpty(garbageLayouts)) {

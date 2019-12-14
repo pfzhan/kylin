@@ -54,7 +54,9 @@ import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -140,6 +142,11 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         if (indexPlanUpdater != null) {
             indexPlanManager.updateIndexPlan(id, indexPlanUpdater);
         }
+
+        NDataflow df = dataflowManager.createDataflow(originIndexPlan, ownerTest);
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        dataflowManager.updateDataflow(update);
+
         val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
         updateModelByFile(optimized, optimizedModelFile);
         val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();

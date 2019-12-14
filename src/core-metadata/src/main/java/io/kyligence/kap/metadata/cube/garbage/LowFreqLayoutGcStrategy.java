@@ -69,5 +69,6 @@ public class LowFreqLayoutGcStrategy extends AbstractGcStrategy {
 
     @Override
     protected void skipGcTableIndex(List<LayoutEntity> inputLayouts) {
+        // no need to skip table index
     }
 }

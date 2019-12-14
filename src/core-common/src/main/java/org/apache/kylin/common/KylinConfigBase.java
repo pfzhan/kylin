@@ -1843,22 +1843,28 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     private double safeParseDouble(String value, double defaultValue) {
-        double rst = defaultValue;
+        double result = defaultValue;
+        if (StringUtils.isEmpty(value)) {
+            return result;
+        }
         try {
-            rst = Double.parseDouble(value.trim());
+            result = Double.parseDouble(value.trim());
         } catch (Exception e) {
             logger.error("Detect a malformed double value, set to a default value {}", defaultValue);
         }
-        return rst;
+        return result;
     }
 
     private long safeParseLong(String value, long defaultValue) {
-        long rst = defaultValue;
+        long result = defaultValue;
+        if (StringUtils.isEmpty(value)) {
+            return result;
+        }
         try {
-            rst = Long.parseLong(value.trim());
+            result = Long.parseLong(value.trim());
         } catch (Exception e) {
             logger.error("Detect a malformed long value, set to a default value {}", defaultValue);
         }
-        return rst;
+        return result;
     }
 }

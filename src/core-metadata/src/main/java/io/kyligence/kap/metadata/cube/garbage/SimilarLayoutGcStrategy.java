@@ -43,7 +43,6 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.extern.slf4j.Slf4j;
@@ -81,8 +80,6 @@ public class SimilarLayoutGcStrategy extends AbstractGcStrategy {
             ancestorToChildren.get(ancestor).add(descendant);
         });
 
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dfManager = NDataflowManager.getInstance(kylinConfig, dataflow.getProject());
         Map<Long, FrequencyMap> layoutHitCount = dataflow.getLayoutHitCount();
 
         // calculate frequencyMap from children
@@ -107,7 +104,7 @@ public class SimilarLayoutGcStrategy extends AbstractGcStrategy {
                     .forEach((date, cnt) -> frequencyMap.getDateFrequency().merge(date, cnt, Integer::sum));
 
         });
-        dfManager.updateDataflow(dataflow.getUuid(), copyForWrite -> copyForWrite.setLayoutHitCount(layoutHitCount));
+        dataflow.setLayoutHitCount(layoutHitCount);
     }
 
     private List<Pair<LayoutEntity, LayoutEntity>> retainSimilarLineage(

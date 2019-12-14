@@ -187,6 +187,8 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertTrue(garbageLayouts2.contains(20_000_050_001L));
         NavigableMap<Long, Integer> dateFrequency = layoutHitCount.get(20_000_040_001L).getDateFrequency();
         Assert.assertEquals(new Integer(200), dateFrequency.get(currentDate - 3 * DAY_IN_MILLIS));
+        Assert.assertEquals(new Integer(200), dateFrequency.get(currentDate - 8 * DAY_IN_MILLIS));
+        Assert.assertEquals(new Integer(200), dateFrequency.get(currentDate - DAY_IN_MILLIS));
     }
 
     @Test
@@ -247,7 +249,11 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val dateFrequency40001 = dataflow.getLayoutHitCount().get(40001L).getDateFrequency();
         Assert.assertEquals(Sets.newHashSet(30001L, 50001L), garbageLayouts2);
         Assert.assertEquals(6, dateFrequency60001.get(currentDate - 3 * DAY_IN_MILLIS).intValue());
+        Assert.assertEquals(6, dateFrequency60001.get(currentDate - 8 * DAY_IN_MILLIS).intValue());
+        Assert.assertEquals(6, dateFrequency60001.get(currentDate - DAY_IN_MILLIS).intValue());
         Assert.assertEquals(6, dateFrequency40001.get(currentDate - 3 * DAY_IN_MILLIS).intValue());
+        Assert.assertEquals(6, dateFrequency40001.get(currentDate - 8 * DAY_IN_MILLIS).intValue());
+        Assert.assertEquals(6, dateFrequency40001.get(currentDate - DAY_IN_MILLIS).intValue());
 
         // test TableIndex
         getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "true");
@@ -262,6 +268,8 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
             indexPlan.getAllLayouts().forEach(layout -> {
                 TreeMap<Long, Integer> hit = Maps.newTreeMap();
                 hit.put(currentDate - 3 * DAY_IN_MILLIS, i);
+                hit.put(currentDate - 8 * DAY_IN_MILLIS, i);
+                hit.put(currentDate - DAY_IN_MILLIS, i);
                 frequencyMap.putIfAbsent(layout.getId(), new FrequencyMap(hit));
             });
             copyForWrite.setLayoutHitCount(frequencyMap);
