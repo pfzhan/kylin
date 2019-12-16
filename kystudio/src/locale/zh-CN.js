@@ -131,8 +131,10 @@ exports.default = {
     // 格式提示
     nameFormatValidTip: '名称格式有误，命名支持数字、字母和下划线的组合。',
     nameFormatValidTip1: '项目名称只支持数字、字母和下划线，并且需要用数字或者字母开头。',
-    userNameFormatValidTip: '用户名只能包含数字，字母，@，点和下划线。',
-    userGroupNameFormatValidTip: '用户组名只能包含字母，数字，@，点和下划线。',
+    // userNameFormatValidTip: '用户名只能包含数字，字母，@，点和下划线。',
+    // userGroupNameFormatValidTip: '用户组名只能包含字母，数字，@，点和下划线。',
+    userNameFormatValidTip: '用户名称中只能包含字母，数字，空格或下划线，并且以数字或字母开头。',
+    userGroupNameFormatValidTip: '用户组名称中只能包含字母，数字，空格或下划线，并且以数字或字母开头。',
     userGroupNameEmpty: '用户组名不能为空',
     // 其他
     name: '名称',

@@ -9,6 +9,8 @@ export default {
   [GROUP_NAME] (rule, value, callback) {
     if (!value.trim()) {
       callback(new Error(this.$t('kylinLang.common.userGroupNameEmpty')))
+    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9_\s]*$/.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.userGroupNameFormatValidTip')))
     } else {
       callback()
     }
@@ -17,6 +19,8 @@ export default {
   [USERNAME] (rule, value, callback) {
     if (!value.trim()) {
       callback(new Error(this.$t('usernameEmpty')))
+    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9_\s]*$/.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.userNameFormatValidTip')))
     } else {
       callback()
     }
