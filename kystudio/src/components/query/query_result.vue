@@ -153,7 +153,7 @@ export default class queryResult extends Vue {
   modelsTotal = this.extraoption.results.length
   timer = null
   pageX = 0
-  pageSizeX = 6
+  pageSizeX = 30
   exportData () {
     // 区别于3x中，导出所需的参数，存在props 传进来的 queryExportData 这个对象中，不再一起放在 extraoption 中
     this.sql = this.queryExportData.sql
@@ -246,6 +246,7 @@ export default class queryResult extends Vue {
     return hasRole(this, 'ROLE_ADMIN')
   }
   mounted () {
+    if (!this.$refs.tableLayout.bodyWrapper) return
     this.$refs.tableLayout.bodyWrapper.addEventListener('scroll', this.getMoreData)
   }
   beforeDestory () {
