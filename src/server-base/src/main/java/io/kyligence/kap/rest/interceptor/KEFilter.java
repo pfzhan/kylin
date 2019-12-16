@@ -24,18 +24,43 @@
 
 package io.kyligence.kap.rest.interceptor;
 
+import java.io.IOException;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
 
-public class KEInterceptor extends HandlerInterceptorAdapter {
+@Component
+@Order(-200)
+public class KEFilter implements Filter {
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String lang = request.getHeader("Accept-Language");
+    public void init(FilterConfig filterConfig) throws ServletException {
+        // just override it
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        String lang = "en";
+        if (request instanceof HttpServletRequest) {
+            HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+            lang = httpServletRequest.getHeader("Accept-Language");
+        }
         MsgPicker.setMsg(lang);
-        return true;
+        chain.doFilter(request, response);
+    }
+
+    @Override
+    public void destroy() {
+        // just override it
     }
 
 }
