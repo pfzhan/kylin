@@ -45,11 +45,11 @@
                     </td>
                   </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query. total_scan_count')}}</th>
+                    <th class="label">{{$t('kylinLang.query.total_scan_count')}}</th>
                     <td>{{props.row.total_scan_count}}</td>
                   </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query. total_scan_bytes')}}</th>
+                    <th class="label">{{$t('kylinLang.query.total_scan_bytes')}}</th>
                     <td>{{props.row.total_scan_bytes}}</td>
                   </tr>
                   <tr class="ksd-tr">
