@@ -58,6 +58,31 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.9 release note
+
+**Enhancement**
+
+- Support more flexible index definitions. Measures can be added into a specified aggregate group
+- Optimize the recommendation strategies of AI Augmented Mode, and adopt different garbage clean rules for customized and recommended indices
+- Optimize the index treemap, and use different block areas and colors to represent the data size and usage
+- Support data filter conditions when saving models
+- Providing index protection when the index refreshing job is running
+- Support project administrator to manage project and data access control
+
+**Bugfix**
+
+- After manually creating tables in metastore, it still failed to start
+- When the query contains the POSITION function, the query results are inaccurate
+- When the query contains the window function LAG (), the query fails when no sort is added
+- When the query contains a window function, all columns in the table will be selected during parsing so the existing model cannot be matched
+- Query may fail if the join condition is in a subquery and used in an expression simultaneously
+- When the same column is used repeatedly in the select clause and the subquery, the query may report an error with Reference 'xxx' is ambiguous
+- When the query contains sum (case when in ()), the acceleration fails
+- When granting row ACL to different user groups, the permission relationship should be OR
+- Username cannot contain spaces in LDAP
+- Status filtering in the job page may not take effect
+- Non-root users may fail to get table metadata when starting Kyligence Enterprise and using JDBC driver
+
 #### Kyligence Enterprise 4.0.8 release note
 
 - **Enhancement**
