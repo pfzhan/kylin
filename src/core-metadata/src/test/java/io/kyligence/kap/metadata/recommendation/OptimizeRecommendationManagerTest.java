@@ -575,11 +575,11 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         modelManager.updateDataModelDesc(originInit);
         var recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals("COUNT_SELLER", recommendation.getMeasureRecommendations().get(2).getMeasure().getName());
+        Assert.assertEquals("COUNT_SELLER", recommendation.getMeasureRecommendations().get(0).getMeasure().getName());
         recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
         Assert.assertEquals(6, recommendation.getMeasureRecommendations().size());
-        Assert.assertEquals("COUNT_SELLER_1", recommendation.getMeasureRecommendations().get(2).getMeasure().getName());
+        Assert.assertEquals("COUNT_SELLER_1", recommendation.getMeasureRecommendations().get(0).getMeasure().getName());
     }
 
     @Test
@@ -606,9 +606,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getDimensions().contains(16));
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(16)));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100002));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100003));
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
-                .allMatch(layout -> layout.getColOrder().contains(100002)));
+                .allMatch(layout -> layout.getColOrder().contains(100003)));
         Assert.assertEquals(13, updateIndexPlan.getAllIndexes().size());
         Assert.assertTrue(updateIndexPlan.getIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == 150000));
         Assert.assertEquals(1, updateIndexPlan.getIndexes().get(0).getLayouts().size());
@@ -663,9 +663,9 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getDimensions().contains(16));
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(16)));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100002));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100003));
         Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
-                .allMatch(layout -> layout.getColOrder().contains(100002)));
+                .allMatch(layout -> layout.getColOrder().contains(100003)));
         Assert.assertTrue(updateIndexPlan.getIndexes().stream().filter(IndexEntity::isTableIndex)
                 .allMatch(indexEntity -> indexEntity.getLayouts().size() == 4
                         && indexEntity.getLastLayout().getId() == 20000000004L));

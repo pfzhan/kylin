@@ -253,7 +253,9 @@ public class OptimizeRecommendationManager {
 
         List<MeasureRecommendationItem> measureRecommendations = Sets
                 .difference(Sets.newHashSet(optimizedAllMeasures), Sets.newHashSet(originAllMeasures)).stream()
-                .map(OptimizeRecommendationManager::createRecommendation).collect(Collectors.toList());
+                .map(OptimizeRecommendationManager::createRecommendation)
+                .sorted(Comparator.comparing(item -> item.getMeasure().getId()))
+                .collect(Collectors.toList());
 
         for (val item : measureRecommendations) {
             val virtualMeasureId = ++measureIndex;

@@ -431,7 +431,7 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
             case "10000000":
                 Assert.assertEquals(4, indexEntity.getDimensions().size() + indexEntity.getMeasures().size());
                 Assert.assertEquals(1, indexEntity.getLayouts().size());
-                Assert.assertEquals(Lists.newArrayList(0, 16, 100001, 100002),
+                Assert.assertEquals(Lists.newArrayList(0, 16, 100001, 100003),
                         Lists.newArrayList(indexEntity.getLayouts().get(0).getColOrder()));
                 break;
             case "150000":
