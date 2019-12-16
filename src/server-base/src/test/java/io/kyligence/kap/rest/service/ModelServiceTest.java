@@ -76,6 +76,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -986,6 +987,56 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { "not_exist_01" });
+    }
+
+    @Test
+    public void testDeleteSegmentById_cleanIndexPlanToBeDeleted() {
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        String project = "default";
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel dataModel = dataModelManager.getDataModelDesc(modelId);
+        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan(modelId, copyForWrite -> {
+            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
+                    .filter(layoutEntity -> 1000001L == layoutEntity.getId()).collect(Collectors.toSet());
+            copyForWrite.markIndexesToBeDeleted(modelId, toBeDeletedSet);
+        });
+        Assert.assertTrue(CollectionUtils.isNotEmpty(
+                NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
+
+        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" });
+        NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
+
+        Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
+    }
+
+    @Test
+    public void testPurgeSegmentById_cleanIndexPlanToBeDeleted() {
+        String modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        String project = "default";
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        NDataModel dataModel = dataModelManager.getDataModelDesc(modelId);
+        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan(modelId, copyForWrite -> {
+            val toBeDeletedSet = copyForWrite.getIndexes().stream().map(IndexEntity::getLayouts).flatMap(List::stream)
+                    .filter(layoutEntity -> 1000001L == layoutEntity.getId()).collect(Collectors.toSet());
+            copyForWrite.markIndexesToBeDeleted(modelId, toBeDeletedSet);
+        });
+        Assert.assertTrue(CollectionUtils.isNotEmpty(
+                NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
+
+        modelService.purgeModelManually(modelId, project);
+        NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
+
+        Assert.assertTrue(CollectionUtils.isEmpty(dataflow.getSegments()));
+        Assert.assertTrue(CollectionUtils.isEmpty(indexPlan.getToBeDeletedIndexes()));
     }
 
     @Test

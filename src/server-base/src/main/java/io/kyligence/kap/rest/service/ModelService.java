@@ -764,6 +764,8 @@ public class ModelService extends BasicService {
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
             nDataflowUpdate.setToRemoveSegs(nDataSegments);
             dataflowManager.updateDataflow(nDataflowUpdate);
+
+            cleanIndexPlanWhenNoSegments(project, modelId);
         }
 
     }
@@ -1566,6 +1568,16 @@ public class ModelService extends BasicService {
         getDataModelManager(project).updateDataModelDesc(dataModel);
     }
 
+    private void cleanIndexPlanWhenNoSegments(String project, String dataFlowId) {
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        NDataflow dataflow = dataflowManager.getDataflow(dataFlowId);
+        if (null == dataflow.getLatestReadySegment()) {
+            getIndexPlanManager(project).updateIndexPlan(dataFlowId, copyForWrite -> {
+                copyForWrite.getToBeDeletedIndexes().clear();
+            });
+        }
+    }
+
     @Transaction(project = 1)
     public void deleteSegmentById(String model, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -1590,6 +1602,7 @@ public class ModelService extends BasicService {
             }
         }
         segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
+        cleanIndexPlanWhenNoSegments(project, dataflow.getUuid());
     }
 
     private void checkSegmentsExist(String model, String project, String[] ids) {
