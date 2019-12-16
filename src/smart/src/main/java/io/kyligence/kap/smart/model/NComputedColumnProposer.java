@@ -121,7 +121,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         }
 
         if (!modelContext.getSmartContext().isSkipEvaluateCC() && !validCCs.isEmpty()) {
-            ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, validCCs);
+            ComputedColumnEvalUtil.evaluateExprAndTypeBatch(nDataModel, validCCs);
         }
 
         // there are three kind of CC need remove:

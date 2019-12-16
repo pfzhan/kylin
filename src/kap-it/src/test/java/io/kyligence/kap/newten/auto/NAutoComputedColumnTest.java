@@ -611,7 +611,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         // set one CC to unsupported
         computedColumns.get(0)
                 .setInnerExpression("CAST(LENGTH(SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)) AS DOUBLE)");
-        ComputedColumnEvalUtil.evaluateExprAndTypes(targetModel, computedColumns);
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(targetModel, computedColumns);
         Assert.assertEquals(1, targetModel.getComputedColumnDescs().size());
     }
 

@@ -1520,7 +1520,7 @@ public class ModelService extends BasicService {
 
             //check by data source, this could be slow
             long ts = System.currentTimeMillis();
-            ComputedColumnEvalUtil.evaluateExprAndTypes(dataModelDesc, Lists.newArrayList(cc));
+            ComputedColumnEvalUtil.evaluateExprAndType(dataModelDesc, cc);
             logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
                     (System.currentTimeMillis() - ts), cc.getExpression());
             return cc;

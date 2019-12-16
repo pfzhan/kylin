@@ -63,7 +63,7 @@ public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
         newCC.setInnerExpression(KapQueryUtil.massageComputedColumn(model, project, newCC));
         newCC.setDatatype("ANY");
         
-        ComputedColumnEvalUtil.evaluateExprAndTypes(model, Lists.newArrayList(newCC));
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(model, Lists.newArrayList(newCC));
         Assert.assertEquals("DECIMAL(35,0)", newCC.getDatatype());
     }
     
@@ -135,7 +135,7 @@ public class NComputedColumnTypeTest extends NLocalWithSparkSessionTest {
             return newCC;
         }).collect(Collectors.toList());
 
-        ComputedColumnEvalUtil.evaluateExprAndTypes(model, newCCs);
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(model, newCCs);
         newCCs.stream().forEach(cc -> {
             String expr = cc.getExpression();
             Assert.assertEquals(expr + " type is fail", exprTypes.get(expr), cc.getDatatype());

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,7 +46,6 @@ import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -69,14 +69,13 @@ public class ComputedColumnEvalUtil {
                 + " due to unsupported expression.", e);
     }
 
-    public static void evaluateExprAndTypes(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
-        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(nDataModel.getProject())
-                .isExpertMode()) {
-            evalDataTypeOfCCInManual(computedColumns, nDataModel, 0, computedColumns.size());
-        } else {
-            evalDataTypeOfCCInAuto(computedColumns, nDataModel, 0, computedColumns.size());
-        }
+    public static void evaluateExprAndTypeBatch(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
+        evalDataTypeOfCCInAuto(computedColumns, nDataModel, 0, computedColumns.size());
         computedColumns.removeIf(cc -> cc.getDatatype().equals("ANY"));
+    }
+
+    public static void evaluateExprAndType(NDataModel nDataModel, ComputedColumnDesc computedColumn) {
+        evalDataTypeOfCCInManual(Collections.singletonList(computedColumn), nDataModel, 0, 1);
     }
 
     private static void evalDataTypeOfCCInAuto(List<ComputedColumnDesc> computedColumns, NDataModel nDataModel,

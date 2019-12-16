@@ -71,7 +71,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         NDataModel nDataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
 
-        ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, computedColumns);
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(nDataModel, computedColumns);
         Assert.assertEquals(2, computedColumns.size());
         Assert.assertEquals("CONCAT(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_KYLIN_FACT.LSTG_FORMAT_NAME)",
                 computedColumns.get(0).getInnerExpression().trim());
@@ -103,7 +103,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         NDataModel nDataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
 
-        ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, computedColumns);
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(nDataModel, computedColumns);
         Assert.assertEquals(2, computedColumns.size());
         Assert.assertEquals("CONCAT(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_KYLIN_FACT.LSTG_FORMAT_NAME)",
                 computedColumns.get(0).getInnerExpression().trim());
@@ -125,7 +125,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         NDataModel nDataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
 
-        ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, computedColumns);
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(nDataModel, computedColumns);
         Assert.assertEquals(1, computedColumns.size());
         Assert.assertEquals("CONCAT(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_KYLIN_FACT.LSTG_FORMAT_NAME)",
                 computedColumns.get(0).getInnerExpression().trim());
@@ -148,7 +148,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
             ComputedColumnDesc cc = new ComputedColumnDesc();
             cc.setInnerExpression("TEST_KYLIN_FACT.LSTG_FORMAT_NAME2 + '1'");
             cc.setColumnName("CC_1");
-            ComputedColumnEvalUtil.evaluateExprAndTypes(dataModel, Lists.newArrayList(cc));
+            ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals("Cannot find column `TEST_KYLIN_FACT.LSTG_FORMAT_NAME2`, "
@@ -160,7 +160,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
             ComputedColumnDesc cc = new ComputedColumnDesc();
             cc.setInnerExpression("SUBSTRING(TEST_KYLIN_FACT.LSTG_FORMAT_NAME FROM 1 FOR 4)");
             cc.setColumnName("CC_2");
-            ComputedColumnEvalUtil.evaluateExprAndTypes(dataModel, Lists.newArrayList(cc));
+            ComputedColumnEvalUtil.evaluateExprAndType(dataModel, cc);
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals("Cannot evaluate data type of computed column " //
@@ -235,7 +235,7 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
         NDataModel nDataModel = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
 
-        ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, computedColumns);
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(nDataModel, computedColumns);
         Assert.assertEquals(2, computedColumns.size());
         Assert.assertEquals("CONCAT(TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_KYLIN_FACT.LSTG_FORMAT_NAME)",
                 computedColumns.get(0).getInnerExpression().trim());
