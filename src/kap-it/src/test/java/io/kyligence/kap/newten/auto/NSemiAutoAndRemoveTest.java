@@ -26,9 +26,7 @@ package io.kyligence.kap.newten.auto;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -73,18 +71,16 @@ public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
         overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         val testScenarios = new TestScenario[] { new TestScenario(NExecAndComp.CompareLevel.SAME, "semi_auto/remove") };
         prepareModels(getProject(), testScenarios);
-        executeTestScenario(
-                testScenarios);//
+        executeTestScenario(testScenarios);//
     }
 
     private Set<Pair<String, Long>> removeLayouts() {
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
-        Set<Pair<String, Long>> removeLayouts = indexPlanManager.listAllIndexPlans().stream().flatMap(indexPlan -> {
-            val allLayouts = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
-            int randomSize = new Random().nextInt(allLayouts.size());
-            Collections.shuffle(allLayouts);
-            return allLayouts.stream().map(id -> new Pair<>(indexPlan.getUuid(), id)).limit(randomSize + 1);
-        }).collect(Collectors.toSet());
+        Set<Pair<String, Long>> removeLayouts = indexPlanManager.listAllIndexPlans().stream()
+                .flatMap(indexPlan -> Lists
+                        .newArrayList(new Pair<>(indexPlan.getUuid(), 1L), new Pair<>(indexPlan.getUuid(), 10001L))
+                        .stream())
+                .collect(Collectors.toSet());
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
         val indexplanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         removeLayouts.stream().collect(Collectors.groupingBy(Pair::getFirst)).forEach((modelId, value) -> {
