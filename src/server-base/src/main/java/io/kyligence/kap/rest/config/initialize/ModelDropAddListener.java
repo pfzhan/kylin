@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 
+import com.codahale.metrics.Gauge;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
@@ -52,45 +53,56 @@ public class ModelDropAddListener {
         Map<String, String> tags = Maps.newHashMap();
         tags.put(NMetricsTag.MODEL.getVal(), project.concat("-").concat(modelAlias));
 
-        NMetricsGroup.newGauge(NMetricsName.MODEL_SEGMENTS, NMetricsCategory.PROJECT, project, tags, () -> {
-            try {
+        NMetricsGroup.newGauge(NMetricsName.MODEL_SEGMENTS, NMetricsCategory.PROJECT, project, tags,
+                new GaugeWrapper() {
+            @Override
+            public Long getResult() {
                 NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0 : df.getSegments().size();
-            } catch (Exception e) {
-                log.error("exception.", e);
+                return df == null ? 0L : df.getSegments().size();
             }
-            return 0;
         });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags, () -> {
-            try {
+        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags,
+                new GaugeWrapper() {
+            @Override
+            public Long getResult() {
                 NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0 : df.getStorageBytesSize();
-            } catch (Exception e) {
-                log.error("exception.", e);
+                return df == null ? 0L : df.getStorageBytesSize();
             }
-            return 0;
         });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_LAST_QUERY_TIME, NMetricsCategory.PROJECT, project, tags, () -> {
-            try {
+        NMetricsGroup.newGauge(NMetricsName.MODEL_LAST_QUERY_TIME, NMetricsCategory.PROJECT, project, tags,
+                new GaugeWrapper() {
+            @Override
+            public Long getResult() {
                 NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0 : df.getLastQueryTime();
-            } catch (Exception e) {
-                log.error("exception.", e);
+                return df == null ? 0L : df.getLastQueryTime();
             }
-            return 0;
         });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_QUERY_COUNT, NMetricsCategory.PROJECT, project, tags, () -> {
-            try {
+        NMetricsGroup.newGauge(NMetricsName.MODEL_QUERY_COUNT, NMetricsCategory.PROJECT, project, tags,
+                new GaugeWrapper() {
+            @Override
+            public Long getResult() {
                 NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0 : df.getQueryHitCount();
-            } catch (Exception e) {
-                log.error("exception.", e);
+                return df == null ? 0L : df.getQueryHitCount();
             }
-            return 0;
         });
 
         NMetricsGroup.newCounter(NMetricsName.MODEL_BUILD_DURATION, NMetricsCategory.PROJECT, project, tags);
         NMetricsGroup.newCounter(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, project, tags);
+    }
+
+    abstract static class GaugeWrapper implements Gauge<Long> {
+
+        public abstract Long getResult();
+
+        @Override
+        public Long getValue() {
+            try {
+                return getResult();
+            } catch (Exception e) {
+                log.error("Exception happens.", e);
+            }
+            return 0L;
+        }
     }
 
 
