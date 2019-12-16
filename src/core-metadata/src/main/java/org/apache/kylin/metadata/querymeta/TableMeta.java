@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,9 +46,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.common.obf.IKeep;
+
 /**
  */
-public class TableMeta implements Serializable {
+public class TableMeta implements IKeep, Serializable {
 
     private static final long serialVersionUID = 1L;
     protected String TABLE_CAT;
@@ -67,7 +68,9 @@ public class TableMeta implements Serializable {
     public TableMeta() {
     }
 
-    public TableMeta(String tABLE_CAT, String tABLE_SCHEM, String tABLE_NAME, String tABLE_TYPE, String rEMARKS, String tYPE_CAT, String tYPE_SCHEM, String tYPE_NAME, String sELF_REFERENCING_COL_NAME, String rEF_GENERATION) {
+    public TableMeta(String tABLE_CAT, String tABLE_SCHEM, String tABLE_NAME, String tABLE_TYPE, String rEMARKS,
+            String tYPE_CAT, String tYPE_SCHEM, String tYPE_NAME, String sELF_REFERENCING_COL_NAME,
+            String rEF_GENERATION) {
         super();
         TABLE_CAT = tABLE_CAT;
         TABLE_SCHEM = tABLE_SCHEM;

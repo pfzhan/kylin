@@ -137,7 +137,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
@@ -767,7 +766,7 @@ public class QueryService extends BasicService {
             }
         }
 
-        return filterAuthorized(project, tableMetas);
+        return filterAuthorized(project, tableMetas, TableMeta.class);
     }
 
     @SuppressWarnings("checkstyle:methodlength")
@@ -801,24 +800,23 @@ public class QueryService extends BasicService {
         List<TableMetaWithType> tableMetas = Lists.newArrayList();
         tableMap.forEach((name, tableMeta) -> tableMetas.add(tableMeta));
 
-        return filterAuthorized(project, tableMetas);
+        return filterAuthorized(project, tableMetas, TableMetaWithType.class);
     }
 
-    private <T extends TableMeta> List<T> filterAuthorized(String project, List<T> result) {
+    private <T extends TableMeta> List<T> filterAuthorized(String project, List<T> result, final Class<T> clazz) {
         if (AclPermissionUtil.canUseACLGreenChannel(project)) {
             return result;
         }
-        final List<AclTCR> aclTCRS = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
+        final List<AclTCR> aclTCRs = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
                 AclPermissionUtil.getCurrentUserGroups());
         return result.stream().map(t -> {
             String dbTblName = readTableIdentity(t);
-            if (aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(dbTblName))) {
+            if (aclTCRs.stream().noneMatch(tcr -> tcr.isAuthorized(dbTblName))) {
                 return null;
             }
-            T copied = JsonUtil.deepCopyQuietly(t, new TypeReference<T>() {
-            });
-            copied.setColumns(copied.getColumns().stream().filter(
-                    c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(dbTblName, c.getCOLUMN_NAME())))
+            T copied = JsonUtil.deepCopyQuietly(t, clazz);
+            copied.setColumns(copied.getColumns().stream()
+                    .filter(c -> aclTCRs.stream().anyMatch(tcr -> tcr.isAuthorized(dbTblName, c.getCOLUMN_NAME())))
                     .collect(Collectors.toList()));
             return copied;
         }).filter(Objects::nonNull).collect(Collectors.toList());
