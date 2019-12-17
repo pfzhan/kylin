@@ -42,7 +42,7 @@ export function _getLoadDataForm (that) {
   return {
     project: project.name,
     table: `${table.database}.${table.name}`,
-    isLoadExisted: isLoadExisted,
+    // isLoadExisted: isLoadExisted,
     start: !isLoadExisted ? String(transToUTCMs(loadDataRange[0])) : undefined,
     end: !isLoadExisted ? String(transToUTCMs(loadDataRange[1])) : undefined
   }

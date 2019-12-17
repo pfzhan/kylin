@@ -238,7 +238,7 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
     next(vm => {
       if (to.params.addIndex) {
         vm.currentEditModel = from.params.modelName
-        vm.showFull = true
+        // vm.showFull = true
       }
       if (to.params.modelAlias) {
         vm.currentEditModel = to.params.modelAlias
