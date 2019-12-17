@@ -2105,6 +2105,63 @@ public class ModelService extends BasicService {
         preProcessBeforeModelSave(dataModel, modelRequest.getProject());
     }
 
+    private class AddTableNameSqlVisitor extends SqlBasicVisitor<Object> {
+        private String expr;
+        private Map<String, String> colToTable;
+        private Set<String> ambiguityCol;
+        private Set<String> aliasSet;
+
+        public AddTableNameSqlVisitor(String expr, Map<String, String> colToTable, Set<String> ambiguityCol,
+                Set<String> aliasSet) {
+            this.expr = expr;
+            this.colToTable = colToTable;
+            this.ambiguityCol = ambiguityCol;
+            this.aliasSet = aliasSet;
+        }
+
+        @Override
+        public Object visit(SqlIdentifier id) {
+            boolean ok = true;
+            if (id.names.size() == 1) {
+                String column = id.names.get(0).toUpperCase().trim();
+                if (!colToTable.containsKey(column) || ambiguityCol.contains(column)) {
+                    ok = false;
+                } else {
+                    id.names = ImmutableList.of(colToTable.get(column), column);
+                }
+            } else if (id.names.size() == 2) {
+                String table = id.names.get(0).toUpperCase().trim();
+                String column = id.names.get(1).toUpperCase().trim();
+                if (!aliasSet.contains(table) || !colToTable.containsKey(column)) {
+                    ok = false;
+                }
+            } else {
+                ok = false;
+            }
+            if (!ok) {
+                throw new IllegalArgumentException(
+                        "Unrecognized column: " + id.toString() + " in expression '" + expr + "'.");
+            }
+            return null;
+        }
+
+        @Override
+        public Object visit(SqlCall call) {
+            if (call instanceof SqlBasicCall) {
+                if (call.getOperator() instanceof SqlAsOperator) {
+                    throw new IllegalArgumentException(
+                            String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
+                }
+
+                if (call.getOperator() instanceof SqlAggFunction) {
+                    throw new IllegalArgumentException(
+                            String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
+                }
+            }
+            return call.getOperator().acceptCall(this, call);
+        }
+    }
+
     public String addTableNameIfNotExist(final String expr, final NDataModel model) {
         Map<String, String> colToTable = Maps.newHashMap();
         Set<String> ambiguityCol = Sets.newHashSet();
@@ -2125,56 +2182,13 @@ public class ModelService extends BasicService {
         Set<String> aliasSet = model.getAliasMap().keySet();
         SqlNode sqlNode = CalciteParser.getExpNode(expr);
 
-        SqlVisitor<Object> sqlVisitor = new SqlBasicVisitor<Object>() {
-            @Override
-            public Object visit(SqlIdentifier id) {
-                boolean ok = true;
-                if (id.names.size() == 1) {
-                    String column = id.names.get(0).toUpperCase().trim();
-                    if (!colToTable.containsKey(column) || ambiguityCol.contains(column)) {
-                        ok = false;
-                    } else {
-                        id.names = ImmutableList.of(colToTable.get(column), column);
-                    }
-                } else if (id.names.size() == 2) {
-                    String table = id.names.get(0).toUpperCase().trim();
-                    String column = id.names.get(1).toUpperCase().trim();
-                    if (!aliasSet.contains(table) || !colToTable.containsKey(column)) {
-                        ok = false;
-                    }
-                } else {
-                    ok = false;
-                }
-                if (!ok) {
-                    throw new IllegalArgumentException(
-                            "Unrecognized column: " + id.toString() + " in expression '" + expr + "'.");
-                }
-                return null;
-            }
-
-            @Override
-            public Object visit(SqlCall call) {
-                if (call instanceof SqlBasicCall) {
-                    if (call.getOperator() instanceof SqlAsOperator) {
-                        throw new IllegalArgumentException(
-                                String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
-                    }
-
-                    if (call.getOperator() instanceof SqlAggFunction) {
-                        throw new IllegalArgumentException(
-                                String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
-                    }
-                }
-                return call.getOperator().acceptCall(this, call);
-            }
-        };
+        SqlVisitor<Object> sqlVisitor = new AddTableNameSqlVisitor(expr, colToTable, ambiguityCol, aliasSet);
 
         sqlNode.accept(sqlVisitor);
         return sqlNode
                 .toSqlString(new CalciteSqlDialect(
                         SqlDialect.EMPTY_CONTEXT.withDatabaseProduct(SqlDialect.DatabaseProduct.CALCITE)), true)
                 .toString();
-
     }
 
     public NModelDescResponse getModelDesc(String modelAlias, String project) {
@@ -2209,7 +2223,7 @@ public class ModelService extends BasicService {
                     .collect(Collectors.toList());
             response.setDimensions(dims);
         } else {
-            response.setAggregationGroups(null);
+            response.setAggregationGroups(new ArrayList<>());
             response.setDimensions(new ArrayList<>());
         }
         return response;
