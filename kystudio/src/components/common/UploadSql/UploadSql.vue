@@ -544,7 +544,7 @@ export default class UploadSqlModel extends Vue {
   }
   whiteFilter (data) {
     return data.filter((sqlObj) => {
-      return sqlObj.sql.indexOf(this.whiteSqlFilter) !== -1
+      return sqlObj.sql.toLowerCase().indexOf(this.whiteSqlFilter.toLowerCase()) !== -1
     })
   }
   toggleSelection (rows) {
