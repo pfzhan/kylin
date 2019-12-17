@@ -9,6 +9,7 @@
           class="filter-input"
           prefix-icon="el-icon-search"
           v-model="filterText"
+          @input="filterChange"
           :placeholder="$t('kylinLang.common.pleaseFilter')">
         </el-input>
       </div>
@@ -70,6 +71,7 @@
     <kap-pager
       class="ksd-center ksd-mt-10" ref="pager"
       :totalSize="columns.length"
+      :curPage="pagination.page_offset + 1"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
   </div>
@@ -111,6 +113,9 @@ export default class TableColumns extends Vue {
     const { page_offset, pageSize } = this.pagination
     return this.columns.slice(page_offset * pageSize, page_offset * pageSize + pageSize)
   }
+  filterChange () {
+    this.pagination.page_offset = 0
+  }
   handleCurrentChange (page_offset, pageSize) {
     this.pagination.page_offset = page_offset
     this.pagination.pageSize = pageSize
@@ -125,6 +130,7 @@ export default class TableColumns extends Vue {
         return b[prop] - a[prop]
       })
     }
+    this.handleCurrentChange(0, 10)
   }
 }
 </script>

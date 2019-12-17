@@ -48,7 +48,7 @@
             v-on:pausePolling="pausePolling"
             v-on:reCallPolling="reCallPolling"
             tab="waiting"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager" v-if="activeList=='waiting'" class="ksd-center ksd-mtb-10" :curPage="filterData.offset+1" :totalSize="favQueList.total_size" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="not_accelerated">
           <span slot="label">{{$t('not_accelerated', {num: listSizes.not_accelerated})}}</span>
@@ -60,7 +60,7 @@
             v-on:pausePolling="pausePolling"
             v-on:reCallPolling="reCallPolling"
             tab="not_accelerated"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager2" v-if="activeList=='not_accelerated'" class="ksd-center ksd-mtb-10" :curPage="filterData.offset+1" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
           <span slot="label">{{$t('accelerated',  {num: listSizes.accelerated})}}</span>
@@ -72,7 +72,7 @@
             v-on:pausePolling="pausePolling"
             v-on:reCallPolling="reCallPolling"
             tab="accelerated"></acceleration_table>
-          <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mtb-10" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+          <kap-pager ref="favoriteQueryPager3" v-if="activeList=='accelerated'" class="ksd-center ksd-mtb-10" :curPage="filterData.offset+1" :totalSize="favQueList.total_size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -119,7 +119,7 @@
                </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="blackSqlData.total_size" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.total_size"></kap-pager>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :curPage="blackFilter.offset+1" :totalSize="blackSqlData.total_size" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.total_size"></kap-pager>
         </el-col>
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
@@ -361,6 +361,10 @@ export default class FavoriteQuery extends Vue {
     pageSize: 10,
     offset: 0
   }
+  blackFilter = {
+    offset: 0,
+    pageSize: 10
+  }
   updateLoading = false
   ST = null
   stCycle = null
@@ -405,7 +409,7 @@ export default class FavoriteQuery extends Vue {
       pageSize: 10,
       offset: 0
     }
-    this.reCallPolling()
+    this.pageCurrentChange(0, 10)
   }
   handleCommand (command) {
     if (command === 'ruleSetting') {
@@ -487,12 +491,12 @@ export default class FavoriteQuery extends Vue {
   sortFavoriteList (filterData) {
     this.filterData.reverse = filterData.reverse
     this.filterData.sortBy = filterData.sortBy
-    this.loadFavoriteList()
+    this.pageCurrentChange(0, this.filterData.pageSize)
   }
 
   filterFav (checkedStatus) {
     this.checkedStatus = checkedStatus
-    this.loadFavoriteList()
+    this.pageCurrentChange(0, this.filterData.pageSize)
     this.getSQLSizes()
   }
 
@@ -600,7 +604,13 @@ export default class FavoriteQuery extends Vue {
     })
   }
   refreshLists () {
-    return Promise.all([this.loadFavoriteList(), this.getSQLSizes()])
+    if (!this.isPausePolling) {
+      return Promise.all([this.loadFavoriteList(), this.getSQLSizes()])
+    } else {
+      return new Promise((resolve) => {
+        resolve()
+      })
+    }
   }
   pausePolling () {
     this.isPausePolling = true
@@ -611,25 +621,20 @@ export default class FavoriteQuery extends Vue {
   }
   reCallPolling () {
     this.isPausePolling = false
-    this.loadFavoriteList()
-    this.getSQLSizes()
-    this.init()
   }
   async init () {
     clearTimeout(this.stCycle)
     this.stCycle = setTimeout(() => {
-      if (!this.isPausePolling) {
-        this.refreshLists().then((res) => {
-          handleSuccess(res, (data) => {
-            if (this._isDestroyed) {
-              return
-            }
-            this.init()
-          })
-        }, (res) => {
-          handleError(res)
+      this.refreshLists().then((res) => {
+        handleSuccess(res, (data) => {
+          if (this._isDestroyed) {
+            return
+          }
+          this.init()
         })
-      }
+      }, (res) => {
+        handleError(res)
+      })
     }, 5000)
   }
 
@@ -663,11 +668,11 @@ export default class FavoriteQuery extends Vue {
     this.getBlackList()
   }
 
-  async getBlackList (pageIndex, pageSize) {
+  async getBlackList () {
     const res = await this.loadBlackList({
       project: this.currentSelectedProject,
-      limit: pageSize || 10,
-      offset: pageIndex || 0,
+      limit: this.blackFilter.pageSize,
+      offset: this.blackFilter.offset,
       sql: this.blackSqlFilter
     })
     const data = await handleSuccessAsync(res)
@@ -729,12 +734,15 @@ export default class FavoriteQuery extends Vue {
   onblackSqlFilterChange () {
     clearTimeout(this.ST)
     this.ST = setTimeout(() => {
+      this.blackFilter.offset = 0
       this.getBlackList()
     }, 500)
   }
 
   blackSqlDatasPageChange (offset, pageSize) {
-    this.getBlackList(offset, pageSize)
+    this.blackFilter.offset = offset
+    this.blackFilter.pageSize = pageSize
+    this.getBlackList()
   }
 }
 </script>

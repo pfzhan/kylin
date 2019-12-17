@@ -136,7 +136,7 @@
     </el-table>
 
 
-    <kap-pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+    <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
 
     <el-card v-show="showStep" class="card-width job-step" id="stepList">
 
@@ -267,7 +267,7 @@
             </template>
           </el-table-column>
         </el-table>
-        <kap-pager :totalSize="waitingJob.jobsSize" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+        <kap-pager :totalSize="waitingJob.jobsSize" :curPage="waittingJobsFilter.offset+1" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
@@ -925,6 +925,7 @@ export default class JobsList extends Vue {
     this.searchLoading = true
     clearTimeout(this.lockST)
     this.lockST = setTimeout(() => {
+      this.filter.page_offset = 0
       this.manualRefreshJobs()
       this.showStep = false
     }, 1000)
@@ -933,6 +934,7 @@ export default class JobsList extends Vue {
     if (this.allStatus.indexOf(status) !== -1) {
       this.filter.status = status === 'ALL' ? '' : status
     }
+    this.filter.page_offset = 0
     this.manualRefreshJobs()
     this.showStep = false
   }
@@ -970,6 +972,7 @@ export default class JobsList extends Vue {
       this.filter.reverse = true
     }
     this.filter.sort_by = prop
+    this.filter.page_offset = 0
     this.manualRefreshJobs()
   }
   async resume (jobIds, project, isBatch) {

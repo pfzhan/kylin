@@ -166,7 +166,7 @@
             </el-table-column>
           </el-table>
         </div>
-        <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+        <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
@@ -299,6 +299,7 @@ export default class BatchMeasureModal extends Vue {
     this.$nextTick(() => {
       this.isShowSearchTable = true
       this.searchChar = val && val.replace(/^\s+|\s+$/, '') || ''
+      this.filterArgs.pageOffset = 0
       if (!this.searchChar) {
         this.factTable.forEach((t) => {
           t.meaColNum = t.columns.filter((col) => {

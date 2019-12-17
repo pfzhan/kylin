@@ -73,7 +73,7 @@
 		    </el-table-column>
 		  </el-table>
 
-      <kap-pager v-on:handleCurrentChange='pageSizeChange' class="ksd-center ksd-mtb-10" ref="pager" :totalSize="modelsTotal"></kap-pager>
+      <kap-pager v-on:handleCurrentChange='pageSizeChange' :curPage="currentPage+1" class="ksd-center ksd-mtb-10" ref="pager" :totalSize="modelsTotal"></kap-pager>
   	</div>
     <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
       <input type="hidden" name="sql" v-model="sql"/>
@@ -150,6 +150,7 @@ export default class queryResult extends Vue {
   limit = ''
   showDetail = false
   pageSize = 10
+  currentPage = 0
   modelsTotal = this.extraoption.results.length
   timer = null
   pageX = 0
@@ -201,6 +202,7 @@ export default class queryResult extends Vue {
     }
   }
   pageSizeChange (currentPage, pageSize) {
+    this.currentPage = currentPage
     if (pageSize) {
       this.pageSize = pageSize
     }

@@ -1,7 +1,7 @@
 <template>
   <div id="queryHistory">
     <query_history_table :queryHistoryData="queryHistoryData.query_histories" :queryNodes="queryNodes" v-on:openIndexDialog="openIndexDialog" v-on:loadFilterList="loadFilterList"></query_history_table>
-    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mtb-10" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mtb-10" :curPage="queryCurrentPage" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('kylinLang.model.aggregateGroupIndex')"
       top="5vh"
@@ -114,7 +114,7 @@ export default class QueryHistory extends Vue {
   }
   loadFilterList (data) {
     this.filterData = data
-    this.loadHistoryList()
+    this.pageCurrentChange(0, this.pageSize)
   }
   async created () {
     this.currentSelectedProject && this.loadHistoryList()

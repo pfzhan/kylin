@@ -55,6 +55,7 @@
             class="ksd-center ksd-mt-10" ref="pager"
             :per-page-size="perPageSize"
             :totalSize="scope.row.size"
+            :curPage="currentPage+1"
             :layout="'prev, pager, next'"
             :background="false"
             @handleCurrentChange="(currentPage) => { handleCurrentChange(currentPage, scope.row) }">
@@ -104,6 +105,7 @@
                 class="ksd-center ksd-mt-10" ref="pager"
                 :per-page-size="perPageSize"
                 :totalSize="scope.row.size"
+                :curPage="currentPage+1"
                 :layout="'prev, pager, next'"
                 :background="false"
                 @handleCurrentChange="(currentPage) => { handleCurrentChange(currentPage, scope.row) }">
@@ -225,6 +227,7 @@
     expandRows = []
     curRowExpandLoading = {}
     perPageSize = 10
+    currentPage = 0
     isShow = true
     lowFrequency = {
       frequency_time_window: '',
@@ -314,6 +317,7 @@
     }
 
     handleCurrentChange (currentPage, row) {
+      this.currentPage = currentPage
       this.loadIndexList(row, {curpage: currentPage})
     }
 

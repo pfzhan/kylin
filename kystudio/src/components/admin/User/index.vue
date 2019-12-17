@@ -90,6 +90,7 @@
     <kap-pager
       class="ksd-center ksd-mtb-10" ref="pager"
       :totalSize="totalSize"
+      :curPage="pagination.page_offset+1"
       @handleCurrentChange="handleCurrentChange">
     </kap-pager>
   </div>
@@ -163,6 +164,7 @@ export default class SecurityUser extends Vue {
     clearInterval(this.filterTimer)
 
     this.filterTimer = setTimeout(() => {
+      this.pagination.page_offset = 0
       this.loadUsers(value)
     }, 1500)
   }

@@ -50,6 +50,7 @@
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
         :totalSize="groupUsersListSize"
+        :curPage="pagination.page_offset+1"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
     </el-row>
@@ -121,6 +122,7 @@ export default class SecurityGroup extends Vue {
   inputFilter (value) {
     clearInterval(this.filterTimer)
     this.filterTimer = setTimeout(() => {
+      this.pagination.page_offset = 0
       this.loadGroupUsers(value)
     }, 1500)
   }

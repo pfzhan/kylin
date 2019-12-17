@@ -101,6 +101,7 @@
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
         :totalSize="projectsTotal"
+        :curPage="filterData.page_offset+1"
         v-if="projectsTotal"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
@@ -138,6 +139,7 @@ export default {
       clearInterval(this.filterTimer)
       this.filterTimer = setTimeout(() => {
         this.filterData.project = value
+        this.filterData.page_offset = 0
         this.loadProjects(this.filterData)
       }, 1500)
     },

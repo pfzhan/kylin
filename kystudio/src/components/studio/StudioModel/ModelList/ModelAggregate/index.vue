@@ -106,7 +106,7 @@
                   </template>
                 </el-table-column>
               </el-table>
-              <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" layout="total, prev, pager, next, jumper" :totalSize="totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+              <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" layout="total, prev, pager, next, jumper" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
             </div>
           </el-card>
         </el-col>
@@ -170,7 +170,7 @@
             </template>
             </el-table-column>
           </el-table>
-          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :perpage_size="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
+          <kap-pager layout="prev, pager, next" :background="false" class="ksd-mt-10 ksd-center" ref="pager" :perpage_size="currentCount" :curPage="currentPage+1" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
         </div>
       <div slot="footer" class="dialog-footer">
         <el-button type="default" size="medium" @click="indexDetailShow=false">{{$t('kylinLang.common.close')}}</el-button>
@@ -346,7 +346,7 @@ export default class ModelAggregate extends Vue {
         ref="sourceFilterPopover"
         placement="bottom-start"
         popperClass="source-filter">
-        <el-checkbox-group class="filter-groups" value={this.filterArgs.sources} onInput={val => (this.filterArgs.sources = val)} onChange={this.loadAggIndices}>
+        <el-checkbox-group class="filter-groups" value={this.filterArgs.sources} onInput={val => (this.filterArgs.sources = val)} onChange={this.filterSouces}>
           {items}
         </el-checkbox-group>
         <i class={this.filterArgs.sources.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
@@ -364,7 +364,7 @@ export default class ModelAggregate extends Vue {
         ref="sourceFilterPopover"
         placement="bottom-start"
         popperClass="source-filter">
-        <el-checkbox-group class="filter-groups" value={this.filterArgs.status} onInput={val => (this.filterArgs.status = val)} onChange={this.loadAggIndices}>
+        <el-checkbox-group class="filter-groups" value={this.filterArgs.status} onInput={val => (this.filterArgs.status = val)} onChange={this.filterSouces}>
           {items}
         </el-checkbox-group>
         <i class={this.filterArgs.status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
@@ -414,11 +414,15 @@ export default class ModelAggregate extends Vue {
   onSortChange ({ column, prop, order }) {
     this.filterArgs.sort_by = prop
     this.filterArgs.reverse = !(order === 'ascending')
-    this.loadAggIndices()
+    this.pageCurrentChange(0, this.filterArgs.page_size)
   }
   pageCurrentChange (size, count) {
     this.filterArgs.page_offset = size
     this.filterArgs.page_size = count
+    this.loadAggIndices()
+  }
+  filterSouces () {
+    this.filterArgs.page_offset = 0
     this.loadAggIndices()
   }
   searchAggs () {

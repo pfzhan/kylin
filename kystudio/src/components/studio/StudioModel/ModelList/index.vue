@@ -188,7 +188,7 @@
         </el-table-column>
       </el-table>
       <!-- 分页 -->
-      <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+      <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
@@ -545,7 +545,7 @@ export default class ModelList extends Vue {
     }
     this.filterArgs.reverse = !(order === 'ascending')
     if (this.filterArgs.project) {
-      this.loadModelsList()
+      this.pageCurrentChange(0, this.filterArgs.page_size)
     }
   }
   // 全屏查看模型附属信息
@@ -597,6 +597,7 @@ export default class ModelList extends Vue {
     if (this.filterArgs.exact) {
       this.filterArgs.exact = false
     }
+    this.filterArgs.page_offset = 0
     this.ST = setTimeout(() => {
       this.searchLoading = true
       this.loadModelsList().then(() => {

@@ -70,6 +70,7 @@
         class="ksd-center ksd-mtb-10"
         layout="prev, pager, next"
         :background="false"
+        :curPage="pagination.page_offset+1"
         :totalSize="totalSegmentCount"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
@@ -198,7 +199,7 @@ export default class ModelSegment extends Vue {
       this.filter.reverse = true
     }
     this.filter.sortBy = prop === 'storage' ? 'bytes_size' : prop
-    this.loadSegments()
+    this.handleCurrentChange(0, this.pagination.pageSize)
   }
   handleCurrentChange (pager, count) {
     this.pagination.page_offset = pager

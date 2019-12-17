@@ -232,7 +232,7 @@
                     width="110">
                   </el-table-column>
                 </el-table>
-                <kap-pager class="ksd-center ksd-mtb-10" ref="pager"  :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+                <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.pageOffset+1" :totalSize="searchTotalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
           </div>
         </div>
       </div>

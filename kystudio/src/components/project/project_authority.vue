@@ -49,6 +49,7 @@
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
         :totalSize="totalSize"
+        :curPage="pagination.page_offset+1"
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
     </div>
@@ -72,6 +73,7 @@
       <kap-pager
         class="ksd-center ksd-mtb-10" ref="pager"
         :totalSize="tableTotalSize"
+        :curPage="pagination1.page_offset+1"
         @handleCurrentChange="handleCurrentChange1">
       </kap-pager>
     </div>
@@ -322,6 +324,7 @@ export default class ProjectAuthority extends Vue {
     clearInterval(this.filterTimer)
     this.filterTimer = setTimeout(() => {
       this.searchLoading = true
+      this.pagination.page_offset = 0
       this.loadAccess().then(() => {
         this.searchLoading = false
       }, () => {
