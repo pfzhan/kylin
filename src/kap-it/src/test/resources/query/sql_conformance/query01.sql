@@ -1,0 +1,3 @@
+SELECT CAL_DT ,SUM(PRICE),SUM(PRICE),CAL_DT
+FROM ( select * from TEST_KYLIN_FACT where CAL_DT between '2019-10-01' and '2019-11-10'  ) myalias
+GROUP BY CAL_DT

@@ -244,6 +244,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         /* CompareLevel = SAME_ROWCOUNT */
     }
 
+    @Test
+    public void testConformance() throws Exception {
+        overwriteSystemProp("kylin.query.calcite.extras-props.conformance", "LENIENT");
+        new TestScenario(CompareLevel.SAME, "query/sql_conformance").execute();
+    }
+
     @Override
     protected void executeTestScenario(TestScenario... tests) throws Exception {
         if ("true".equals(System.getProperty("skipAutoModelingCI"))) { // -DskipAutoModelingCI=true
