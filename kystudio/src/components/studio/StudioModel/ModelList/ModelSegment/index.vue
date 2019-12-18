@@ -8,7 +8,7 @@
         <el-button size="small" type="default" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
       </div>
       <div class="right">
-        <div class="segment-action ky-no-br-space">
+        <div class="segment-action ky-no-br-space" v-if="!filterSegment">
           <span class="ksd-mr-5 ksd-fs-14">{{$t('segmentPeriod')}}</span>
           <el-date-picker
             class="date-picker ksd-mr-5"
@@ -174,6 +174,9 @@ export default class ModelSegment extends Vue {
     return this.selectedSegmentIds.map(
       segmentId => this.segments.find(segment => segment.id === segmentId)
     )
+  }
+  get filterSegment () {
+    return this.segments.filter(item => ['Full Load', '全量加载'].includes(item.startTime) && ['Full Load', '全量加载'].includes(item.endTime)).length
   }
   @Watch('filter.startDate')
   @Watch('filter.endDate')
