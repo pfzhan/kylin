@@ -332,7 +332,7 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
   renderColumn2 (h) {
-    if (this.filterData.latencyFrom && this.filterData.latencyTo) {
+    if (this.filterData.latencyTo) {
       return (<span>
         <span style="margin-right:5px;">{this.$t('kylinLang.query.latency_th')}</span>
         <el-tooltip placement="top">
@@ -351,11 +351,14 @@ export default class QueryHistoryTable extends Vue {
             <div class="latency-filter-pop">
               <el-input-number
                 size="small"
+                min={0}
+                max={this.endSec}
                 value={this.startSec}
                 onInput={val1 => (this.startSec = val1)}></el-input-number>
               <span>&nbsp;S&nbsp;&nbsp;To</span>
               <el-input-number
                 size="small"
+                min={0}
                 class="ksd-ml-10"
                 value={this.endSec}
                 onInput={val2 => (this.endSec = val2)}></el-input-number>
@@ -383,6 +386,7 @@ export default class QueryHistoryTable extends Vue {
               size="small"
               value={this.startSec}
               min={0}
+              max={this.endSec}
               onInput={val1 => (this.startSec = val1)}></el-input-number>
             <span>&nbsp;S&nbsp;&nbsp;To</span>
             <el-input-number
