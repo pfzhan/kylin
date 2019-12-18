@@ -45,16 +45,16 @@
                     </td>
                   </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.total_scan_count')}}</th>
-                    <td>{{props.row.total_scan_count}}</td>
+                    <th class="label">{{$t('kylinLang.query. total_scan_count')}}</th>
+                    <td>{{props.row.total_scan_count | filterNumbers}}</td>
                   </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query.total_scan_bytes')}}</th>
-                    <td>{{props.row.total_scan_bytes}}</td>
+                    <th class="label">{{$t('kylinLang.query. total_scan_bytes')}}</th>
+                    <td>{{props.row.total_scan_bytes | filterNumbers}}</td>
                   </tr>
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.result_row_count')}}</th>
-                    <td>{{props.row.result_row_count}}</td>
+                    <td>{{props.row.result_row_count | filterNumbers}}</td>
                   </tr>
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.cache_hit')}}</th>
@@ -132,6 +132,11 @@ import sqlFormatter from 'sql-formatter'
   locales: {
     'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search one keyword or query ID', noSpaceTips: 'Invalide entering: cannot search space'},
     'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索单个关键词或查询 ID', noSpaceTips: '无法识别输入中的空格'}
+  },
+  filters: {
+    filterNumbers (num) {
+      if (num > 0) return num
+    }
   }
 })
 export default class QueryHistoryTable extends Vue {
