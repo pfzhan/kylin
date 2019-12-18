@@ -27,8 +27,8 @@
               <el-select :disabled="isLoadingNewRange"
               v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:100%">
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
-                  <span style="float: left">{{ t.name }}</span>
-                  <span class="ky-option-sub-info">{{ t.datatype }}</span>
+                  <el-tooltip :content="t.name" effect="dark" placement="top"><span class="table-column-name" style="float: left">{{ t.name }}</span></el-tooltip>
+                  <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
                 </el-option>
               </el-select>
             </el-form-item>
@@ -404,7 +404,7 @@ export default class ModelPartitionModal extends Vue {
 }
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 @import '../../../../../assets/styles/variables.less';
 .model-partition-dialog {
   .error-msg-box {
@@ -463,6 +463,12 @@ export default class ModelPartitionModal extends Vue {
       margin-left: 7px;
     }
   }
+}
+.table-column-name {
+  display: inline-block;
+  width: 143px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 </style>

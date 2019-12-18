@@ -42,8 +42,8 @@
                   :key="index"
                   :label="item.name"
                   :value="item.name">
-                  <span :title="item.name">{{item.name | omit(26, '...')}}</span>
-                  <span class="ky-option-sub-info">{{item.datatype}}</span>
+                  <el-tooltip :content="item.name" effect="dark" placement="top"><span>{{item.name.split('.')[item.name.split('.').length - 1] | omit(26, '...')}}</span></el-tooltip>
+                  <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
                 </el-option>
               </el-option-group>
               <el-option-group key="ccolumn" :label="$t('ccolumns')">
@@ -52,8 +52,8 @@
                   :key="item.guid"
                   :label="item.tableAlias + '.' + item.columnName"
                   :value="item.tableAlias + '.' + item.columnName">
-                  <span>{{item.tableAlias}}.{{item.columnName}}</span>
-                  <span class="ky-option-sub-info">{{item.datatype}}</span>
+                  <el-tooltip :content="`${item.tableAlias}.${item.columnName}`" effect="dark" placement="top"><span>{{item.columnName}}</span></el-tooltip>
+                  <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
                 </el-option>
               </el-option-group>
             </el-select>
@@ -90,8 +90,8 @@
                 :key="index"
                 :label="item.name"
                 :value="item.name">
-                <span :title="item.name">{{item.name | omit(26, '...')}}</span>
-                <span class="ky-option-sub-info">{{item.datatype}}</span>
+                 <el-tooltip :content="item.name" effect="dark" placement="top"><span :title="item.name">{{item.name.split('.')[item.name.split('.').length - 1] | omit(26, '...')}}</span></el-tooltip>
+                <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
               </el-option>
             </el-option-group>
             <el-option-group key="ccolumn" :label="$t('ccolumns')">
@@ -100,8 +100,8 @@
                 :key="item.guid"
                 :label="item.tableAlias + '.' + item.columnName"
                 :value="item.tableAlias + '.' + item.columnName">
-                <span>{{item.tableAlias}}.{{item.columnName}}</span>
-                <span class="ky-option-sub-info">{{item.datatype}}</span>
+                <el-tooltip :content="`${item.tableAlias}.${item.columnName}`" effect="dark" placement="top"><span>{{item.columnName}}</span></el-tooltip>
+                <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
               </el-option>
             </el-option-group>
           </el-select>
@@ -579,6 +579,20 @@ export default class AddMeasure extends Vue {
       :hover {
         background-color: @grey-4;
         color: @line-border-color;
+      }
+    }
+  }
+  .el-select-group__wrap {
+    .el-select-dropdown__item {
+      padding-left: 10px;
+    }
+    .el-select-group__title {
+      padding-left: 10px;
+    }
+    &:not(:last-child) {
+      &::after {
+        left: 10px;
+        right: 10px;
       }
     }
   }
