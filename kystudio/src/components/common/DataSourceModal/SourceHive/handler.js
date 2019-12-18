@@ -66,13 +66,13 @@ export function getDatabaseTree (databases) {
   }))
 }
 
-export function getTableTree (database, res, isTableReset) {
+export function getTableTree (database, res, isTableReset, selectTablesNames) {
   const newTables = res.tables.map(table => ({
     id: `${database.id}.${table.table_name}`,
     label: table.table_name,
     type: 'table',
     database: database.id,
-    isSelected: table.loaded || database.isSelected,
+    isSelected: table.loaded || database.isSelected || table.table_name && selectTablesNames && selectTablesNames.includes(`${database.id}.${table.table_name}`),
     clickable: !table.loaded && !database.isSelected,
     isLoaded: table.loaded,
     render: (h, { node, data, store }) => {

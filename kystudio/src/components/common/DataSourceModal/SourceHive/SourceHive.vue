@@ -343,7 +343,10 @@ export default class SourceHive extends Vue {
       this.reloadHiveTablesStatus.isRunning = false
     })
   }
-
+  changeDataBase (dataBaseId) {
+    const [{ size }] = this.treeData.filter(database => database.id === dataBaseId)
+    this.selectTablesNames.filter(item => item.indexOf(`${dataBaseId}.`) > -1).length === size && this.handleAddDatabase(dataBaseId)
+  }
   refreshDBData (val) {
     this.selectDBNames = val.map((item) => {
       return item.toLocaleUpperCase()
@@ -369,6 +372,7 @@ export default class SourceHive extends Vue {
     })
     this.selectTablesNames = [...selectedTables]
     this.$emit('input', { selectedTables })
+    // this.changeDataBase(val[0].split('.')[0].toLocaleUpperCase())
   }
   removeSelectedDB (val) {
     this.selectDBNames.splice(this.selectDBNames.indexOf(val), 1)
@@ -463,8 +467,12 @@ export default class SourceHive extends Vue {
     const pagination = database.pagination
     const response = await this.fetchTables({ projectName, sourceType, databaseName, tableName, ...pagination })
     const { total_size: size, value: tables } = await handleSuccessAsync(response)
-    this.getTableTree(database, { size, tables }, isTableReset)
+
+    this.getTableTree(database, { size, tables }, isTableReset, this.selectTablesNames)
     this.setNextPagination(pagination)
+    // this.$nextTick(() => {
+    //   this.changeDataBase(databaseName)
+    // })
     // this.$emit('input', { selectedTables: [...this.selectedTables] })
   }
   async loadDatabaseAndTables (filterText) {
