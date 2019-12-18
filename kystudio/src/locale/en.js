@@ -453,7 +453,7 @@ exports.default = {
     addModelTip: 'Add a new model. Note that the model name should be unique in the project.',
     addModelTip1: 'Scratch tables to the blank canvas and set at least one fact table.',
     addModelTip2: 'Add dimensions and measures.',
-    addModelTip3: 'Save the model and set partition for it.',
+    addModelTip3: 'Save the model and set time partition and load range for it.',
     addModelTip4: 'We suggest creating some indexes after saving the model. So you can load data to it and do analysis instantly.',
     loadTableTip: 'The Kyligence Enterprise platform may need to connect with your source data. Choose your desired dataset and sync its schema. Here we will use the SSB dataset to do further tasks.'
   },

@@ -158,7 +158,7 @@
               <i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i>
             </common-tip>
             <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')" class="ksd-ml-10">
-              <i class="el-icon-ksd-data_range ksd-fs-14" @click="setModelBuldRange(scope.row)"></i>
+              <i class="el-icon-ksd-data_range ksd-fs-14" v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
             </common-tip>
             <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="datasourceActions.includes('modelActions')">
               <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >

@@ -267,6 +267,17 @@ export function addModelDrama () {
       target: 'partitionColumn', // 输入partition column内容
       val: 'LO_ORDERDATE'
     },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   target: 'partitionColumnFormat'
+    // },
+    // {
+    //   eventID: 31,
+    //   done: false,
+    //   target: 'partitionColumnFormat', // 获得分区列的时间格式
+    //   val: 'yyyy-MM-dd'
+    // },
     {
       eventID: 1,
       done: false,
@@ -276,6 +287,11 @@ export function addModelDrama () {
       eventID: 2,
       done: false,
       target: 'getPartitionColumnFormat' // 获得分区列的时间格式
+    },
+    {
+      eventID: 51,
+      done: false,
+      target: 'checkPartitionColumnFormatHasData'
     },
     // {
     //   eventID: 1,

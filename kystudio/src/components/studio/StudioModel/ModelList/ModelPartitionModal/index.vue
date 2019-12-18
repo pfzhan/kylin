@@ -38,7 +38,7 @@
       <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
         <el-row :gutter="5">
           <el-col :span="12">
-            <el-select :disabled="isLoadingFormat" style="width:100%" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')">
+            <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelect')">
               <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>
@@ -58,6 +58,7 @@
             </el-tooltip>
           </el-col>
         </el-row>
+        <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
       </el-form-item>
     </el-form>
     <template v-if="mode === 'saveModel'">

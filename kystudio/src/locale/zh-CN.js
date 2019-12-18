@@ -449,7 +449,7 @@ exports.default = {
     addModelTip: '添加模型，模型名称在当前项目中不能与其他模型重名。',
     addModelTip1: '为从数据源中拖出数据表，设置表的类型。',
     addModelTip2: '添加维度和度量。',
-    addModelTip3: '保存模型并设置分区。',
+    addModelTip3: '保存模型，设置分区并选择数据加载范围。',
     addModelTip4: '您可以继续定义索引，当模型具有索引后，才可以加载数据和分析。',
     loadTableTip: 'Kyligence 企业数据分析平台需要连接您的源数据系统。选择你所需的数据集并且从中同步表的元数据。这里我们选用 SSB 数据集为后续建模做准备。'
   },

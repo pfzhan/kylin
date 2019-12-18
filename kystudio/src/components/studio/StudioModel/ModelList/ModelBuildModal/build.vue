@@ -52,10 +52,13 @@
                   v-if="$store.state.project.projectPushdownConfig"
                   :disabled="modelBuildMeta.isLoadExisted"
                   :loading="isLoadingNewRange"
+                  v-guide.getPartitionRangeDataBtn
                   icon="el-icon-ksd-data_range_search"
                   @click="handleLoadNewestRange">
                 </el-button>
               </el-tooltip>
+              <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
+              <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
             </div>
           </el-form-item>
         </el-form>
@@ -63,7 +66,7 @@
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button :loading="btnLoading" @click="setbuildModelRange" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button :loading="btnLoading" v-guide.setbuildModelRange @click="setbuildModelRange" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 </template>
