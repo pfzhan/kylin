@@ -46,13 +46,10 @@ import org.apache.calcite.linq4j.function.Parameter;
 
 public class ConcatUDF {
 
-    public String CONCAT(@Parameter(name = "str1") String col1, @Parameter(name = "str2") String col2) {
-        if (col1 == null) {
+    public String CONCAT(@Parameter(name = "col1") Object col1, @Parameter(name = "col2") Object col2) {
+        if (col1 == null || col2 == null) {
             return null;
         }
-        if (col2 == null) {
-            return null;
-        }
-        return col1 + col2;
+        return ""+ col1 + col2;
     }
 }
