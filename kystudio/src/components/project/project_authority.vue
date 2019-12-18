@@ -79,7 +79,11 @@
     </div>
 
     <el-dialog :title="authorTitle" width="960px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="authorizationVisible" @close="initAccessData">
-      <el-alert :title="$t('authorTips')" class="ksd-mb-20" show-icon :closable="false" :show-background="false" type="info" v-if="!isEditAuthor"></el-alert>
+      <div class="author-tips">
+        <div class="item-point">{{$t('authorTips1')}}</div>
+        <div class="item-point" v-html="$t('authorTips2')"></div>
+      </div>
+      <!-- <el-alert :title="$t('authorTips')" class="ksd-mb-20" show-icon :closable="false" :show-background="false" type="info" v-if="!isEditAuthor"></el-alert> -->
       <div class="ksd-title-label-small">{{$t('selectUserAccess')}}</div>
       <div v-for="(accessMeta, index) in accessMetas" :key="index" class="user-group-select ksd-mt-10 ky-no-br-space">
         <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEditAuthor" @change="changeUserType(index)" size="medium" class="user-select">
@@ -183,7 +187,6 @@ import tableAccess from './table_access'
       accessTables: 'Access Tables',
       author: 'Add User / Group',
       editAuthor: 'Edit User / Group',
-      authorTips: 'By default, a user/user group will be automatically granted all access permissions on all tables in this project after added into this project.',
       selectUserOrUserGroups: 'Please select or input the user / user group name.',
       userGroups: 'User Groups',
       users: 'Users',
@@ -192,7 +195,14 @@ import tableAccess from './table_access'
       tableType: 'Table',
       deleteAccessTip: 'Please confirm whethter to delete the authorization of {userName} in this project?',
       access: 'Role',
-      deleteAccessTitle: 'Delete Access'
+      deleteAccessTitle: 'Delete Access',
+      authorTips1: 'By default, a user/user group will be automatically granted all access permissions on all tables in this project after added into this project.',
+      authorTips2: `What role does Kyligence Enterprise provide?<br>
+      The relationship of each role is as below: Admin > Management > Operation > Query. For example, Admin includes all the permissions of the other three roles and Management includes all the permissions of Operation and Query.<br>
+      1. Query: Query as the business analyst has permissions to query tables or indices.<br>
+      2. Operation: Operation as the operator has permissions to build indices and monitor job status.<br>
+      3. Management: Management as the model designer has permissions to load tables and design models.<br>
+      4. Admin: Admin as the project admin has all permissions and can manage and maintain this project, which includes loading tables, authority user access permissions, etc.`
     },
     'zh-cn': {
       projectTitle: '{projectName} 权限',
@@ -208,7 +218,6 @@ import tableAccess from './table_access'
       accessTables: '有权限的表',
       author: '添加用户/用户组',
       editAuthor: '编辑用户/用户组',
-      authorTips: '默认情况下，用户/用户组被添加至项目后，将自动授予该项目下的所有表及行列的访问权限。',
       selectUserOrUserGroups: '请选择或者输入用户/用户组名称',
       userGroups: '用户组',
       users: '用户',
@@ -217,7 +226,14 @@ import tableAccess from './table_access'
       tableType: '表',
       deleteAccessTip: '请确认是否删除 {userName} 在当前项目的所有访问权限？',
       access: '权限',
-      deleteAccessTitle: '删除权限'
+      deleteAccessTitle: '删除权限',
+      authorTips1: '默认情况下，用户/用户组被添加至项目后，将自动授予该项目下的所有表及行列的访问权限。',
+      authorTips2: `Kyligence Enterprise 提供什么样的角色权限？<br>
+      权限包含关系如下： Admin > Management > Operation > Query，即 Admin 包含了其他三种权限，Management 包含了 Operation 和 Query 权限， Operation 包含了 Query 权限。<br>
+      1. Query：定位为一般分析师，只需要项目中的表或者模型/索引的查询权限。<br>
+      2. Operation：定位为公司／组织内的IT运维人员，负责模型/索引的运维工作。<br>
+      3. Management：定位为业务部门的建模人员，对数据的业务情况很清楚，负责对数据进行导入、设计模型等。<br>
+      4. Admin：定义为项目的管理员，拥有项目内的所有权限，负责对项目进行整体运维和管理，包括授权等。`
     }
   }
 })
@@ -517,6 +533,26 @@ export default class ProjectAuthority extends Vue {
       padding: 0;
       .el-alert__title {
         font-size: 14px;
+      }
+    }
+    .author-tips {
+      position: relative;
+      padding: 0 10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      .item-point {
+        position: relative;
+        &::before {
+          content: ' ';
+          width: 3px;
+          height: 3px;
+          border-radius: 100%;
+          background: @000;
+          color: @000;
+          position: absolute;
+          top: 8px;
+          left: -10px;
+        }
       }
     }
     .user-group-select {
