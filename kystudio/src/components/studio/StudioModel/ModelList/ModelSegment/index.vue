@@ -53,10 +53,10 @@
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.startTime')" width="208" prop="start_time" sortable="custom">
-          <template slot-scope="scope">{{scope.row.startTime | toServerGMTDate}}</template>
+          <template slot-scope="scope">{{segmentTime(scope.row, scope.row.startTime) | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.endTime')" width="208" prop="end_time" sortable="custom">
-          <template slot-scope="scope">{{scope.row.endTime | toServerGMTDate}}</template>
+          <template slot-scope="scope">{{segmentTime(scope.row,scope.row.endTime) | toServerGMTDate}}</template>
         </el-table-column>
         <el-table-column align="left" class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
@@ -100,11 +100,11 @@
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('startTime')}}</th>
-          <td>{{detailSegment.startTime | toServerGMTDate}}</td>
+          <td>{{segmentTime(detailSegment, detailSegment.startTime) | toServerGMTDate}}</td>
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('endTime')}}</th>
-          <td>{{detailSegment.endTime | toServerGMTDate}}</td>
+          <td>{{segmentTime(detailSegment, detailSegment.endTime) | toServerGMTDate}}</td>
         </tr>
       </table>
     </el-dialog>
@@ -174,6 +174,10 @@ export default class ModelSegment extends Vue {
     return this.selectedSegmentIds.map(
       segmentId => this.segments.find(segment => segment.id === segmentId)
     )
+  }
+  segmentTime (row, data) {
+    const isFullLoad = row.segRange.date_range_start === 0 && row.segRange.date_range_end === 9223372036854776000
+    return isFullLoad ? this.$t('fullLoad') : data
   }
   get filterSegment () {
     return this.segments.filter(item => ['Full Load', '全量加载'].includes(item.startTime) && ['Full Load', '全量加载'].includes(item.endTime)).length
