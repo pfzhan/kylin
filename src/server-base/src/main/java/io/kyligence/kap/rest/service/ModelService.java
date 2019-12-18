@@ -1841,10 +1841,7 @@ public class ModelService extends BasicService {
                 || broken.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException("Can not repair model manually smart mode!");
         }
-        if (modelRequest.getPartitionDesc() != null
-                && !modelRequest.getPartitionDesc().equals(broken.getPartitionDesc())) {
-            broken.setPartitionDesc(modelRequest.getPartitionDesc());
-        }
+        broken.setPartitionDesc(modelRequest.getPartitionDesc());
         broken.setFilterCondition(modelRequest.getFilterCondition());
         broken.setJoinTables(modelRequest.getJoinTables());
         broken.init(getConfig(), getTableManager(project).getAllTablesMap(),

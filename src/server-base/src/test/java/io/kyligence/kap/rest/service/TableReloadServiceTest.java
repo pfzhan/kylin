@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -69,6 +68,7 @@ import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -360,6 +360,48 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 .getDataflow(reModel.getId());
         Assert.assertEquals(0, reDataflow.getSegments().size());
         Assert.assertEquals(RealizationStatusEnum.ONLINE, reDataflow.getStatus());
+        Assert.assertFalse(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getIndexPlan(reModel.getId()).isBroken());
+    }
+
+    @Test
+    public void testRepairBrokenModelWithNullPartitionDesc() throws Exception {
+        prepareReload();
+
+        changeColumnName("DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "CAL_DT2");
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+
+        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        Assert.assertEquals(1, brokenModels.size());
+        val brokenModel = brokenModels.get(0);
+        Assert.assertTrue(brokenModel.getPartitionDesc() != null);
+
+        val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
+        copyModel.setPartitionDesc(null);
+        val updateJoinTables = copyModel.getJoinTables();
+        updateJoinTables.get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.CAL_DT2" });
+        copyModel.setJoinTables(updateJoinTables);
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
+            return null;
+        }, PROJECT, 1);
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        val reModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        Assert.assertNotNull(reModel);
+        Assert.assertFalse(reModel.isBroken());
+        Assert.assertEquals(9, reModel.getJoinTables().size());
+        Assert.assertEquals(17, reModel.getAllMeasures().size());
+        Assert.assertEquals(197, reModel.getAllNamedColumns().size());
+        Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
+        Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
+        Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
+        val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                .getDataflow(reModel.getId());
+        Assert.assertEquals(0, reDataflow.getSegments().size());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, reDataflow.getStatus());
+        Assert.assertNull(reModel.getPartitionDesc());
         Assert.assertFalse(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(reModel.getId()).isBroken());
     }
