@@ -83,8 +83,8 @@
       </div>
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button plain size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>

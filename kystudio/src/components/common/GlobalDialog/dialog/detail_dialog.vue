@@ -54,11 +54,11 @@
     </el-alert>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <template v-if="dialogType === 'error'">
-        <el-button type="default" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button plain @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
       </template>
       <template v-else>
-        <el-button type="default" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="loading" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button :loading="loading" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </template>
     </div>
   </el-dialog>

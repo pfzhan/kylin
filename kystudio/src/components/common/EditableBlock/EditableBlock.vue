@@ -11,8 +11,8 @@
       <slot></slot>
     </div>
     <div class="block-foot" v-if="isEditing">
-      <el-button size="small" v-if="isReset" :loading="isResetLoading" @click="handleCancel">{{cancelText}}</el-button><el-button
-      plain size="small" type="primary" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button plain size="small" v-if="isReset" :loading="isResetLoading" @click="handleCancel">{{cancelText}}</el-button><el-button
+      size="small" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </div>
 </template>

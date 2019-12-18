@@ -17,7 +17,7 @@
         <div class="ksd_right_box">
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
-              <el-button size="small" :disabled="editableTabs.length<2" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
+              <el-button plain size="small" :disabled="editableTabs.length<2" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button><el-button
               size="small" plain="plain" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}({{savedSize}})</el-button>
             </div>
             <tab class="insight_tab" type="card" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
@@ -74,8 +74,8 @@
               </div>
             </div>
             <span slot="footer" class="dialog-footer">
-              <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-              type="primary" plain @click="resubmit" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button plain @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+               @click="resubmit" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
             </span>
           </el-dialog>
         </div>

@@ -139,8 +139,8 @@
         </span>
       </div>
       <span slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button @click="cancelAuthor" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="submitAuthor" :loading="submitLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain @click="cancelAuthor" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="submitAuthor" :loading="submitLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
     </el-dialog>
   </div>

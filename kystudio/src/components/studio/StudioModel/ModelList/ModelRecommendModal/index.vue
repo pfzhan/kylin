@@ -62,8 +62,8 @@
         </el-tabs>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button @click="closeModal()" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" :disabled="clearBtnLoading || btnLoading || !canSubmitRecom" size="medium" @click="submit">{{$t('acceptBtn')}}</el-button>
+        <el-button plain @click="closeModal()" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button :loading="btnLoading" :disabled="clearBtnLoading || btnLoading || !canSubmitRecom" size="medium" @click="submit">{{$t('acceptBtn')}}</el-button>
       </div>
   </el-dialog>
 </template>

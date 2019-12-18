@@ -14,8 +14,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="closeSaveQueryDialog">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-        type="primary" plain size="medium" :loading="isSubmit" @click="saveQuery">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain size="medium" @click="closeSaveQueryDialog">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+        size="medium" :loading="isSubmit" @click="saveQuery">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
   </div>

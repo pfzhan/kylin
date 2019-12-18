@@ -1,5 +1,5 @@
 <template>
-  <el-button-group class="change_lang">
+  <el-button-group class="switch-button-group change_lang">
     <el-button size="small" @click="changeLang('en')" :class="{'active':lang=='en'}">EN</el-button>
     <el-button size="small" @click="changeLang('zh-cn')" :class="{'active':lang=='zh-cn'}">中文</el-button>
 </el-button-group>

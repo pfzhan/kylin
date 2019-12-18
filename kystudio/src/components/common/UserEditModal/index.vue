@@ -75,8 +75,8 @@
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button><el-button
-      size="medium" plain type="primary" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
+      <el-button plain size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button><el-button
+      size="medium" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
     </div>
   </el-dialog>
 </template>

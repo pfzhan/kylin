@@ -26,14 +26,14 @@
         <el-input :rows="4" ref="detailBox" readonly type="textarea" v-show="showDetail" class="ksd-mt-10" v-model="$store.state.config.errorMsgBox.detail"></el-input>
         <div class="ksd-left">
           <el-button size="small" v-clipboard:copy="$store.state.config.errorMsgBox.detail"
-          v-clipboard:success="onCopy" v-clipboard:error="onError" type="default" v-show="showDetail" class="ksd-fleft ksd-mt-10">{{$t('kylinLang.common.copy')}}</el-button>
+          v-clipboard:success="onCopy" v-clipboard:error="onError" plain v-show="showDetail" class="ksd-fleft ksd-mt-10">{{$t('kylinLang.common.copy')}}</el-button>
           <transition name="fade">
             <div class="copy-status-msg" v-show="showCopyStatus && showDetail" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
           </transition>
         </div>
       </el-alert>    
       <div slot="footer" class="dialog-footer">
-        <el-button type="default" size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button plain size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
       </div>
     </el-dialog>
     <Modal />

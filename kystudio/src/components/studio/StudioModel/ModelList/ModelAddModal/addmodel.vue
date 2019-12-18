@@ -16,8 +16,8 @@
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button v-guide.addModelSave type="primary" plain @click="submit" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button v-guide.addModelSave @click="submit" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 </template>

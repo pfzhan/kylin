@@ -73,11 +73,11 @@
       </div>
 
       <div slot="footer" class="dialog-footer">
-        <el-button @click="loadDataSourceVisible=false;activeLoadFormIndex===-1" v-if="activeLoadFormIndex===-1">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="activeLoadFormIndex=-1" v-if="!selectedProjectDatasource && activeLoadFormIndex!==-1">{{$t('kylinLang.common.prev')}}</el-button>
-        <el-button type="primary" plain @click="nextLoadForm"  v-if="activeLoadFormIndex===-1">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button type="primary" plain @click="loadHiveList" :loading="loadHiveLoad" v-if="(currentUserCheckType==='0' || currentUserCheckType==='16'  || currentUserCheckType==='8')&& activeLoadFormIndex!==-1">{{$t('kylinLang.common.sync')}}</el-button>
-        <el-button type="primary" plain @click="checkKafkaForm" :loading="kafkaLoading" v-if="currentUserCheckType==='1' && activeLoadFormIndex!==-1">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain @click="loadDataSourceVisible=false;activeLoadFormIndex===-1" v-if="activeLoadFormIndex===-1">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button @click="activeLoadFormIndex=-1" v-if="!selectedProjectDatasource && activeLoadFormIndex!==-1">{{$t('kylinLang.common.prev')}}</el-button>
+        <el-button @click="nextLoadForm"  v-if="activeLoadFormIndex===-1">{{$t('kylinLang.common.next')}}</el-button>
+        <el-button @click="loadHiveList" :loading="loadHiveLoad" v-if="(currentUserCheckType==='0' || currentUserCheckType==='16'  || currentUserCheckType==='8')&& activeLoadFormIndex!==-1">{{$t('kylinLang.common.sync')}}</el-button>
+        <el-button @click="checkKafkaForm" :loading="kafkaLoading" v-if="currentUserCheckType==='1' && activeLoadFormIndex!==-1">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
   </div>

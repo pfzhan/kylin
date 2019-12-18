@@ -62,8 +62,8 @@
         <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" @click="setbuildModelRange" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button :loading="btnLoading" @click="setbuildModelRange" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 </template>

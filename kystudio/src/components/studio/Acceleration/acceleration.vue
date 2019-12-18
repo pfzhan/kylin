@@ -130,7 +130,7 @@
         </el-col>
       </el-row>
       <span slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="blackListVisible = false">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button plain size="medium" @click="blackListVisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </span>
     </el-dialog>
     <el-dialog
@@ -203,8 +203,8 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-        type="primary" plain @click="saveRuleSetting" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button plain @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+        @click="saveRuleSetting" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
 

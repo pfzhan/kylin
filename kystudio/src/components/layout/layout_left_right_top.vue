@@ -121,8 +121,8 @@
       <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
       <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="getLicense">{{$t('applayLisence')}}</el-button>
-        <el-button type="primary" plain @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
+        <el-button plain @click="getLicense">{{$t('applayLisence')}}</el-button>
+        <el-button @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
       </span>
     </el-dialog>
     <!-- 全局apply favorite query -->
@@ -139,8 +139,8 @@
         </el-col>
       </el-row>
       <div slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
-        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
+        <el-button plain size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
+        <el-button size="medium" @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
       </div>
     </el-dialog>
 

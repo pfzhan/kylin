@@ -7,8 +7,8 @@
     @close="isShow && closeHandler(false)">
     <!-- el-form表单 -->
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button plain size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
+      <el-button size="medium" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
     <!-- How to use? -->
 

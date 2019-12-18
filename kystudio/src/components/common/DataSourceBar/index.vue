@@ -77,7 +77,7 @@
       </el-alert>
       </div>
       <div slot="footer" class="dialog-footer">
-        <el-button size="medium" plain type="primary" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
+        <el-button size="medium" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </el-dialog> -->
     <div class="ky-drag-layout-bar" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">||</div>

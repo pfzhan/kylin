@@ -49,8 +49,8 @@
         </el-form>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="resetAccessEdit">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-        type="primary" plain size="medium" :loading="btnLoad" @click="saveAccess">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain size="medium" @click="resetAccessEdit">{{$t('kylinLang.common.cancel')}}</el-button><el-button
+         size="medium" :loading="btnLoad" @click="saveAccess">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
     </el-dialog>
     <el-table

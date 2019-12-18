@@ -8,8 +8,8 @@
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">
-          <el-button size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.query.saveQuery')}}</el-button><el-button
-          size="small" @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
+          <el-button plain size="small" @click.native="openSaveQueryDialog" :disabled="!sourceSchema">{{$t('kylinLang.query.saveQuery')}}</el-button><el-button
+          size="small" plain @click.native="resetQuery" :disabled="!sourceSchema" v-if="isWorkspace" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
         </p>
         <p class="operator" v-if="isWorkspace">
           <el-form :inline="true" class="demo-form-inline">

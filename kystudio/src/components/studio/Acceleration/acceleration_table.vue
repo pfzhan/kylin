@@ -1,13 +1,13 @@
 <template>
   <div>
     <div class="batch-btn-groups ky-no-br-space ksd-mb-10">
-      <el-button type="primary" plain @click="isShowBatch = !isShowBatch">{{batchBtn}}
+      <el-button @click="isShowBatch = !isShowBatch">{{batchBtn}}
         <i :class="{'el-icon-arrow-right': !isShowBatch, 'el-icon-arrow-left': isShowBatch}"></i>
       </el-button>
       <transition name="slide">
         <el-button-group class="ksd-btn-groups" v-if="isShowBatch">
-          <el-button icon="el-icon-ksd-table_delete" plain :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.delete')}}</el-button>
-          <el-button icon="el-icon-ksd-table_discard" plain :disabled="!checkedList.length" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
+          <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button icon="el-icon-ksd-table_discard" :disabled="!checkedList.length" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
         </el-button-group>
       </transition>
     </div>

@@ -54,8 +54,8 @@
         <el-checkbox v-model="loadData">{{$t('kylinLang.common.catchUp')}}</el-checkbox>
       </div>
       <div class="ksd-fright">
-        <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button :loading="btnLoading" size="medium" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
       </div>
     </div>
   </el-dialog>
