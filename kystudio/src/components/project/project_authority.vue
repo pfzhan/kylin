@@ -98,6 +98,7 @@
           multiple
           filterable
           remote
+          @blur="(e) => filterUser(e.target.value)"
           :placeholder="$t('kylinLang.common.pleaseInputUserName')"
           :remote-method="filterUser"
           v-if="accessMeta.principal">
@@ -107,6 +108,7 @@
             :label="item.label"
             :value="item.value">
           </el-option>
+          <div class="over-limit-tip" v-if="showLimitTips(accessMeta.principal)">{{$t('overLimitTip')}}</div>
         </el-select>
         <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select> -->
         <el-select
@@ -116,6 +118,7 @@
           multiple
           filterable
           remote
+          @blur="(e) => filterGroup(e.target.value)"
           :placeholder="$t('kylinLang.common.pleaseInputUserGroup')"
           :remote-method="filterGroup"
           v-else>
@@ -125,6 +128,7 @@
             :label="item.label"
             :value="item.value">
           </el-option>
+          <div class="over-limit-tip" v-if="showLimitTips(accessMeta.principal)">{{$t('overLimitTip')}}</div>
         </el-select>
         <el-select class="type-select" :placeholder="$t('access')" v-model="accessMeta.permission" size="medium">
           <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
@@ -187,6 +191,7 @@ import tableAccess from './table_access'
       accessTables: 'Access Tables',
       author: 'Add User / Group',
       editAuthor: 'Edit User / Group',
+      overLimitTip: 'Only the first 100 results are displayed. Please change the keywords to narrow your search.',
       selectUserOrUserGroups: 'Please select or input the user / user group name.',
       userGroups: 'User Groups',
       users: 'Users',
@@ -218,6 +223,7 @@ import tableAccess from './table_access'
       accessTables: '有权限的表',
       author: '添加用户/用户组',
       editAuthor: '编辑用户/用户组',
+      overLimitTip: '默认展示前 100 条搜索结果，请尝试修改您的关键字进行更精确的搜索',
       selectUserOrUserGroups: '请选择或者输入用户/用户组名称',
       userGroups: '用户组',
       users: '用户',
@@ -281,6 +287,8 @@ export default class ProjectAuthority extends Vue {
   accessMetas = [{permission: 1, principal: true, sids: []}]
   userList = []
   groupList = []
+  userTotalSize = 0
+  groupTotalSize = 0
   showMaskByOrder = [
     { key: 'Query', value: 1 },
     { key: 'Admin', value: 16 },
@@ -335,6 +343,9 @@ export default class ProjectAuthority extends Vue {
       return {label: u, value: u}
     })
     return result
+  }
+  showLimitTips (val) {
+    return val ? this.userTotalSize > 100 : this.groupTotalSize > 100
   }
   inputFilter () {
     clearInterval(this.filterTimer)
@@ -397,6 +408,7 @@ export default class ProjectAuthority extends Vue {
       this.loadUserOrGroup(filterUserName, 'user').then((res) => {
         handleSuccess(res, (data) => {
           this.userList = data.value
+          this.userTotalSize = data.total_size || 0
         })
       }, (res) => {
         handleError(res)
@@ -409,6 +421,7 @@ export default class ProjectAuthority extends Vue {
       this.loadUserOrGroup(filterUserName, 'group').then((res) => {
         handleSuccess(res, (data) => {
           this.groupList = data.value
+          this.groupTotalSize = data.total_size || 0
         })
       }, (res) => {
         handleError(res)
@@ -568,6 +581,13 @@ export default class ProjectAuthority extends Vue {
         margin-left: 5px;
       }
     }
+  }
+  .over-limit-tip {
+    height: 32px;
+    color: @text-normal-color;
+    line-height: 32px;
+    text-align: center;
+    font-size: 12px;
   }
   .user-access-block,
   .table-access-block {
