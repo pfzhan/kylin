@@ -5,6 +5,7 @@
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     limited-area
+    ref="batchMeasures"
     top="5vh"
     v-event-stop
     @close="isShow && handleClose(false)">
@@ -17,7 +18,7 @@
       </div>
       <div v-if="!searchChar">
         <!-- 事实表 -->
-        <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
+        <div v-for="(table, index) in factTable" class="ksd-mb-10 scroll-table-item" :key="index">
           <div @click="toggleTableShow(table)" class="table-header">
             <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
             <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
@@ -56,7 +57,7 @@
           </el-table>
         </div>
         <!-- 维度表 -->
-        <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
+        <div v-for="(table, index) in lookupTable" class="ksd-mb-10 scroll-table-item" :key="index">
           <div @click="toggleTableShow(table)" class="table-header">
             <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
             <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
@@ -96,7 +97,7 @@
         </div>
         <!-- 可计算列 -->
         <template v-if="ccTable.columns.length">
-          <div class="ksd-mb-10" v-for="ccTable in [ccTable]" :key="ccTable.guid">
+          <div class="ksd-mb-10 scroll-table-item" v-for="ccTable in [ccTable]" :key="ccTable.guid">
             <div @click="toggleTableShow(ccTable)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
@@ -227,6 +228,10 @@ export default class BatchMeasureModal extends Vue {
     pageSize: pageCount
   }
   isShowSearchTable = false
+  scrollDom = null
+  tableHeaderTops = []
+  scrollTableList = []
+  targetFixedTable = null
   submit () {
     let allMeasureArr = []
     let columns = []
@@ -327,7 +332,11 @@ export default class BatchMeasureModal extends Vue {
         this.handleClose(false)
       }
       this.getRenderMeasureData()
+      this.$nextTick(() => {
+        this.listenEvent()
+      })
     } else {
+      this.scrollDom && this.scrollDom.removeEventListener('scroll', this.addScrollEvent)
       setTimeout(() => {
         this.isFormShow = false
       }, 200)
@@ -479,6 +488,9 @@ export default class BatchMeasureModal extends Vue {
   }
   toggleTableShow (table) {
     table.show = !table.show
+    this.$nextTick(() => {
+      this.getTableTops()
+    })
   }
   handleChange (row, table, property) {
     if (!(row.SUM.isShouldDisable && row.MIN.isShouldDisable && row.MAX.isShouldDisable && row.COUNT.isShouldDisable)) {
@@ -539,6 +551,48 @@ export default class BatchMeasureModal extends Vue {
         onChange={ toggleAllMeasures }
         value={ column.isAllSelected }></el-checkbox> <span>{ column.property }({column.totalNums}/{len})</span>
     </span>)
+  }
+  getTableTops () {
+    this.scrollTableList = this.$el.querySelectorAll('.scroll-table-item')
+    this.tableHeaderTops = []
+    if (this.scrollTableList.length) {
+      for (let item of this.scrollTableList) {
+        this.tableHeaderTops.push(item.offsetTop)
+      }
+    }
+  }
+  listenEvent () {
+    if (!this.$refs.batchMeasures.$el.children.length) return
+    for (let item of this.$refs.batchMeasures.$el.children[0].children) {
+      item.classList.value.indexOf('el-dialog__body') > -1 && (item.addEventListener('scroll', this.addScrollEvent), this.scrollDom = item)
+    }
+    this.getTableTops()
+  }
+  addScrollEvent (e) {
+    try {
+      const top = e.target.scrollTop
+      const list = this.tableHeaderTops.filter(it => it < top)
+
+      if (this.scrollTableList.length) {
+        if (!list.length) {
+          this.targetFixedTable && this.targetFixedTable.length && (this.targetFixedTable[0].style.cssText = '', this.targetFixedTable = null)
+          return
+        }
+        const scrollTable = document.querySelectorAll('.scroll-table-item')
+        this.scrollTableList.forEach((item, index) => {
+          const target = scrollTable[index].getElementsByClassName('el-table__header-wrapper')
+
+          if (index === list.length - 1) {
+            this.targetFixedTable = target
+            target.length && (target[0].style.cssText = 'position:fixed;top:calc(5vh + 47px);z-index:10;')
+          } else {
+            target.length && (target[0].style.cssText = '')
+          }
+        })
+      }
+    } catch (e) {
+      console.error(e)
+    }
   }
 }
 </script>
