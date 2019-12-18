@@ -31,9 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -63,8 +60,11 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
@@ -953,4 +953,19 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         return model;
     }
+
+    @Test
+    public void testIsFilterConditonNotChange() {
+        Assert.assertTrue(semanticService.isFilterConditonNotChange(null, null));
+        Assert.assertTrue(semanticService.isFilterConditonNotChange("", null));
+        Assert.assertTrue(semanticService.isFilterConditonNotChange(null, "    "));
+        Assert.assertTrue(semanticService.isFilterConditonNotChange("  ", ""));
+        Assert.assertTrue(semanticService.isFilterConditonNotChange("", "         "));
+        Assert.assertTrue(semanticService.isFilterConditonNotChange("A=8", " A=8   "));
+
+        Assert.assertFalse(semanticService.isFilterConditonNotChange(null, "null"));
+        Assert.assertFalse(semanticService.isFilterConditonNotChange("", "null"));
+        Assert.assertFalse(semanticService.isFilterConditonNotChange("A=8", "A=9"));
+    }
+
 }

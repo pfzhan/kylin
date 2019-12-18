@@ -36,7 +36,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -60,6 +59,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -335,13 +335,18 @@ public class ModelSemanticHelper extends BasicService {
         }
     }
 
+    public boolean isFilterConditonNotChange(String oldFilterCondition, String newFilterCondition) {
+        oldFilterCondition = oldFilterCondition == null ? "" : oldFilterCondition;
+        newFilterCondition = newFilterCondition == null ? "" : newFilterCondition;
+        return StringUtils.trim(oldFilterCondition).equals(StringUtils.trim(newFilterCondition));
+    }
+
     // if partitionDesc, mpCol, joinTable, FilterCondition changed, we need reload data from datasource
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
                 || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables())
-                || !Objects.equals(StringUtils.trim(originModel.getFilterCondition()),
-                        StringUtils.trim(newModel.getFilterCondition()));
+                || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition());
     }
 
     private IndexPlan handleMeasuresChanged(IndexPlan indexPlan, Set<Integer> measures,
