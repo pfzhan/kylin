@@ -148,7 +148,9 @@ public class MetadataTool extends ExecutableApplication {
                 tool.execute(args);
                 return 0;
             }
-            boolean isBackup = tool.isBackupOption();
+            val optionsHelper = new OptionsHelper();
+            optionsHelper.parseOptions(tool.getOptions(), args);
+            boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
             if (!isBackup) {
                 log.warn("Fail to restore, please stop all job nodes first");
                 return 1;
@@ -156,12 +158,13 @@ public class MetadataTool extends ExecutableApplication {
             log.info(
                     "found a job node running, backup will be delegated to it at server: {}, this may be a remote server.",
                     address);
-            val ret = tool.remoteBackup(address);
+            val ret = tool.remoteBackup(address, optionsHelper.getOptionValue(OPTION_DIR),
+                    optionsHelper.getOptionValue(OPTION_PROJECT), optionsHelper.hasOption(OPERATE_COMPRESS));
             if ("000".equals(ret.get("code"))) {
-                log.info("backup successfully at {}", tool.getOptions().getOption(OPTION_DIR.getOpt()).getValue());
+                log.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
                 return 0;
             } else {
-                log.error("backup failed");
+                log.error("backup failed, response is {}", ret);
                 return 1;
             }
         });
@@ -294,18 +297,13 @@ public class MetadataTool extends ExecutableApplication {
         log.info("backup successfully at {}", path);
     }
 
-    private Map remoteBackup(String address) throws Exception {
+    private Map remoteBackup(String address, String backupPath, String project, boolean compress) throws Exception {
         val restTemplate = new RestTemplate();
-        val options = getOptions();
 
         Map<String, String> map = new HashMap<>();
-        map.put("backup_path", options.getOption(MetadataTool.OPTION_DIR.getOpt()).getValue());
-        if (options.hasOption(MetadataTool.OPTION_PROJECT.getOpt())) {
-            map.put("project", options.getOption(MetadataTool.OPTION_PROJECT.getOpt()).getValue());
-        }
-        if (options.hasOption(MetadataTool.OPERATE_COMPRESS.getOpt())) {
-            map.put("compress", "true");
-        }
+        map.put("backup_path", backupPath);
+        map.put("project", project);
+        map.put("compress", compress + "");
         ObjectMapper objectMapper = new ObjectMapper();
         byte[] body = objectMapper.writeValueAsBytes(map);
 
@@ -432,10 +430,6 @@ public class MetadataTool extends ExecutableApplication {
             return StringUtils.appendIfMissing(rootPath, "/");
 
         }
-    }
-
-    private boolean isBackupOption() {
-        return getOptions().hasOption(OPERATE_BACKUP.getOpt());
     }
 
 }
