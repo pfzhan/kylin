@@ -179,11 +179,32 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
             return DataTypes.DateType;
 
         if (type.isIntegerFamily())
-            return DataTypes.LongType;
+            switch (type.getName()) {
+                case "tinyint":
+                    return DataTypes.ByteType;
+                case "smallint":
+                    return DataTypes.ShortType;
+                case "integer":
+                case "int4":
+                    return DataTypes.IntegerType;
+                default:
+                    return DataTypes.LongType;
+            }
 
         if (type.isNumberFamily())
-            return DataTypes.createDecimalType(19, 4);
-
+            switch (type.getName()) {
+                case "float":
+                    return DataTypes.FloatType;
+                case "double":
+                    return DataTypes.DoubleType;
+                default:
+                    if (type.getPrecision() == -1 || type.getScale() == -1) {
+                        return DataTypes.createDecimalType(19, 4);
+                    } else {
+                        return DataTypes.createDecimalType(type.getPrecision(), type.getScale());
+                    }
+            }
+        
         if (type.isStringFamily())
             return DataTypes.StringType;
 
