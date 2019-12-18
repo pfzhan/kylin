@@ -171,6 +171,13 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
+    public void testCCWithSelectStar() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty("kap.query.expose-computed-column", "TRUE");
+        new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1).execute();
+        new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4).execute();
+    }
+
+    @Test
     public void testEscapeParentheses() throws Exception {
         overwriteSystemProp("kylin.query.transformers",
                 "io.kyligence.kap.query.util.CognosParenthesesEscapeTransformer, io.kyligence.kap.query.util.ConvertToComputedColumn, org.apache.kylin.query.util.DefaultQueryTransformer, io.kyligence.kap.query.util.EscapeTransformer, org.apache.kylin.query.util.KeywordDefaultDirtyHack");

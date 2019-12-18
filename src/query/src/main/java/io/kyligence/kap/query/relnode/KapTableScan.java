@@ -243,7 +243,12 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         if (needCollectionColumns(olapContextImplementor.getParentNodeStack())) {
             // OLAPToEnumerableConverter on top of table scan, should be a select * from table
             for (TblColRef tblColRef : columnRowType.getAllColumns()) {
-                if (!tblColRef.getName().startsWith("_KY_") && !tblColRef.getColumnDesc().isComputedColumn()) {
+                // do not include
+                // 1. col with _KY_
+                // 2. CC col when exposeComputedColumn config is set to false
+                if (!tblColRef.getName().startsWith("_KY_") &&
+                        !(tblColRef.getColumnDesc().isComputedColumn() && !KapConfig.getInstanceFromEnv().exposeComputedColumn())
+                        ) {
                     context.allColumns.add(tblColRef);
                 }
             }

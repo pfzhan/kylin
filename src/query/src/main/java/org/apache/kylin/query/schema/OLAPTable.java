@@ -71,6 +71,7 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -168,10 +169,11 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         for (ColumnDesc column : sourceColumns) {
             RelDataType sqlType = createSqlType(typeFactory, column.getUpgradedType(), column.isNullable());
             sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, typeFactory);
-            fieldInfo.add(
-                    column.isComputedColumn() ? ComputedColumnDesc.getInternalCcName(column.getName())
-                            : column.getName(),
-                    sqlType);
+            if (column.isComputedColumn() && !KapConfig.getInstanceFromEnv().exposeComputedColumn()) {
+                fieldInfo.add(ComputedColumnDesc.getInternalCcName(column.getName()), sqlType);
+            } else {
+                fieldInfo.add(column.getName(), sqlType);
+            }
         }
         return typeFactory.createStructType(fieldInfo);
     }

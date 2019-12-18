@@ -168,6 +168,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         final JsonNode data = jsonNode.get("data");
-        Assert.assertTrue(!data.toString().contains(ComputedColumnDesc.CC_PREFIX));
+        Assert.assertTrue(!data.toString().contains(ComputedColumnDesc.getComputedColumnInternalNamePrefix()));
     }
 }

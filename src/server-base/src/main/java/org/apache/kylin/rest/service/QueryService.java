@@ -755,7 +755,7 @@ public class QueryService extends BasicService {
 
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
                         && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")
-                        && !colmnMeta.getCOLUMN_NAME().startsWith(ComputedColumnDesc.CC_PREFIX)) {
+                        && !ComputedColumnDesc.isComputedColumnName(colmnMeta.getCOLUMN_NAME())) {
                     tableMap.get(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME()).addColumn(colmnMeta);
                 }
             }
@@ -872,7 +872,7 @@ public class QueryService extends BasicService {
 
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
                         && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")
-                        && !colmnMeta.getCOLUMN_NAME().startsWith(ComputedColumnDesc.CC_PREFIX)) {
+                        && !ComputedColumnDesc.isComputedColumnName(colmnMeta.getCOLUMN_NAME())) {
                     columnMap.put(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME() + "#"
                             + colmnMeta.getCOLUMN_NAME(), colmnMeta);
                 }

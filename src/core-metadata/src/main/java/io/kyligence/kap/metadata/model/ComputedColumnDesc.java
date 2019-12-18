@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.EqualsAndHashCode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
@@ -57,7 +58,7 @@ import lombok.Data;
 public class ComputedColumnDesc implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnDesc.class);
 
-    public static final String CC_PREFIX = "_CC_";
+    private static final String CC_PREFIX = "_CC_";
 
     // the table identity DB.TABLE (ignoring alias) in the model where the computed column belong to
     // this field is more useful for frontend, for backend code, usage should be avoided
@@ -122,6 +123,21 @@ public class ComputedColumnDesc implements Serializable {
                 }
             }
         }
+    }
+
+    @VisibleForTesting
+    public static String getComputedColumnInternalNamePrefix() {
+        return CC_PREFIX;
+    }
+
+    /**
+     * check if a column name starts with "_CC_"
+     * note that this checking is only valid with config 'kap.query.expose-computed-column=false'
+     * @param columnName
+     * @return
+     */
+    public static boolean isComputedColumnName(String columnName) {
+        return columnName.startsWith(CC_PREFIX);
     }
 
     public static String getOriginCcName(String ccNameWithPrefix) {
