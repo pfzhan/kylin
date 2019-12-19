@@ -369,8 +369,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRefreshSegmentsById() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
-        Mockito.doNothing().when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                request.getIds());
+        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default", request.getIds());
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -415,8 +415,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testRefreshSegmentsByIdException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setIds(null);
-        Mockito.doNothing().when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                request.getIds());
+        Mockito.doAnswer(x -> null).when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default", request.getIds());
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -530,7 +530,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("0");
         request.setEnd("100");
-        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
+        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -546,7 +546,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("100");
         request.setEnd("1");
-        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "100", "1");
+        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "100", "1");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -562,7 +562,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("-1");
         request.setEnd("1");
-        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "-1", "1");
+        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "-1", "1");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -602,7 +602,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testBuildIndex() throws Exception {
         BuildIndexRequest request = new BuildIndexRequest();
         request.setProject("default");
-        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
+        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/indices", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

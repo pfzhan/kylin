@@ -29,6 +29,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -557,13 +558,13 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
     @PostMapping(value = "/{model:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> buildSegmentsManually(@PathVariable("model") String modelId,
+    public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId, buildSegmentsRequest.getStart(),
-                buildSegmentsRequest.getEnd());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
+                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @ApiOperation(value = "checkComputedColumns (check)", notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")

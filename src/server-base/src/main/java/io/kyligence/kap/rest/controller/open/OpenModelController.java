@@ -51,6 +51,7 @@ import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
@@ -85,6 +86,9 @@ public class OpenModelController extends NBasicController {
 
     @VisibleForTesting
     public NDataModelResponse getModel(String modelName, String project) {
+        if (modelService.getProjectManager().getProject(project) == null) {
+            throw new BadRequestException(String.format("Can not find the project : %s!", project));
+        }
         List<NDataModelResponse> responses = modelService.getModels(modelName, project, true, null, null, "last_modify",
                 true);
         if (CollectionUtils.isEmpty(responses)) {
@@ -112,7 +116,7 @@ public class OpenModelController extends NBasicController {
 
     @PostMapping(value = "/{model_name:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> buildSegmentsManually(@PathVariable("model_name") String modelName,
+    public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelName,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         NDataModel nDataModel = getModel(modelName, buildSegmentsRequest.getProject());
@@ -120,7 +124,6 @@ public class OpenModelController extends NBasicController {
             buildSegmentsRequest.setStart(null);
             buildSegmentsRequest.setEnd(null);
         }
-
         return modelController.buildSegmentsManually(nDataModel.getId(), buildSegmentsRequest);
     }
 

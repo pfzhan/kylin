@@ -145,6 +145,7 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NCubeDescResponse;
@@ -1375,7 +1376,8 @@ public class ModelService extends BasicService {
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
     }
 
-    public void buildSegmentsManually(String project, String modelId, String start, String end) throws Exception {
+    public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end)
+            throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
@@ -1383,16 +1385,18 @@ public class ModelService extends BasicService {
                     "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
         }
         val indexPlan = getIndexPlan(modelId, project);
-        if (indexPlan == null) {
+        if (indexPlan == null || indexPlan.getAllIndexes().size() == 0) {
             throw new BadRequestException(
                     "Can not build segments, please define table index or aggregate index first!");
         }
         String format = probeDateFormatIfNotExist(project, modelDesc);
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        List<String> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
             NDataModel modelDescInTransaction = getDataModelManager(project).getDataModelDesc(modelId);
             SegmentRange segmentRangeToBuild;
 
             TableDesc table = getTableManager(project).getTableDesc(modelDescInTransaction.getRootFactTableName());
+
+            EventManager eventManager = getEventManager(project);
 
             val df = getDataflowManager(project).getDataflow(modelId);
 
@@ -1401,9 +1405,8 @@ public class ModelService extends BasicService {
                 //if full seg exists,refresh it
                 val segs = df.getSegments(SegmentStatusEnum.READY);
                 if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
-                    refreshSegmentById(modelId, project,
+                    return refreshSegmentById(modelId, project,
                             Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
-                    return null;
                 }
                 //build Full seg
                 segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
@@ -1418,12 +1421,12 @@ public class ModelService extends BasicService {
 
             NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
 
-            EventManager eventManager = getEventManager(project);
-
-            eventManager.postAddSegmentEvents(newSegment, modelId, getUsername());
-            eventManager.postAddCuboidEvents(modelId, getUsername());
-            return null;
+            return Arrays.asList(eventManager.postAddSegmentEvents(newSegment, modelId, getUsername()),
+                    eventManager.postAddCuboidEvents(modelId, getUsername()));
         }, project);
+        JobInfoResponse jobInfoResponse = new JobInfoResponse();
+        jobInfoResponse.setJobIds(jobIds);
+        return jobInfoResponse;
     }
 
     void syncPartitionDesc(String model, String project) {
@@ -1719,8 +1722,9 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void refreshSegmentById(String modelId, String project, String[] ids) {
+    public List<String> refreshSegmentById(String modelId, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
+        List<String> jobIds = new ArrayList<>();
         NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
@@ -1752,7 +1756,9 @@ public class ModelService extends BasicService {
             event2.setJobId(event.getJobId());
             eventManager.post(event2);
 
+            jobIds.add(event.getJobId());
         }
+        return jobIds;
     }
 
     @Transaction(project = 0)

@@ -23,15 +23,13 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.v2.NCubesControllerV2;
-import io.kyligence.kap.rest.request.CubeRebuildRequest;
-import io.kyligence.kap.rest.request.SegmentMgmtRequest;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.service.ModelService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static org.mockito.ArgumentMatchers.eq;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
@@ -51,12 +49,16 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
-import static org.mockito.ArgumentMatchers.eq;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.controller.v2.NCubesControllerV2;
+import io.kyligence.kap.rest.request.CubeRebuildRequest;
+import io.kyligence.kap.rest.request.SegmentMgmtRequest;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.service.ModelService;
 
 public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
@@ -74,8 +76,8 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(nCubesControllerV2)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nCubesControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -144,9 +146,9 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     public void testGetCube() throws Exception {
         Mockito.when(modelService.getCube("model1", "default")).thenReturn(mockModels().get(0));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/cubes/{cubeName}", "model1")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+        mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/cubes/{cubeName}", "model1").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nCubesControllerV2).getCube("model1", "default");
     }
@@ -156,7 +158,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
         String startTime = String.valueOf(0L);
         String endTime = String.valueOf(Long.MAX_VALUE - 1);
-        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "model1", startTime, endTime);
+        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "model1", startTime, endTime);
 
         CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
         rebuildRequest.setBuildType("BUILD");
