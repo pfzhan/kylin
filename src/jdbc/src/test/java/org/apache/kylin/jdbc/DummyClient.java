@@ -49,20 +49,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.calcite.avatica.AvaticaParameter;
-import org.apache.calcite.avatica.ColumnMetaData;
-import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.kylin.jdbc.KylinMeta.KMetaCatalog;
 import org.apache.kylin.jdbc.KylinMeta.KMetaColumn;
 import org.apache.kylin.jdbc.KylinMeta.KMetaProject;
 import org.apache.kylin.jdbc.KylinMeta.KMetaSchema;
 import org.apache.kylin.jdbc.KylinMeta.KMetaTable;
+import org.apache.kylin.jdbc.json.SQLResponseStub;
+import org.apache.kylin.jdbc.json.StatementParameter;
 
 /**
  */
-public class DummyClient implements IRemoteClient {
+public class DummyClient extends KylinClient {
 
     public DummyClient(KylinConnection conn) {
+        super(conn);
     }
 
     @Override
@@ -89,17 +89,62 @@ public class DummyClient implements IRemoteClient {
     }
 
     @Override
-    public QueryResult executeQuery(String sql, List<AvaticaParameter> params, List<Object> paramValues, Map<String, String> queryToggles) throws IOException {
-        List<Object> data = new ArrayList<Object>();
-        Object[] row = new Object[] { "foo", "bar", "tool" };
+    public SQLResponseStub executeKylinQuery(String sql, List<StatementParameter> params,
+                                             Map<String, String> queryToggles) throws IOException {
+        SQLResponseStub sqlResponseStub = new SQLResponseStub();
+
+        List<SQLResponseStub.ColumnMetaStub> meta = new ArrayList<>();
+        SQLResponseStub.ColumnMetaStub column1 = new SQLResponseStub.ColumnMetaStub();
+        column1.setColumnType(Types.VARCHAR);
+        column1.setColumnTypeName("varchar");
+        column1.setIsNullable(1);
+        meta.add(column1);
+
+        SQLResponseStub.ColumnMetaStub column2 = new SQLResponseStub.ColumnMetaStub();
+        column2.setColumnType(Types.VARCHAR);
+        column2.setColumnTypeName("varchar");
+        column2.setIsNullable(1);
+        meta.add(column2);
+
+        SQLResponseStub.ColumnMetaStub column3 = new SQLResponseStub.ColumnMetaStub();
+        column3.setColumnType(Types.VARCHAR);
+        column3.setColumnTypeName("varchar");
+        column3.setIsNullable(1);
+        meta.add(column3);
+
+        SQLResponseStub.ColumnMetaStub column4 = new SQLResponseStub.ColumnMetaStub();
+        column4.setColumnType(Types.DATE);
+        column4.setColumnTypeName("date");
+        column4.setIsNullable(1);
+        meta.add(column4);
+
+        SQLResponseStub.ColumnMetaStub column5 = new SQLResponseStub.ColumnMetaStub();
+        column5.setColumnType(Types.TIME);
+        column5.setColumnTypeName("time");
+        column5.setIsNullable(1);
+        meta.add(column5);
+
+        SQLResponseStub.ColumnMetaStub column6 = new SQLResponseStub.ColumnMetaStub();
+        column6.setColumnType(Types.TIMESTAMP);
+        column6.setColumnTypeName("timestamp");
+        column6.setIsNullable(1);
+        meta.add(column6);
+
+        sqlResponseStub.setColumnMetas(meta);
+
+        List<String[]> data = new ArrayList<String[]>();
+
+        String[] row = new String[] { "foo", "bar", "tool", "2019-04-27", "17:30:03.03", "2019-04-27 17:30:03.03" };
         data.add(row);
 
-        List<ColumnMetaData> meta = new ArrayList<ColumnMetaData>();
-        meta.add(ColumnMetaData.dummy(ColumnMetaData.scalar(Types.VARCHAR, "varchar", Rep.STRING), true));
-        meta.add(ColumnMetaData.dummy(ColumnMetaData.scalar(Types.VARCHAR, "varchar", Rep.STRING), true));
-        meta.add(ColumnMetaData.dummy(ColumnMetaData.scalar(Types.VARCHAR, "varchar", Rep.STRING), true));
+        sqlResponseStub.setResults(data);
 
-        return new QueryResult(meta, data);
+        return sqlResponseStub;
+    }
+
+    @Override
+    public String getTimeZoneFromKylin() {
+        return "America/New_York";
     }
 
     @Override

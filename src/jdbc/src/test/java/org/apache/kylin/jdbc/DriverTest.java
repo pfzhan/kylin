@@ -51,7 +51,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import org.apache.calcite.avatica.DriverVersion;
 import org.junit.Assert;
@@ -272,5 +274,42 @@ public class DriverTest {
                     + metadata.getTableName(i + 1);
             System.out.println(metaStr);
         }
+    }
+
+    @Test
+    public void testDateAndTimeStampWithMockData() throws Exception {
+        Driver driver = new DummyDriver();
+
+        Connection conn = driver.connect("jdbc:kylin://test_url/test_db", null);
+        PreparedStatement state = conn.prepareStatement("select * from test_table where id=?");
+        state.setInt(1, 10);
+        ResultSet resultSet = state.executeQuery();
+
+        ResultSetMetaData metadata = resultSet.getMetaData();
+        assertEquals("date", metadata.getColumnTypeName(4));
+        assertEquals("time", metadata.getColumnTypeName(5));
+        assertEquals("timestamp", metadata.getColumnTypeName(6));
+
+        while (resultSet.next()) {
+            assertEquals(timeZoneConverter("2019-04-27", "yyyy-MM-dd"), resultSet.getString(4));
+            assertEquals(timeZoneConverter("2019-04-27", "yyyy-MM-dd"), resultSet.getDate(4).toString());
+            assertEquals(timeZoneConverter("17:30:03", "HH:mm:ss"), resultSet.getString(5));
+            assertEquals(timeZoneConverter("17:30:03", "HH:mm:ss"), resultSet.getTime(5).toString());
+            assertEquals(timeZoneConverter("2019-04-27 17:30:03", "yyyy-MM-dd HH:mm:ss"), resultSet.getString(6));
+            assertEquals(timeZoneConverter("2019-04-27 17:30:03.0", "yyyy-MM-dd HH:mm:ss.S"), resultSet.getTimestamp(6).toString());
+        }
+
+        resultSet.close();
+        state.close();
+        conn.close();
+    }
+
+    private String timeZoneConverter(String datetime, String pattern) throws Exception {
+        SimpleDateFormat formatter = new SimpleDateFormat(pattern);
+        formatter.setTimeZone(TimeZone.getTimeZone("America/New_York"));
+
+        long timestamp = formatter.parse(datetime).getTime();
+        formatter.setTimeZone(TimeZone.getDefault());
+        return formatter.format(timestamp);
     }
 }

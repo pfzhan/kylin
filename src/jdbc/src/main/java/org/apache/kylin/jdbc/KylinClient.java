@@ -51,11 +51,15 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -93,6 +97,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class KylinClient implements IRemoteClient {
 
     private static final Logger logger = LoggerFactory.getLogger(KylinClient.class);
+    private static final String APPLICATION = "application/json";
+    private static String timeZone;
 
     private final KylinConnection conn;
     private final Properties connProps;
@@ -179,7 +185,7 @@ public class KylinClient implements IRemoteClient {
         return result;
     }
 
-    public static Object wrapObject(String value, int sqlType) {
+    private static Object wrapObject(String value, int sqlType) {
         if (null == value) {
             return null;
         }
@@ -213,11 +219,11 @@ public class KylinClient implements IRemoteClient {
         case Types.LONGVARBINARY:
             return value.getBytes();
         case Types.DATE:
-            return Date.valueOf(value);
+            return dateConverter(value);
         case Types.TIME:
-            return Time.valueOf(value);
+            return timeConverter(value);
         case Types.TIMESTAMP:
-            return Timestamp.valueOf(value);
+            return timestampConverter(value);
         default:
             //do nothing
             break;
@@ -225,6 +231,41 @@ public class KylinClient implements IRemoteClient {
         }
 
         return value;
+    }
+
+    private static Timestamp timestampConverter(String value) {
+        try {
+            return new Timestamp(parseDateTime(value, "yyyy-MM-dd HH:mm:ss"));
+        } catch (ParseException ex) {
+            logger.error("parse timestamp failed!", ex);
+            return null;
+        }
+    }
+
+    private static Date dateConverter(String value) {
+        try {
+            return new Date(parseDateTime(value, "yyyy-MM-dd"));
+        } catch (ParseException ex) {
+            logger.error("parse date failed!", ex);
+            return null;
+        }
+    }
+
+    private static Time timeConverter(String value) {
+        try {
+            return new Time(parseDateTime(value, "HH:mm:ss"));
+        } catch (ParseException ex) {
+            logger.error("parse time failed!", ex);
+            return null;
+        }
+    }
+
+    private static long parseDateTime(String value, String format) throws ParseException {
+        SimpleDateFormat formatter = new SimpleDateFormat(format);
+        formatter.setTimeZone(TimeZone.getTimeZone(timeZone));
+
+        long timestamp = formatter.parse(value).getTime();
+        return timestamp + TimeZone.getDefault().getOffset(timestamp);
     }
 
     private boolean isSSL() {
@@ -237,7 +278,7 @@ public class KylinClient implements IRemoteClient {
 
     private void addHttpHeaders(HttpRequestBase method) {
         method.addHeader("Accept", "application/json, text/plain, */*");
-        method.addHeader("Content-Type", "application/json");
+        method.addHeader("Content-Type", APPLICATION);
         method.addHeader("User-Agent", "KylinJDBCDriver");
 
         String username = connProps.getProperty("user");
@@ -250,7 +291,7 @@ public class KylinClient implements IRemoteClient {
     public void connect() throws IOException {
         HttpPost post = new HttpPost(baseUrl() + "/kylin/api/user/authentication");
         addHttpHeaders(post);
-        StringEntity requestEntity = new StringEntity("{}", ContentType.create("application/json", "UTF-8"));
+        StringEntity requestEntity = new StringEntity("{}", ContentType.create(APPLICATION, "UTF-8"));
         post.setEntity(requestEntity);
 
         try {
@@ -362,6 +403,8 @@ public class KylinClient implements IRemoteClient {
         if (queryResp.getIsException())
             throw new IOException(queryResp.getExceptionMessage());
 
+        timeZone = getTimeZoneFromKylin();
+
         List<ColumnMetaData> metas = convertColumnMeta(queryResp);
         List<Object> data = convertResultData(queryResp, metas);
 
@@ -381,7 +424,7 @@ public class KylinClient implements IRemoteClient {
         return result;
     }
 
-    private SQLResponseStub executeKylinQuery(String sql, List<StatementParameter> params,
+    public SQLResponseStub executeKylinQuery(String sql, List<StatementParameter> params,
             Map<String, String> queryToggles) throws IOException {
         String url = baseUrl() + "/kylin/api/query";
         String project = conn.getProject();
@@ -399,7 +442,7 @@ public class KylinClient implements IRemoteClient {
 
         String postBody = jsonMapper.writeValueAsString(request);
         logger.debug("Post body:\n " + postBody);
-        StringEntity requestEntity = new StringEntity(postBody, ContentType.create("application/json", "UTF-8"));
+        StringEntity requestEntity = new StringEntity(postBody, ContentType.create(APPLICATION, "UTF-8"));
         post.setEntity(requestEntity);
 
         HttpResponse response = httpClient.execute(post);
@@ -411,6 +454,21 @@ public class KylinClient implements IRemoteClient {
         SQLResponseStub stub = jsonMapper.readValue(response.getEntity().getContent(), SQLResponseStub.class);
         post.releaseConnection();
         return stub;
+    }
+
+    public String getTimeZoneFromKylin() throws IOException {
+        String url = baseUrl() + "/kylin/api/admin/instance_info";
+        HttpGet get = new HttpGet(url);
+        addHttpHeaders(get);
+
+        HttpResponse response = httpClient.execute(get);
+
+        if (response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 201) {
+            throw asIOException(get, response);
+        }
+
+        Map<String, Map> data = jsonMapper.readValue(response.getEntity().getContent(), HashMap.class);
+        return (String) data.get("data").get("instance.timezone");
     }
 
     private List<ColumnMetaData> convertColumnMeta(SQLResponseStub queryResp) {
@@ -455,5 +513,6 @@ public class KylinClient implements IRemoteClient {
 
     @Override
     public void close() throws IOException {
+        // Do nothing
     }
 }
