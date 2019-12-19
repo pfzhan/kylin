@@ -19,148 +19,30 @@
           <div v-show="!searchChar">
             <!-- 事实表 -->
             <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
-              <div @click="toggleTableShow(table)" class="table-header">
-                <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
-                <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
-                <span class="ksd-ml-2">
-                  <i class="el-icon-ksd-fact_table"></i>
-                </span>
-                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
-              </div>
-              <el-table
-                v-if="table.show || isGuideMode"
-                border
-                :data="table.columns"
-                @row-click="(row) => {rowClick(row, table.guid)}"
-                :ref="table.guid"
-                :row-class-name="(para) => tableRowClassName(para, table)"
-                @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
-                @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
-                <el-table-column
-                  type="selection"
-                  width="44">
-                </el-table-column>
-                <el-table-column
-                  :label="$t('name')">
-                  <template slot-scope="scope">
-                    <div @click.stop>
-                      <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
-                      </el-input>
-                      <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
-                      <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column
-                  show-overflow-tooltip
-                  prop="name"
-                  :label="$t('column')">
-                </el-table-column>
-                <el-table-column
-                  prop="datatype"
-                  show-overflow-tooltip
-                  :label="$t('datatype')"
-                  width="110">
-                </el-table-column>
-                <el-table-column
-                  header-align="right"
-                  align="right"
-                  show-overflow-tooltip
-                  prop="cardinality"
-                  :label="$t('cardinality')"
-                  width="100">
-                </el-table-column>
-                <el-table-column
-                  prop="comment"
-                  :label="$t('comment')">
-                </el-table-column>
-              </el-table>
-            </div>
-            <!-- 维度表 -->
-            <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
-              <div @click="toggleTableShow(table)" class="table-header">
-                <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
-                <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
-                <span class="ksd-ml-2">
-                  <i class="el-icon-ksd-lookup_table"></i>
-                </span>
-                <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
-              </div>
-              <el-table
-                v-if="table.show || isGuideMode"
-                border
-                :row-class-name="(para) => tableRowClassName(para, table)"
-                :data="table.columns" :ref="table.guid"
-                @row-click="(row) => {rowClick(row, table.guid)}"
-                @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
-                @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
-                <el-table-column
-                  type="selection"
-                  align="center"
-                  width="44">
-                </el-table-column>
-                <el-table-column
-                  :label="$t('name')">
-                  <template slot-scope="scope">
-                    <div @click.stop>
-                      <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
-                      </el-input>
-                      <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
-                      <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
-                    </div>
-                  </template>
-                </el-table-column>
-                <el-table-column
-                  show-overflow-tooltip
-                  prop="name"
-                  :label="$t('column')">
-                </el-table-column>
-                <el-table-column
-                  show-overflow-tooltip
-                  :label="$t('datatype')"
-                  prop="datatype"
-                  width="110">
-                </el-table-column>
-                <el-table-column
-                  prop="cardinality"
-                  show-overflow-tooltip
-                  :label="$t('cardinality')"
-                  width="100">
-                </el-table-column>
-                <el-table-column
-                :label="$t('comment')">
-                </el-table-column>
-              </el-table>
-            </div>
-            <!-- 可计算列 -->
-            <template v-if="ccTable.columns.length">
-              <div class="ksd-mb-10" v-for="ccTable in [ccTable]" :key="ccTable.guid">
-                <div @click="toggleTableShow(ccTable)" class="table-header">
-                  <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
+              <div :class="{'error-content-tip': filterErrorContent(table)}">
+                <div @click="toggleTableShow(table)" class="table-header">
+                  <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
                   <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                  <el-checkbox v-model="ccTable.checkedAll" :indeterminate="ccTable.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, ccTable.guid)}"></el-checkbox>
+                  <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
                   <span class="ksd-ml-2">
-                    <i class="el-icon-ksd-auto_computed_column"></i>
+                    <i class="el-icon-ksd-fact_table"></i>
                   </span>
-                  <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}}/{{ccTable.columns.length}})</span></span>
+                  <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
                 </div>
                 <el-table
-                  v-if="ccTable.show || isGuideMode"
+                  v-if="table.show || isGuideMode"
                   border
-                  :row-class-name="(para) => tableRowClassName(para, ccTable)"
-                  :data="ccTable.columns" :ref="ccTable.guid"
-                  @row-click="(row) => {rowClick(row, ccTable.guid)}"
-                  @select-all="(selection) => {selectionAllChange(selection, ccTable.guid)}"
-                  @select="(selection, row) => {selectionChange(selection, row, ccTable.guid)}">
+                  :data="table.columns"
+                  @row-click="(row) => {rowClick(row, table.guid)}"
+                  :ref="table.guid"
+                  :row-class-name="(para) => tableRowClassName(para, table)"
+                  @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
+                  @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
                   <el-table-column
                     type="selection"
-                    align="center"
                     width="44">
                   </el-table-column>
                   <el-table-column
-                    prop="alias"
                     :label="$t('name')">
                     <template slot-scope="scope">
                       <div @click.stop>
@@ -172,13 +54,72 @@
                     </template>
                   </el-table-column>
                   <el-table-column
-                    prop="column"
+                    show-overflow-tooltip
+                    prop="name"
                     :label="$t('column')">
                   </el-table-column>
                   <el-table-column
+                    prop="datatype"
                     show-overflow-tooltip
-                    prop="expression"
-                    :label="$t('expression')">
+                    :label="$t('datatype')"
+                    width="110">
+                  </el-table-column>
+                  <el-table-column
+                    header-align="right"
+                    align="right"
+                    show-overflow-tooltip
+                    prop="cardinality"
+                    :label="$t('cardinality')"
+                    width="100">
+                  </el-table-column>
+                  <el-table-column
+                    prop="comment"
+                    :label="$t('comment')">
+                  </el-table-column>
+                </el-table>
+              </div>
+              <div class="same-name-tip" v-if="filterErrorContent(table)">{{$t('sameNameTip')}}</div>
+            </div>
+            <!-- 维度表 -->
+            <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
+              <div :class="{'error-content-tip': filterErrorContent(table)}">
+                <div @click="toggleTableShow(table)" class="table-header">
+                  <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
+                  <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+                  <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+                  <span class="ksd-ml-2">
+                    <i class="el-icon-ksd-lookup_table"></i>
+                  </span>
+                  <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
+                </div>
+                <el-table
+                  v-if="table.show || isGuideMode"
+                  border
+                  :row-class-name="(para) => tableRowClassName(para, table)"
+                  :data="table.columns" :ref="table.guid"
+                  @row-click="(row) => {rowClick(row, table.guid)}"
+                  @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
+                  @select="(selection, row) => {selectionChange(selection, row, table.guid)}">
+                  <el-table-column
+                    type="selection"
+                    align="center"
+                    width="44">
+                  </el-table-column>
+                  <el-table-column
+                    :label="$t('name')">
+                    <template slot-scope="scope">
+                      <div @click.stop>
+                        <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                        </el-input>
+                        <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                        <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    show-overflow-tooltip
+                    prop="name"
+                    :label="$t('column')">
                   </el-table-column>
                   <el-table-column
                     show-overflow-tooltip
@@ -186,7 +127,75 @@
                     prop="datatype"
                     width="110">
                   </el-table-column>
+                  <el-table-column
+                    prop="cardinality"
+                    show-overflow-tooltip
+                    :label="$t('cardinality')"
+                    width="100">
+                  </el-table-column>
+                  <el-table-column
+                  :label="$t('comment')">
+                  </el-table-column>
                 </el-table>
+              </div>
+              <div class="same-name-tip" v-if="filterErrorContent(table)">{{$t('sameNameTip')}}</div>
+            </div>
+            <!-- 可计算列 -->
+            <template v-if="ccTable.columns.length">
+              <div class="ksd-mb-10" v-for="ccTable in [ccTable]" :key="ccTable.guid">
+                <div :class="{'error-content-tip': filterErrorContent(ccTable)}">
+                  <div @click="toggleTableShow(ccTable)" class="table-header">
+                    <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!ccTable.show"></i>
+                    <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+                    <el-checkbox v-model="ccTable.checkedAll" :indeterminate="ccTable.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, ccTable.guid)}"></el-checkbox>
+                    <span class="ksd-ml-2">
+                      <i class="el-icon-ksd-auto_computed_column"></i>
+                    </span>
+                    <span class="table-title">{{$t('computedColumns')}} <span>({{countTableSelectColumns(ccTable)}}/{{ccTable.columns.length}})</span></span>
+                  </div>
+                  <el-table
+                    v-if="ccTable.show || isGuideMode"
+                    border
+                    :row-class-name="(para) => tableRowClassName(para, ccTable)"
+                    :data="ccTable.columns" :ref="ccTable.guid"
+                    @row-click="(row) => {rowClick(row, ccTable.guid)}"
+                    @select-all="(selection) => {selectionAllChange(selection, ccTable.guid)}"
+                    @select="(selection, row) => {selectionChange(selection, row, ccTable.guid)}">
+                    <el-table-column
+                      type="selection"
+                      align="center"
+                      width="44">
+                    </el-table-column>
+                    <el-table-column
+                      prop="alias"
+                      :label="$t('name')">
+                      <template slot-scope="scope">
+                        <div @click.stop>
+                          <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                          </el-input>
+                          <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                          <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                        </div>
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                      prop="column"
+                      :label="$t('column')">
+                    </el-table-column>
+                    <el-table-column
+                      show-overflow-tooltip
+                      prop="expression"
+                      :label="$t('expression')">
+                    </el-table-column>
+                    <el-table-column
+                      show-overflow-tooltip
+                      :label="$t('datatype')"
+                      prop="datatype"
+                      width="110">
+                    </el-table-column>
+                  </el-table>
+                </div>
+                <div class="same-name-tip" v-if="filterErrorContent(ccTable)">{{$t('sameNameTip')}}</div>
               </div>
             </template>
           </div>
@@ -304,6 +313,13 @@ export default class DimensionsModal extends Vue {
     pageOffset: 0,
     pageSize: pageCount
   }
+  isClickSubmit = false
+  errorGuidList = []
+
+  filterErrorContent (table) {
+    return this.isClickSubmit && table.columns.filter(item => item.validateSameName || item.validateNameRule).length
+  }
+
   changeSearchVal (val) {
     clearTimeout(this.ST)
     this.ST = setTimeout(() => {
@@ -442,15 +458,19 @@ export default class DimensionsModal extends Vue {
     }
     return () => {
       let hasPassValidate = true
+      this.errorGuidList = []
       columns.forEach((col) => {
         this.$set(col, 'validateNameRule', false)
         this.$set(col, 'validateSameName', false)
+        this.isClickSubmit = false
         if (countObjWithSomeKey(columns, 'alias', col.alias) > 1) {
           hasPassValidate = false
           this.$set(col, 'validateSameName', true)
+          this.errorGuidList.push(col.guid || col.table_guid)
         } else if (!this.checkDimensionNameRegex(col.alias)) {
           hasPassValidate = false
           this.$set(col, 'validateNameRule', true)
+          this.errorGuidList.push(col.guid || col.table_guid)
         }
       })
       return hasPassValidate
@@ -632,7 +652,9 @@ export default class DimensionsModal extends Vue {
     }
   }
   submit () {
+    this.errorGuidList.length && this.$message.error(this.$t('sameNameTip'))
     this.checkDimensionForm()
+    this.isClickSubmit = true
     if (this.dimensionValidPass) {
       let result = this.getAllSelectedColumns()
       this.modelDesc.dimensions = [...result]
@@ -667,6 +689,13 @@ export default class DimensionsModal extends Vue {
     .right-icon{
       margin-right:20px;
     }
+  }
+  .same-name-tip {
+    color: @error-color-1;
+    font-size: 12px;
+  }
+  .error-content-tip {
+    border: 1px solid @error-color-1;
   }
 }
 </style>
