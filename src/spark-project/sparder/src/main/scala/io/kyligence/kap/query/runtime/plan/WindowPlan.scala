@@ -23,12 +23,16 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import java.sql.Date
+import java.util.Calendar
+
 import io.kyligence.kap.query.relnode.KapWindowRel
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.RelCollationImpl
 import org.apache.calcite.rel.RelFieldCollation.Direction
 import org.apache.calcite.rex.RexInputRef
+import org.apache.calcite.util.NlsString
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.KapFunctions._
@@ -68,11 +72,9 @@ object WindowPlan extends Logging {
     val constantMap = rel.getConstants.asScala
       .map(_.getValue)
       .zipWithIndex
-      .filter(_._1.isInstanceOf[Number])
       .map { entry =>
-        (entry._2 + columnSize, entry._1.asInstanceOf[Number])
-      }
-      .toMap
+        (entry._2 + columnSize, entry._1)
+      }.toMap[Int, Any]
     val visitor = new SparderRexVisitor(df,
       rel.getInput.getRowType,
       datacontex)
@@ -123,7 +125,12 @@ object WindowPlan extends Logging {
         group.aggCalls.asScala.map { agg =>
           var windowDesc: WindowSpec = null
           val opName = agg.op.getName.toUpperCase
-          var (lowerBound: Long, upperBound: Long) = buildRange(group, constantMap, isDateTimeFamilyType, group.isRows)
+          val numberConstants = constantMap
+            .filter(_._2.isInstanceOf[Number])
+            .map { entry =>
+              (entry._1, entry._2.asInstanceOf[Number])
+            }.toMap
+          var (lowerBound: Long, upperBound: Long) = buildRange(group, numberConstants, isDateTimeFamilyType, group.isRows)
           if (orderByColumns.nonEmpty) {
 
             windowDesc = Window.orderBy(orderByColumns: _*)
@@ -174,10 +181,12 @@ object WindowPlan extends Logging {
                 // offset default value is 1 in spark
                 case 1 => lead(columnsAndConstants.apply(args.head), 1)
                 case 2 => lead(columnsAndConstants.apply(args.head),
-                  constantMap.apply(args(1)).intValue())
-                case 3 => lead(columnsAndConstants.apply(args.head),
-                  constantMap.apply(args(1)).intValue(),
-                  constantMap.apply(args(2)))
+                  constantMap.apply(args(1)).asInstanceOf[Number].intValue())
+                case 3 => {
+                  lead(columnsAndConstants.apply(args.head),
+                    constantMap.apply(args(1)).asInstanceOf[Number].intValue(),
+                    constantValue(constantMap.apply(args(2))))
+                }
               }
 
             case "LAG" =>
@@ -187,16 +196,17 @@ object WindowPlan extends Logging {
                 // offset default value is 1 in spark
                 case 1 => lag(columnsAndConstants.apply(args.head), 1)
                 case 2 => lag(columnsAndConstants.apply(args.head),
-                  constantMap.apply(args(1)).intValue())
-                case 3 => lag(columnsAndConstants.apply(args.head),
-                  constantMap.apply(args(1)).intValue(),
-                  constantMap.apply(args(2)))
+                  constantMap.apply(args(1)).asInstanceOf[Number].intValue())
+                case 3 =>
+                  lag(columnsAndConstants.apply(args.head),
+                    constantMap.apply(args(1)).asInstanceOf[Number].intValue(),
+                    constantValue(constantMap.apply(args(2))))
               }
             case "NTILE" =>
               ntile(constantMap
                 .apply(
                   agg.operands.asScala.head.asInstanceOf[RexInputRef].getIndex)
-                .intValue())
+                .asInstanceOf[Number].intValue())
             case "COUNT" =>
               count(
                 if (agg.operands.isEmpty) {
@@ -237,6 +247,15 @@ object WindowPlan extends Logging {
     val window = df.select(selectColumn: _*)
     logInfo(s"Gen window cost Time :${System.currentTimeMillis() - start} ")
     window
+  }
+
+  // scalastyle:off
+  def constantValue(value: Any) = {
+    value match {
+      case v: NlsString => v.getValue
+      case v: Calendar => new Date(v.getTimeInMillis)
+      case other => other
+    }
   }
 
   def buildRange(group: org.apache.calcite.rel.core.Window.Group,
