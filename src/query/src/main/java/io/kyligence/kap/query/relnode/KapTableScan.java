@@ -57,6 +57,7 @@ import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
+import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.kylin.common.KapConfig;
@@ -190,6 +191,9 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         planner.removeRule(ExpandConversionRule.INSTANCE);
         // convert all right joins to left join since we only support left joins in model
         planner.addRule(RightJoinToLeftJoinRule.INSTANCE);
+        // UnionMergeRule may slow volcano planner optimization on large number of union clause
+        // see KAP#16036
+        planner.removeRule(UnionMergeRule.INSTANCE);
     }
 
     @Override
