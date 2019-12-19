@@ -13,6 +13,8 @@
       border
       class="history-table"
       @expand-change="expandChange"
+      :row-key="val => val.query_id"
+      ref="queryHistoryTable"
       style="width: 100%">
       <el-table-column type="expand" width="34">
         <template slot-scope="props">
@@ -22,7 +24,8 @@
           <div class="detail-content">
             <el-row :gutter="15" type="flex">
               <el-col :span="14" :style="{height: flexHeight}">
-                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" :isAbridge="true" v-model="props.row.sql_text" v-bind="elementAttr(props)">
+                <div class="loading" v-if="currentExpandId === props.row.query_id"><i class="el-icon-loading"></i></div>
+                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" :isAbridge="true" :value="props.row.sql_text" v-bind="elementAttr(props)">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -78,7 +81,20 @@
           <!-- <span v-if="props.row.query_status === 'FAILED'">Failed</span> -->
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit" show-overflow-tooltip>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit">
+        <template slot-scope="props">
+          <el-popover
+            ref="sql-popover"
+            placement="top"
+            trigger="hover"
+            popper-class="col-sql-popover">
+            <div class="sql-column" slot="reference" @click="handleExpandType(props)">{{props.row.sql_limit}}</div>
+            <template>
+              <span>{{props.row.sql_limit}}</span>
+              <div class="sql-tip" v-if="sqlOverLimit(props.row.sql_limit)">{{$t('sqlDetailTip')}}</div>
+            </template>
+          </el-popover>
+        </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn3" prop="realizations" width="250" show-overflow-tooltip>
         <template slot-scope="props">
@@ -110,17 +126,19 @@ import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime } from
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
+import { handleSuccessAsync } from '../../util/index'
 import '../../util/fly.js'
 import $ from 'jquery'
 import { sqlRowsLimit } from '../../config/index'
-import sqlFormatter from 'sql-formatter'
+// import sqlFormatter from 'sql-formatter'
 @Component({
   name: 'QueryHistoryTable',
   props: ['queryHistoryData', 'queryNodes'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      markFav: 'MARK_FAV'
+      markFav: 'MARK_FAV',
+      formatSql: 'FORMAT_SQL'
     })
   },
   computed: {
@@ -130,8 +148,8 @@ import sqlFormatter from 'sql-formatter'
     ])
   },
   locales: {
-    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search one keyword or query ID', noSpaceTips: 'Invalide entering: cannot search space'},
-    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索单个关键词或查询 ID', noSpaceTips: '无法识别输入中的空格'}
+    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search one keyword or query ID', noSpaceTips: 'Invalide entering: cannot search space', sqlDetailTip: 'Please click sql to get more informations'},
+    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索单个关键词或查询 ID', noSpaceTips: '无法识别输入中的空格', sqlDetailTip: '更多信息请点击 SQL 语句'}
   },
   filters: {
     filterNumbers (num) {
@@ -159,6 +177,9 @@ export default class QueryHistoryTable extends Vue {
   timer = null
   showCopyStatus = false
   flexHeight = 0
+  currentExpandId = ''
+  toggleExpandId = []
+  sqlLimitRows = 40 * 10
 
   @Watch('datetimerange')
   onDateRangeChange (val) {
@@ -175,24 +196,54 @@ export default class QueryHistoryTable extends Vue {
   @Watch('queryHistoryData')
   onQueryHistoryDataChange (val) {
     val.forEach(element => {
-      const sql = sqlFormatter.format(element.sql_text).split('\n')
-      element['sql_limit'] = sql.length > sqlRowsLimit ? [...sql.slice(0, sqlRowsLimit), '...'].join('\n') : element.sql_text
+      const sql = element.sql_text
+      element['sql_limit'] = this.sqlOverLimit(sql) ? `${sql.slice(0, this.sqlLimitRows)}...` : sql
     })
   }
 
-  elementAttr (props) {
-    return sqlFormatter.format(props.row.sql_text).split('\n').length > sqlRowsLimit && {'height': 215}
+  sqlOverLimit (sql) {
+    return sql.length > this.sqlLimitRows
   }
 
-  expandChange () {
+  elementAttr (props) {
+    return props.row.sql_text.split('\n').length > sqlRowsLimit && {'height': 222}
+  }
+
+  async getFormatSql (sql) {
+    let formatSql = ''
+    try {
+      const res = await this.formatSql({sqls: [sql]})
+      const data = await handleSuccessAsync(res)
+      formatSql = data && data.length ? data[0] : sql
+    } catch (e) {
+      formatSql = sql
+    }
+    return formatSql
+  }
+
+  async expandChange (e) {
+    if (this.toggleExpandId.includes(e.query_id)) {
+      const index = this.toggleExpandId.indexOf(e.query_id)
+      this.toggleExpandId.splice(index, 1)
+      return
+    }
+    this.currentExpandId = e.query_id
+    e.sql_text = await this.getFormatSql(e.sql_text)
     this.flexHeight = 0
+    this.toggleExpandId.push(e.query_id)
     this.$nextTick(() => {
       const tableHeigth = $('.history_detail_table') && $('.history_detail_table').height()
       if (tableHeigth) {
         this.flexHeight = this.flexHeight + tableHeigth + 'px'
       }
+      this.currentExpandId = ''
     })
   }
+
+  handleExpandType (props) {
+    this.$refs.queryHistoryTable.toggleRowExpansion(props.row, true)
+  }
+
   onCopy () {
     this.showCopyStatus = true
     setTimeout(() => {
@@ -498,6 +549,9 @@ export default class QueryHistoryTable extends Vue {
       .detail-content {
         padding-top: 15px;
         line-height: 1.8;
+        .el-col {
+          position: relative;
+        }
       }
     }
     .searchInput {
@@ -514,6 +568,16 @@ export default class QueryHistoryTable extends Vue {
           float: none;
           position: relative;
           left: 0px;
+        }
+      }
+      .sql-column {
+        cursor: pointer;
+        width: calc(100%);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        &:hover {
+          color: @base-color;
         }
       }
       .ksd-table th {
@@ -581,6 +645,14 @@ export default class QueryHistoryTable extends Vue {
       }
     }
   }
+  .col-sql-popover {
+    max-width: 400px;
+    box-sizing: border-box
+  }
+  .sql-tip {
+    text-align: center;
+    margin-top: 5px;
+  }
   &.el-icon-ksd-acclerate_all,
   &.el-icon-ksd-acclerate_portion {
     color: @normal-color-1;
@@ -618,5 +690,19 @@ export default class QueryHistoryTable extends Vue {
   .el-popover.history-filter {
     min-width: 130px;
     box-sizing: border-box;
+  }
+  .loading {
+    width: calc(~'100% - 13px');
+    height: 254px;
+    position: absolute;
+    z-index: 10;
+    background: @fff;
+    .el-icon-loading {
+      font-size: 20px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%)
+    }
   }
 </style>

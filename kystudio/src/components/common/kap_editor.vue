@@ -26,7 +26,7 @@
 </template>
 <script>
 import $ from 'jquery'
-import sqlFormatter from 'sql-formatter'
+// import sqlFormatter from 'sql-formatter'
 import { sqlRowsLimit } from '../../config/index'
 import { mapState } from 'vuex'
 export default {
@@ -66,7 +66,7 @@ export default {
   },
   data () {
     return {
-      editorData: this.isFormatter ? sqlFormatter.format(this.value) : this.value,
+      editorData: this.value,
       formatData: '',
       dragging: false,
       showCopyStatus: false,
@@ -230,7 +230,7 @@ export default {
   },
   watch: {
     value (val) {
-      this.editorData = this.isFormatter ? sqlFormatter.format(val) : val
+      this.editorData = val
       this.getAbridgeType()
     },
     readOnly (val) {
@@ -304,9 +304,9 @@ export default {
     }
     .limit-sql-tip {
       width: calc(~'100% + 2px');
-      height: 36px;
+      height: 30px;
       text-align: center;
-      line-height: 36px;
+      line-height: 30px;
       font-size: 12px;
       background: @fff;
       color: @text-normal-color;
