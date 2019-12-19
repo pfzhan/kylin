@@ -138,7 +138,7 @@
         </template>
       </div>
       <div v-else>
-        <div v-for="searchTable in pagerSearchTable" :key="searchTable.guid">
+        <div v-for="searchTable in pagerSearchTable" class="scroll-table-item" :key="searchTable.guid">
           <el-table
             border
             v-if="isShowSearchTable || isGuideMode"
@@ -340,6 +340,18 @@ export default class BatchMeasureModal extends Vue {
       setTimeout(() => {
         this.isFormShow = false
       }, 200)
+    }
+  }
+  @Watch('searchChar')
+  onSearchCharChange (newVal, oldVal) {
+    if (!oldVal && newVal) {
+      this.$nextTick(() => {
+        this.getTableTops()
+      })
+    } else if (!newVal && oldVal) {
+      this.$nextTick(() => {
+        this.getTableTops()
+      })
     }
   }
   // 分页搜索table渲染数据
@@ -575,7 +587,7 @@ export default class BatchMeasureModal extends Vue {
 
       if (this.scrollTableList.length) {
         if (!list.length) {
-          this.targetFixedTable && this.targetFixedTable.length && (this.targetFixedTable[0].style.cssText = '', this.targetFixedTable = null)
+          this.targetFixedTable && this.targetFixedTable.length && (this.targetFixedTable[0].style.cssText = '', this.targetFixedTable[0].nextSibling.style.cssText = '', this.targetFixedTable = null)
           return
         }
         const scrollTable = document.querySelectorAll('.scroll-table-item')
@@ -584,9 +596,9 @@ export default class BatchMeasureModal extends Vue {
 
           if (index === list.length - 1) {
             this.targetFixedTable = target
-            target.length && (target[0].style.cssText = 'position:fixed;top:calc(5vh + 47px);z-index:10;')
+            target.length && (target[0].style.cssText = 'position:fixed;top:calc(5vh + 47px);z-index:10;', target[0].nextSibling.style.cssText = 'margin-top:36px;')
           } else {
-            target.length && (target[0].style.cssText = '')
+            target.length && (target[0].style.cssText = '', target[0].nextSibling.style.cssText = '')
           }
         })
       }
