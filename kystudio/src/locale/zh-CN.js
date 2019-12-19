@@ -333,6 +333,7 @@ exports.default = {
     total_scan_bytes: '查询扫描字节数',
     cache_hit: '是否击中缓存',
     query_id: '查询 ID',
+    index_id: '索引 ID',
     to: '至',
     startTime_th: '查询开始时间',
     latency_th: '查询执行时间',

@@ -19,8 +19,12 @@
           <span class="text">{{(extraoption.duration/1000)|fixed(2)||0.00}}s</span>
         </p>
         <p class="resultText query-obj" :class="{'guide-queryAnswerBy': isWorkspace}">
-          <span class="label">{{$t('kylinLang.query. answered_by')}}: </span>
+          <span class="label">{{$t('kylinLang.query.answered_by')}}: </span>
           <span class="text" :title="answeredBy">{{answeredBy}}</span>
+        </p>
+        <p class="resultText query-obj" v-if="layoutIds">
+          <span class="label">{{$t('kylinLang.query.index_id')}}: </span>
+          <span class="text" :title="layoutIds">{{layoutIds}}</span>
         </p>
         <el-button plain size="mini" @click="toggleDetail" class="show-more-btn">
           {{$t('kylinLang.common.seeDetail')}}
@@ -184,6 +188,15 @@ export default class queryResult extends Vue {
       }).join(',')
     } else {
       return this.extraoption.engineType
+    }
+  }
+  get layoutIds () {
+    if (this.extraoption.realizations && this.extraoption.realizations.length) {
+      return this.extraoption.realizations.map((i) => {
+        return i.layoutId
+      }).join(',')
+    } else {
+      return ''
     }
   }
   filterTableData () {

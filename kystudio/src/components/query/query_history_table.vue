@@ -47,12 +47,16 @@
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
                   </tr>
+                  <tr class="ksd-tr" v-if="props.row.realizations && props.row.realizations.length">
+                    <th class="label">{{$t('kylinLang.query.index_id')}}</th>
+                    <td>{{getLayoutIds(props.row.realizations)}}</td>
+                  </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query. total_scan_count')}}</th>
+                    <th class="label">{{$t('kylinLang.query.total_scan_count')}}</th>
                     <td>{{props.row.total_scan_count | filterNumbers}}</td>
                   </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query. total_scan_bytes')}}</th>
+                    <th class="label">{{$t('kylinLang.query.total_scan_bytes')}}</th>
                     <td>{{props.row.total_scan_bytes | filterNumbers}}</td>
                   </tr>
                   <tr class="ksd-tr">
@@ -80,6 +84,8 @@
           <span v-if="props.row.duration >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.duration / 1000 | fixed(2)}}s</span>
           <!-- <span v-if="props.row.query_status === 'FAILED'">Failed</span> -->
         </template>
+      </el-table-column>
+      <el-table-column :label="$t('kylinLang.query.query_id')" prop="query_id" width="120" show-overflow-tooltip>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit">
         <template slot-scope="props">
@@ -284,8 +290,10 @@ export default class QueryHistoryTable extends Vue {
       }
     })
   }
-  getAnsweredByList (answeredBy) {
-    return answeredBy ? answeredBy.split(',') : []
+  getLayoutIds (realizations) {
+    return realizations && realizations.length ? realizations.map((i) => {
+      return i.layoutId
+    }).join(',') : ''
   }
 
   toAcce (event, row) {

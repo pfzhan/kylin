@@ -336,6 +336,7 @@ exports.default = {
     total_scan_count: 'Total Scan Count',
     cache_hit: 'If Hit Cache',
     query_id: 'Query ID',
+    index_id: 'Index ID',
     to: 'To',
     type: 'Type',
     original: 'Original',
