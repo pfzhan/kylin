@@ -46,11 +46,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.common.obf.IKeep;
-
 /**
  */
-public class TableMeta implements IKeep, Serializable {
+public class TableMeta implements Serializable {
 
     private static final long serialVersionUID = 1L;
     protected String TABLE_CAT;

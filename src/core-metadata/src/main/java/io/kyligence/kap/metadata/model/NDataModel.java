@@ -116,7 +116,6 @@ public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
     public static final int MEASURE_ID_BASE = 100000;
 
-
     public enum TableKind implements Serializable {
         FACT, LOOKUP
     }
@@ -1266,41 +1265,34 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public Map<String, Integer> getDimensionNameIdMap() {
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
         return allNamedColumns.stream().filter(NamedColumn::isDimension)
                 .collect(Collectors.toMap(NamedColumn::getAliasDotColumn, NamedColumn::getId));
     }
 
     public int getColumnIdByColumnName(String aliasDotName) {
-        Preconditions.checkArgument(allNamedColumns != null);
-        for (NamedColumn col : allNamedColumns) {
-            if (col.aliasDotColumn.equalsIgnoreCase(aliasDotName))
-                return col.id;
-        }
-        return -1;
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
+        return allNamedColumns.stream()
+                .filter(col -> col.aliasDotColumn.equalsIgnoreCase(aliasDotName) && col.isExist())
+                .map(NamedColumn::getId).findAny().orElse(-1);
     }
 
     public String getColumnNameByColumnId(int id) {
-        for (NamedColumn col : allNamedColumns) {
-            if (col.id == id)
-                return col.aliasDotColumn;
-        }
-        return null;
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
+        return allNamedColumns.stream().filter(col -> Objects.equals(col.getId(), id) && col.isExist())
+                .map(NamedColumn::getAliasDotColumn).findAny().orElse(null);
     }
 
     public String getNameByColumnId(int id) {
-        for (NamedColumn col : allNamedColumns) {
-            if (col.id == id)
-                return col.name;
-        }
-        return null;
+        Preconditions.checkArgument(Objects.nonNull(allNamedColumns));
+        return allNamedColumns.stream().filter(col -> Objects.equals(col.getId(), id) && col.isExist())
+                .map(NamedColumn::getName).findAny().orElse(null);
     }
 
     public String getMeasureNameByMeasureId(int id) {
-        for (val measure : allMeasures) {
-            if (measure.id == id)
-                return measure.getName();
-        }
-        return null;
+        Preconditions.checkArgument(Objects.nonNull(allMeasures));
+        return allMeasures.stream().filter(mea -> Objects.equals(mea.getId(), id) && !mea.isTomb())
+                .map(Measure::getName).findAny().orElse(null);
     }
 
     @Override
