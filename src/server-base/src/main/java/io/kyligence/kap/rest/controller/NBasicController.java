@@ -55,6 +55,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -200,6 +201,13 @@ public class NBasicController {
         if (!StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
             throw new BadRequestException(String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
+    }
+
+    public void checkJobStatus(List<String> jobStatuses) {
+        if (CollectionUtils.isEmpty(jobStatuses)) {
+            return;
+        }
+        jobStatuses.forEach(this::checkJobStatus);
     }
 
     public void checkId(String uuid) {

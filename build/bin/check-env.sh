@@ -54,7 +54,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
             fi
         done
         echo ""
-        cat ${LOG} | grep "${CHECKENV_REPORT_PFX}"
+        cat ${LOG} | grep "^${CHECKENV_REPORT_PFX}"
         touch ${BYPASS}
         echo `setColor 33 "Checking environment finished successfully. To check again, run 'bin/check-env.sh' manually."`
         echo ""

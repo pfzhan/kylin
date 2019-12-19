@@ -23,11 +23,14 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.request.JobActionEnum;
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.service.JobService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.Lists;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,11 +43,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.request.JobActionEnum;
+import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.service.JobService;
 
 @Controller
 @RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
@@ -68,7 +71,7 @@ public class NJobControllerV2 extends NBasicController {
 
     @GetMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) String status,
+    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false, defaultValue = "") String status,
             @RequestParam(value = "jobNames", required = false) List<String> jobNames,
             @RequestParam(value = "timeFilter") Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
@@ -79,7 +82,8 @@ public class NJobControllerV2 extends NBasicController {
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkJobStatus(status);
-        JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, projectName, sortBy,
+        List<String> statuses = StringUtils.isEmpty(status) ? Lists.newArrayList() : Lists.newArrayList(status);
+        JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, subjectAlias, projectName, sortBy,
                 reverse);
         List<ExecutableResponse> executables;
         executables = jobService.listJobs(jobFilter);

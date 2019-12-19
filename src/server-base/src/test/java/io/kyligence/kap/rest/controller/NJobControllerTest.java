@@ -108,15 +108,16 @@ public class NJobControllerTest {
         status.add(JobStatusEnum.NEW);
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter("NEW", jobNames, 4, "", "", "default", "job_name", false);
+        List<String> statuses = Lists.newArrayList("NEW", "RUNNING");
+        JobFilter jobFilter = new JobFilter(statuses, jobNames, 4, "", "", "default", "job_name", false);
         Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("page_offset", "0").param("page_size", "10")
                 .param("time_filter", "1").param("subject", "").param("subject_alias", "").param("job_names", "")
-                .param("status", "NEW").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .param("statuses", "NEW,RUNNING").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobList("NEW", jobNames, 1, "", "", "default", 0, 10, "last_modified", true);
+        Mockito.verify(nJobController).getJobList(statuses, jobNames, 1, "", "", "default", 0, 10, "last_modified", true);
     }
 
     @Test

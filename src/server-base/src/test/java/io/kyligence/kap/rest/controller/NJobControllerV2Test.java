@@ -23,12 +23,11 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.controller.v2.NJobControllerV2;
-import io.kyligence.kap.rest.request.JobActionEnum;
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.service.JobService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -47,10 +46,13 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.rest.controller.v2.NJobControllerV2;
+import io.kyligence.kap.rest.request.JobActionEnum;
+import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.service.JobService;
 
 public class NJobControllerV2Test {
 
@@ -99,12 +101,13 @@ public class NJobControllerV2Test {
         status.add(JobStatusEnum.NEW);
         List<ExecutableResponse> jobs = new ArrayList<>();
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter("NEW", jobNames, 4, "", "", "default", "job_name", false);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList("NEW"), jobNames, 4, "", "", "default", "job_name",
+                false);
         Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("pageOffset", "0").param("pageSize", "10")
-                .param("timeFilter", "1").param("subject", "").param("subjectAlias", "").param("jobNames", "")
-                .param("status", "NEW").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .param("project", "default").param("pageOffset", "0").param("pageSize", "10").param("timeFilter", "1")
+                .param("subject", "").param("subjectAlias", "").param("jobNames", "").param("status", "NEW")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobControllerV2).getJobList("NEW", jobNames, 1, "", "", "default", 0, 10, "last_modified",

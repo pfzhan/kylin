@@ -80,7 +80,7 @@ public class NJobController extends NBasicController {
     @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ExecutableResponse>>> getJobList(
-            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "statuses", required = false, defaultValue = "") List<String> statuses,
             @RequestParam(value = "job_names", required = false) List<String> jobNames,
             @RequestParam(value = "time_filter") Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
@@ -90,8 +90,8 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkJobStatus(status);
-        JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
+        checkJobStatus(statuses);
+        JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
         DataResult<List<ExecutableResponse>> executables;
         if (!StringUtils.isEmpty(project)) {

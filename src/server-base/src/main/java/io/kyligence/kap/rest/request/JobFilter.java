@@ -35,7 +35,7 @@ import java.util.List;
 @AllArgsConstructor
 public class JobFilter {
 
-    private String status;
+    private List<String> statuses;
 
     private List<String> jobNames;
 

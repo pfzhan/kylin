@@ -34,12 +34,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.response.ExecutableSortBean;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -100,6 +100,7 @@ import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.EventModelResponse;
 import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.response.ExecutableSortBean;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
@@ -149,14 +150,18 @@ public class JobService extends BasicService {
                 StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
 
+        Set<JobStatusEnum> matchedJobStatusEnums = jobFilter.getStatuses().stream().map(JobStatusEnum::valueOf)
+                .collect(Collectors.toSet());
+        Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)
+                .collect(Collectors.toSet());
         List<ExecutableSortBean> sortBeanList = jobs.stream()
                 .filter(((Predicate<AbstractExecutable>) (abstractExecutable -> {
-                    if (StringUtils.isEmpty(jobFilter.getStatus())) {
+                    if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
                         return true;
                     }
                     ExecutableState state = abstractExecutable.getStatus();
-                    return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())))
-                            || JobStatusEnum.valueOf(jobFilter.getStatus()).equals(parseToJobStatus(state));
+                    return matchedExecutableStates.contains(state)
+                            || matchedJobStatusEnums.contains(parseToJobStatus(state));
                 })).and(abstractExecutable -> {
                     String subject = jobFilter.getSubjectAlias();
                     if (StringUtils.isEmpty(subject)) {
@@ -190,14 +195,16 @@ public class JobService extends BasicService {
         Comparator<ExecutableResponse> comparator = propertyComparator(
                 StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
-
+        Set<JobStatusEnum> matchedJobStatusEnums = jobFilter.getStatuses().stream().map(JobStatusEnum::valueOf)
+                .collect(Collectors.toSet());
+        Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)
+                .collect(Collectors.toSet());
         return jobs.stream().filter(((Predicate<AbstractExecutable>) (abstractExecutable -> {
-            if (StringUtils.isEmpty(jobFilter.getStatus())) {
+            if (CollectionUtils.isEmpty(jobFilter.getStatuses())) {
                 return true;
             }
             ExecutableState state = abstractExecutable.getStatus();
-            return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())))
-                    || JobStatusEnum.valueOf(jobFilter.getStatus()).equals(parseToJobStatus(state));
+            return matchedExecutableStates.contains(state) || matchedJobStatusEnums.contains(parseToJobStatus(state));
         })).and(abstractExecutable -> {
             String subject = jobFilter.getSubjectAlias();
             if (StringUtils.isEmpty(subject)) {
