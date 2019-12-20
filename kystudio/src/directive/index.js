@@ -134,7 +134,7 @@ Vue.directive('scroll', {
       if (needObserve) {
         scrollbar.addListener((status) => {
           if (status.offset.y > status.limit.y - 10) {
-            let scrollBottomFunc = vnode.data.on['scroll-bottom']
+            let scrollBottomFunc = vnode.data.on && vnode.data.on['scroll-bottom']
             scrollBottomFunc && scrollBottomFunc()
           }
         })

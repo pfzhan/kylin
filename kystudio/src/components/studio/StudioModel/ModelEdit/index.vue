@@ -611,6 +611,7 @@ export default class ModelEdit extends Vue {
       { validator: this.validateName, trigger: 'blur' }
     ]
   }
+  isIgnore = false
   validateName (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
@@ -799,6 +800,9 @@ export default class ModelEdit extends Vue {
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {
       this.cancelTableEdit()
+      if (this.$route.params.action === 'edit' && !this.isIgnore) {
+        this.showChangeTips()
+      }
     }, () => {
       this.delTipVisible = false
       kapMessage(this.$t('delTableTip'), {type: 'warning'})
@@ -858,6 +862,10 @@ export default class ModelEdit extends Vue {
   changeTableType (t) {
     if (this._checkTableType(t)) {
       this.modelInstance.changeTableType(t)
+      this.cancelTableEdit()
+      if (this.$route.params.action === 'edit' && !this.isIgnore) {
+        this.showChangeTips()
+      }
     }
   }
   _checkTableType (t) {
@@ -1106,9 +1114,17 @@ export default class ModelEdit extends Vue {
         }
       })
     }
+    if (this.$route.params.action === 'edit' && !this.isIgnore) {
+      this.showChangeTips()
+    }
     this.currentDragTableData = {}
     this.currentDragTable = null
     this.removeDragInClass()
+  }
+  showChangeTips () {
+    kapConfirm(this.$t('modelChangeTips'), {cancelButtonText: this.$t('kylinLang.common.IKnow'), confirmButtonText: this.$t('ignore'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then(() => {
+      this.isIgnore = true
+    })
   }
   // 释放列
   dropColumn (event, col, table) {
@@ -1187,6 +1203,9 @@ export default class ModelEdit extends Vue {
         if (isSubmit) {
           resolve(data)
           this.saveLinkData(data)
+          if (this.$route.params.action === 'edit' && !this.isIgnore) {
+            this.showChangeTips()
+          }
         }
       })
     })

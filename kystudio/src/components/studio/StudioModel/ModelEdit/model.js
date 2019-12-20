@@ -253,6 +253,9 @@ class NModel {
           // 调用删除
           kapConfirm(this.vm.$t('delConnTip'), null, this.vm.$t('delConnTitle')).then(() => {
             this.removeRenderLink(conn)
+            if (this.vm.$route.params.action === 'edit' && !this.vm.isIgnore) {
+              this.vm.showChangeTips()
+            }
           })
         } else {
           this.connClick(pid, fid)

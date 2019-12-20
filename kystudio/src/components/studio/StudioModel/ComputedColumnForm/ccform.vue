@@ -128,7 +128,8 @@ export default class CCForm extends Vue {
         })
       })
     }).catch((err) => {
-      kapMessage(this.$t(modelErrorMsg[err.errorKey]), { type: 'warning' })
+      kapMessage(this.$t(modelErrorMsg[err.errorKey], {aloneCount: err.aloneCount}), { type: 'warning' })
+      this.$emit('saveError')
     })
   }
   addCC () {
