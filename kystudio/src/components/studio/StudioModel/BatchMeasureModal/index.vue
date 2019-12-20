@@ -569,7 +569,7 @@ export default class BatchMeasureModal extends Vue {
     this.tableHeaderTops = []
     if (this.scrollTableList.length) {
       for (let item of this.scrollTableList) {
-        this.tableHeaderTops.push(item.offsetTop)
+        this.tableHeaderTops.push([item.offsetTop, item.offsetHeight])
       }
     }
   }
@@ -583,7 +583,8 @@ export default class BatchMeasureModal extends Vue {
   addScrollEvent (e) {
     try {
       const top = e.target.scrollTop
-      const list = this.tableHeaderTops.filter(it => it < top)
+      const list = this.tableHeaderTops.filter(it => it[0] < top)
+      const overCurrentHeightList = !this.searchChar ? this.tableHeaderTops.filter(it => it[0] + it[1] < top + 80) : []
 
       if (this.scrollTableList.length) {
         if (!list.length) {
@@ -594,11 +595,15 @@ export default class BatchMeasureModal extends Vue {
         this.scrollTableList.forEach((item, index) => {
           const target = scrollTable[index].getElementsByClassName('el-table__header-wrapper')
 
-          if (index === list.length - 1) {
+          if (!target.length) return
+
+          if (index === list.length - 1 && !overCurrentHeightList[index]) {
             this.targetFixedTable = target
-            target.length && (target[0].style.cssText = 'position:fixed;top:calc(5vh + 47px);z-index:10;', target[0].nextSibling.style.cssText = 'margin-top:36px;')
+            target[0].style.cssText = 'position:fixed;top:calc(5vh + 47px);z-index:10;'
+            target[0].nextSibling.style.cssText = 'margin-top:36px;'
           } else {
-            target.length && (target[0].style.cssText = '', target[0].nextSibling.style.cssText = '')
+            target[0].style.cssText = ''
+            target[0].nextSibling.style.cssText = ''
           }
         })
       }
