@@ -950,7 +950,8 @@ public class NDataModel extends RootPersistentEntity {
     public boolean isIncrementBuildOnExpertMode() {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject())
                 .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            return getPartitionDesc() != null;
+            return getPartitionDesc() != null && !StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+                    && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());
         }
         return false;
     }

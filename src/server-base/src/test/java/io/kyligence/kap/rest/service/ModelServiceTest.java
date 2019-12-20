@@ -1433,6 +1433,26 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
+    @Test
+    public void testCreateModel_passFullLoad() throws Exception {
+        setupPushdownEnv();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        modelManager.listAllModels().forEach(modelManager::dropModel);
+        var modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_increment_fact_table1.json"),
+                ModelRequest.class);
+        modelRequest.setProject("default");
+        modelRequest.setUuid(null);
+        modelRequest.setLastModified(0L);
+        modelRequest.setPartitionDesc(null);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        modelRequest = JsonUtil.readValue(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/model_join_full_load.json"),
+                ModelRequest.class);
+        addModelInfo(modelRequest);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+    }
+
     private void testGetLatestData() throws Exception {
         ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
