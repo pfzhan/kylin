@@ -39,7 +39,7 @@ export function handleError (res, errorcallback) {
       if (responseData && responseData.code) {
         errorcallback(responseData.data, responseData.code, res.status, responseData.msg)
       } else {
-        errorcallback(responseData, -1, res && res.status || -1, '')
+        errorcallback(responseData, -1, res && res.status || -1, res && res.msg || '')
       }
     }
   }

@@ -56,7 +56,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapState } from 'vuex'
 import queryresult from './query_result'
 import saveQueryDialog from './save_query_dialog'
 import { kapConfirm, handleSuccess, handleError } from '../../util/business'
@@ -74,7 +74,10 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
   computed: {
     ...mapGetters([
       'currentSelectedProject'
-    ])
+    ]),
+    ...mapState({
+      config: state => state.config
+    })
   },
   locales: {
     'en': {
@@ -203,6 +206,11 @@ export default class QueryTab extends Vue {
       this.isLoading = false
       handleError(res, (data, code, status, msg) => {
         this.errinfo = msg || this.$t('kylinLang.common.timeOut')
+        if (!status || status === 500 || status < 0) {
+          this.config.errorMsgBox.isShow = true
+          this.config.errorMsgBox.msg = this.errinfo
+          this.config.errorMsgBox.detail = data
+        }
         this.$emit('changeView', this.tabsItem.index, data, this.errinfo)
       })
     })
