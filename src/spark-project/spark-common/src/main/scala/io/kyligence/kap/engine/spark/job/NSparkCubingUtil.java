@@ -33,20 +33,19 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.spark.sql.Column;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public class NSparkCubingUtil {
 
     public static final String SEPARATOR = "_0_DOT_0_";
+
+    public static final String SEPARATOR_TMP = "_0_DOT_TMP_0_";
 
     private NSparkCubingUtil() {
     }
@@ -154,16 +153,55 @@ public class NSparkCubingUtil {
         return     project + "/parquet/" + dataflowId + "/" + segmentId + "/" + layoutId;
     }
 
-    private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\D+)");
+    private static final Pattern DOT_PATTERN = Pattern.compile("(\\S+)\\.(\\S+)");
+
+    private static final Pattern LETTER_PATTERN = Pattern.compile(".*[a-zA-Z]+.*");
+
+    private static final Pattern FLOATING_POINT = Pattern.compile("[0-9]+.[0-9]*E[0-9]+");
+
+    private static final char LITERAL_QUOTE = '\'';
 
     public static String convertFromDot(String withDot) {
+        int literalBegin = withDot.indexOf(LITERAL_QUOTE);
+        if (literalBegin != -1) {
+            int literalEnd = withDot.indexOf(LITERAL_QUOTE, literalBegin+1);
+            if (literalEnd != -1) {
+                return doConvertFromDot(withDot.substring(0, literalBegin))
+                        + withDot.substring(literalBegin, literalEnd+1)
+                        + convertFromDot(withDot.substring(literalEnd+1));
+            }
+        }
+        return doConvertFromDot(withDot);
+    }
+
+    public static String doConvertFromDot(String withDot) {
         Matcher m = DOT_PATTERN.matcher(withDot);
         String withoutDot = withDot;
         while (m.find()) {
-            withoutDot = m.replaceAll("$1" + SEPARATOR + "$2");
-            m = DOT_PATTERN.matcher(withoutDot);
+            String matched = m.group();
+            if (LETTER_PATTERN.matcher(matched).find() && !isFloatingPointNumber(matched)) {
+                withoutDot = m.replaceFirst("$1" + SEPARATOR + "$2");
+                m = DOT_PATTERN.matcher(withoutDot);
+            } else {
+                withoutDot = m.replaceFirst("$1" + SEPARATOR_TMP + "$2");
+                m = DOT_PATTERN.matcher(withoutDot);
+            }
         }
-        return withoutDot;
+        withoutDot = withoutDot.replace(SEPARATOR_TMP, ".");
+        return withoutDot.replace("`", "");
+    }
+
+    public static boolean isFloatingPointNumber(String exp) {
+        Matcher matcher = FLOATING_POINT.matcher(exp);
+        if (!matcher.find()) {
+            return false;
+        }
+        try {
+            Double.parseDouble(matcher.group());
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public static String convertToDot(String withoutDot) {

@@ -93,4 +93,24 @@ public class NSparkCubingUtilTest extends NLocalWithSparkSessionTest {
 
         Assert.assertEquals(layouts, NSparkCubingUtil.toLayouts(indexPlans.get(0), expectedLayoutIds));
     }
+
+    @Test
+    public void testConvert(){
+        Assert.assertTrue(isEqualsConvertedString(
+                "max(case when A.account_id = 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A.seller_id",
+                "max(case when A_0_DOT_0_account_id = 0 then 'adf.d kylin.adfad adf' else 'ky.lin' end), A_0_DOT_0_seller_id"));
+        Assert.assertTrue(isEqualsConvertedString(
+                "'ky.lin'", "'ky.lin'"));
+        Assert.assertTrue(isEqualsConvertedString("p1.3a + 3.1E12", "p1_0_DOT_0_3a + 3.1E12"));
+        Assert.assertTrue(isEqualsConvertedString("p1.3a + 3.1", "p1_0_DOT_0_3a + 3.1"));
+        Assert.assertTrue(isEqualsConvertedString("3.1 + 1p1.3a1", "3.1 + 1p1_0_DOT_0_3a1"));
+        Assert.assertTrue(isEqualsConvertedString("TEST_KYLIN_FACT.CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT.PRICE < 9.9",
+                "TEST_KYLIN_FACT_0_DOT_0_CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT_0_DOT_0_PRICE < 9.9"));
+        Assert.assertTrue(isEqualsConvertedString("case when  table.11col  > 0.8 then 0.2 else null end",
+                "case when  table_0_DOT_0_11col  > 0.8 then 0.2 else null end"));
+    }
+
+    private boolean isEqualsConvertedString(String original, String converted) {
+        return converted.equals(NSparkCubingUtil.convertFromDot(original));
+    }
 }
