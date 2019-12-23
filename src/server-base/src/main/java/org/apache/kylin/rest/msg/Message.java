@@ -58,6 +58,10 @@ public class Message {
     }
 
     // Cube
+    public String getCHECK_CC_AMBIGUITY() {
+        return "In this model, computed column name [%s] has been used, please rename your computed column.";
+    }
+
     public String getCUBE_NOT_FOUND() {
         return "Cannot find cube '%s'.";
     }

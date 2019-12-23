@@ -58,6 +58,10 @@ public class CnMessage extends Message {
     }
 
     // Cube
+    public String getCHECK_CC_AMBIGUITY() {
+        return "当前模型下，可计算列名[%s]已被使用，请重新命名可计算列名";
+    }
+
     public String getCUBE_NOT_FOUND() {
         return "找不到 Cube '%s'";
     }

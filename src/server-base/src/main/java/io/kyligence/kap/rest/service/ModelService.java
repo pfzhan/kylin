@@ -70,6 +70,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -1512,6 +1513,8 @@ public class ModelService extends BasicService {
             throw new IllegalStateException("No advice could be provided");
         }
 
+        checkCCNameAmbiguity(dataModelDesc);
+
         for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
             checkCCName(cc.getColumnName());
 
@@ -1541,6 +1544,41 @@ public class ModelService extends BasicService {
         }
     }
 
+    public void checkCCNameAmbiguity(NDataModel model) {
+        Set<String> ambiguousCCNameSet = Sets.newHashSet();
+
+        Set<String> ccColumnNames = Sets.newHashSet();
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+            if (ccColumnNames.contains(cc.getColumnName())) {
+                ambiguousCCNameSet.add(cc.getColumnName());
+            } else {
+                ccColumnNames.add(cc.getColumnName());
+            }
+        }
+        if (CollectionUtils.isEmpty(ccColumnNames)) {
+            return;
+        }
+
+        for (TableRef table : model.getAllTables()) {
+            for (TblColRef tblColRef : table.getColumns()) {
+                if (!tblColRef.getColumnDesc().isComputedColumn()) {
+                    if (ccColumnNames.contains(tblColRef.getName())) {
+                        ambiguousCCNameSet.add(tblColRef.getName());
+                    }
+                }
+            }
+        }
+
+        if (CollectionUtils.isNotEmpty(ambiguousCCNameSet)) {
+            StringBuilder error = new StringBuilder();
+            ambiguousCCNameSet.forEach(name -> {
+                error.append(String.format(MsgPicker.getMsg().getCHECK_CC_AMBIGUITY(), name));
+                error.append("\r\n");
+            });
+            throw new IllegalArgumentException(error.toString());
+        }
+    }
+
     public void preProcessBeforeModelSave(NDataModel model, String project) {
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
                 getDataflowManager(project).listUnderliningDataModels(), project);
@@ -1551,6 +1589,9 @@ public class ModelService extends BasicService {
             String filterConditionAddTableName = addTableNameIfNotExist(newFilterCondition, model);
             model.setFilterCondition(filterConditionAddTableName);
         }
+
+        checkCCNameAmbiguity(model);
+
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
             String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc);

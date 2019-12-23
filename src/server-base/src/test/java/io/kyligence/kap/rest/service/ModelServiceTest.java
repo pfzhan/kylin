@@ -3473,4 +3473,50 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(model.getMeasures().size() == 11);
         Assert.assertTrue(model.getAggregationGroups().size() == 2);
     }
+
+    @Test
+    public void testComputedColumnNameCheck_PreProcessBeforeModelSave_ExceptionWhenCCNameIsSameWithColumnInLookupTable() {
+
+        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expectMessage("In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
+        String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
+        String columnName = "SITE_ID";
+        String expression = "nvl(TEST_SITES.SITE_ID)";
+        String dataType = "integer";
+        ComputedColumnDesc ccDesc = new ComputedColumnDesc();
+        ccDesc.setTableIdentity(tableIdentity);
+        ccDesc.setColumnName(columnName);
+        ccDesc.setExpression(expression);
+        ccDesc.setDatatype(dataType);
+
+        String project = "default";
+        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        model.getComputedColumnDescs().add(ccDesc);
+
+        modelService.preProcessBeforeModelSave(model, project);
+    }
+
+    @Test
+    public void testComputedColumnNameCheck_CheckCC_ExceptionWhenCCNameIsSameWithColumnInLookupTable() {
+
+        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expectMessage("In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
+        String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
+        String columnName = "SITE_ID";
+        String expression = "nvl(TEST_SITES.SITE_ID)";
+        String dataType = "integer";
+        ComputedColumnDesc ccDesc = new ComputedColumnDesc();
+        ccDesc.setTableIdentity(tableIdentity);
+        ccDesc.setColumnName(columnName);
+        ccDesc.setExpression(expression);
+        ccDesc.setDatatype(dataType);
+
+        String project = "default";
+        NDataModelManager dataModelManager = modelService.getDataModelManager("default");
+        NDataModel model = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        model.getComputedColumnDescs().add(ccDesc);
+
+        modelService.checkComputedColumn(model, project, null);
+    }
 }
