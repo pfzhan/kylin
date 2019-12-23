@@ -51,6 +51,8 @@ import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -136,6 +138,11 @@ public class OLAPSchema extends AbstractSchema {
 
     public KylinConfig getConfig() {
         return config;
+    }
+
+    @VisibleForTesting
+    public void setConfigOnlyInTest(KylinConfig config) {
+        this.config = config;
     }
 
     public String getProjectName() {

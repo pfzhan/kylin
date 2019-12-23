@@ -25,17 +25,11 @@
 package org.apache.kylin.metadata.model;
 
 import java.util.HashMap;
-import java.util.List;
 
-import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.type.SqlTypeName;
-import io.kyligence.kap.metadata.model.ModelNonEquiCondMock;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -105,8 +99,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         JoinsGraph graph3 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
                 .leftJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
-                .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
-                .build();
+                .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" }).build();
         JoinsGraph graph4 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
                 .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
@@ -189,20 +182,20 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
 
         {
             JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"})
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"})
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
         }
 
         {
             JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"})
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"})
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
@@ -210,9 +203,10 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
 
         {
             JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"}).build();
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
+                    .build();
             JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"})
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             Assert.assertFalse(graph1.match(graph2, new HashMap<String, String>()));
         }
@@ -220,71 +214,9 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         {
             JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT").build();
             JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
-                    .leftJoin(new String[]{"TEST_KYLIN_FACT.ORDER_ID"}, new String[]{"TEST_ORDER.ORDER_ID"})
+                    .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                     .nonEquiLeftJoin("BUYER_ACCOUNT", "TEST_ORDER", "TEST_ORDER.BUYER_ID").build();
             Assert.assertFalse(graph1.match(graph2, new HashMap<String, String>()));
         }
     }
-
-    private class MockJoinGraphBuilder {
-        private NDataModel modelDesc;
-        private TableRef root;
-        private List<JoinDesc> joins;
-
-        public MockJoinGraphBuilder(NDataModel modelDesc, String rootName) {
-            this.modelDesc = modelDesc;
-            this.root = modelDesc.findTable(rootName);
-            Assert.assertNotNull(root);
-            this.joins = Lists.newArrayList();
-        }
-
-        private JoinDesc mockJoinDesc(String joinType, String[] fkCols, String[] pkCols) {
-            JoinDesc joinDesc = new JoinDesc();
-            joinDesc.setType(joinType);
-            joinDesc.setPrimaryKey(fkCols);
-            joinDesc.setPrimaryKey(pkCols);
-            TblColRef[] fkColRefs = new TblColRef[fkCols.length];
-            for (int i = 0; i < fkCols.length; i++) {
-                fkColRefs[i] = modelDesc.findColumn(fkCols[i]);
-            }
-            TblColRef[] pkColRefs = new TblColRef[pkCols.length];
-            for (int i = 0; i < pkCols.length; i++) {
-                pkColRefs[i] = modelDesc.findColumn(pkCols[i]);
-            }
-            joinDesc.setForeignKeyColumns(fkColRefs);
-            joinDesc.setPrimaryKeyColumns(pkColRefs);
-            return joinDesc;
-        }
-
-        public MockJoinGraphBuilder innerJoin(String[] fkCols, String[] pkCols) {
-            joins.add(mockJoinDesc("INNER", fkCols, pkCols));
-            return this;
-        }
-
-        public MockJoinGraphBuilder leftJoin(String[] fkCols, String[] pkCols) {
-            joins.add(mockJoinDesc("LEFT", fkCols, pkCols));
-            return this;
-        }
-
-        // simply add a col=constant condition to make a join cond non-equi
-        public MockJoinGraphBuilder nonEquiLeftJoin(String pkTblName, String fkTblName, String nonEquiCol) {
-            int idxTableEnd = nonEquiCol.indexOf('.');
-            TableRef tableRef = modelDesc.findTable(nonEquiCol.substring(0, idxTableEnd));
-            TblColRef tblColRef = tableRef.getColumn(nonEquiCol.substring(idxTableEnd+1));
-            JoinDesc joinDesc = mockJoinDesc("LEFT", new String[0], new String[0]);
-            joinDesc.setPrimaryTableRef(modelDesc.findTable(pkTblName));
-            joinDesc.setForeignTableRef(modelDesc.findTable(fkTblName));
-            joinDesc.setNonEquiJoinCondition(ModelNonEquiCondMock.composite(SqlKind.EQUALS,
-                    ModelNonEquiCondMock.mockTblColRefCond(tblColRef, SqlTypeName.CHAR),
-                    ModelNonEquiCondMock.mockConstantCond("DUMMY", SqlTypeName.CHAR)
-            ));
-            joins.add(joinDesc);
-            return this;
-        }
-
-        public JoinsGraph build() {
-            return new JoinsGraph(root, joins);
-        }
-    }
-
 }

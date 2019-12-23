@@ -113,6 +113,10 @@ public class StorageContext {
     @Setter
     private boolean partialResultReturned = false;
 
+    @Setter
+    @Getter
+    private boolean partialMatchModel = false;
+
     @Getter
     @Setter
     private Range<Long> reusedPeriod;

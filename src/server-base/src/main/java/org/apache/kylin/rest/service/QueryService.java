@@ -299,6 +299,7 @@ public class QueryService extends BasicService {
         final String user = aclEvaluate.getCurrentUserName();
         Collection<String> modelNames = Lists.newArrayList();
         Collection<String> layoutIds = Lists.newArrayList();
+        Collection<String> isPartialMatchModel = Lists.newArrayList();
         float duration = response.getDuration() / (float) 1000;
 
         if (CollectionUtils.isNotEmpty(response.getNativeRealizations())) {
@@ -306,6 +307,8 @@ public class QueryService extends BasicService {
                     .collect(Collectors.toList());
             layoutIds = Collections2.transform(response.getNativeRealizations(),
                     realization -> String.valueOf(realization.getLayoutId()));
+            isPartialMatchModel = Collections2.transform(response.getNativeRealizations(),
+                    realiazation -> String.valueOf(realiazation.isPartialMatchModel()));
         }
 
         int resultRowCount = 0;
@@ -325,6 +328,7 @@ public class QueryService extends BasicService {
         stringBuilder.append("Project: ").append(request.getProject()).append(newLine);
         stringBuilder.append("Realization Names: ").append(modelNames).append(newLine);
         stringBuilder.append("Index Layout Ids: ").append(layoutIds).append(newLine);
+        stringBuilder.append("Is Partial Match Model: ").append(isPartialMatchModel).append(newLine);
         stringBuilder.append("Scan rows: ").append(response.getScanRows()).append(newLine);
         stringBuilder.append("Total Scan rows: ").append(response.getTotalScanRows()).append(newLine);
         stringBuilder.append("Scan bytes: ").append(response.getScanBytes()).append(newLine);
@@ -1085,8 +1089,9 @@ public class QueryService extends BasicService {
                     }
                     String modelId = ctx.realization.getModel().getUuid();
                     String modelAlias = ctx.realization.getModel().getAlias();
-                    realizations.add(new NativeQueryRealization(modelId, modelAlias,
-                            ctx.storageContext.getCuboidLayoutId(), realizationType));
+                    realizations
+                            .add(new NativeQueryRealization(modelId, modelAlias, ctx.storageContext.getCuboidLayoutId(),
+                                    realizationType, ctx.storageContext.isPartialMatchModel()));
                 }
             }
         }

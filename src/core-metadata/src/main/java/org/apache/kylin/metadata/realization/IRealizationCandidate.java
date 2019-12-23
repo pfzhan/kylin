@@ -42,5 +42,5 @@
 package org.apache.kylin.metadata.realization;
 
 public interface IRealizationCandidate {
-    public double getCost();
+    double getCost();
 }

@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.query;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +40,6 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.cube.cuboid.ComparatorUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
@@ -496,14 +494,5 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         }
         tableExt.setColumnStats(columnStats);
         tableMetadataManager.saveTableExt(tableExt);
-    }
-
-    @Test
-    public void test() {
-        List<Integer> nums = Lists.newArrayList(1, 2, 4);
-        nums.add(null);
-        nums.add(2);
-        Collections.sort(nums, ComparatorUtils.nullLastComparator());
-        System.out.printf(nums.toString());
     }
 }

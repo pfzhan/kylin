@@ -70,6 +70,7 @@ import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -102,42 +103,41 @@ public class RealizationChooser {
         }
     }
 
-    private static void attemptSelectCandidate(OLAPContext context) {
+    @VisibleForTesting
+    public static void attemptSelectCandidate(OLAPContext context) {
         context.setHasSelected(true);
-        // Step 1. match Model,  joins
+        // Step 1. get model through matching fact table with query
         Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
         if (modelMap.size() == 0) {
             throw new NoRealizationFoundException("No model found for " + toErrorMsg(context));
         }
-        logger.info("Models matched fact table {}: {}", context.firstTableScan.getTableName(), modelMap.values());
-
+        logger.trace("Models matched fact table {}: {}", context.firstTableScan.getTableName(), modelMap.values());
         List<Candidate> candidates = Lists.newArrayList();
         Map<NDataModel, Map<String, String>> model2AliasMap = Maps.newHashMap();
+
+        // Step 2.1 try to exactly match model
         for (NDataModel model : modelMap.keySet()) {
-            final Map<String, String> map = matchJoins(model, context);
-            if (map == null) {
-                continue;
-            }
-            context.fixModel(model, map);
-            model2AliasMap.put(model, map);
-            logger.info("Model {} join matched", model);
-
-            // Step 2. select realizations
-            preprocessOlapCtx(context);
-            Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)), model2AliasMap.get(model));
+            Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
             if (candidate != null) {
-                logger.info("Model {} QueryRouter matched", model);
                 candidates.add(candidate);
-            } else {
-                logger.info("Model {} failed in QueryRouter matching", model);
             }
+        }
 
-            context.unfixModel();
+        // Step 2.2 if no exactly model and user config to try partial model match, then try partial match model
+        if (CollectionUtils.isEmpty(candidates)
+                && KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
+            for (NDataModel model : modelMap.keySet()) {
+                Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
+                if (candidate != null) {
+                    candidates.add(candidate);
+                }
+            }
+            context.storageContext.setPartialMatchModel(CollectionUtils.isNotEmpty(candidates));
         }
 
         // Step 3. find the lowest-cost candidate
         Collections.sort(candidates);
-        logger.info("Cost Sorted Realizations {}", candidates);
+        logger.trace("Cost Sorted Realizations {}", candidates);
         if (!candidates.isEmpty()) {
             Candidate selectedCandidate = candidates.get(0);
             context.fixModel(selectedCandidate.getRealization().getModel(),
@@ -160,6 +160,28 @@ public class RealizationChooser {
         }
 
         throw new NoRealizationFoundException("No realization found for " + toErrorMsg(context));
+    }
+
+    private static Candidate selectRealizationFromModel(NDataModel model, OLAPContext context, boolean isPartialMatch,
+            Multimap<NDataModel, IRealization> modelMap, Map<NDataModel, Map<String, String>> model2AliasMap) {
+        final Map<String, String> map = matchJoins(model, context, isPartialMatch);
+        if (map == null) {
+            return null;
+        }
+        context.fixModel(model, map);
+        model2AliasMap.put(model, map);
+        logger.trace("Model {} join matched", model);
+
+        preprocessOlapCtx(context);
+        Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)),
+                model2AliasMap.get(model));
+        if (candidate != null) {
+            logger.trace("Model {} QueryRouter matched", model);
+        } else {
+            logger.trace("Model {} failed in QueryRouter matching", model);
+        }
+        context.unfixModel();
+        return candidate;
     }
 
     public static void fixContextForTableIndexAnswerNonRawQuery(OLAPContext context) {
@@ -250,10 +272,9 @@ public class RealizationChooser {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision
 
                 if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
-                    dataflow.getMeasures()
-                            .stream()
-                            .filter(measureDesc -> measureDesc.getFunction().getReturnType().equals("bitmap")
-                                    && func.getParameters().get(0).equals(measureDesc.getFunction().getParameters().get(0)))
+                    dataflow.getMeasures().stream()
+                            .filter(measureDesc -> measureDesc.getFunction().getReturnType().equals("bitmap") && func
+                                    .getParameters().get(0).equals(measureDesc.getFunction().getParameters().get(0)))
                             .forEach(measureDesc -> metrics.add(measureDesc.getFunction()));
                     dimensions.add(func.getParameters().get(1).getColRef());
                 } else {
@@ -303,7 +324,7 @@ public class RealizationChooser {
         return buf.toString();
     }
 
-    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx) {
+    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx, boolean partialMatch) {
         Map<String, String> matchUp = Maps.newHashMap();
         TableRef firstTable = ctx.firstTableScan.getTableRef();
         boolean matched;
@@ -313,7 +334,8 @@ public class RealizationChooser {
             String modelAlias = model.findFirstTable(firstTable.getTableIdentity()).getAlias();
             matchUp = ImmutableMap.of(firstTable.getAlias(), modelAlias);
             matched = true;
-            logger.debug("Context fact table {} matched lookup table in model {}", ctx.firstTableScan.getTableName(), model);
+            logger.debug("Context fact table {} matched lookup table in model {}", ctx.firstTableScan.getTableName(),
+                    model);
         } else if (ctx.joins.size() != ctx.allTableScans.size() - 1) {
             // has hanging tables
             ctx.realizationCheck.addModelIncapableReason(model,
@@ -325,13 +347,16 @@ public class RealizationChooser {
             if (ctx.getJoinsGraph() == null) {
                 ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
-            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp,
-                    KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
+            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
             if (matched) {
-                logger.debug("Context join graph matched model {}, context join graph {}, model join graph {}", model, ctx.getJoinsGraph(), model.getJoinsGraph());
+                logger.debug("Context join graph matched model {}, context join graph {}, model join graph {}", model,
+                        ctx.getJoinsGraph(), model.getJoinsGraph());
             } else {
-                logger.debug("Context join graph missed model {}, context join graph {}, model join graph {}", model, ctx.getJoinsGraph(), model.getJoinsGraph());
-                logger.debug("Missed match nodes - Context {}, Model {}", ctx.getJoinsGraph().unmatched(model.getJoinsGraph()), model.getJoinsGraph().unmatched(ctx.getJoinsGraph()));
+                logger.debug("Context join graph missed model {}, context join graph {}, model join graph {}", model,
+                        ctx.getJoinsGraph(), model.getJoinsGraph());
+                logger.debug("Missed match nodes - Context {}, Model {}",
+                        ctx.getJoinsGraph().unmatched(model.getJoinsGraph()),
+                        model.getJoinsGraph().unmatched(ctx.getJoinsGraph()));
             }
         }
 
@@ -342,6 +367,10 @@ public class RealizationChooser {
         }
         ctx.realizationCheck.addCapableModel(model, matchUp);
         return matchUp;
+    }
+
+    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx) {
+        return matchJoins(model, ctx, KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
     }
 
     private static Multimap<NDataModel, IRealization> makeOrderedModelMap(OLAPContext context) {
@@ -357,7 +386,8 @@ public class RealizationChooser {
             if (!real.isReady()) {
                 context.realizationCheck.addIncapableCube(real,
                         RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.CUBE_NOT_READY));
-                logger.warn("Realization {} is not ready for project {} with fact table {}", real, projectName, factTableName);
+                logger.warn("Realization {} is not ready for project {} with fact table {}", real, projectName,
+                        factTableName);
                 continue;
             }
             mapModelToRealizations.put(real.getModel(), real);

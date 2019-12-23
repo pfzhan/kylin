@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.io.Serializable;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.io.Serializable;
 
 @Getter
 @Setter
@@ -40,10 +40,27 @@ public class NativeQueryRealization implements Serializable {
     private String modelAlias;
     private Long layoutId;
     private String indexType;
+    private boolean isPartialMatchModel;
 
     public NativeQueryRealization(String modelId, long layoutId, String indexType) {
         this.modelId = modelId;
         this.layoutId = layoutId;
         this.indexType = indexType;
+        this.isPartialMatchModel = false;
+    }
+
+    public NativeQueryRealization(String modelId, String modelAlias, long layoutId, String indexType) {
+        this.modelId = modelId;
+        this.layoutId = layoutId;
+        this.modelAlias = modelAlias;
+        this.indexType = indexType;
+        this.isPartialMatchModel = false;
+    }
+
+    public NativeQueryRealization(String modelId, long layoutId, String indexType, boolean isPartialMatchModel) {
+        this.modelId = modelId;
+        this.layoutId = layoutId;
+        this.indexType = indexType;
+        this.isPartialMatchModel = isPartialMatchModel;
     }
 }
