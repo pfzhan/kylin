@@ -28,6 +28,13 @@
         </el-input>
       </el-col>
     </el-row>
+    <el-row class="filter-status-list" v-if="filter.status.length || filter.job_names.length">
+      <div class="tag-layout">
+        <el-tag size="small" closable v-for="(item, index) in filter.job_names" :key="index" @close="handleCloseTag(item, 'job_names')">{{$t(item)}}</el-tag>
+        <el-tag size="small" closable v-for="(item, index) in filter.status" :key="index" @close="handleCloseTag(item, 'status')">{{$t(item)}}</el-tag>
+      </div>
+      <span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
+    </el-row>
     <transition name="fade">
       <div class="selectLabel" v-if="isSelectAllShow&&!$store.state.project.isAllProject">
         <span>{{$t('selectedJobs', {selectedNumber: selectedNumber})}}</span>
@@ -397,7 +404,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       INC_BUILD: 'Load Data',
       TABLE_SAMPLING: 'Sample Table',
       project: 'Project',
-      adminTips: 'Admin user can view all job information via Select All option in the project list.'
+      adminTips: 'Admin user can view all job information via Select All option in the project list.',
+      clearAll: 'Clear All'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -467,7 +475,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       INC_BUILD: '加载数据',
       TABLE_SAMPLING: '抽样表数据',
       project: '项目',
-      adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。'
+      adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
+      clearAll: '清除所有'
     }
   }
 })
@@ -498,7 +507,7 @@ export default class JobsList extends Vue {
     job_names: [],
     sort_by: 'create_time',
     reverse: true,
-    status: '',
+    status: [],
     subject_alias: ''
   }
   waittingJobsFilter = {
@@ -507,7 +516,7 @@ export default class JobsList extends Vue {
   }
   jobsList = []
   jobTotal = 0
-  allStatus = ['ALL', 'PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
+  allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
   jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INC_BUILD', 'TABLE_SAMPLING']
   targetId = ''
   searchLoading = false
@@ -595,22 +604,31 @@ export default class JobsList extends Vue {
     let items = []
     for (let i = 0; i < this.allStatus.length; i++) {
       items.push(
-        <div onClick={() => { this.filterChange2(this.allStatus[i]) }}>
-          <el-dropdown-item class={this.allStatus[i] === this.filter.status ? 'active' : ''} key={i}>{this.$t(this.allStatus[i])}</el-dropdown-item>
-        </div>
+        <el-checkbox label={this.allStatus[i]} key={this.allStatus[i]}>{this.$t(this.allStatus[i])}</el-checkbox>
       )
     }
     return (<span>
       <span>{this.$t('ProgressStatus')}</span>
-      <el-dropdown hide-on-click={false} trigger="click">
-        <i class={(this.filter.status && this.filter.status !== 'ALL') ? 'el-icon-ksd-filter el-dropdown-link isFilter' : 'el-icon-ksd-filter el-dropdown-link'}></i>
-        <template slot="dropdown">
-          <el-dropdown-menu class="jobs-dropdown">
-            {items}
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
+      <el-popover placement="bottom" popperClass="filter-popover">
+        <el-checkbox-group class="filter-groups" value={this.filter.status} onInput={val => (this.filter.status = val)} onChange={this.filterChange2}>
+          {items}
+        </el-checkbox-group>
+        <i class={this.filter.status.length ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
+      </el-popover>
     </span>)
+  }
+  // 删除某个tag（筛选项）
+  handleCloseTag (tag, key) {
+    if (!(key in this.filter)) return
+    const index = this.filter[key].indexOf(tag)
+    typeof index === 'number' && this.filter[key].splice(index, 1)
+    this.filter.page_offset = 0
+    this.manualRefreshJobs()
+  }
+  // 清除所有的tags
+  handleClearAllTags () {
+    this.filter = {...this.filter, job_names: [], status: [], page_offset: 0}
+    this.manualRefreshJobs()
   }
   autoFilter () {
     clearTimeout(this.stCycle)
@@ -658,7 +676,10 @@ export default class JobsList extends Vue {
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
-      this.loadJobsList(this.filter).then((res) => {
+      let data = {}
+      const statuses = this.filter.status.join(',')
+      Object.keys(this.filter).forEach(key => key !== 'status' && (data[key] = this.filter[key]))
+      this.loadJobsList({...data, statuses}).then((res) => {
         handleSuccess(res, (data) => {
           if (data.total_size) {
             this.jobsList = data.value
@@ -931,9 +952,6 @@ export default class JobsList extends Vue {
     }, 1000)
   }
   filterChange2 (status) {
-    if (this.allStatus.indexOf(status) !== -1) {
-      this.filter.status = status === 'ALL' ? '' : status
-    }
     this.filter.page_offset = 0
     this.manualRefreshJobs()
     this.showStep = false
@@ -1457,6 +1475,29 @@ export default class JobsList extends Vue {
         background-color: @base-color-9;
         color: @base-color-2;
       }
+    }
+  }
+  .filter-status-list {
+    background: @background-disabled-color;
+    margin-bottom: 10px;
+    line-height: 36px;
+    padding: 2px 5px;
+    box-sizing: border-box;
+    .tag-layout {
+      width: calc(~'100% - 100px');
+      display: inline-block;
+      line-height: 30px;
+    }
+    span {
+      margin-left: 5px;
+    }
+    .clear-all-tags {
+      position: absolute;
+      top: 0;
+      right: 22px;
+      font-size: 14px;
+      color: @base-color;
+      cursor: pointer;
     }
   }
 </style>
