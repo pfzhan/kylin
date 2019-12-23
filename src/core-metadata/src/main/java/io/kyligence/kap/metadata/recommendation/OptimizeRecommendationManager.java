@@ -254,8 +254,7 @@ public class OptimizeRecommendationManager {
         List<MeasureRecommendationItem> measureRecommendations = Sets
                 .difference(Sets.newHashSet(optimizedAllMeasures), Sets.newHashSet(originAllMeasures)).stream()
                 .map(OptimizeRecommendationManager::createRecommendation)
-                .sorted(Comparator.comparing(item -> item.getMeasure().getId()))
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(item -> item.getMeasure().getId())).collect(Collectors.toList());
 
         for (val item : measureRecommendations) {
             val virtualMeasureId = ++measureIndex;
@@ -933,5 +932,20 @@ public class OptimizeRecommendationManager {
 
     public List<String> listAllOptimizeRecommendationIds() {
         return crud.listAll().stream().map(OptimizeRecommendation::getUuid).collect(Collectors.toList());
+    }
+
+    public void handleTableAliasModify(String id, String oldAlias, String newAlias) {
+        if (getOptimizeRecommendation(id) == null) {
+            return;
+        }
+        logOptimizeRecommendation(id);
+        updateOptimizeRecommendation(id, recommendation -> {
+            recommendation.getCcRecommendations().forEach(x -> x.getCc().changeTableAlias(oldAlias, newAlias));
+            recommendation.getDimensionRecommendations()
+                    .forEach(x -> x.getColumn().changeTableAlias(oldAlias, newAlias));
+            recommendation.getMeasureRecommendations()
+                    .forEach(x -> x.getMeasure().changeTableAlias(oldAlias, newAlias));
+        });
+        logOptimizeRecommendation(id);
     }
 }

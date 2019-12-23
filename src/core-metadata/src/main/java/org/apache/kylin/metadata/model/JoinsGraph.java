@@ -233,7 +233,7 @@ public class JoinsGraph implements Serializable {
             Preconditions.checkState(Arrays.stream(join.getPrimaryKeyColumns()).allMatch(TblColRef::isQualified));
             addAsEdge(join);
         }
-        
+
         validate(joins);
     }
 
@@ -267,7 +267,7 @@ public class JoinsGraph implements Serializable {
             edgesToNode.get(fkTable).add(edge);
         }
     }
-    
+
     private void validate(List<JoinDesc> joins) {
         for (JoinDesc join : joins) {
             TableRef fkTable = join.getFKSide();
@@ -282,7 +282,7 @@ public class JoinsGraph implements Serializable {
     }
 
     public boolean match(JoinsGraph pattern, Map<String, String> matchAlias, boolean matchPatial) {
-        if (pattern.center == null) {
+        if (pattern == null || pattern.center == null) {
             throw new IllegalArgumentException("pattern(model) should have a center: " + pattern);
         }
 
@@ -353,7 +353,7 @@ public class JoinsGraph implements Serializable {
         int cntInnerPatternEdges = (int) patternEdges.stream().filter(e -> !e.isLeftJoin()).count();
         return cntInnerQueryEdges == cntInnerPatternEdges;
     }
-    
+
     private void innerMatch(JoinsGraph pattern, Map<TableRef, TableRef> trialMatches, boolean matchPartial,
             AtomicReference<Map<TableRef, TableRef>> finalMatch) {
         if (trialMatches.size() == nodes.size()) {
@@ -434,8 +434,7 @@ public class JoinsGraph implements Serializable {
         if (!edgesFromNode.containsKey(table)) {
             return Lists.newArrayList();
         }
-        return edgesFromNode.get(table).stream().filter(e -> e.isFkSide(table))
-                .collect(Collectors.toList());
+        return edgesFromNode.get(table).stream().filter(e -> e.isFkSide(table)).collect(Collectors.toList());
     }
 
     private Edge getEdgeByPKSide(TableRef table) {

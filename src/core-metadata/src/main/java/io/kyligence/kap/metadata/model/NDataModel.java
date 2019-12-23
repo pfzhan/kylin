@@ -311,6 +311,14 @@ public class NDataModel extends RootPersistentEntity {
         public boolean isDimension() {
             return status == ColumnStatus.DIMENSION;
         }
+
+        public void changeTableAlias(String oldAlias, String newAlias) {
+            String table = aliasDotColumn.split("\\.")[0];
+            String column = aliasDotColumn.split("\\.")[1];
+            if (table.equalsIgnoreCase(oldAlias)) {
+                aliasDotColumn = newAlias + "." + column;
+            }
+        }
     }
 
     @Data
@@ -324,6 +332,16 @@ public class NDataModel extends RootPersistentEntity {
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         private boolean tomb = false;
+
+        public void changeTableAlias(String oldAlias, String newAlias) {
+            for (val parameter : getFunction().getParameters()) {
+                String table = parameter.getValue().split("\\.")[0];
+                if (oldAlias.equalsIgnoreCase(table)) {
+                    String column = parameter.getValue().split("\\.")[1];
+                    parameter.setValue(newAlias + "." + column);
+                }
+            }
+        }
 
     }
 
@@ -872,10 +890,7 @@ public class NDataModel extends RootPersistentEntity {
         init(config, originalTables, otherModels, project, false);
     }
 
-    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            String project, boolean rename) {
-        this.project = project;
-
+    public Map<String, TableDesc> getExtendedTables(Map<String, TableDesc> originalTables) {
         // tweak the tables according to Computed Columns defined in model
         Map<String, TableDesc> tables = Maps.newHashMap();
         for (Map.Entry<String, TableDesc> entry : originalTables.entrySet()) {
@@ -890,6 +905,14 @@ public class NDataModel extends RootPersistentEntity {
                     .appendColumns(ComputedColumnUtil.createComputedColumns(computedColumnDescs, tableDesc), true);
             tables.put(s, extendedTableDesc);
         }
+        return tables;
+    }
+
+    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
+            String project, boolean rename) {
+        this.project = project;
+
+        Map<String, TableDesc> tables = getExtendedTables(originalTables);
 
         init(config, tables);
 

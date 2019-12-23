@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -363,13 +364,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .peek(col -> {
                     Assert.assertEquals(ColumnStatus.TOMB, col.getStatus());
                 }).count();
-        Assert.assertEquals(colCount, tombCount);
+        Assert.assertEquals(0, tombCount);
         val otherTombCount = model.getAllNamedColumns().stream()
                 .filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER")).filter(nc -> !nc.isExist()).count();
         Assert.assertEquals(1, otherTombCount);
-        Assert.assertEquals(205, model.getAllNamedColumns().size());
+        Assert.assertEquals(202, model.getAllNamedColumns().size());
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        Assert.assertEquals(2, eventDao.getEvents().size());
+        Assert.assertEquals(0, eventDao.getEvents().size());
     }
 
     @Test
@@ -390,7 +391,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
-                CoreMatchers.is(Lists.newArrayList("COUNT_ALL", "MAX1")));
+                CoreMatchers.is(Lists.newArrayList("MAX1", "COUNT_ALL")));
 
         // make sure update again is ok
         val updateRequest2 = JsonUtil.readValue(
@@ -402,8 +403,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.isTomb()).sorted(Comparator.comparing(Measure::getId))
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
-                CoreMatchers.is(Lists.newArrayList("COUNT_ALL", "MAX1")));
-        Assert.assertEquals(4, model.getAllMeasures().size());
+                CoreMatchers.is(Lists.newArrayList("MAX1", "COUNT_ALL")));
+        Assert.assertEquals(2, model.getAllMeasures().size());
     }
 
     @Test
@@ -826,6 +827,17 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getToBeDeletedIndexes()));
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), k -> {
+            val newDim = k.getRuleBasedIndex().getDimensions().stream().filter(x -> x != 25)
+                    .collect(Collectors.toList());
+            k.getRuleBasedIndex().setDimensions(newDim);
+            List<NAggregationGroup> aggs = new ArrayList<>();
+            for (val agg : k.getRuleBasedIndex().getAggregationGroups()) {
+                val newMeasure = Arrays.stream(agg.getIncludes()).filter(x -> x != 25).toArray(Integer[]::new);
+                agg.setMeasures(newMeasure);
+            }
+            k.getRuleBasedIndex().setAggregationGroups(aggs);
+        });
         semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel, null, null);
         Assert.assertTrue(CollectionUtils.isEmpty(
                 indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getToBeDeletedIndexes()));
@@ -838,6 +850,18 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val originModel = getTestInnerModel();
+
+        indexPlanManager.updateIndexPlan(indexPlan.getId(), k -> {
+            List<NAggregationGroup> aggs = new ArrayList<>();
+            for (val agg : indexPlan.getRuleBasedIndex().getAggregationGroups()) {
+                val newMeasure = Arrays.stream(agg.getMeasures()).filter(x -> x != 100001 && x != 100002 && x != 100011)
+                        .toArray(Integer[]::new);
+                agg.setMeasures(newMeasure);
+                aggs.add(agg);
+            }
+            k.getRuleBasedIndex().setAggregationGroups(aggs);
+        });
+
         modelManager.updateDataModel(originModel.getUuid(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream()
                         .filter(m -> m.getId() != 100002 && m.getId() != 100001 && m.getId() != 100011)

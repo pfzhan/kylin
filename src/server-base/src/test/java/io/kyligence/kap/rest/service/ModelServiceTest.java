@@ -76,7 +76,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -136,6 +135,7 @@ import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -1006,7 +1006,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(CollectionUtils.isNotEmpty(
                 NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId).getToBeDeletedIndexes()));
 
-        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" }, false);
+        modelService.deleteSegmentById(modelId, project, new String[] { "ef783e4d-e35f-4bd9-8afd-efd64336f04d" },
+                false);
         NDataflow dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
         IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan(modelId);
 
@@ -1505,13 +1506,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         AtomicBoolean clean = new AtomicBoolean(false);
         val manager = spyOptimizeRecommendationManager();
-        Mockito.doAnswer(invocation -> {
-            String id = invocation.getArgument(0);
+        Mockito.doAnswer(x -> {
+            String id = x.getArgument(0);
             if (modelId.equals(id)) {
                 clean.set(true);
             }
             return null;
-        }).when(manager).cleanAll(Mockito.anyString());
+        }).when(manager).handleTableAliasModify(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
         val oldAlias = modelRequest.getJoinTables().get(0).getAlias();
         modelRequest.getJoinTables().get(0).setAlias(oldAlias + "_1");
 

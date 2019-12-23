@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -49,6 +53,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
@@ -58,6 +63,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.util.ModifyTableNameSqlVisitor;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -89,6 +95,7 @@ public class ModelSemanticHelper extends BasicService {
             List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
             NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
             dataModel.setUuid(modelRequest.getUuid() != null ? modelRequest.getUuid() : UUID.randomUUID().toString());
+            dataModel.setProject(modelRequest.getProject());
             dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
             dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel, modelRequest));
             return dataModel;
@@ -151,18 +158,64 @@ public class ModelSemanticHelper extends BasicService {
         return columns;
     }
 
+    private void updateModelColumnForTableAliasModify(NDataModel model, Map<String, String> matchAlias) {
+        val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), model.getProject());
+        String modelId = model.getUuid();
+        for (val kv : matchAlias.entrySet()) {
+            String oldAliasName = kv.getKey();
+            String newAliasName = kv.getValue();
+            if (oldAliasName.equalsIgnoreCase(newAliasName)) {
+                continue;
+            }
+
+            model.getAllNamedColumns().stream().filter(NamedColumn::isExist)
+                    .forEach(x -> x.changeTableAlias(oldAliasName, newAliasName));
+            model.getAllMeasures().stream().filter(x -> !x.isTomb())
+                    .forEach(x -> x.changeTableAlias(oldAliasName, newAliasName));
+            model.getComputedColumnDescs().forEach(x -> x.changeTableAlias(oldAliasName, newAliasName));
+
+            recommendationManager.handleTableAliasModify(modelId, oldAliasName, newAliasName);
+
+            String filterCondition = model.getFilterCondition();
+            if (StringUtils.isNotEmpty(filterCondition)) {
+                SqlVisitor<Object> modifyAlias = new ModifyTableNameSqlVisitor(oldAliasName, newAliasName);
+                SqlNode sqlNode = CalciteParser.getExpNode(filterCondition);
+                sqlNode.accept(modifyAlias);
+                String newFilterCondition = sqlNode.toSqlString(HiveSqlDialect.DEFAULT).toString();
+                model.setFilterCondition(newFilterCondition);
+            }
+        }
+    }
+
+    private Map<String, String> getAliasTransformMap(NDataModel originModel, NDataModel expectModel) {
+        Map<String, String> matchAlias = Maps.newHashMap();
+        boolean match = originModel.getJoinsGraph().match(expectModel.getJoinsGraph(), matchAlias);
+        if (!match) {
+            matchAlias.clear();
+        }
+        return matchAlias;
+    }
+
     public void updateModelColumns(NDataModel originModel, ModelRequest request) {
         val expectedModel = convertToDataModel(request);
+
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
                 .getAllTablesMap();
+        val initedAllTables = expectedModel.getExtendedTables(allTables);
+        expectedModel.init(KylinConfig.getInstanceFromEnv(), initedAllTables);
+        Map<String, String> matchAlias = getAliasTransformMap(originModel, expectedModel);
+        updateModelColumnForTableAliasModify(expectedModel, matchAlias);
+
         expectedModel.init(KylinConfig.getInstanceFromEnv(), allTables,
                 getDataflowManager(request.getProject()).listUnderliningDataModels(), request.getProject());
+
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
         originModel.setRootFactTableName(expectedModel.getRootFactTableName());
         originModel.setRootFactTableAlias(expectedModel.getRootFactTableAlias());
         originModel.setPartitionDesc(expectedModel.getPartitionDesc());
         originModel.setFilterCondition(expectedModel.getFilterCondition());
+        updateModelColumnForTableAliasModify(originModel, matchAlias);
 
         // handle computed column updates
         List<ComputedColumnDesc> currentComputedColumns = originModel.getComputedColumnDescs();
@@ -311,6 +364,32 @@ public class ModelSemanticHelper extends BasicService {
             handleReloadData(newModel, originModel, project, start, end);
             recommendationManager.cleanAll(model);
             return;
+        } else {
+            // check agg group contains removed dimensions
+            val rule = indexPlan.getRuleBasedIndex();
+            if (rule != null) {
+                if (!newModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
+                    val allDimensions = rule.getDimensions();
+                    val dimensionNames = allDimensions.stream()
+                            .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
+                            .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+
+                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                            + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+                }
+
+                for (NAggregationGroup agg : rule.getAggregationGroups()) {
+                    if (!newModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
+                        val measureNames = Arrays.stream(agg.getMeasures())
+                                .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
+                                .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
+
+                        throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                                + "'s agg group still contains measures " + measureNames);
+                    }
+
+                }
+            }
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
                 .containsAll(originModel.getEffectiveDimenionsMap().keySet());
@@ -345,7 +424,7 @@ public class ModelSemanticHelper extends BasicService {
     private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
         return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
                 || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
-                || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables())
+                || !originModel.getJoinsGraph().match(newModel.getJoinsGraph(), Maps.newHashMap())
                 || !isFilterConditonNotChange(originModel.getFilterCondition(), newModel.getFilterCondition());
     }
 

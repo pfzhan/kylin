@@ -1185,4 +1185,38 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertFalse(recommendation.getLayoutRecommendations().get(5).isAggIndex());
     }
 
+    @Test
+    public void testHandleTableAliasModify() throws Exception {
+        prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile, null, indexPlan -> {
+            indexPlan.setIndexes(Lists.newArrayList());
+        });
+
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        String oldAliasName = "TEST_KYLIN_FACT";
+        String newAliasName = "MMM";
+
+        Assert.assertTrue(recommendation.getCcRecommendations().stream()
+                .anyMatch(x -> x.getCc().getExpression().contains(oldAliasName + ".")));
+        Assert.assertTrue(recommendation.getMeasureRecommendations().stream().anyMatch(
+                x -> x.getMeasure().getFunction().getParameters().get(0).getValue().startsWith(oldAliasName + ".")));
+        Assert.assertTrue(recommendation.getDimensionRecommendations().stream()
+                .anyMatch(x -> x.getColumn().getAliasDotColumn().startsWith(oldAliasName + ".")));
+
+        recommendationManager.handleTableAliasModify(id, oldAliasName, newAliasName);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertFalse(recommendation.getCcRecommendations().stream()
+                .anyMatch(x -> x.getCc().getExpression().contains(oldAliasName + ".")));
+        Assert.assertFalse(recommendation.getMeasureRecommendations().stream().anyMatch(
+                x -> x.getMeasure().getFunction().getParameters().get(0).getValue().startsWith(oldAliasName + ".")));
+        Assert.assertFalse(recommendation.getDimensionRecommendations().stream()
+                .anyMatch(x -> x.getColumn().getAliasDotColumn().startsWith(oldAliasName + ".")));
+
+        Assert.assertTrue(recommendation.getCcRecommendations().stream()
+                .anyMatch(x -> x.getCc().getExpression().contains(newAliasName + ".")));
+        Assert.assertTrue(recommendation.getMeasureRecommendations().stream().anyMatch(
+                x -> x.getMeasure().getFunction().getParameters().get(0).getValue().startsWith(newAliasName + ".")));
+        Assert.assertTrue(recommendation.getDimensionRecommendations().stream()
+                .anyMatch(x -> x.getColumn().getAliasDotColumn().startsWith(newAliasName + ".")));
+
+    }
 }

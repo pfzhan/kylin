@@ -42,15 +42,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.calcite.sql.SqlAggFunction;
-import org.apache.calcite.sql.SqlAsOperator;
-import org.apache.calcite.sql.SqlBasicCall;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
-import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
-import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -97,20 +91,19 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkContext;
+import io.kyligence.kap.common.util.AddTableNameSqlVisitor;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -1812,40 +1805,12 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val originModel = modelManager.getDataModelDesc(modelId);
 
-        val cubeManager = getIndexPlanManager(project);
         val copyModel = modelManager.copyForWrite(originModel);
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
-
-        val indexPlan = cubeManager.getIndexPlan(modelId);
-        // check agg group contains removed dimensions
-        val rule = indexPlan.getRuleBasedIndex();
-        if (rule != null) {
-            if (!copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
-                val allDimensions = rule.getDimensions();
-                val dimensionNames = allDimensions.stream()
-                        .filter(id -> !copyModel.getEffectiveDimenionsMap().containsKey(id))
-                        .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-
-                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                        + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
-            }
-
-            for (NAggregationGroup agg : rule.getAggregationGroups()) {
-                if (!copyModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
-                    val measureNames = Arrays.stream(agg.getMeasures())
-                            .filter(measureId -> !copyModel.getEffectiveMeasureMap().containsKey(measureId))
-                            .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-
-                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                            + "'s agg group still contains measures " + measureNames);
-                }
-
-            }
-        }
 
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
@@ -2148,75 +2113,29 @@ public class ModelService extends BasicService {
     }
 
     public void checkFilterCondition(ModelRequest modelRequest) {
-        NDataModel dataModel = semanticUpdater.convertToDataModel(modelRequest);
-        preProcessBeforeModelSave(dataModel, modelRequest.getProject());
-    }
-
-    private class AddTableNameSqlVisitor extends SqlBasicVisitor<Object> {
-        private String expr;
-        private Map<String, String> colToTable;
-        private Set<String> ambiguityCol;
-        private Set<String> aliasSet;
-
-        public AddTableNameSqlVisitor(String expr, Map<String, String> colToTable, Set<String> ambiguityCol,
-                Set<String> aliasSet) {
-            this.expr = expr;
-            this.colToTable = colToTable;
-            this.ambiguityCol = ambiguityCol;
-            this.aliasSet = aliasSet;
+        NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
+        NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
+        if (oldDataModel != null) {
+            model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
+            semanticUpdater.updateModelColumns(model, modelRequest);
         }
-
-        @Override
-        public Object visit(SqlIdentifier id) {
-            boolean ok = true;
-            if (id.names.size() == 1) {
-                String column = id.names.get(0).toUpperCase().trim();
-                if (!colToTable.containsKey(column) || ambiguityCol.contains(column)) {
-                    ok = false;
-                } else {
-                    id.names = ImmutableList.of(colToTable.get(column), column);
-                }
-            } else if (id.names.size() == 2) {
-                String table = id.names.get(0).toUpperCase().trim();
-                String column = id.names.get(1).toUpperCase().trim();
-                if (!aliasSet.contains(table) || !colToTable.containsKey(column)) {
-                    ok = false;
-                }
-            } else {
-                ok = false;
-            }
-            if (!ok) {
-                throw new IllegalArgumentException(
-                        "Unrecognized column: " + id.toString() + " in expression '" + expr + "'.");
-            }
-            return null;
-        }
-
-        @Override
-        public Object visit(SqlCall call) {
-            if (call instanceof SqlBasicCall) {
-                if (call.getOperator() instanceof SqlAsOperator) {
-                    throw new IllegalArgumentException(
-                            String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
-                }
-
-                if (call.getOperator() instanceof SqlAggFunction) {
-                    throw new IllegalArgumentException(
-                            String.format(AdviceMessage.getInstance().getDefaultReason(), "null"));
-                }
-            }
-            return call.getOperator().acceptCall(this, call);
+        String originFilterCondition = model.getFilterCondition();
+        if (StringUtils.isNotEmpty(originFilterCondition)) {
+            String filterConditionAddTableName = addTableNameIfNotExist(originFilterCondition, model);
+            model.setFilterCondition(filterConditionAddTableName);
         }
     }
 
     public String addTableNameIfNotExist(final String expr, final NDataModel model) {
         Map<String, String> colToTable = Maps.newHashMap();
         Set<String> ambiguityCol = Sets.newHashSet();
+        Set<String> allColumn = Sets.newHashSet();
         for (val col : model.getAllNamedColumns()) {
             if (col.getStatus() == NDataModel.ColumnStatus.TOMB) {
                 continue;
             }
             String aliasDotColumn = col.getAliasDotColumn();
+            allColumn.add(aliasDotColumn);
             String table = aliasDotColumn.split("\\.")[0];
             String column = aliasDotColumn.split("\\.")[1];
             if (colToTable.containsKey(column)) {
@@ -2226,10 +2145,9 @@ public class ModelService extends BasicService {
             }
         }
 
-        Set<String> aliasSet = model.getAliasMap().keySet();
         SqlNode sqlNode = CalciteParser.getExpNode(expr);
 
-        SqlVisitor<Object> sqlVisitor = new AddTableNameSqlVisitor(expr, colToTable, ambiguityCol, aliasSet);
+        SqlVisitor<Object> sqlVisitor = new AddTableNameSqlVisitor(expr, colToTable, ambiguityCol, allColumn);
 
         sqlNode.accept(sqlVisitor);
         return sqlNode

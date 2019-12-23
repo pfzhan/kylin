@@ -28,14 +28,13 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.annotations.VisibleForTesting;
-import lombok.EqualsAndHashCode;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.dialect.HiveSqlDialect;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
@@ -47,9 +46,12 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.util.ModifyTableNameSqlVisitor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(exclude = "comment")
@@ -174,10 +176,9 @@ public class ComputedColumnDesc implements Serializable {
             @Override
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
-                    throw new IllegalArgumentException(
-                            "Unrecognized column: " + id.toString() + " in expression '" + expr
-                                    + "'. When referencing a column, expressions should use patterns like ALIAS.COLUMN,"
-                                    + " where ALIAS is the table alias defined in model.");
+                    throw new IllegalArgumentException("Unrecognized column: " + id.toString() + " in expression '"
+                            + expr + "'. When referencing a column, expressions should use patterns like ALIAS.COLUMN,"
+                            + " where ALIAS is the table alias defined in model.");
                 }
                 return null;
             }
@@ -216,4 +217,16 @@ public class ComputedColumnDesc implements Serializable {
         }
         return innerExpression;
     }
+
+    public void changeTableAlias(String oldAlias, String newAlias) {
+        SqlVisitor<Object> modifyAlias = new ModifyTableNameSqlVisitor(oldAlias, newAlias);
+        SqlNode sqlNode = CalciteParser.getExpNode(getExpression());
+        sqlNode.accept(modifyAlias);
+        setExpression(sqlNode.toSqlString(HiveSqlDialect.DEFAULT).toString());
+
+        SqlNode innerSqlNode = CalciteParser.getExpNode(getInnerExpression());
+        innerSqlNode.accept(modifyAlias);
+        setInnerExpression(innerSqlNode.toSqlString(HiveSqlDialect.DEFAULT).toString());
+    }
+
 }
