@@ -42,7 +42,7 @@
                   :key="index"
                   :label="item.name"
                   :value="item.name">
-                  <el-tooltip :content="item.name" effect="dark" placement="top"><span>{{item.name.split('.')[item.name.split('.').length - 1] | omit(26, '...')}}</span></el-tooltip>
+                  <el-tooltip :content="item.name" effect="dark" placement="top"><span>{{item.name.split('.')[item.name.split('.').length - 1] | omit(30, '...')}}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
                 </el-option>
               </el-option-group>
@@ -72,7 +72,7 @@
                 :key="index"
                 :label="item.name"
                 :value="item.name">
-                <span :title="item.name">{{item.name | omit(26, '...')}}</span>
+                <span :title="item.name">{{item.name | omit(30, '...')}}</span>
                 <span class="ky-option-sub-info">{{item.datatype}}</span>
               </el-option>
             </el-select>
@@ -90,7 +90,7 @@
                 :key="index"
                 :label="item.name"
                 :value="item.name">
-                 <el-tooltip :content="item.name" effect="dark" placement="top"><span :title="item.name">{{item.name.split('.')[item.name.split('.').length - 1] | omit(26, '...')}}</span></el-tooltip>
+                 <el-tooltip :content="item.name" effect="dark" placement="top"><span>{{item.name.split('.')[item.name.split('.').length - 1] | omit(30, '...')}}</span></el-tooltip>
                 <span class="ky-option-sub-info">{{item.datatype.toLocaleLowerCase()}}</span>
               </el-option>
             </el-option-group>
