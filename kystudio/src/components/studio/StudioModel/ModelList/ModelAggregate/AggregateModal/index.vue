@@ -479,7 +479,7 @@ export default class AggregateModal extends Vue {
     const aggregateArray = get(this.form, 'aggregateArray')
     const aggregateData = {
       ...JSON.parse(initialAggregateData),
-      ...{ measures: this.measures.map(item => item.value) },
+      ...{ measures: this.reorganizedMeasures() },
       // id: aggregateArray.length
       id: sampleGuid()
     }
@@ -778,8 +778,7 @@ export default class AggregateModal extends Vue {
 
   // 选择所有的度量
   handleAddAllMeasure (aggregateIdx, id) {
-    const measures = ['COUNT_ALL', ...this.measures.map(m => m.label).filter(item => item !== 'COUNT_ALL')]
-    this.handleInput(`aggregateArray.${aggregateIdx}.measures`, measures, id)
+    this.handleInput(`aggregateArray.${aggregateIdx}.measures`, this.reorganizedMeasures(), id)
   }
 
   // 清除所有的度量
@@ -787,6 +786,11 @@ export default class AggregateModal extends Vue {
     kapConfirm(this.$t('clearAllMeasuresTip', {aggId: titleId}), {type: 'warning'}, this.$t('clearMeasureTitle')).then(() => {
       this.handleInput(`aggregateArray.${aggregateIdx}.measures`, this.form.aggregateArray[aggregateIdx].measures.filter(m => ['COUNT_ALL'].includes(m)), id)
     })
+  }
+
+  reorganizedMeasures () {
+    const measureList = this.measures.map(m => m.label)
+    return measureList.includes('COUNT_ALL') ? ['COUNT_ALL', ...measureList.filter(item => item !== 'COUNT_ALL')] : measureList
   }
 
   // 是否展开聚合组

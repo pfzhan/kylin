@@ -115,7 +115,7 @@ export default {
           if (!jointArray.length) {
             jointArray.push({ id: 0, items: [] })
           }
-          measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')]
+          measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
           return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open }
         }).reverse()
       }
