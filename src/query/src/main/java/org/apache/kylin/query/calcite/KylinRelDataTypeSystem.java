@@ -48,6 +48,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.kylin.common.KapConfig;
 
 @SuppressWarnings("unused") //used by reflection
 public class KylinRelDataTypeSystem extends RelDataTypeSystemImpl {
@@ -108,5 +109,15 @@ public class KylinRelDataTypeSystem extends RelDataTypeSystemImpl {
     @Override
     public boolean shouldConvertRaggedUnionTypesToVarying() {
         return true;
+    }
+
+    @Override
+    public int getDefaultScale(SqlTypeName typeName) {
+        switch (typeName) {
+            case DECIMAL:
+                return KapConfig.getInstanceFromEnv().defaultDecimalScale();
+            default:
+                return super.getDefaultScale(typeName);
+        }
     }
 }

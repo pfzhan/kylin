@@ -702,6 +702,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.engine.split-group-sets-into-union", TRUE));
     }
 
+    public int defaultDecimalScale() {
+        return Integer.valueOf(config.getOptional("kap.query.engine.default-decimal-scale", "0"));
+    }
+
     /**
      * Kerberos
      */
