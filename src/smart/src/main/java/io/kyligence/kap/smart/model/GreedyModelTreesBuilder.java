@@ -177,18 +177,10 @@ public class GreedyModelTreesBuilder {
 
             Map<TableRef, String> allTableAlias = new HashMap<>();
             for (TableRef tableRef : joinsGraph.getAllTblRefNodes()) {
-                TableRef[] joinHierarchy = getJoinHierarchy(joinsGraph, tableRef);
-                String[] tableNames = new String[joinHierarchy.length];
-
-                for (int i = 0; i < joinHierarchy.length; i++) {
-                    TableRef table = joinHierarchy[i];
-                    tableNames[i] = table.getTableIdentity();
-                }
-
-                String tblAlias = (joinHierarchy.length == 1 && joinHierarchy[0] == joinsGraph.getCenter())
+                JoinDesc[] joinHierarchy = getJoinDescHierarchy(joinsGraph, tableRef);
+                String tblAlias = (joinHierarchy.length == 0)
                         ? joinsGraph.getCenter().getTableName()
-                        : dict.getHierachyAlias(tableNames);
-
+                        : dict.getHierachyAliasFromJoins(joinHierarchy);
                 allTableAlias.put(tableRef, tblAlias);
             }
             return allTableAlias;
@@ -374,6 +366,19 @@ public class GreedyModelTreesBuilder {
             }
 
             return (TableRef[]) ArrayUtils.add(getJoinHierarchy(joinsTree, join.getFKSide()), leaf);
+        }
+
+        private static JoinDesc[] getJoinDescHierarchy(JoinsGraph joinsTree, TableRef leaf) {
+            if (leaf == null) {
+                throw new IllegalStateException("The TableRef cannot be NULL !");
+            }
+
+            JoinDesc join = joinsTree.getJoinByPKSide(leaf);
+            if (join == null) {
+                return new JoinDesc[0];
+            }
+
+            return (JoinDesc[]) ArrayUtils.add(getJoinDescHierarchy(joinsTree, join.getFKSide()), join);
         }
 
         /**

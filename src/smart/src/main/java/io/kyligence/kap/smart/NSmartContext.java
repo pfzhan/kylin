@@ -64,6 +64,8 @@ public class NSmartContext {
 
     private final boolean couldCreateNewModel;
 
+    private boolean canModifyOriginModel = false;
+
     @Setter
     private boolean skipEvaluateCC;
 
@@ -96,6 +98,7 @@ public class NSmartContext {
         Preconditions.checkArgument(!prjInstance.isExpertMode() || couldCreateNewModel,
                 "In Expert Mode, it CANNOT create new model !!!");
         this.couldCreateNewModel = couldCreateNewModel;
+        this.canModifyOriginModel = prjInstance.isSmartMode();
     }
 
     public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
@@ -107,6 +110,7 @@ public class NSmartContext {
         this.reuseExistedModel = true;
         val prjInstance = NProjectManager.getInstance(this.kylinConfig).getProject(project);
         this.couldCreateNewModel = prjInstance.isSmartMode();
+        this.canModifyOriginModel = prjInstance.isSmartMode();
 
         tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
     }

@@ -34,7 +34,9 @@ import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +46,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 public class TableAliasGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(TableAliasGenerator.class);
+    private static final String _KEY_ = "_KEY_";
+    private static final String __TO__ = "__TO__";
 
     public static TableAliasDict generateNewDict(String[] tableNames) {
         String[] sortedNames = new HashSet<String>(Arrays.asList(tableNames)).toArray(new String[0]);
@@ -162,6 +166,31 @@ public class TableAliasGenerator {
                 hAlias.append("_").append(getAlias(tables[i]));
             }
             return hAlias.toString();
+        }
+
+        public String getHierachyAliasFromJoins(JoinDesc[] joinDescs) {
+            if (joinDescs == null || joinDescs.length == 0)
+                return "";
+
+            StringBuilder alias = new StringBuilder(getAlias(joinDescs[0].getPKSide().getTableIdentity()));
+            for (JoinDesc joinDesc : joinDescs) {
+                if (joinDesc.getPrimaryKeyColumns() == null
+                        || joinDesc.getPrimaryKeyColumns().length == 0 && joinDesc.getNonEquiJoinCondition() == null) {
+                    break;
+                } else if (joinDesc.getNonEquiJoinCondition() != null) {
+                    alias.append(joinDesc.getNonEquiJoinCondition().toString());
+                    alias.append(Arrays.stream(joinDesc.getForeignKeyColumns())
+                            .map(join -> join.getTableRef().getTableIdentity()));
+                } else {
+                    alias.append(_KEY_ + Arrays.toString(
+                            Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
+                    alias.append(
+                            __TO__ + getAlias(joinDesc.getForeignKeyColumns()[0].getTableRef().getTableIdentity()));
+                    alias.append(_KEY_ + Arrays.toString(
+                            Arrays.stream(joinDesc.getForeignKeyColumns()).map(TblColRef::getName).toArray()));
+                }
+            }
+            return alias.toString();
         }
     }
 }

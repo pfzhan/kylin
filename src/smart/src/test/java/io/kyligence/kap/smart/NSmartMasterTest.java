@@ -594,7 +594,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
-    public void testProposeNewModel() {
+    public void testProposeNewModel_InSemiMode() {
         // normal case 1. create totally new model and index (without rule-based-index), check the model and index_plan
         String[] sqls = new String[] {
                 "select test_account.account_id, test_account1.account_id, count(test_account.account_country) \n"

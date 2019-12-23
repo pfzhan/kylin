@@ -62,13 +62,13 @@ class NModelOptProposer extends NAbstractProposer {
         for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
             NModelMaster modelMaster = new NModelMaster(modelCtx);
             NDataModel model = modelCtx.getTargetModel();
-            if (model == null) {
-                model = modelMaster.proposeInitialModel();
-                logger.info("Initialized a new model({}) for no compatible one to use.", model.getId());
-            }
 
             try {
-                model = modelMaster.proposeJoins(model);
+                if (model == null && modelCtx.getSmartContext().isCanModifyOriginModel()) {
+                    model = modelMaster.proposeInitialModel();
+                    logger.info("Initialized a new model({}) for no compatible one to use.", model.getId());
+                    model = modelMaster.proposeJoins(model);
+                }
                 model = modelMaster.proposePartition(model);
                 model = modelMaster.proposeComputedColumn(model);
                 model = modelMaster.proposeScope(model);

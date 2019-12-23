@@ -30,8 +30,12 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartMaster;
+import lombok.val;
 
 public class NJoinProposerTest extends NLocalWithSparkSessionTest {
 
@@ -65,5 +69,51 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(1, smartMaster1.getContext().getModelContexts().size());
         NDataModel modelFromPartialJoin = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertTrue(originModel.getJoinsGraph().match(modelFromPartialJoin.getJoinsGraph(), Maps.newHashMap()));
+    }
+
+    @Test
+    public void testProposeModel_wontChangeOriginModelJoins_whenExistsSameTable() throws Exception {
+        final String proj = "newten";
+        // create new Model for this test.
+        String sql = "select item_count, lstg_format_name, sum(price)\n" //
+                + "from TEST_KYLIN_FACT inner join TEST_ACCOUNT as buyer_account on TEST_KYLIN_FACT.ORDER_ID = buyer_account.account_id\n"
+                + "inner join TEST_ACCOUNT as seller_account on TEST_KYLIN_FACT.seller_id = seller_account.account_id\n "
+                + "group by item_count, lstg_format_name\n" //
+                + "order by item_count, lstg_format_name\n" //
+                + "limit 10";
+        NSmartMaster master = new NSmartMaster(getTestConfig(), proj, new String[] { sql });
+        master.runAll();
+        val newModels = NDataModelManager.getInstance(getTestConfig(), proj).listAllModels();
+        Assert.assertEquals(1, newModels.size());
+        Assert.assertEquals(2, newModels.get(0).getJoinTables().size());
+        val originModelGragh = newModels.get(0).getJoinsGraph();
+
+        // secondly propose, still work in SMART-Mode
+        NSmartMaster master1 = new NSmartMaster(getTestConfig(), proj, new String[] { sql }, true);
+        master1.runAll();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
+        val secondModels = modelManager.listAllModels();
+        Assert.assertEquals(1, secondModels.size());
+        Assert.assertEquals(2, secondModels.get(0).getJoinTables().size());
+        val secondModelGragh = newModels.get(0).getJoinsGraph();
+        Assert.assertTrue(originModelGragh.equals(secondModelGragh));
+
+        // set this project to semi-auto-Mode, change the join alias. it will reuse this origin model and will not change this.
+        val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(proj);
+        prjInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        Assert.assertTrue(prjInstance.isSemiAutoMode());
+
+        val originModels = NDataModelManager.getInstance(getTestConfig(), proj).listAllModels();
+        val originModel = originModels.get(0);
+
+        NSmartMaster semiAutoMaster = new NSmartMaster(getTestConfig(), proj, new String[] { sql }, true, true);
+        semiAutoMaster.runAll();
+        val semiAutoModels = modelManager.listAllModels();
+        Assert.assertEquals(1, semiAutoModels.size());
+        Assert.assertEquals(2, semiAutoModels.get(0).getJoinTables().size());
+        Assert.assertTrue(originModel.getJoinsGraph().match(semiAutoModels.get(0).getJoinsGraph(), Maps.newHashMap())
+                && semiAutoModels.get(0).getJoinsGraph().match(originModel.getJoinsGraph(), Maps.newHashMap()));
+
     }
 }

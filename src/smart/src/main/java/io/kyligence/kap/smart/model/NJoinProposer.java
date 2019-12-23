@@ -63,7 +63,11 @@ public class NJoinProposer extends NAbstractModelProposer {
             uniqueTblAliasMap.putAll(GreedyModelTreesBuilder.TreeBuilder.getUniqueTblAliasBasedOnPosInGraph(ctx, dict));
         }
 
-        //step 2. correct table alias based on unique aliasMap and keep origin alias in model
+        // step 2. correct table alias based on unique aliasMap and keep origin alias unchanged in model
+        //                       ***** WARNING ******
+        // there is one limitation that suffix of Join table alias is increase by degrees,
+        //       just like f_table join lookup join lookup_1 join lookup_2
+        // So ERROR Join produced if it needs to change the join relation that join alias is not obey above rule.
         Map<TableRef, String> originTblRefAlias = Maps.newHashMap();
         for (JoinTableDesc joinTable : modelDesc.getJoinTables()) {
             joinTables.put(joinTable.getAlias(), joinTable);
