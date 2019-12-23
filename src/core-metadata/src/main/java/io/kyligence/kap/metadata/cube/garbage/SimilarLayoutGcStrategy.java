@@ -98,8 +98,8 @@ public class SimilarLayoutGcStrategy extends AbstractGcStrategy {
 
         // merge frequencyMap from  children to ancestor
         ancestorToChildren.forEach((ancestorId, children) -> {
-            FrequencyMap frequencyMap = layoutHitCount.get(ancestorId);
             layoutHitCount.putIfAbsent(ancestorId, new FrequencyMap());
+            FrequencyMap frequencyMap = layoutHitCount.get(ancestorId);
             ancestorFreqFromChildren.get(ancestorId).getDateFrequency()
                     .forEach((date, cnt) -> frequencyMap.getDateFrequency().merge(date, cnt, Integer::sum));
 
