@@ -142,18 +142,18 @@ export function addModelDrama () {
       target: 'modelActionPanel', // 点击切换模型类型
       search: '.switch'
     },
-    {
-      eventID: 1,
-      done: false,
-      target: 'actionTable', // 飞向设置
-      search: '.guide-setting'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'actionTable', // 点击设置 去除蒙版
-      search: '.guide-setting'
-    },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   target: 'actionTable', // 飞向设置
+    //   search: '.guide-setting'
+    // },
+    // {
+    //   eventID: 2,
+    //   done: false,
+    //   target: 'actionTable', // 点击设置 去除蒙版
+    //   search: '.guide-setting'
+    // },
     // {
     //   eventID: 1,
     //   done: false,
