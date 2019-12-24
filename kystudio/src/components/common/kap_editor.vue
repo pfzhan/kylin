@@ -124,7 +124,8 @@ export default {
     // 截取前100行sql
     abridgeData () {
       const data = this.editorData.split('\n')
-      data.length > sqlRowsLimit && (this.showLimitTip = true)
+      // 是否显示 tips 取决于填入的 sql 行数是否超过全局配置的
+      this.showLimitTip = data.length > sqlRowsLimit
       this.formatData = data.length > sqlRowsLimit ? data.slice(0, sqlRowsLimit).join('\n') : this.editorData
     },
     getAbridgeType () {

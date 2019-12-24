@@ -286,11 +286,18 @@ export default class QueryTab extends Vue {
   created () {
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo
-    this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
     this.isWorkspace = this.tabsItem.name === 'WorkSpace'
     if (this.tabsItem.queryObj && !this.tabsItem.extraoption && this.tabsItem.index) {
       this.queryResult(this.tabsItem.queryObj)
     }
+    // 查询语句量大的时候，会造成页面卡顿，所以延迟给编辑器赋值
+    window.setTimeout(() => {
+      // 如果快速被切走了，就不执行赋值
+      if (this._isDestroyed) {
+        return
+      }
+      this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
+    }, 100)
   }
 }
 </script>

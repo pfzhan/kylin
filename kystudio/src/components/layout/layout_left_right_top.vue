@@ -99,7 +99,7 @@
               </el-breadcrumb> -->
             <!-- </el-col> -->
             <el-col :span="24" class="main-content">
-              <transition :name="isAnimation ? 'slide' : null">
+              <transition :name="isAnimation ? 'slide' : null" v-bind:css="isAnimation">
                 <router-view v-on:addProject="addProject"></router-view>
               </transition>
             </el-col>

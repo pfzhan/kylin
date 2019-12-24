@@ -61,7 +61,7 @@
                           <i class="el-icon-arrow-down" v-show="!savequery.isShow"></i>
                           <i class="el-icon-arrow-up" v-show="savequery.isShow"></i>
                         </el-button>
-                        <kap-editor width="99%" height="150" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" :readOnly="true" v-if="savequery.isShow" class="ksd-mt-6">
+                        <kap-editor width="99%" height="180" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" :readOnly="true" v-if="savequery.isShow" class="ksd-mt-6" :isAbridge="true">
                         </kap-editor>
                       </el-form-item>
                       <div class="btn-group">
