@@ -1,7 +1,7 @@
 <template>
   <div>
   <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips&&isAdminRole" @close="closeTips" show-icon></el-alert>
-  <div class="jobs_list ksd-mrl-20" @click.stop>
+  <div class="jobs_list ksd-mrl-20">
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
@@ -28,8 +28,9 @@
         </el-input>
       </el-col>
     </el-row>
-    <el-row class="filter-status-list" v-if="filter.status.length || filter.job_names.length">
+    <el-row class="filter-status-list">
       <div class="tag-layout">
+        <span>{{ $t('filter') }}:</span>
         <el-tag size="small" closable v-for="(item, index) in filter.job_names" :key="index" @close="handleCloseTag(item, 'job_names')">{{$t(item)}}</el-tag>
         <el-tag size="small" closable v-for="(item, index) in filter.status" :key="index" @close="handleCloseTag(item, 'status')">{{$t(item)}}</el-tag>
       </div>
@@ -405,7 +406,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       TABLE_SAMPLING: 'Sample Table',
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
-      clearAll: 'Clear All'
+      clearAll: 'Clear All',
+      filter: 'Filter'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -476,7 +478,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       TABLE_SAMPLING: '抽样表数据',
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
-      clearAll: '清除所有'
+      clearAll: '清除所有',
+      filter: '筛选'
     }
   }
 })
@@ -1001,7 +1004,7 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    const resumeData = {job_ids: jobIds, project: project, action: 'RESUME', status: this.filter.status}
+    const resumeData = {job_ids: jobIds, project: project, action: 'RESUME'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete resumeData.project
     }
@@ -1028,7 +1031,7 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    const restartData = {job_ids: jobIds, project: project, action: 'RESTART', status: this.filter.status}
+    const restartData = {job_ids: jobIds, project: project, action: 'RESTART'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete restartData.project
     }
@@ -1055,7 +1058,7 @@ export default class JobsList extends Vue {
       dialogType: 'tip',
       showDetailBtn: false
     })
-    const pauseData = {job_ids: jobIds, project: project, action: 'PAUSE', status: this.filter.status}
+    const pauseData = {job_ids: jobIds, project: project, action: 'PAUSE'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
     }
@@ -1082,7 +1085,7 @@ export default class JobsList extends Vue {
       dialogType: 'warning',
       showDetailBtn: false
     })
-    const dropData = {job_ids: jobIds, project: project, status: this.filter.status}
+    const dropData = {job_ids: jobIds, project: project}
     let removeJobType = 'removeJob'
     if (this.$store.state.project.isAllProject && isBatch) {
       delete dropData.project
