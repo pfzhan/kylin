@@ -117,7 +117,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
     public static String convertWithGivenModels(String sql, String project, String defaultSchema,
             Map<String, NDataModel> dataModelDescs) throws SqlParseException {
 
-        List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+        List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql, true);
 
         /*
             select A, sum(C) from T group by A order by SUM(C)
@@ -144,7 +144,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
                 if (choiceForCurrentSubquery != null) {
                     sql = choiceForCurrentSubquery.getFirst();
-                    selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+                    selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql, true);
                     recursionCompleted = false;
                 }
             }

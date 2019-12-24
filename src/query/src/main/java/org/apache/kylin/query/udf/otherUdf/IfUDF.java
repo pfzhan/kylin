@@ -45,9 +45,65 @@ package org.apache.kylin.query.udf.otherUdf;
 import java.sql.Date;
 import java.sql.Timestamp;
 
+import org.apache.calcite.adapter.enumerable.CallImplementor;
+import org.apache.calcite.adapter.enumerable.UdfMethodNameImplementor;
 import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.SqlCallBinding;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlOperatorBinding;
+import org.apache.calcite.sql.fun.udf.UdfDef;
+import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
+import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
 
-public class IfUDF {
+import com.google.common.collect.Lists;
+
+public class IfUDF implements UdfDef {
+
+    public static final SqlFunction OPERATOR = new SqlFunction(
+            new SqlIdentifier("IF", SqlParserPos.ZERO),
+            new SqlReturnTypeInference() {
+                public RelDataType inferReturnType(SqlOperatorBinding opBinding) {
+                    return opBinding.getTypeFactory().leastRestrictive(
+                            Lists.newArrayList(opBinding.getOperandType(1), opBinding.getOperandType(2)));
+                }
+            },
+            new SqlOperandTypeInference() {
+                public void inferOperandTypes(
+                        SqlCallBinding callBinding,
+                        RelDataType returnType,
+                        RelDataType[] operandTypes) {
+                    RelDataTypeFactory typeFactory = callBinding.getTypeFactory();
+                    operandTypes[0] = typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+                    operandTypes[1] = callBinding.getValidator().deriveType(callBinding.getScope(), callBinding.operand(1));
+                    operandTypes[2] = callBinding.getValidator().deriveType(callBinding.getScope(), callBinding.operand(2));
+                    if (operandTypes[1] instanceof BasicSqlType && operandTypes[2] instanceof BasicSqlType) {
+                        BasicSqlType commonType = null;
+                        commonType = (BasicSqlType)(operandTypes[1].getSqlTypeName() == SqlTypeName.NULL ?
+                                operandTypes[2] : operandTypes[1]);
+                        if (commonType.getSqlTypeName() == SqlTypeName.NULL) { // make the type boolean if both exps are null
+                            commonType = (BasicSqlType) typeFactory.createSqlType(SqlTypeName.BOOLEAN);
+                        }
+                        operandTypes[1] = callBinding.getTypeFactory().createTypeWithNullability(commonType, true);
+                        operandTypes[2] = callBinding.getTypeFactory().createTypeWithNullability(commonType, true);
+                    }
+                }
+            },
+            OperandTypes.family(SqlTypeFamily.BOOLEAN, SqlTypeFamily.ANY, SqlTypeFamily.ANY),
+            null,
+            SqlFunctionCategory.USER_DEFINED_FUNCTION);
+
+    public static CallImplementor IMPLEMENTOR =
+            new UdfMethodNameImplementor("IF", IfUDF.class);
+
 
     public String IF(@Parameter(name = "exp") Boolean b, @Parameter(name = "str1") String expression1, @Parameter(name = "str2") String expression2) {
         return b ? expression1 : expression2;
