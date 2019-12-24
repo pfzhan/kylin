@@ -600,7 +600,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
                 "select test_account.account_id, test_account1.account_id, count(test_account.account_country) \n"
                         + "from \"DEFAULT\".test_account inner join \"DEFAULT\".test_account1 on test_account.account_id = test_account1.account_id\n"
                         + "group by test_account.account_id, test_account1.account_id" };
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls, false);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls, false, true);
         smartMaster.recommendNewModelAndIndex();
         smartMaster.saveModelOnlyForTest();
         Assert.assertFalse(smartMaster.getContext().getModelContexts().get(0).withoutTargetModel());
@@ -617,7 +617,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(0, index_plan.getRuleBaseLayouts().size());
 
         // case 2. repropose new model and won't reuse the origin model, check the models' info is equaled with origin model
-        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), "newten", sqls, false);
+        NSmartMaster smartMaster1 = new NSmartMaster(getTestConfig(), "newten", sqls, false, true);
         smartMaster1.recommendNewModelAndIndex();
         smartMaster1.saveModelOnlyForTest();
         val reproposalModel = smartMaster1.getContext().getModelContexts().get(0).getTargetModel();
