@@ -312,6 +312,7 @@
     handleTableInTableFilter (row) {
       clearTimeout(this.ST)
       this.ST = setTimeout(() => {
+        this.currentPage = 0
         this.loadIndexList(row, {curpage: 0})
       }, 100)
     }

@@ -130,7 +130,7 @@ export default class TableColumns extends Vue {
         return b[prop] - a[prop]
       })
     }
-    this.handleCurrentChange(0, 10)
+    this.handleCurrentChange(0, this.pagination.pageSize)
   }
 }
 </script>
