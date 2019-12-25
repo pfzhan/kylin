@@ -179,8 +179,8 @@ public class TableAliasGenerator {
                     break;
                 } else if (joinDesc.getNonEquiJoinCondition() != null) {
                     alias.append(joinDesc.getNonEquiJoinCondition().toString());
-                    alias.append(Arrays.stream(joinDesc.getForeignKeyColumns())
-                            .map(join -> join.getTableRef().getTableIdentity()));
+                    alias.append(Arrays.toString(Arrays.stream(joinDesc.getForeignKeyColumns())
+                            .map(join -> join.getTableRef().getTableIdentity()).toArray()));
                 } else {
                     alias.append(_KEY_ + Arrays.toString(
                             Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
