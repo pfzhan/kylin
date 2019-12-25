@@ -283,7 +283,7 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
       delSqlTitle: 'Delete SQL',
       giveUpEdit: 'Are you sure to give up the edit?',
       thereAre: 'There are {waitingSQLSize} SQL(s) waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.',
-      accelerateNow: 'Accelerate now',
+      accelerateNow: 'Accelerate Now',
       from: 'Accelerate the queries whose latency range is between',
       to: 'second(s) to',
       secondes: 'second(s)',
