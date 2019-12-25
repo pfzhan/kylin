@@ -176,6 +176,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         // IndexPlan [89af4ee2-2cdb-4b07-b39e-4c29856309aa(nmodel_basic)]: 20000000000
         Assert.assertEquals(58, response.getRemoveIndexesCount());
     }
+
     @Test
     public void testReload_BrokenModelInAutoProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
@@ -248,7 +249,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val newTable = tableManager.getTableDesc(TARGET_TABLE);
         Assert.assertNotNull(newTable.getLastSnapshotPath());
     }
-
 
     @Test
     public void testReload_GetAndEditJoinBrokenModelInManualProject() throws Exception {
@@ -374,7 +374,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
         Assert.assertEquals(1, brokenModels.size());
         val brokenModel = brokenModels.get(0);
-        Assert.assertTrue(brokenModel.getPartitionDesc() != null);
+        Assert.assertNotNull(brokenModel.getPartitionDesc());
+
+        modelService.checkFlatTableSql(brokenModel);
 
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
         copyModel.setPartitionDesc(null);
@@ -399,11 +401,16 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(28).getStatus());
         val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getDataflow(reModel.getId());
-        Assert.assertEquals(0, reDataflow.getSegments().size());
         Assert.assertEquals(RealizationStatusEnum.ONLINE, reDataflow.getStatus());
+        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+            val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
+                    .getDataflow(reModel.getId());
+            Assert.assertEquals(1, dataflow.getSegments().size());
+        });
         Assert.assertNull(reModel.getPartitionDesc());
         Assert.assertFalse(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(reModel.getId()).isBroken());
+
     }
 
     @Test

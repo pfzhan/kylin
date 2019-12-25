@@ -159,8 +159,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void updateModelColumnForTableAliasModify(NDataModel model, Map<String, String> matchAlias) {
-        val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), model.getProject());
-        String modelId = model.getUuid();
+
         for (val kv : matchAlias.entrySet()) {
             String oldAliasName = kv.getKey();
             String newAliasName = kv.getValue();
@@ -173,8 +172,6 @@ public class ModelSemanticHelper extends BasicService {
             model.getAllMeasures().stream().filter(x -> !x.isTomb())
                     .forEach(x -> x.changeTableAlias(oldAliasName, newAliasName));
             model.getComputedColumnDescs().forEach(x -> x.changeTableAlias(oldAliasName, newAliasName));
-
-            recommendationManager.handleTableAliasModify(modelId, oldAliasName, newAliasName);
 
             String filterCondition = model.getFilterCondition();
             if (StringUtils.isNotEmpty(filterCondition)) {
@@ -196,7 +193,7 @@ public class ModelSemanticHelper extends BasicService {
         return matchAlias;
     }
 
-    public void updateModelColumns(NDataModel originModel, ModelRequest request) {
+    public void updateModelColumns(NDataModel originModel, ModelRequest request, boolean updateRecommendationColumn) {
         val expectedModel = convertToDataModel(request);
 
         val allTables = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject())
@@ -217,6 +214,14 @@ public class ModelSemanticHelper extends BasicService {
         originModel.setFilterCondition(expectedModel.getFilterCondition());
         updateModelColumnForTableAliasModify(originModel, matchAlias);
 
+        if (updateRecommendationColumn) {
+            val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(),
+                    expectedModel.getProject());
+            String modelId = expectedModel.getUuid();
+            for (val kv : matchAlias.entrySet()) {
+                recommendationManager.handleTableAliasModify(modelId, kv.getKey(), kv.getValue());
+            }
+        }
         // handle computed column updates
         List<ComputedColumnDesc> currentComputedColumns = originModel.getComputedColumnDescs();
         List<ComputedColumnDesc> newComputedColumns = expectedModel.getComputedColumnDescs();

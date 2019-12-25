@@ -1379,7 +1379,7 @@ public class ModelService extends BasicService {
                     "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
         }
         val indexPlan = getIndexPlan(modelId, project);
-        if (indexPlan == null || indexPlan.getAllIndexes().size() == 0) {
+        if (indexPlan == null) {
             throw new BadRequestException(
                     "Can not build segments, please define table index or aggregate index first!");
         }
@@ -1806,7 +1806,7 @@ public class ModelService extends BasicService {
         val originModel = modelManager.getDataModelDesc(modelId);
 
         val copyModel = modelManager.copyForWrite(originModel);
-        semanticUpdater.updateModelColumns(copyModel, request);
+        semanticUpdater.updateModelColumns(copyModel, request, true);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
@@ -1831,7 +1831,7 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val origin = modelManager.getDataModelDesc(modelRequest.getUuid());
         val copyModel = modelManager.copyForWrite(origin);
-        semanticUpdater.updateModelColumns(copyModel, modelRequest);
+        semanticUpdater.updateModelColumns(copyModel, modelRequest, true);
         copyModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
         copyModel.getAllNamedColumns().forEach(namedColumn -> {
             if (columnIds.contains(namedColumn.getId())) {
@@ -2115,9 +2115,9 @@ public class ModelService extends BasicService {
     public void checkFilterCondition(ModelRequest modelRequest) {
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
         NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
-        if (oldDataModel != null) {
+        if (oldDataModel != null && !oldDataModel.isBroken()) {
             model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
-            semanticUpdater.updateModelColumns(model, modelRequest);
+            semanticUpdater.updateModelColumns(model, modelRequest, false);
         }
         String originFilterCondition = model.getFilterCondition();
         if (StringUtils.isNotEmpty(originFilterCondition)) {
