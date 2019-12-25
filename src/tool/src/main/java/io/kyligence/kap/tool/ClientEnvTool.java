@@ -59,7 +59,7 @@ public class ClientEnvTool extends AbstractInfoExtractorTool {
         // dump hadoop env
         addShellOutput("hadoop version", new File(exportDir, "hadoop"), CLI_VERSION);
         addShellOutput("hive --version", new File(exportDir, "hive"), CLI_VERSION, false, true);
-        addShellOutput("beeline -e\"select 1\"", new File(exportDir, "hive"), "beeline_version", false, true);
+        addShellOutput("beeline --version", new File(exportDir, "hive"), "beeline_version", false, true);
 
         // include klist command output
         addShellOutput("klist", new File(exportDir, "kerberos"), "klist", false, true);

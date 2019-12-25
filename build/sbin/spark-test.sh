@@ -3,6 +3,7 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
 source ${KYLIN_HOME}/sbin/init-kerberos.sh
+source ${KYLIN_HOME}/sbin/prepare-hadoop-env.sh
 
 ## init Kerberos if needed
 initKerberosIfNeeded
@@ -207,7 +208,9 @@ then
 
     echo "kylin,1" | hadoop fs -put - ${HIVE_TEST_TABLE_LOCATION}/data.txt
     echo "create table ${HIVE_TEST_TABLE}2 (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '${HIVE_TEST_TABLE_LOCATION}2';" > ${SPARK_HQL_TMP_FILE}
-    echo "insert overwrite table ${HIVE_TEST_TABLE}2 select * from ${HIVE_TEST_TABLE};" >> ${SPARK_HQL_TMP_FILE}
+    if [[ $(isHDP_3_1) == 0 ]]; then
+        echo "insert overwrite table ${HIVE_TEST_TABLE}2 select * from ${HIVE_TEST_TABLE};" >> ${SPARK_HQL_TMP_FILE}
+    fi
     eval $spark_sql_command
     [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to write table in working directory: ${WORKING_DIR}"; }
 

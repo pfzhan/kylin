@@ -87,6 +87,8 @@ jar -cfM kylin-user-session-${release_version}.jar  .
 cd ../../build
 mv ../tmp/merge/kylin-user-session-${release_version}.jar  ${package_name}/lib/kylin-user-session-${release_version}.jar
 
+# add hadoop3 jar to spark
+cp -rf hadoop3 ${package_name}/spark
 
 
 ## comment all default properties, and append them to the user visible kylin.properties

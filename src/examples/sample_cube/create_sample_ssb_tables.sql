@@ -20,7 +20,7 @@ USE SSB;
 
 drop table IF EXISTS CUSTOMER;
 
-create TABLE CUSTOMER (
+create EXTERNAL TABLE CUSTOMER (
 C_CUSTKEY     INT,
 C_NAME        string,
 C_ADDRESS     string,
@@ -34,7 +34,7 @@ STORED AS TEXTFILE;
 
 drop table IF EXISTS DATES;
 
-create TABLE DATES (
+create EXTERNAL TABLE DATES (
 D_DATEKEY          DATE,
 D_DATE             string,
 D_DAYOFWEEK        string,
@@ -57,7 +57,7 @@ STORED AS TEXTFILE;
 
 drop table IF EXISTS PART;
 
-create TABLE PART (
+create EXTERNAL TABLE PART (
 P_PARTKEY     INT,
 P_NAME        string,
 P_MFGR        string,
@@ -72,7 +72,7 @@ STORED AS TEXTFILE;
 
 drop table IF EXISTS SUPPLIER;
 
-create TABLE SUPPLIER (
+create EXTERNAL TABLE SUPPLIER (
 S_SUPPKEY     INT,
 S_NAME        string,
 S_ADDRESS     string,
@@ -85,7 +85,7 @@ STORED AS TEXTFILE;
 
 drop table IF EXISTS LINEORDER;
 
-create TABLE LINEORDER (
+create EXTERNAL TABLE LINEORDER (
 LO_ORDERKEY       BIGINT,
 LO_LINENUMBER     BIGINT,
 LO_CUSTKEY        INT,

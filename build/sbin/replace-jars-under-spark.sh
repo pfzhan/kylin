@@ -1,11 +1,13 @@
 #!/bin/bash
 # Kyligence Inc. License
 
+source ${KYLIN_HOME}/sbin/prepare-hadoop-env.sh
 
 BYPASS=${SPARK_HOME}/jars/replace-jars-bypass
 
 # only replace when has Kerberos
-if [[ -z "$(command -v klist)" || -f ${BYPASS} ]]
+kerberosEnabled=`${KYLIN_HOME}/bin/get-properties.sh kap.kerberos.enabled`
+if [[ "${kerberosEnabled}" == "false" || -f ${BYPASS} ]]
 then
     return
 fi
@@ -16,18 +18,6 @@ hdfs_jars=
 mr_jars=
 yarn_jars=
 other_jars=
-
-cdh_mapreduce_path=$CDH_MR2_HOME
-
-if [[ -z $cdh_mapreduce_path ]]
-then
-    if [[ -d "/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce" ]]
-    then
-        cdh_mapreduce_path="/opt/cloudera/parcels/CDH/lib/hadoop-mapreduce"
-    else
-        cdh_mapreduce_path="/usr/lib/hadoop-mapreduce"
-    fi
-fi
 
 if [ -n "$FI_ENV_PLATFORM" ]
 then
@@ -85,20 +75,31 @@ then
 
 
     other_jars=$(find $cdh_mapreduce_path/../../jars -maxdepth 1 -name "htrace-core4*" || find $cdh_mapreduce_path/../hadoop -maxdepth 2 -name "htrace-core4*")
+
+    if [[ $(isCDH_6_1) == 1 ]]; then
+        cdh6_jars=$(find ${cdh_mapreduce_path}/../../jars -maxdepth 1 \
+        -name "woodstox-core-*.jar" -o -name "commons-configuration2-*.jar" -o -name "re2j-*.jar" )
+    fi
 fi
 
 # not consider HDP
 
-jar_list="${common_jars} ${hdfs_jars} ${mr_jars} ${yarn_jars} ${other_jars}"
+jar_list="${common_jars} ${hdfs_jars} ${mr_jars} ${yarn_jars} ${other_jars} ${cdh6_jars}"
 
 echo "Find platform specific jars:${jar_list}, will replace with these jars under ${SPARK_HOME}/jars."
 
 find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
 find ${SPARK_HOME}/jars -name "hadoop-*2.6.*.jar" -exec rm -rf {} \;
 
-for dir in $jar_list
+if [[ $(isCDH_6_1) == 1 ]]; then
+    find ${SPARK_HOME}/jars -name "hadoop-hdfs-*.jar" -exec rm -rf {} \;
+    find ${SPARK_HOME}/jars -name "hive-exec-*.jar" -exec rm -rf {} \;
+    cp ${SPARK_HOME}/hadoop3/cdh6.1/*.jar ${SPARK_HOME}/jars
+fi
+
+for jar_file in ${jar_list}
 do
-    `cp $dir ${SPARK_HOME}/jars`
+    `cp ${jar_file} ${SPARK_HOME}/jars`
 done
 
 # Remove all spaces
