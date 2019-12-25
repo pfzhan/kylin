@@ -39,7 +39,7 @@
         </p>
         <p class="resultText" v-if="!extraoption.pushDown">
           <span class="label">{{$t('kylinLang.query.total_scan_count')}}: </span>
-          <span class="text">{{extraoption.totalScanCount}}</span>
+          <span class="text">{{extraoption.totalScanRows}}</span>
         </p>
         <p class="resultText" v-if="!extraoption.pushDown">
           <span class="label">{{$t('kylinLang.query.result_row_count')}}: </span>
