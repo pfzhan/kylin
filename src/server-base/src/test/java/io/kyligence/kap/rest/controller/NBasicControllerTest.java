@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.controller.fixture.FixtureController;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -41,6 +40,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import io.kyligence.kap.rest.controller.fixture.FixtureController;
 
 public class NBasicControllerTest {
 
@@ -56,8 +56,8 @@ public class NBasicControllerTest {
 
     @Before
     public void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(fixtureController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(fixtureController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new BadRequestException(StringUtils.EMPTY),
@@ -149,8 +149,8 @@ public class NBasicControllerTest {
 
     @Test
     public void testTimeRangeInvalidFormat() {
-        thrown.expect(NumberFormatException.class);
-        thrown.expectMessage("For input string: \"start\"");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("No valid value for 'start' or 'end'. Only support timestamp type, unit: ms.");
         nBasicController.validateDataRange("start", "end");
     }
 

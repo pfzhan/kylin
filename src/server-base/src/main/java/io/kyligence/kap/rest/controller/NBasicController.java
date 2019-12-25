@@ -235,8 +235,15 @@ public class NBasicController {
         }
 
         if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
-            long startLong = Long.parseLong(start);
-            long endLong = Long.parseLong(end);
+            long startLong = 0;
+            long endLong = 0;
+            try {
+                startLong = Long.parseLong(start);
+                endLong = Long.parseLong(end);
+            } catch (Exception e) {
+                throw new BadRequestException(
+                        "No valid value for 'start' or 'end'. Only support timestamp type, unit: ms.");
+            }
 
             if (startLong < 0)
                 throw new BadRequestException("Start of range must be greater than 0!");

@@ -120,10 +120,6 @@ public class OpenModelController extends NBasicController {
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         NDataModel nDataModel = getModel(modelName, buildSegmentsRequest.getProject());
-        if (null == nDataModel.getPartitionDesc()) {
-            buildSegmentsRequest.setStart(null);
-            buildSegmentsRequest.setEnd(null);
-        }
         return modelController.buildSegmentsManually(nDataModel.getId(), buildSegmentsRequest);
     }
 
