@@ -800,7 +800,7 @@ export default class ModelEdit extends Vue {
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {
       this.cancelTableEdit()
-      if (this.$route.params.action === 'edit' && !this.isIgnore) {
+      if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
         this.showChangeTips()
       }
     }, () => {
@@ -863,7 +863,7 @@ export default class ModelEdit extends Vue {
     if (this._checkTableType(t)) {
       this.modelInstance.changeTableType(t)
       this.cancelTableEdit()
-      if (this.$route.params.action === 'edit' && !this.isIgnore) {
+      if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
         this.showChangeTips()
       }
     }
@@ -1114,7 +1114,7 @@ export default class ModelEdit extends Vue {
         }
       })
     }
-    if (this.$route.params.action === 'edit' && !this.isIgnore) {
+    if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
       this.showChangeTips()
     }
     this.currentDragTableData = {}
@@ -1203,7 +1203,7 @@ export default class ModelEdit extends Vue {
         if (isSubmit) {
           resolve(data)
           this.saveLinkData(data)
-          if (this.$route.params.action === 'edit' && !this.isIgnore) {
+          if (this.modelData.available_indexes_count > 0 && !this.isIgnore) {
             this.showChangeTips()
           }
         }
