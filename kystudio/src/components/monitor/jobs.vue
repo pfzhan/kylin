@@ -30,7 +30,7 @@
     </el-row>
     <el-row class="filter-status-list">
       <div class="tag-layout">
-        <span>{{ $t('filter') }}:</span>
+        <span>{{ $t('filter') }}：</span>
         <el-tag size="small" closable v-for="(item, index) in filter.job_names" :key="index" @close="handleCloseTag(item, 'job_names')">{{$t(item)}}</el-tag>
         <el-tag size="small" closable v-for="(item, index) in filter.status" :key="index" @close="handleCloseTag(item, 'status')">{{$t(item)}}</el-tag>
       </div>

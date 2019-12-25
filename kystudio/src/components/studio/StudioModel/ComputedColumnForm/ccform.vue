@@ -2,7 +2,7 @@
 <div class="cc-form-box">
   <span class="ky-close ksd-fright ksd-mt-10 ksd-mr-10" @click="cancelCC" v-if="!isPureForm"><i class="el-icon-ksd-close"></i></span>
   <el-form :model="ccObject" :class="{'editCC': !isEdit, 'cc-block': !isPureForm}" label-position="top" :rules="ccRules" ref="ccForm">
-    <el-form-item prop="columnName" class="ksd-mb-10">
+    <el-form-item prop="columnName" class="ksd-mb-10 ksd-mt-10">
       <span slot="label">{{$t('columnName')}}: <el-tooltip :content="ccObject.columnName" effect="dark" placement="top"><span v-show="!isEdit" class="column-name">{{ccObject.columnName}}</span></el-tooltip></span>
       <el-input class="measures-width" size="medium" v-model="ccObject.columnName" v-if="isEdit" @blur="upperCaseCCName"></el-input>
     </el-form-item>
@@ -224,9 +224,10 @@ export default class CCForm extends Vue {
     .column-name {
       display: inline-block;
       width: 360px;
-      line-height: 10px;
       overflow: hidden;
       text-overflow: ellipsis;
+      position: absolute;
+      margin-left: 5px;
     }
   }
 </style>
