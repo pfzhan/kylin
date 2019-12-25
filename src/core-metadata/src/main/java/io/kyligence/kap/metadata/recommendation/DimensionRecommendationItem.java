@@ -97,7 +97,7 @@ public class DimensionRecommendationItem extends RecommendationItem<DimensionRec
         val columns = context.getVirtualIdColumnMap();
         val id = recommendation.getColumn().getId();
         if (!columns.containsKey(id) && !real) {
-            context.failDimensionRecommendationItem(itemId);
+            context.deleteDimensionRecommendationItem(itemId);
             return;
         }
         if (!columns.containsKey(id) || (real && OptimizeRecommendationManager.isVirtualColumnId(id))) {

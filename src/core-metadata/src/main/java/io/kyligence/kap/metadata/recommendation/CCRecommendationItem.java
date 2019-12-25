@@ -116,7 +116,7 @@ public class CCRecommendationItem extends RecommendationItem<CCRecommendationIte
             String aliasDotColumn = (table + "." + name).toUpperCase();
             val columnIdMap = context.getVirtualColumnIdMap();
             if (!columnIdMap.containsKey(aliasDotColumn) && !real) {
-                context.failCCRecommendationItem(itemId);
+                context.deleteCCRecommendationItem(itemId);
                 return true;
             }
             if (!columnIdMap.containsKey(aliasDotColumn)

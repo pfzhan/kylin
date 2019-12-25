@@ -92,7 +92,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             val idColumnMap = context.getVirtualIdColumnMap();
             val id = item.getDimensions().get(i);
             if (!(idColumnMap.containsKey(id)) && !real) {
-                context.failIndexRecommendationItem(itemId);
+                context.deleteLayoutRecommendationItem(itemId);
             }
             if (!(idColumnMap.containsKey(id)) || real && OptimizeRecommendationManager.isVirtualColumnId(id)) {
                 throw new DependencyLostException(
@@ -109,7 +109,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             val idColumnMap = context.getVirtualIdColumnMap();
             val id = item.getDimensions().get(i);
             if (!(idColumnMap.containsKey(id) && idColumnMap.get(id).isDimension()) && !real) {
-                context.failIndexRecommendationItem(itemId);
+                context.deleteLayoutRecommendationItem(itemId);
                 return;
             }
             if (!idColumnMap.containsKey(id) || !(idColumnMap.containsKey(id) && idColumnMap.get(id).isDimension())
@@ -123,7 +123,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             val measures = context.getVirtualMeasureIds();
             val id = item.getMeasures().get(i);
             if (!measures.contains(id) && !real) {
-                context.failIndexRecommendationItem(itemId);
+                context.deleteLayoutRecommendationItem(itemId);
                 return;
             }
 
@@ -150,7 +150,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         if (real) {
             throw new PassConflictException("cannot add or modify index because index has already added or modified");
         }
-        context.failIndexRecommendationItem(itemId);
+        context.deleteLayoutRecommendationItem(itemId);
     }
 
     private void checkRemoveDependencies(OptimizeContext context, boolean real) {
@@ -170,7 +170,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         if (real) {
             throw new DependencyLostException("cannot remove index because index has already removed.");
         }
-        context.failIndexRecommendationItem(itemId);
+        context.deleteLayoutRecommendationItem(itemId);
 
     }
 
@@ -215,7 +215,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             dfManager.updateDataflow(dataflow.getUuid(),
                     copyForWrite -> copyForWrite.setLayoutHitCount(dataflow.getLayoutHitCount()));
 
-            removeLayout(context);
+            removeLayout(context, real);
         }
     }
 
@@ -257,10 +257,11 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         }
     }
 
-    private void removeLayout(OptimizeContext context) {
+    private void removeLayout(OptimizeContext context, boolean real) {
         var item = context.getLayoutRecommendationItem(itemId);
         val identifier = item.createIndexIdentifier();
-        if (context.getAllIndexesMap().containsKey(identifier)) {
+        if (context.getAllIndexesMap().containsKey(identifier)
+                && context.getAllIndexesMap().get(identifier).getLayouts().contains(item.getLayout())) {
             val indexEntity = context.getAllIndexesMap().get(identifier);
             LayoutEntity layout = item.getLayout();
             if (item.isAggIndex() && layout.isManual()) {
@@ -274,6 +275,9 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
 
         } else {
             logger.warn("remove layouts not exists in index plan.");
+            if (!real) {
+                context.deleteLayoutRecommendationItem(itemId);
+            }
         }
 
     }
@@ -306,7 +310,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             }
         }
         if (modified) {
-            val copyLayout = context.copyIndexRecommendationItem(itemId).getLayout();
+            val copyLayout = context.copyLayoutRecommendationItem(itemId).getLayout();
             copyLayout.setColOrder(colOrder);
         }
     }

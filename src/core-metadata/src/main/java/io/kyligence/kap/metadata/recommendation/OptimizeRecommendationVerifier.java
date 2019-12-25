@@ -161,7 +161,7 @@ public class OptimizeRecommendationVerifier {
                 item.apply(context, true);
                 contextItems.getDeletedRecommendations().add(item.getItemId());
             } else if (fail != null && fail.contains(item.getItemId())) {
-                contextItems.failRecommendationItem(item.getItemId());
+                contextItems.deleteRecommendationItem(item.getItemId());
             }
         });
     }

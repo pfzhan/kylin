@@ -379,6 +379,27 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testRemove_cleanInEffective() throws IOException {
+        prepare();
+        val removeLayoutsId = createRemoveLayoutIds(1L, 150001L);
+        recommendationManager.removeLayouts(id, removeLayoutsId);
+
+        var recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .anyMatch(item -> !item.isAdd() && item.getLayout().getId() == 1L));
+
+        indexPlanManager.updateIndexPlan(id, copyForWrite -> {
+            copyForWrite.addRuleBasedBlackList(Lists.newArrayList(1L));
+        });
+
+        recommendationManager.cleanInEffective(id);
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
+                .noneMatch(item -> !item.isAdd() && item.getLayout().getId() == 1L));
+
+    }
+
+    @Test
     public void testApply() throws IOException {
         prepare();
         val appliedModel = recommendationManager.applyModel(id);

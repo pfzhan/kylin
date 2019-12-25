@@ -377,7 +377,7 @@ public class OptimizeRecommendationManager {
     }
 
     public void cleanInEffective(String id) {
-        val recommendation = getOptimizeRecommendation(id);
+        var recommendation = getOptimizeRecommendation(id);
 
         if (recommendation == null) {
             return;
@@ -392,9 +392,12 @@ public class OptimizeRecommendationManager {
         Preconditions.checkNotNull(model);
         Preconditions.checkNotNull(indexPlan);
 
-        val context = apply(modelManager.copyForWrite(model), indexManager.copy(indexPlan), recommendation);
+        var context = apply(modelManager.copyForWrite(model), indexManager.copy(indexPlan), recommendation);
         update(context);
 
+        recommendation = getOptimizeRecommendation(id);
+        context = applyRemove(indexManager.copy(indexPlan), recommendation, false);
+        update(context);
     }
 
     public OptimizeRecommendation optimize(NDataModel model, IndexPlan indexPlan) {
@@ -903,6 +906,11 @@ public class OptimizeRecommendationManager {
 
     public IndexPlan applyRemove(IndexPlan indexPlan, OptimizeRecommendation recommendation) {
         val indexPlanManager = NIndexPlanManager.getInstance(getConfig(), project);
+        applyRemove(indexPlan, recommendation, false);
+        return indexPlanManager.copy(indexPlan);
+    }
+
+    public OptimizeContext applyRemove(IndexPlan indexPlan, OptimizeRecommendation recommendation, boolean real) {
         val modelManager = NDataModelManager.getInstance(getConfig(), project);
         val model = modelManager.copyForWrite(modelManager.getDataModelDesc(indexPlan.getId()));
 
@@ -910,11 +918,11 @@ public class OptimizeRecommendationManager {
 
         val removeLayouts = recommendation.getLayoutRecommendations().stream().filter(item -> !item.isAdd())
                 .collect(Collectors.toList());
-        removeLayouts.forEach(item -> item.apply(context, false));
+        removeLayouts.forEach(item -> item.apply(context, real));
         val allWhiteIndexes = indexPlan.getIndexes().stream().filter(indexEntity -> !indexEntity.getLayouts().isEmpty())
                 .collect(Collectors.toList());
         indexPlan.setIndexes(allWhiteIndexes);
-        return indexPlanManager.copy(indexPlan);
+        return context;
     }
 
     public void dropOptimizeRecommendation(String id) {

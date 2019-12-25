@@ -110,7 +110,7 @@ public class MeasureRecommendationItem extends RecommendationItem<MeasureRecomme
                 val value = context.getMeasureRecommendationItem(itemId).getMeasure().getFunction().getParameters()
                         .get(i).getValue().toUpperCase();
                 if (!columns.containsKey(value) && !real) {
-                    context.failMeasureRecommendationItem(itemId);
+                    context.deleteMeasureRecommendationItem(itemId);
                     return;
                 }
                 if (!columns.containsKey(value)

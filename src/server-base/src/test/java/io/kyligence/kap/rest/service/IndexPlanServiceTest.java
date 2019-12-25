@@ -783,6 +783,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testRemoveIndex() throws NoSuchFieldException, IllegalAccessException {
         testUpdateSingleRuleBasedCuboid();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val clean = prepare(modelId);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
         var indexPlan = indexPlanManager.getIndexPlan(modelId);
         val manualAgg = indexPlan.getCuboidLayout(1010001L);
@@ -802,6 +803,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         indexPlanService.removeIndex(getProject(), modelId, 20000010001L);
         indexPlan = indexPlanManager.getIndexPlan(modelId);
         Assert.assertNull(indexPlan.getCuboidLayout(20000010001L));
+        Assert.assertTrue(clean.get());
     }
 
     @Test

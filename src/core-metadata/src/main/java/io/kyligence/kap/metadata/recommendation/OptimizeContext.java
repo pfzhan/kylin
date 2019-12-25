@@ -176,13 +176,8 @@ public class OptimizeContext {
         Map<Long, T> originRecommendations;
         BiConsumer<Long, T> actionWhenFail;
 
-        ContextRecommendationItems(Map<Long, T> originRecommendations, BiConsumer<Long, T> actionWhenFail) {
-            this.originRecommendations = originRecommendations;
-            this.actionWhenFail = actionWhenFail;
-        }
-
         ContextRecommendationItems(Map<Long, T> originRecommendations) {
-            this(originRecommendations, null);
+            this.originRecommendations = originRecommendations;
         }
 
         T getRecommendationItem(long id) {
@@ -195,19 +190,8 @@ public class OptimizeContext {
             return originRecommendations.get(id);
         }
 
-        void updateRecommendationItem(T updated) {
-            modifiedRecommendations.put(updated.getItemId(), updated);
-        }
-
         void deleteRecommendationItem(long id) {
             deletedRecommendations.add(id);
-        }
-
-        void failRecommendationItem(long id) {
-            if (actionWhenFail != null) {
-                actionWhenFail.accept(id, getRecommendationItem(id));
-            }
-            deleteRecommendationItem(id);
         }
 
         T copyRecommendationItem(long id) {
@@ -228,16 +212,8 @@ public class OptimizeContext {
         return ccContextRecommendationItems.getRecommendationItem(id);
     }
 
-    public void updateCCRecommendationItem(CCRecommendationItem updated) {
-        ccContextRecommendationItems.updateRecommendationItem(updated);
-    }
-
     public void deleteCCRecommendationItem(long id) {
         ccContextRecommendationItems.deleteRecommendationItem(id);
-    }
-
-    public void failCCRecommendationItem(long id) {
-        ccContextRecommendationItems.failRecommendationItem(id);
     }
 
     public CCRecommendationItem copyCCRecommendationItem(long id) {
@@ -248,16 +224,8 @@ public class OptimizeContext {
         return dimensionContextRecommendationItems.getRecommendationItem(id);
     }
 
-    public void updateDimensionRecommendationItem(DimensionRecommendationItem updated) {
-        dimensionContextRecommendationItems.updateRecommendationItem(updated);
-    }
-
     public void deleteDimensionRecommendationItem(long id) {
         dimensionContextRecommendationItems.deleteRecommendationItem(id);
-    }
-
-    public void failDimensionRecommendationItem(long id) {
-        dimensionContextRecommendationItems.failRecommendationItem(id);
     }
 
     public DimensionRecommendationItem copyDimensionRecommendationItem(long id) {
@@ -268,39 +236,23 @@ public class OptimizeContext {
         return measureContextRecommendationItems.getRecommendationItem(id);
     }
 
-    public void updateMeasureRecommendationItem(MeasureRecommendationItem updated) {
-        measureContextRecommendationItems.updateRecommendationItem(updated);
+    public MeasureRecommendationItem copyMeasureRecommendationItem(long id) {
+        return measureContextRecommendationItems.copyRecommendationItem(id);
     }
 
     public void deleteMeasureRecommendationItem(long id) {
         measureContextRecommendationItems.deleteRecommendationItem(id);
     }
 
-    public MeasureRecommendationItem copyMeasureRecommendationItem(long id) {
-        return measureContextRecommendationItems.copyRecommendationItem(id);
-    }
-
-    public void failMeasureRecommendationItem(long id) {
-        measureContextRecommendationItems.failRecommendationItem(id);
-    }
-
     public LayoutRecommendationItem getLayoutRecommendationItem(long id) {
         return layoutContextRecommendationItems.getRecommendationItem(id);
     }
 
-    public void updateIndexRecommendationItem(LayoutRecommendationItem updated) {
-        layoutContextRecommendationItems.updateRecommendationItem(updated);
-    }
-
-    public void deleteIndexRecommendationItem(long id) {
-        layoutContextRecommendationItems.deleteRecommendationItem(id);
-    }
-
-    public LayoutRecommendationItem copyIndexRecommendationItem(long id) {
+    public LayoutRecommendationItem copyLayoutRecommendationItem(long id) {
         return layoutContextRecommendationItems.copyRecommendationItem(id);
     }
 
-    public void failIndexRecommendationItem(long id) {
-        layoutContextRecommendationItems.failRecommendationItem(id);
+    public void deleteLayoutRecommendationItem(long id) {
+        layoutContextRecommendationItems.deleteRecommendationItem(id);
     }
 }
