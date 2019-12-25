@@ -598,4 +598,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
         return holes;
     }
+
+    public int getAvailableIndexesCount(String id) {
+        val dataflow = getDataflow(id);
+        if (dataflow == null) {
+            return 0;
+        }
+
+        val readySegments = dataflow.getLatestReadySegment();
+
+        return readySegments == null ? 0 : readySegments.getLayoutsMap().size();
+    }
 }

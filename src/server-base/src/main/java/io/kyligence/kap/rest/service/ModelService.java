@@ -440,6 +440,7 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                     nDataModelResponse
                             .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
+                    nDataModelResponse.setAvailableIndexesCount(dfManager.getAvailableIndexesCount(modelDesc.getId()));
                     filterModels.add(nDataModelResponse);
                 }
             }
