@@ -35,7 +35,6 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -133,15 +132,13 @@ public class NModelMaster {
     }
 
     private void updateContextWithCC(NDataModel dataModel) {
-        List<String> massagedQueryList = Lists.newArrayList();
         List<String> originQueryList = Lists.newArrayList();
         modelContext.getModelTree().getOlapContexts().stream() //
                 .filter(context -> !StringUtils.isEmpty(context.sql)) //
                 .forEach(context -> {
                     originQueryList.add(context.sql);
-                    massagedQueryList.add(QueryUtil.massageSql(context.sql, project, 0, 0, "DEFAULT", true));
                 });
-        if (massagedQueryList.isEmpty()) {
+        if (originQueryList.isEmpty()) {
             log.warn("Failed to replace cc expression in original sql with proposed computed columns, "
                     + "early termination of the method of updateContextWithCC");
             return;
@@ -149,7 +146,7 @@ public class NModelMaster {
 
         // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project,
-                massagedQueryList.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
+                originQueryList.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project,

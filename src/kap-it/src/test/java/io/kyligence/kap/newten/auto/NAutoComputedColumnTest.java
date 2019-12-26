@@ -27,10 +27,12 @@ package io.kyligence.kap.newten.auto;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +56,38 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Before
     public void setupCCConf() {
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+    }
+
+    @Test
+    public void testTableIndexCCReuse() {
+        String[] sqlHasCC_AUTO_1 = new String[] {
+                "select seller_id ,sum(ITEM_COUNT * PRICE), count(1) from test_kylin_fact group by LSTG_FORMAT_NAME ,seller_id"
+        };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqlHasCC_AUTO_1);
+        smartMaster.runAll();
+
+        String[] sqls = new String[] {
+                "select LSTG_FORMAT_NAME,ITEM_COUNT * PRICE * PRICE from test_kylin_fact",
+                "select seller_id ,sum(ITEM_COUNT * PRICE * PRICE) as GMVM from test_kylin_fact group by LSTG_FORMAT_NAME ,seller_id"
+        };
+
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
+        smartMaster.runAll();
+
+        NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        IndexPlan targetIndex = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+
+        Assert.assertEquals(2, targetModel.getComputedColumnDescs().size());
+        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(0).getInnerExpression());
+        Assert.assertEquals("CC_AUTO_1", targetModel.getComputedColumnDescs().get(0).getColumnName());
+        Assert.assertEquals("(TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE) * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(1).getInnerExpression());
+        Assert.assertEquals("CC_AUTO_2", targetModel.getComputedColumnDescs().get(1).getColumnName());
+
+        IndexEntity tableIndex = targetIndex.getAllIndexes().stream().filter(IndexEntity::isTableIndex).findFirst().orElse(null);
+        Assert.assertEquals(1, tableIndex.getLayouts().size());
+        Assert.assertEquals(2, tableIndex.getLayouts().get(0).getColumns().size());
+        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()).contains("CC_AUTO_2"));
     }
 
     @Test
