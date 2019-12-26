@@ -31,6 +31,23 @@ import lombok.Data;
 
 @Data
 public class JobInfoResponse {
-    @JsonProperty("job_id")
-    private List<String> jobIds;
+    @JsonProperty("jobs")
+    private List<JobInfo> jobs;
+
+    @Data
+    public static class JobInfo {
+        @JsonProperty("job_name")
+        private String jobName;
+
+        @JsonProperty("job_id")
+        private String jobId;
+
+        public JobInfo() {
+        }
+
+        public JobInfo(String jobName, String jobId) {
+            this.jobName = jobName;
+            this.jobId = jobId;
+        }
+    }
 }

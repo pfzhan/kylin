@@ -55,6 +55,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -1385,7 +1386,7 @@ public class ModelService extends BasicService {
                     "Can not build segments, please define table index or aggregate index first!");
         }
         String format = probeDateFormatIfNotExist(project, modelDesc);
-        List<String> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
+        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
             NDataModel modelDescInTransaction = getDataModelManager(project).getDataModelDesc(modelId);
             SegmentRange segmentRangeToBuild;
 
@@ -1416,11 +1417,14 @@ public class ModelService extends BasicService {
 
             NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
 
-            return Arrays.asList(eventManager.postAddSegmentEvents(newSegment, modelId, getUsername()),
-                    eventManager.postAddCuboidEvents(modelId, getUsername()));
+            return Arrays.asList(
+                    new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
+                            eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())),
+                    new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
+                            eventManager.postAddCuboidEvents(modelId, getUsername())));
         }, project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
-        jobInfoResponse.setJobIds(jobIds);
+        jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
     }
 
@@ -1757,9 +1761,9 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public List<String> refreshSegmentById(String modelId, String project, String[] ids) {
+    public List<JobInfoResponse.JobInfo> refreshSegmentById(String modelId, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
-        List<String> jobIds = new ArrayList<>();
+        List<JobInfoResponse.JobInfo> jobIds = new ArrayList<>();
         NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
@@ -1791,7 +1795,7 @@ public class ModelService extends BasicService {
             event2.setJobId(event.getJobId());
             eventManager.post(event2);
 
-            jobIds.add(event.getJobId());
+            jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), event.getJobId()));
         }
         return jobIds;
     }

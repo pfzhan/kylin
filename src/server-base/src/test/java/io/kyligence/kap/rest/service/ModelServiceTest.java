@@ -2654,8 +2654,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
+        val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
 
+        Assert.assertEquals(jobInfo.getJobs().size(), 2);
+        Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), "INC_BUILD");
+        Assert.assertEquals(jobInfo.getJobs().get(1).getJobName(), "INDEX_BUILD");
         modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("yyyy-MM-dd", modelDesc.getPartitionDesc().getPartitionDateFormat());
 
@@ -3499,7 +3502,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testComputedColumnNameCheck_PreProcessBeforeModelSave_ExceptionWhenCCNameIsSameWithColumnInLookupTable() {
 
         expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
+        expectedEx.expectMessage(
+                "In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";
@@ -3522,7 +3526,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testComputedColumnNameCheck_CheckCC_ExceptionWhenCCNameIsSameWithColumnInLookupTable() {
 
         expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
+        expectedEx.expectMessage(
+                "In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "SITE_ID";
         String expression = "nvl(TEST_SITES.SITE_ID)";

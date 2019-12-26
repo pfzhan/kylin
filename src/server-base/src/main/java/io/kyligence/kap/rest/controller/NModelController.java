@@ -29,7 +29,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.rest.response.JobInfoResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -80,6 +79,7 @@ import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndicesResponse;
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
@@ -263,7 +263,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "start", required = false, defaultValue = "1") String start,
+            @RequestParam(value = "start", required = false, defaultValue = "0") String start,
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
