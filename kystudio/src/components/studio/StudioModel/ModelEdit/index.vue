@@ -1122,9 +1122,13 @@ export default class ModelEdit extends Vue {
     this.removeDragInClass()
   }
   showChangeTips () {
-    kapConfirm(this.$t('modelChangeTips'), {cancelButtonText: this.$t('kylinLang.common.IKnow'), confirmButtonText: this.$t('ignore'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then(() => {
-      this.isIgnore = true
+    this.$message({
+      message: this.$t('modelChangeTips'),
+      type: 'warning',
+      showClose: true,
+      duration: 0
     })
+    this.isIgnore = true
   }
   // 释放列
   dropColumn (event, col, table) {

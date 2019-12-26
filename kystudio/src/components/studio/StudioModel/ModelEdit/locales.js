@@ -64,7 +64,7 @@ export default {
     noBrokenLink: 'No error join(s).',
     canNotRepairBrokenTip: 'Sorry the broken model couldn\'t be recovered as its metadata has too many information lost. You can delete the model or contact support to get more information.',
     searchColumn: 'Search column name',
-    modelChangeTips: 'You are modifying the model definition. After submitted, all indices of this model will be rebuilt. The model will be unavailable to serve queries until the indices are built successfully.',
+    modelChangeTips: 'You are modifying the model definition. After submitted, all indices of this model may be rebuilt. The model will be unavailable to serve queries until the indices are built successfully.',
     ignore: 'Ignore'
   },
   'zh-cn': {
@@ -132,7 +132,7 @@ export default {
     noBrokenLink: '没有需要修改的错误连线关系。',
     canNotRepairBrokenTip: '该模型丢失了太多的元数据信息，暂时无法进行恢复操作。您可以删除该模型或联系技术支持获取更多信息。',
     searchColumn: '搜索列名',
-    modelChangeTips: '您正在修改模型定义，提交后，会导致模型下的所有索引重新构建。索引构建完成前该模型不能服务于相关的查询。',
+    modelChangeTips: '您正在修改模型定义，提交后，可能会导致模型下的所有索引重新构建。索引构建完成前该模型不能服务于相关的查询。',
     ignore: '不再提示'
   }
 }
