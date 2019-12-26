@@ -1,0 +1,1 @@
+select lag(cal_dt,1,CURRENT_DATE) over (partition by seller_id order by cal_dt) from test_kylin_fact

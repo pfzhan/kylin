@@ -26,7 +26,7 @@ package io.kyligence.kap.query.runtime.plan
 import java.sql.Date
 import java.util.Calendar
 
-import io.kyligence.kap.query.relnode.KapWindowRel
+import io.kyligence.kap.query.relnode.{KapProjectRel, KapWindowRel}
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.RelCollationImpl
@@ -34,13 +34,13 @@ import org.apache.calcite.rel.RelFieldCollation.Direction
 import org.apache.calcite.rex.RexInputRef
 import org.apache.calcite.util.NlsString
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.LongType
 import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.{Column, DataFrame}
 
 import scala.collection.JavaConverters._
 
@@ -185,7 +185,7 @@ object WindowPlan extends Logging {
                 case 3 => {
                   lead(columnsAndConstants.apply(args.head),
                     constantMap.apply(args(1)).asInstanceOf[Number].intValue(),
-                    constantValue(constantMap.apply(args(2))))
+                    constantValue(rel, constantMap, args(2), visitor))
                 }
               }
 
@@ -200,7 +200,7 @@ object WindowPlan extends Logging {
                 case 3 =>
                   lag(columnsAndConstants.apply(args.head),
                     constantMap.apply(args(1)).asInstanceOf[Number].intValue(),
-                    constantValue(constantMap.apply(args(2))))
+                    constantValue(rel, constantMap, args(2), visitor))
               }
             case "NTILE" =>
               ntile(constantMap
@@ -250,6 +250,26 @@ object WindowPlan extends Logging {
   }
 
   // scalastyle:off
+  def constantValue(rel: KapWindowRel, constantMap: Map[Int, Any], idx: Int, rexVisitor: SparderRexVisitor) = {
+    if (constantMap.contains(idx)) {
+      constantMap(idx) match {
+        case v: NlsString => v.getValue
+        case v: Calendar => new Date(v.getTimeInMillis)
+        case other => other
+      }
+    } else {
+      rel.getInput match {
+        case input: KapProjectRel => // the constant value might be functions like CURRENT_DATE
+          input.getProjects.get(idx).accept(rexVisitor) match {
+            case col: Column => col.expr
+            case lit: Literal => lit
+            case _ =>
+          }
+        case _ =>
+          throw new IllegalStateException("Unsupported window function format");
+      }
+    }
+  }
   def constantValue(value: Any) = {
     value match {
       case v: NlsString => v.getValue
