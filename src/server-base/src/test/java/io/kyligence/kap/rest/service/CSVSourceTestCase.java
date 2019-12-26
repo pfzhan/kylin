@@ -27,22 +27,31 @@ package io.kyligence.kap.rest.service;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
 import org.junit.Before;
-
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
 import org.mockito.Mockito;
 
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import lombok.val;
+
 public class CSVSourceTestCase extends ServiceTestBase {
+
+    Map<Object, Object> originManager;
 
     protected String getProject() {
         return "default";
@@ -51,6 +60,7 @@ public class CSVSourceTestCase extends ServiceTestBase {
     @Before
     public void setup() {
         super.setup();
+        originManager = Maps.newHashMap();
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(getProject());
         val overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -97,13 +107,38 @@ public class CSVSourceTestCase extends ServiceTestBase {
 
     OptimizeRecommendationManager spyOptimizeRecommendationManager()
             throws NoSuchFieldException, IllegalAccessException {
-        val manager = Mockito.spy(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()));
+        return spyManager(OptimizeRecommendationManager.getInstance(getTestConfig(), getProject()),
+                OptimizeRecommendationManager.class);
+    }
+
+    NDataModelManager spyNDataModelManager() throws NoSuchFieldException, IllegalAccessException {
+        return spyManager(NDataModelManager.getInstance(getTestConfig(), getProject()), NDataModelManager.class);
+    }
+
+    NIndexPlanManager spyNIndexPlanManager() throws NoSuchFieldException, IllegalAccessException {
+        return spyManager(NIndexPlanManager.getInstance(getTestConfig(), getProject()), NIndexPlanManager.class);
+    }
+
+    NDataflowManager spyNDataflowManager() throws NoSuchFieldException, IllegalAccessException {
+        return spyManager(NDataflowManager.getInstance(getTestConfig(), getProject()), NDataflowManager.class);
+    }
+
+
+    <T> T spyManager(T t, Class<T> tClass) throws NoSuchFieldException, IllegalAccessException {
+        T manager = Mockito.spy(t);
+        originManager.put(manager, t);
         Field filed = getTestConfig().getClass().getDeclaredField("managersByPrjCache");
         filed.setAccessible(true);
         ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> managersByPrjCache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) filed
                 .get(getTestConfig());
-        managersByPrjCache.get(OptimizeRecommendationManager.class).put(getProject(), manager);
+        managersByPrjCache.get(tClass).put(getProject(), manager);
         return manager;
     }
 
+    <T, M> T spy(M m, Function<M, T> functionM, Function<T, T> functionT) {
+        return functionM.apply(Mockito.doAnswer(answer -> {
+            T t = functionM.apply((M) originManager.get(m));
+            return functionT.apply(t);
+        }).when(m));
+    }
 }

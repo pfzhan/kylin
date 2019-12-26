@@ -65,6 +65,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
@@ -117,6 +118,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -3544,5 +3546,62 @@ public class ModelServiceTest extends CSVSourceTestCase {
         model.getComputedColumnDescs().add(ccDesc);
 
         modelService.checkComputedColumn(model, project, null);
+    }
+
+    private NDataSegment mockSegment() {
+        NDataSegment segment = Mockito.mock(NDataSegment.class);
+        Map<Long, NDataLayout> layoutMap = Maps.newHashMap();
+        layoutMap.put(1L, new NDataLayout());
+        layoutMap.put(10001L, new NDataLayout());
+        layoutMap.put(10002L, new NDataLayout());
+        layoutMap.put(1030001L, new NDataLayout());
+        layoutMap.put(1080001L, new NDataLayout());
+        layoutMap.put(1040001L, new NDataLayout());
+        Mockito.doAnswer(invocationOnMock -> layoutMap).when(segment).getLayoutsMap();
+        return segment;
+    }
+
+    private List<LayoutEntity> spyLayouts() {
+        val id = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        val index = indexPlanManager.getIndexPlan(id);
+        val layouts = index.getAllLayouts();
+        layouts.forEach(l -> {
+            if (l.getId() == 1L || l.getId() == 10001L) {
+                l.setToBeDeleted(true);
+            }
+        });
+        return layouts;
+    }
+
+    @Test
+    public void testGetAvailableIndexesCount() throws NoSuchFieldException, IllegalAccessException {
+        val id = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        val alias = "nmodel_basic_inner";
+        val layouts = spyLayouts();
+        val segment = mockSegment();
+        val dfManager = spyNDataflowManager();
+        val indexPlanManager = spyNIndexPlanManager();
+        AtomicBoolean f1 = new AtomicBoolean(false);
+        AtomicBoolean f2 = new AtomicBoolean(false);
+        spy(dfManager, m -> m.getDataflow(id), df -> {
+            if (!df.getId().equals(id)) {
+                return df;
+            }
+            NDataflow spyDf = Mockito.spy(df);
+            Mockito.doAnswer(invocation -> segment).when(spyDf).getLatestReadySegment();
+            return spyDf;
+        });
+        spy(indexPlanManager, m -> m.getIndexPlan(id), indexPlan -> {
+            if (!indexPlan.getId().equals(id)) {
+                return indexPlan;
+            }
+            IndexPlan indexPlan1 = Mockito.spy(indexPlan);
+            Mockito.doAnswer(invocationOnMock -> layouts).when(indexPlan1).getAllLayouts();
+            return indexPlan1;
+        });
+        val res = modelService.getModels(alias, getProject(), false, "", "", "last_modify", true);
+        Assert.assertEquals(1, res.size());
+        Assert.assertEquals(4, res.get(0).getAvailableIndexesCount());
     }
 }

@@ -441,7 +441,8 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                     nDataModelResponse
                             .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
-                    nDataModelResponse.setAvailableIndexesCount(dfManager.getAvailableIndexesCount(modelDesc.getId()));
+                    nDataModelResponse.setAvailableIndexesCount(modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
+                            :   getAvailableIndexesCount(projectName, modelDesc.getId()));
                     filterModels.add(nDataModelResponse);
                 }
             }
@@ -454,6 +455,24 @@ public class ModelService extends BasicService {
             filterModels.sort(comparator);
             return filterModels;
         }
+    }
+
+    private long getAvailableIndexesCount(String project, String id) {
+        val dataflowManager = getDataflowManager(project);
+        val dataflow = dataflowManager.getDataflow(id);
+        if (dataflow == null) {
+            return 0;
+        }
+
+        val readySegments = dataflow.getLatestReadySegment();
+
+        if (readySegments == null) {
+            return 0;
+        }
+
+        val readLayouts = readySegments.getLayoutsMap().keySet();
+        return dataflow.getIndexPlan().getAllLayouts().stream()
+                .filter(l -> readLayouts.contains(l.getId()) && !l.isToBeDeleted()).count();
     }
 
     private List<NDataModelResponse> sortExpansionRate(boolean reverse, List<NDataModelResponse> filterModels) {

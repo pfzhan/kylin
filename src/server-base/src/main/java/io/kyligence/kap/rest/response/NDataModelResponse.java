@@ -75,7 +75,7 @@ public class NDataModelResponse extends NDataModel {
     private int recommendationsCount;
 
     @JsonProperty("available_indexes_count")
-    private int availableIndexesCount;
+    private long availableIndexesCount;
 
     private long lastModify;
 
