@@ -75,7 +75,7 @@ class NTable {
     this.hasMoreColumns = this.showColumns.length < this._cache_search_columns.length
   }
   filterColumns () {
-    let reg = new RegExp(this.filterColumnChar, 'gi')
+    let reg = new RegExp(this.filterColumnChar, 'i')
     this.showColumns = this.columns.filter((col) => {
       return this.filterColumnChar ? reg.test(col.name) : true
     })
