@@ -1484,20 +1484,20 @@ export default class JobsList extends Vue {
     background: @background-disabled-color;
     margin-bottom: 10px;
     line-height: 36px;
-    padding: 2px 5px;
+    padding: 0 5px;
     box-sizing: border-box;
     .tag-layout {
       width: calc(~'100% - 100px');
       display: inline-block;
-      line-height: 30px;
-    }
-    span {
-      margin-left: 5px;
+      span {
+        margin-left: 5px;
+        line-height: 24px;
+      }
     }
     .clear-all-tags {
       position: absolute;
       top: 0;
-      right: 22px;
+      right: 10px;
       font-size: 14px;
       color: @base-color;
       cursor: pointer;

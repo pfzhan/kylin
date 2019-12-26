@@ -583,7 +583,12 @@ export default class QueryHistoryTable extends Vue {
         width: calc(100%);
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        /*! autoprefixer: off */
+        -webkit-box-orient: vertical;
+        /* autoprefixer: on */
+        white-space: nowrap\0;
         &:hover {
           color: @base-color;
         }
