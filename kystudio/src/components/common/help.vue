@@ -1,7 +1,7 @@
 <template>
   <div class="help-box">
     <el-dropdown @command="handleCommand">
-      <el-button size="small" plain>
+      <el-button size="small">
          {{$t('kylinLang.common.help')}}<i class="el-icon-arrow-down el-icon--right"></i>
       </el-button>
       <el-dropdown-menu slot="dropdown">
