@@ -120,12 +120,12 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
         ColumnRowType inputColumnRowType = ((KapRel)getInput()).getColumnRowType();
         Set<TblColRef> tblColRefs = new HashSet<>();
         for (Group group : groups) {
-            group.keys.forEach(grpKey -> tblColRefs.add(inputColumnRowType.getColumnByIndex(grpKey)));
-            group.orderKeys.getFieldCollations().forEach(f -> tblColRefs.add(inputColumnRowType.getColumnByIndex(f.getFieldIndex())));
+            group.keys.forEach(grpKey -> tblColRefs.addAll(inputColumnRowType.getSourceColumnsByIndex(grpKey)));
+            group.orderKeys.getFieldCollations().forEach(f -> tblColRefs.addAll(inputColumnRowType.getSourceColumnsByIndex(f.getFieldIndex())));
             group.aggCalls.stream()
                     .flatMap(call -> RexUtils.getAllInputRefs(call).stream())
                     .filter(inRef -> inRef.getIndex() < inputColumnRowType.size()) // if idx >= input column cnt, it is referencing to come constants
-                    .flatMap(inRef -> inputColumnRowType.getColumnByIndex(inRef.getIndex()).getSourceColumns().stream())
+                    .flatMap(inRef -> inputColumnRowType.getSourceColumnsByIndex(inRef.getIndex()).stream())
                     .forEach(tblColRefs::add);
         }
         return tblColRefs;

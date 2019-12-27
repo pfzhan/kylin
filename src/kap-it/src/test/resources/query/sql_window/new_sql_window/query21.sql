@@ -6,13 +6,13 @@ SELECT
 		) AS lagx
 FROM (
 	SELECT tag
-				,y / x AS sort_dp
+				,y + x AS sort_dp
 		,
 		(
 			sum(x) OVER (
-				PARTITION BY tag ORDER BY y / x
+				PARTITION BY tag ORDER BY y + x
 				)
-			) / (sum(x) OVER (PARTITION BY tag)) AS c_pct_x
+			) + (sum(x) OVER (PARTITION BY tag)) AS c_pct_x
 	FROM (
 				SELECT 'model' AS tag
 					,item_count AS x
