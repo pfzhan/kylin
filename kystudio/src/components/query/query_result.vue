@@ -185,16 +185,24 @@ export default class queryResult extends Vue {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
       return this.extraoption.realizations.map((i) => {
         return i.modelAlias
-      }).join(',')
+      }).join(', ')
     } else {
       return this.extraoption.engineType
     }
   }
   get layoutIds () {
     if (this.extraoption.realizations && this.extraoption.realizations.length) {
-      return this.extraoption.realizations.map((i) => {
-        return i.layoutId
-      }).join(',')
+      let firstSnapshot = false
+      let filterIds = []
+      for (let i of this.extraoption.realizations) {
+        if (i.layoutId === -1 && !firstSnapshot) {
+          filterIds.push('Snapshot')
+          firstSnapshot = true
+        } else if (i.layoutId !== -1) {
+          filterIds.push(i.layoutId)
+        }
+      }
+      return filterIds.join(', ')
     } else {
       return ''
     }

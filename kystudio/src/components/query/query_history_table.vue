@@ -291,9 +291,21 @@ export default class QueryHistoryTable extends Vue {
     })
   }
   getLayoutIds (realizations) {
-    return realizations && realizations.length ? realizations.map((i) => {
-      return i.layoutId
-    }).join(',') : ''
+    if (realizations && realizations.length) {
+      let firstSnapshot = false
+      let filterIds = []
+      for (let i of realizations) {
+        if (i.layoutId === -1 && !firstSnapshot) {
+          filterIds.push('Snapshot')
+          firstSnapshot = true
+        } else if (i.layoutId !== -1) {
+          filterIds.push(i.layoutId)
+        }
+      }
+      return filterIds.join(', ')
+    } else {
+      return ''
+    }
   }
 
   toAcce (event, row) {
