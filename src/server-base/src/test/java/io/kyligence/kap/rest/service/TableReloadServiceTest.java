@@ -554,6 +554,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         val originMaxId = model.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
 
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
+        val dataflow1 = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
+        Assert.assertNotNull(dataflow1.getLatestReadySegment().getSnapshots().get("DEFAULT.TEST_COUNTRY"));
+
         val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getTableDesc("DEFAULT.TEST_COUNTRY");
         prepareTableExt("DEFAULT.TEST_COUNTRY");
@@ -564,6 +568,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val maxId = model2.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
         Assert.assertEquals(originMaxId + 2, maxId);
 
+        val dataflow2 = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
+        Assert.assertNull(dataflow2.getLatestReadySegment().getSnapshots().get("DEFAULT.TEST_COUNTRY"));
         // check table sample
         val tableExt = NTableMetadataManager.getInstance(getTestConfig(), PROJECT)
                 .getOrCreateTableExt("DEFAULT.TEST_COUNTRY");

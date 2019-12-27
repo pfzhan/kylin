@@ -43,7 +43,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -90,6 +89,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
@@ -1267,6 +1267,8 @@ public class TableService extends BasicService {
             val validStats = originTableExt.getAllColumnStats().stream()
                     .filter(stats -> !context.getRemoveColumns().contains(stats.getColumnName()))
                     .collect(Collectors.toList());
+            context.getTableExtDesc().setColumnStats(validStats);
+
             val originCols = originTableExt.getAllColumnStats().stream().map(TableExtDesc.ColumnStats::getColumnName)
                     .collect(Collectors.toList());
             val indexMapping = Maps.<Integer, Integer> newHashMap();
@@ -1287,7 +1289,6 @@ public class TableService extends BasicService {
                 });
                 return result;
             }).collect(Collectors.toList()));
-            context.getTableExtDesc().setColumnStats(validStats);
             context.getTableExtDesc().setMvcc(originTable.getMvcc());
         }
 
@@ -1304,12 +1305,33 @@ public class TableService extends BasicService {
             copy.setColumns(originColMap.values().toArray(new ColumnDesc[0]));
             loadDesc = copy;
         }
-        if (context.isChanged()) {
-            loadDesc.setLastSnapshotPath(null);
-        } else {
-            loadDesc.setLastSnapshotPath(originTable.getLastSnapshotPath());
+        int idx = 1;
+        for (ColumnDesc column : loadDesc.getColumns()) {
+            column.setId(idx + "");
+            idx++;
         }
+        cleanSnapshot(context, loadDesc, originTable, projectName);
         loadTableToProject(loadDesc, context.getTableExtDesc(), projectName);
+    }
+
+    void cleanSnapshot(ReloadTableContext context, TableDesc targetTable, TableDesc originTable, String projectName) {
+        if (context.isChanged()) {
+            targetTable.setLastSnapshotPath(null);
+            val dataflowManager = getDataflowManager(projectName);
+            val dataflows = dataflowManager.listAllDataflows();
+            val tableIdentity = targetTable.getIdentity();
+            for (NDataflow dataflow : dataflows) {
+                if (dataflow.getModel().containsTable(targetTable)) {
+                    dataflowManager.updateDataflow(dataflow.getUuid(), copyForWrite -> {
+                        for (NDataSegment segment : copyForWrite.getSegments()) {
+                            segment.getSnapshots().remove(tableIdentity);
+                        }
+                    });
+                }
+            }
+        } else {
+            targetTable.setLastSnapshotPath(originTable.getLastSnapshotPath());
+        }
     }
 
     private ReloadTableContext calcReloadContext(String project, String tableIdentity) throws Exception {
