@@ -27,7 +27,7 @@
               <el-select :disabled="isLoadingNewRange"
               v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:100%">
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
-                  <el-tooltip :content="t.name" effect="dark" placement="top"><span class="table-column-name" style="float: left">{{ t.name }}</span></el-tooltip>
+                  <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
                 </el-option>
               </el-select>
@@ -401,6 +401,17 @@ export default class ModelPartitionModal extends Vue {
         data: this.modelDesc
       })
     }, 300)
+  }
+  showToolTip (value) {
+    let len = 0
+    value.split('').forEach((v) => {
+      if (/[\u4e00-\u9fa5]/.test(v)) {
+        len += 2
+      } else {
+        len += 1
+      }
+    })
+    return len <= 15
   }
 }
 </script>
