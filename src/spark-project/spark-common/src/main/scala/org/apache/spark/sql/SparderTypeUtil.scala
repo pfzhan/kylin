@@ -274,7 +274,7 @@ object SparderTypeUtil extends Logging {
               if (toCalcite) {
                 (toCalciteTimestamp(DateFormat.stringToMillis(string)) / (3600 * 24 * 1000)).toInt
               } else {
-                DateFormat.stringToMillis(string)
+                DateFormat.stringToMillis(string) / 1000
               }
             }
           }

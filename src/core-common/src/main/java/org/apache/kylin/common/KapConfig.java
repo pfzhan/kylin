@@ -706,6 +706,10 @@ public class KapConfig {
         return Integer.valueOf(config.getOptional("kap.query.engine.default-decimal-scale", "0"));
     }
 
+    public boolean enablePushdownPrepareStatementWithParams() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
+    }
+
     /**
      * Kerberos
      */

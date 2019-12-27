@@ -80,6 +80,7 @@ import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -153,6 +154,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import org.apache.kylin.rest.util.PrepareSQLUtils;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
@@ -704,7 +706,11 @@ public class QueryService extends BasicService {
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
             String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
-        return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlRequest.getSql(), sqlRequest.getLimit(),
+        String sqlString = sqlRequest.getSql();
+        if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams() && isPrepareStatementWithParams(sqlRequest)) {
+            sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
+        }
+        return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlString, sqlRequest.getLimit(),
                 sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare);
     }
 

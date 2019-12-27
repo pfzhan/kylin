@@ -135,6 +135,12 @@ public class DateFormat {
                 return stringToDate(str, regexToPattern.getValue()).getTime();
         }
 
+        // try parse it as days to epoch
+        try {
+            long daysToEpoch = Long.parseLong(str);
+            return daysToEpoch * 24 * 60 * 60 * 1000;
+        } catch (NumberFormatException e) {
+        }
         throw new IllegalArgumentException("there is no valid date pattern for:" + str);
     }
 

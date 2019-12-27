@@ -75,6 +75,11 @@ public class PrepareSqlRequest extends SQLRequest {
         public StateParam() {
         }
 
+        public StateParam(String className, String value) {
+            this.className = className;
+            this.value = value;
+        }
+
         public String getClassName() {
             return className;
         }
