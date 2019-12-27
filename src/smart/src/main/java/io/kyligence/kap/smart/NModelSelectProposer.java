@@ -50,6 +50,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
+import lombok.val;
 
 public class NModelSelectProposer extends NAbstractProposer {
 
@@ -76,7 +77,7 @@ public class NModelSelectProposer extends NAbstractProposer {
         Set<String> selectedModel = Sets.newHashSet();
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
-            NDataModel model = selectExistedModel(modelTree);
+            NDataModel model = selectExistedModel(modelTree, modelContext);
             if (model == null || selectedModel.contains(model.getUuid())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
@@ -115,13 +116,21 @@ public class NModelSelectProposer extends NAbstractProposer {
         modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
-    private NDataModel selectExistedModel(ModelTree modelTree) {
-        ProjectInstance pojectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+    private NDataModel selectExistedModel(ModelTree modelTree, NSmartContext.NModelContext modelContext) {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(this.smartContext.getProject());
         List<NDataModel> originModels = getOriginModels();
         for (NDataModel model : originModels) {
-            if (matchModelTree(model, modelTree, pojectInstance.isSmartMode())
-                    && isContainAllCcColsInModel(model, modelTree)) {
+            if (!isContainAllCcColsInModel(model, modelTree))
+                continue;
+
+            if (matchModelTree(model, modelTree, projectInstance.isSmartMode())) {
+                modelContext.setSnapshotSelected(false);
+                return model;
+            }
+
+            if (!projectInstance.isSmartMode() && matchSnapshot(model, modelTree)) {
+                modelContext.setSnapshotSelected(true);
                 return model;
             }
         }
@@ -175,6 +184,21 @@ public class NModelSelectProposer extends NAbstractProposer {
                         KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel());
             }
         }
+
         return false;
+    }
+
+    public static boolean matchSnapshot(NDataModel model, ModelTree modelTree) {
+        if (!modelTree.getJoins().isEmpty() || modelTree.getRootFactTable().isIncrementLoading())
+            return false;
+
+        val modelTreeRootTable = modelTree.getRootFactTable().getIdentity();
+        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                model.getProject()).getDataflow(model.getUuid());
+
+        if (dataflow == null || !dataflow.isReady() || dataflow.getLatestReadySegment() == null)
+            return false;
+
+        return dataflow.getLatestReadySegment().getSnapshots().containsKey(modelTreeRootTable);
     }
 }

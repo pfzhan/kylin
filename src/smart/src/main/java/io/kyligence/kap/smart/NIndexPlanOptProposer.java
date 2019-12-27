@@ -40,7 +40,7 @@ public class NIndexPlanOptProposer extends NAbstractProposer {
 
         for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
             NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
-            if (modelCtx.withoutTargetModel()) {
+            if (modelCtx.withoutTargetModel() || modelCtx.isSnapshotSelected()) {
                 continue;
             }
 

@@ -24,22 +24,10 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
-import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.NModelMaster;
 
 class NModelOptProposer extends NAbstractProposer {
@@ -63,6 +51,10 @@ class NModelOptProposer extends NAbstractProposer {
             NModelMaster modelMaster = new NModelMaster(modelCtx);
             NDataModel model = modelCtx.getTargetModel();
 
+            if (modelCtx.isSnapshotSelected()) {
+                continue;
+            }
+
             try {
                 if (model == null && modelCtx.getSmartContext().isCouldCreateNewModel()) {
                     model = modelMaster.proposeInitialModel();
@@ -81,31 +73,6 @@ class NModelOptProposer extends NAbstractProposer {
                 recordException(modelCtx, e);
             }
         }
-
-        reduceSnapshotModel();
-    }
-
-    private void reduceSnapshotModel() {
-        List<NModelContext> snapshotModelCandidate = smartContext.getModelContexts().stream()
-                .filter(ctx -> ctx.getOriginModel() == null && ctx.getTargetModel() != null
-                        && CollectionUtils.isEmpty(ctx.getTargetModel().getJoinTables())
-                        && CollectionUtils.isEmpty(ctx.getTargetModel().getComputedColumnDescs())
-                        && !ctx.getTargetModel().getRootFactTable().getTableDesc().isIncrementLoading())
-                .collect(Collectors.toList());
-
-        NDataflowManager manager = NDataflowManager.getInstance(smartContext.getKylinConfig(),
-                smartContext.getProject());
-        Set<String> snapshotProviders = manager.listAllDataflows().stream().filter(NDataflow::isReady)
-                .map(NDataflow::getLatestReadySegment).filter(Objects::nonNull).map(seg -> seg.getSnapshots().keySet())
-                .flatMap(Collection::stream).collect(Collectors.toSet());
-        snapshotModelCandidate.stream().forEach(modelContext -> {
-            String rootTable = modelContext.getTargetModel().getRootFactTable().getTableIdentity();
-            if (snapshotProviders.contains(rootTable)) {
-                final Map<String, AccelerateInfo> sql2AccelerateInfo = smartContext.getAccelerateInfoMap();
-                // TODO add snapshot to AccelerateInfo
-                modelContext.setTargetModel(null);
-            }
-        });
     }
 
 }

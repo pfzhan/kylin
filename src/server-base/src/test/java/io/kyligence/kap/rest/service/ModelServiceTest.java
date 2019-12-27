@@ -888,6 +888,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(result);
     }
 
+    @Test
+    public void testAnswerBySnapshot() {
+        List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
+        val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
+        Assert.assertTrue(result);
+    }
+
     private void prepareTwoOnlineModels() {
         UnitOfWork.doInTransactionWithRetry(() -> {
             modelService.dropModel("82fa7671-a935-45f5-8779-85703601f49a", "default");

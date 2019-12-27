@@ -183,6 +183,9 @@ public class NSmartContext {
         @Setter(AccessLevel.PACKAGE)
         private IndexPlan originIndexPlan;
 
+        @Setter(AccessLevel.PACKAGE)
+        private boolean snapshotSelected;
+
         private NSmartContext smartContext;
         private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
         @Getter
