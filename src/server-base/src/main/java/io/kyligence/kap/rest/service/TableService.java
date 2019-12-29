@@ -1302,7 +1302,8 @@ public class TableService extends BasicService {
             for (String addColumn : context.getAddColumns()) {
                 originColMap.put(addColumn, newColMap.get(addColumn));
             }
-            copy.setColumns(originColMap.values().toArray(new ColumnDesc[0]));
+            copy.setColumns(originColMap.values().stream()
+                    .sorted(Comparator.comparing(col -> Integer.parseInt(col.getId()))).toArray(ColumnDesc[]::new));
             loadDesc = copy;
         }
         int idx = 1;
@@ -1315,7 +1316,7 @@ public class TableService extends BasicService {
     }
 
     void cleanSnapshot(ReloadTableContext context, TableDesc targetTable, TableDesc originTable, String projectName) {
-        if (context.isChanged()) {
+        if (context.isChanged(originTable)) {
             targetTable.setLastSnapshotPath(null);
             val dataflowManager = getDataflowManager(projectName);
             val dataflows = dataflowManager.listAllDataflows();

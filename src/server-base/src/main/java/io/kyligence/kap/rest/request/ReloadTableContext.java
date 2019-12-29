@@ -23,17 +23,21 @@
  */
 package io.kyligence.kap.rest.request;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import lombok.Data;
-import lombok.Getter;
-import lombok.ToString;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import lombok.Data;
+import lombok.Getter;
+import lombok.ToString;
+import lombok.val;
 
 @Data
 @ToString
@@ -62,8 +66,20 @@ public class ReloadTableContext {
         return removeColumns.stream().map(col -> tableDesc.getName() + "." + col).collect(Collectors.toSet());
     }
 
-    public boolean isChanged() {
-        return !addColumns.isEmpty() || !removeColumns.isEmpty() || !changeTypeColumns.isEmpty();
+    public boolean isChanged(TableDesc originTableDesc) {
+        if (tableDesc.getColumns().length != originTableDesc.getColumns().length) {
+            return true;
+        } else {
+            for (int i = 0; i < tableDesc.getColumns().length; i++) {
+                val newCol = tableDesc.getColumns()[i];
+                val originCol = originTableDesc.getColumns()[i];
+                if (!Objects.equals(newCol.getName(), originCol.getName())
+                        || !Objects.equals(newCol.getDatatype(), originCol.getDatatype())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

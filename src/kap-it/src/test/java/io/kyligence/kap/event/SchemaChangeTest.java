@@ -29,14 +29,14 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Comparator;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -78,6 +78,7 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -223,9 +224,20 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testChangeColumnType() throws Exception {
-        changeTypeColumn(TABLE_IDENTITY, new HashMap<String, String>() {
-            {
-                put("SRC_ID", "string");
+        changeColumns(TABLE_IDENTITY, Sets.newHashSet("SRC_ID"), columnDesc -> {
+            columnDesc.setDatatype("string");
+        });
+        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1);
+        assertSqls();
+    }
+
+    @Test
+    public void testChangeColumnOrder() throws Exception {
+        changeColumns(TABLE_IDENTITY, Sets.newHashSet("SRC_ID", "GCS_ID"), columnDesc -> {
+            if ("SRC_ID".equals(columnDesc.getName())) {
+                columnDesc.setId("32");
+            } else {
+                columnDesc.setId("35");
             }
         });
         tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1);
@@ -246,17 +258,18 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         }
     }
 
-    private void changeTypeColumn(String tableIdentity, Map<String, String> columns) throws IOException {
+    private void changeColumns(String tableIdentity, Set<String> columns, Consumer<ColumnDesc> changer)
+            throws IOException {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
         val factTable = tableManager.getTableDesc(tableIdentity);
         String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
         String tablePath = resPath + "/../data/tableDesc/" + tableIdentity + ".json";
         val tableMeta = JsonUtil.readValue(new File(tablePath), TableDesc.class);
         val newColumns = Stream.of(tableManager.copyForWrite(factTable).getColumns()).peek(col -> {
-            if (columns.containsKey(col.getName())) {
-                col.setDatatype(columns.get(col.getName()));
+            if (columns.contains(col.getName())) {
+                changer.accept(col);
             }
-        }).toArray(ColumnDesc[]::new);
+        }).sorted(Comparator.comparing(col -> Integer.parseInt(col.getId()))).toArray(ColumnDesc[]::new);
         tableMeta.setColumns(newColumns);
         JsonUtil.writeValueIndent(new FileOutputStream(new File(tablePath)), tableMeta);
     }
