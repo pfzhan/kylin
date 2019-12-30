@@ -101,7 +101,7 @@ public class IfUDF implements UdfDef {
             null,
             SqlFunctionCategory.USER_DEFINED_FUNCTION);
 
-    public static CallImplementor IMPLEMENTOR =
+    public static final CallImplementor IMPLEMENTOR =
             new UdfMethodNameImplementor("IF", IfUDF.class);
 
 
