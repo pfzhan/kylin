@@ -279,7 +279,7 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
             if (o2.getCount() == null) {
                 return 1;
             }
-            return o1.getCount() > o2.getCount() ? 1 : o1.getCount() == o2.getCount() ? 0 : -1;
+            return Double.compare(o1.getCount(), o2.getCount());
         }
 
     };
@@ -296,7 +296,7 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
             if (o2.getCount() == null) {
                 return -1;
             }
-            return o1.getCount() > o2.getCount() ? -1 : o1.getCount() == o2.getCount() ? 0 : 1;
+            return Double.compare(o2.getCount(), o1.getCount());
         }
 
     };

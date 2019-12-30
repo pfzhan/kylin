@@ -221,6 +221,60 @@ public class TopNCounterTest {
         Assert.assertArrayEquals(expectedDescCounts.toArray(), originDescCounts.toArray());
     }
 
+    /**
+     * https://github.com/Kyligence/KAP/issues/16933
+     *
+     * the error of “Comparison method violates its general contract!”
+     * are deep in the timsort algorithm and there are two necessary
+     * and insufficient conditions to reproduce this problem.
+     *
+     * 1.the size of list is greater than 32.
+     * 2.there must be at least two runs in the list.
+     */
+    @Test
+    public void testComparatorSymmetry() {
+        List<Counter> counters = Lists.newArrayList(new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 3d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 1d), new Counter<>("item", 1d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 1d),
+                new Counter<>("item", 0d), new Counter<>("item", 1d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 1d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 1d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 0d), new Counter<>("item", 2d), new Counter<>("item", 1d),
+                new Counter<>("item", 0d), new Counter<>("item", 0d), new Counter<>("item", 0d),
+                new Counter<>("item", 2d), new Counter<>("item", 4d), new Counter<>("item", 0d),
+                new Counter<>("item", 3d));
+        counters.sort(TopNCounter.ASC_COMPARATOR);
+        List<Double> expectedCounts = Lists.newArrayList(0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d,
+                0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d,
+                0d, 0d, 0d, 0d, 0d, 0d, 1d, 1d, 1d, 1d, 1d, 1d, 1d, 2d, 2d, 3d, 3d, 4d);
+        List<Double> originCounts = Lists.newArrayList();
+        counters.stream().forEach(counter -> {
+            originCounts.add(counter.getCount());
+        });
+        Assert.assertArrayEquals(expectedCounts.toArray(), originCounts.toArray());
+
+        counters.sort(TopNCounter.DESC_COMPARATOR);
+        List<Double> expectedDescCounts = Lists.newArrayList(4d, 3d, 3d, 2d, 2d, 1d, 1d, 1d, 1d, 1d, 1d, 1d, 0d, 0d, 0d,
+                0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d,
+                0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d, 0d);
+        List<Double> originDescCounts = Lists.newArrayList();
+        counters.stream().forEach(counter -> {
+            originDescCounts.add(counter.getCount());
+        });
+        Assert.assertArrayEquals(expectedDescCounts.toArray(), originDescCounts.toArray());
+    }
+
     private TopNCounterTest.SpaceSavingConsumer[] singleMerge(TopNCounterTest.SpaceSavingConsumer[] consumers)
             throws IOException, ClassNotFoundException {
         List<TopNCounterTest.SpaceSavingConsumer> list = Lists.newArrayList();
