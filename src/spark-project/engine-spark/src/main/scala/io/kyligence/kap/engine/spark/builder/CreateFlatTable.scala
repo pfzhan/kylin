@@ -58,6 +58,8 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 
     logInfo(s"Create flattable need join lookup tables ${needJoin}, need encode cols ${needEncode}")
 
+    rootFactDataset = applyPartitionDesc(flatTable, rootFactDataset)
+
     (needJoin, needEncode) match {
       case (true, true) =>
         val (dictCols, encodeCols): GlobalDictType = assemblyGlobalDictTuple(seg, toBuildTree)
@@ -171,16 +173,9 @@ object CreateFlatTable extends Logging {
     lookupTables
   }
 
-  private def applyFilterCondition(flatTable: IJoinedFlatTableDesc, ds: Dataset[Row]): Dataset[Row] = {
+  private def applyPartitionDesc(flatTable: IJoinedFlatTableDesc, ds: Dataset[Row]): Dataset[Row] = {
     var afterFilter = ds
     val model = flatTable.getDataModel
-
-    if (StringUtils.isNotBlank(model.getFilterCondition)) {
-      var afterConvertCondition = model.getFilterCondition
-      afterConvertCondition = replaceDot(model.getFilterCondition, model)
-      logInfo(s"Filter condition is $afterConvertCondition")
-      afterFilter = afterFilter.where(afterConvertCondition)
-    }
 
     val partDesc = model.getPartitionDesc
     if (partDesc != null && partDesc.getPartitionDateColumn != null) {
@@ -193,6 +188,22 @@ object CreateFlatTable extends Logging {
         afterFilter = afterFilter.where(afterConvertPartition) // TODO: mp not supported right now
       }
     }
+
+    afterFilter
+  }
+
+
+  private def applyFilterCondition(flatTable: IJoinedFlatTableDesc, ds: Dataset[Row]): Dataset[Row] = {
+    var afterFilter = ds
+    val model = flatTable.getDataModel
+
+    if (StringUtils.isNotBlank(model.getFilterCondition)) {
+      var afterConvertCondition = model.getFilterCondition
+      afterConvertCondition = s" (1=1) AND (" + replaceDot(model.getFilterCondition, model) + s")"
+      logInfo(s"Filter condition is $afterConvertCondition")
+      afterFilter = afterFilter.where(afterConvertCondition)
+    }
+
     afterFilter
   }
 
