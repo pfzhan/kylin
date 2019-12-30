@@ -58,6 +58,50 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.10 release note
+
+**Feature**
+
+- Optimize Hadoop platform compatibility: Support Hortonworks Data Platform 3.1 and Cloudera CDH 6.1
+
+**Enhancement**
+
+- Support to use offset clause after limit clause in queries
+  - Note: Pushdown is not available for such queries in current version
+- Support to set system-level parameters to specify the default precision of data type decimal
+- Optimize query performance when the query contains a large number of union clauses
+- Improve user experience
+  - When adding dimensions in batch add, if the dimension list is collapsed, it can prompt duplicate names in the dimension list when submitting
+  - Fix the table header when batch adding measures
+  - Optimize the drop-down box display when selecting a column, and display the full column name when hovering
+- Optimize and supplement query details information display
+  - Add the index ID of the query hit into the query details
+  - Add query ID into the query history page
+- Optimize API function list
+  - Support to delete a specified segment
+  - Add the Job ID in the return information of the build job API
+  - Provide model description API
+
+**Bugfix**
+
+- After the version upgrade, if editing the model and saving, the indexes are all rebuilt
+  - Scope of influence: upgrade from historical version to 4.0.9
+
+- Kyligence Enterprise fails to execute backup script
+- When the source table information does not change, reloading the source table will clear the snapshot
+- It fails to create new models when joining multiple identical dimension tables in the query
+- When using SQLs to create models, it fails when the same table is defined as a fact table and a dimension table at the same time in different queries
+- When the computed column refers to a column in the dimension table, and the computed column has the same name as the referenced column, it fails to build index
+- Query pushdown fails when the query contains placeholders
+- The query fails to hit the model when using strings in window functions *LEAD* and *LAG*
+- Query fails with null parameter in *IF* and *CONCAT* functions
+- The *CONCAT* function cannot concatenate string and numeric parameters
+- When querying a column of time type, the result of querying through JDBC is not consistent with the result in Kyligence Enterprise
+- A nested query fails when the result of the subquery window function is used in the window function after the select statement
+- The model cannot be set to no partition if deleting partition columns in the source table and reloading it
+- Dimension table cannot modify alias after using columns from dimension table in index
+- When the query result contains multiple columns and exceeds the browser width, all query results cannot be viewed on the web UI
+
 #### Kyligence Enterprise 4.0.9 release note
 
 **Enhancement**
