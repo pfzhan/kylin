@@ -126,6 +126,9 @@
         width="120"
         prop="id"
         label="Index ID">
+        <template slot-scope="scope">
+          <span v-if="scope.row.type !== 'ADD_AGG' && scope.row.type !== 'ADD_TABLE'">{{$t(scope.row.id)}}</span>
+        </template>
       </el-table-column>
       <el-table-column
         width="110"
