@@ -1,5 +1,6 @@
 import store from '../../store'
 export function addProjectDrama (guideType) {
+  let defineUserName = store.state.user.currentUser && store.state.user.currentUser.username ? store.state.user.currentUser.username.replace(/ /g, '_') : ''
   return [
     // 添加project
     {
@@ -37,7 +38,7 @@ export function addProjectDrama (guideType) {
       eventID: 3,
       done: false,
       target: 'addProjectInput', // 输入添加project 名称
-      val: (guideType === 'auto' ? 'Smart_mode_' : 'Expert_mode_') + (store.state.user.currentUser && store.state.user.currentUser.username || '') + Date.now()
+      val: (guideType === 'auto' ? 'Smart_mode_' : 'Expert_mode_') + defineUserName + Date.now()
     },
     {
       eventID: 1,

@@ -459,6 +459,11 @@ export default {
       font-size: 14px;
       &:hover {
         background-color: transparent;
+        color: #fff;
+      }
+      &.is-plain:not(.is-disabled):hover{
+        background-color: transparent;
+        color: #fff;
       }
     }
     .help-box span{
