@@ -1884,6 +1884,7 @@ public class ModelService extends BasicService {
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
         val format = probeDateFormatIfNotExist(project, broken);
         return UnitOfWork.doInTransactionWithRetry(() -> {
+            semanticUpdater.updateModelColumns(broken, modelRequest, true);
             val model = getDataModelManager(project).updateDataModelDesc(broken);
             saveDateFormatIfNotExist(project, model.getUuid(), format);
             getDataflowManager(project).updateDataflow(broken.getId(),

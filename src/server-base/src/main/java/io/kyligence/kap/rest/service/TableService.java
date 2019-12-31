@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1235,7 +1236,7 @@ public class TableService extends BasicService {
                     rule.getDimensions().stream().filter(d -> !removeDims.contains(d)).collect(Collectors.toList()));
             rule.setMeasures(rule.getMeasures().stream().filter(m -> !removeAffectedModel.getMeasures().contains(m))
                     .collect(Collectors.toList()));
-            rule.getAggregationGroups().forEach(group -> {
+            val newAggGroups = rule.getAggregationGroups().stream().peek(group -> {
                 group.setIncludes(dimFilter.apply(group.getIncludes()));
                 group.setMeasures(meaFilter.apply(group.getMeasures()));
                 group.getSelectRule().mandatoryDims = dimFilter.apply(group.getSelectRule().mandatoryDims);
@@ -1243,7 +1244,8 @@ public class TableService extends BasicService {
                         .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
                 group.getSelectRule().jointDims = Stream.of(group.getSelectRule().jointDims).map(dimFilter)
                         .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
-            });
+            }).filter(group -> ArrayUtils.isNotEmpty(group.getIncludes())).collect(Collectors.toList());
+            rule.setAggregationGroups(newAggGroups);
             copyForWrite.setRuleBasedIndex(rule);
             copyForWrite.setAggShardByColumns(copyForWrite.getAggShardByColumns().stream()
                     .anyMatch(id -> removeDims.contains(id) || removeColumnIds.contains(id)) ? Lists.newArrayList()

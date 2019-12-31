@@ -44,6 +44,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -289,7 +290,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(reModel.isBroken());
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
-        Assert.assertEquals(197, reModel.getAllNamedColumns().size());
+        Assert.assertEquals(198, reModel.getAllNamedColumns().size());
         Assert.assertEquals("ORDER_ID", reModel.getAllNamedColumns().get(13).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(13).getStatus());
         val reDataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
@@ -351,7 +352,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(reModel.isBroken());
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
-        Assert.assertEquals(197, reModel.getAllNamedColumns().size());
+        Assert.assertEquals(198, reModel.getAllNamedColumns().size());
         Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
@@ -394,7 +395,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(reModel.isBroken());
         Assert.assertEquals(9, reModel.getJoinTables().size());
         Assert.assertEquals(17, reModel.getAllMeasures().size());
-        Assert.assertEquals(197, reModel.getAllNamedColumns().size());
+        Assert.assertEquals(198, reModel.getAllNamedColumns().size());
         Assert.assertEquals("CAL_DT", reModel.getAllNamedColumns().get(2).getName());
         Assert.assertEquals("DEAL_YEAR", reModel.getAllNamedColumns().get(28).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.TOMB, reModel.getAllNamedColumns().get(2).getStatus());
@@ -411,6 +412,48 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertFalse(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT)
                 .getIndexPlan(reModel.getId()).isBroken());
 
+    }
+
+    @Test
+    public void testReloadAutoRemoveEmptyAggGroup() throws Exception {
+        prepareReload();
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
+        var originModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), PROJECT).updateIndexPlan(originModel.getUuid(),
+                    copyForWrite -> {
+                        SelectRule selectRule = new SelectRule();
+                        selectRule.setMandatoryDims(new Integer[] {});
+                        selectRule.setJointDims(new Integer[][] {});
+                        selectRule.setHierarchyDims(new Integer[][] {});
+                        copyForWrite.getRuleBasedIndex().getAggregationGroups().get(0).setSelectRule(selectRule);
+                        copyForWrite.getRuleBasedIndex().getAggregationGroups().get(0).setIncludes(new Integer[] { 2 });
+                    });
+            return null;
+        }, PROJECT);
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT)
+                .getIndexPlan(originModel.getUuid());
+        Assert.assertEquals(2, indexPlan.getRuleBasedIndex().getAggregationGroups().size());
+        Assert.assertEquals(21, indexPlan.getRuleBasedIndex().getAggregationGroups().get(1).getIncludes().length);
+        Integer removeId = 2;
+        val identity = originModel.getEffectiveDimenionsMap().get(removeId).toString();
+        String db = identity.split("\\.")[0];
+        String tb = identity.split("\\.")[1];
+        String col = identity.split("\\.")[2];
+        removeColumn(db + "." + tb, col);
+
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
+        val brokenModel = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
+        copyModel.getJoinTables().get(2).getJoin().setForeignKey(new String[] { "TEST_KYLIN_FACT.LSTG_SITE_ID" });
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            modelService.repairBrokenModel(PROJECT, createModelRequest(copyModel));
+            return null;
+        }, PROJECT, 1);
+
+        indexPlan = NIndexPlanManager.getInstance(getTestConfig(), PROJECT).getIndexPlan(originModel.getUuid());
+        Assert.assertEquals(1, indexPlan.getRuleBasedIndex().getAggregationGroups().size());
+        Assert.assertEquals(20, indexPlan.getRuleBasedIndex().getAggregationGroups().get(0).getIncludes().length);
     }
 
     @Test
