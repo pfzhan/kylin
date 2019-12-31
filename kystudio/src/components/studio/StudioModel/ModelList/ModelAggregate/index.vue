@@ -60,7 +60,7 @@
                 <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" @input="searchAggs"></el-input>
               </div>
             </div>
-            <div class="detail-content">
+            <div class="detail-content" v-loading="indexLoading">
               <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
                 {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
               </div>
@@ -274,6 +274,7 @@ export default class ModelAggregate extends Vue {
   cuboidData = {}
   searchCuboidId = ''
   buildIndexLoading = false
+  indexLoading = false
   indexDatas = []
   dataRange = ''
   totalSize = 0
@@ -495,6 +496,7 @@ export default class ModelAggregate extends Vue {
   }
   async loadAggIndices () {
     try {
+      this.indexLoading = true
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
         model: this.model.uuid
@@ -502,8 +504,10 @@ export default class ModelAggregate extends Vue {
       const data = await handleSuccessAsync(res)
       this.indexDatas = data.value
       this.totalSize = data.total_size
+      this.indexLoading = false
     } catch (e) {
       handleError(e)
+      this.indexLoading = false
     }
   }
   async mounted () {
