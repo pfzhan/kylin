@@ -112,6 +112,16 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     }
 
     @Test
+    public void testNullFrequencyMap() {
+        getTestConfig().setProperty("kylin.cube.low-frequency-threshold", "0");
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val df = dfManager.getDataflow(DEFAULT_MODEL_BASIC_ID);
+        val garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(df, new LowFreqLayoutGcStrategy());
+
+        Assert.assertTrue(garbageLayouts.isEmpty());
+    }
+
+    @Test
     public void testLowFreqLayoutStrategy() {
         initTestData();
         NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);

@@ -58,7 +58,11 @@ public class LowFreqLayoutGcStrategy extends AbstractGcStrategy {
         inputLayouts.forEach(layout -> {
             if (TimeUtil.minusDays(System.currentTimeMillis(), days) >= layout.getUpdateTime()) {
                 FrequencyMap frequencyMap = hitFrequencyMap.get(layout.getId());
-                if (frequencyMap == null || frequencyMap.isLowFrequency(dataflow.getProject())) {
+                if (frequencyMap == null) {
+                    frequencyMap = new FrequencyMap();
+                }
+
+                if (frequencyMap.isLowFrequency(dataflow.getProject())) {
                     garbageLayouts.add(layout.getId());
                 }
             }
