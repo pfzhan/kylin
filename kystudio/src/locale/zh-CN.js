@@ -126,7 +126,8 @@ exports.default = {
     pleaseInputUserOrGroupName: '请输入用户名或组名',
     pleaseSelectColumnName: '请选择列',
     pleaseSelectSampleRange: '请选择采样范围',
-    noData: '没有数据',
+    noData: '暂无数据',
+    noResults: '搜索结果为空',
     checkNoChange: '未检测到任何改动',
     // 格式提示
     nameFormatValidTip: '名称格式有误，命名支持数字、字母和下划线的组合。',

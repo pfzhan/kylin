@@ -42,7 +42,7 @@
     </div>
 
     <div class="segment-views ksd-mb-15">
-      <el-table border nested  size="medium" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
+      <el-table border nested  size="medium" :empty-text="emptyText" :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="44" v-if="!isAutoProject">
         </el-table-column>
         <el-table-column prop="id" label="Segment ID">
@@ -178,6 +178,9 @@ export default class ModelSegment extends Vue {
   segmentTime (row, data) {
     const isFullLoad = row.segRange.date_range_start === 0 && row.segRange.date_range_end === 9223372036854776000
     return isFullLoad ? this.$t('fullLoad') : data
+  }
+  get emptyText () {
+    return this.filter.startDate || this.filter.endDate ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get filterSegment () {
     return this.segments.filter(item => ['Full Load', '全量加载'].includes(item.startTime) && ['Full Load', '全量加载'].includes(item.endTime)).length

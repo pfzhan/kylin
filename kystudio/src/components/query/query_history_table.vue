@@ -12,6 +12,7 @@
       :data="queryHistoryData"
       border
       class="history-table"
+      :empty-text="emptyText"
       @expand-change="expandChange"
       :row-key="val => val.query_id"
       ref="queryHistoryTable"
@@ -205,6 +206,14 @@ export default class QueryHistoryTable extends Vue {
       const sql = element.sql_text
       element['sql_limit'] = this.sqlOverLimit(sql) ? `${sql.slice(0, this.sqlLimitRows)}...` : sql
     })
+  }
+
+  get isHasFilterValue () {
+    return this.filterData.sql || this.filterData.startTimeFrom || this.filterData.startTimeTo || this.filterData.latencyFrom || this.filterData.latencyTo || this.filterData.realization.length || this.filterData.query_status.length || this.filterData.server
+  }
+
+  get emptyText () {
+    return this.isHasFilterValue ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
   sqlOverLimit (sql) {

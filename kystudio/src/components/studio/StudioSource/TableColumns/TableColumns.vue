@@ -14,7 +14,7 @@
         </el-input>
       </div>
     </div>
-    <el-table class="columns-body" :data="currentColumns" @sort-change="onSortChange" border>
+    <el-table class="columns-body" :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange" border>
       <el-table-column
         type="index"
         label="ID"
@@ -97,6 +97,9 @@ export default class TableColumns extends Vue {
   pagination = {
     page_offset: 0,
     pageSize: pageCount
+  }
+  get emptyText () {
+    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get startIndex () {
     const { page_offset, pageSize } = this.pagination

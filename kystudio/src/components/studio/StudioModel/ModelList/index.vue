@@ -18,6 +18,7 @@
       <el-table class="model_list_table"
         :data="modelArray"
         border
+        :empty-text="emptyText"
         tooltip-effect="dark"
         :expand-row-keys="expandedRows"
         :row-key="renderRowKey"
@@ -332,6 +333,9 @@ export default class ModelList extends Vue {
     this.showUploadSqlDialog({
       isGenerateModel: true
     })
+  }
+  get emptyText () {
+    return this.filterArgs.model_name ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')

@@ -141,6 +141,7 @@
         <div v-for="searchTable in pagerSearchTable" class="scroll-table-item" :key="searchTable.guid">
           <el-table
             border
+            :empty-text="emptyText"
             v-if="isShowSearchTable || isGuideMode"
             :data="searchTable.columns">
             <el-table-column show-overflow-tooltip prop="name" :label="$t('column')"></el-table-column>
@@ -353,6 +354,9 @@ export default class BatchMeasureModal extends Vue {
         this.getTableTops()
       })
     }
+  }
+  get emptyText () {
+    return this.searchChar ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   // 分页搜索table渲染数据
   get pagerSearchTable () {

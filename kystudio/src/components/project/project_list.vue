@@ -16,6 +16,7 @@
       :data="projectList"
       tooltip-effect="dark"
       border
+      :empty-text="emptyText"
       class="project-table"
       style="width: 100%">
       <el-table-column type="expand" :width="34" align="center">
@@ -251,6 +252,9 @@ export default {
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
+    },
+    emptyText () {
+      return this.filterData.project ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
     }
   },
   created () {

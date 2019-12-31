@@ -13,7 +13,7 @@
         </el-input>
       </div>
     </div>
-    <el-table class="columns-body" :data="currentColumns" border>
+    <el-table class="columns-body" :empty-text="emptyText" :data="currentColumns" border>
       <el-table-column
         type="index"
         label="ID"
@@ -95,6 +95,9 @@ export default class TableStatistics extends Vue {
   pagination = {
     page_offset: 0,
     pageSize: 10
+  }
+  get emptyText () {
+    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get startIndex () {
     const { page_offset, pageSize } = this.pagination

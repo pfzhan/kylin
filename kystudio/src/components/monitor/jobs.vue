@@ -49,6 +49,7 @@
       :data="jobsList"
       highlight-current-row
       :default-sort = "{prop: 'create_time', order: 'descending'}"
+      :empty-text="emptyText"
       @sort-change="sortJobList"
       @selection-change="handleSelectionChange"
       @select="handleSelect"
@@ -146,7 +147,7 @@
 
     <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
 
-    <el-card v-show="showStep" class="card-width job-step" id="stepList">
+    <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}" id="stepList">
 
       <div class="timeline-item">
         <div class="timeline-body">
@@ -533,6 +534,9 @@ export default class JobsList extends Vue {
   waitingJob = {modelName: '', jobsList: [], jobsSize: 0}
   waittingJobModels = {size: 0, data: null}
   stepId = ''
+  get emptyText () {
+    return this.filter.subject_alias || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   @Watch('$store.state.project.isAllProject')
   selectAllProject (curVal) {
     if (curVal) {
@@ -1241,6 +1245,9 @@ export default class JobsList extends Vue {
       position: absolute;
       top: 0;
       right: 0;
+      &.is-admin-tips {
+        min-height: calc(~'100vh - 181px');
+      }
         &.el-card {
           border-radius: 0;
           padding: 15px;

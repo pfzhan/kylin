@@ -32,7 +32,7 @@
           <i class="el-icon-ksd-more_03"></i>
         </div>
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
-          <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
+          <p class="empty-text">{{emptyText}}</p>
         </div>
         <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterData || treeData.length === 0) && !loadingTreeData">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
       </div>
@@ -230,6 +230,9 @@ export default class SourceHive extends Vue {
   pollingReloadStatusTimer = null // 轮询当前刷新状态的接口
   filterData = false // 打开弹窗时，不显示下面的立即刷新，执行了一次 handleFilter 后显示
 
+  get emptyText () {
+    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   get refreshBtnText () {
     return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')
   }

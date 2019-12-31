@@ -37,7 +37,7 @@
           @drag="handleDrag"
           @load-more="handleLoadMore">
           <template>
-            <kap-nodata v-if="databaseArray.length <= 0 || tableArray.length <= 0" size="small"></kap-nodata>
+            <kap-nodata :content="emptyText" v-if="databaseArray.length <= 0 || tableArray.length <= 0" size="small"></kap-nodata>
           </template>
         </TreeList>
       </div>
@@ -216,6 +216,9 @@ export default class DataSourceBar extends Vue {
     }
   }
   dataSourceSelectedLabel = ''
+  get emptyText () {
+    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   get showAddDatasourceBtn () {
     // 嵌套在lightning 中的4x，会有内置数据源的情况，只支持单数据源，这时候，不该放出添加数据源，所以只要判断datasources的length是否大于0 即可
     if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {

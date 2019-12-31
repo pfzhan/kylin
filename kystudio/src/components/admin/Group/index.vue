@@ -16,6 +16,7 @@
       <el-table
         :data="groupUsersList"
         class="group-table"
+        :empty-text="emptyText"
         border>
         <el-table-column
           :label="$t('kylinLang.common.name')"
@@ -102,6 +103,7 @@ export default class SecurityGroup extends Vue {
     page_offset: 0
   }
   filterTimer = null
+  filterName = ''
 
   created () {
     this.loadGroupUsers()
@@ -123,8 +125,13 @@ export default class SecurityGroup extends Vue {
     clearInterval(this.filterTimer)
     this.filterTimer = setTimeout(() => {
       this.pagination.page_offset = 0
+      this.filterName = value
       this.loadGroupUsers(value)
     }, 1500)
+  }
+
+  get emptyText () {
+    return this.filterName ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
   loadUsers (filterName) {

@@ -7,9 +7,9 @@
 export default {
   name: 'noData',
   props: ['content'],
-  data () {
-    return {
-      tips: this.content
+  computed: {
+    tips () {
+      return this.content
     }
   }
 }

@@ -35,7 +35,7 @@
       :closable="false">
     </el-alert>
 
-    <el-table :data="usersList" class="user-table" border>
+    <el-table :data="usersList" :empty-text="emptyText" class="user-table" border>
       <!-- 表：username列 -->
       <el-table-column :label="$t('userName')" prop="username" :width="220">
         <template slot-scope="scope">
@@ -133,6 +133,7 @@ export default class SecurityUser extends Vue {
   userData = []
   totalSize = 0
   filterTimer = null
+  filterName = ''
   pagination = {
     page_size: pageCount,
     page_offset: 0
@@ -165,8 +166,13 @@ export default class SecurityUser extends Vue {
 
     this.filterTimer = setTimeout(() => {
       this.pagination.page_offset = 0
+      this.filterName = value
       this.loadUsers(value)
     }, 1500)
+  }
+
+  get emptyText () {
+    return this.filterName ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
   handleCurrentChange (pager, pageSize) {

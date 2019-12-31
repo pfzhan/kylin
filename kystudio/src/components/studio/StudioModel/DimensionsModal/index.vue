@@ -202,6 +202,7 @@
           <div v-show="searchChar">
             <el-table v-for="searchTable in pagerSearchTable" :key="searchTable.guid"
                   border
+                  :empty-text="emptyText"
                   :row-class-name="(para) => tableRowClassName(para, searchTable)"
                   :data="searchTable.columns" :ref="searchTable.guid"
                   @row-click="(row) => {rowClick(row, searchTable.guid)}"
@@ -318,6 +319,10 @@ export default class DimensionsModal extends Vue {
 
   filterErrorContent (table) {
     return this.isClickSubmit && table.columns.filter(item => item.validateSameName || item.validateNameRule).length
+  }
+
+  get emptyText () {
+    return this.searchChar ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
   changeSearchVal (val) {

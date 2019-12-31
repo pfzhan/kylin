@@ -8,6 +8,7 @@
       :data="modelList"
       class="model-setting-table"
       border
+      :empty-text="emptyText"
       style="width: 100%">
       <el-table-column width="230px" show-overflow-tooltip prop="alias" :label="modelTableTitle"></el-table-column>
       <el-table-column prop="last_modified" show-overflow-tooltip width="218px" :label="$t('modifyTime')">
@@ -217,6 +218,9 @@ export default class SettingStorage extends Vue {
   baseCuboidValid = [{label: 'true', value: 0}, {label: 'false', value: 1}]
   modelSettingForm = JSON.parse(initialSettingForm)
   activeRow = null
+  get emptyText () {
+    return this.filter.model_name ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
   }

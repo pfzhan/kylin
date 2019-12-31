@@ -43,6 +43,7 @@
           :data="pagerTableData"
           border
           ref="multipleTable"
+          :empty-text="emptyText"
           @row-click="activeSql"
           @select="handleSelectionChange"
           @select-all="handleSelectAllChange"
@@ -258,6 +259,9 @@ export default class UploadSqlModel extends Vue {
     this.isNameErrorModelExisted = false
     this.modelType = 'suggest'
     this.messageInstance && this.messageInstance.close()
+  }
+  get emptyText () {
+    return this.whiteSqlFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   get uploadTitle () {
     if (this.isGenerateModel) {

@@ -341,7 +341,7 @@
                   </ul>
                   <div class="ky-line"></div>
                 </div>
-                <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">{{$t('kylinLang.common.noData')}}</div>
+                <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">{{$t('kylinLang.common.noResults')}}</div>
               </div>
             </div>
             </transition>

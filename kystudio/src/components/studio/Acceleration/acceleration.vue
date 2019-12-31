@@ -100,7 +100,7 @@
               <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
-          <el-table :data="blackSqlData.value" border @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
+          <el-table :data="blackSqlData.value" border :empty-text="emptyText" @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
             <el-table-column prop="sql_pattern" label="SQL" :resizable="false">
               <template slot-scope="props">
                 <span class="ksd-nobr-text" style="width: 289px;">{{props.row.sql_pattern}}</span>
@@ -387,6 +387,9 @@ export default class FavoriteQuery extends Vue {
     count_value: [{validator: this.validatePass, trigger: 'blur'}],
     min_duration: [{validator: this.validatePass, trigger: 'blur'}],
     max_duration: [{validator: this.validatePass, trigger: 'blur'}]
+  }
+  get emptyText () {
+    return this.blackSqlFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
   validatePass (rule, value, callback) {
     if ((!value && value !== 0) && (rule.field === 'count_value' && this.rulesObj.count_enable || rule.field.indexOf('duration') !== -1 && this.rulesObj.duration_enable)) {

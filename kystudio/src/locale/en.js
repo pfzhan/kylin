@@ -128,6 +128,7 @@ exports.default = {
     pleaseSelectColumnName: 'Please select column name',
     pleaseSelectSampleRange: 'Please select sampling percentage',
     noData: 'No data',
+    noResults: 'No Results',
     checkNoChange: 'No content changed',
     // 格式提示
     nameFormatValidTip: 'Invalid name. Only letters, numbers and underscore characters are supported in a valid name.',

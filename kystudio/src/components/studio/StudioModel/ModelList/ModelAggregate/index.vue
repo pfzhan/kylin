@@ -73,6 +73,7 @@
                 :data="indexDatas"
                 class="indexes-table"
                 size="medium"
+                :empty-text="emptyText"
                 @sort-change="onSortChange"
                 :row-class-name="tableRowClassName">
                 <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
@@ -309,6 +310,10 @@ export default class ModelAggregate extends Vue {
       return 'empty-index'
     }
     return ''
+  }
+
+  get emptyText () {
+    return this.filterArgs.key || this.filterArgs.sources.length || this.filterArgs.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
   handleBuildIndexTip (data) {

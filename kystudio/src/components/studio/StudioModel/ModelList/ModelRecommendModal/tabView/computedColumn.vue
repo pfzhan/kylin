@@ -18,6 +18,7 @@
       key="ccList"
       ref="ccList"
       border
+      :empty-text="emptyText"
       class="ksd-mt-10 cc-table"
       :data="tableShowList"
       style="width: 100%"
@@ -114,6 +115,10 @@
     mounted () {
       this.tableShowList = this.list
       renderTableColumnSelected(this.tableShowList, this, 'ccList')
+    }
+
+    get emptyText () {
+      return this.keyword ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
     }
 
     // 检测是否有重名

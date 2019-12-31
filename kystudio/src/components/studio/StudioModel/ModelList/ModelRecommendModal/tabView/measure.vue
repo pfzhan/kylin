@@ -18,6 +18,7 @@
       key="measureList"
       ref="measureList"
       border
+      :empty-text="emptyText"
       class="ksd-mt-10 measure-table"
       :data="tableShowList"
       style="width: 100%"
@@ -157,6 +158,10 @@
       {name: 'percentile(1000)', value: 'percentile(1000)'},
       {name: 'percentile(10000)', value: 'percentile(10000)'}
     ]
+
+    get emptyText () {
+      return this.keyword ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+    }
 
     getSelectDataType (expression) {
       if (expression === 'TOP_N') {

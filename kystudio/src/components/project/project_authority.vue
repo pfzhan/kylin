@@ -21,7 +21,7 @@
       </el-col>
     </el-row>
     <div v-if="accessView === 'user'">
-      <el-table :data="userAccessList" class="user-access-table" border key="user">
+      <el-table :data="userAccessList" :empty-text="emptyText" class="user-access-table" border key="user">
         <el-table-column type="expand">
           <template slot-scope="props">
             <user_access :roleOrName="props.row.role_or_name" :projectName="currentProject" :type="props.row.type"></user_access>
@@ -297,6 +297,9 @@ export default class ProjectAuthority extends Vue {
   ]
   submitLoading = false
   projectAccess = null
+  get emptyText () {
+    return this.serarchChar ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   get hasProjectAdminPermission () {
     return hasPermissionOfProjectAccess(this, this.projectAccess, permissions.ADMINISTRATION.mask)
   }
