@@ -10,9 +10,9 @@ export function addIndexDrama () {
       }
     },
     {
-      eventID: 6,
+      eventID: 61,
       done: false,
-      target: 'setDataRangeBtn'
+      target: 'scrollModelTable'
     },
     {
       eventID: 1,

@@ -16,6 +16,7 @@
         </el-button>
       </div>
       <el-table class="model_list_table"
+        v-guide.scrollModelTable
         :data="modelArray"
         border
         :empty-text="emptyText"
