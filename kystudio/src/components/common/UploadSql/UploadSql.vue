@@ -1,157 +1,174 @@
 <template>
-  <el-dialog
-    :visible="isShow"
-    top="5vh"
-    width="960px"
-    limited-area
-    :close-on-press-escape="false"
-    :close-on-click-modal="false"
-    @close="handleClose"
-    class="importSqlDialog">
-    <span slot="title" class="ky-list-title">{{uploadTitle}}</span>
-    <div class="upload-block" v-if="uploadFlag==='step1'">
-      <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
-      <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
-      <el-upload
-        ref="sqlUpload"
-        :headers="uploadHeader"
-        action=""
-        :on-remove="handleRemove"
-        :on-change="fileItemChange"
-        :file-list="uploadItems"
-        multiple
-        :auto-upload="false">
-        <el-button type="primary" size="medium">{{$t('sqlFiles')}}
-        </el-button>
-      </el-upload>
-    </div>
-    <el-row :gutter="15" v-if="uploadFlag==='step2'">
-      <el-col :span="16">
-        <div class="clearfix ksd-mb-10">
-          <div class="ksd-fleft">
-            <div v-if="pagerTableData.length&&whiteSqlData.capable_sql_num" class="ksd-fleft ksd-mr-10">
-              <el-button type="primary" size="medium" plain @click="selectAll" v-if="selectSqls.length!==whiteSqlData.capable_sql_num">{{$t('checkAll')}}</el-button><el-button
-              type="primary" size="medium" plain @click="cancelSelectAll" v-else>{{$t('cancelAll')}}</el-button>
-            </div>
+  <div>
+    <el-dialog
+      :visible="isShow"
+      top="5vh"
+      width="960px"
+      limited-area
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      @close="handleClose"
+      class="importSqlDialog">
+      <span slot="title" class="ky-list-title">{{uploadTitle}}</span>
+      <div class="upload-block" v-if="uploadFlag==='step1'">
+        <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
+        <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
+        <el-upload
+          ref="sqlUpload"
+          :headers="uploadHeader"
+          action=""
+          :on-remove="handleRemove"
+          :on-change="fileItemChange"
+          :file-list="uploadItems"
+          multiple
+          :auto-upload="false">
+          <el-button type="primary" size="medium">{{$t('sqlFiles')}}
+          </el-button>
+        </el-upload>
+      </div>
+      <el-row :gutter="15" v-if="uploadFlag==='step2'">
+        <el-col :span="16">
+          <div class="clearfix ksd-mb-10">
+            <div class="ksd-fleft">
+              <div v-if="pagerTableData.length&&whiteSqlData.capable_sql_num" class="ksd-fleft ksd-mr-10">
+                <el-button type="primary" size="medium" plain @click="selectAll" v-if="selectSqls.length!==whiteSqlData.capable_sql_num">{{$t('checkAll')}}</el-button><el-button
+                type="primary" size="medium" plain @click="cancelSelectAll" v-else>{{$t('cancelAll')}}</el-button>
+              </div>
 
+            </div>
+            <div class="ksd-fright ksd-inline searchInput" v-if="whiteSqlData.size">
+              <el-input v-model="whiteSqlFilter" @input="onWhiteSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
+            </div>
           </div>
-          <div class="ksd-fright ksd-inline searchInput" v-if="whiteSqlData.size">
-            <el-input v-model="whiteSqlFilter" @input="onWhiteSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
-          </div>
-        </div>
-        <el-table
-          :data="pagerTableData"
-          border
-          ref="multipleTable"
-          :empty-text="emptyText"
-          @row-click="activeSql"
-          @select="handleSelectionChange"
-          @select-all="handleSelectAllChange"
-          :row-class-name="tableRowClassName"
-          class="import-table"
-          style="width: 100%">
-          <el-table-column type="selection" width="44" align="center" :selectable="selectable"></el-table-column>
-          <el-table-column prop="sql" label="SQL" :resizable="false">
-            <template slot-scope="props">
-              <span class="ksd-nobr-text" style="width: 382px;">{{props.row.sql}}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="capable" :label="$t('kylinLang.common.status')" width="80">
-            <template slot-scope="props">
-              <i :class="{'el-icon-ksd-good_health': props.row.capable, 'el-icon-ksd-error_01': !props.row.capable}"></i>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('kylinLang.common.action')" width="80">
-            <template slot-scope="props">
-              <common-tip :content="$t('kylinLang.common.edit')">
-                <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
-              </common-tip>
-              <common-tip :content="$t('kylinLang.common.drop')">
-                <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
-              </common-tip>
+          <el-table
+            :data="pagerTableData"
+            border
+            ref="multipleTable"
+            :empty-text="emptyText"
+            @row-click="activeSql"
+            @select="handleSelectionChange"
+            @select-all="handleSelectAllChange"
+            :row-class-name="tableRowClassName"
+            class="import-table"
+            style="width: 100%">
+            <el-table-column type="selection" width="44" align="center" :selectable="selectable"></el-table-column>
+            <el-table-column prop="sql" label="SQL" :resizable="false">
+              <template slot-scope="props">
+                <span class="ksd-nobr-text" style="width: 382px;">{{props.row.sql}}</span>
               </template>
-          </el-table-column>
-        </el-table>
-        <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="filteredDataSize" :curPage="whiteCurrentPage+1" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
-      </el-col>
-      <el-col :span="8">
-        <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
-        <div element-loading-spinner="el-icon-loading">
-          <div v-loading="sqlLoading" class="query_panel_box ksd-mt-10">
-            <kap-editor ref="whiteInputBox" :height="inputHeight" :dragable="false" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql" v-if="isShowEditor">
-            </kap-editor>
-            <div class="operatorBox" v-if="isEditSql">
-              <div class="btn-group ksd-fright ky-no-br-space">
-                <el-button size="small" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" size="small" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+            </el-table-column>
+            <el-table-column prop="capable" :label="$t('kylinLang.common.status')" width="80">
+              <template slot-scope="props">
+                <i :class="{'el-icon-ksd-good_health': props.row.capable, 'el-icon-ksd-error_01': !props.row.capable}"></i>
+              </template>
+            </el-table-column>
+            <el-table-column :label="$t('kylinLang.common.action')" width="80">
+              <template slot-scope="props">
+                <common-tip :content="$t('kylinLang.common.edit')">
+                  <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
+                </common-tip>
+                <common-tip :content="$t('kylinLang.common.drop')">
+                  <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
+                </common-tip>
+                </template>
+            </el-table-column>
+          </el-table>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-10" :totalSize="filteredDataSize" :curPage="whiteCurrentPage+1" layout="total, prev, pager, next, jumper" v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
+        </el-col>
+        <el-col :span="8">
+          <div class="ky-list-title ksd-mt-10 ksd-fs-14">{{$t('sqlBox')}}</div>
+          <div element-loading-spinner="el-icon-loading">
+            <div v-loading="sqlLoading" class="query_panel_box ksd-mt-10">
+              <kap-editor ref="whiteInputBox" :height="inputHeight" :dragable="false" :readOnly="this.isReadOnly" lang="sql" theme="chrome" v-model="whiteSql" v-if="isShowEditor">
+              </kap-editor>
+              <div class="operatorBox" v-if="isEditSql">
+                <div class="btn-group ksd-fright ky-no-br-space">
+                  <el-button size="small" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
+                  <el-button type="primary" size="small" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+                </div>
+              </div>
+            </div>
+            <div class="error_messages" v-if="isWhiteErrorMessage">
+              <div v-for="(mes, index) in whiteMessages" :key="index">
+                <div class="label">{{$t('messages')}}</div>
+                <p>{{mes.incapable_reason}}</p>
+                <div class="label ksd-mt-10">{{$t('suggestion')}}</div>
+                <p>{{mes.suggestion}}</p>
               </div>
             </div>
           </div>
-          <div class="error_messages" v-if="isWhiteErrorMessage">
-            <div v-for="(mes, index) in whiteMessages" :key="index">
-              <div class="label">{{$t('messages')}}</div>
-              <p>{{mes.incapable_reason}}</p>
-              <div class="label ksd-mt-10">{{$t('suggestion')}}</div>
-              <p>{{mes.suggestion}}</p>
-            </div>
-          </div>
+        </el-col>
+      </el-row>
+      <div v-if="uploadFlag==='step3'">
+        <div class="ky-list-title ksd-mb-10" v-if="isShowSuggestModels">
+          {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
         </div>
-      </el-col>
-    </el-row>
-    <div v-if="uploadFlag==='step3'">
-      <div class="ky-list-title ksd-mb-10" v-if="isShowSuggestModels">
-        {{$t('newModelList')}} ({{selectModels.length}}/{{suggestModels.length}})
+        <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
+          {{$t('recommendations')}}
+        </div>
+        <SuggestModel
+          v-if="isShowSuggestModels"
+          tableRef="modelsTable"
+          :suggestModels="suggestModels"
+          @isValidated="isValidated"
+          @getSelectModels="getSelectModels" />
+        <SuggestModel
+          v-if="isShowOriginModels"
+          tableRef="originModelsTable"
+          :suggestModels="originModels"
+          :isOriginModelsTable="true" />
+        <el-tabs v-model="modelType" type="card" v-if="isShowTabModels">
+          <el-tab-pane :label="$t('kylinLang.model.modelList') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
+            <SuggestModel
+              tableRef="modelsTable"
+              :suggestModels="suggestModels"
+              @isValidated="isValidated"
+              @getSelectModels="getSelectModels" />
+          </el-tab-pane>
+          <el-tab-pane :label="$t('recommendations')" name="origin">
+            <SuggestModel
+              tableRef="originModelsTable"
+              :suggestModels="originModels"
+              :isOriginModelsTable="true" />
+          </el-tab-pane>
+        </el-tabs>
       </div>
-      <div class="ky-list-title ksd-mb-10" v-if="isShowOriginModels">
-        {{$t('recommendations')}}
-      </div>
-      <SuggestModel
-        v-if="isShowSuggestModels"
-        tableRef="modelsTable"
-        :suggestModels="suggestModels"
-        @isValidated="isValidated"
-        @getSelectModels="getSelectModels" />
-      <SuggestModel
-        v-if="isShowOriginModels"
-        tableRef="originModelsTable"
-        :suggestModels="originModels"
-        :isOriginModelsTable="true" />
-      <el-tabs v-model="modelType" type="card" v-if="isShowTabModels">
-        <el-tab-pane :label="$t('kylinLang.model.modelList') + ` (${selectModels.length}/${suggestModels.length})`" name="suggest">
-          <SuggestModel
-            tableRef="modelsTable"
-            :suggestModels="suggestModels"
-            @isValidated="isValidated"
-            @getSelectModels="getSelectModels" />
-        </el-tab-pane>
-        <el-tab-pane :label="$t('recommendations')" name="origin">
-          <SuggestModel
-            tableRef="originModelsTable"
-            :suggestModels="originModels"
-            :isOriginModelsTable="true" />
-        </el-tab-pane>
-      </el-tabs>
-    </div>
-    <span slot="footer" class="dialog-footer">
-      <div class="ksd-fleft query-count">
-        <span v-if="uploadFlag==='step2'">
-          <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}</span><span class="ksd-ml-10">
-          <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
-        </span>
-        <span v-if="uploadFlag==='step1'" class="tips">
-          <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
-        </span>
-      </div>
-      <div class="ky-no-br-space">
-        <el-button plain size="medium" @click="handleClose" v-if="!isShowOriginModels">{{$t('kylinLang.common.close')}}</el-button>
-        <el-button size="medium" v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
-        <el-button size="medium" v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
-        <el-button size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&!isShowOriginModels" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
-        <el-button size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleCloseAcceptModal">{{$t('kylinLang.common.ok')}}</el-button>
-      </div>
-    </span>
-  </el-dialog>
+      <span slot="footer" class="dialog-footer">
+        <div class="ksd-fleft query-count">
+          <span v-if="uploadFlag==='step2'">
+            <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}</span><span class="ksd-ml-10">
+            <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
+          </span>
+          <span v-if="uploadFlag==='step1'" class="tips">
+            <i class="el-icon-ksd-info ksd-fs-14"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
+          </span>
+        </div>
+        <div class="ky-no-br-space">
+          <el-button plain size="medium" @click="handleClose" v-if="!isShowOriginModels">{{$t('kylinLang.common.close')}}</el-button>
+          <el-button size="medium" v-if="uploadFlag==='step1'" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.next')}}</el-button>
+          <el-button size="medium" v-if="uploadFlag==='step2'&&!isGenerateModel" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="submitSqls">{{$t('addTofavorite')}}</el-button>
+          <el-button size="medium" v-if="uploadFlag==='step2'&&isGenerateModel" :loading="generateLoading" :disabled="!finalSelectSqls.length"  @click="submitSqls">{{$t('kylinLang.common.next')}}</el-button>
+          <el-button size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&!isShowOriginModels" :loading="submitModelLoading" :disabled="!getFinalSelectModels.length || isNameErrorModelExisted" @click="submitModels">{{$t('kylinLang.common.submit')}}</el-button>
+          <el-button size="medium" v-if="uploadFlag==='step3'&&isGenerateModel&&isShowOriginModels" @click="handleCloseAcceptModal">{{$t('kylinLang.common.ok')}}</el-button>
+        </div>
+      </span>
+    </el-dialog>
+    <el-dialog
+      :visible="isConvertShow"
+      width="480px"
+      limited-area
+      :close-on-press-escape="false"
+      :close-on-click-modal="false"
+      @close="handleConvertClose"
+      class="convertDialog">
+      <span slot="title" class="ky-list-title">{{$t('kylinLang.common.tip')}}</span>
+      <div>{{$t('existedAnsweredModels')}}</div>
+      <span slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain @click="convertSqlsSubmit(false)" :loading="cancelConvertLoading" size="medium">{{$t('noConvert')}}</el-button>
+        <el-button @click="convertSqlsSubmit(true)" :loading="convertLoading" size="medium">{{$t('convert')}}</el-button>
+      </span>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
@@ -237,6 +254,10 @@ export default class UploadSqlModel extends Vue {
   originModels = []
   selectOriginModels = []
   modelType = 'suggest'
+  isConvertShow = false
+  convertLoading = false
+  cancelConvertLoading = false
+  convertSqls = []
   handleClose () {
     this.hideModal()
     this.resetModalForm()
@@ -498,11 +519,13 @@ export default class UploadSqlModel extends Vue {
           if (!data) {
             this.getSuggestModels(sqls, data)
           } else {
-            kapConfirm(this.$t('existedAnsweredModels'), {cancelButtonText: this.$t('noConvert'), confirmButtonText: this.$t('convert'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then(() => {
-              this.getSuggestModels(sqls, true)
-            }).catch(() => {
-              this.getSuggestModels(sqls, false)
-            })
+            this.isConvertShow = true
+            this.convertSqls = sqls
+            // kapConfirm(this.$t('existedAnsweredModels'), {cancelButtonText: this.$t('noConvert'), confirmButtonText: this.$t('convert'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip')).then(() => {
+            //   this.getSuggestModels(sqls, true)
+            // }).catch(() => {
+            //   this.getSuggestModels(sqls, false)
+            // })
           }
         })
       }, (res) => {
@@ -510,6 +533,19 @@ export default class UploadSqlModel extends Vue {
         this.generateLoading = false
       })
     }
+  }
+  handleConvertClose () {
+    this.isConvertShow = false
+    this.convertSqls = []
+    this.generateLoading = false
+  }
+  convertSqlsSubmit (reuseExistedModel) {
+    if (reuseExistedModel) {
+      this.convertLoading = true
+    } else {
+      this.cancelConvertLoading = true
+    }
+    this.getSuggestModels(this.convertSqls, reuseExistedModel)
   }
   getSuggestModels (sqls, reuseExistedModel) {
     this.suggestModel({project: this.currentSelectedProject, sqls: sqls, reuse_existed_model: reuseExistedModel}).then((res) => {
@@ -524,11 +560,17 @@ export default class UploadSqlModel extends Vue {
           return d
         })
         this.generateLoading = false
+        this.convertLoading = false
+        this.cancelConvertLoading = false
+        this.isConvertShow = false
         this.uploadFlag = 'step3'
       })
     }, (res) => {
       handleError(res)
       this.generateLoading = false
+      this.convertLoading = false
+      this.cancelConvertLoading = false
+      this.isConvertShow = false
     })
   }
   get finalSelectSqls () {

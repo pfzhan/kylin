@@ -14,7 +14,7 @@
       <el-table-column type="selection" width="44" v-if="!isOriginModelsTable"></el-table-column>
       <el-table-column type="expand" width="44">
         <template slot-scope="scope">
-          <el-table :data="sqlsTable(scope.row.sqls)" border :show-header="false" stripe>
+          <el-table :data="sqlsTable(scope.row.sqls)" border size="small" :show-header="false" stripe>
             <el-table-column prop="sql" show-overflow-tooltip></el-table-column>
           </el-table>
         </template>

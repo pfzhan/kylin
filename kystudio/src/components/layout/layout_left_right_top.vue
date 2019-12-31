@@ -48,12 +48,21 @@
           </el-menu>
         </aside>
         <div class="topbar">
-          <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
+          <div class="nav-icon">
+            <common-tip :content="$t('holdNaviBar')" placement="bottom-start" v-if="!briefMenuGet">
+              <i class="ksd-fs-14 el-icon-ksd-grid_01" @click="toggleLeftMenu"></i>
+            </common-tip>
+            <common-tip :content="$t('unholdNaviBar')" placement="bottom-start" v-else>
+              <i class="ksd-fs-14 el-icon-ksd-grid_02" @click="toggleLeftMenu"></i>
+            </common-tip>
+          </div>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-            <el-button v-guide.addProjectBtn :type="highlightType" plain :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="small">
-              <i class="el-icon-ksd-add_2"></i>
-            </el-button>
+            <common-tip :content="$t('kylinLang.project.addProject')" placement="bottom-start">
+              <el-button class="add-project-btn" v-guide.addProjectBtn :type="highlightType" plain @click="addProject" v-show="isAdmin" size="small">
+                <i class="el-icon-ksd-add_2"></i>
+              </el-button>
+            </common-tip>
           </template>
 
           <ul class="top-ul ksd-fright">
@@ -254,7 +263,9 @@ let MessageBox = ElementUI.MessageBox
       accelerateTips: 'Accelerating Tips',
       noProject: 'No project now. Please create one project via the top bar.',
       indexs: 'index group(s)',
-      models: 'model(s)'
+      models: 'model(s)',
+      holdNaviBar: 'Fold Navigation Bar',
+      unholdNaviBar: 'Unfold Navigation Bar'
     },
     'zh-cn': {
       resetPassword: '重置密码',
@@ -273,7 +284,9 @@ let MessageBox = ElementUI.MessageBox
       accelerateTips: '加速建议 ',
       noProject: '无项目。请在顶栏新建一个项目。',
       indexs: '索引组',
-      models: '模型'
+      models: '模型',
+      holdNaviBar: '收起导航栏',
+      unholdNaviBar: '展开导航栏'
     }
   }
 })
@@ -832,7 +845,7 @@ export default class LayoutLeftRightTop extends Vue {
           margin: 14px 12px 10px 12px;
         }
       }
-      .topbar > i {
+      .topbar .nav-icon {
         margin-left: 76px;
       }
       .panel-content{
@@ -926,13 +939,15 @@ export default class LayoutLeftRightTop extends Vue {
           border-bottom: 1px solid @line-split-color;
           box-shadow: 0 1px 2px 0 @line-split-color;
           z-index: 100;
-          >i{
+          .nav-icon {
             margin-left: 158px;
             margin-top: 20px;
+            height: 14px;
+            line-height: 14px;
             cursor: pointer;
             float: left;
           }
-          >.el-button {
+          .add-project-btn {
             margin: 14px 0 0 10px;
             padding:5px;
           }
