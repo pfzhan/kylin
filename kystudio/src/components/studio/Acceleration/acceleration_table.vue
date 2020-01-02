@@ -74,10 +74,10 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { handleSuccess, transToGmtTime } from '../../../util/business'
-import { handleError } from '../../../util/index'
+import { handleError, indexOfObjWithSomeKey, objectClone } from '../../../util/index'
 @Component({
   props: ['favoriteTableData', 'tab'],
   computed: {
@@ -126,9 +126,31 @@ export default class FavoriteTable extends Vue {
     reverse: false
   }
   checkedList = []
-  checkedSqls = []
   dropLoading = false
   isShowBatch = false
+
+  @Watch('favoriteTableData')
+  onDataChange (val) {
+    if (this.checkedList.length) {
+      const cloneSelections = objectClone(this.checkedList)
+      this.checkedList = []
+      cloneSelections.forEach((m) => {
+        const index = indexOfObjWithSomeKey(val, 'uuid', m.uuid)
+        if (index !== -1) {
+          this.$nextTick(() => {
+            this.$refs.favoriteTable.toggleRowSelection(val[index])
+          })
+        }
+      })
+    }
+  }
+
+  @Watch('tab')
+  onChangeTab (val, oldVal) {
+    if (val !== oldVal) {
+      this.checkedList = []
+    }
+  }
 
   get batchBtn () {
     if (this.isShowBatch) {
@@ -176,25 +198,21 @@ export default class FavoriteTable extends Vue {
       this.filterData.reverse = true
     }
     this.filterData.sortBy = prop
+    this.checkedList = []
     this.$emit('sortTable', this.filterData)
   }
 
   filterFav () {
+    this.checkedList = []
     this.$emit('filterFav', this.checkedStatus)
   }
 
   handleSelectionChange (val) {
     if (val && val.length) {
       this.$emit('pausePolling')
-      this.checkedList = val.map((i) => {
-        return i.uuid
-      })
-      this.checkedSqls = val.map((i) => {
-        return i.sql_pattern
-      })
+      this.checkedList = val
     } else {
       this.checkedList = []
-      this.checkedSqls = []
       this.$emit('reCallPolling')
     }
   }
@@ -206,14 +224,20 @@ export default class FavoriteTable extends Vue {
     } else {
       confirmMsg = this.$t('delSql', {numbers: this.checkedList.length})
     }
+    const sqls = this.checkedList.map((i) => {
+      return i.sql_pattern
+    })
     await this.callGlobalDetailDialog({
       msg: confirmMsg,
       title: this.$t('kylinLang.common.notice'),
-      details: this.checkedSqls,
+      details: sqls,
       dialogType: 'warning',
       theme: 'sql'
     })
-    this.removeFavSql({project: this.currentSelectedProject, uuids: this.checkedList, block: isBlock}).then((res) => {
+    const uuids = this.checkedList.map((i) => {
+      return i.uuid
+    })
+    this.removeFavSql({project: this.currentSelectedProject, uuids: uuids, block: isBlock}).then((res) => {
       handleSuccess(res, (data) => {
         this.filterFav()
       })

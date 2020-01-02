@@ -412,6 +412,7 @@ export default class FavoriteQuery extends Vue {
       pageSize: 10,
       offset: 0
     }
+    this.reCallPolling()
     this.pageCurrentChange(0, 10)
   }
   handleCommand (command) {
