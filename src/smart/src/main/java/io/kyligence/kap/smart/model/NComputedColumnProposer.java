@@ -83,6 +83,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         if (ccSuggestions.isEmpty()) {
             return;
         }
+        modelContext.setNeedUpdateCC(true);
 
         TableRef rootTable = nDataModel.getRootFactTable();
         List<ComputedColumnDesc> validCCs = Lists.newArrayList();

@@ -185,6 +185,9 @@ public class NSmartContext {
 
         private NSmartContext smartContext;
         private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
+        @Getter
+        @Setter
+        private boolean needUpdateCC = false;
 
         private NModelContext(NSmartContext smartContext, ModelTree modelTree) {
             this.smartContext = smartContext;

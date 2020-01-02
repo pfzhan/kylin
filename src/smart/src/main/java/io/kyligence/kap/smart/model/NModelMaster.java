@@ -118,7 +118,7 @@ public class NModelMaster {
         List<ComputedColumnDesc> originalCCs = Lists.newArrayList(dataModel.getComputedColumnDescs());
         try {
             dataModel = proposerProvider.getComputedColumnProposer().propose(dataModel);
-            if (dataModel.getComputedColumnDescs().size() != originalCCs.size()) {
+            if (modelContext.isNeedUpdateCC()) {
                 // New CC detected, need to rebuild ModelContext regarding new coming CC
                 log.info("Start using proposed computed columns to update the model({})", dataModel.getId());
                 updateContextWithCC(dataModel);

@@ -948,6 +948,26 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     }
 
+    /**
+     *  https://github.com/kyligence/kap/issues/16810
+     */
+    @Test
+    public void testCCContainTypeTransform() {
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
+                new String[] { "SELECT sum(case when ITEM_COUNT > ' ' then 1 else 0 end) FROM TEST_KYLIN_FACT",
+                        "SELECT sum(case when ITEM_COUNT > 5  then 1 else 0 end) FROM TEST_KYLIN_FACT",
+                        "SELECT sum(case when CAL_DT > ' ' then 1 else 0 end) FROM TEST_KYLIN_FACT" });
+        smartMaster.runAll();
+        smartMaster = new NSmartMaster(kylinConfig, getProject(),
+                new String[] { "SELECT sum(case when ITEM_COUNT > ' ' then 1 else 0 end),1 FROM TEST_KYLIN_FACT",
+                        "SELECT sum(case when ITEM_COUNT > 5  then 1 else 0 end),1 FROM TEST_KYLIN_FACT",
+                        "SELECT sum(case when CAL_DT > ' ' then 1 else 0 end),1 FROM TEST_KYLIN_FACT" });
+        smartMaster.runAll();
+        for (AccelerateInfo accelerateInfo : smartMaster.getContext().getAccelerateInfoMap().values()) {
+            Assert.assertFalse(accelerateInfo.isNotSucceed());
+        }
+    }
+
     private void mockTableExtDesc(String tableIdentity, String proj, String[] colNames, int[] cardinalityList) {
         final NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), proj);
         final TableDesc tableDesc = tableMgr.getTableDesc(tableIdentity);
