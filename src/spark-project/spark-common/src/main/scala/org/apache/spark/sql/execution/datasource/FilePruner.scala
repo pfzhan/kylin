@@ -23,7 +23,6 @@
 package org.apache.spark.sql.execution.datasource
 
 import java.sql.{Date, Timestamp}
-import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.{FileStatus, Path}
@@ -33,7 +32,7 @@ import org.apache.kylin.metadata.model.PartitionDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
-import org.apache.spark.sql.catalyst.{InternalRow, expressions}
+import org.apache.spark.sql.catalyst.{expressions, InternalRow}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
@@ -76,7 +75,7 @@ case class ShardSpec(numShards: Int,
 class FilePruner(val session: SparkSession,
                  val options: Map[String, String],
                  val dataSchema: StructType)
-  extends FileIndex with Logging {
+  extends FileIndex with ResetShufflePartition with Logging {
 
   private val dataflow: NDataflow = {
     val dataflowId = options.getOrElse("dataflowId", sys.error("dataflowId option is required"))
@@ -192,7 +191,7 @@ class FilePruner(val session: SparkSession,
     val timePartitionFilters = getSpecFilter(dataFilters, timePartitionColumn)
     logInfo(s"Applying time partition filters: ${timePartitionFilters.mkString(",")}")
 
-    val fsc = FilePruner.getFileStatusCache(session)
+    val fsc = ShardFileStatusCache.getFileStatusCache(session)
 
     // segment pruning
     var selected = afterPruning("segment", timePartitionFilters, segmentDirs) {
@@ -216,7 +215,7 @@ class FilePruner(val session: SparkSession,
       pruneShards
     }
     QueryContext.current().record("shard_pruning")
-    setShufflePartitions(selected)
+    setShufflePartitions(selected.flatMap(partition => partition.files).map(_.getLen).sum, session)
 
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]
@@ -228,21 +227,6 @@ class FilePruner(val session: SparkSession,
       value
     }
 
-  }
-
-  private def setShufflePartitions(selected: Seq[SegmentDirectory]): Unit = {
-    QueryContext.current().addAndGetSourceScanBytes(selected.flatMap(partition => partition.files).map(_.getLen).sum)
-    val defaultParallelism = session.sparkContext.defaultParallelism
-    val kapConfig = KapConfig.getInstanceFromEnv
-    val partitionsNum = if (kapConfig.getSparkSqlShufflePartitions != -1) {
-      kapConfig.getSparkSqlShufflePartitions
-    } else {
-      Math.min(QueryContext.current().getSourceScanBytes / (
-        KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 * 2) + 1,
-        defaultParallelism).toInt
-    }
-    session.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
-    logInfo(s"Set partition to $partitionsNum, total bytes ${QueryContext.current().getSourceScanBytes}")
   }
 
   private def afterPruning(pruningType: String, specFilters: Seq[Expression], inputs: Seq[SegmentDirectory])
@@ -369,15 +353,6 @@ class FilePruner(val session: SparkSession,
 }
 
 object FilePruner {
-  var fsc: AtomicReference[FileStatusCache] = new AtomicReference[FileStatusCache]
-
-  def getFileStatusCache(session: SparkSession): FileStatusCache = {
-    if (fsc.get() == null) {
-      fsc.set(FileStatusCache.getOrCreate(session))
-    }
-    fsc.get()
-  }
-
   def getPartitionId(p: Path): Int = {
     // path like: part-00001-91f13932-3d5e-4f85-9a56-d1e2b47d0ccb-c000.snappy.parquet
     // we need to get 00001.

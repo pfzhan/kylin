@@ -19,7 +19,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-package org.apache.spark.sql.datasource.storage
+package org.apache.spark.sql.execution.datasource
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.metadata.cube.model.NDataSegment
@@ -38,9 +38,9 @@ class LayoutFileIndex(
   sparkSession: SparkSession,
   catalogTable: CatalogTable,
   override val sizeInBytes: Long,
-  segments: Seq[NDataSegment]) extends CatalogFileIndex(sparkSession, catalogTable, sizeInBytes) {
+  segments: Seq[NDataSegment]) extends CatalogFileIndex(sparkSession, catalogTable, sizeInBytes) with ResetShufflePartition {
 
-  private val fileStatusCache = FileStatusCache.getOrCreate(sparkSession)
+  private val fileStatusCache = ShardFileStatusCache.getFileStatusCache(sparkSession)
 
   lazy val paths: Seq[Path] = {
     segments
@@ -50,8 +50,7 @@ class LayoutFileIndex(
   override def rootPaths: Seq[Path] = paths
 
   override def filterPartitions(partitionFilters: Seq[Expression]): InMemoryFileIndex = {
-
-    if (catalogTable.partitionColumnNames.nonEmpty  ) {
+  val index = if (catalogTable.partitionColumnNames.nonEmpty) {
       val partitionSchema = catalogTable.partitionSchema
       val partitionColumnNames = catalogTable.partitionColumnNames.toSet
       val nonPartitionPruningPredicates = partitionFilters.filterNot {
@@ -92,6 +91,8 @@ class LayoutFileIndex(
       new InMemoryFileIndex(
         sparkSession, rootPaths, Map.empty[String, String], userSpecifiedSchema = Option(table.schema))
     }
+    setShufflePartitions(index.allFiles().map(_.getLen).sum, sparkSession)
+    index
   }
 
   override def partitionSchema: StructType = catalogTable.partitionSchema

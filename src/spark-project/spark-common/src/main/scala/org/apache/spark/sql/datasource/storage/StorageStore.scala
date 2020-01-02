@@ -28,7 +28,7 @@ import java.util.{List => JList}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.StorageUtils.findCountDistinctMeasure
 import io.kyligence.kap.engine.spark.utils.{Metrics, Repartitioner, StorageUtils}
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataSegment}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KapConfig
@@ -40,7 +40,7 @@ import org.apache.spark.sql.catalyst.catalog.CatalogTable
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.plans.physical.HashPartitioning
 import org.apache.spark.sql.execution.SQLExecution
-import org.apache.spark.sql.execution.datasource.FilePruner
+import org.apache.spark.sql.execution.datasource.{FilePruner, LayoutFileIndex}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.exchange.DetectDataSkewException
