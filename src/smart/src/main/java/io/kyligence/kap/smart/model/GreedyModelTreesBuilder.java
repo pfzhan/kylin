@@ -93,7 +93,8 @@ public class GreedyModelTreesBuilder {
                         ctx.aggregations = ctx.aggregations.stream().map(func -> {
                             if (FunctionDesc.FUNC_INTERSECT_COUNT.equalsIgnoreCase(func.getExpression())) {
                                 ctx.getGroupByColumns().add(func.getParameters().get(1).getColRef());
-                                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT, func.getParameters().subList(0, 1), "bitmap");
+                                return FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,
+                                        func.getParameters().subList(0, 1), "bitmap");
                             } else {
                                 return func;
                             }
@@ -116,30 +117,12 @@ public class GreedyModelTreesBuilder {
         // 3. enable current root_fact's model exists
         if (expectedFactTable != null
                 && results.stream().noneMatch(tree -> tree.getRootFactTable() == expectedFactTable)) {
-            log.debug("There is no modelTree relies on fact table({}), add a new one.", expectedFactTable.getIdentity());
+            log.debug("There is no modelTree relies on fact table({}), add a new one.",
+                    expectedFactTable.getIdentity());
             results.add(new ModelTree(expectedFactTable, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
                     MapUtils.EMPTY_MAP));
         }
         return results;
-    }
-
-    public static boolean matchContext(List<OLAPContext> ctxs, OLAPContext anotherCtx) {
-        return ctxs.stream().allMatch(thisCtx -> matchContext(thisCtx, anotherCtx));
-    }
-
-    public static boolean matchContext(OLAPContext ctxA, OLAPContext ctxB) {
-        if (ctxA == ctxB) {
-            return true;
-        }
-        if (ctxA == null || ctxB == null) {
-            return false;
-        }
-        JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
-        JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
-        return graphA.match(graphB, Maps.newHashMap()) //
-                || graphB.match(graphA, Maps.newHashMap())
-                || (graphA.unmatched(graphB).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin())
-                        && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
     }
 
     public static class TreeBuilder {
@@ -178,8 +161,7 @@ public class GreedyModelTreesBuilder {
             Map<TableRef, String> allTableAlias = new HashMap<>();
             for (TableRef tableRef : joinsGraph.getAllTblRefNodes()) {
                 JoinDesc[] joinHierarchy = getJoinDescHierarchy(joinsGraph, tableRef);
-                String tblAlias = (joinHierarchy.length == 0)
-                        ? joinsGraph.getCenter().getTableName()
+                String tblAlias = (joinHierarchy.length == 0) ? joinsGraph.getCenter().getTableName()
                         : dict.getHierachyAliasFromJoins(joinHierarchy);
                 allTableAlias.put(tableRef, tblAlias);
             }
@@ -293,6 +275,29 @@ public class GreedyModelTreesBuilder {
 
             inputCtxs.removeAll(usedCtxs);
             return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);
+        }
+
+        public boolean matchContext(List<OLAPContext> ctxs, OLAPContext anotherCtx) {
+            return ctxs.stream().allMatch(thisCtx -> matchContext(thisCtx, anotherCtx));
+        }
+
+        public boolean matchContext(OLAPContext ctxA, OLAPContext ctxB) {
+            if (ctxA == ctxB) {
+                return true;
+            }
+            if (ctxA == null || ctxB == null) {
+                return false;
+            }
+            JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
+            JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
+
+            val partialMatch = smartContext.isCanModifyOriginModel() ? false
+                    : KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel();
+
+            return graphA.match(graphB, Maps.newHashMap(), partialMatch) //
+                    || graphB.match(graphA, Maps.newHashMap(), partialMatch)
+                    || (graphA.unmatched(graphB).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin())
+                    && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
         }
 
         /**
