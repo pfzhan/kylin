@@ -40,7 +40,6 @@ function retrieveDependency() {
 }
 
 function checkRestPort() {
-    port=`$KYLIN_HOME/bin/get-properties.sh server.port`
     used=`netstat -tpln | grep "\<$port\>" | awk '{print $7}' | sed "s/\// /g"`
     if [ ! -z "$used" ]; then
         echo "<$used> already listen on $port"
@@ -194,6 +193,7 @@ function startKE(){
         exit -1
     fi
 
+    port=`$KYLIN_HOME/bin/get-properties.sh server.port`
     if [[ -f ${KYLIN_HOME}/bin/check-env-bypass ]]; then
         checkRestPort
         checkZookeeperRole
