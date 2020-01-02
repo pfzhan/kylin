@@ -63,10 +63,10 @@
                   <div class="info-title ksd-mt-15">{{$t('trash')}}</div>
                   <div class="trash">
                     <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
-                    <span v-else>--</span><common-tip :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic"><!-- 半自动挡时隐藏清理按钮 -->
+                    <span v-else>--</span><common-tip placement="right" :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
                       <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
-                      :class="{'is_no_quota': isNoQuota}"
-                    @click="clearStorage" v-if="dashboardActions.includes('clearStorage')&&quotaInfo.garbage_storage_size>0"></i>
+                      :class="{'is_no_quota': isNoQuota, 'is-disabled': !quotaInfo.garbage_storage_size}"
+                    @click="clearStorage"></i>
                     </common-tip>
                   </div>
                 </div>
@@ -586,15 +586,16 @@ export default class Dashboard extends Vue {
     window.onresize = null
   }
   clearStorage () {
-    if (this.currentSelectedProject) {
-      this.clearTrash({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, () => {
-          this.loadQuotaInfo()
-        })
-      }, (res) => {
-        handleError(res)
-      })
+    if (!this.currentSelectedProject || !this.quotaInfo.garbage_storage_size) {
+      return
     }
+    this.clearTrash({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, () => {
+        this.loadQuotaInfo()
+      })
+    }, (res) => {
+      handleError(res)
+    })
   }
   created () {
     if (this.currentSelectedProject) {
@@ -820,6 +821,10 @@ export default class Dashboard extends Vue {
               }
               &:hover {
                 color: @base-color-2;
+              }
+              &.is-disabled {
+                color: @text-disabled-color;
+                cursor: not-allowed;
               }
             }
           }
