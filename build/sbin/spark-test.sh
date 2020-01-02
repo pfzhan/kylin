@@ -182,11 +182,11 @@ then
             quit "ERROR:Test of spark-sql failed,$kylin_hadoop_conf_dir is not valid hadoop dir conf because hive-site.xml is missing!"
         fi
     fi
-    HIVE_TEST_DB="default_"${RANDOM}
+    HIVE_TEST_DB="kylin_db_for_checkenv"
     CHECK_TMP_DIR=${WORKING_DIR}/tmp
-    RANDNAME=chkenv__${RANDOM}
-    HIVE_TEST_TABLE=${HIVE_TEST_DB}.${RANDNAME}
-    HIVE_TEST_TABLE_LOCATION=${KAP_HDFS_WORKING_DIR}/${RANDNAME}
+    CHECK_TABLE_NAME="kylin_table_for_sparktest"
+    HIVE_TEST_TABLE=${HIVE_TEST_DB}.${CHECK_TABLE_NAME}
+    HIVE_TEST_TABLE_LOCATION=${KAP_HDFS_WORKING_DIR}/"_check_env_tmp"/${CHECK_TABLE_NAME}
     SPARK_HQL_TMP_FILE=spark_hql_tmp__${RANDOM}
     spark_sql="${SPARK_HOME}/bin/spark-sql"
     spark_sql_command="export HADOOP_CONF_DIR=${kylin_hadoop_conf_dir} && ${spark_sql} ${engineConfStr} -f ${SPARK_HQL_TMP_FILE}"
@@ -216,14 +216,19 @@ then
 
     # safeguard cleanup
     verbose "Safeguard cleanup..."
-    echo "use ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
-    echo "show tables;" >> ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command | grep -o "chkenv__[[:digit:]]\+" | xargs -I "{}" $spark_sql ${engineConfStr} -e "drop table ${HIVE_TEST_DB}.{}"
+
+    #drop test table
+    echo "drop table if exists ${HIVE_TEST_TABLE}" > ${SPARK_HQL_TMP_FILE}
+    eval $spark_sql_command
+
+    echo "drop table if exists ${HIVE_TEST_TABLE}2" > ${SPARK_HQL_TMP_FILE}
+    eval $spark_sql_command
+
     # drop test db
     echo "drop database if exists ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
     eval $spark_sql_command
     rm -f ${SPARK_HQL_TMP_FILE}
-    hadoop fs -rm -R -skipTrash "${WORKING_DIR}/chkenv__*"
+    hadoop fs -rm -R -skipTrash "${WORKING_DIR}/_check_env_tmp/"
     exit 0
 else
     quit "usage: spark-test.sh test"
