@@ -27,6 +27,7 @@ exports.default = {
     submit: 'Submit',
     continue: 'Continue',
     setting: 'Settings',
+    changePassword: 'Change Password',
     logout: 'Log Out',
     sync: 'Sync',
     clone: 'Clone',

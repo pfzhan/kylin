@@ -27,6 +27,7 @@ exports.default = {
     continue: '继续',
     submit: '提交',
     setting: '设置',
+    changePassword: '修改密码',
     logout: '注销',
     sync: '同步',
     clone: '克隆',

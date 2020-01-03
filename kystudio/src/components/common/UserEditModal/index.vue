@@ -70,6 +70,7 @@
           :data="totalGroups"
           :value="form.authorities"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
+          :show-overflow-tip="true"
           @change="value => inputHandler('authorities', value)">
           </el-transfer>
       </el-form-item>
@@ -244,7 +245,7 @@ export default class UserEditModal extends Vue {
 <style lang="less">
 .user-edit-modal {
   .el-transfer-panel {
-    width: 250px;
+    width: 284px;
   }
 }
 </style>

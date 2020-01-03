@@ -81,10 +81,11 @@
             <li>
               <el-dropdown @command="handleCommand">
                 <span class="el-dropdown-link">
-                  <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i><span class="ksd-fs-12">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
+                  <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i><span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
                 </span>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
+                  <div class="user-name">{{ currentUserInfo && currentUserInfo.username }}</div>
+                  <el-dropdown-item command="setting">{{$t('kylinLang.common.changePassword')}}</el-dropdown-item>
                   <el-dropdown-item command="loginout">{{$t('kylinLang.common.logout')}}</el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
@@ -1007,6 +1008,20 @@ export default class LayoutLeftRightTop extends Vue {
         font-size: 16px;
       }
     }
+  }
+  .limit-user-name {
+    height: 20px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    line-height: 29px;
+  }
+  .user-name {
+    padding: 0 8px 8px 8px;
+    line-height: 1;
+    border-bottom: 1px solid @line-split-color;
+    box-sizing: border-box;
   }
   .round-icon (@width, @height) {
     width:@width;

@@ -15,10 +15,11 @@
       <el-form-item v-if="isFieldShow('users')">
         <el-transfer
           filterable
-          :data="totalUsers"
+          :data="totalUsers.map(item => ({...item, label: item.value}))"
           :value="form.selected_users"
           :before-query="queryHandler"
           :total-elements="totalSizes"
+          :show-overflow-tip="true"
           :titles="[$t('willCheckGroup'), $t('checkedGroup')]"
           @change="value => transferInputHandler('selected_users', value)">
             <div class="load-more-uers" slot="left-remote-load-more" v-if="isShowLoadMore" @click="loadMoreUsers(searchValueLeft)">{{$t('kylinLang.common.loadMore')}}</div>
