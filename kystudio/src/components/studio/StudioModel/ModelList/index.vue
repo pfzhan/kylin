@@ -27,6 +27,7 @@
         :default-sort = "{prop: 'gmtTime', order: 'descending'}"
         @sort-change="onSortChange"
         :cell-class-name="renderColumnClass"
+        ref="modelListTable"
         style="width: 100%">
         <el-table-column  width="34" type="expand">
           <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
@@ -372,7 +373,7 @@ export default class ModelList extends Vue {
   }
   expandRow (row, expandedRows) {
     this.expandedRows = expandedRows && expandedRows.map((m) => {
-      return m.alias
+      return Object.prototype.toString.call(m) === '[object Object]' ? m.alias : m
     }) || []
     this.currentEditModel = null
   }
@@ -432,7 +433,18 @@ export default class ModelList extends Vue {
     this.refreshSegment()
   }
   async refreshSegment () {
-    this.$refs.segmentComp && this.$refs.segmentComp.$emit('refresh')
+    this.$refs.segmentComp && await this.$refs.segmentComp.$emit('refresh')
+    this.$nextTick(() => {
+      this.setModelExpand()
+    })
+  }
+  // 还原模型列表展开状态
+  setModelExpand () {
+    if (!this.$refs.modelListTable) return
+    this.$refs.modelListTable.store.states.expandRows = []
+    this.expandedRows.length && this.expandedRows.forEach(item => {
+      this.$refs.modelListTable.toggleRowExpansion(item)
+    })
   }
   async handleCommand (command, modelDesc) {
     if (command === 'dataCheck') {
@@ -585,6 +597,7 @@ export default class ModelList extends Vue {
       }
       this.$nextTick(() => {
         this.expandedRows = this.currentEditModel ? [this.currentEditModel] : this.expandedRows
+        this.setModelExpand()
       })
     }).catch((res) => {
       handleError(res)
