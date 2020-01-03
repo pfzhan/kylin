@@ -877,6 +877,7 @@ export default class JobsList extends Vue {
     return jobNames
   }
   batchResume () {
+    if (!this.batchBtnsEnabled.resume) return
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
@@ -889,6 +890,7 @@ export default class JobsList extends Vue {
     }
   }
   batchRestart () {
+    if (!this.batchBtnsEnabled.restart) return
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
@@ -901,6 +903,7 @@ export default class JobsList extends Vue {
     }
   }
   batchPause () {
+    if (!this.batchBtnsEnabled.pause) return
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
@@ -913,6 +916,7 @@ export default class JobsList extends Vue {
     }
   }
   batchDrop () {
+    if (!this.batchBtnsEnabled.drop) return
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
