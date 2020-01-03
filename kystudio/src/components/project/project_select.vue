@@ -4,7 +4,7 @@
     class="project_select"
     filterable
     :title="selected_project"
-    :placeholder="$t('kylinLang.project.selectProject')"
+    :placeholder="$t('pleaseSearchOrSelectProject')"
     v-model="selected_project"
     @change="changeProject">
     <el-option v-if="isAdmin && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
@@ -74,8 +74,8 @@ export default {
     this.selected_project = this.$store.state.project.selected_project
   },
   locales: {
-    'en': {selectAll: '-- Select All --'},
-    'zh-cn': {selectAll: '-- 选择全部 --'}
+    'en': {selectAll: '-- Select All --', pleaseSearchOrSelectProject: 'Please search or select project'},
+    'zh-cn': {selectAll: '-- 选择全部 --', pleaseSearchOrSelectProject: '请搜索或选择项目'}
   }
 }
 </script>

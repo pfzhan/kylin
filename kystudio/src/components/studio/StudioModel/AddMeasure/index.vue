@@ -34,7 +34,7 @@
             <el-select v-guide.measureReturnValSelect :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
-            size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
+            size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
             filterable @change="changeParamValue" :disabled="isEdit">
               <el-option-group key="column" :label="$t('columns')">
                 <el-option
@@ -66,7 +66,7 @@
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
-            <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeConColParamValue(column.value, index)">
+            <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
               <el-option
                 v-for="(item, index) in getParameterValue2"
                 :key="index"
@@ -83,7 +83,7 @@
       </el-form-item>
       <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
         <div>
-          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
+          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
             <el-option-group key="column" :label="$t('columns')">
               <el-option
                 v-for="(item, index) in getParameterValue"
