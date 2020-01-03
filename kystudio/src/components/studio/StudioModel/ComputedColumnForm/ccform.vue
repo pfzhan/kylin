@@ -11,7 +11,7 @@
     </el-form-item>
     <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
       <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-ksd-what"></i></common-tip></span>
-      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression">
+      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression" :read-only="!isEdit">
       </kap-editor>
     </el-form-item>
     <div class="ky-sql-check-msg" v-if="errorMsg">
@@ -186,12 +186,6 @@ export default class CCForm extends Vue {
   resetCC () {
     this.$refs['ccForm'].resetFields()
     this.ccObject = JSON.parse(this.ccMeta)
-  }
-  @Watch('isEdit')
-  initIsEdit () {
-    if (!this.isEdit) {
-      this.$refs.ccSql.$emit('setReadOnly')
-    }
   }
   @Watch('ccDesc')
   initCCDesc () {

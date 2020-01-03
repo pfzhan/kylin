@@ -285,6 +285,8 @@ export default class AddMeasure extends Vue {
   changeExpression () {
     this.measure.return_type = ''
     this.measure.parameterValue.value = ''
+    this.corrCCVisible = false
+    this.ccVisible = false
     if (this.measure.expression === 'SUM(constant)' || this.measure.expression === 'COUNT(constant)') {
       this.measure.parameterValue.type = 'constant'
       this.measure.parameterValue.value = 1
