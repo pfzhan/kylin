@@ -25,6 +25,7 @@ package io.kyligence.kap.rest;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Set;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -35,6 +36,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -62,6 +64,13 @@ import lombok.extern.slf4j.Slf4j;
 @ConditionalOnProperty(value = "kylin.server.mode", havingValue = "query")
 public class QueryNodeFilter implements Filter {
 
+    private static final String API_PREFIX = "/kylin/api";
+    private static Set<String> notRoutePostApiSet = Sets.newHashSet();
+    static {
+        notRoutePostApiSet.add("/kylin/api/query");
+        notRoutePostApiSet.add("/kylin/api/query/prestate");
+        notRoutePostApiSet.add("/kylin/api/user/authentication");
+    }
     @Autowired
     RestTemplate restTemplate;
 
@@ -77,17 +86,16 @@ public class QueryNodeFilter implements Filter {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
             HttpServletResponse servletResponse = (HttpServletResponse) response;
-            if (!servletRequest.getRequestURI().startsWith("/kylin/api")) {
+            if (!servletRequest.getRequestURI().startsWith(API_PREFIX)) {
                 chain.doFilter(request, response);
                 return;
             }
-            if (servletRequest.getRequestURI().equals("/kylin/api/query")
+            if (servletRequest.getRequestURI().startsWith(API_PREFIX) && servletRequest.getMethod().equals("GET")) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (notRoutePostApiSet.contains(servletRequest.getRequestURI())
                     && servletRequest.getMethod().equals("POST")) {
-                chain.doFilter(request, response);
-                return;
-            }
-            if (servletRequest.getRequestURI().equals("/kylin/api/health")
-                    && servletRequest.getMethod().equals("GET")) {
                 chain.doFilter(request, response);
                 return;
             }
