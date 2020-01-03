@@ -538,4 +538,17 @@ public class NTableController extends NBasicController {
         }
     }
 
+    @PostMapping(value = "/import_ssb", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<String> importSSBData() {
+        tableService.importSSBDataBase();
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/ssb", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @ResponseBody
+    public EnvelopeResponse<Boolean> checkSSB(){
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.checkSSBDataBase(), "");
+    }
+
 }

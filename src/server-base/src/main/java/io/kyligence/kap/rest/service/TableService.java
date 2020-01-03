@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -48,10 +49,14 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.ShellException;
+import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -65,6 +70,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -1557,4 +1563,70 @@ public class TableService extends BasicService {
         return NHiveTableName.getInstance().loadHiveTableName(force);
     }
 
+    public void importSSBDataBase() {
+        if (checkSSBDataBase()) {
+            return;
+        }
+        synchronized (TableService.class) {
+            if (checkSSBDataBase()) {
+                return;
+            }
+            CliCommandExecutor exec = new CliCommandExecutor();
+            PatternedLogger patternedLogger = new PatternedLogger(logger);
+            val sampleSh = checkSSBEnv();
+            try {
+                exec.execute(sampleSh, patternedLogger);
+            } catch (ShellException e) {
+                logger.error("import ssb data error.", e);
+                throw new BadRequestException("import ssb data error.", ResponseCode.CODE_UNDEFINED, e);
+            }
+            if (!checkSSBDataBase()) {
+                throw new BadRequestException("import ssb data error.");
+            }
+        }
+    }
+
+    private String checkSSBEnv() {
+        var home = KylinConfigBase.getKylinHome();
+        if (!StringUtils.isEmpty(home) && !home.endsWith("/")) {
+            home = home + "/";
+        }
+        val sampleSh = String.format("%sbin/sample.sh", home);
+        checkFile(sampleSh);
+        val ssbSh = String.format("%stool/ssb/create_sample_ssb_tables.sql", home);
+        checkFile(ssbSh);
+        val customer = String.format("%stool/ssb/data/SSB.CUSTOMER.csv", home);
+        checkFile(customer);
+        val dates = String.format("%stool/ssb/data/SSB.DATES.csv", home);
+        checkFile(dates);
+        val lineorder = String.format("%stool/ssb/data/SSB.LINEORDER.csv", home);
+        checkFile(lineorder);
+        val part = String.format("%stool/ssb/data/SSB.PART.csv", home);
+        checkFile(part);
+        val supplier = String.format("%stool/ssb/data/SSB.SUPPLIER.csv", home);
+        checkFile(supplier);
+        return sampleSh;
+    }
+
+    private void checkFile(String fileName) {
+        File file = new File(fileName);
+        if (!file.exists() || !file.isFile()) {
+            throw new BadRequestException("cannot find file " + fileName);
+        }
+    }
+
+    public boolean checkSSBDataBase() {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return true;
+        }
+        ISourceMetadataExplorer explr = SourceFactory.getSparkSource().getSourceMetadataExplorer();
+        try {
+            val result = explr.listTables("SSB").stream().map(String::toUpperCase).collect(Collectors.toSet());
+            return result
+                    .containsAll(Sets.newHashSet("CUSTOMER", "DATES", "LINEORDER", "P_LINEORDER", "PART", "SUPPLIER"));
+        } catch (Exception e) {
+            logger.warn("check ssb error", e);
+            return false;
+        }
+    }
 }
