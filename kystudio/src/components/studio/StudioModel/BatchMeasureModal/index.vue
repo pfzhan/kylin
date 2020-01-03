@@ -5,6 +5,7 @@
     :close-on-press-escape="false"
     :close-on-click-modal="false"
     limited-area
+    append-to-body
     ref="batchMeasures"
     top="5vh"
     v-event-stop
@@ -621,7 +622,6 @@ export default class BatchMeasureModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
   .batch-measure-modal {
-    cursor:default;
     .batch-des {
       color: @text-title-color;
       font-size: 14px;
