@@ -87,23 +87,29 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
         TableRef rootTable = nDataModel.getRootFactTable();
         List<ComputedColumnDesc> validCCs = Lists.newArrayList();
+        List<NDataModel> allModels = Lists.newArrayList(otherModels);
+        allModels.add(nDataModel);
+        int biggestCCIndex = ComputedColumnEvalUtil.getBiggestCCIndex(allModels);
         for (String ccSuggestion : ccSuggestions) {
             ComputedColumnDesc ccDesc = modelContext.getUsedCC().get(ccSuggestion);
-
             // In general, cc expressions in the SQL statements should have been replaced in transformers,
             // however, it could not be replaced when meets some corner cases(#11411). As a result, it will
             // lead to add the same CC more than once and fail to accelerate current sql statements.
             if (ccDesc != null) {
                 continue;
             }
-
             ccDesc = new ComputedColumnDesc();
-            ccDesc.setColumnName(ComputedColumnEvalUtil.DEFAULT_CC_NAME);
             ccDesc.setTableIdentity(rootTable.getTableIdentity());
             ccDesc.setTableAlias(nDataModel.getRootFactTableAlias());
             ccDesc.setComment("Auto suggested from: " + ccSuggestion);
             ccDesc.setDatatype("ANY"); // resolve data type later
             ccDesc.setExpression(ccSuggestion);
+            String newCCName = ComputedColumnEvalUtil.generateCCName(ccSuggestion, allModels);
+            if (newCCName != null) {
+                ccDesc.setColumnName(newCCName);
+            } else {
+                ccDesc.setColumnName(ComputedColumnEvalUtil.CC_NAME_PREFIX + (++biggestCCIndex));
+            }
             ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(nDataModel, project, ccDesc));
             nDataModel.getComputedColumnDescs().add(ccDesc);
 

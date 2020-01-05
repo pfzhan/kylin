@@ -39,19 +39,21 @@ import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 
 import io.kyligence.kap.engine.spark.builder.CreateFlatTable$;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ComputedColumnEvalUtil {
 
-    private static final String CC_NAME_PREFIX = "CC_AUTO_";
+    public static final String CC_NAME_PREFIX = "CC_AUTO_";
     public static final String DEFAULT_CC_NAME = "CC_AUTO_1";
 
     private static final Pattern PATTERN_COLUMN = Pattern
@@ -138,9 +140,8 @@ public class ComputedColumnEvalUtil {
         while (retryCount < 99) {
             retryCount++;
             try {
-                // Init model to check CC availability
-                dataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
-                        otherModels, project);
+                // Init ComputedColumn to check CC availability
+                dataModel.initComputedColumns(otherModels);
                 // No exception, check passed
                 return true;
             } catch (BadModelException e) {
@@ -187,5 +188,44 @@ public class ComputedColumnEvalUtil {
 
         idx++;
         return CC_NAME_PREFIX + idx.toString();
+    }
+
+    public static String generateCCName(String ccExpression, List<NDataModel> allModels) {
+        for (String originCCexp : getAllCCNameAndExp(allModels).values()) {
+            if (ComputedColumnUtil.isLiteralSameCCExprString(originCCexp, ccExpression)) {
+                BiMap<String, String> inversedAllCCNameAndExp = getAllCCNameAndExp(allModels).inverse();
+                return inversedAllCCNameAndExp.get(originCCexp);
+            }
+        }
+        return null;
+    }
+
+    public static int getBiggestCCIndex(List<NDataModel> allModels) {
+        Integer biggest = 0;
+        for (String ccName : getAllCCNameAndExp(allModels).keySet()) {
+            if (ccName.startsWith(CC_NAME_PREFIX)) {
+                String idxStr = ccName.substring(CC_NAME_PREFIX.length());
+                Integer idx;
+                try {
+                    idx = Integer.valueOf(idxStr);
+                } catch (NumberFormatException e) {
+                    break;
+                }
+                if (idx > biggest) {
+                    biggest = idx;
+                }
+            }
+        }
+        return biggest;
+    }
+
+    public static BiMap<String, String> getAllCCNameAndExp(List<NDataModel> allModels) {
+        BiMap<String, String> allCCNameAndExp = HashBiMap.create();
+        for (NDataModel otherModel : allModels) {
+            for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
+                allCCNameAndExp.put(cc.getColumnName(), cc.getExpression());
+            }
+        }
+        return allCCNameAndExp;
     }
 }

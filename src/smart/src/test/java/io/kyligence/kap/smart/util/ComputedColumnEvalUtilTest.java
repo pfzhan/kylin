@@ -243,4 +243,28 @@ public class ComputedColumnEvalUtilTest extends NLocalWithSparkSessionTest {
                 computedColumns.get(1).getInnerExpression().trim());
     }
 
+    @Test
+    public void testCreateNewCCName() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        final String project = "default";
+        List<NDataModel> otherModels = Lists.newArrayList();
+        NDataModel dataModel = NDataModelManager.getInstance(config, project)
+                .getDataModelDesc("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        Assert.assertTrue(dataModel.getComputedColumnDescs().isEmpty());
+
+        // first CC will named CC_AUTO_1
+        ComputedColumnDesc cc1 = new ComputedColumnDesc();
+        cc1.setExpression("SUBSTRING(LSTG_FORMAT_NAME FROM 1 FOR 4)");
+        List<NDataModel> allModels = Lists.newArrayList(otherModels);
+        allModels.add(dataModel);
+        Assert.assertEquals(0, ComputedColumnEvalUtil.getBiggestCCIndex(allModels));
+        cc1.setColumnName("CC_AUTO_1");
+        dataModel.getComputedColumnDescs().add(cc1);
+
+        // second CC will named CC_AUTO_2
+        ComputedColumnDesc cc2 = new ComputedColumnDesc();
+        cc2.setExpression("concat(LSTG_FORMAT_NAME,1)");
+        Assert.assertEquals(1, ComputedColumnEvalUtil.getBiggestCCIndex(allModels));
+    }
+
 }

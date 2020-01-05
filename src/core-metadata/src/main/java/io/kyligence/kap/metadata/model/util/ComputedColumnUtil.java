@@ -281,8 +281,12 @@ public class ComputedColumnUtil {
             return false;
         }
 
-        definition0 = definition0.replaceAll("\\s*", "");
-        definition1 = definition1.replaceAll("\\s*", "");
+        return isLiteralSameCCExprString(definition0, definition1);
+    }
+
+    public static boolean isLiteralSameCCExprString(String definition0, String definition1) {
+        definition0 = StringUtils.replaceAll(definition0, "\\s*", "");
+        definition1 = StringUtils.replaceAll(definition1, "\\s*", "");
         return definition0.equalsIgnoreCase(definition1);
     }
 

@@ -241,7 +241,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("DEFAULT.TEST_ACCOUNT", suggestedCC2.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC2.getExpression());
         val suggestedCC3 = modelContexts.get(2).getTargetModel().getComputedColumnDescs().get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC3.getColumnName());
+        Assert.assertEquals("CC_AUTO_2", suggestedCC3.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC3.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC3.getExpression());
     }
@@ -370,7 +370,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         val suggestedCCList4 = modelContext4.getTargetModel().getComputedColumnDescs();
         Assert.assertEquals(1, suggestedCCList4.size());
         val suggestedCC40 = suggestedCCList4.get(0);
-        Assert.assertEquals("CC_AUTO_1", suggestedCC40.getColumnName());
+        Assert.assertEquals("CC_AUTO_2", suggestedCC40.getColumnName());
         Assert.assertEquals("DEFAULT.TEST_ORDER", suggestedCC40.getTableIdentity());
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + TEST_KYLIN_FACT.ITEM_COUNT", suggestedCC40.getExpression());
     }

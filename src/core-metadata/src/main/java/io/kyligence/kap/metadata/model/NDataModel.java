@@ -1146,7 +1146,7 @@ public class NDataModel extends RootPersistentEntity {
         }
     }
 
-    private void initComputedColumns(List<NDataModel> otherModels) {
+    public void initComputedColumns(List<NDataModel> otherModels) {
         Preconditions.checkNotNull(otherModels);
 
         // init
