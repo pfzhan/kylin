@@ -79,6 +79,22 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class StorageCleaner {
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_RESET = "\u001B[0m";
+
+    private final boolean cleanup;
+    private long duration;
+
+    public StorageCleaner() {
+        this(true);
+    }
+
+    public StorageCleaner(boolean cleanup) {
+        this.cleanup = cleanup;
+    }
 
     @Getter
     private Set<StorageItem> outdatedItems = Sets.newHashSet();
@@ -86,6 +102,7 @@ public class StorageCleaner {
     private Set<StorageItem> allFileSystems = Sets.newHashSet();
 
     public void execute() throws IOException {
+        long start = System.currentTimeMillis();
         val config = KylinConfig.getInstanceFromEnv();
         long startTime = System.currentTimeMillis();
         val projects = NProjectManager.getInstance(config).listAllProjects();
@@ -122,8 +139,29 @@ public class StorageCleaner {
                 }
             }
         }
+        boolean allSuccess = cleanup();
+        duration = System.currentTimeMillis() - start;
+        printConsole(allSuccess);
+    }
 
-        cleanup();
+    public void printConsole(boolean success) {
+        System.out.println(ANSI_BLUE + "Kyligence Enterprise garbage report: (cleanup=" + cleanup + ")" + ANSI_RESET);
+        for (StorageItem item : outdatedItems) {
+            System.out.println("  Storage File: " + item.getPath());
+        }
+        String jobName = "Storage GC cleanup job ";
+        if (!cleanup) {
+            System.out.println(ANSI_BLUE + "Dry run mode, no data is deleted." + ANSI_RESET);
+            jobName = "Storage GC check job ";
+        }
+        if (!success) {
+            System.out.println(ANSI_RED + jobName + "FAILED." + ANSI_RESET);
+            System.out.println(ANSI_RED + jobName + "finished in " + duration + " ms." + ANSI_RESET);
+        } else {
+            System.out.println(ANSI_GREEN + jobName + "SUCCEED." + ANSI_RESET);
+            System.out.println(ANSI_GREEN + jobName + "finished in " + duration + " ms." + ANSI_RESET);
+        }
+
     }
 
     public void collectDeletedProject() {
@@ -141,16 +179,20 @@ public class StorageCleaner {
         projectCleaner.execute();
     }
 
-    public void cleanup() throws IOException {
-        log.debug("start cleanup garbage on HDFS");
-        for (StorageItem item : outdatedItems) {
-            log.debug("try to delete {}", item.getPath());
-            try {
-                item.getFs().delete(new Path(item.getPath()), true);
-            } catch (IOException e) {
-                log.warn("delete file " + item.getPath() + " failed", e);
+    public boolean cleanup() throws IOException {
+        boolean success = true;
+        if (cleanup) {
+            for (StorageItem item : outdatedItems) {
+                log.debug("try to delete {}", item.getPath());
+                try {
+                    item.getFs().delete(new Path(item.getPath()), true);
+                } catch (IOException e) {
+                    log.error("delete file " + item.getPath() + " failed", e);
+                    success = false;
+                }
             }
         }
+        return success;
     }
 
     private String getDataflowBaseDir(String project) {

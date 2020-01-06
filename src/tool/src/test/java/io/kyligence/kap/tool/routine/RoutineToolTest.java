@@ -21,30 +21,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.kylin.common.util;
+package io.kyligence.kap.tool.routine;
 
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
 
-public abstract class ExecutableApplication implements Application {
-    private static final Logger log = LoggerFactory.getLogger(ExecutableApplication.class);
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-    protected abstract Options getOptions();
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-    protected abstract void execute(OptionsHelper optionsHelper) throws Exception;
+public class RoutineToolTest extends NLocalFileMetadataTestCase {
 
-    public void execute(String[] args) {
-        OptionsHelper optionsHelper = new OptionsHelper();
-        try {
-            optionsHelper.parseOptions(getOptions(), args);
-            execute(optionsHelper);
-        } catch (ParseException e) {
-            optionsHelper.printUsage("error parsing args ", getOptions());
-            throw new RuntimeException("error parsing args", e);
-        } catch (Exception e) {
-            throw new RuntimeException("error execute " + this.getClass().getName(), e);
-        }
+    @Before
+    public void setup() throws IOException {
+        createTestMetadata();
     }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
+    }
+
+    @Test
+    public void testExecuteRoutine() {
+        RoutineTool routineTool = new RoutineTool();
+        routineTool.execute(new String[] { "--cleanup" });
+        Assert.assertTrue(routineTool.isCleanup());
+        routineTool.execute(new String[] {});
+        Assert.assertFalse(routineTool.isCleanup());
+        routineTool.execute(new String[] {});
+        Assert.assertFalse(routineTool.isCleanup());
+    }
+
 }
