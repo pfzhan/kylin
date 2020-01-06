@@ -59,7 +59,12 @@ export default class TableSamples extends Vue {
     return this.columns[0] ? this.columns[0].length : 0
   }
   get columns () {
-    const columns = this.table.sampling_rows
+    let columns = this.table.sampling_rows
+    Array.isArray(columns) && columns.forEach((item, index) => {
+      Array.isArray(item) && item.forEach((it, idx) => {
+        Object.prototype.toString.call(it) === '[object Null]' && (columns[index][idx] = '<NULL>')
+      })
+    })
     const headerIdxs = []
     this.table.__data.columns.forEach((column, index) => {
       if (this.headers.includes(column.name)) {
