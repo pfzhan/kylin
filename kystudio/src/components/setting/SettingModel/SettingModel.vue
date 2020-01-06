@@ -1,7 +1,7 @@
 <template>
   <div class="setting-model">
     <div  class="ksd-mb-10 ksd-fright">
-      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.model_name"  @input="searchModels">
+      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.model_name" v-global-key-event.enter.debounce="searchModels">
       </el-input>
     </div>
     <el-table
@@ -207,7 +207,6 @@ export default class SettingStorage extends Vue {
     page_size: pageCount,
     model_name: ''
   }
-  ST = null
   editModelSetting = false
   isLoading = false
   isEdit = false
@@ -428,11 +427,8 @@ export default class SettingStorage extends Vue {
     this.getConfigList()
   }
   searchModels () {
-    clearTimeout(this.ST)
-    this.ST = setTimeout(() => {
-      this.filter.page_offset = 0
-      this.getConfigList()
-    }, 500)
+    this.filter.page_offset = 0
+    this.getConfigList()
   }
   created () {
     this.getConfigList()

@@ -9,7 +9,8 @@
         size="medium"
         prefix-icon="el-icon-search"
         :placeholder="$t('projectFilter')"
-        @input="inputFilter">
+        v-global-key-event.enter.debounce="inputFilter"
+      >
       </el-input>
     </div>
     <el-table
@@ -137,12 +138,9 @@ export default {
       resetQueryTabs: 'RESET_QUERY_TABS'
     }),
     inputFilter (value) {
-      clearInterval(this.filterTimer)
-      this.filterTimer = setTimeout(() => {
-        this.filterData.project = value
-        this.filterData.page_offset = 0
-        this.loadProjects(this.filterData)
-      }, 1500)
+      this.filterData.project = value
+      this.filterData.page_offset = 0
+      this.loadProjects(this.filterData)
     },
     checkProjectForm () {
       this.$refs.projectForm.$emit('projectFormValid')
@@ -229,7 +227,6 @@ export default {
       },
       selected_project: localStorage.getItem('selected_project'),
       projectWidth: '440px',
-      filterTimer: null,
       filterData: {page_offset: 0, page_size: pageCount, exact: false, project: ''}
     }
   },

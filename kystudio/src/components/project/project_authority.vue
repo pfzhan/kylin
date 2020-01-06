@@ -14,7 +14,8 @@
             size="medium"
             v-model="serarchChar"
             :placeholder="$t('userNameOrGroup')"
-            @input="inputFilter">
+            v-global-key-event.enter.debounce="inputFilter"
+          >
             <i slot="prefix" class="el-input__icon" :class="{'el-icon-search': !searchLoading, 'el-icon-loading': searchLoading}"></i>
           </el-input>
         </div>
@@ -251,7 +252,6 @@ export default class ProjectAuthority extends Vue {
   tableAccessList = [{name: 'Table A', type: 'Hive', users: []}]
   totalSize = 1
   tableTotalSize = 1
-  filterTimer = null
   serarchChar = ''
   searchLoading = false
   pagination = {
@@ -351,16 +351,13 @@ export default class ProjectAuthority extends Vue {
     return val ? this.userTotalSize > 100 : this.groupTotalSize > 100
   }
   inputFilter () {
-    clearInterval(this.filterTimer)
-    this.filterTimer = setTimeout(() => {
-      this.searchLoading = true
-      this.pagination.page_offset = 0
-      this.loadAccess().then(() => {
-        this.searchLoading = false
-      }, () => {
-        this.searchLoading = false
-      })
-    }, 500)
+    this.searchLoading = true
+    this.pagination.page_offset = 0
+    this.loadAccess().then(() => {
+      this.searchLoading = false
+    }, () => {
+      this.searchLoading = false
+    })
   }
   handleCurrentChange (pager, pageSize) {
     this.pagination.page_offset = pager

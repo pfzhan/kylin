@@ -24,7 +24,7 @@
         plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
       <el-col :span="6">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject_alias"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject_alias" v-global-key-event.enter.debounce="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
         </el-input>
       </el-col>
     </el-row>
@@ -955,12 +955,9 @@ export default class JobsList extends Vue {
   }
   filterChange (val) {
     this.searchLoading = true
-    clearTimeout(this.lockST)
-    this.lockST = setTimeout(() => {
-      this.filter.page_offset = 0
-      this.manualRefreshJobs()
-      this.showStep = false
-    }, 1000)
+    this.filter.page_offset = 0
+    this.manualRefreshJobs()
+    this.showStep = false
   }
   filterChange2 (status) {
     this.filter.page_offset = 0

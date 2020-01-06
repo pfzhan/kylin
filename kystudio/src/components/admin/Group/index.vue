@@ -8,7 +8,8 @@
           size="medium"
           prefix-icon="el-icon-search"
           :placeholder="$t('groupFilter')"
-          @input="inputFilter">
+          v-global-key-event.enter.debounce="inputFilter"
+        >
         </el-input>
       </div>
     </el-row>
@@ -102,7 +103,6 @@ export default class SecurityGroup extends Vue {
     page_size: pageCount,
     page_offset: 0
   }
-  filterTimer = null
   filterName = ''
 
   created () {
@@ -122,12 +122,9 @@ export default class SecurityGroup extends Vue {
   }
 
   inputFilter (value) {
-    clearInterval(this.filterTimer)
-    this.filterTimer = setTimeout(() => {
-      this.pagination.page_offset = 0
-      this.filterName = value
-      this.loadGroupUsers(value)
-    }, 1500)
+    this.pagination.page_offset = 0
+    this.filterName = value
+    this.loadGroupUsers(value)
   }
 
   get emptyText () {

@@ -5,7 +5,7 @@
         <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.queryhistory')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
+        <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
       </div>
     </div>
     <el-table
@@ -178,7 +178,7 @@ export default class QueryHistoryTable extends Vue {
     latencyTo: null,
     realization: [],
     server: null,
-    sql: null,
+    sql: '',
     query_status: []
   }
   timer = null
@@ -331,18 +331,15 @@ export default class QueryHistoryTable extends Vue {
   }
 
   onSqlFilterChange () {
-    clearTimeout(this.timer)
-    this.timer = setTimeout(() => {
-      if (this.filterData.sql.trim().match(/\s/)) {
-        this.$message({
-          message: this.$t('noSpaceTips'),
-          type: 'warning',
-          duration: 0,
-          showClose: true
-        })
-      }
-      this.filterList()
-    }, 500)
+    if (this.filterData.sql.trim().match(/\s/)) {
+      this.$message({
+        message: this.$t('noSpaceTips'),
+        type: 'warning',
+        duration: 0,
+        showClose: true
+      })
+    }
+    this.filterList()
   }
 
   filterServer (server) {

@@ -21,9 +21,10 @@
         <div style="width:200px;" class="ksd-fright">
           <el-input class="show-search-btn"
             size="medium"
+            v-global-key-event.enter.debounce="inputFilter"
             prefix-icon="el-icon-search"
             :placeholder="$t('userName')"
-            @input="inputFilter">
+          >
           </el-input>
         </div>
       </el-col>
@@ -162,13 +163,9 @@ export default class SecurityUser extends Vue {
   }
 
   inputFilter (value) {
-    clearInterval(this.filterTimer)
-
-    this.filterTimer = setTimeout(() => {
-      this.pagination.page_offset = 0
-      this.filterName = value
-      this.loadUsers(value)
-    }, 1500)
+    this.pagination.page_offset = 0
+    this.filterName = value
+    this.loadUsers(value)
   }
 
   get emptyText () {

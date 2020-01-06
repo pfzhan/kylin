@@ -97,7 +97,7 @@
             <span class="ksd-title-label ksd-fs-14 query-count">{{$t('blackList1', {size: blackSqlData.total_size})}}
             </span>
             <div class="ksd-fright ksd-inline searchInput">
-              <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
+              <el-input v-model="blackSqlFilter" v-global-key-event.enter.debounce="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
           <el-table :data="blackSqlData.value" border :empty-text="emptyText" @row-click="viewBlackSql" :row-class-name="tableRowClassName" class="import-table" style="width: 100%">
@@ -366,7 +366,6 @@ export default class FavoriteQuery extends Vue {
     pageSize: 10
   }
   updateLoading = false
-  ST = null
   stCycle = null
   isPausePolling = false
   rulesObj = {
@@ -736,11 +735,8 @@ export default class FavoriteQuery extends Vue {
   }
 
   onblackSqlFilterChange () {
-    clearTimeout(this.ST)
-    this.ST = setTimeout(() => {
-      this.blackFilter.offset = 0
-      this.getBlackList()
-    }, 500)
+    this.blackFilter.offset = 0
+    this.getBlackList()
   }
 
   blackSqlDatasPageChange (offset, pageSize) {

@@ -57,7 +57,7 @@
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" @input="searchAggs"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs"></el-input>
               </div>
             </div>
             <div class="detail-content" v-loading="indexLoading">
@@ -287,7 +287,6 @@ export default class ModelAggregate extends Vue {
     sources: [],
     status: []
   }
-  ST = null
   indexDetailShow = false
   tableIndexBaseList = []
   realFilteArr = ['AUTO_AGG', 'MANUAL_AGG', 'AUTO_TABLE', 'MANUAL_TABLE']
@@ -432,11 +431,8 @@ export default class ModelAggregate extends Vue {
     this.loadAggIndices()
   }
   searchAggs () {
-    clearTimeout(this.ST)
-    this.ST = setTimeout(() => {
-      this.filterArgs.page_offset = 0
-      this.loadAggIndices()
-    }, 500)
+    this.filterArgs.page_offset = 0
+    this.loadAggIndices()
   }
   get showTableIndexDetail () {
     if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'aggDetail') {

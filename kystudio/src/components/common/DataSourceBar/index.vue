@@ -17,7 +17,7 @@
         </el-button>
       </div>
       <div v-if="showTreeFilter" class="ksd-mb-10">
-        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" @keyup.native="(e) => handleFilter(e.target.value)" @clear="handleFilter()"></el-input>
+        <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleFilter()"></el-input>
       </div>
       <div v-scroll style="height:calc(100%)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList

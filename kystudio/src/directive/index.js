@@ -505,19 +505,29 @@ Vue.directive('guide', {
   }
 })
 let keyCodeMap = {
-  'esc': 27
+  'esc': 27,
+  'enter': 13
 }
+let timeTransit = null
 // 为非聚焦的元素绑定keyup监听
 Vue.directive('global-key-event', {
   inserted: function (el, binding) {
     let keys = binding.modifiers
     let keyCodes = []
     Object.keys(keys).forEach((key) => {
-      keyCodes.push(keyCodeMap[key])
+      keyCodeMap[key] && keyCodes.push(keyCodeMap[key])
     })
     document.onkeydown = (e) => {
-      var key = (e || window.event).keyCode
+      var key = (e || window.event).keyCode || e.which
       if (keyCodes.indexOf(key) >= 0) {
+        if (key === 13 && 'debounce' in keys) {
+          if (el.querySelector('input') && document.activeElement !== el.querySelector('input')) return
+          clearTimeout(timeTransit)
+          timeTransit = setTimeout(() => {
+            typeof binding.value === 'function' && typeof e.target.value !== 'undefined' && binding.value.call(this, e.target.value)
+          }, 500)
+          return
+        }
         typeof binding.value === 'function' && binding.value()
       }
     }
