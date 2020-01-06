@@ -158,6 +158,8 @@ public class NSparkExecutable extends AbstractExecutable {
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = wrapConfig(context);
+        wrapKerberosInfo(config, "spark.executor.extraJavaOptions");
+        wrapKerberosInfo(config, "spark.yarn.am.extraJavaOptions");
 
         String sparkHome = KylinConfig.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
@@ -171,8 +173,8 @@ public class NSparkExecutable extends AbstractExecutable {
         String hadoopConf = System.getProperty("kylin.hadoop.conf.dir");
         logger.info("write hadoop conf is {} ", config.getBuildConf());
         if (!config.getBuildConf().isEmpty()) {
-               logger.info("write hadoop conf is {} ", config.getBuildConf());
-               hadoopConf = config.getBuildConf();
+            logger.info("write hadoop conf is {} ", config.getBuildConf());
+            hadoopConf = config.getBuildConf();
         }
         if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv()) {
             throw new RuntimeException(
@@ -265,6 +267,7 @@ public class NSparkExecutable extends AbstractExecutable {
         jobOverrides.put("spark.driver.log4j.appender.hdfs.File",
                 Objects.isNull(this.getLogPath()) ? "null" : this.getLogPath());
         jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
+
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
@@ -335,6 +338,23 @@ public class NSparkExecutable extends AbstractExecutable {
             sparkConfigOverride.put("spark.hadoop.hive.metastore.sasl.enabled", "true");
         }
 
+        KapConfig kapConfig = KapConfig.wrap(config);
+
+        sparkConfigOverride = replaceSparkDriverJavaOpsConfIfNeeded(config, sparkConfigOverride);
+
+        return sparkConfigOverride;
+    }
+
+    private Map<String, String> replaceSparkDriverJavaOpsConfIfNeeded(KylinConfig config,
+            Map<String, String> sparkConfigOverride) {
+        String sparkDriverExtraJavaOptionsKey = "spark.driver.extraJavaOptions";
+        StringBuilder sb = new StringBuilder();
+        if (sparkConfigOverride.containsKey(sparkDriverExtraJavaOptionsKey)) {
+            sb.append(sparkConfigOverride.get(sparkDriverExtraJavaOptionsKey));
+        }
+
+        KapConfig kapConfig = KapConfig.wrap(config);
+
         String serverIp = "127.0.0.1";
         try {
             serverIp = InetAddress.getLocalHost().getHostAddress();
@@ -344,14 +364,6 @@ public class NSparkExecutable extends AbstractExecutable {
         String serverPort = config.getServerPort();
         String hdfsWorkingDir = config.getHdfsWorkingDirectory();
 
-        String log4jConfiguration = "file:" + config.getLogSparkDriverPropertiesFile();
-
-        String sparkDriverExtraJavaOptionsKey = "spark.driver.extraJavaOptions";
-        StringBuilder sb = new StringBuilder();
-        if (sparkConfigOverride.containsKey(sparkDriverExtraJavaOptionsKey)) {
-            sb.append(sparkConfigOverride.get(sparkDriverExtraJavaOptionsKey));
-        }
-
         String sparkDriverHdfsLogPath = null;
         if (config instanceof KylinConfigExt) {
             Map<String, String> extendedOverrides = ((KylinConfigExt) config).getExtendedOverrides();
@@ -360,9 +372,10 @@ public class NSparkExecutable extends AbstractExecutable {
             }
         }
 
-        KapConfig kapConfig = KapConfig.wrap(config);
+        String log4jConfiguration = "file:" + config.getLogSparkDriverPropertiesFile();
         sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
         sb.append(String.format(" -Dkap.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
+
         if (kapConfig.isKerberosEnabled()) {
             sb.append(String.format(" -Dkap.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
             sb.append(String.format(" -Dkap.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
@@ -378,7 +391,6 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));
         sb.append(String.format(" -Dspark.driver.param.taskId=%s ", getId()));
         sb.append(String.format(" -Dspark.driver.local.logDir=%s ", KapConfig.getKylinLogDirAtBestEffort() + "/spark"));
-
         sparkConfigOverride.put(sparkDriverExtraJavaOptionsKey, sb.toString());
 
         return sparkConfigOverride;
@@ -464,6 +476,28 @@ public class NSparkExecutable extends AbstractExecutable {
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);
+    }
+
+    private KylinConfig wrapKerberosInfo(KylinConfig config, String configName) {
+        StringBuilder sb = new StringBuilder();
+        Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
+        if (sparkConfigOverride.containsKey(configName)) {
+            String conf = sparkConfigOverride.get(configName);
+            if (!StringUtils.contains(conf, "java.security.krb5.conf")) {
+                return config;
+            }
+            sb.append(conf);
+        }
+        KapConfig kapConfig = KapConfig.wrap(config);
+        if (kapConfig.isKerberosEnabled()) {
+            if (kapConfig.getKerberosPlatform().equalsIgnoreCase(KapConfig.FI_PLATFORM)
+                    || kapConfig.getPlatformZKEnable()) {
+                sb.append(String.format(" -Djava.security.krb5.conf=%s", "./__spark_conf__/__hadoop_conf__/krb5.conf"));
+            }
+        }
+
+        config.setProperty("kylin.engine.spark-conf." + configName, sb.toString());
+        return config;
     }
 
     private void deleteJobTmpDirectoryOnExists() {

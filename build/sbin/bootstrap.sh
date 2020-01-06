@@ -25,6 +25,7 @@ function prepareEnv {
 
     # init kerberos
     source ${KYLIN_HOME}/sbin/init-kerberos.sh
+    prepareKerberosOpts
     initKerberosIfNeeded
 }
 
@@ -139,7 +140,7 @@ function runTool() {
         kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
     fi
 
-    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
+    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
     exit $?
 }
 
@@ -197,8 +198,9 @@ function startKE(){
     if [[ -f ${KYLIN_HOME}/bin/check-env-bypass ]]; then
         checkRestPort
         checkZookeeperRole
-        checkSparkDir
     fi
+
+    checkSparkDir
 
     ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 
@@ -208,7 +210,7 @@ function startKE(){
         kylin_server_log4j="file:${KYLIN_HOME}/server/conf/kylin-server-log4j.properties"
     fi
 
-    nohup java ${KYLIN_EXTRA_START_OPTS} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
+    nohup java ${KYLIN_KERBEROS_OPTS} ${KYLIN_EXTRA_START_OPTS} -Dfile.encoding=UTF-8 -Dlogging.path=${KYLIN_HOME}/logs -Dspring.profiles.active=prod -Dlogging.config=${kylin_server_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -Dloader.path="${kylin_hadoop_conf_dir},${KYLIN_HOME}/lib/ext,${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars" -XX:OnOutOfMemoryError="sh ${KYLIN_HOME}/bin/kylin.sh stop"  -jar newten.jar >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
 
     PID=`cat ${KYLIN_HOME}/pid`
     CUR_DATE=$(date "+%Y-%m-%d %H:%M:%S")

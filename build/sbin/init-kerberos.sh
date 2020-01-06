@@ -6,6 +6,14 @@ function exportKRB5CCNAME() {
     export KRB5CCNAME=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_CACHE}
 }
 
+function prepareKerberosOpts() {
+    export KYLIN_KERBEROS_OPTS=""
+    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
+    if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]];then
+      KYLIN_KERBEROS_OPTS="-Djava.security.krb5.conf=${KYLIN_HOME}/conf/krb5.conf"
+    fi
+}
+
 function initKerberos() {
     KAP_KERBEROS_PRINCIPAL=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.principal`
     KAP_KERBEROS_KEYTAB=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.keytab`

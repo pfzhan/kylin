@@ -26,8 +26,6 @@ import java.io.File
 import java.nio.file.Paths
 import java.sql.SQLException
 
-import scala.util.{Failure, Success, Try}
-
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.query.QueryConnection
@@ -41,6 +39,7 @@ import org.apache.spark.util.KylinReflectUtils
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 class KylinSession(
                     @transient val sc: SparkContext,
@@ -215,10 +214,24 @@ object KylinSession extends Logging {
         val fileName = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
         sparkConf.set("spark.executor.extraClassPath", Paths.get(fileName).getFileName.toString)
 
+        val krb5conf = " -Djava.security.krb5.conf=./__spark_conf__/__hadoop_conf__/krb5.conf"
         val executorExtraJavaOptions =
           sparkConf.get("spark.executor.extraJavaOptions", "")
+        var executorKerberosConf = ""
+        if (kapConfig.isKerberosEnabled && kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)) {
+          executorKerberosConf = krb5conf
+        }
         sparkConf.set("spark.executor.extraJavaOptions",
-          s"$executorExtraJavaOptions -Duser.timezone=${kapConfig.getKylinConfig.getTimeZone}")
+          s"$executorExtraJavaOptions -Duser.timezone=${kapConfig.getKylinConfig.getTimeZone} $executorKerberosConf")
+
+        val yarnAMJavaOptions =
+          sparkConf.get("spark.yarn.am.extraJavaOptions", "")
+        var amKerberosConf = ""
+        if (kapConfig.isKerberosEnabled && kapConfig.getKerberosPlatform.equalsIgnoreCase(KapConfig.FI_PLATFORM)) {
+          amKerberosConf = krb5conf
+        }
+        sparkConf.set("spark.yarn.am.extraJavaOptions",
+          s"$yarnAMJavaOptions $amKerberosConf")
       }
 
       sparkConf

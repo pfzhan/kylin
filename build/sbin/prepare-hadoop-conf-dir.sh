@@ -43,6 +43,10 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/ssl-client.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hadoop-env.sh
 
+        if [ -n "$KRB5_CONFIG" ]
+        then
+          checkAndCopyFile $KRB5_CONFIG
+        fi
     elif [ -d "/etc/hadoop/conf" ]
     then
         mkdir -p ${KYLIN_HOME}/hadoop_conf
@@ -91,6 +95,8 @@ then
     verbose Retrieving hadoop config dir...
 
     export kylin_hadoop_conf_dir=${KYLIN_HOME}/hadoop_conf
+
+    export HADOOP_CONF_DIR=${KYLIN_HOME}/hadoop_conf
 
     fetchKylinHadoopConf
 fi

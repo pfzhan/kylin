@@ -18,8 +18,8 @@ function checkDirExistAndPermission() {
     hadoop ${hadoop_conf_param} fs -test -d ${directory} || hadoop ${hadoop_conf_param} fs -mkdir -p ${directory}
 
     if [[ $message == "hive-scratch" ]]; then
-        # rwx-wx-wx
-        hadoop ${hadoop_conf_param} fs -chmod -R 733 ${directory}
+        # rwxrwxrw-
+        hadoop ${hadoop_conf_param} fs -chmod -R 775 ${directory}
     fi
 
     # test write permission
