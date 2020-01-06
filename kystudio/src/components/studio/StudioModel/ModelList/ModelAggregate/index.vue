@@ -67,6 +67,10 @@
               <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
                 {{$t('dataRange')}}: {{dataRange}}
               </div>
+              <div class="filter-tags-agg" v-show="filterTags.length">
+                <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
+                <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
+              </div>
               <el-table
                 nested
                 border
@@ -83,12 +87,12 @@
                   </template>
                 </el-table-column>
                 <el-table-column prop="usage" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('queryCount')"></el-table-column>
-                <el-table-column prop="source" show-overflow-tooltip :renderHeader="renderColumn">
+                <el-table-column prop="source" show-overflow-tooltip :filters="realFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.sources" :label="$t('source')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'sources')">
                   <template slot-scope="scope">
                     <span>{{$t(scope.row.source)}}</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="status" show-overflow-tooltip :renderHeader="renderColumn2" width="100">
+                <el-table-column prop="status" show-overflow-tooltip :filters="statusArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filterArgs.status" :label="$t('kylinLang.common.status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')" width="100">
                   <template slot-scope="scope">
                     <span>{{$t(scope.row.status)}}</span>
                   </template>
@@ -297,6 +301,7 @@ export default class ModelAggregate extends Vue {
   totalTableIndexColumnSize = 0
   isFullLoaded = false
   indexDetailTitle = ''
+  filterTags = []
   // 打开高级设置
   openAggAdvancedModal () {
     this.callAggAdvancedModal({
@@ -519,6 +524,38 @@ export default class ModelAggregate extends Vue {
     const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
     isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
   }
+  // 查询状态过滤回调函数
+  filterContent (val, type) {
+    const maps = {
+      sources: 'source',
+      status: 'kylinLang.common.status'
+    }
+
+    this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
+    const list = this.filterTags.filter(it => it.key === type).map(it => it.label)
+    val.length && val.forEach(item => {
+      if (!list.includes(item)) {
+        this.filterTags.push({label: item, source: maps[type], key: type})
+      }
+    })
+    this.filterArgs[type] = val
+    this.filterSouces()
+  }
+  // 删除单个筛选条件
+  handleClose (tag) {
+    const index = this.filterArgs[tag.key].indexOf(tag.label)
+    index > -1 && this.filterArgs[tag.key].splice(index, 1)
+    this.filterTags = this.filterTags.filter(item => item.key !== tag.key || item.key === tag.key && tag.label !== item.label)
+    this.filterSouces()
+  }
+  // 清除所有筛选条件
+  clearAllTags () {
+    this.filterArgs.sources.splice(0, this.filterArgs.sources.length)
+    this.filterArgs.status.splice(0, this.filterArgs.status.length)
+    this.filterArgs.page_offset = 0
+    this.filterTags = []
+    this.filterSouces()
+  }
 }
 </script>
 
@@ -645,6 +682,45 @@ export default class ModelAggregate extends Vue {
     }
     .label {
       text-align: right;
+    }
+  }
+  .filter-tags-agg {
+    margin-bottom: 10px;
+    padding: 1px 5px;
+    box-sizing: border-box;
+    position: relative;
+    font-size: 12px;
+    background: @background-disabled-color;
+    .filter-tags-layout {
+      max-width: calc(~'100% - 80px');
+      display: inline-block;
+      line-height: 30px;
+    }
+    .el-tag {
+      margin-left: 5px;
+    }
+    .clear-all-filters {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      font-size: 12px;
+      color: @base-color;
+      cursor: pointer;
+    }
+  }
+  .cell.highlight {
+    .el-icon-ksd-filter {
+      color: @base-color;
+    }
+  }
+  .el-icon-ksd-filter {
+    position: relative;
+    font-size: 17px;
+    top: 2px;
+    left: 5px;
+    &:hover,
+    &.filter-open {
+      color: @base-color;
     }
   }
 }

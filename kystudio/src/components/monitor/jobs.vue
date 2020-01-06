@@ -28,11 +28,9 @@
         </el-input>
       </el-col>
     </el-row>
-    <el-row class="filter-status-list">
+    <el-row class="filter-status-list" v-show="filterTags.length">
       <div class="tag-layout">
-        <span>{{ $t('filter') }}：</span>
-        <el-tag size="small" closable v-for="(item, index) in filter.job_names" :key="index" @close="handleCloseTag(item, 'job_names')">{{$t(item)}}</el-tag>
-        <el-tag size="small" closable v-for="(item, index) in filter.status" :key="index" @close="handleCloseTag(item, 'status')">{{$t(item)}}</el-tag>
+        <el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag>
       </div>
       <span class="clear-all-tags" @click="handleClearAllTags">{{$t('clearAll')}}</span>
     </el-row>
@@ -66,7 +64,7 @@
             'el-icon-arrow-down': scope.row.id == selectedJob.id && showStep}"></i>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="job_name" width="144">
+      <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">
         <template slot-scope="scope">
           {{$t(scope.row.job_name)}}
         </template>
@@ -99,7 +97,7 @@
       </el-table-column>
       <el-table-column
         width="180"
-        :renderHeader="renderColumn2">
+        :filters="allStatus.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.status" :label="$t('ProgressStatus')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')">
         <template slot-scope="scope">
           <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
@@ -534,9 +532,12 @@ export default class JobsList extends Vue {
   waitingJob = {modelName: '', jobsList: [], jobsSize: 0}
   waittingJobModels = {size: 0, data: null}
   stepId = ''
+  filterTags = []
+
   get emptyText () {
     return this.filter.subject_alias || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
+
   @Watch('$store.state.project.isAllProject')
   selectAllProject (curVal) {
     if (curVal) {
@@ -624,17 +625,12 @@ export default class JobsList extends Vue {
       </el-popover>
     </span>)
   }
-  // 删除某个tag（筛选项）
-  handleCloseTag (tag, key) {
-    if (!(key in this.filter)) return
-    const index = this.filter[key].indexOf(tag)
-    typeof index === 'number' && this.filter[key].splice(index, 1)
-    this.filter.page_offset = 0
-    this.manualRefreshJobs()
-  }
   // 清除所有的tags
   handleClearAllTags () {
-    this.filter = {...this.filter, job_names: [], status: [], page_offset: 0}
+    this.filter.page_offset = 0
+    this.filter.job_names.splice(0, this.filter.job_names.length)
+    this.filter.status.splice(0, this.filter.status.length)
+    this.filterTags = []
     this.manualRefreshJobs()
   }
   autoFilter () {
@@ -1174,6 +1170,32 @@ export default class JobsList extends Vue {
     this.kyBotUploadVisible = false
     this.infoKybotVisible = true
   }
+  // 查询状态过滤回调函数
+  filterContent (val, type) {
+    const maps = {
+      job_names: 'JobType',
+      status: 'ProgressStatus'
+    }
+
+    this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
+    const list = this.filterTags.filter(it => it.key === type).map(it => it.label)
+    val.length && val.forEach(item => {
+      if (!list.includes(item)) {
+        this.filterTags.push({label: item, source: maps[type], key: type})
+      }
+    })
+    this.filter[type] = val
+    this.filter.page_offset = 0
+    this.manualRefreshJobs()
+  }
+  // 删除单个筛选条件
+  handleClose (tag) {
+    const index = this.filter[tag.key].indexOf(tag.label)
+    index > -1 && this.filter[tag.key].splice(index, 1)
+    this.filterTags = this.filterTags.filter(item => item.key !== tag.key || item.key === tag.key && tag.label !== item.label)
+    this.filter.page_offset = 0
+    this.manualRefreshJobs()
+  }
 }
 </script>
 
@@ -1429,9 +1451,11 @@ export default class JobsList extends Vue {
       }
       .el-icon-ksd-filter {
         position: relative;
+        font-size: 17px;
+        top: 1px;
         left: 5px;
-        &.isFilter,
-        &:hover {
+        &:hover,
+        &.filter-open {
           color: @base-color;
         }
       }
@@ -1491,21 +1515,20 @@ export default class JobsList extends Vue {
   .filter-status-list {
     background: @background-disabled-color;
     margin-bottom: 10px;
-    line-height: 36px;
-    padding: 0 5px;
+    padding: 1px 5px;
     box-sizing: border-box;
     .tag-layout {
       width: calc(~'100% - 100px');
       display: inline-block;
-      span {
-        margin-left: 5px;
-        line-height: 24px;
-      }
+      line-height: 34px;
+    }
+    span {
+      margin-left: 5px;
     }
     .clear-all-tags {
       position: absolute;
-      top: 0;
-      right: 10px;
+      top: 8px;
+      right: 22px;
       font-size: 14px;
       color: @base-color;
       cursor: pointer;

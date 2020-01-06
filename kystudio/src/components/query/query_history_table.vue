@@ -8,6 +8,10 @@
         <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
       </div>
     </div>
+    <div class="filter-tags" v-show="filterTags.length">
+      <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：' + item.label}}</el-tag></div>
+      <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
+    </div>
     <el-table
       :data="queryHistoryData"
       border
@@ -103,7 +107,7 @@
           </el-popover>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn3" prop="realizations" width="250" show-overflow-tooltip>
+      <el-table-column :filters="realFilteArr" :filtered-value="filterData.realization" :label="$t('kylinLang.query.realization_th')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'realization')" prop="realizations" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
             <template v-if="props.row.realizations && props.row.realizations.length">
@@ -115,12 +119,12 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumnStatus" show-overflow-tooltip prop="query_status" width="130">
+      <el-table-column :filters="statusList.map(item => ({text: item, value: item}))" :filtered-value="filterData.query_status" :label="$t('kylinLang.query.query_status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'query_status')" show-overflow-tooltip prop="query_status" width="130">
         <template slot-scope="scope">
           {{$t('kylinLang.query.' + scope.row.query_status)}}
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn4" show-overflow-tooltip prop="server" width="145">
+      <el-table-column :filterMultiple="false" :show-all-select-option="false" :filters="queryNodes.map(item => ({text: item, value: item}))" :filtered-value="filterData.server" :label="$t('kylinLang.query.queryNode')" filter-icon="el-icon-ksd-filter" :filter-change="(v) => filterContent(v, 'server')"  show-overflow-tooltip prop="server" width="145">
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" show-overflow-tooltip width="90">
       </el-table-column>
@@ -155,8 +159,28 @@ import { sqlRowsLimit } from '../../config/index'
     ])
   },
   locales: {
-    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate', searchSQL: 'Search one keyword or query ID', noSpaceTips: 'Invalide entering: cannot search space', sqlDetailTip: 'Please click sql to get more informations'},
-    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速', searchSQL: '搜索单个关键词或查询 ID', noSpaceTips: '无法识别输入中的空格', sqlDetailTip: '更多信息请点击 SQL 语句'}
+    'en': {
+      queryDetails: 'Query Details',
+      ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.',
+      toAcce: 'Click to Accelerate',
+      searchSQL: 'Search one keyword or query ID',
+      noSpaceTips: 'Invalide entering: cannot search space',
+      sqlDetailTip: 'Please click sql to get more informations',
+      taskStatus: 'Task Status',
+      realization: 'Query',
+      clearAll: 'Clear All'
+    },
+    'zh-cn': {
+      queryDetails: '查询执行详情',
+      ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。',
+      toAcce: '去加速',
+      searchSQL: '搜索单个关键词或查询 ID',
+      noSpaceTips: '无法识别输入中的空格',
+      sqlDetailTip: '更多信息请点击 SQL 语句',
+      taskStatus: '任务状态',
+      realization: '查询对象',
+      clearAll: '清除所有'
+    }
   },
   filters: {
     filterNumbers (num) {
@@ -170,15 +194,15 @@ export default class QueryHistoryTable extends Vue {
   endSec = 10
   latencyFilterPopoverVisible = false
   statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED', status: 'fullyAcce'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED', status: 'partlyAcce'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED', status: 'unAcce1'}]
-  realFilteArr = [{name: 'Pushdown', value: 'pushdown'}, {name: 'Model Name', value: 'modelName'}]
+  realFilteArr = [{text: 'Pushdown', value: 'pushdown'}, {text: 'Model Name', value: 'modelName'}]
   filterData = {
     startTimeFrom: null,
     startTimeTo: null,
     latencyFrom: null,
     latencyTo: null,
     realization: [],
-    server: null,
-    sql: '',
+    server: [],
+    sql: null,
     query_status: []
   }
   timer = null
@@ -187,15 +211,20 @@ export default class QueryHistoryTable extends Vue {
   currentExpandId = ''
   toggleExpandId = []
   sqlLimitRows = 40 * 10
+  statusList = ['SUCCEEDED', 'FAILED']
+  filterTags = []
 
   @Watch('datetimerange')
   onDateRangeChange (val) {
     if (val) {
       this.filterData.startTimeFrom = new Date(val[0]).getTime()
       this.filterData.startTimeTo = new Date(val[1]).getTime()
+      this.clearDatetimeRange()
+      this.filterTags.push({label: `${this.transToGmtTime(this.filterData.startTimeFrom)} To ${this.transToGmtTime(this.filterData.startTimeTo)}`, source: 'kylinLang.query.startTime_th', key: 'datetimerange'})
     } else {
       this.filterData.startTimeFrom = null
       this.filterData.startTimeTo = null
+      this.clearDatetimeRange()
     }
     this.filterList()
   }
@@ -205,7 +234,36 @@ export default class QueryHistoryTable extends Vue {
     val.forEach(element => {
       const sql = element.sql_text
       element['sql_limit'] = this.sqlOverLimit(sql) ? `${sql.slice(0, this.sqlLimitRows)}...` : sql
+      element['server'] = [element['server']]
     })
+  }
+
+  // 清除查询开始事件筛选项
+  clearDatetimeRange () {
+    if (this.filterTags.filter(item => item.key === 'datetimerange').length) {
+      let idx = null
+      for (let index in this.filterTags) {
+        if (this.filterTags[index].key === 'datetimerange') {
+          idx = index
+          break
+        }
+      }
+      this.filterTags.splice(idx, 1)
+    }
+  }
+
+  // 清除响应时间筛选项
+  clearLatencyRange () {
+    if (this.filterTags.filter(item => item.key === 'latency').length) {
+      let idx = null
+      for (let index in this.filterTags) {
+        if (this.filterTags[index].key === 'latency') {
+          idx = index
+          break
+        }
+      }
+      idx !== null && this.filterTags.splice(idx, 1)
+    }
   }
 
   get isHasFilterValue () {
@@ -347,7 +405,7 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
   filterList () {
-    this.$emit('loadFilterList', this.filterData)
+    this.$emit('loadFilterList', {...this.filterData, server: this.filterData.server.join('')})
   }
 
   openIndexDialog (realization) {
@@ -406,8 +464,11 @@ export default class QueryHistoryTable extends Vue {
     this.filterData.latencyFrom = this.startSec
     this.filterData.latencyTo = this.endSec
     this.latencyFilterPopoverVisible = false
+    this.clearLatencyRange()
+    this.filterTags.push({label: `${this.startSec}s To ${this.endSec}s`, source: 'kylinLang.query.latency_th', key: 'latency'})
     this.filterList()
   }
+
   renderColumn2 (h) {
     if (this.filterData.latencyTo) {
       return (<span>
@@ -541,6 +602,52 @@ export default class QueryHistoryTable extends Vue {
       </el-dropdown>
     </span>)
   }
+  // 查询状态过滤回调函数
+  filterContent (val, type) {
+    const maps = {
+      realization: 'realization',
+      query_status: 'taskStatus',
+      server: 'kylinLang.query.queryNode'
+    }
+
+    this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
+    const list = this.filterTags.filter(it => it.key === type).map(it => it.label)
+    val.length && val.forEach(item => {
+      if (!list.includes(item)) {
+        this.filterTags.push({label: item, source: maps[type], key: type})
+      }
+    })
+    this.filterData[type] = val
+    this.filterList()
+  }
+  // 删除单个筛选条件
+  handleClose (tag) {
+    if (tag.key === 'datetimerange') {
+      this.datetimerange = ''
+    } else if (tag.key === 'latency') {
+      this.filterData.latencyFrom = null
+      this.filterData.latencyTo = null
+      this.clearLatencyRange()
+    } else if (tag.key === 'server') {
+      this.filterData.server.splice(0, 1)
+      const index = this.filterTags.map(item => item.key).indexOf('server')
+      this.filterTags.splice(index, 1)
+    } else {
+      const index = this.filterData[tag.key].indexOf(tag.label)
+      index > -1 && this.filterData[tag.key].splice(index, 1)
+      this.filterTags = this.filterTags.filter(item => item.key !== tag.key || item.key === tag.key && tag.label !== item.label)
+    }
+    this.filterList()
+  }
+  // 清除所有筛选条件
+  clearAllTags () {
+    this.filterData.query_status.splice(0, this.filterData.query_status.length)
+    this.filterData.realization.splice(0, this.filterData.realization.length)
+    this.filterData.server.splice(0, this.filterData.server.length)
+    this.filterData = {...this.filterData, startTimeFrom: null, startTimeTo: null, latencyFrom: null, latencyTo: null}
+    this.filterTags = []
+    this.filterList()
+  }
 }
 </script>
 
@@ -652,14 +759,6 @@ export default class QueryHistoryTable extends Vue {
           color: @base-color;
         }
       }
-      .el-icon-ksd-filter {
-        position: relative;
-        left: 5px;
-        &.isFilter,
-        &:hover {
-          color: @base-color;
-        }
-      }
       .el-icon-ksd-negative {
         color: @text-normal-color;
         font-size: 20px;
@@ -672,6 +771,16 @@ export default class QueryHistoryTable extends Vue {
         &.el-icon-ksd-acclerate_all,
         &.el-icon-ksd-acclerate_portion {
           color: @normal-color-1;
+        }
+      }
+      .el-icon-ksd-filter {
+        position: relative;
+        font-size: 17px;
+        top: 1px;
+        left: 5px;
+        &:hover,
+        &.filter-open {
+          color: @base-color;
         }
       }
     }
@@ -734,6 +843,29 @@ export default class QueryHistoryTable extends Vue {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%)
+    }
+  }
+  .filter-tags {
+    margin-bottom: 10px;
+    padding: 0px 5px 5px;
+    box-sizing: border-box;
+    position: relative;
+    background: @background-disabled-color;
+    .filter-tags-layout {
+      display: inline-block;
+      width: calc(~'100% - 80px')
+    }
+    .el-tag {
+      margin-left: 5px;
+      margin-top: 5px;
+    }
+    .clear-all-filters {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 14px;
+      color: @base-color;
+      cursor: pointer;
     }
   }
 </style>

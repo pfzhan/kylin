@@ -885,14 +885,6 @@ export default class FavoriteQuery extends Vue {
           color: @error-color-1;
         }
       }
-      .el-icon-ksd-filter {
-        position: relative;
-        left: 5px;
-        &.isFilter,
-        &:hover {
-          color: @base-color;
-        }
-      }
       .el-icon-ksd-table_delete,
       .el-icon-ksd-table_discard {
         &:hover {
@@ -1034,6 +1026,52 @@ export default class FavoriteQuery extends Vue {
           }
         }
       }
+    }
+    .filter-tags {
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      box-sizing: border-box;
+      position: relative;
+      background: @background-disabled-color;
+      .filter-tags-layout {
+        width: calc(~'100% - 100px');
+        display: inline-block;
+        line-height: 34px;
+      }
+      .el-tag {
+        margin-left: 5px;
+        &:first-child {
+          margin-left: 0;
+        }
+      }
+      .clear-all-filters {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        font-size: 14px;
+        color: @base-color;
+        cursor: pointer;
+      }
+    }
+  }
+  .cell.highlight {
+    .el-icon-ksd-filter {
+      color: @base-color;
+    }
+  }
+  .el-icon-ksd-filter {
+    position: relative;
+    font-size: 17px !important;
+    top: 1px;
+    left: 5px;
+    &:hover,
+    &.filter-open {
+      color: @base-color;
+    }
+  }
+  .el-table-filter__content {
+    .filter-icon {
+      margin-right: 5px;
     }
   }
 </style>

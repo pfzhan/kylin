@@ -38,7 +38,8 @@ export default {
     EMPTY: 'NO BUILD',
     AVAILABLE: 'ONLINE',
     TO_BE_DELETED: 'LOCKED',
-    BUILDING: 'BUILDING'
+    BUILDING: 'BUILDING',
+    clearAll: 'Clear All'
   },
   'zh-cn': {
     aggregateGroup: '聚合索引',
@@ -79,6 +80,7 @@ export default {
     EMPTY: '未构建',
     AVAILABLE: '在线',
     TO_BE_DELETED: '锁定',
-    BUILDING: '构建中'
+    BUILDING: '构建中',
+    clearAll: '清除所有'
   }
 }
