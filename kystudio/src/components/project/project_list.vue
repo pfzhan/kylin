@@ -110,7 +110,7 @@
  </div>
 </template>
 <script>
-import { mapActions, mapGetters, mapMutations } from 'vuex'
+import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import cubeList from './cube_list'
 import modeList from './model_list'
 import accessEdit from './access_edit'
@@ -244,6 +244,9 @@ export default {
     ...mapGetters([
       'projectActions'
     ]),
+    ...mapState({
+      allProject: state => state.project.allProject
+    }),
     projectList () {
       return this.$store.state.project.projectList
     },
@@ -258,6 +261,10 @@ export default {
     }
   },
   created () {
+    if (!this.allProject.length) {
+      this.$router.replace('/access/login')
+      return
+    }
     this.loadProjects(this.filterData)
   },
   locales: {

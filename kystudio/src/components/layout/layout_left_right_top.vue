@@ -71,6 +71,7 @@
                 size="small"
                 plain
                 class="entry-admin"
+                :disabled="!allProjects.length"
                 :class="isAdminView ? 'active' : null"
                 @click="handleSwitchAdmin">
                 <span>{{$t('kylinLang.menu.admin')}}</span>
@@ -215,7 +216,8 @@ let MessageBox = ElementUI.MessageBox
   computed: {
     ...mapState({
       cachedHistory: state => state.config.cachedHistory,
-      isSemiAutomatic: state => state.project.isSemiAutomatic
+      isSemiAutomatic: state => state.project.isSemiAutomatic,
+      allProjects: state => state.project.allProject
     }),
     ...mapGetters([
       'currentPathNameGet',
