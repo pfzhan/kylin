@@ -26,7 +26,9 @@ export default {
     detectFormat: 'Detect partition format',
     errorMsg: 'Error Message:',
     filterCondTips: 'Modifying the data filter conditions will result in all indexes under this model being rebuilt. Please modify with caution.',
-    filterPlaceholder: 'Please input your filter condition and no clause "WHERE" needed. If you have several filter conditions, you should combine them with "AND" or "OR". E.g. BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
+    filterPlaceholder: 'Please input your filter condition and no clause "WHERE" needed. If you have several filter conditions, you should combine them with "AND" or "OR". E.g. BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000',
+    changeSegmentTip1: 'You have modified the partition column as {tableColumn}, time format {dateType}. After saving, all segments under the model {modelName} will be purged. You need to reload the data, the model cannot serve related queries during data loading. Please confirm whether to submit?',
+    changeSegmentTip2: 'You have modified as no partition column. After saving, all segments under the model {modelName} will be purged . The system will automatically rebuild the index and full load the data. The model cannot serve related queries during index building. Please confirm whether to submit?'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -55,6 +57,8 @@ export default {
     detectFormat: '获取分区格式',
     errorMsg: '错误信息：',
     filterCondTips: '修改数据筛选条件将会导致该模型下所有索引重新构建，请谨慎修改。',
-    filterPlaceholder: '请输入过滤条件，多个条件使用 AND 或 OR 连接，不需要写 WHERE。例如：BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000'
+    filterPlaceholder: '请输入过滤条件，多个条件使用 AND 或 OR 连接，不需要写 WHERE。例如：BUYER_ID <> 0001 AND COUNT_ITEM > 1000 OR TOTAL_PRICE = 1000',
+    changeSegmentTip1: '您修改分区列为 {tableColumn}，格式为 {dateType}，保存后会导致模型 {modelName} 下的所有 Segments 被清空。您需要重新加载数据，数据加载期间该模型不能服务于相关的查询。请确认是否提交？',
+    changeSegmentTip2: '您修改为无分区列，保存后会导致模型 {modelName} 下所有 Segments 被清空。系统将自动重新构建索引并全量加载数据，索引构建期间该模型不能服务于相关的查询。请确认是否提交？'
   }
 }

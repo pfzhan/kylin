@@ -85,7 +85,7 @@
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn plain @click="savePartitionConfirm" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -101,7 +101,7 @@ import store, { types } from './store'
 import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { isDatePartitionType, objectClone } from '../../../../../util'
+import { isDatePartitionType, objectClone, kapConfirm } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
@@ -138,7 +138,8 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
       setModelPartition: 'MODEL_PARTITION_SET',
       fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE',
       fetchPartitionFormat: 'FETCH_PARTITION_FORMAT',
-      checkFilterConditon: 'CHECK_FILTER_CONDITION'
+      checkFilterConditon: 'CHECK_FILTER_CONDITION',
+      fetchSegments: 'FETCH_SEGMENTS'
     })
   },
   locales
@@ -164,6 +165,11 @@ export default class ModelPartitionModal extends Vue {
     column: [{validator: this.validateBrokenColumn, trigger: 'change'}]
   }
   filterErrorMsg = ''
+  prevPartitionMeta = {
+    table: '',
+    column: '',
+    format: ''
+  }
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
     if ((startValue && endValue && transToUTCMs(startValue) < transToUTCMs(endValue)) || !startValue && !endValue) {
@@ -317,9 +323,9 @@ export default class ModelPartitionModal extends Vue {
       })
       if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
         let named = this.modelDesc.partition_desc.partition_date_column.split('.')
-        this.partitionMeta.table = named[0]
-        this.partitionMeta.column = named[1]
-        this.partitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+        this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
+        this.partitionMeta.column = this.prevPartitionMeta.column = named[1]
+        this.partitionMeta.format = this.prevPartitionMeta.format = this.modelDesc.partition_desc.partition_date_format
       }
       this.filterCondition = this.modelDesc.filter_condition
     } else {
@@ -350,9 +356,35 @@ export default class ModelPartitionModal extends Vue {
       column: '',
       format: ''
     }
+    this.prevPartitionMeta = { table: '', column: '', format: '' }
     this.filterCondition = ''
     this.isLoadingSave = false
     this.isLoadingFormat = false
+  }
+  async savePartitionConfirm () {
+    try {
+      const res = await this.fetchSegments({projectName: this.currentSelectedProject, modelName: this.modelDesc.uuid, startTime: null, endTime: null, sortBy: '', reverse: true, page_offset: 0, pageSize: 10})
+      const { data } = res.data
+      if (data.value.length) {
+        if (this.prevPartitionMeta.table && !this.partitionMeta.table) {
+          kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
+            this.savePartition()
+          })
+          return
+        }
+        if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
+          kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
+            this.savePartition()
+          })
+          return
+        }
+      } else {
+        this.savePartition()
+      }
+    } catch (e) {
+      console.error(e)
+      this.savePartition()
+    }
   }
   async savePartition () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
