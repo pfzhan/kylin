@@ -285,5 +285,8 @@ export default class GroupEditModal extends Vue {
       color: @base-color;
     }
   }
+  .option-items {
+    white-space: pre;
+  }
 }
 </style>

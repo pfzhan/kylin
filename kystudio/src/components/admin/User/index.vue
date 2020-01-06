@@ -40,7 +40,7 @@
       <el-table-column :label="$t('userName')" prop="username" :width="220" show-overflow-tooltip>
         <template slot-scope="scope">
           <i class="el-icon-ksd-table_admin ksd-fs-14" style="cursor: default;"></i>
-          <span>{{scope.row.username}}</span>
+          <span class="user-name-col">{{scope.row.username}}</span>
         </template>
       </el-table-column>
       <!-- 表：group列 -->
@@ -256,6 +256,9 @@ export default class SecurityUser extends Vue {
     .el-icon-ksd-table_group:hover,
     .el-icon-ksd-table_others:hover {
       color: @base-color;
+    }
+    .user-name-col {
+      white-space: pre;
     }
   }
 }

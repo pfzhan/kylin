@@ -24,7 +24,7 @@
           prop="first">
           <template slot-scope="scope">
             <i class="el-icon-ksd-table_group ksd-fs-14" style="cursor: default;"></i>
-            <router-link :to="{path: '/admin/group/' + scope.row.first}">{{scope.row.first}}</router-link>
+            <router-link :to="{path: '/admin/group/' + scope.row.first}" class="group-name">{{scope.row.first}}</router-link>
           </template>
         </el-table-column>
         <el-table-column
@@ -180,6 +180,9 @@ export default class SecurityGroup extends Vue {
     .el-icon-ksd-table_assign:hover,
     .el-icon-ksd-table_delete:hover {
       color: @base-color;
+    }
+    .group-name {
+      white-space: pre;
     }
   }
 }
