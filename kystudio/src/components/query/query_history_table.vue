@@ -605,7 +605,7 @@ export default class QueryHistoryTable extends Vue {
   // 查询状态过滤回调函数
   filterContent (val, type) {
     const maps = {
-      realization: 'realization',
+      realization: 'kylinLang.query.answered_by',
       query_status: 'taskStatus',
       server: 'kylinLang.query.queryNode'
     }

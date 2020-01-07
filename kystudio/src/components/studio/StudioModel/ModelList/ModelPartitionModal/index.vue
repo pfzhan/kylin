@@ -361,32 +361,27 @@ export default class ModelPartitionModal extends Vue {
     this.isLoadingSave = false
     this.isLoadingFormat = false
   }
-  async savePartitionConfirm () {
-    try {
-      const res = await this.fetchSegments({projectName: this.currentSelectedProject, modelName: this.modelDesc.uuid, startTime: null, endTime: null, sortBy: '', reverse: true, page_offset: 0, pageSize: 10})
-      const { data } = res.data
-      if (data.value.length) {
-        if (this.prevPartitionMeta.table && !this.partitionMeta.table) {
-          kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
-            this.savePartition()
-          })
-          return
-        }
-        if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
-          kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
-            this.savePartition()
-          })
-          return
-        }
-        this.savePartition()
-      } else {
-        this.savePartition()
+
+  savePartitionConfirm () {
+    if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
+      if (this.prevPartitionMeta.table && !this.partitionMeta.table) {
+        kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
+          this.savePartition()
+        })
+        return
       }
-    } catch (e) {
-      console.error(e)
+      if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
+        kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
+          this.savePartition()
+        })
+        return
+      }
+      this.savePartition()
+    } else {
       this.savePartition()
     }
   }
+
   async savePartition () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
