@@ -9,6 +9,7 @@
           prefix-icon="el-icon-search"
           :placeholder="$t('groupFilter')"
           v-global-key-event.enter.debounce="inputFilter"
+          @clear="inputFilter('')"
         >
         </el-input>
       </div>

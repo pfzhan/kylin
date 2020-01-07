@@ -57,7 +57,7 @@
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
               </div>
             </div>
             <div class="detail-content" v-loading="indexLoading">

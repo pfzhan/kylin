@@ -7,7 +7,6 @@
                   prefix-icon="el-icon-search" 
                   @keyup.enter.native="handleFilter()" 
                   @clear="handleFilter()">
-          <el-button slot="append" icon="el-icon-search" @click="handleFilter()"></el-button>
         </el-input>
       </div>
       <div class="treeBox" :class="{'hasRefreshBtn': (filterData || treeData.length === 0) && !loadingTreeData}">

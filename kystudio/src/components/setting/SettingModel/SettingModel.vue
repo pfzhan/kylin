@@ -1,7 +1,7 @@
 <template>
   <div class="setting-model">
     <div  class="ksd-mb-10 ksd-fright">
-      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.model_name" v-global-key-event.enter.debounce="searchModels">
+      <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" prefix-icon="el-icon-search" v-model="filter.model_name" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()">
       </el-input>
     </div>
     <el-table

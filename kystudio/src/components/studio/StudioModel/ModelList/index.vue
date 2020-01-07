@@ -4,7 +4,7 @@
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
       <div  class="ksd-mtb-10 ksd-fright">
-        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model_name" v-global-key-event.enter.debounce="searchModels" class="show-search-btn" >
+        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model_name" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
         </el-input>
       </div>
       <div class="ky-no-br-space">
@@ -611,19 +611,16 @@ export default class ModelList extends Vue {
   }
   // 搜索模型
   searchModels () {
-    clearTimeout(this.ST)
     if (this.filterArgs.exact) {
       this.filterArgs.exact = false
     }
     this.filterArgs.page_offset = 0
-    this.ST = setTimeout(() => {
-      this.searchLoading = true
-      this.loadModelsList().then(() => {
-        this.searchLoading = false
-      }).finally((res) => {
-        this.searchLoading = false
-      })
-    }, 500)
+    this.searchLoading = true
+    this.loadModelsList().then(() => {
+      this.searchLoading = false
+    }).finally((res) => {
+      this.searchLoading = false
+    })
   }
   showAddModelDialog () {
     this.callAddModelDialog()

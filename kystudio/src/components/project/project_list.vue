@@ -10,6 +10,7 @@
         prefix-icon="el-icon-search"
         :placeholder="$t('projectFilter')"
         v-global-key-event.enter.debounce="inputFilter"
+        @clear="inputFilter('')"
       >
       </el-input>
     </div>

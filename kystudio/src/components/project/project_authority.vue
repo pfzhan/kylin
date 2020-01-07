@@ -15,6 +15,7 @@
             v-model="serarchChar"
             :placeholder="$t('userNameOrGroup')"
             v-global-key-event.enter.debounce="inputFilter"
+            @clear="inputFilter"
           >
             <i slot="prefix" class="el-input__icon" :class="{'el-icon-search': !searchLoading, 'el-icon-loading': searchLoading}"></i>
           </el-input>

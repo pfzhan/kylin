@@ -5,7 +5,7 @@
         <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.queryhistory')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
+        <el-input v-model="filterData.sql" v-global-key-event.enter.debounce="onSqlFilterChange" @clear="onSqlFilterChange()" prefix-icon="el-icon-search" :placeholder="$t('searchSQL')" size="medium"></el-input>
       </div>
     </div>
     <div class="filter-tags" v-show="filterTags.length">

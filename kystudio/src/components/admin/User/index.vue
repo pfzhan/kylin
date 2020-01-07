@@ -22,6 +22,7 @@
           <el-input class="show-search-btn"
             size="medium"
             v-global-key-event.enter.debounce="inputFilter"
+            @clear="inputFilter('')"
             prefix-icon="el-icon-search"
             :placeholder="$t('userName')"
           >
