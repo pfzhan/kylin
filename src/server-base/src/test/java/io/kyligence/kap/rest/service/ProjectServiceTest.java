@@ -331,7 +331,7 @@ public class ProjectServiceTest extends ServiceTestBase {
                         .getOptimizeRecommendation(model.getUuid());
                 List<LayoutRecommendationItem> layoutRecommendations = optimizeRecommendation
                         .getLayoutRecommendations();
-                Assert.assertEquals(3, layoutRecommendations.size());
+                Assert.assertEquals(5, layoutRecommendations.size());
                 layoutRecommendations.sort(Comparator.comparingLong(rec -> rec.getLayout().getId()));
                 Assert.assertEquals(30001L, layoutRecommendations.get(0).getLayout().getId());
                 Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(0).getRecommendationType());
@@ -339,6 +339,10 @@ public class ProjectServiceTest extends ServiceTestBase {
                 Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(1).getRecommendationType());
                 Assert.assertEquals(50001L, layoutRecommendations.get(2).getLayout().getId());
                 Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(2).getRecommendationType());
+                Assert.assertEquals(70001L, layoutRecommendations.get(3).getLayout().getId());
+                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(3).getRecommendationType());
+                Assert.assertEquals(80001L, layoutRecommendations.get(4).getLayout().getId());
+                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(4).getRecommendationType());
                 continue;
             }
 
