@@ -212,8 +212,8 @@ public class QueryContext {
         return sourceScanRows.get();
     }
 
-    public long addAndGetSourceScanRows(long bytes) {
-        return sourceScanRows.addAndGet(bytes);
+    public long addAndGetSourceScanRows(long rows) {
+        return sourceScanRows.addAndGet(rows);
     }
 
     public String getSql() {

@@ -26,7 +26,7 @@ package org.apache.spark.sql.hive
 
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.execution.{LayoutFileSourceScanExec, SparkPlan}
+import org.apache.spark.sql.execution.{FileSourceScanExec, KylinFileSourceScanExec, LayoutFileSourceScanExec, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
 import scala.collection.JavaConverters._
@@ -36,6 +36,10 @@ object QueryMetricUtils extends Logging {
     try {
       val metrics = plan.collect {
         case exec: LayoutFileSourceScanExec =>
+          (exec.metrics.apply("numOutputRows").value, exec.metrics.apply("readBytes").value)
+        case exec: KylinFileSourceScanExec =>
+          (exec.metrics.apply("numOutputRows").value, exec.metrics.apply("readBytes").value)
+        case exec: FileSourceScanExec =>
           (exec.metrics.apply("numOutputRows").value, exec.metrics.apply("readBytes").value)
         case exec: HiveTableScanExec =>
           (exec.metrics.apply("numOutputRows").value, exec.metrics.apply("readBytes").value)

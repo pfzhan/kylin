@@ -24,6 +24,7 @@ package org.apache.spark.sql.execution.datasource
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.hadoop.fs.Path
+import org.apache.kylin.common.QueryContext
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.sql.catalyst.catalog.{CatalogTable, ExternalCatalogUtils}
@@ -91,7 +92,10 @@ class LayoutFileIndex(
       new InMemoryFileIndex(
         sparkSession, rootPaths, Map.empty[String, String], userSpecifiedSchema = Option(table.schema))
     }
+    QueryContext.current().record("partition_pruning")
     setShufflePartitions(index.allFiles().map(_.getLen).sum, sparkSession)
+    QueryContext.current().record("fetch_file_status")
+
     index
   }
 

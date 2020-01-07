@@ -39,6 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
@@ -99,11 +100,20 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             KylinConfig segmentConf = segment.getConfig();
             String workingDirectory = KapConfig.wrap(segmentConf).getReadHdfsWorkingDirectory();
             for (Map.Entry<String, String> entry : snapshots.entrySet()) {
+                log.info("Update snapshot table {}", entry.getKey());
                 TableDesc tableDesc = manager.getTableDesc(entry.getKey());
                 Path snapshotPath = FileNames.snapshotFileWithWorkingDir(tableDesc, workingDirectory);
+                if (HDFSUtils.listSortedFileFrom(snapshotPath).isEmpty()) {
+                    throw new RuntimeException("Snapshot path is empty :" + snapshotPath);
+                }
                 FileStatus lastFile = HDFSUtils.findLastFile(snapshotPath);
-                FileStatus segmentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + entry.getValue()));
-
+                HDFSUtils.listSortedFileFrom(snapshotPath);
+                Path segmentFilePath = new Path(workingDirectory + entry.getValue());
+                if (!segmentFilePath.getFileSystem(HadoopUtil.getCurrentConfiguration()).exists(segmentFilePath)) {
+                    log.warn("{} not exist, Skip update.", segmentFilePath);
+                    continue;
+                }
+                FileStatus segmentFile = HDFSUtils.getFileStatus(segmentFilePath);
                 FileStatus currentFile = null;
                 if (tableDesc.getLastSnapshotPath() != null) {
                     currentFile = HDFSUtils.getFileStatus(new Path(workingDirectory + tableDesc.getLastSnapshotPath()));
@@ -140,6 +150,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
             }
         } catch (Throwable th) {
             log.error("Error for update snapshot table", th);
+            throw new RuntimeException(th);
         }
     }
 }

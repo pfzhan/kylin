@@ -90,12 +90,13 @@ object ResultPlan extends Logging {
     sparkContext.setLocalProperty(QueryToExecutionIDCache.KYLIN_QUERY_ID_KEY, queryId)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
-    sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getSourceScanRows.toString)
     sparkContext.setJobGroup(jobGroup,
       QueryContext.current().getSql,
       interruptOnCancel = true)
     try {
       df.queryExecution.executedPlan
+      sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getSourceScanRows.toString)
+      logInfo(s"source_scan_rows is ${QueryContext.current().getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
       val rows = df.collect()
       QueryContext.current.record("collect_result")

@@ -31,7 +31,7 @@ import io.netty.util.internal.ThrowableUtil
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
-import org.apache.spark.sql.execution.FileSourceScanExec
+import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
@@ -215,7 +215,10 @@ class TestQueryAndBuildFunSuite
   }
 
   private def getFileSourceScanExec(df: DataFrame) = {
-    df.queryExecution.sparkPlan.collectFirst { case p: FileSourceScanExec => p }.get
+    df.queryExecution.sparkPlan.collectFirst {
+      case p: KylinFileSourceScanExec => p
+      case p: LayoutFileSourceScanExec => p
+    }.get
   }
 
   private def queryFolder(floderInfo: FloderInfo, joinType: List[String]): List[String] = {

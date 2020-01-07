@@ -216,7 +216,8 @@ class FilePruner(val session: SparkSession,
     }
     QueryContext.current().record("shard_pruning")
     setShufflePartitions(selected.flatMap(partition => partition.files).map(_.getLen).sum, session)
-
+    val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
+    QueryContext.current().addAndGetSourceScanRows(sourceRows)
     if (selected.isEmpty) {
       val value = Seq.empty[PartitionDirectory]
       cached.put((partitionFilters, dataFilters), value)
