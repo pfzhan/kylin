@@ -23,14 +23,12 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.v2.NModelControllerV2;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.OptimizeRecommendationService;
-import io.kyligence.kap.rest.service.ProjectService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
@@ -49,10 +47,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.controller.v2.NModelControllerV2;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.OptimizeRecommendationService;
+import io.kyligence.kap.rest.service.ProjectService;
 
 public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
 
@@ -76,8 +78,8 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(nModelControllerV2)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nModelControllerV2).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -132,7 +134,8 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
 
-        Mockito.when(modelService.getModels("model1", "default", true, "ADMIN", "NEW", "last_modify", false))
+        Mockito.when(
+                modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", false))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("projectName", "default").param("model", "model1").param("limit", "10")
@@ -140,8 +143,8 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", "ADMIN", "NEW", "", 0, 10,
-                "last_modify", true);
+        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 0,
+                10, "last_modify", true);
     }
 
     @Test
@@ -155,13 +158,13 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0,
-                10, "last_modify", true);
+        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"),
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true);
     }
 
     @Test
     public void testGetModelsWithOutModelName() throws Exception {
-        Mockito.when(modelService.getModels("", "default", true, "ADMIN", "NEW", "last_modify", true))
+        Mockito.when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", true))
                 .thenReturn(mockModels());
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
@@ -170,8 +173,8 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                         .param("sortBy", "last_modify").param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelControllerV2).getModels("", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
-                "last_modify", true);
+        Mockito.verify(nModelControllerV2).getModels("", true, "default", "ADMIN", Arrays.asList("NEW"),
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true);
     }
 
 }

@@ -249,28 +249,28 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetModels() {
 
-        List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
-                "last_modify", true);
+        List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default", false, "",
+                null, "last_modify", true);
         Assert.assertEquals(1, models2.size());
-        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
+        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", null,
                 "last_modify", true);
         Assert.assertEquals(1, model3.size());
         List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
-                "", "last_modify", true);
+                null, "last_modify", true);
         Assert.assertEquals(1, model4.size());
         Assert.assertEquals(99, model4.get(0).getStorage());
         Assert.assertEquals(100, model4.get(0).getSource());
         Assert.assertEquals("99.00", model4.get(0).getExpansionrate());
         Assert.assertEquals(0, model4.get(0).getUsage());
         List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
-                "DISABLED", "last_modify", true);
+                Arrays.asList("DISABLED"), "last_modify", true);
         Assert.assertEquals(0, model5.size());
 
     }
 
     @Test
     public void testGetModelsWithRecommendationCount() {
-        val models = modelService.getModels("nmodel_basic", "default", true, "", "", "last_modify", true);
+        val models = modelService.getModels("nmodel_basic", "default", true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
         Assert.assertEquals(0, models.get(0).getRecommendationsCount());
 
@@ -309,18 +309,18 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Mockito.doReturn(recommendation2).when(recommendationManager).getOptimizeRecommendation(modelId2);
         Mockito.doReturn(recommendationManager).when(modelService).getOptRecommendationManager("default");
 
-        val allModels = modelService.getModels("", "default", false, "", "", "recommendations_count", true);
+        val allModels = modelService.getModels("", "default", false, "", null, "recommendations_count", true);
         Assert.assertEquals(5, allModels.get(0).getRecommendationsCount());
         Assert.assertEquals(2, allModels.get(1).getRecommendationsCount());
     }
 
     @Test
     public void testGetModelsMvcc() {
-        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
+        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", false, "", null,
                 "last_modify", true);
         var model = models.get(0);
         modelService.renameDataModel(model.getProject(), model.getUuid(), "new_alias");
-        models = modelService.getModels("new_alias", "default", false, "", "", "last_modify", true);
+        models = modelService.getModels("new_alias", "default", false, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
         model = models.get(0);
         Assert.assertEquals(1, model.getMvcc());
@@ -329,19 +329,19 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testSortModels() {
 
-        List<NDataModelResponse> models = modelService.getModels("", "default", false, "", "", "usage", true);
+        List<NDataModelResponse> models = modelService.getModels("", "default", false, "", null, "usage", true);
         Assert.assertEquals(6, models.size());
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
-        models = modelService.getModels("", "default", false, "", "", "usage", false);
+        models = modelService.getModels("", "default", false, "", null, "usage", false);
         Assert.assertEquals("nmodel_basic_inner", models.get(models.size() - 1).getAlias());
-        models = modelService.getModels("", "default", false, "", "", "storage", true);
+        models = modelService.getModels("", "default", false, "", null, "storage", true);
         Assert.assertEquals("nmodel_basic", models.get(0).getAlias());
-        models = modelService.getModels("", "default", false, "", "", "storage", false);
+        models = modelService.getModels("", "default", false, "", null, "storage", false);
         Assert.assertEquals("nmodel_basic", models.get(models.size() - 1).getAlias());
 
-        models = modelService.getModels("", "default", false, "", "", "expansionrate", true);
+        models = modelService.getModels("", "default", false, "", null, "expansionrate", true);
         Assert.assertEquals("nmodel_basic_inner", models.get(0).getAlias());
-        models = modelService.getModels("", "default", false, "", "", "expansionrate", false);
+        models = modelService.getModels("", "default", false, "", null, "expansionrate", false);
         Assert.assertEquals("nmodel_basic_inner", models.get(4).getAlias());
 
     }
@@ -377,7 +377,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     @Ignore
     public void testGetModelsWithCC() {
-        List<NDataModelResponse> models = modelService.getModels("nmodel_basic", "default", true, "", "", "", false);
+        List<NDataModelResponse> models = modelService.getModels("nmodel_basic", "default", true, "", null, "", false);
         Assert.assertEquals(1, models.size());
         NDataModelResponse model = models.get(0);
         Assert.assertTrue(model.getSimpleTables().stream().map(t -> t.getColumns()).flatMap(List::stream)
@@ -649,7 +649,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
             return null;
         }, "default");
-        List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", "",
+        List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", null,
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
         Assert.assertEquals(0, eventDao.getEventsByModel(modelId).size());
@@ -747,14 +747,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testCloneModel() {
         modelService.cloneModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "test_encoding_new", "default");
-        List<NDataModelResponse> models = modelService.getModels("", "default", true, "", "", "last_modify", true);
+        List<NDataModelResponse> models = modelService.getModels("", "default", true, "", null, "last_modify", true);
         Assert.assertEquals(7, models.size());
     }
 
     @Test
     public void testRenameModel() {
         modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "new_name");
-        List<NDataModelResponse> models = modelService.getModels("new_name", "default", true, "", "", "last_modify",
+        List<NDataModelResponse> models = modelService.getModels("new_name", "default", true, "", null, "last_modify",
                 true);
         Assert.assertTrue(models.get(0).getAlias().equals("new_name"));
     }
@@ -776,7 +776,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testUpdateDataModelStatus() {
         modelService.updateDataModelStatus("cb596712-3a09-46f8-aea1-988b43fe9b6c", "default", "OFFLINE");
-        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
+        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", true, "", null,
                 "last_modify", true);
         Assert.assertTrue(models.get(0).getUuid().equals("cb596712-3a09-46f8-aea1-988b43fe9b6c")
                 && models.get(0).getStatus().equals(RealizationStatusEnum.OFFLINE));
@@ -1638,7 +1638,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
         Assert.assertEquals("new_model", newModel.getAlias());
-        List<NDataModelResponse> models = modelService.getModels("new_model", "default", false, "ADMIN", "", "", false);
+        List<NDataModelResponse> models = modelService.getModels("new_model", "default", false, "ADMIN", null, "",
+                false);
         Assert.assertEquals("COUNT_ALL", models.get(0).getSimplifiedMeasures().get(0).getName());
         modelManager.dropModel(newModel);
     }
@@ -3600,7 +3601,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             Mockito.doAnswer(invocationOnMock -> layouts).when(indexPlan1).getAllLayouts();
             return indexPlan1;
         });
-        val res = modelService.getModels(alias, getProject(), false, "", "", "last_modify", true);
+        val res = modelService.getModels(alias, getProject(), false, "", null, "last_modify", true);
         Assert.assertEquals(1, res.size());
         Assert.assertEquals(4, res.get(0).getAvailableIndexesCount());
     }

@@ -27,6 +27,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -130,8 +131,8 @@ public class OpenModelControllerTest {
 
     @Test
     public void testGetModels() throws Exception {
-        Mockito.when(
-                nModelController.getModels("model1", true, "default", "ADMIN", "NEW", "", 1, 5, "last_modify", false))
+        Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
+                "last_modify", false))
                 .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
         mockMvc.perform(MockMvcRequestBuilders.get("/api/open/models").contentType(MediaType.APPLICATION_JSON)
                 .param("page_offset", "1").param("project", "default").param("model_name", "model1")
@@ -140,8 +141,8 @@ public class OpenModelControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", "NEW", "", 1, 5,
-                "last_modify", true);
+        Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", Arrays.asList("NEW"), "", 1,
+                5, "last_modify", true);
     }
 
     @Test

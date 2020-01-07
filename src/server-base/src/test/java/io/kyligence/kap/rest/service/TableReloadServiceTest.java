@@ -227,7 +227,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         copyForUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(copyForUpdate);
 
-        var originModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        var originModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, originModels.size());
         originModel = originModels.get(0);
         Assert.assertEquals(9, originModel.getJoinTables().size());
@@ -257,7 +257,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         changeColumnName("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID", "ORDER_ID2");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
 
-        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, brokenModels.size());
         val brokenModel = brokenModels.get(0);
         Assert.assertEquals(9, brokenModel.getJoinTables().size());
@@ -316,7 +316,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         changeColumnName("DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "CAL_DT2");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
 
-        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, brokenModels.size());
         val brokenModel = brokenModels.get(0);
         Assert.assertEquals(9, brokenModel.getJoinTables().size());
@@ -371,7 +371,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         changeColumnName("DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "CAL_DT2");
         tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
 
-        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", "", "", false);
+        var brokenModels = modelService.getModels("nmodel_basic_inner", PROJECT, false, "", null, "", false);
         Assert.assertEquals(1, brokenModels.size());
         val brokenModel = brokenModels.get(0);
         Assert.assertNotNull(brokenModel.getPartitionDesc());

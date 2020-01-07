@@ -23,9 +23,13 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.service.ModelService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -37,12 +41,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.service.ModelService;
 
 @Controller
 @RequestMapping(value = "/api/models")
@@ -59,7 +60,7 @@ public class NModelControllerV2 extends NBasicController {
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "projectName", required = false) String projectName,
             @RequestParam(value = "owner", required = false) String owner,
-            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "status", required = false) List<String> status,
             @RequestParam(value = "table", required = false) String table,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,

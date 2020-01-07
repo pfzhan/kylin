@@ -73,7 +73,7 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "model_name", required = false) String modelAlias, //
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "owner", required = false) String owner, //
-            @RequestParam(value = "status", required = false) String status, //
+            @RequestParam(value = "status", required = false) List<String> status, //
             @RequestParam(value = "table", required = false) String table, //
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,

@@ -46,6 +46,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -242,7 +243,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
 
-        Mockito.when(modelService.getModels("model1", "default", true, "ADMIN", "NEW", "last_modify", false))
+        Mockito.when(
+                modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", false))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "model1").param("limit", "10")
@@ -250,8 +252,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", "NEW", "", 0, 10, "last_modify",
-                true);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 0, 10,
+                "last_modify", true);
     }
 
     @Test
@@ -265,13 +267,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
-                "last_modify", true);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"),
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true);
     }
 
     @Test
     public void testGetModelsWithOutModelName() throws Exception {
-        Mockito.when(modelService.getModels("", "default", true, "ADMIN", "NEW", "last_modify", true))
+        Mockito.when(modelService.getModels("", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", true))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model_name", "").param("limit", "10")
@@ -279,8 +281,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
-                "last_modify", true);
+        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", Arrays.asList("NEW"),
+                "TEST_KYLIN_FACT", 0, 10, "last_modify", true);
     }
 
     @Test
@@ -348,7 +350,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("project", "default").param("purge", "true")
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, false, null);
+        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", true, false,
+                null);
     }
 
     @Test
@@ -362,8 +365,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                         .param("ids", "ef5e0663-feba-4ed2-b71c-21958122bbff")
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", false,
-                false, request.getIds());
+        Mockito.verify(nModelController).deleteSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", false, false,
+                request.getIds());
     }
 
     @Test

@@ -409,7 +409,7 @@ public class ModelService extends BasicService {
     }
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
-            String owner, String status, String sortBy, boolean reverse) {
+            String owner, List<String> status, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(projectName);
         List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
         val dfManager = getDataflowManager(projectName);
@@ -427,9 +427,8 @@ public class ModelService extends BasicService {
             if (isModelNameMatch && isModelOwnerMatch) {
                 RealizationStatusEnum modelStatus = isBroken ? RealizationStatusEnum.BROKEN
                         : getModelStatus(modelDesc.getUuid(), projectName);
-                boolean isModelStatusMatch = StringUtils.isEmpty(status)
-                        || (modelStatus != null && modelStatus.name().equalsIgnoreCase(status));
-
+                boolean isModelStatusMatch = status == null || status.isEmpty()
+                        || (modelStatus != null && status.contains(modelStatus.name()));
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setModelBroken(isBroken);
@@ -442,7 +441,7 @@ public class ModelService extends BasicService {
                     nDataModelResponse
                             .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
                     nDataModelResponse.setAvailableIndexesCount(modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
-                            :   getAvailableIndexesCount(projectName, modelDesc.getId()));
+                            : getAvailableIndexesCount(projectName, modelDesc.getId()));
                     filterModels.add(nDataModelResponse);
                 }
             }
