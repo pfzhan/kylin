@@ -644,7 +644,9 @@ export default class QueryHistoryTable extends Vue {
     this.filterData.query_status.splice(0, this.filterData.query_status.length)
     this.filterData.realization.splice(0, this.filterData.realization.length)
     this.filterData.server.splice(0, this.filterData.server.length)
-    this.filterData = {...this.filterData, startTimeFrom: null, startTimeTo: null, latencyFrom: null, latencyTo: null}
+    this.filterData.latencyFrom = null
+    this.filterData.latencyTo = null
+    this.datetimerange = ''
     this.filterTags = []
     this.filterList()
   }

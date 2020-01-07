@@ -378,6 +378,7 @@ export default class ModelPartitionModal extends Vue {
           })
           return
         }
+        this.savePartition()
       } else {
         this.savePartition()
       }
