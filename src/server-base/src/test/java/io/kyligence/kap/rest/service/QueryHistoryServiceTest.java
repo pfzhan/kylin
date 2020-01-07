@@ -48,6 +48,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
@@ -55,12 +58,22 @@ import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
+import lombok.var;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
 
     @InjectMocks
     private QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
+
+    @Mock
+    private ModelService modelService = Mockito.spy(new ModelService());
+
+    @InjectMocks
+    private TableService tableService = Mockito.spy(new TableService());
+
+    @Mock
+    private AclTCRService aclTCRService = Mockito.spy(AclTCRService.class);
 
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
@@ -75,6 +88,11 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(queryHistoryService, "aclEvaluate", aclEvaluate);
+
+        ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(tableService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(tableService, "modelService", modelService);
+        ReflectionTestUtils.setField(tableService, "aclTCRService", aclTCRService);
     }
 
     @After
@@ -132,7 +150,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(queryHistories.get(1).getEngineType());
         // assert accelerated query
         Assert.assertEquals(acceleratedQuery.getSql(), queryHistories.get(2).getSql());
-        val modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream()
+        var modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream()
                 .map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
         Assert.assertEquals(2, modelAlias.size());
         Assert.assertTrue(modelAlias.contains("nmodel_basic"));
@@ -142,6 +160,25 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
                 .map(NativeQueryRealization::getModelId).collect(Collectors.toSet());
         Assert.assertTrue(modelIds.contains("741ca86a-1f13-46da-a59f-95fb68615e3a"));
         Assert.assertTrue(modelIds.contains("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+
+        tableService.unloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", false);
+        queryHistories = (List<QueryHistory>) queryHistoryService.getQueryHistories(request, 10, 0)
+                .get("query_histories");
+        modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream()
+                .map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
+        Assert.assertTrue(modelAlias.contains("nmodel_basic broken"));
+        Assert.assertTrue(modelAlias.contains("nmodel_basic_inner broken"));
+
+        val id = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        NDataflowManager.getInstance(getTestConfig(), PROJECT).dropDataflow(id);
+        NIndexPlanManager.getInstance(getTestConfig(), PROJECT).dropIndexPlan(id);
+        NDataModelManager.getInstance(getTestConfig(), PROJECT).dropModel(id);
+        queryHistories = (List<QueryHistory>) queryHistoryService.getQueryHistories(request, 10, 0)
+                .get("query_histories");
+        modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream()
+                .map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
+        Assert.assertTrue(modelAlias.contains("deleted model"));
+
     }
 
     @Test

@@ -109,6 +109,18 @@ public class QueryHistoryService extends BasicService {
                     String alias = dataModelManager.getDataModelDesc(realization.getModelId()).getAlias();
                     realization.setModelAlias(alias);
                     realizations.add(realization);
+                } else {
+                    realization.setValid(false);
+                    val brokenModel = dataModelManager.getDataModelDesc(realization.getModelId());
+                    if (brokenModel == null) {
+                        realization.setModelAlias("deleted model");
+                        realizations.add(realization);
+                        return;
+                    }
+                    if (brokenModel.isBroken()) {
+                        realization.setModelAlias(String.format("%s broken", brokenModel.getAlias()));
+                        realizations.add(realization);
+                    }
                 }
             });
             query.setNativeQueryRealizations(realizations);
