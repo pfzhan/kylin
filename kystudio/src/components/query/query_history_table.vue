@@ -47,7 +47,7 @@
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 3px 10px;">
                       <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
-                        <el-tag size="small" class="model-tag" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openIndexDialog(item)">{{item.modelAlias}}</el-tag>
+                        <el-tag size="small" :type="item.valid ? '' : 'info'" :class="{'model-tag': item.valid}" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openIndexDialog(item)">{{item.modelAlias}}</el-tag>
                       </div>
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
@@ -111,7 +111,7 @@
         <template slot-scope="props">
           <div class="tag-ellipsis">
             <template v-if="props.row.realizations && props.row.realizations.length">
-              <el-tag v-for="item in props.row.realizations" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag>
+              <el-tag v-for="item in props.row.realizations" :type="item.valid ? '' : 'info'" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag>
             </template>
             <template v-else>
               <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
@@ -409,6 +409,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   openIndexDialog (realization) {
+    if (!realization.valid) return
     if (realization.indexType === 'Agg Index') {
       this.$emit('openIndexDialog', realization.modelId)
     } else if (realization.indexType === 'Table Index') {
