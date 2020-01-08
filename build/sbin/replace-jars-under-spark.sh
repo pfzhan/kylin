@@ -50,6 +50,13 @@ then
 
     find ${SPARK_HOME}/jars -name "zookeeper-*" -exec rm -rf {} \;
 
+    if [[ $(isFI_C90) == 1 ]]; then
+        fi_c90_jars=$(find ${FI_ENV_PLATFORM}/HDFS/hadoop/share/hadoop/common/lib/ -maxdepth 1 \
+        -name "stax2-api-*.jar" -o -name "woodstox-core-*.jar" \
+        -o -name "commons-configuration2-*.jar" -o -name "htrace-core4-*-incubating.jar" \
+        -o -name "re2j-*.jar" -o -name "hadoop-plugins-*.jar" )
+    fi
+
 elif [ -d $cdh_mapreduce_path ]
 then
     common_jars=$(find $cdh_mapreduce_path/../hadoop -maxdepth 2 \
@@ -84,16 +91,21 @@ fi
 
 # not consider HDP
 
-jar_list="${common_jars} ${hdfs_jars} ${mr_jars} ${yarn_jars} ${other_jars} ${cdh6_jars}"
+jar_list="${common_jars} ${hdfs_jars} ${mr_jars} ${yarn_jars} ${other_jars} ${cdh6_jars} ${fi_c90_jars}"
 
 echo "Find platform specific jars:${jar_list}, will replace with these jars under ${SPARK_HOME}/jars."
 
 find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
-find ${SPARK_HOME}/jars -name "hadoop-*2.6.*.jar" -exec rm -rf {} \;
+find ${SPARK_HOME}/jars -name "hadoop-*2.6.*.jar" -exec rm -f {} \;
 
 if [[ $(isCDH_6_1) == 1 ]]; then
-    find ${SPARK_HOME}/jars -name "hadoop-hdfs-*.jar" -exec rm -rf {} \;
-    find ${SPARK_HOME}/jars -name "hive-exec-*.jar" -exec rm -rf {} \;
+    find ${SPARK_HOME}/jars -name "hadoop-hdfs-*.jar" -exec rm -f {} \;
+    find ${SPARK_HOME}/jars -name "hive-exec-*.jar" -exec rm -f {} \;
+    cp ${SPARK_HOME}/hadoop3/cdh6.1/*.jar ${SPARK_HOME}/jars
+fi
+
+if [[ $(isFI_C90) == 1 ]]; then
+    find ${SPARK_HOME}/jars -name "hive-exec-*.jar" -exec rm -f {} \;
     cp ${SPARK_HOME}/hadoop3/cdh6.1/*.jar ${SPARK_HOME}/jars
 fi
 

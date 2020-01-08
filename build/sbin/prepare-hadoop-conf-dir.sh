@@ -15,7 +15,7 @@ function fetchKylinHadoopConf() {
         FI_ENV_PLATFORM=$BIGDATA_HOME
     fi
 
-    ## FusionInsight platform C70.
+    ## FusionInsight platform C70/C90.
     if [ -n "$BIGDATA_CLIENT_HOME" ]
     then
         FI_ENV_PLATFORM=$BIGDATA_CLIENT_HOME

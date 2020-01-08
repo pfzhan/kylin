@@ -48,3 +48,19 @@ function isHDP_3_1() {
     echo 0
     return 0
 }
+
+function isFI_C90() {
+    ## FusionInsight platform C70/C90.
+    if [[ -n "$BIGDATA_CLIENT_HOME" ]]; then
+        hadoop_common_file="`find ${BIGDATA_CLIENT_HOME}/HDFS/hadoop/share/hadoop/common/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
+        fi_version=${hadoop_common_file##*/}
+
+        if [[ "${fi_version}" == hadoop-common-3.1* ]]; then
+            echo 1
+            return 1
+        fi
+    fi
+
+    echo 0
+    return 0
+}
