@@ -84,6 +84,20 @@ public class RealizationChooserTest extends NLocalWithSparkSessionTest {
 
     }
 
+    @Test
+    public void test_sortByCandidatesId_when_candidatesCostAreTheSame() {
+        // can be answered by both [nnmodel_basic] & [nmodel_basic_inner]
+        String sql = "select count(*) from TEST_ACCOUNT group by ACCOUNT_ID";
+        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), "default", new String[] { sql });
+        smartMaster.runAll();
+        OLAPContext context = Lists
+                .newArrayList(smartMaster.getContext().getModelContexts().get(0).getModelTree().getOlapContexts())
+                .get(0);
+        context.olapSchema.setConfigOnlyInTest(KylinConfig.getInstanceFromEnv().base());
+        RealizationChooser.attemptSelectCandidate(context);
+        Assert.assertEquals("nmodel_basic_inner", context.realization.getModel().getAlias());
+    }
+
     private void addLayout(NDataflow dataflow, long rowcount) {
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);
         var indexPlan = indePlanManager.getIndexPlanByModelAlias(dataflow.getModelAlias());
