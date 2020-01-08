@@ -64,6 +64,31 @@
         <el-button @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog class="import-ssb" :append-to-body="true" :title="$t('importSSB')" :visible.sync="importSSBvisible" :close-on-click-modal="false" width="660px" @close="resetImportSSB">
+      <div class="ksd-center" v-if="!isImportSuccess&&!isShowImportError">
+        <div class="ksd-mb-20">{{$t('importTips')}}</div>
+        <div class="progress-bar"><el-progress :percentage="percent"></el-progress></div>
+        <div class="inprogress ksd-fs-12">{{$t('importInprogress')}}</div>
+      </div>
+      <div class="ksd-center" v-if="isImportSuccess&&!isShowImportError">
+        <div class="ksd-mb-20">{{$t('importSuccessTips')}}</div>
+        <i class="el-icon-ksd-good_health"></i>
+        <div class="ksd-mb-10"><el-button type="primary" size="small" @click="startGuide">{{$t('startGuide')}}</el-button></div>
+      </div>
+      <el-alert
+        v-if="!isImportSuccess&&isShowImportError"
+        :show-background="false"
+        :closable="false"
+        class="ksd-mb-10"
+        show-icon
+        type="error">
+        <span slot="title" class="ksd-fs-14">{{$t('importFailed1')}}<a target="_blank" :href="$t('manualLinkURL')">{{$t('manualLink')}}</a>{{$t('importFailed2')}}</span>
+      </el-alert>
+      <div slot="footer" class="dialog-footer" v-if="!isImportSuccess&&isShowImportError">
+        <el-button plain size="medium" @click="importSSBvisible = false">{{$t('kylinLang.common.close')}}</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -104,13 +129,20 @@
         },
         applyLoading: false,
         changeDialog: true,
-        showLicenseCheck: false
+        showLicenseCheck: false,
+        importSSBvisible: false,
+        isImportSuccess: false,
+        isShowImportError: false,
+        percent: 0,
+        ST: null
       }
     },
     methods: {
       ...mapActions({
         getAboutKap: 'GET_ABOUTKAP',
-        trialLicenseFile: 'TRIAL_LICENSE_FILE'
+        trialLicenseFile: 'TRIAL_LICENSE_FILE',
+        checkSSB: 'CHECK_SSB',
+        importSSBDatabase: 'IMPORT_SSB_DATABASE'
       }),
       ...mapMutations({
         showLicenseSuccessDialog: 'TOGGLE_LICENSE_DIALOG'
@@ -124,8 +156,51 @@
         } else if (val === 'updatelicense') {
           this.updateLicenseVisible = true
         } else if (val === 'guide') {
-          this.$store.state.system.guideConfig.guideModeCheckDialog = true
+          this.checkSSB().then((res) => {
+            handleSuccess(res, (data) => {
+              if (data) {
+                this.$store.state.system.guideConfig.guideModeCheckDialog = true
+              } else {
+                this.importSSBvisible = true
+                this.importLoading()
+                this.importSSBDatabase().then((res) => {
+                  handleSuccess(res, (data) => {
+                    this.percent = 100
+                    this.$nextTick(() => {
+                      this.isImportSuccess = true
+                    })
+                  })
+                }, (r) => {
+                  this.isShowImportError = true
+                })
+              }
+            })
+          }, (errResp) => {
+            handleError(errResp)
+          })
         }
+      },
+      startGuide () {
+        this.importSSBvisible = false
+        this.$store.state.system.guideConfig.guideModeCheckDialog = true
+      },
+      importLoading () {
+        var _this = this
+        this.percent = 0
+        clearInterval(this.ST)
+        this.ST = setInterval(() => {
+          var randomPlus = Math.round(5 * Math.random())
+          if (_this.percent + randomPlus < 99) {
+            _this.percent += randomPlus
+          } else {
+            clearInterval(_this.ST)
+          }
+        }, 800)
+      },
+      resetImportSSB () {
+        this.importSSBvisible = false
+        this.isImportSuccess = false
+        this.isShowImportError = false
       },
       resetUpdate () {
         this.loadCheck = false
@@ -338,7 +413,16 @@
         userGuide: 'User Guide',
         enterpriseName: 'Only Chinese characters, letters, digits and space are supported. The maximum is 50 characters.',
         manualUrl: 'https://docs.kyligence.io/books/v4.0/en/index.html',
-        emailLength: 'The maximum is 50 characters'
+        emailLength: 'The maximum is 50 characters',
+        importSSB: 'Import SSB Dataset',
+        importTips: 'The complete SSB sample dataset is not detected in the current system and is being imported automatically.',
+        importInprogress: 'This process will take approximately 2 minutes, please wait for a while.',
+        importSuccessTips: 'Imported SSB sample dataset successfully. Now you can start the user guide.',
+        startGuide: 'Start user guide',
+        importFailed1: 'Failed to import SSB sample dataset. Please refer to ',
+        manualLink: 'the manual',
+        manualLinkURL: 'https://docs.kyligence.io/books/v4.0/en/datasource/import_hive.en.html',
+        importFailed2: ' to restart the user guide after importing the SSB dataset manually.'
       },
       'zh-cn': {
         autoUpload: '自动上传',
@@ -375,7 +459,16 @@
         userGuide: '新手指引',
         enterpriseName: '支持中英文、数字、空格，最大值为 50 个字符',
         manualUrl: 'https://docs.kyligence.io/books/v4.0/zh-cn/index.html',
-        emailLength: '最大值为 50 个字符'
+        emailLength: '最大值为 50 个字符',
+        importSSB: '导入 SSB 数据集',
+        importTips: '当前系统中未检测到完整的 SSB 样例数据集，正在自动导入。',
+        importInprogress: '该过程需要大约 2 分钟，请稍候。',
+        importSuccessTips: '导入成功，现在可以开始新手指引了。',
+        startGuide: '进入新手指引',
+        importFailed1: '导入 SSB 样例数据集失败。请参照',
+        manualLink: '手册',
+        manualLinkURL: 'https://docs.kyligence.io/books/v4.0/zh-cn/datasource/import_hive.cn.html',
+        importFailed2: '手动导入 SSB 数据集后重新开始新手指引。'
       }
     }
   }
@@ -423,6 +516,21 @@
       .el-input {
         padding: 3px 0px 3px 0px;
       }
+    }
+  }
+  .import-ssb {
+    .progress-bar {
+      margin: 0 40px;
+    }
+    .inprogress {
+      color: @text-disabled-color;
+      margin-bottom: 60px;
+      margin-top: 5px;
+    }
+    .el-icon-ksd-good_health {
+      color: @normal-color-1;
+      font-size: 40px;
+      margin-bottom: 20px;
     }
   }
 </style>

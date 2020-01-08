@@ -269,5 +269,11 @@ export default {
   },
   fetchPartitionFormat (data) {
     return Vue.resource(apiUrl + 'tables/partition_column_format').get(data)
+  },
+  checkSSB: () => {
+    return Vue.resource(apiUrl + 'tables/ssb').get()
+  },
+  importSSBDatabase: () => {
+    return Vue.resource(apiUrl + 'tables/import_ssb').save()
   }
 }

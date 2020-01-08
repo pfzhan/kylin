@@ -25,7 +25,7 @@
         </el-table-column>
       </el-table>
     </div>
-    <kap-empty-data v-if="!headers.length">
+    <kap-empty-data v-if="!headers.length" :content="emptyText">
     </kap-empty-data>
   </div>
 </template>
@@ -50,6 +50,9 @@ export default class TableSamples extends Vue {
   perPageSize = 50
   samplePageRange = ''
   ST = null
+  get emptyText () {
+    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   get headers () {
     return this.table.sampling_rows && this.table.sampling_rows.length ? this.table.__data.columns
       .map(column => column.name)

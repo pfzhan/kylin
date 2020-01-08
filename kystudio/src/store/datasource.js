@@ -343,6 +343,12 @@ export default {
     },
     [types.FETCH_PARTITION_FORMAT]: function ({ commit }, data) {
       return api.datasource.fetchPartitionFormat(data)
+    },
+    [types.CHECK_SSB]: function ({ commit }) {
+      return api.datasource.checkSSB()
+    },
+    [types.IMPORT_SSB_DATABASE]: function ({ commit }) {
+      return api.datasource.importSSBDatabase()
     }
   }
 }

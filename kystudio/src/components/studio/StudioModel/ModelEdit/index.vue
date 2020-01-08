@@ -14,7 +14,7 @@
           <span class="setting-icon" v-if="!isSchemaBrokenModel" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
         <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="t.filterColumnChar" @input="t.filterColumns()" size="small" :placeholder="$t('searchColumn')"></el-input></div>
-        <div class="column-list-box ksd-drag-box" v-if="!t.drawSize.isOutOfView" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
+        <div class="column-list-box ksd-drag-box" v-if="!t.drawSize.isOutOfView&&t.showColumns.length" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll.reactive>
           <ul>
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.showColumns" :key="col.name">
               <span class="ksd-nobr-text">
@@ -38,6 +38,7 @@
             <li class="li-load-more" v-if="t.hasMoreColumns" @click="t.loadMoreColumns()">{{$t('kylinLang.common.loadMore')}}</li>
           </ul>
         </div>
+        <kap-nodata v-else :content="$t('kylinLang.common.noResults')"></kap-nodata>
         <!-- 拖动操纵 -->
         <DragBar :dragData="t.drawSize" :dragZoom="modelRender.zoom"/>
         <!-- 拖动操纵 -->
@@ -439,7 +440,7 @@
         <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
       </div>
       <div class="column-search-box"><el-input prefix-icon="el-icon-search" v-model="currentEditTable.filterColumnChar" @input="currentEditTable.filterColumns()" size="small"></el-input></div>
-      <div class="column-list-box" v-scroll>
+      <div class="column-list-box" v-scroll v-if="currentEditTable.showColumns.length">
         <ul >
           <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.showColumns" :key="col.name">
             <span class="ksd-nobr-text">
@@ -460,6 +461,7 @@
           <li class="li-load-more" v-if="currentEditTable.hasMoreColumns" @click="currentEditTable.loadMoreColumns()">{{$t('kylinLang.common.loadMore')}}</li>
         </ul>
       </div>
+      <kap-nodata v-else :content="$t('kylinLang.common.noResults')"></kap-nodata>
       <!-- 拖动操纵 -->
       <DragBar :dragData="currentEditTable.drawSize"/>
       <!-- 拖动操纵 -->
