@@ -316,7 +316,7 @@ export default class StudioSource extends Vue {
         tableName: fullTableName
       })
       if (isSubmit) {
-        this.handleFreshTable()
+        this.fetchTableDetail({ tableName, databaseName })
       }
     } catch (e) {
       this.reloadBtnLoading = false
@@ -329,7 +329,7 @@ export default class StudioSource extends Vue {
       const tableName = this.selectedTable.name
       const databaseName = this.selectedTable.database
       let isHaveFirstTable = true
-      await this.$refs['datasource-bar'].loadTables({ isReset: true })
+      await this.$refs['datasource-bar'].reloadTables()
       isSetToDefault
         ? isHaveFirstTable = this.$refs['datasource-bar'].selectFirstTable()
         : await this.fetchTableDetail({ tableName, databaseName })

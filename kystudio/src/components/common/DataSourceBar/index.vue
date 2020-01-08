@@ -427,10 +427,14 @@ export default class DataSourceBar extends Vue {
       this.timer = setTimeout(async () => {
         await this.loadTreeData(filterText)
         this.filterText = filterText
+        freshTreeOrder(this)
         this.selectFirstTable()
         resolve()
       }, 1000)
     })
+  }
+  reloadTables () {
+    this.handleFilter(this.filterText)
   }
   async handleLoadMore (data, node) {
     let dbName = (data.parent.label).toLocaleLowerCase()
@@ -564,7 +568,7 @@ export default class DataSourceBar extends Vue {
   async handleResultModalClosed () {
     try {
       await this.loadDataBases()
-      await this.loadTables({ isReset: true })
+      await this.reloadTables()
       freshTreeOrder(this)
       this.loadedTables.length && this.$emit('tables-loaded')
       this.loadedTables = []
