@@ -3,7 +3,7 @@
     <div class="model-edit">
       <el-button v-guide.modelEditAction v-visible @click="guideActions"></el-button>
 
-      <kap-empty-data :content="$t('noTableTip')" v-if="!Object.keys(modelRender.tables).length"></kap-empty-data>
+      <kap-empty-data class="gifEmptyData" :content="$t('noTableTip')" :image="require('../../../../assets/img/editmodel.gif')" v-if="!Object.keys(modelRender.tables).length"></kap-empty-data>
       <!-- table box -->
       <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
@@ -1672,6 +1672,14 @@ export default class ModelEdit extends Vue {
 @--index-normal: 1;
 @broken-line-color: @color-danger;
 @broken-line-lable-close-hover-color: #F178A2;
+.gifEmptyData{
+  &.empty-data.empty-data-normal{
+    img{
+      height: 140px;
+      opacity: 0.8;
+    }
+  }
+}
 .drag-in {
   box-shadow: inset 0 0 4px 0 @base-color;
 }
