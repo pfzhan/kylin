@@ -92,7 +92,7 @@ public class Candidate implements Comparable<Candidate> {
         if (comp != 0)
             return comp;
 
-        return 0;
+        return this.realization.getModel().getId().compareTo(o.realization.getModel().getId());
     }
 
     @Override
