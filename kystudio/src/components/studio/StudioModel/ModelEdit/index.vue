@@ -1678,6 +1678,9 @@ export default class ModelEdit extends Vue {
       height: 140px;
       opacity: 0.8;
     }
+    .center:first-child{
+      margin-bottom:10px;
+    }
   }
 }
 .drag-in {
