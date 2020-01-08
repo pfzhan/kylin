@@ -162,7 +162,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(0,
+            Assert.assertEquals(1,
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());
             Assert.assertEquals(0, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
         });
@@ -172,7 +172,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
             Assert.assertEquals(1,
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());
-            Assert.assertEquals(2, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
+            Assert.assertEquals(0, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
 
         });
     }
@@ -191,7 +191,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         modelManager.updateDataModelDesc(copyForUpdate);
 
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(0,
+            Assert.assertEquals(1,
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());
         });
     }
@@ -210,7 +210,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
 
         tableService.unloadTable(project, "DEFAULT.TEST_KYLIN_FACT", false);
         await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(0,
+            Assert.assertEquals(1,
                     NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId).getSegments().size());
         });
 
@@ -220,7 +220,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
             val dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(modelId);
             Assert.assertEquals(1, dataflow.getSegments().size());
             Assert.assertTrue(dataflow.getCoveredRange().isInfinite());
-            Assert.assertEquals(2, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
+            Assert.assertEquals(0, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
         });
     }
 

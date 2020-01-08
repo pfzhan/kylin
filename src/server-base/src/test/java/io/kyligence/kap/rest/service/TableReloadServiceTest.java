@@ -377,6 +377,13 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val brokenModel = brokenModels.get(0);
         Assert.assertNotNull(brokenModel.getPartitionDesc());
 
+        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            val df2 = NDataflowManager.getInstance(getTestConfig(), PROJECT)
+                    .getDataflowByModelAlias("nmodel_basic_inner");
+            Assert.assertEquals(RealizationStatusEnum.BROKEN, df2.getStatus());
+            Assert.assertEquals(0, df2.getSegments().size());
+        });
+
         modelService.checkFlatTableSql(brokenModel);
 
         val copyModel = JsonUtil.deepCopy(brokenModel, NDataModel.class);
@@ -944,5 +951,4 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             }
         });
     }
-
 }

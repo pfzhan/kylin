@@ -33,6 +33,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.eventbus.Subscribe;
@@ -102,10 +103,11 @@ public class ModelBrokenListener {
             }
             val dataflow = dataflowManager.getDataflow(modelId);
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
-            dfUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
             dfUpdate.setStatus(RealizationStatusEnum.BROKEN);
+            if (model.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
+                dfUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+            }
             dataflowManager.updateDataflow(dfUpdate);
-
             if (model.getBrokenReason() == NDataModel.BrokenReason.EVENT) {
                 dataflowManager.updateDataflow(model.getId(), copyForWrite -> copyForWrite.setEventError(true));
             }
@@ -157,16 +159,19 @@ public class ModelBrokenListener {
             val dfUpdate = new NDataflowUpdate(dataflow.getId());
             dfUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(dfUpdate);
-            if (model.getManagementType() == ManagementType.MODEL_BASED && model.getPartitionDesc() == null) {
-                dataflowManager.fillDfManually(dataflow,
-                        Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
-            } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
-                dataflowManager.fillDf(dataflow);
+            if (CollectionUtils.isEmpty(dataflow.getSegments())) {
+                if (model.getManagementType() == ManagementType.MODEL_BASED && model.getPartitionDesc() == null) {
+                    dataflowManager.fillDfManually(dataflow,
+                            Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+                } else if (model.getManagementType() == ManagementType.TABLE_ORIENTED) {
+                    dataflowManager.fillDf(dataflow);
+                }
+                val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                eventManager.postAddCuboidEvents(model.getId(), "ADMIN");
             }
             model.setHandledAfterBroken(false);
             modelManager.updateDataBrokenModelDesc(model);
-            val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            eventManager.postAddCuboidEvents(model.getId(), "ADMIN");
+
             return null;
         }, project);
     }
