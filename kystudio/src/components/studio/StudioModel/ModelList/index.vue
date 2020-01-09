@@ -15,6 +15,10 @@
           <span>{{$t('kylinLang.model.generateModel')}}</span>
         </el-button>
       </div>
+      <div class="filter-tags" v-show="filterTags.length">
+        <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
+        <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
+      </div>
       <el-table class="model_list_table"
         v-guide.scrollModelTable
         :data="modelArray"
@@ -136,7 +140,12 @@
           prop="status"
           show-overflow-tooltip
           width="110"
-          :label="$t('status')">
+          :filters="statusList.map(item => ({text: item, value: item}))"
+          :filtered-value="filterArgs.status"
+          :label="$t('status')"
+          filter-icon="el-icon-ksd-filter"
+          :show-multiple-footer="false"
+          :filter-change="(v) => filterContent(v, 'status')">
           <template slot-scope="scope">
             <el-tag size="mini" :type="getModelStatusTagType[scope.row.status]">{{scope.row.status}}</el-tag>
           </template>
@@ -323,14 +332,17 @@ export default class ModelList extends Vue {
     exact: false,
     model_name: '',
     sort_by: 'last_modify',
-    reverse: true
+    reverse: true,
+    status: []
   }
+  statusList = ['ONLINE', 'OFFLINE', 'BROKEN']
   currentEditModel = null
   showFull = false
   showSearchResult = false
   searchLoading = false
   modelArray = []
   expandedRows = []
+  filterTags = []
   showGenerateModelDialog () {
     this.showUploadSqlDialog({
       isGenerateModel: true
@@ -625,6 +637,36 @@ export default class ModelList extends Vue {
   showAddModelDialog () {
     this.callAddModelDialog()
   }
+  // 查询状态过滤回调函数
+  filterContent (val, type) {
+    const maps = {
+      status: 'status'
+    }
+
+    this.filterTags = this.filterTags.filter((item, index) => item.key !== type || item.key === type && val.includes(item.label))
+    const list = this.filterTags.filter(it => it.key === type).map(it => it.label)
+    val.length && val.forEach(item => {
+      if (!list.includes(item)) {
+        this.filterTags.push({label: item, source: maps[type], key: type})
+      }
+    })
+    this.filterArgs[type] = val
+    this.pageCurrentChange(0, this.filterArgs.page_size)
+  }
+  // 删除单个筛选条件
+  handleClose (tag) {
+    const index = this.filterArgs[tag.key].indexOf(tag.label)
+
+    index > -1 && this.filterArgs[tag.key].splice(index, 1)
+    this.filterTags = this.filterTags.filter(item => item.key !== tag.key || item.key === tag.key && tag.label !== item.label)
+    this.pageCurrentChange(0, this.filterArgs.page_size)
+  }
+  // 清除所有筛选条件
+  clearAllTags () {
+    this.filterArgs.status.splice(0, this.filterArgs.status.length)
+    this.filterTags = []
+    this.pageCurrentChange(0, this.filterArgs.page_size)
+  }
 }
 </script>
 <style lang="less">
@@ -698,6 +740,21 @@ export default class ModelList extends Vue {
         z-index: 10;
       }
     }
+    .el-icon-ksd-filter {
+      position: relative;
+      font-size: 17px;
+      top: 1px;
+      left: 5px;
+      &:hover,
+      &.filter-open {
+        color: @base-color;
+      }
+    }
+    .cell.highlight {
+      .el-icon-ksd-filter {
+        color: @base-color;
+      }
+    }
   }
   margin-left: 20px;
   margin-right: 20px;
@@ -752,6 +809,27 @@ export default class ModelList extends Vue {
   }
   .el-tabs__content {
     overflow: initial;
+  }
+  .filter-tags {
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    box-sizing: border-box;
+    position: relative;
+    background: @background-disabled-color;
+    .el-tag {
+      margin-left: 5px;
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+    .clear-all-filters {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 14px;
+      color: @base-color;
+      cursor: pointer;
+    }
   }
 }
 </style>

@@ -22,7 +22,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + modelId + '/segments?project=' + project + '&purge=' + true).delete()
   },
   getModelList: (params) => {
-    return Vue.resource(apiUrl + 'models').get(params)
+    return Vue.resource(apiUrl + 'models{?status}').get(params)
   },
   renameModel: (params) => {
     return Vue.resource(apiUrl + 'models/' + params.model + '/name').update(params)
