@@ -344,6 +344,7 @@ export default class ModelList extends Vue {
   modelArray = []
   expandedRows = []
   filterTags = []
+  prevExpendContent = []
   showGenerateModelDialog () {
     this.showUploadSqlDialog({
       isGenerateModel: true
@@ -454,6 +455,13 @@ export default class ModelList extends Vue {
   // 还原模型列表展开状态
   setModelExpand () {
     if (!this.$refs.modelListTable) return
+    let obj = {}
+    this.prevExpendContent.forEach(item => {
+      obj[item.alias] = item
+    })
+    this.modelArray.forEach(it => {
+      (it.alias in obj) && (it.tabTypes = obj[it.alias].tabTypes)
+    })
     this.$refs.modelListTable.store.states.expandRows = []
     this.expandedRows.length && this.expandedRows.forEach(item => {
       this.$refs.modelListTable.toggleRowExpansion(item)
@@ -602,6 +610,7 @@ export default class ModelList extends Vue {
   }
   // 加载模型列表
   loadModelsList () {
+    this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
     return this.loadModels(this.filterArgs).then(() => {
       if (this.filterArgs.model_name || this.modelsPagerRenderData.list.length) {
         this.showSearchResult = true
