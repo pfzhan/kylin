@@ -57,12 +57,14 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -298,6 +300,15 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         request.setSimplifiedMeasures(request.getSimplifiedMeasures().stream()
                 .filter(m -> m.getId() != 100002 && m.getId() != 100003).collect(Collectors.toList()));
         // add new measure and remove 1002 and 1003
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default")
+                .getIndexPlan(getTestModel().getUuid());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> {
+                        copyForWrite.setIndexes(new ArrayList<>());
+                    });
+            return 0;
+        }, "default");
         modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
@@ -331,6 +342,15 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 simplifiedMeasure.setReturnType("hllc(12)");
             }
         }
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default")
+                .getIndexPlan(getTestModel().getUuid());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> {
+                        copyForWrite.setIndexes(new ArrayList<>());
+                    });
+            return 0;
+        }, "default");
         modelService.updateDataModelSemantic("default", request);
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -431,6 +451,15 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val prevId = getTestModel().getAllNamedColumns().stream()
                 .filter(n -> n.getAliasDotColumn().equals(newCol.getAliasDotColumn())).findFirst().map(n -> n.getId())
                 .orElse(0);
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default")
+                .getIndexPlan(getTestModel().getUuid());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> {
+                        copyForWrite.setIndexes(new ArrayList<>());
+                    });
+            return 0;
+        }, "default");
         modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
@@ -451,6 +480,54 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .orElse(null);
         Assert.assertNotNull(newCcCol);
         Assert.assertNotEquals(ccColId, newCcCol.getId());
+    }
+
+    @Test
+    public void testRemoveColumeExistInTableIndex() throws Exception {
+        val request = newSemanticRequest();
+        request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
+                .filter(c -> c.isDimension() && c.getId() != 25).collect(Collectors.toList()));
+        val newCol = new NDataModel.NamedColumn();
+        newCol.setName("PRICE2");
+        newCol.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
+        newCol.setStatus(NDataModel.ColumnStatus.DIMENSION);
+        request.getSimplifiedDimensions().add(newCol);
+        ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
+                .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
+        Assert.assertNotNull(ccDesc);
+        NamedColumn ccCol = request.getAllNamedColumns().stream()
+                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).findFirst().orElse(null);
+        Assert.assertNotNull(ccCol);
+        request.getComputedColumnDescs().remove(ccDesc);
+
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("table index still contains columns TEST_KYLIN_FACT.DEAL_YEAR");
+        modelService.updateDataModelSemantic("default", request);
+    }
+
+    @Test
+    public void testRemoveDimensionExistInAggIndex() throws Exception {
+        String modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        val request = newSemanticRequest(modelId);
+        request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
+                .filter(c -> c.isDimension() && c.getId() != 25).collect(Collectors.toList()));
+        NamedColumn dimDesc = request.getSimplifiedDimensions().stream()
+                .filter(cc -> "LSTG_FORMAT_NAME".equals(cc.getName())).findFirst().orElse(null);
+        Assert.assertNotNull(dimDesc);
+        request.getSimplifiedDimensions().remove(dimDesc);
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("agg group still contains dimensions TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
+        modelService.updateDataModelSemantic("default", request);
+    }
+
+    @Test
+    public void testRemoveMeasureExistInAggIndex() throws Exception {
+        String modelId = "82fa7671-a935-45f5-8779-85703601f49a";
+        val request = newSemanticRequest(modelId);
+        request.getSimplifiedMeasures().remove(1);
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("agg group still contains measures [GMV_SUM]");
+        modelService.updateDataModelSemantic("default", request);
     }
 
     @Test
@@ -961,11 +1038,15 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     private ModelRequest newSemanticRequest() throws Exception {
+        return newSemanticRequest("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+    }
+
+    private ModelRequest newSemanticRequest(String modelId) throws Exception {
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val model = modelMgr.getDataModelDesc(modelId);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject("default");
-        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setUuid(modelId);
         request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())

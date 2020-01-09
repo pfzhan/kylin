@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -369,32 +368,6 @@ public class ModelSemanticHelper extends BasicService {
             handleReloadData(newModel, originModel, project, start, end);
             recommendationManager.cleanAll(model);
             return;
-        } else {
-            // check agg group contains removed dimensions
-            val rule = indexPlan.getRuleBasedIndex();
-            if (rule != null) {
-                if (!newModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
-                    val allDimensions = rule.getDimensions();
-                    val dimensionNames = allDimensions.stream()
-                            .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
-                            .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-
-                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                            + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
-                }
-
-                for (NAggregationGroup agg : rule.getAggregationGroups()) {
-                    if (!newModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
-                        val measureNames = Arrays.stream(agg.getMeasures())
-                                .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
-                                .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-
-                        throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                                + "'s agg group still contains measures " + measureNames);
-                    }
-
-                }
-            }
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
                 .containsAll(originModel.getEffectiveDimenionsMap().keySet());

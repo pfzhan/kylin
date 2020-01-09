@@ -105,6 +105,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
@@ -1847,6 +1848,8 @@ public class ModelService extends BasicService {
 
         var newModel = modelManager.getDataModelDesc(modelId);
 
+        checkIndexColumnExist(project, modelId, originModel);
+
         checkFlatTableSql(newModel);
         semanticUpdater.handleSemanticUpdate(project, modelId, originModel, request.getStart(), request.getEnd());
 
@@ -1854,6 +1857,69 @@ public class ModelService extends BasicService {
         if (projectInstance.isSemiAutoMode()) {
             val recommendationManager = OptimizeRecommendationManager.getInstance(getConfig(), project);
             recommendationManager.cleanInEffective(modelId);
+        }
+    }
+
+    private void checkIndexColumnExist(String project, String modelId, NDataModel originModel) {
+        val indePlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val indexPlan = indePlanManager.getIndexPlan(modelId);
+        var newModel = getDataModelManager(project).getDataModelDesc(modelId);
+
+        // check agg group contains removed dimensions
+        val rule = indexPlan.getRuleBasedIndex();
+        if (rule != null) {
+            if (!newModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
+                val allDimensions = rule.getDimensions();
+                val dimensionNames = allDimensions.stream()
+                        .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
+                        .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                        + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+            }
+
+            for (NAggregationGroup agg : rule.getAggregationGroups()) {
+                if (!newModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
+                    val measureNames = Arrays.stream(agg.getMeasures())
+                            .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
+                            .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
+                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                            + "'s agg group still contains measures " + measureNames);
+                }
+            }
+        }
+
+        //check table index contains removed columns
+        val tableIndexColumns = indexPlan.getIndexes().stream().filter(IndexEntity::isTableIndex)
+                .map(IndexEntity::getDimensions).flatMap(List::stream).collect(Collectors.toSet());
+        val allNamedColumns = newModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .map(NDataModel.NamedColumn::getId).collect(Collectors.toList());
+        if (!allNamedColumns.containsAll(tableIndexColumns)) {
+            val columnNames = tableIndexColumns.stream().filter(x -> !allNamedColumns.contains(x))
+                    .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+            throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                    + "'s table index still contains columns " + StringUtils.join(columnNames, ","));
+        }
+
+        //check recommend agg index contains removed columns
+        val recommendAggIndex = indexPlan.getIndexes().stream().filter(x -> !x.isTableIndex())
+                .collect(Collectors.toList());
+        for (val aggIndex : recommendAggIndex) {
+            if (!newModel.getEffectiveDimenionsMap().keySet().containsAll(aggIndex.getDimensions())) {
+                val allDimensions = aggIndex.getDimensions();
+                val dimensionNames = allDimensions.stream()
+                        .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
+                        .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                        + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+            }
+
+            if (!newModel.getEffectiveMeasureMap().keySet().containsAll(aggIndex.getMeasures())) {
+                val measureNames = aggIndex.getMeasures().stream()
+                        .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
+                        .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
+                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
+                        + "'s agg group still contains measures " + measureNames);
+            }
         }
     }
 

@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.event;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,15 +55,16 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -73,8 +76,6 @@ import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 @Slf4j
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
@@ -190,6 +191,12 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         changeModelRequest();
         waitForEventFinished(0);
 
+        NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT).updateIndexPlan(MODEL_ID,
+                copyForWrite -> {
+                    copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(x -> x.getId() != 1000000)
+                            .collect(Collectors.toList()));
+                });
+
         // update measure
         updateMeasureRequest();
         waitForEventFinished(0);
@@ -265,7 +272,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().is(500)).andReturn().getResponse().getContentAsString();
 
-        Assert.assertTrue(errorMessage.contains("model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains measures [SUM_DEAL_AMOUNT]"));
+        Assert.assertTrue(errorMessage.contains(
+                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains measures [SUM_DEAL_AMOUNT]"));
     }
 
     private ModelRequest getModelRequest() throws Exception {

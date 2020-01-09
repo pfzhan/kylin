@@ -1509,7 +1509,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", model.getPartitionDesc().getPartitionDateColumn());
-
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(model.getUuid());
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> {
+                        copyForWrite.setIndexes(new ArrayList<>());
+                    });
+            return 0;
+        }, "default");
         modelService.updateDataModelSemantic("default", modelRequest);
 
         model = modelMgr.getDataModelDescByAlias("nmodel_basic");
@@ -1533,7 +1540,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
         }).when(manager).handleTableAliasModify(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
         val oldAlias = modelRequest.getJoinTables().get(0).getAlias();
         modelRequest.getJoinTables().get(0).setAlias(oldAlias + "_1");
-
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(modelId);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> {
+                        copyForWrite.setIndexes(new ArrayList<>());
+                    });
+            return 0;
+        }, "default");
         modelService.updateDataModelSemantic("default", modelRequest);
 
         Assert.assertTrue(clean.get());
@@ -3442,6 +3456,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.isTomb())
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.setSimplifiedDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
     }
 
@@ -3461,9 +3477,37 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setSimplifiedMeasures(
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100001)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(getTestConfig(), "default").getIndexPlan(modelId);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NIndexPlanManager.getInstance(getTestConfig(), "default").updateIndexPlan(indexPlan.getUuid(),
+                    copyForWrite -> {
+                        copyForWrite.setIndexes(new ArrayList<>());
+                    });
+            return 0;
+        }, "default");
         modelService.updateDataModelSemantic("default", modelRequest);
 
         Assert.assertTrue(clean.get());
+    }
+
+    @Test
+    public void testRemoveRecommendAggIndexDimensionColumn() throws Exception {
+        val modelRequest = prepare();
+        modelRequest.getSimplifiedDimensions().remove(0);
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("agg group still contains dimensions TEST_SITES.SITE_NAME");
+        modelService.updateDataModelSemantic("default", modelRequest);
+    }
+
+    @Test
+    public void testRemoveRecommendAggIndexMeasureColumn() throws Exception {
+        val modelRequest = prepare();
+        modelRequest.setSimplifiedMeasures(
+                modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100005)
+                        .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("agg group still contains measures [ITEM_COUNT_MAX]");
+        modelService.updateDataModelSemantic("default", modelRequest);
     }
 
     @Test

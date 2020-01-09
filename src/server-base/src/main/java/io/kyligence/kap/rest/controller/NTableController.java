@@ -534,7 +534,7 @@ public class NTableController extends NBasicController {
             NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(force);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
         } catch (Exception e) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "reload hive table name error");
+            throw new BadRequestException("reload hive table name error", ResponseCode.CODE_UNDEFINED, e);
         }
     }
 
