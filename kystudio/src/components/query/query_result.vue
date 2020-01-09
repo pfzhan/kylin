@@ -328,6 +328,7 @@ export default class queryResult extends Vue {
             text-overflow: ellipsis;
             position: absolute;
             margin-left: 5px;
+            white-space: nowrap;
           }
         }
       }

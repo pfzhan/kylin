@@ -30,7 +30,7 @@
             <el-row :gutter="15" type="flex">
               <el-col :span="14" :style="{height: flexHeight}">
                 <div class="loading" v-if="currentExpandId === props.row.query_id"><i class="el-icon-loading"></i></div>
-                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :isFormatter="true" :dragable="false" :isAbridge="true" :value="props.row.sql_text" v-bind="elementAttr(props)">
+                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :needFormater="true" :dragable="false" :isAbridge="true" :value="props.row.sql_text" v-bind="elementAttr(props)">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
@@ -137,7 +137,6 @@ import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime } from
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
-import { handleSuccessAsync } from '../../util/index'
 import '../../util/fly.js'
 import $ from 'jquery'
 import { sqlRowsLimit } from '../../config/index'
@@ -148,8 +147,7 @@ import { sqlRowsLimit } from '../../config/index'
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      markFav: 'MARK_FAV',
-      formatSql: 'FORMAT_SQL'
+      markFav: 'MARK_FAV'
     })
   },
   computed: {
@@ -282,26 +280,13 @@ export default class QueryHistoryTable extends Vue {
     return props.row.sql_text.split('\n').length > sqlRowsLimit && {'height': 222}
   }
 
-  async getFormatSql (sql) {
-    let formatSql = ''
-    try {
-      const res = await this.formatSql({sqls: [sql]})
-      const data = await handleSuccessAsync(res)
-      formatSql = data && data.length ? data[0] : sql
-    } catch (e) {
-      formatSql = sql
-    }
-    return formatSql
-  }
-
-  async expandChange (e) {
+  expandChange (e) {
     if (this.toggleExpandId.includes(e.query_id)) {
       const index = this.toggleExpandId.indexOf(e.query_id)
       this.toggleExpandId.splice(index, 1)
       return
     }
     this.currentExpandId = e.query_id
-    e.sql_text = await this.getFormatSql(e.sql_text)
     this.flexHeight = 0
     this.toggleExpandId.push(e.query_id)
     this.$nextTick(() => {

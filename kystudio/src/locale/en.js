@@ -181,7 +181,8 @@ exports.default = {
     reset: 'Reset',
     comma: ', ',
     dot: '.',
-    sqlLimitTip: 'Only the first 100 rows of SQL statements are displayed. Please click the copy button to obtain the complete queries.'
+    sqlLimitTip: 'Only the first 100 rows of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
+    sqlPartLimitTip: 'Only parts of SQL statements are displayed. Please click the copy button to obtain the complete queries.'
   },
   model: {
     generateModel: 'Custom SQL',

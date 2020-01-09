@@ -11,6 +11,7 @@ let pageSizes = [5, 10, 20, 50, 100]
 let speedInfoTimer = 6000
 
 let sqlRowsLimit = 100
+let sqlStrLenLimit = 2000
 
 let tooltipDelayTime = 400
 if (process.env.NODE_ENV === 'development') {
@@ -31,7 +32,8 @@ export {
   pageSizes,
   tooltipDelayTime,
   speedInfoTimer,
-  sqlRowsLimit
+  sqlRowsLimit,
+  sqlStrLenLimit
 }
 export const menusData = [
   // {name: 'dashboard', path: '/dashboard', icon: 'el-icon-ksd-dashboard'},

@@ -5,7 +5,7 @@
     </template>
     <template v-else>
       <editor class="smyles_editor" v-model="formatData" ref="kapEditor" :style="{height: editorStyle.height}" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
-      <div class="limit-sql-tip" v-if="showLimitTip">{{$t('kylinLang.common.sqlLimitTip')}}</div>
+      <div class="limit-sql-tip" v-if="showLimitTip">{{needFormater ? $t('kylinLang.common.sqlPartLimitTip') : $t('kylinLang.common.sqlLimitTip')}}</div>
     </template>
     <div class="smyles_dragbar" v-if="dragable" v-drag:change.height="editorDragData"></div>
     <el-popover
@@ -16,7 +16,8 @@
       <i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span>
     </el-popover>
     <el-button size="mini" class="edit-copy-btn" plain
-      :class="{'is-show': editorData}"
+      v-if="readOnly"
+      :class="{'is-show': editorData, 'alwaysShow': alwaysShowCopyBtn}"
       v-clipboard:copy="editorData"
       v-clipboard:success="onCopy"
       v-clipboard:error="onError">
@@ -26,8 +27,8 @@
 </template>
 <script>
 import $ from 'jquery'
-// import sqlFormatter from 'sql-formatter'
-import { sqlRowsLimit } from '../../config/index'
+import sqlFormatter from 'sql-formatter'
+import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
 import { mapState } from 'vuex'
 export default {
   name: 'kapEditor',
@@ -62,6 +63,14 @@ export default {
     },
     placeholder: {
       default: ''
+    },
+    needFormater: {
+      type: Boolean,
+      default: false
+    },
+    alwaysShowCopyBtn: {
+      type: Boolean,
+      default: true
     }
   },
   data () {
@@ -123,10 +132,18 @@ export default {
     },
     // 截取前100行sql
     abridgeData () {
-      const data = this.editorData.split('\n')
-      // 是否显示 tips 取决于填入的 sql 行数是否超过全局配置的
-      this.showLimitTip = data.length > sqlRowsLimit
-      this.formatData = data.length > sqlRowsLimit ? data.slice(0, sqlRowsLimit).join('\n') : this.editorData
+      // 需要截断的默认都是已经格式化后的，如果传入需要格式化，就再手动格式化，且格式化方式是通过字符串长度判断
+      if (this.needFormater && this.editorData.split('\n').length === 0) {
+        const data = this.editorData.length > sqlStrLenLimit ? `${this.editorData.slice(0, sqlStrLenLimit)}...` : this.editorData
+        // 是否显示 tips 取决于填入的 sql 字符数是否超过全局配置的
+        this.showLimitTip = this.editorData.length > sqlStrLenLimit
+        this.formatData = sqlFormatter.format(data)
+      } else {
+        const data = this.editorData.split('\n')
+        // 是否显示 tips 取决于填入的 sql 行数是否超过全局配置的
+        this.showLimitTip = data.length > sqlRowsLimit
+        this.formatData = data.length > sqlRowsLimit ? data.slice(0, sqlRowsLimit).join('\n') : this.editorData
+      }
     },
     getAbridgeType () {
       this.isAbridge && this.abridgeData()
@@ -282,6 +299,10 @@ export default {
       display: none;
       width: 48px;
       // background-color: rgba(255,255,255,0.2);
+      &.alwaysShow{
+        display: block;
+        opacity: 1;
+      }
       &.is-show {
         display: block;
       }
