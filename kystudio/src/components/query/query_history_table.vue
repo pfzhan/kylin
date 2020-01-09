@@ -28,13 +28,25 @@
           </div>
           <div class="detail-content">
             <el-row :gutter="15" type="flex">
-              <el-col :span="14" :style="{height: flexHeight}">
+              <el-col :span="14" :style="{height: props.row.flexHeight + 'px'}">
                 <div class="loading" v-if="currentExpandId === props.row.query_id"><i class="el-icon-loading"></i></div>
-                <kap-editor width="100%" lang="sql" theme="chrome" v-if="flexHeight" ref="historySqlEditor" :readOnly="true" :needFormater="true" :dragable="false" :isAbridge="true" :value="props.row.sql_text" v-bind="elementAttr(props)">
+                <kap-editor
+                  width="100%"
+                  :height="props.row.editorH"
+                  lang="sql"
+                  theme="chrome"
+                  v-if="props.row.editorH"
+                  :ref="'historySqlEditor' + props.row.query_id"
+                  :key="props.row.query_id"
+                  :readOnly="true"
+                  :needFormater="true"
+                  :dragable="false"
+                  :isAbridge="true"
+                  :value="props.row.sql_text">
                 </kap-editor>
               </el-col>
               <el-col :span="10">
-                <table class="ksd-table history_detail_table">
+                <table class="ksd-table history_detail_table" :id="'detailTable_' + props.row.query_id">
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.query_id')}}</th>
                     <td>{{props.row.query_id}}</td>
@@ -107,11 +119,20 @@
           </el-popover>
         </template>
       </el-table-column>
-      <el-table-column :filters="realFilteArr" :filtered-value="filterData.realization" :label="$t('kylinLang.query.realization_th')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'realization')" prop="realizations" width="250" show-overflow-tooltip>
+      <el-table-column
+        :filters="realFilteArr"
+        :filtered-value="filterData.realization"
+        :label="$t('kylinLang.query.realization_th')"
+        filter-icon="el-icon-ksd-filter"
+        :show-multiple-footer="false"
+        :filter-change="(v) => filterContent(v, 'realization')"
+        prop="realizations"
+        width="250">
         <template slot-scope="props">
           <div class="tag-ellipsis">
             <template v-if="props.row.realizations && props.row.realizations.length">
-              <el-tag v-for="item in props.row.realizations" :type="item.valid ? '' : 'info'" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag>
+              <el-tag :type="props.row.realizations[0].valid ? '' : 'info'" size="small" :key="props.row.realizations[0].modelId">{{props.row.realizations[0].modelAlias}}</el-tag>
+              <el-tag class="realizationsNumTag" size="small" :key="'realizationLen'" v-if="props.row.realizations.length > 1"><span @click="handleExpandType(props)">{{'+' + (props.row.realizations.length - 1)}}</span></el-tag>
             </template>
             <template v-else>
               <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
@@ -139,7 +160,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
 import $ from 'jquery'
-import { sqlRowsLimit } from '../../config/index'
+import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
 // import sqlFormatter from 'sql-formatter'
 @Component({
   name: 'QueryHistoryTable',
@@ -205,7 +226,6 @@ export default class QueryHistoryTable extends Vue {
   }
   timer = null
   showCopyStatus = false
-  flexHeight = 0
   currentExpandId = ''
   toggleExpandId = []
   sqlLimitRows = 40 * 10
@@ -233,6 +253,8 @@ export default class QueryHistoryTable extends Vue {
       const sql = element.sql_text
       element['sql_limit'] = this.sqlOverLimit(sql) ? `${sql.slice(0, this.sqlLimitRows)}...` : sql
       element['server'] = [element['server']]
+      element['flexHeight'] = 0
+      element['editorH'] = 0
     })
   }
 
@@ -276,10 +298,6 @@ export default class QueryHistoryTable extends Vue {
     return sql.length > this.sqlLimitRows
   }
 
-  elementAttr (props) {
-    return props.row.sql_text.split('\n').length > sqlRowsLimit && {'height': 222}
-  }
-
   expandChange (e) {
     if (this.toggleExpandId.includes(e.query_id)) {
       const index = this.toggleExpandId.indexOf(e.query_id)
@@ -287,12 +305,20 @@ export default class QueryHistoryTable extends Vue {
       return
     }
     this.currentExpandId = e.query_id
-    this.flexHeight = 0
+    e.flexHeight = 0
+    e.editorH = 0
     this.toggleExpandId.push(e.query_id)
     this.$nextTick(() => {
-      const tableHeigth = $('.history_detail_table') && $('.history_detail_table').height()
+      const tableHeigth = $('#detailTable_' + e.query_id) && $('#detailTable_' + e.query_id).height()
       if (tableHeigth) {
-        this.flexHeight = this.flexHeight + tableHeigth + 'px'
+        e.flexHeight = e.flexHeight + tableHeigth
+        let showLimitTip = false
+        let sqlTextArr = e.sql_text.split('\n')
+        // 要手动传入高度
+        if ((sqlTextArr.length > 0 && sqlTextArr.length > sqlRowsLimit) || (sqlTextArr.length === 0 && e.sql_text.length > sqlStrLenLimit)) {
+          showLimitTip = true
+        }
+        e.editorH = showLimitTip ? (e.flexHeight - 32) : (e.flexHeight - 2)
       }
       this.currentExpandId = ''
     })
@@ -717,6 +743,12 @@ export default class QueryHistoryTable extends Vue {
         line-height: 1;
         .el-tag:not(:last-child) {
           margin-right: 5px;
+          margin-bottom: 5px;
+        }
+        .el-tag.realizationsNumTag{
+          &:hover{
+            cursor:pointer;
+          }
         }
       }
       .realization-tags {
