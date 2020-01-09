@@ -50,6 +50,7 @@
                       :isShowEditAgg="datasourceActions.includes('editAggGroup')"
                       :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
                       :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
+                      @loadModels="loadModelsList"
                       v-if="props.row.tabTypes === 'second'" />
                   </el-tab-pane>
                   <!-- <el-tab-pane :label="$t('tableIndex')" name="third">

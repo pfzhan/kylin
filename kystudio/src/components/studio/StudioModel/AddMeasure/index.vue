@@ -36,6 +36,7 @@
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
             filterable @change="changeParamValue" :disabled="isEdit">
+              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!measure.parameterValue.value"></i>
               <el-option-group key="column" :label="$t('columns')">
                 <el-option
                   v-for="(item, index) in getParameterValue"

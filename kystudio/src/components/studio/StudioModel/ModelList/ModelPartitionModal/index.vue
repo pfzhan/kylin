@@ -26,6 +26,7 @@
             <el-form-item prop="column">
               <el-select :disabled="isLoadingNewRange"
               v-guide.partitionColumn @change="partitionColumnChange" v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable style="width:100%">
+              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!partitionMeta.column.length"></i>
                 <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
                   <el-tooltip :content="t.name" effect="dark" placement="top" :disabled="showToolTip(t.name)"><span style="float: left">{{ t.name | omit(15, '...') }}</span></el-tooltip>
                   <span class="ky-option-sub-info">{{ t.datatype.toLocaleLowerCase() }}</span>
@@ -38,7 +39,7 @@
       <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
         <el-row :gutter="5">
           <el-col :span="12">
-            <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
+            <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
               <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
             </el-select>

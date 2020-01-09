@@ -417,6 +417,7 @@ export default class ModelAggregate extends Vue {
       await this.deleteIndex({project: this.projectName, model: this.model.uuid, id: row.id})
       this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
       this.refreshIndexGraphAfterSubmitSetting()
+      this.$emit('loadModels')
     } catch (e) {
       handleError(e)
     }

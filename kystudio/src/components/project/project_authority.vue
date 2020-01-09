@@ -104,6 +104,7 @@
           :placeholder="$t('kylinLang.common.pleaseInputUserName')"
           :remote-method="filterUser"
           v-if="accessMeta.principal">
+          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!accessMeta.sids.length"></i>
           <el-option
             v-for="item in renderUserList"
             :key="item.value"
@@ -124,6 +125,7 @@
           :placeholder="$t('kylinLang.common.pleaseInputUserGroup')"
           :remote-method="filterGroup"
           v-else>
+          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!accessMeta.sids.length"></i>
           <el-option
             v-for="item in renderGroupList"
             :key="item.value"

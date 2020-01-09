@@ -3,6 +3,7 @@
     <el-row :gutter="10">
       <el-col :span="10">
         <el-select :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" @change="changeFTable" style="width:100%" filterable v-model="selectF">
+          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!selectF"></i>
           <el-option  v-for="key in selectedFTables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
@@ -13,6 +14,7 @@
       </el-col>
       <el-col :span="10">
         <el-select :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"  @change="changePTable" size="medium" style="width:100%" filterable v-model="selectP">
+          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!selectP"></i>
           <el-option v-for="key in selectedPTables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
@@ -24,6 +26,7 @@
           <el-col :span="10">
             <el-form-item :prop="'foreign_key.' + val" :rules="[{validator: checkIsBrokenForeignKey, trigger: 'change'}]">
               <el-select size="small"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
+                 <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.foreign_key[val]"></i>
                 <el-option :disabled="true" v-if="checkIsBroken(brokenForeignKeys, joinColumns.foreign_key[val])" :value="joinColumns.foreign_key[val]" :label="joinColumns.foreign_key[val].split('.')[1]"></el-option>
                 <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
                 </el-option>
@@ -36,6 +39,7 @@
           <el-col :span="11">
             <el-form-item :prop="'primary_key.' + val" :rules="[{validator: checkIsBrokenPrimaryKey, trigger: 'change'}]">
               <el-select size="small" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')">
+                <i slot="prefix" class="el-input__icon el-icon-search" v-if="!joinColumns.primary_key[val]"></i>
                 <el-option :disabled="true" v-if="checkIsBroken(brokenPrimaryKeys, joinColumns.primary_key[val])" :value="joinColumns.primary_key[val]" :label="joinColumns.primary_key[val].split('.')[1]"></el-option>
                 <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
                 </el-option>

@@ -205,7 +205,6 @@ export default class DataSourceBar extends Vue {
   allWords = []
   defaultExpandedKeys = []
   draggableNodeKeys = []
-  timer = null
   isSwitchSource = false
   loadedTables = []
   failedTables = []
@@ -422,15 +421,12 @@ export default class DataSourceBar extends Vue {
   }
   handleFilter (filterText) {
     this.isSearchIng = true
-    clearInterval(this.timer)
     return new Promise(async resolve => {
-      this.timer = setTimeout(async () => {
-        await this.loadTreeData(filterText)
-        this.filterText = filterText
-        freshTreeOrder(this)
-        this.selectFirstTable()
-        resolve()
-      }, 1000)
+      await this.loadTreeData(filterText)
+      this.filterText = filterText
+      freshTreeOrder(this)
+      this.selectFirstTable()
+      resolve()
     })
   }
   reloadTables () {

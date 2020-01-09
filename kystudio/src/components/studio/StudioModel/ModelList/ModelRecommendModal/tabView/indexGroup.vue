@@ -406,7 +406,7 @@
     .cell {
       .col-tab-note {
         padding-top: 2px;
-        // margin-left: -5px;
+        margin-left: -5px;
         line-height: 1;
       }
       .th-note-tag {

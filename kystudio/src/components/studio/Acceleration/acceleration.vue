@@ -168,12 +168,14 @@
               <el-form-item prop="users">
                 <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
                 <el-select v-model="rulesObj.users" v-event-stop :popper-append-to-body="false" filterable size="medium" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
+                  <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.users.length"></span>
                   <el-option v-for="item in allSubmittersOptions.user" :key="item" :label="item" :value="item"></el-option>
                 </el-select>
               </el-form-item>
               <el-form-item prop="user_groups">
               <div class="ksd-mt-10 conds-title"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
               <el-select v-model="rulesObj.user_groups" v-event-stop :popper-append-to-body="false" filterable size="medium" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" class="ksd-mt-5" multiple style="width:100%">
+                <span slot="prefix" class="el-input__icon el-icon-search" v-if="!rulesObj.user_groups.length"></span>
                 <el-option v-for="item in allSubmittersOptions.group" :key="item" :label="item" :value="item"></el-option>
               </el-select>
               </el-form-item>

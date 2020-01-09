@@ -120,7 +120,8 @@
 
     <el-dialog :title="rowAuthorTitle" width="720px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="rowAccessVisible" @close="resetRowAccess">
       <div v-for="(row, key) in rowLists" :key="key" class="ksd-mb-10">
-        <el-select v-model="row.column_name" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit">
+        <el-select v-model="row.column_name" class="row-column" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable :disabled="isRowAuthorEdit">
+          <i slot="prefix" class="el-input__icon el-icon-search" v-if="!row.column_name"></i>
           <el-option v-for="c in columns" :key="c.name" :label="c.name" :value="c.name">
           </el-option>
         </el-select>
@@ -648,4 +649,7 @@ export default class UserAccess extends Vue {
 
 <style lang="less">
   @import '../../assets/styles/variables.less';
+  .row-column {
+    width: 190px;
+  }
 </style>
