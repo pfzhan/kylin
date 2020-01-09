@@ -215,6 +215,10 @@ public class Message {
         return "Model id required";
     }
 
+    public String getINDEX_ALREADY_DELETED() {
+        return "The index has been deleted.";
+    }
+
     public String getDUPLICATE_DIMENSION_NAME() {
         return "Duplicate dimension name '%s'.";
     }

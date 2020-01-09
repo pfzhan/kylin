@@ -50,6 +50,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -285,7 +286,9 @@ public class IndexPlanService extends BasicService {
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkNotNull(indexPlan);
         val layout = indexPlan.getCuboidLayout(id);
-        Preconditions.checkNotNull(layout);
+        if (layout == null) {
+            throw new RuntimeException(MsgPicker.getMsg().getINDEX_ALREADY_DELETED());
+        }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {

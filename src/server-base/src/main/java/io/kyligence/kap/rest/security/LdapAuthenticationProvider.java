@@ -46,11 +46,13 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -113,6 +115,8 @@ public class LdapAuthenticationProvider implements AuthenticationProvider {
 
         try {
             auth = authenticationProvider.authenticate(authentication);
+        } catch (BadCredentialsException e) {
+            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
         } catch (AuthenticationException ae) {
             logger.error("Failed to auth user: {}", authentication.getName(), ae);
             throw ae;

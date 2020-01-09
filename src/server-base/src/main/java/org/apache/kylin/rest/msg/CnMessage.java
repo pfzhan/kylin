@@ -235,6 +235,10 @@ public class CnMessage extends Message {
         return "找不到模型 '%s'";
     }
 
+    public String getINDEX_ALREADY_DELETED() {
+        return "该索引已经被删除";
+    }
+
     public String getEMPTY_PROJECT_NAME() {
         return "没有项目信息。请指定一个项目";
     }
