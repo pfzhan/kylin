@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.ArrayList;
@@ -56,6 +56,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -134,11 +135,11 @@ public class OpenModelControllerTest {
         Mockito.when(nModelController.getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 1, 5,
                 "last_modify", false))
                 .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockModels(), 0, 10), ""));
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/open/models").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("page_offset", "1").param("project", "default").param("model_name", "model1")
                 .param("page_size", "5").param("exact", "true").param("table", "").param("owner", "ADMIN")
                 .param("status", "NEW").param("sortBy", "last_modify").param("reverse", "true")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(openModelController).getModels("default", "model1", true, "ADMIN", Arrays.asList("NEW"), "", 1,
@@ -154,11 +155,11 @@ public class OpenModelControllerTest {
         Mockito.when(nModelController.getSegments(modelId, project, "", 1, 5, "432", "2234", "end_time", true))
                 .thenReturn(
                         new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(mockSegments(), 1, 5), ""));
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/open/models/{model_name}/segments", modelName)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).param("page_offset", "1").param("project", project)
                 .param("page_size", "5").param("start", "432").param("end", "2234").param("sort_by", "end_time")
                 .param("reverse", "true").param("status", "")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(openModelController).getSegments(modelName, project, "", 1, 5, "432", "2234", "end_time", true);
     }
@@ -176,9 +177,9 @@ public class OpenModelControllerTest {
         request.setEnd("100");
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .buildSegmentsManually(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/open/models/{model_name}/segments", modelName)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).buildSegmentsManually(eq(modelName),
                 Mockito.any(BuildSegmentsRequest.class));
@@ -197,9 +198,9 @@ public class OpenModelControllerTest {
         request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .refreshOrMergeSegmentsByIds(modelId, request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/open/models/{model_name}/segments", modelName)
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name}/segments", modelName)
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).refreshOrMergeSegmentsByIds(eq(modelName),
                 Mockito.any(SegmentsRequest.class));
@@ -214,9 +215,9 @@ public class OpenModelControllerTest {
 
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, true, false, null);
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/open/models/{model_name}/segments", modelName)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "true")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).deleteSegments(modelName, "default", true, false, null);
     }
@@ -232,9 +233,9 @@ public class OpenModelControllerTest {
         request.setIds(new String[] { "1", "2" });
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nModelController)
                 .deleteSegments(modelId, project, false, false, request.getIds());
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/open/models/{model_name}/segments", modelName)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model_name}/segments", modelName)
                 .param("project", "default").param("purge", "false").param("ids", request.getIds())
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).deleteSegments(modelName, "default", false, false, request.getIds());
     }
@@ -244,10 +245,26 @@ public class OpenModelControllerTest {
         String project = "default";
         String modelAlias = "model1";
         Mockito.doAnswer(x -> null).when(modelService).getModelDesc(modelAlias, project);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/open/models/{project}/{model}/model_desc", project, modelAlias)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/{project}/{model}/model_desc", project, modelAlias)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).getModelDesc(project, modelAlias);
+    }
+
+    @Test
+    public void testUpdateParatitionDesc() throws Exception {
+        String project = "default";
+        String modelAlias = "model1";
+        ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();
+        modelParatitionDescRequest.setPartitionDesc(null);
+        Mockito.doNothing().when(modelService).updateDataModelParatitionDesc(project, modelAlias,
+                modelParatitionDescRequest);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{project}/{model}/partition_desc", project, modelAlias)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(modelParatitionDescRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).updateParatitionDesc(project, modelAlias, modelParatitionDescRequest);
     }
 
 }

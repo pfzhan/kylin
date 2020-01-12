@@ -24,11 +24,13 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.util.List;
 
 import javax.validation.Valid;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -52,12 +54,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
-import io.kyligence.kap.rest.request.YarnQueueRequest;
-import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
-import io.kyligence.kap.rest.response.ProjectConfigResponse;
-import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
+import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
@@ -68,12 +66,16 @@ import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
+import io.kyligence.kap.rest.request.YarnQueueRequest;
+import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.ProjectConfigResponse;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/projects")
+@RequestMapping(value = "/api/projects", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+        HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NProjectController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NProjectController.class);
 
@@ -85,7 +87,7 @@ public class NProjectController extends NBasicController {
     private ProjectService projectService;
 
     @ApiOperation(value = "getProjects (update)", notes = "Update Param: page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ProjectInstance>>> getProjects(
             @RequestParam(value = "project", required = false) String projectName,
@@ -96,7 +98,7 @@ public class NProjectController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(readableProjects, offset, size), "");
     }
 
-    @DeleteMapping(value = "/{project:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{project:.+}")
     @ResponseBody
     public EnvelopeResponse<String> dropProject(@PathVariable("project") String project) {
         projectService.dropProject(project);
@@ -105,14 +107,14 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "backupProject (check)", notes = "Update URL, {project}")
-    @PostMapping(value = "/{project:.+}/backup", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{project:.+}/backup")
     @ResponseBody
     public EnvelopeResponse<String> backupProject(@PathVariable("project") String project) throws Exception {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.backupProject(project), "");
     }
 
     @ApiOperation(value = "saveProject (update)", notes = "Update Param: former_project_name, project_desc_data")
-    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<ProjectInstance> saveProject(@Valid @RequestBody ProjectRequest projectRequest) {
         checkRequiredArg("maintain_model_type", projectRequest.getMaintainModelType());
@@ -130,7 +132,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateDefaultDatabase (update)", notes = "Add URL: {project}; Update Param: default_database;")
-    @PutMapping(value = "/{project:.+}/default_database", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/default_database")
     @ResponseBody
     public EnvelopeResponse updateDefaultDatabase(@PathVariable("project") String project,
             @RequestBody DefaultDatabaseRequest defaultDatabaseRequest) {
@@ -141,7 +143,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateQueryAccelerateThresholdConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/query_accelerate_threshold", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/query_accelerate_threshold")
     @ResponseBody
     public EnvelopeResponse<String> updateQueryAccelerateThresholdConfig(@PathVariable("project") String project,
             @RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) {
@@ -155,7 +157,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "getQueryAccelerateThresholdConfig (update)", notes = "Add URL: {project}; ")
-    @GetMapping(value = "/{project:.+}/query_accelerate_threshold", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{project:.+}/query_accelerate_threshold")
     @ResponseBody
     public EnvelopeResponse<FavoriteQueryThresholdResponse> getQueryAccelerateThresholdConfig(
             @PathVariable(value = "project") String project) {
@@ -164,7 +166,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "getStorageVolumeInfo (update)", notes = "Add URL: {project}; ")
-    @GetMapping(value = "/{project:.+}/storage_volume_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{project:.+}/storage_volume_info")
     @ResponseBody
     public EnvelopeResponse<StorageVolumeInfoResponse> getStorageVolumeInfo(
             @PathVariable(value = "project") String project) {
@@ -173,7 +175,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "cleanupProjectStorage (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/storage", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/storage")
     @ResponseBody
     public EnvelopeResponse<Boolean> cleanupProjectStorage(@PathVariable(value = "project") String project)
             throws Exception {
@@ -186,7 +188,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateStorageQuotaConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/storage_quota", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/storage_quota")
     @ResponseBody
     public EnvelopeResponse<Boolean> updateStorageQuotaConfig(@PathVariable(value = "project") String project,
             @RequestBody StorageQuotaRequest storageQuotaRequest) {
@@ -197,7 +199,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateShardNumConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/shard_num_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/shard_num_config")
     @ResponseBody
     public EnvelopeResponse<String> updateShardNumConfig(@PathVariable("project") String project,
             @RequestBody ShardNumConfigRequest req) {
@@ -206,7 +208,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateGarbageCleanupConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/garbage_cleanup_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/garbage_cleanup_config")
     @ResponseBody
     public EnvelopeResponse updateGarbageCleanupConfig(@PathVariable("project") String project,
             @RequestBody GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
@@ -217,7 +219,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateJobNotificationConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/job_notification_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/job_notification_config")
     @ResponseBody
     public EnvelopeResponse<String> updateJobNotificationConfig(@PathVariable("project") String project,
             @RequestBody JobNotificationConfigRequest jobNotificationConfigRequest) {
@@ -231,7 +233,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updatePushDownConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/push_down_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/push_down_config")
     @ResponseBody
     public EnvelopeResponse<String> updatePushDownConfig(@PathVariable("project") String project,
             @RequestBody PushDownConfigRequest pushDownConfigRequest) {
@@ -241,7 +243,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateSegmentConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/segment_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/segment_config")
     @ResponseBody
     public EnvelopeResponse<String> updateSegmentConfig(@PathVariable("project") String project,
             @RequestBody SegmentConfigRequest segmentConfigRequest) {
@@ -252,7 +254,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateProjectGeneralInfo (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/project_general_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/project_general_info")
     @ResponseBody
     public EnvelopeResponse<String> updateProjectGeneralInfo(@PathVariable("project") String project,
             @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
@@ -261,14 +263,14 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "getProjectConfig (update)", notes = "Add URL: {project}; ")
-    @GetMapping(value = "/{project:.+}/project_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{project:.+}/project_config")
     @ResponseBody
     public EnvelopeResponse<ProjectConfigResponse> getProjectConfig(@PathVariable(value = "project") String project) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getProjectConfig(project), "");
     }
 
     @ApiOperation(value = "resetProjectConfig (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/project_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/project_config")
     @ResponseBody
     public EnvelopeResponse<ProjectConfigResponse> resetProjectConfig(@PathVariable("project") String project,
             @RequestBody ProjectConfigResetRequest projectConfigResetRequest) {
@@ -278,7 +280,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "setDataSourceType (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/source_type", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/source_type")
     @ResponseBody
     public EnvelopeResponse<String> setDataSourceType(@PathVariable("project") String project,
             @RequestBody DataSourceTypeRequest request) {
@@ -287,7 +289,7 @@ public class NProjectController extends NBasicController {
     }
 
     @ApiOperation(value = "updateYarnQueue (update)", notes = "Add URL: {project}; ")
-    @PutMapping(value = "/{project:.+}/yarn_queue", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{project:.+}/yarn_queue")
     @ResponseBody
     public EnvelopeResponse<String> updateYarnQueue(@PathVariable("project") String project,
             @RequestBody YarnQueueRequest request) {

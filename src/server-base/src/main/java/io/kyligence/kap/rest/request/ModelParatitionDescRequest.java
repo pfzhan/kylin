@@ -21,25 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.request;
 
-package io.kyligence.kap.common.http;
+import org.apache.kylin.metadata.model.PartitionDesc;
 
-public class HttpConstant {
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-    private HttpConstant() {
-    }
+import lombok.Data;
 
-    /** KAP 2x and 3x api client accept */
-    public static final String HTTP_VND_APACHE_KYLIN_V2_JSON = "application/vnd.apache.kylin-v2+json";
-
-    /** Some dirty compatibility client accept, delete it after KI use v4 api */
-    public static final String HTTP_VND_APACHE_KYLIN_V3_JSON = "application/vnd.apache.kylin-v3+json";
-
-    /** KAP 4x api client accept */
-    public static final String HTTP_VND_APACHE_KYLIN_V4_JSON = "application/vnd.apache.kylin-v4+json";
-
-    /** KAP 4x api client accept */
-    public static final String HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON = "application/vnd.apache.kylin-v4-public+json";
-
-    public static final String HTTP_VND_APACHE_KYLIN_JSON = HTTP_VND_APACHE_KYLIN_V4_JSON;
+@Data
+public class ModelParatitionDescRequest {
+    @JsonProperty("partition_desc")
+    private PartitionDesc partitionDesc;
+    @JsonProperty("start")
+    private String start;
+    @JsonProperty("end")
+    private String end;
 }

@@ -79,6 +79,7 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -990,6 +991,32 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(semanticService.isFilterConditonNotChange(null, "null"));
         Assert.assertFalse(semanticService.isFilterConditonNotChange("", "null"));
         Assert.assertFalse(semanticService.isFilterConditonNotChange("A=8", "A=9"));
+    }
+
+    @Test
+    public void testUpdateDataModelParatitionDesc() {
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        var model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertNotNull(model.getPartitionDesc());
+        ModelParatitionDescRequest modelParatitionDescRequest = new ModelParatitionDescRequest();
+        modelParatitionDescRequest.setStart("0");
+        modelParatitionDescRequest.setEnd("1111");
+        modelParatitionDescRequest.setPartitionDesc(null);
+        PartitionDesc partitionDesc = model.getPartitionDesc();
+
+        var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(0, events.size());
+        modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
+        model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertNull(model.getPartitionDesc());
+        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(2, events.size());
+        modelParatitionDescRequest.setPartitionDesc(partitionDesc);
+        modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
+        model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(partitionDesc, model.getPartitionDesc());
+        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(4, events.size());
     }
 
 }

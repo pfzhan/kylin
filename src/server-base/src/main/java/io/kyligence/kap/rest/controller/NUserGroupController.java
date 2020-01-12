@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -66,7 +67,8 @@ import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/api/user_group")
+@RequestMapping(value = "/api/user_group", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+        HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NUserGroupController extends NBasicController {
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_ ]*$");
@@ -84,7 +86,7 @@ public class NUserGroupController extends NBasicController {
     private AclTCRService aclTCRService;
 
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_members, group_name; Update Param: group_name, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/group_members/{group_name:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/group_members/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<ManagedUser>>> getUsersByGroup(
@@ -103,7 +105,7 @@ public class NUserGroupController extends NBasicController {
                 "get groups members");
     }
 
-    @GetMapping(value = "/groups", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<List<String>> listUserAuthorities(@RequestParam(value = "project") String project)
@@ -113,7 +115,7 @@ public class NUserGroupController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: users_with_group; Update Param: page_offset, page_size, user_group_name; Update Response: total_size")
-    @GetMapping(value = "/users_with_group", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/users_with_group")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<Pair<String, Set<String>>>>> getUsersWithGroup(
@@ -136,7 +138,7 @@ public class NUserGroupController extends NBasicController {
                 "get users with group");
     }
 
-    @GetMapping(value = "/users_and_groups", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/users_and_groups")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<Map<String, List<String>>> getUsersAndGroups() throws IOException {
@@ -144,7 +146,7 @@ public class NUserGroupController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_name; Update Param: group_name")
-    @PostMapping(value = "/{group_name:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> addUserGroup(@PathVariable(value = "group_name") String groupName)
@@ -155,7 +157,7 @@ public class NUserGroupController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update URL: group_name; Update Param: group_name")
-    @DeleteMapping(value = "/{group_name:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{group_name:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> delUserGroup(@PathVariable(value = "group_name") String groupName)
@@ -166,7 +168,7 @@ public class NUserGroupController extends NBasicController {
     }
 
     //move users in/out from groups
-    @PutMapping(value = "/users", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/users")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> addOrDelUsers(@RequestBody UpdateGroupRequest updateGroupRequest)

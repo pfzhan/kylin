@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -66,7 +67,7 @@ import io.kyligence.kap.rest.service.JobService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/jobs")
+@RequestMapping(value = "/api/jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NJobController extends NBasicController {
 
     private static final String JOB_ID_ARG_NAME = "jobId";
@@ -77,7 +78,7 @@ public class NJobController extends NBasicController {
     private JobService jobService;
 
     @ApiOperation(value = "getJobList (update)", notes = "Update Param: job_names, time_filter, subject_alias, project_name, page_offset, page_size, sort_by; Update Response: total_size")
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ExecutableResponse>>> getJobList(
             @RequestParam(value = "statuses", required = false, defaultValue = "") List<String> statuses,
@@ -103,7 +104,7 @@ public class NJobController extends NBasicController {
     }
 
     @ApiOperation(value = "getWaitingJobs (update)", notes = "Update Response: total_size")
-    @GetMapping(value = "/waiting_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/waiting_jobs")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<EventResponse>>> getWaitingJobs(
             @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId,
@@ -114,7 +115,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(waitingJobs, offset, limit), "");
     }
 
-    @GetMapping(value = "/waiting_jobs/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/waiting_jobs/models")
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getWaitingJobsInfoGroupByModel(
             @RequestParam(value = "project") String project) {
@@ -123,7 +124,7 @@ public class NJobController extends NBasicController {
     }
 
     @ApiOperation(value = "dropJob dropGlobalJob (merge)(update)", notes = "Update URL: {project}; Update Param: project, job_ids")
-    @DeleteMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "job_ids", required = false) List<String> jobIds,
@@ -142,7 +143,7 @@ public class NJobController extends NBasicController {
     }
 
     @ApiOperation(value = "updateJobStatus (update)", notes = "Update Body: job_ids")
-    @PutMapping(value = "/status", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkJobStatus(jobUpdateRequest.getStatus());
@@ -162,7 +163,7 @@ public class NJobController extends NBasicController {
     }
 
     @ApiOperation(value = "updateJobStatus (update)", notes = "Update Param: job_id")
-    @GetMapping(value = "/{job_id:.+}/detail", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{job_id:.+}/detail")
     @ResponseBody
     public EnvelopeResponse<List<ExecutableStepResponse>> getJobDetail(@PathVariable(value = "job_id") String jobId,
             @RequestParam(value = "project") String project) {
@@ -172,7 +173,7 @@ public class NJobController extends NBasicController {
     }
 
     @ApiOperation(value = "updateJobStatus (update)", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
-    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/output")
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getJobOutput(@PathVariable("job_id") String jobId,
             @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project) {
@@ -185,7 +186,7 @@ public class NJobController extends NBasicController {
     }
 
     @ApiOperation(value = "downloadLogFile (update)", notes = "Update URL: {job_id}, {step_id}; Update Param: job_id, step_id")
-    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{job_id:.+}/steps/{step_id:.+}/log")
     @ResponseBody
     public EnvelopeResponse<String> downloadLogFile(@PathVariable("job_id") String jobId,
             @PathVariable("step_id") String stepId, @RequestParam(value = "project") String project,
@@ -208,7 +209,7 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/statistics", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/statistics")
     @ResponseBody
     public EnvelopeResponse<JobStatisticsResponse> getJobStats(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime) {
@@ -217,7 +218,7 @@ public class NJobController extends NBasicController {
                 "");
     }
 
-    @GetMapping(value = "/statistics/count", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/statistics/count")
     @ResponseBody
     public EnvelopeResponse<Map<String, Integer>> getJobCount(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
@@ -227,7 +228,7 @@ public class NJobController extends NBasicController {
                 jobService.getJobCount(project, startTime, endTime, dimension), "");
     }
 
-    @GetMapping(value = "/statistics/duration_per_byte", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/statistics/duration_per_byte")
     @ResponseBody
     public EnvelopeResponse<Map<String, Double>> getJobDurationPerByte(@RequestParam(value = "project") String project,
             @RequestParam(value = "start_time") long startTime, @RequestParam(value = "end_time") long endTime,
@@ -242,7 +243,7 @@ public class NJobController extends NBasicController {
      * @param sparkJobUpdateRequest
      * @return
      */
-    @PutMapping(value = "/spark", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/spark")
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobInfo(@RequestBody SparkJobUpdateRequest sparkJobUpdateRequest) {
         checkProjectName(sparkJobUpdateRequest.getProject());
@@ -258,7 +259,7 @@ public class NJobController extends NBasicController {
      * @param sparkJobTimeRequest
      * @return
      */
-    @PutMapping(value = "/wait_and_run_time", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/wait_and_run_time")
     @ResponseBody
     public EnvelopeResponse<String> updateSparkJobTime(@RequestBody SparkJobTimeRequest sparkJobTimeRequest) {
         checkProjectName(sparkJobTimeRequest.getProject());

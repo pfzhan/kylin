@@ -23,14 +23,17 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -47,9 +50,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,13 +62,10 @@ import org.springframework.web.bind.annotation.RestController;
 import io.kyligence.kap.rest.request.AsyncQuerySQLRequest;
 import io.kyligence.kap.rest.response.AsyncQueryResponse;
 import io.kyligence.kap.rest.service.AsyncQueryService;
-
-import java.util.List;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @RestController
-@RequestMapping(value = "/api")
+@RequestMapping(value = "/api", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NAsyncQueryController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NAsyncQueryController.class);
@@ -81,7 +81,7 @@ public class NAsyncQueryController extends NBasicController {
     ExecutorService executorService = Executors.newCachedThreadPool();
 
     @ApiOperation(value = "query (update)", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key; Update Response: query_id")
-    @PostMapping(value = "/async_query", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/async_query")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException {
@@ -145,7 +145,7 @@ public class NAsyncQueryController extends NBasicController {
 
     }
 
-    @DeleteMapping(value = "/async_query", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/async_query")
     @ResponseBody
     public EnvelopeResponse<Boolean> cleanAllQuery() throws IOException {
         Message msg = MsgPicker.getMsg();
@@ -158,7 +158,7 @@ public class NAsyncQueryController extends NBasicController {
     }
 
     @ApiOperation(value = "query (update)", notes = "Update Response: query_id")
-    @GetMapping(value = "/async_query/{query_id:.+}/status", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/async_query/{query_id:.+}/status")
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> inqueryStatus(@PathVariable("query_id") String queryId)
             throws IOException {
@@ -188,14 +188,14 @@ public class NAsyncQueryController extends NBasicController {
     }
 
     @ApiOperation(value = "fileStatus (update)", notes = "Update URL: file_status")
-    @GetMapping(value = "/async_query/{query_id:.+}/file_status", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/async_query/{query_id:.+}/file_status")
     @ResponseBody
     public EnvelopeResponse<Long> fileStatus(@PathVariable("query_id") String queryId) throws IOException {
         long length = asyncQueryService.fileStatus(queryId);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, length, "");
     }
 
-    @GetMapping(value = "/async_query/{query_id:.+}/metadata", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/async_query/{query_id:.+}/metadata")
     @ResponseBody
     public EnvelopeResponse<List<List<String>>> metadata(@PathVariable("query_id") String queryId) throws IOException {
 
@@ -203,7 +203,7 @@ public class NAsyncQueryController extends NBasicController {
     }
 
     @ApiOperation(value = "downloadQueryResult (update)", notes = "Update URL: result")
-    @GetMapping(value = "/async_query/{query_id:.+}/result", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/async_query/{query_id:.+}/result")
     @ResponseBody
     public EnvelopeResponse<String> downloadQueryResult(@PathVariable("query_id") String queryId,
             HttpServletResponse response) throws IOException {
@@ -222,7 +222,7 @@ public class NAsyncQueryController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/async_query/{query_id:.+}/result_path", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/async_query/{query_id:.+}/result_path")
     @ResponseBody
     public EnvelopeResponse<String> queryPath(@PathVariable("query_id") String queryId, HttpServletResponse response)
             throws IOException {

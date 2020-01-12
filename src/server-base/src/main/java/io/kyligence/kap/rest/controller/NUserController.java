@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -81,7 +82,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/api/user")
+@RequestMapping(value = "/api/user", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NUserController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NUserController.class);
@@ -134,7 +135,7 @@ public class NUserController extends NBasicController {
     }
 
     @ApiOperation(value = "createUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
-    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
@@ -162,7 +163,7 @@ public class NUserController extends NBasicController {
     }
 
     @ApiOperation(value = "updateUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
-    @PutMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
@@ -200,7 +201,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @DeleteMapping(value = "/{username:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{username:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<String> delete(@PathVariable("username") String username) {
@@ -219,7 +220,7 @@ public class NUserController extends NBasicController {
     }
 
     @ApiOperation(value = "listAllUsers (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<ManagedUser>>> listAllUsers(
@@ -244,7 +245,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, usersByFuzzyMatching), "");
     }
 
-    @PutMapping(value = "/password", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/password")
     @ResponseBody
     //change passwd
     public EnvelopeResponse<String> updateUserPassword(@RequestBody PasswordChangeRequest user) {
@@ -296,7 +297,7 @@ public class NUserController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/authentication")
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticate() {
         checkLicense();
@@ -312,7 +313,7 @@ public class NUserController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/authentication", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/authentication")
     @ResponseBody
     public EnvelopeResponse<UserDetails> authenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

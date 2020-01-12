@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -31,13 +34,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
 @Controller
-@RequestMapping(value = "/api/config")
+@RequestMapping(value = "/api/config", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NConfigController extends NBasicController {
 
-    @GetMapping(value = "/is_cloud", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/is_cloud")
     @ResponseBody
     public EnvelopeResponse<Boolean> isCloud() {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();

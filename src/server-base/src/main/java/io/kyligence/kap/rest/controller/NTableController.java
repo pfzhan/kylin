@@ -85,7 +85,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/api/tables")
+@RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NTableController extends NBasicController {
 
     private static final String TABLE = "table";
@@ -109,7 +109,7 @@ public class NTableController extends NBasicController {
     private TableSamplingService tableSamplingService;
 
     @ApiOperation(value = "getTableDesc (update)", notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse getTableDesc(@RequestParam(value = "ext", required = false) boolean withExt,
             @RequestParam(value = "project") String project,
@@ -129,7 +129,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "getProjectTables (update)", notes = "Update Param: is_fuzzy, page_offset, page_size")
-    @GetMapping(value = "/project_tables", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/project_tables")
     @ResponseBody
     public EnvelopeResponse<NInitTablesResponse> getProjectTables(
             @RequestParam(value = "ext", required = false) boolean withExt,
@@ -147,7 +147,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "unloadTable (update)", notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{database:.+}/{table:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{database:.+}/{table:.+}")
     @ResponseBody
     public EnvelopeResponse<String> unloadTable(@RequestParam(value = "project") String project,
             @PathVariable(value = "database") String database, // 
@@ -161,7 +161,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "prepareUnloadTable (update)", notes = "Update URL: {project}; Update Param: project")
-    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload")
     @ResponseBody
     public EnvelopeResponse<PreUnloadTableResponse> prepareUnloadTable(@RequestParam(value = "project") String project,
             @PathVariable(value = "database") String database, //
@@ -175,7 +175,7 @@ public class NTableController extends NBasicController {
      * set table partition key
      */
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update Body: partition_column_format")
-    @PostMapping(value = "/partition_key", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/partition_key")
     @ResponseBody
     public EnvelopeResponse<String> setPartitionKey(@RequestBody PartitionKeyRequest partitionKeyRequest) {
 
@@ -185,7 +185,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/top", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/top")
     @ResponseBody
     public EnvelopeResponse<String> setTableTop(@RequestBody TopTableRequest topTableRequest) {
         checkProjectName(topTableRequest.getProject());
@@ -194,7 +194,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "loadTables (update)", notes = "Update Body: data_source_type, need_sampling, sampling_rows")
-    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
             throws Exception {
@@ -231,7 +231,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
 
-    @PostMapping(value = "/data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
         checkProjectName(dateRangeRequest.getProject());
@@ -242,7 +242,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "refreshSegments (update)", notes = "Update Body: refresh_start, refresh_end, affected_start, affected_end")
-    @PutMapping(value = "/data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
         checkProjectName(request.getProject());
@@ -257,7 +257,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/data_range/latest_data")
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) {
@@ -278,7 +278,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @GetMapping(value = "/partition_column_format", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/partition_column_format")
     @ResponseBody
     public EnvelopeResponse<String> getPartitioinColumnFormat(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table,
@@ -290,7 +290,7 @@ public class NTableController extends NBasicController {
                 tableService.getPartitionColumnFormat(project, table, partitionColumn), "");
     }
 
-    @GetMapping(value = "/batch_load", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/batch_load")
     @ResponseBody
     public EnvelopeResponse<List<BatchLoadTableResponse>> getBatchLoadTables(
             @RequestParam(value = "project") String project) {
@@ -298,7 +298,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getBatchLoadTables(project), "");
     }
 
-    @PostMapping(value = "/batch_load", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/batch_load")
     @ResponseBody
     public EnvelopeResponse<String> batchLoad(@RequestBody List<DateRangeRequest> requests) throws Exception {
         if (requests.isEmpty())
@@ -309,7 +309,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/databases", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/databases")
     @ResponseBody
     public EnvelopeResponse<List<String>> showDatabases(@RequestParam(value = "project") String project)
             throws Exception {
@@ -319,7 +319,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
     }
 
-    @GetMapping(value = "/loaded_databases", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/loaded_databases")
     @ResponseBody
     public EnvelopeResponse<Set<String>> getLoadedDatabases(@RequestParam(value = "project") String project) {
         checkProjectName(project);
@@ -334,7 +334,7 @@ public class NTableController extends NBasicController {
      * @throws IOException
      */
     @ApiOperation(value = "showTables (update)", notes = "Update Param: data_source_type, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/names", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/names")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableNameResponse>>> showTables(
             @RequestParam(value = "project") String project,
@@ -349,7 +349,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "showProjectTableNames (update)", notes = "Update Param: data_source_type, page_offset, page_size")
-    @GetMapping(value = "/project_table_names", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/project_table_names")
     @ResponseBody
     public EnvelopeResponse<NInitTablesResponse> showProjectTableNames(@RequestParam(value = "project") String project,
             @RequestParam(value = "data_source_type", required = false) Integer dataSourceType,
@@ -364,7 +364,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "getTablesAndColomns (update)", notes = "Update Param: page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/simple_table", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/simple_table")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TablesAndColumnsResponse>>> getTablesAndColomns(
             @RequestParam(value = "project") String project,
@@ -375,7 +375,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
-    @GetMapping(value = "/affected_data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/affected_data_range")
     @ResponseBody
     public EnvelopeResponse<RefreshAffectedSegmentsResponse> getRefreshAffectedDateRange(
             @RequestParam(value = "project") String project, @RequestParam(value = "table") String table,
@@ -392,7 +392,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update Body: pushdown_range_limited")
-    @PutMapping(value = "/pushdown_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/pushdown_mode")
     @ResponseBody
     public EnvelopeResponse<String> setPushdownMode(@RequestBody PushDownModeRequest pushDownModeRequest) {
         checkProjectName(pushDownModeRequest.getProject());
@@ -402,7 +402,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/pushdown_mode", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/pushdown_mode")
     @ResponseBody
     public EnvelopeResponse<Boolean> getPushdownMode(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) {
@@ -412,7 +412,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @GetMapping(value = "/auto_merge_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/auto_merge_config")
     @ResponseBody
     public EnvelopeResponse<AutoMergeConfigResponse> getAutoMergeConfig(
             @RequestParam(value = "model", required = false) String modelId,
@@ -433,7 +433,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "updateAutoMergeConfig (update)", notes = "Update Body: auto_merge_enabled, auto_merge_time_ranges, volatile_range_number, volatile_range_enabled, volatile_range_type")
-    @PutMapping(value = "/auto_merge_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/auto_merge_config")
     @ResponseBody
     public EnvelopeResponse<String> updateAutoMergeConfig(@RequestBody AutoMergeRequest autoMergeRequest) {
         checkProjectName(autoMergeRequest.getProject());
@@ -451,7 +451,7 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/sampling_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/sampling_jobs")
     @ResponseBody
     public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
@@ -464,7 +464,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "hasSamplingJob (update)", notes = "Update Param: qualified_table_name")
-    @GetMapping(value = "/sampling_check_result", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/sampling_check_result")
     @ResponseBody
     public EnvelopeResponse<Boolean> hasSamplingJob(@RequestParam(value = "project") String project,
             @RequestParam(value = "qualified_table_name") String qualifiedTableName) {
@@ -496,7 +496,7 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @GetMapping(value = "/prepare_reload", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/prepare_reload")
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) {
@@ -509,7 +509,7 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @PostMapping(value = "/reload", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/reload")
     @ResponseBody
     public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) {
         checkProjectName(request.getProject());
@@ -526,7 +526,7 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "reloadHiveTableName (update)", notes = "Update URL: table_name")
-    @GetMapping(value = "/reload_hive_table_name", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/reload_hive_table_name")
     @ResponseBody
     public EnvelopeResponse<NHiveTableNameResponse> reloadHiveTablename(
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force) {
@@ -538,16 +538,16 @@ public class NTableController extends NBasicController {
         }
     }
 
-    @PostMapping(value = "/import_ssb", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/import_ssb")
     @ResponseBody
     public EnvelopeResponse<String> importSSBData() {
         tableService.importSSBDataBase();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/ssb", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/ssb")
     @ResponseBody
-    public EnvelopeResponse<Boolean> checkSSB(){
+    public EnvelopeResponse<Boolean> checkSSB() {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.checkSSBDataBase(), "");
     }
 

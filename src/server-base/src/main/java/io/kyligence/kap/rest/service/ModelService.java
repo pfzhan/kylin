@@ -133,6 +133,7 @@ import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
@@ -408,6 +409,10 @@ public class ModelService extends BasicService {
         return modelResponseList;
     }
 
+    private boolean isListContains(List<String> status, RealizationStatusEnum modelStatus) {
+        return status == null || status.isEmpty() || (modelStatus != null && status.contains(modelStatus.name()));
+    }
+
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, List<String> status, String sortBy, boolean reverse) {
         aclEvaluate.checkProjectReadPermission(projectName);
@@ -427,8 +432,7 @@ public class ModelService extends BasicService {
             if (isModelNameMatch && isModelOwnerMatch) {
                 RealizationStatusEnum modelStatus = isBroken ? RealizationStatusEnum.BROKEN
                         : getModelStatus(modelDesc.getUuid(), projectName);
-                boolean isModelStatusMatch = status == null || status.isEmpty()
-                        || (modelStatus != null && status.contains(modelStatus.name()));
+                boolean isModelStatusMatch = isListContains(status, modelStatus);
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setModelBroken(isBroken);
@@ -2216,5 +2220,31 @@ public class ModelService extends BasicService {
             response.setDimensions(new ArrayList<>());
         }
         return response;
+    }
+
+    @Transaction(project = 0)
+    public void updateDataModelParatitionDesc(String project, String modelAlias,
+            ModelParatitionDescRequest modelParatitionDescRequest) {
+        if (getProjectManager().getProject(project) == null) {
+            throw new RuntimeException("project not found");
+        }
+        NDataModel oldDataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
+        if (oldDataModel == null) {
+            throw new RuntimeException("model not found");
+        }
+
+        PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
+        if (partitionDesc != null) {
+            String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
+            if (!partitionDesc.getPartitionDateColumn().toUpperCase().startsWith(rootFactTable + ".")) {
+                throw new RuntimeException("partition_date_column must use root fact table column");
+            }
+        }
+
+        getDataModelManager(project).updateDataModel(oldDataModel.getUuid(), copyForWrite -> {
+            copyForWrite.setPartitionDesc(modelParatitionDescRequest.getPartitionDesc());
+        });
+        semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
+                modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
     }
 }

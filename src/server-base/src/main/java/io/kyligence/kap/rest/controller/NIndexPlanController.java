@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.util.List;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.response.IndexGraphResponse;
-import io.swagger.annotations.ApiOperation;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -47,18 +48,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
-import io.kyligence.kap.rest.response.TableIndexResponse;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
+import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
+import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
 @RestController
-@RequestMapping(value = "/api/index_plans")
+@RequestMapping(value = "/api/index_plans", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+        HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NIndexPlanController extends NBasicController {
 
     private static final String MODEL_ID = "modelId";
@@ -68,7 +70,7 @@ public class NIndexPlanController extends NBasicController {
     private IndexPlanService indexPlanService;
 
     @ApiOperation(value = "updateRule (update)", notes = "Update Body: model_id")
-    @PutMapping(value = "/rule", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/rule")
     public EnvelopeResponse<BuildIndexResponse> updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
@@ -77,7 +79,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @GetMapping(value = "/rule", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/rule")
     public EnvelopeResponse<NRuleBasedIndex> getRule(@RequestParam("project") String project,
             @RequestParam("model") String modelId) {
         checkProjectName(project);
@@ -86,7 +88,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
     }
 
-    @PutMapping(value = "/rule_based_index_diff", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/rule_based_index_diff")
     public EnvelopeResponse<DiffRuleBasedIndexResponse> calculateDiffRuleBasedIndex(
             @RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
@@ -97,7 +99,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @ApiOperation(value = "calculateAggIndexCombination (update)", notes = "Update Body: model_id")
-    @PutMapping(value = "/agg_index_count", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/agg_index_count")
     public EnvelopeResponse<AggIndexResponse> calculateAggIndexCombination(
             @RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
@@ -108,7 +110,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @ApiOperation(value = "createTableIndex (update)", notes = "Update Body: model_id")
-    @PostMapping(value = "/table_index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/table_index")
     public EnvelopeResponse<BuildIndexResponse> createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
@@ -117,7 +119,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @ApiOperation(value = "updateTableIndex (update)", notes = "Update Body: model_id")
-    @PutMapping(value = "/table_index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/table_index")
     public EnvelopeResponse<BuildIndexResponse> updateTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
@@ -128,7 +130,7 @@ public class NIndexPlanController extends NBasicController {
 
     @Deprecated
     @ApiOperation(value = "deleteTableIndex (update)", notes = "Update URL: {project}, Update Param: project")
-    @DeleteMapping(value = "/table_index/{id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/table_index/{id:.+}")
     public EnvelopeResponse<String> deleteTableIndex(@PathVariable("id") Long id, @RequestParam("model") String modelId,
             @RequestParam("project") String project) {
         checkProjectName(project);
@@ -140,7 +142,7 @@ public class NIndexPlanController extends NBasicController {
 
     @Deprecated
     @ApiOperation(value = "getTableIndex (update)", notes = "Update Param: page_offset, page_size; Update response: total_size")
-    @GetMapping(value = "/table_index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/table_index")
     public EnvelopeResponse<DataResult<List<TableIndexResponse>>> getTableIndex(
             @RequestParam(value = "project") String project, // 
             @RequestParam(value = "model") String modelId, //
@@ -153,7 +155,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @ApiOperation(value = "getIndex (update)", notes = "Update response: total_size")
-    @GetMapping(value = "/index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/index")
     public EnvelopeResponse<DataResult<List<IndexResponse>>> getIndex(@RequestParam(value = "project") String project,
             @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "sort_by", required = false, defaultValue = "") String order,
@@ -169,7 +171,7 @@ public class NIndexPlanController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(indexes, offset, limit), "");
     }
 
-    @GetMapping(value = "/index_graph", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/index_graph")
     public EnvelopeResponse<IndexGraphResponse> getIndexGraph(@RequestParam(value = "project") String project,
             @RequestParam(value = "model") String modelId, //
             @RequestParam(value = "order", required = false, defaultValue = "100") Integer size) {
@@ -180,7 +182,7 @@ public class NIndexPlanController extends NBasicController {
     }
 
     @ApiOperation(value = "deleteIndex (update)", notes = "Update response: need to update total_size")
-    @DeleteMapping(value = "/index/{layout_id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/index/{layout_id:.+}")
     public EnvelopeResponse<String> deleteIndex(@PathVariable(value = "layout_id") long layoutId,
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "model") String modelId) {

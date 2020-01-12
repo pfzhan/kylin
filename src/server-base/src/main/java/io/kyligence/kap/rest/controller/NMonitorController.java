@@ -23,10 +23,12 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.util.List;
 import java.util.Map;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.spark.memory.MetricsCollectHelper;
@@ -39,15 +41,14 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.response.ExecutorMemoryResponse;
 import io.kyligence.kap.rest.response.ExecutorThreadInfoResponse;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/monitor")
+@RequestMapping(value = "/api/monitor", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NMonitorController extends NBasicController {
 
     @ApiOperation(value = "getMemoryMetrics (update)", notes = "Update URL: memory_info")
-    @GetMapping(value = "/memory_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/memory_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorMemoryResponse>> getMemoryMetrics() {
         Map<String, List<String>> memorySnapshotMap = MetricsCollectHelper.getMemorySnapshot();
@@ -55,7 +56,7 @@ public class NMonitorController extends NBasicController {
     }
 
     @ApiOperation(value = "getThreadInfoMetrics (update)", notes = "Update URL: thread_info")
-    @GetMapping(value = "/thread_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/thread_info")
     @ResponseBody
     public EnvelopeResponse<List<ExecutorThreadInfoResponse>> getThreadInfoMetrics() {
         Map<String, List<String>> threadInfoSnapshotMap = MetricsCollectHelper.getThreadInfoSnapshot();

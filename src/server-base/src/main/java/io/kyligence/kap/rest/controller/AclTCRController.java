@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -57,7 +58,7 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/acl", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+@RequestMapping(value = "/api/acl", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class AclTCRController extends NBasicController {
 
     @Autowired

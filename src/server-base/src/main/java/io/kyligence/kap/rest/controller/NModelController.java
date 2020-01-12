@@ -97,7 +97,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
 @Controller
-@RequestMapping(value = "/api/models")
+@RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
 public class NModelController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
     private static final String MODEL_ID = "modelId";
@@ -122,7 +122,7 @@ public class NModelController extends NBasicController {
     private OptimizeRecommendationService optimizeRecommendationService;
 
     @ApiOperation(value = "getModels (update){Red}", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(
             @RequestParam(value = "model_name", required = false) String modelAlias,
@@ -148,7 +148,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "offlineAllModelsInProject (update)(check)", notes = "Update URL: {project}; Update Param: project")
-    @PutMapping(value = "/disable_all_models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/disable_all_models")
     @ResponseBody
     public EnvelopeResponse<String> offlineAllModelsInProject(@RequestParam("project") String project) {
         checkProjectName(project);
@@ -157,7 +157,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "offlineAllModelsInProject (update)(check)", notes = "Update URL: {project}; Update Param: project")
-    @PutMapping(value = "/enable_all_models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/enable_all_models")
     @ResponseBody
     public EnvelopeResponse<String> onlineAllModelsInProject(@RequestParam("project") String project) {
         checkProjectName(project);
@@ -165,7 +165,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<String> createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
@@ -180,7 +180,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "batchSaveModels (update)(check)", notes = "Update URL: {project}; Update Param: project")
-    @PostMapping(value = "/batch_save_models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/batch_save_models")
     @ResponseBody
     public EnvelopeResponse<String> batchSaveModels(@RequestParam("project") String project,
             @RequestBody List<ModelRequest> modelRequests) throws Exception {
@@ -194,7 +194,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "suggestModel (check)", notes = "; need check")
-    @PostMapping(value = "/suggest_model", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/suggest_model")
     @ResponseBody
     public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody SqlAccerelateRequest request) {
         checkProjectName(request.getProject());
@@ -210,7 +210,7 @@ public class NModelController extends NBasicController {
      * @throws Exception
      */
     @ApiOperation(value = "validateModelAlias (check)", notes = "")
-    @PostMapping(value = "/validate_model", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/validate_model")
     @ResponseBody
     public EnvelopeResponse<Boolean> validateModelAlias(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
@@ -223,7 +223,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "checkIfCanAnsweredByExistedModel (check)", notes = "")
-    @PostMapping(value = "/can_answered_by_existed_model", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/can_answered_by_existed_model")
     @ResponseBody
     public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request)
             throws Exception {
@@ -234,7 +234,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")
-    @GetMapping(value = "/{model:.+}/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/data_range/latest_data")
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
@@ -255,7 +255,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getSegments (update)", notes = "Update Param: page_offset, page_size, sort_by; Update Response: total_size")
-    @GetMapping(value = "/{model:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
             @PathVariable(value = "model") String modelId, //
@@ -274,7 +274,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
     }
 
-    @GetMapping(value = "/model_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/model_info")
     @ResponseBody
     public EnvelopeResponse<List<ModelInfoResponse>> getModelInfo(
             @RequestParam(value = "model", required = false, defaultValue = "*") String model,
@@ -287,7 +287,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getAggIndices (update)", notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")
-    @GetMapping(value = "/{model:.+}/agg_indices", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/agg_indices")
     @ResponseBody
     public EnvelopeResponse<IndicesResponse> getAggIndices(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project, //
@@ -306,7 +306,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "updateAggIndicesShardColumns (update)", notes = "Update URL: model;Update Param: model_id")
-    @PostMapping(value = "/{model:.+}/agg_indices/shard_columns", produces = HTTP_VND_APACHE_KYLIN_JSON)
+    @PostMapping(value = "/{model:.+}/agg_indices/shard_columns")
     @ResponseBody
     public EnvelopeResponse<String> updateAggIndicesShardColumns(@PathVariable("model") String modelId,
             @RequestBody AggShardByColumnsRequest aggShardByColumnsRequest) {
@@ -318,7 +318,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getAggIndicesShardColumns (update)", notes = "Update URL: model; Update Response: model_id")
-    @GetMapping(value = "/{model:.+}/agg_indices/shard_columns", produces = HTTP_VND_APACHE_KYLIN_JSON)
+    @GetMapping(value = "/{model:.+}/agg_indices/shard_columns")
     @ResponseBody
     public EnvelopeResponse<AggShardByColumnsResponse> getAggIndicesShardColumns(
             @PathVariable(value = "model") String modelId, @RequestParam(value = "project") String project) {
@@ -330,7 +330,7 @@ public class NModelController extends NBasicController {
 
     @Deprecated
     @ApiOperation(value = "getTableIndices (update)", notes = "Update URL: {model}")
-    @GetMapping(value = "/{model:.+}/table_indices", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/table_indices")
     @ResponseBody
     public EnvelopeResponse<IndicesResponse> getTableIndices(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
@@ -340,7 +340,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "buildIndicesManually (update)", notes = "Update URL: {model}")
-    @PostMapping(value = "/{model:.+}/indices", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{model:.+}/indices")
     @ResponseBody
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model") String modelId,
             @RequestBody BuildIndexRequest request) {
@@ -351,7 +351,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getModelJson (update)", notes = "Update URL: {model}")
-    @GetMapping(value = "/{model:.+}/json", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/json")
     @ResponseBody
     public EnvelopeResponse<String> getModelJson(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
@@ -367,7 +367,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getModelSql (update)", notes = "Update URL: {model}")
-    @GetMapping(value = "{model:.+}/sql", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "{model:.+}/sql")
     @ResponseBody
     public EnvelopeResponse<String> getModelSql(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
@@ -384,7 +384,7 @@ public class NModelController extends NBasicController {
 
     @Deprecated
     @ApiOperation(value = "getModelRelations (update)", notes = "Update URL: {model}")
-    @GetMapping(value = "{model:.+}/relations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "{model:.+}/relations")
     @ResponseBody
     public EnvelopeResponse<List<NSpanningTreeForWeb>> getModelRelations(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
@@ -394,7 +394,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
 
-    @GetMapping(value = "/affected_models", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/affected_models")
     @ResponseBody
     public EnvelopeResponse<AffectedModelsResponse> getAffectedModelsBySourceTableAction(
             @RequestParam(value = "table") String tableName, //
@@ -419,7 +419,7 @@ public class NModelController extends NBasicController {
         }
     }
 
-    @PutMapping(value = "/semantic", produces = HTTP_VND_APACHE_KYLIN_JSON)
+    @PutMapping(value = "/semantic")
     @ResponseBody
     public EnvelopeResponse<String> updateSemantic(@RequestBody ModelRequest request) throws Exception {
         checkProjectName(request.getProject());
@@ -439,7 +439,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "updateModelName (update)", notes = "Update Body: model_id, new_model_name")
-    @PutMapping(value = "/{model:.+}/name", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/name")
     @ResponseBody
     public EnvelopeResponse<String> updateModelName(@PathVariable("model") String modelId,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
@@ -455,7 +455,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "updateModelStatus (update)", notes = "Update Body: model_id, new_model_name")
-    @PutMapping(value = "/{model:.+}/status", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/status")
     @ResponseBody
     public EnvelopeResponse<String> updateModelStatus(@PathVariable("model") String modelId,
             @RequestBody ModelUpdateRequest modelRenameRequest) {
@@ -466,7 +466,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "unlinkModel (update)", notes = "Update Body: model_id")
-    @PutMapping(value = "/{model:.+}/management_type", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/management_type")
     @ResponseBody
     public EnvelopeResponse<String> unlinkModel(@PathVariable("model") String modelId,
             @RequestBody UnlinkModelRequest unlinkModelRequest) {
@@ -477,7 +477,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "deleteModel (update)", notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{model:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{model:.+}")
     @ResponseBody
     public EnvelopeResponse<String> deleteModel(@PathVariable("model") String model,
             @RequestParam("project") String project) {
@@ -487,7 +487,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "deleteSegments (update)(check)", notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{model:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model") String model,
             @RequestParam("project") String project, //
@@ -508,7 +508,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getPurgeModelAffectedResponse (update)", notes = "Add URL: {model}")
-    @GetMapping(value = "/{model:.+}/purge_effect", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/purge_effect")
     @ResponseBody
     public EnvelopeResponse<PurgeModelAffectedResponse> getPurgeModelAffectedResponse(
             @PathVariable(value = "model") String model, @RequestParam(value = "project") String project) {
@@ -519,7 +519,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "cloneModel (update)(check)", notes = "Add URL: {model}; Update Param: new_model_name")
-    @PostMapping(value = "/{model:.+}/clone", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{model:.+}/clone")
     @ResponseBody
     public EnvelopeResponse<String> cloneModel(@PathVariable("model") String modelId,
             @RequestBody ModelCloneRequest request) {
@@ -535,7 +535,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "refreshOrMergeSegmentsByIds (update)", notes = "Add URL: {model}")
-    @PutMapping(value = "/{model:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model") String modelId,
             @RequestBody SegmentsRequest request) {
@@ -556,7 +556,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
-    @PostMapping(value = "/{model:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{model:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
@@ -568,7 +568,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "checkComputedColumns (check)", notes = "Update Response: table_identity, table_alias, column_name, inner_expression, data_type")
-    @PostMapping(value = "/computed_columns/check", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/computed_columns/check")
     @ResponseBody
     public EnvelopeResponse<ComputedColumnDesc> checkComputedColumns(
             @RequestBody ComputedColumnCheckRequest modelRequest) {
@@ -580,7 +580,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, checkedCC, "");
     }
 
-    @GetMapping(value = "/computed_columns/usage", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/computed_columns/usage")
     @ResponseBody
     public EnvelopeResponse<ComputedColumnUsageResponse> getComputedColumnUsage(
             @RequestParam(value = "project") String project) {
@@ -590,7 +590,7 @@ public class NModelController extends NBasicController {
 
     @Deprecated
     @ApiOperation(value = "updateModelDataCheckDesc (check)", notes = "URL, front end Deprecated")
-    @PutMapping(value = "/{model:.+}/data_check", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/data_check")
     @ResponseBody
     public EnvelopeResponse<String> updateModelDataCheckDesc(@PathVariable("model") String modelId,
             @RequestBody ModelCheckRequest request) {
@@ -601,7 +601,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getModelConfig (update)", notes = "Update Param: model_name, page_offset, page_size")
-    @GetMapping(value = "/config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/config")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ModelConfigResponse>>> getModelConfig(
             @RequestParam(value = "model_name", required = false) String modelName,
@@ -613,7 +613,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(modelConfigs, offset, limit), "");
     }
 
-    @PutMapping(value = "/{model:.+}/config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/config")
     @ResponseBody
     public EnvelopeResponse<String> updateModelConfig(@PathVariable("model") String modelId,
             @RequestBody ModelConfigRequest request) {
@@ -623,7 +623,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getOptimizeRecommendations (update)", notes = "Add URL: {model}")
-    @GetMapping(value = "/{model:.+}/recommendations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<OptRecommendationResponse> getOptimizeRecommendations(
             @PathVariable(value = "model") String modelId, //
@@ -636,7 +636,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "applyOptimizeRecommendations (update)", notes = "Add URL: {model}")
-    @PutMapping(value = "/{model:.+}/recommendations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<String> applyOptimizeRecommendations(@PathVariable("model") String modelId,
             @RequestBody ApplyRecommendationsRequest request) {
@@ -648,7 +648,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "removeOptimizeRecommendations (update)", notes = "Add URL: {model}")
-    @DeleteMapping(value = "/{model:.+}/recommendations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{model:.+}/recommendations")
     @ResponseBody
     public EnvelopeResponse<String> removeOptimizeRecommendations(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project,
@@ -675,7 +675,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "getLayoutRecommendationContent (update)", notes = "Add URL: {model}")
-    @GetMapping(value = "/{model:.+}/recommendations/index", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model:.+}/recommendations/index")
     @ResponseBody
     public EnvelopeResponse<LayoutRecommendationDetailResponse> getLayoutRecommendationContent(
             @PathVariable(value = "model") String modelId, //
@@ -694,7 +694,7 @@ public class NModelController extends NBasicController {
     public static final String ILLEGAL_MODE_MSG = "Request failed. Please check whether the recommendation mode is enabled in expert mode.";
 
     @ApiOperation(value = "getRecommendationsByProject (update){Red}", notes = "Del URL: project")
-    @GetMapping(value = "/recommendations", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/recommendations")
     @ResponseBody
     public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
             @RequestParam("project") String project) {
@@ -709,7 +709,7 @@ public class NModelController extends NBasicController {
                 optimizeRecommendationService.getRecommendationsStatsByProject(project), "");
     }
 
-    @PutMapping(value = "/recommendations/batch", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/recommendations/batch")
     @ResponseBody
     public EnvelopeResponse<String> batchApplyRecommendations(@RequestParam(value = "project") String project,
             @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
@@ -732,7 +732,7 @@ public class NModelController extends NBasicController {
     }
 
     @ApiOperation(value = "checkFilterCondition (check)")
-    @PostMapping(value = "/filter_condition/check", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/filter_condition/check")
     @ResponseBody
     public EnvelopeResponse<String> checkFilterCondition(@RequestBody ModelRequest modelRequest) {
         modelService.checkFilterCondition(modelRequest);

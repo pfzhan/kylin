@@ -23,10 +23,11 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.request.CSVRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.service.FileSourceService;
-import io.swagger.annotations.ApiOperation;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
+import java.util.List;
+
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
@@ -40,12 +41,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.List;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.rest.request.CSVRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.service.FileSourceService;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/source")
+@RequestMapping(value = "/api/source", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class FileSourceController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(FileSourceController.class);
@@ -55,7 +57,7 @@ public class FileSourceController extends NBasicController {
     private FileSourceService fileSourceService;
 
     @ApiOperation(value = "saveCsv (update)", notes = "Update URL: /save")
-    @PostMapping(value = "/csv", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/csv")
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> saveCsv(@RequestParam(value = "mode") String mode,
             @RequestBody CSVRequest csvRequest) throws Exception {
@@ -63,7 +65,7 @@ public class FileSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, fileSourceService.saveCSV(mode, csvRequest), "");
     }
 
-    @PostMapping(value = "/verify", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/verify")
     @ResponseBody
     public EnvelopeResponse<Boolean> verifyCredential(@RequestBody CSVRequest csvRequest) {
         try {
@@ -75,19 +77,19 @@ public class FileSourceController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
     }
 
-    @PostMapping(value = "/csv/samples", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/csv/samples")
     @ResponseBody
     public EnvelopeResponse<String[][]> csvSamples(@RequestBody CSVRequest csvRequest) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, fileSourceService.csvSamples(csvRequest), "");
     }
 
-    @PostMapping(value = "/csv/schema", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/csv/schema")
     @ResponseBody
     public EnvelopeResponse<List<String>> csvSchema(@RequestBody CSVRequest csvRequest) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, fileSourceService.csvSchema(csvRequest), "");
     }
 
-    @PostMapping(value = "/validate", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/validate")
     @ResponseBody
     public EnvelopeResponse<Boolean> validateSql(@RequestBody CSVRequest csvRequest) {
         try {

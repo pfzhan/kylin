@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.List;
 
@@ -50,6 +50,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -58,7 +59,7 @@ import io.kyligence.kap.rest.response.NModelDescResponse;
 import io.kyligence.kap.rest.service.ModelService;
 
 @Controller
-@RequestMapping(value = "/api/open/models")
+@RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenModelController extends NBasicController {
 
     @Autowired
@@ -67,7 +68,7 @@ public class OpenModelController extends NBasicController {
     @Autowired
     private ModelService modelService;
 
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataModel>>> getModels(@RequestParam(value = "project") String project,
             @RequestParam(value = "model_name", required = false) String modelAlias, //
@@ -97,7 +98,7 @@ public class OpenModelController extends NBasicController {
         return responses.get(0);
     }
 
-    @GetMapping(value = "/{model_name:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
             @PathVariable(value = "model_name") String modelName, //
@@ -114,7 +115,7 @@ public class OpenModelController extends NBasicController {
         return modelController.getSegments(modelId, project, status, offset, limit, start, end, sortBy, reverse);
     }
 
-    @PostMapping(value = "/{model_name:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelName,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
@@ -123,7 +124,7 @@ public class OpenModelController extends NBasicController {
         return modelController.buildSegmentsManually(nDataModel.getId(), buildSegmentsRequest);
     }
 
-    @PutMapping(value = "/{model_name:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model_name") String modelName,
             @RequestBody SegmentsRequest request) {
@@ -132,7 +133,7 @@ public class OpenModelController extends NBasicController {
         return modelController.refreshOrMergeSegmentsByIds(modelId, request);
     }
 
-    @DeleteMapping(value = "/{model_name:.+}/segments", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<String> deleteSegments(@PathVariable("model_name") String modelName,
             @RequestParam("project") String project, // 
@@ -147,12 +148,28 @@ public class OpenModelController extends NBasicController {
         return modelController.deleteSegments(modelId, project, purge, force, ids);
     }
 
-    @GetMapping(value = "/{project}/{model}/model_desc", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{project}/{model}/model_desc")
     @ResponseBody
     public EnvelopeResponse<NModelDescResponse> getModelDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias) {
         checkProjectName(project);
         NModelDescResponse result = modelService.getModelDesc(modelAlias, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
+    @PutMapping(value = "/{project}/{model}/partition_desc")
+    @ResponseBody
+    public EnvelopeResponse<String> updateParatitionDesc(@PathVariable("project") String project,
+            @PathVariable("model") String modelAlias,
+            @RequestBody ModelParatitionDescRequest modelParatitionDescRequest) {
+        if (modelParatitionDescRequest.getPartitionDesc() != null) {
+            checkRequiredArg("partition_date_column",
+                    modelParatitionDescRequest.getPartitionDesc().getPartitionDateColumn());
+            checkRequiredArg("partition_date_format",
+                    modelParatitionDescRequest.getPartitionDesc().getPartitionDateFormat());
+        }
+        validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+        modelService.updateDataModelParatitionDesc(project, modelAlias, modelParatitionDescRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

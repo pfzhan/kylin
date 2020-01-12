@@ -24,11 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.rest.response.SQLValidateResponse;
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -58,13 +59,14 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.rest.request.SQLValidateRequest;
+import io.kyligence.kap.rest.response.SQLValidateResponse;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @RestController
-@RequestMapping(value = "/api/query/favorite_queries", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+@RequestMapping(value = "/api/query/favorite_queries", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+        HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class FavoriteQueryController extends NBasicController {
 
     @Autowired

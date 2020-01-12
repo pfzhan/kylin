@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.io.IOException;
 import java.time.ZoneId;
 import java.util.Arrays;
@@ -31,7 +34,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.TimeZone;
 
-import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -44,14 +46,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/admin")
+@RequestMapping(value = "/api/admin", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NAdminController extends NBasicController {
 
     @ApiOperation(value = "getPublicConfig (update)", notes = "Update Param: project_name")
-    @GetMapping(value = "/public_config", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/public_config")
     @ResponseBody
     public EnvelopeResponse<String> getPublicConfig() throws IOException {
 
@@ -76,7 +78,7 @@ public class NAdminController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, config, "");
     }
 
-    @GetMapping(value = "/instance_info", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/instance_info")
     @ResponseBody
     public EnvelopeResponse<Map<String, String>> getInstanceConfig() {
 

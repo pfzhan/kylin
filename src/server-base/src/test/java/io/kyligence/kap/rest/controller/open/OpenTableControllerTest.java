@@ -23,9 +23,8 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import io.kyligence.kap.rest.controller.NTableController;
-import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -47,7 +46,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.rest.controller.NTableController;
+import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 
 public class OpenTableControllerTest {
 
@@ -91,10 +92,10 @@ public class OpenTableControllerTest {
         dateRangeRequest.setTable(tableName);
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nTableController)
                 .setDateRanges(dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/open/tables/data_range") //
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(dateRangeRequest)) //
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
     }
@@ -115,10 +116,10 @@ public class OpenTableControllerTest {
 
         Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "")).when(nTableController)
                 .refreshSegments(refreshSegmentsRequest);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/open/tables/data_range") //
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .content(JsonUtil.writeValueAsString(refreshSegmentsRequest)) //
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).refreshSegments(Mockito.any(RefreshSegmentsRequest.class));
     }

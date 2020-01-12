@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.controller.open;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,7 +52,7 @@ import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.service.TableService;
 
 @Controller
-@RequestMapping(value = "/api/open/tables")
+@RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class OpenTableController extends NBasicController {
 
     @Autowired
@@ -70,7 +70,7 @@ public class OpenTableController extends NBasicController {
         return table;
     }
 
-    @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<TableDesc>>> getTableDesc(@RequestParam(value = "project") String project,
             @RequestParam(value = "table", required = false) String table,
@@ -88,7 +88,7 @@ public class OpenTableController extends NBasicController {
      * @return
      * @throws Exception
      */
-    @PostMapping(value = "/data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> setDateRanges(@RequestBody DateRangeRequest request) throws Exception {
         checkProjectName(request.getProject());
@@ -104,7 +104,7 @@ public class OpenTableController extends NBasicController {
      * @return
      * @throws IOException
      */
-    @PutMapping(value = "/data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/data_range")
     @ResponseBody
     public EnvelopeResponse<String> refreshSegments(@RequestBody RefreshSegmentsRequest request) throws IOException {
         checkProjectName(request.getProject());

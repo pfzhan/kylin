@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.spark.SparkContext;
@@ -39,22 +42,20 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import scala.Tuple2;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
 @Controller
-@RequestMapping(value = "/api/spark")
+@RequestMapping(value = "/api/spark", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NSparkController extends NBasicController {
 
     private String msg = " not exists in Spark";
 
-    @GetMapping(value = "/blacklist", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/blacklist")
     @ResponseBody
     public EnvelopeResponse<Tuple2<String[], String[]>> getBlacklist() {
         Tuple2<String[], String[]> blacklist = getSparkTaskScheduler().getBlacklist();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, blacklist, "get blacklist");
     }
 
-    @PutMapping(value = "/blacklist/executor/{executor_id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/blacklist/executor/{executor_id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> addExecutorToBlackListManually(@PathVariable("executor_id") String executorId) {
         if (getBackend().getExecutorIds().contains(executorId)) {
@@ -71,7 +72,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
-    @PutMapping(value = "/blacklist/node/{node:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/blacklist/node/{node:.+}")
     @ResponseBody
     public EnvelopeResponse<String> addNodeToBlackListManually(@PathVariable("node") String node) {
         if (getBackend().getHosts().contains(node)) {
@@ -82,7 +83,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
-    @DeleteMapping(value = "/blacklist/executor/{executor_id:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/blacklist/executor/{executor_id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeExecutorFromBlackListManually(
             @PathVariable("executor_id") String executorId) {
@@ -94,7 +95,7 @@ public class NSparkController extends NBasicController {
         }
     }
 
-    @DeleteMapping(value = "/blacklist/node/{node:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/blacklist/node/{node:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeNodeFromBlackListManually(@PathVariable("node") String node) {
         if (getBackend().getHosts().contains(node)) {

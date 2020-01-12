@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.IOException;
 import java.util.List;
@@ -75,7 +76,7 @@ import io.kyligence.kap.rest.service.AclTCRService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
-@RequestMapping(value = "/api/access")
+@RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NAccessController extends NBasicController {
 
     @Autowired
@@ -97,7 +98,7 @@ public class NAccessController extends NBasicController {
     /**
      * Get current user's permission in the project
      */
-    @GetMapping(value = "/permission/project_permission", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/permission/project_permission")
     @ResponseBody
     public EnvelopeResponse<String> getUserPermissionInPrj(@RequestParam(value = "project") String project) {
         checkProjectName(project);
@@ -106,7 +107,7 @@ public class NAccessController extends NBasicController {
     }
 
     @ApiOperation(value = "getAvailableSids (update)", notes = "Update Param: sid_type, is_case_sensitive, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/available/{sid_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/available/{sid_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<String>>> getAvailableSids(@PathVariable("uuid") String uuid,
             @PathVariable("sid_type") String sidType, @RequestParam(value = "project", required = false) String project,
@@ -135,7 +136,7 @@ public class NAccessController extends NBasicController {
     }
 
     @ApiOperation(value = "getAccessEntities (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")
-    @GetMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @GetMapping(value = "/{type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<AccessEntryResponse>>> getAccessEntities(@PathVariable("type") String type,
             @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
@@ -156,7 +157,7 @@ public class NAccessController extends NBasicController {
      * Grant a new access on a domain object to a user/role
      */
     @ApiOperation(value = "grant (update)", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
-    @PostMapping(value = "/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/{entity_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> grant(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, @RequestBody AccessRequest accessRequest) throws IOException {
@@ -170,7 +171,7 @@ public class NAccessController extends NBasicController {
     }
 
     @ApiOperation(value = "batchGrant (update)", notes = "Update URL: {entity_type}; Update Body: access_entry_id")
-    @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PostMapping(value = "/batch/{entity_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> batchGrant(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, @RequestBody List<BatchAccessRequest> batchAccessRequests)
@@ -190,7 +191,7 @@ public class NAccessController extends NBasicController {
      * @param accessRequest
      */
     @ApiOperation(value = "batchGrant (update)", notes = "Update Body: access_entry_id")
-    @PutMapping(value = "/{type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @PutMapping(value = "/{type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) throws IOException {
@@ -206,7 +207,7 @@ public class NAccessController extends NBasicController {
     }
 
     @ApiOperation(value = "revokeAcl (update)", notes = "URL: entity_type; Update Param: entity_type; Update Body: access_entry_id")
-    @DeleteMapping(value = "/{entity_type:.+}/{uuid:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON })
+    @DeleteMapping(value = "/{entity_type:.+}/{uuid:.+}")
     @ResponseBody
     public EnvelopeResponse<String> revokeAcl(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, //

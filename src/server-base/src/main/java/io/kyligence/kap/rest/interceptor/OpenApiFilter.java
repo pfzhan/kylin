@@ -53,9 +53,7 @@ public class OpenApiFilter implements Filter {
             throws IOException, ServletException {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
-            if (servletRequest.getRequestURI().startsWith(PREFIX)
-                    && !servletRequest.getRequestURI().startsWith(PREFIX + "/models")
-                    && !servletRequest.getRequestURI().startsWith(PREFIX + "/tables")) {
+            if (servletRequest.getRequestURI().startsWith(PREFIX)) {
                 String redirectUri = servletRequest.getRequestURI().substring(CONTEXT_PATH.length())
                         .replaceFirst("/open/", "/");
                 servletRequest.getRequestDispatcher(redirectUri).forward(servletRequest, response);
