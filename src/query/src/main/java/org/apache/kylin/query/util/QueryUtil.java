@@ -89,7 +89,7 @@ public class QueryUtil {
         String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
         massagedSql = transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
         logger.info("SQL massage result: {}", massagedSql);
-        QueryContext.current().record("messsage");
+        QueryContext.current().record("massage");
         return massagedSql;
     }
 

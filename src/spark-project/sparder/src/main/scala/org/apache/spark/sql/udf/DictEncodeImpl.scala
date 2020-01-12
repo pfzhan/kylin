@@ -21,16 +21,21 @@
  */
 package org.apache.spark.sql.udf
 
+import java.util
+
 import org.apache.spark.TaskContext
 import org.apache.spark.dict.{NBucketDictionary, NGlobalDictionaryV2}
 import org.apache.spark.util.TaskCompletionListener
 
 object DictEncodeImpl {
 
-  @transient val cacheBucketDict: ThreadLocal[NBucketDictionary] = new ThreadLocal[NBucketDictionary]
+  @transient val cacheBucketDict: ThreadLocal[java.util.HashMap[String, NBucketDictionary]] =
+    new ThreadLocal[java.util.HashMap[String, NBucketDictionary]] {
+      override def initialValue(): util.HashMap[String, NBucketDictionary] = new util.HashMap[String, NBucketDictionary]()
+    }
 
   def evaluate(inputValue: String, dictParams: String, bucketSize: String): Long = {
-    var cachedBucketDict = DictEncodeImpl.cacheBucketDict.get()
+    var cachedBucketDict = DictEncodeImpl.cacheBucketDict.get().get(dictParams)
     if (cachedBucketDict == null) {
       cachedBucketDict = initBucketDict(dictParams, bucketSize)
     }
@@ -43,12 +48,12 @@ object DictEncodeImpl {
     val globalDict = new NGlobalDictionaryV2(dictParams)
 
     val cachedBucketDict = globalDict.loadBucketDictionary(encodeBucketId)
-    DictEncodeImpl.cacheBucketDict.set(cachedBucketDict)
+    DictEncodeImpl.cacheBucketDict.get.put(dictParams, cachedBucketDict)
     TaskContext.get().addTaskCompletionListener(new TaskCompletionListener {
       override def onTaskCompletion(context: TaskContext): Unit = {
-        DictEncodeImpl.cacheBucketDict.remove()
+        DictEncodeImpl.cacheBucketDict.get().clear()
       }
     })
-    DictEncodeImpl.cacheBucketDict.get()
+    DictEncodeImpl.cacheBucketDict.get().get(dictParams)
   }
 }

@@ -303,15 +303,15 @@ case class DictEncode(left: Expression, mid: Expression, right: Expression) exte
     val globalDictClass = classOf[NGlobalDictionaryV2].getName
     val bucketDictClass = classOf[NBucketDictionary].getName
 
-    val globalDictTerm = ctx.addMutableState(globalDictClass, "globalDict")
-    val bucketDictTerm = ctx.addMutableState(bucketDictClass, "bucketDict")
+    val globalDictTerm = ctx.addMutableState(globalDictClass, s"${mid.simpleString.replace("[", "").replace("]", "")}_globalDict")
+    val bucketDictTerm = ctx.addMutableState(bucketDictClass, s"${mid.simpleString.replace("[", "").replace("]", "")}_bucketDict")
 
     val dictParamsTerm = mid.simpleString
     val bucketSizeTerm = right.simpleString.toInt
 
-    val initBucketDictFuncName = ctx.addNewFunction("initBucketDict",
+    val initBucketDictFuncName = ctx.addNewFunction(s"init${bucketDictTerm.replace("[", "").replace("]", "")}BucketDict",
       s"""
-         | private void initBucketDict(int idx) {
+         | private void init${bucketDictTerm.replace("[", "").replace("]", "")}BucketDict(int idx) {
          |   try {
          |     int bucketId = idx % $bucketSizeTerm;
          |     $globalDictTerm = new org.apache.spark.dict.NGlobalDictionaryV2("$dictParamsTerm");

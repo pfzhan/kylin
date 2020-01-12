@@ -559,7 +559,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public int getGlobalDictV2MinHashPartitions() {
-        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "10"));
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "1"));
     }
 
     public int getGlobalDictV2ThresholdBucketSize() {

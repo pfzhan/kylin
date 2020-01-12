@@ -33,7 +33,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.functions.{col, _}
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.{Column, Dataset, Row}
+import org.apache.spark.sql.{Dataset, Row}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable._
@@ -62,29 +62,33 @@ object DFTableEncoder extends Logging {
         val aliasName = structType.apply(columnIndex).name.concat(ENCODE_SUFFIX)
         val encodeCol = dict_encode(col(encodeColRef).cast(StringType), lit(dictParams), lit(bucketSize).cast(StringType)).as(aliasName)
         val columns = encodeCol
-        (enlargedBucketSize, col(encodeColRef).cast(StringType), columns, aliasName)
+        (enlargedBucketSize, col(encodeColRef).cast(StringType), columns, aliasName,
+          bucketSize == 1)
       }
     if (KylinBuildEnv.get() != null && KylinBuildEnv.get().encodingDataSkew) {
       encodingArgs.foreach {
-        case (enlargedBucketSize, repartitionColumn, projects, aliasName) =>
+        case (enlargedBucketSize, repartitionColumn, projects, aliasName, false) =>
           val ds = partitionedDs.filter(repartitionColumn.isNull).select(partitionedDs.schema.map(sc => col(sc.name))
             ++ Seq(lit(null).as(aliasName)): _*)
           val encoding = partitionedDs.filter(repartitionColumn.isNotNull)
             .repartition(enlargedBucketSize, repartitionColumn)
             .select(partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(projects): _*)
           partitionedDs = ds.union(encoding)
+        case (_, _, projects, _, true) =>
+          partitionedDs = partitionedDs
+            .select(partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(projects): _*)
       }
     } else {
       encodingArgs.foreach {
-        case (enlargedBucketSize, repartitionColumn, projects, aliasName) =>
+        case (enlargedBucketSize, repartitionColumn, projects, _, false) =>
           partitionedDs = partitionedDs
             .repartition(enlargedBucketSize, repartitionColumn)
             .select(partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(projects): _*)
+        case (_, _, projects, _, true) =>
+          partitionedDs = partitionedDs
+            .select(partitionedDs.schema.map(ty => col(ty.name)) ++ Seq(projects): _*)
       }
     }
-
-
-
     ds.sparkSession.sparkContext.setJobDescription(null)
     partitionedDs
   }
