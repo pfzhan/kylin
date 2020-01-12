@@ -206,6 +206,10 @@ then
     eval $spark_sql_command
     [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create table in working directory: ${WORKING_DIR}"; }
 
+    echo "drop table if exists ${HIVE_TEST_TABLE}2;" > ${SPARK_HQL_TMP_FILE}
+    eval $spark_sql_command
+    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"; }
+
     echo "kylin,1" | hadoop fs -put - ${HIVE_TEST_TABLE_LOCATION}/data.txt
     echo "create table ${HIVE_TEST_TABLE}2 (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '${HIVE_TEST_TABLE_LOCATION}2';" > ${SPARK_HQL_TMP_FILE}
     if [[ $(isHDP_3_1) == 0 ]]; then
