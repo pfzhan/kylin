@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,6 +57,7 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -182,7 +184,6 @@ public class ProjectService extends BasicService {
 
         try {
             Thread.currentThread().setName("GarbageCleanupWorker");
-
             // clean up acl
             cleanupAcl();
             val config = KylinConfig.getInstanceFromEnv();
@@ -190,6 +191,7 @@ public class ProjectService extends BasicService {
             for (ProjectInstance project : projectManager.listAllProjects()) {
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
+                    updateProjectRegularRule(project.getName());
                     GarbageCleaner.cleanupMetadataAtScheduledTime(project.getName());
                 } catch (Exception e) {
                     logger.warn("clean project<" + project.getName() + "> failed", e);
@@ -220,8 +222,25 @@ public class ProjectService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public void cleanupGarbage(String project) throws IOException {
+        updateProjectRegularRule(project);
         GarbageCleaner.cleanupMetadataManually(project);
         asyncTaskService.cleanupStorage();
+    }
+
+    public void updateProjectRegularRule(String project) {
+        NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
+        if (favoriteScheduler.hasStarted()) {
+            List<Future> futures = favoriteScheduler.scheduleImmediately();
+            for (val future : futures) {
+                while (!future.isDone()) {
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        throw Throwables.propagate(e);
+                    }
+                }
+            }
+        }
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

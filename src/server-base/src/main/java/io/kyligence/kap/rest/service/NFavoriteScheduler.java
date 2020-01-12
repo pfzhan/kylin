@@ -41,6 +41,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -531,9 +533,11 @@ public class NFavoriteScheduler {
         return NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).getUserGroups(userName);
     }
 
-    public void scheduleImmediately() {
-        autoFavoriteScheduler.schedule(new AutoFavoriteRunner(), 1, TimeUnit.SECONDS);
-        updateFavoriteScheduler.schedule(new UpdateUsageStatisticsRunner(project), 10L, TimeUnit.SECONDS);
+    public List<Future> scheduleImmediately() {
+        List<Future> futures = new ArrayList<>();
+        futures.add(autoFavoriteScheduler.schedule(new AutoFavoriteRunner(), 1, TimeUnit.SECONDS));
+        futures.add(updateFavoriteScheduler.schedule(new UpdateUsageStatisticsRunner(project), 10L, TimeUnit.SECONDS));
+        return futures;
     }
 
     public boolean hasStarted() {

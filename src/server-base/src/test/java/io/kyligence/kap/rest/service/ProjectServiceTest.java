@@ -648,4 +648,5 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(updateTo, NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).getConfig()
                 .getOptional("kylin.engine.spark-conf.spark.yarn.queue", ""));
     }
+
 }
