@@ -295,12 +295,19 @@ object CreateFlatTable extends Logging {
   }
 
   def joinFactTableWithLookupTables(rootFactDataset: Dataset[Row],
-                                    lookupTableDatasetMap: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]],
+                                    lookupTableDatasetMap: mutable.Map[JoinTableDesc, Dataset[Row]],
                                     model: NDataModel,
                                     ss: SparkSession): Dataset[Row] = {
     lookupTableDatasetMap.foldLeft(rootFactDataset)(
       (joinedDataset: Dataset[Row], tuple: (JoinTableDesc, Dataset[Row])) =>
         joinTableDataset(model.getRootFactTable.getTableDesc, tuple._1, joinedDataset, tuple._2, ss))
+  }
+
+  def joinFactTableWithLookupTables(rootFactDataset: Dataset[Row],
+                                    lookupTableDatasetMap: java.util.LinkedHashMap[JoinTableDesc, Dataset[Row]],
+                                    model: NDataModel,
+                                    ss: SparkSession): Dataset[Row] = {
+    joinFactTableWithLookupTables(rootFactDataset, lookupTableDatasetMap.asScala, model, ss)
   }
 
   def joinTableDataset(rootFactDesc: TableDesc,

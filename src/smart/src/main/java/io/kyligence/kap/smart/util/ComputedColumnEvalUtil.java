@@ -31,23 +31,31 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.builder.CreateFlatTable$;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -121,7 +129,7 @@ public class ComputedColumnEvalUtil {
 
     private static void evalDataTypeOfCC(List<ComputedColumnDesc> computedColumns, SparkSession ss,
             NDataModel nDataModel, int start, int end) throws AnalysisException {
-        Dataset<Row> originDf = CreateFlatTable$.MODULE$.generateFullFlatTable(nDataModel, ss).limit(10);
+        val originDf = generateFullFlatTableDF(ss, nDataModel);
         originDf.persist();
         Dataset<Row> ds = originDf.selectExpr(computedColumns.subList(start, end).stream() //
                 .map(ComputedColumnDesc::getInnerExpression) //
@@ -130,6 +138,27 @@ public class ComputedColumnEvalUtil {
             String dataType = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i - start].dataType());
             computedColumns.get(i).setDatatype(dataType);
         }
+    }
+
+    private static Dataset<Row> generateFullFlatTableDF(SparkSession ss, NDataModel model) {
+        // root fact table
+        val rootDF = generateDatasetOnTable(ss, model.getRootFactTable());
+
+        // look up tables
+        val joinTableDFMap = Maps.<JoinTableDesc, Dataset<Row>> newLinkedHashMap();
+        model.getJoinTables().forEach(
+                joinTable -> joinTableDFMap.put(joinTable, generateDatasetOnTable(ss, joinTable.getTableRef())));
+
+        return CreateFlatTable.joinFactTableWithLookupTables(rootDF, joinTableDFMap, model, ss);
+    }
+
+    private static Dataset<Row> generateDatasetOnTable(SparkSession ss, TableRef tableRef) {
+        val tableCols = tableRef.getColumns().stream().map(TblColRef::getColumnDesc)
+                .filter(col -> !col.isComputedColumn()).toArray(ColumnDesc[]::new);
+        val structType = SchemaProcessor.buildSchemaWithRawTable(tableCols);
+        val alias = tableRef.getAlias();
+        val dataset = ss.createDataFrame(Lists.newArrayList(), structType).alias(alias);
+        return CreateFlatTable.changeSchemaToAliasDotName(dataset, alias);
     }
 
     public static boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel dataModel, List<NDataModel> otherModels,
