@@ -822,15 +822,17 @@ export default class ModelList extends Vue {
   }
   .filter-tags {
     margin-bottom: 10px;
-    padding: 6px 10px;
+    padding: 0px 5px 5px;
     box-sizing: border-box;
     position: relative;
     background: @background-disabled-color;
+    .filter-tags-layout {
+      display: inline-block;
+      width: calc(~'100% - 80px');
+    }
     .el-tag {
       margin-left: 5px;
-      &:first-child {
-        margin-left: 0;
-      }
+      margin-top: 5px;
     }
     .clear-all-filters {
       position: absolute;
