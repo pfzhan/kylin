@@ -2,7 +2,7 @@ export default {
   en: {
     back: 'Back',
     user: 'User',
-    userName: 'User Name',
+    userName: 'User Name Search',
     securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.',
     admin: 'System Admin',
     status: 'Status',
@@ -20,7 +20,7 @@ export default {
   'zh-cn': {
     back: '返回',
     user: '用户',
-    userName: '用户名',
+    userName: '搜索用户名',
     securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。',
     admin: '系统管理员',
     status: '状态',
