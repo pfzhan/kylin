@@ -56,20 +56,20 @@ public class DefaultQueryTransformer implements IQueryTransformer {
     private static final String SM = "\\s+";
     private static final String ONE = "1";
 
-    private static final Pattern PTN_SUM = Pattern
-            .compile(S0 + "SUM" + S0 + "[(]" + S0 + "(-?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
+    private static final Pattern PTN_SUM = Pattern.compile(
+            S0 + "\\bSUM" + S0 + "[(]" + S0 + "(-?\\d+(\\.\\d+)?)" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_NOT_EQ = Pattern.compile(S0 + "!=" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_INTERVAL = Pattern.compile(
-            "interval" + SM + "(floor\\()([\\d.]+)(\\))" + SM + "(second|minute|hour|day|month|year)",
+            "\\binterval" + SM + "(floor\\()([\\d.]+)(\\))" + SM + "(second|minute|hour|day|month|year)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_HAVING_ESCAPE_FUNCTION = Pattern
             .compile("[{]" + S0 + "fn" + SM + "(EXTRACT\\(.*?\\))" + S0 + "[}]", Pattern.CASE_INSENSITIVE);
 
     //TODO #11033
-    private static final Pattern PIN_SUM_OF_CAST = Pattern.compile(S0 + "SUM" + S0 + "\\(" + S0 + "CAST" + S0 + "\\("
+    private static final Pattern PIN_SUM_OF_CAST = Pattern.compile(S0 + "\\bSUM" + S0 + "\\(" + S0 + "CAST" + S0 + "\\("
             + S0 + "([^\\s,]+)" + S0 + "AS" + SM + "DOUBLE" + S0 + "\\)" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_DT_FUNCTION = Pattern.compile(
-            S0 + "(YEAR|QUARTER|MONTH|WEEK|DAY|DAYOFYEAR|DAYOFMONTH|DAYOFWEEK)" + "\\(([^()]+)\\)",
+            S0 + "\\b(YEAR|QUARTER|MONTH|WEEK|DAY|DAYOFYEAR|DAYOFMONTH|DAYOFWEEK)" + "\\(([^()]+)\\)",
             Pattern.CASE_INSENSITIVE);
 
     @Override

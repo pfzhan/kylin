@@ -137,6 +137,10 @@ public class DefaultQueryTransformerTest {
         sql = "select year({fn convert(shipdate, date)}) from tbl";
         correctSql = transformer.transform(sql, "", "");
         assertTrue("select year({fn convert(shipdate, date)}) from tbl".equalsIgnoreCase(correctSql));
+
+        sql = "select weekofyear(shipdate) from tbl";
+        correctSql = transformer.transform(sql, "", "");
+        assertTrue("select weekofyear(shipdate) from tbl".equalsIgnoreCase(correctSql));
     }
 
     @Test
