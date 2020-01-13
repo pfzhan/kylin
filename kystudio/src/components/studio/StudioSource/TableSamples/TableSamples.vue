@@ -25,8 +25,9 @@
         </el-table-column>
       </el-table>
     </div>
-    <kap-empty-data v-if="!headers.length" :content="emptyText">
+    <kap-empty-data v-if="!headers.length&&!this.filterText">
     </kap-empty-data>
+    <kap-nodata v-if="!headers.length&&this.filterText" :content="$t('kylinLang.common.noResults')"></kap-nodata>
   </div>
 </template>
 
