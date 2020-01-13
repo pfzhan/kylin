@@ -448,6 +448,7 @@ export default class ModelList extends Vue {
   }
   async refreshSegment () {
     this.$refs.segmentComp && await this.$refs.segmentComp.$emit('refresh')
+    this.prevExpendContent = this.modelArray.filter(item => this.expandedRows.includes(item.alias))
     this.$nextTick(() => {
       this.setModelExpand()
     })
@@ -686,6 +687,9 @@ export default class ModelList extends Vue {
     .cell {
       display: none;
     }
+  }
+  .ky-no-br-space {
+    height: 50px;
   }
   .full-model-slide-fade-enter-active {
     transition: all .3s ease;
