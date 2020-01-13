@@ -62,13 +62,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class JoinedFlatTable {
 
     private static final String DATABASE_AND_TABLE = "%s.%s";
 
-    private static final String QUOTE = "`";
+    private static final String QUOTE = "\"";
     private static final String UNDER_LINE = "_";
     private static final String DOT = ".";
 
@@ -92,11 +93,12 @@ public class JoinedFlatTable {
     }
 
     private static String quotedColExpressionInSourceDB(NDataModel modelDesc, TblColRef col) {
+        Map<String, ComputedColumnDesc> ccMap = Maps.newHashMap();
+        modelDesc.getComputedColumnDescs().forEach(cc -> ccMap.putIfAbsent(cc.getColumnName(), cc));
         if (!col.getColumnDesc().isComputedColumn()) {
             return quote(col.getTableAlias()) + DOT + quote(col.getName());
-        } else {
-            return quoteIdentifierInSqlExpr(modelDesc, col.getColumnDesc().getComputedColumnExpr(), QUOTE);
         }
+        return quoteIdentifierInSqlExpr(modelDesc, ccMap.get(col.getName()).getExpression(), QUOTE);
     }
 
     private static String appendEffectiveColumnsStatement(NDataModel modelDesc, boolean singleLine) {

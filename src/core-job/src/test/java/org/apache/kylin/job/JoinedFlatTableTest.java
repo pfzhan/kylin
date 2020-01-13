@@ -59,6 +59,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableBiMap;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class JoinedFlatTableTest {
@@ -156,6 +157,12 @@ public class JoinedFlatTableTest {
 
         dataModel.setJoinTables(Lists.newArrayList(supplierJoinTableDesc));
         dataModel.setFilterCondition("SUPPLIER.S_CITY != 'beijing'");
+        ComputedColumnDesc cc1 = new ComputedColumnDesc();
+        cc1.setExpression("LINEORDER.LO_REVENUE-LINEORDER.LO_TAX");
+        cc1.setInnerExpression("LINEORDER.LO_REVENUE-LINEORDER.LO_TAX");
+        cc1.setColumnName("PROFIT");
+        cc1.setDatatype("bigint");
+        dataModel.setComputedColumnDescs(Lists.newArrayList(cc1));
     }
 
     @Test
@@ -175,28 +182,28 @@ public class JoinedFlatTableTest {
     @Test
     public void testGenerateSelectDataStatement() {
         String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-        Assert.assertTrue(flatTableSql.contains("`SUPPLIER`.`S_CITY` != 'beijing'"));
+        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_CITY\" != 'beijing'"));
         Assert.assertTrue(flatTableSql.contains("SELECT "));
         Assert.assertTrue(flatTableSql.contains("FROM "));
         Assert.assertTrue(flatTableSql.contains("WHERE "));
-        Assert.assertTrue(flatTableSql.contains("`LINEORDER`.`LO_SUPPKEY` as `LINEORDER_LO_SUPPKEY`,"));
-        Assert.assertTrue(flatTableSql.contains("`LINEORDER`.`LO_REVENUE` as `LINEORDER_LO_REVENUE`,"));
-        Assert.assertTrue(flatTableSql.contains("`LINEORDER`.`LO_TAX` as `LINEORDER_LO_TAX`,"));
-        Assert.assertTrue(
-                flatTableSql.contains("`LINEORDER`.`LO_REVENUE`-`LINEORDER`.`LO_TAX` as `LINEORDER_PROFIT`,"));
-        Assert.assertTrue(flatTableSql.contains("`SUPPLIER`.`S_SUPPKEY` as `SUPPLIER_S_SUPPKEY`,"));
-        Assert.assertTrue(flatTableSql.contains("`SUPPLIER`.`S_CITY` as `SUPPLIER_S_CITY`"));
-        Assert.assertTrue(flatTableSql.contains("`SSB`.`LINEORDER` as `LINEORDER`"));
-        Assert.assertTrue(flatTableSql.contains("LEFT JOIN `SSB`.`SUPPLIER` as `SUPPLIER`"));
-        Assert.assertTrue(flatTableSql.contains("ON `SUPPLIER`.`S_SUPPKEY`=`LINEORDER`.`LO_SUPPKEY`"));
-        Assert.assertTrue(flatTableSql.contains("`SUPPLIER`.`S_CITY` != 'beijing'"));
+        Assert.assertTrue(flatTableSql.contains("\"LINEORDER\".\"LO_SUPPKEY\" as \"LINEORDER_LO_SUPPKEY\","));
+        Assert.assertTrue(flatTableSql.contains("\"LINEORDER\".\"LO_REVENUE\" as \"LINEORDER_LO_REVENUE\","));
+        Assert.assertTrue(flatTableSql.contains("\"LINEORDER\".\"LO_TAX\" as \"LINEORDER_LO_TAX\","));
+        Assert.assertTrue(flatTableSql
+                .contains("\"LINEORDER\".\"LO_REVENUE\"-\"LINEORDER\".\"LO_TAX\" as \"LINEORDER_PROFIT\","));
+        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_SUPPKEY\" as \"SUPPLIER_S_SUPPKEY\","));
+        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_CITY\" as \"SUPPLIER_S_CITY\""));
+        Assert.assertTrue(flatTableSql.contains("\"SSB\".\"LINEORDER\" as \"LINEORDER\""));
+        Assert.assertTrue(flatTableSql.contains("LEFT JOIN \"SSB\".\"SUPPLIER\" as \"SUPPLIER\""));
+        Assert.assertTrue(flatTableSql.contains("ON \"SUPPLIER\".\"S_SUPPKEY\"=\"LINEORDER\".\"LO_SUPPKEY\""));
+        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_CITY\" != 'beijing'"));
 
         NonEquiJoinCondition nonEquiJoinCondition = new NonEquiJoinCondition();
         nonEquiJoinCondition.setExpr("SUPPLIER.S_SUPPKEY <> LINEORDER.LO_SUPPKEY AND LINEORDER.LO_SUPPKEY > 10");
         dataModel.getJoinTables().get(0).getJoin().setNonEquiJoinCondition(nonEquiJoinCondition);
         String nonEquiJoinConditionSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-        Assert.assertTrue(nonEquiJoinConditionSql
-                .contains("ON `SUPPLIER`.`S_SUPPKEY` <> `LINEORDER`.`LO_SUPPKEY` AND `LINEORDER`.`LO_SUPPKEY` > 10"));
+        Assert.assertTrue(nonEquiJoinConditionSql.contains(
+                "ON \"SUPPLIER\".\"S_SUPPKEY\" <> \"LINEORDER\".\"LO_SUPPKEY\" AND \"LINEORDER\".\"LO_SUPPKEY\" > 10"));
         dataModel.getJoinTables().get(0).getJoin().setNonEquiJoinCondition(null);
     }
 
