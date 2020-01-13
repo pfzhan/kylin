@@ -9,9 +9,10 @@ export default {
     rows: 'Rows',
     noPartition: 'No Partition',
     changePartitionTitle: 'Change Partition',
-    changePartitionContent1: 'You\'re going to change the table {tableName}\'s partition from {oldPartitionKey} to {newPartitionKey}.',
-    changePartitionContent2: 'The change may clean loaded storage {storageSize} and re-load data.',
-    changePartitionContent3: 'Do you really need to change the partition?',
+    changePartitionContent1: 'You\'re going to change the table {tableName}\'s partition from {oldPartitionKey} to {newPartitionKey}. ',
+    changePartitionContent2: ' After submitting, loaded storage {storageSize} will be purged and reloaded according to the new load range.',
+    changePartitionContent21: ' After submitting, loaded storage {storageSize} will be purged and full reloaded. ',
+    changePartitionContent3: 'Please confirm whether to submit?',
     fullLoadDataTitle: 'Load Data',
     fullLoadDataContent1: 'Because the table {tableName} has no partition, the load data job will reload all impacted data {storageSize}.',
     fullLoadDataContent2: 'Do you need to submit the load data job?',
@@ -20,9 +21,13 @@ export default {
     loadData: 'Load Data',
     refreshData: 'Refresh Data',
     notLoadYet: 'Not loaded yet',
-    suggestSetLoadRangeTip: 'Please input a load range after the partition set, or the system wouldn\'t accelerate queries automatically.',
+    suggestSetLoadRangeTip: 'Please input a load range, or the system wouldn\'t accelerate queries automatically.',
     dateFormat: 'Time Format:',
-    detectFormat: 'Detect partition format'
+    detectFormat: 'Detect partition format',
+    partitionSetting: 'Partiton Setting',
+    partitionTip1: 'Modifying partition column will purge all segments under the index groups containing the table. After submitting and setting load range, the system will automatically rebuild the index and load the data. The index groups cannot serve related queries during index building. Please confirm whether to submit?',
+    submitAndSetRange: 'Submit And Set Load Range',
+    partitionTip2: 'Modifying partition column will purge all segments under the index groups containing the table. After submitting, the system will automatically rebuild the index and full load the data. The index groups cannot serve related queries during index building. Please confirm whether to submit?'
   },
   'zh-cn': {
     tableName: '表名：',
@@ -34,9 +39,10 @@ export default {
     rows: '行',
     noPartition: '无分区',
     changePartitionTitle: '修改分区',
-    changePartitionContent1: '当前操作将把源表 {tableName} 的分区从 {oldPartitionKey} 更换为 {newPartitionKey}。',
-    changePartitionContent2: '本次修改后，本表下的 {storageSize} 数据将被清空，并按照最新的分区重新加载。',
-    changePartitionContent3: '您确认需要继续修改吗？',
+    changePartitionContent1: '当前操作将把源表 {tableName} 的分区从 {oldPartitionKey} 更改为 {newPartitionKey} 。',
+    changePartitionContent2: '提交后，本表下的 {storageSize} 数据将被清空，设置时间范围后，系统将按照新的分区重新加载数据。',
+    changePartitionContent21: '提交后，本表下的 {storageSize} 数据将被清空，并全量加载数据。',
+    changePartitionContent3: '请确定是否提交？',
     fullLoadDataTitle: '加载数据',
     fullLoadDataContent1: '由于源表 {tableName} 没有分区，因此加载任务将包括本表的所有数据 {storageSize}。',
     fullLoadDataContent2: '您确认提交加载数据的任务吗？',
@@ -45,8 +51,12 @@ export default {
     loadData: '加载数据',
     refreshData: '刷新数据',
     notLoadYet: '尚未载入',
-    suggestSetLoadRangeTip: '系统建议设置分区列后及时设置加载范围，否则系统将无法自动加速查询。',
+    suggestSetLoadRangeTip: '系统建议及时设置加载范围，否则系统将无法自动加速查询。',
     dateFormat: '时间格式：',
-    detectFormat: '获取分区格式'
+    detectFormat: '获取分区格式',
+    partitionSetting: '分区设置',
+    partitionTip1: '修改分区列会导致所有包含该表的索引组中的 Segments 被清空。提交并设置时间范围后，系统将自动重新构建索引并加载数据，数据加载期间该部分索引组不能服务于相关的查询。请确定是否提交？',
+    submitAndSetRange: '提交并设置时间范围 ',
+    partitionTip2: '修改分区列会导致所有包含该表的索引组中的 Segments 被清空。提交后，系统将自动重新构建索引并全量加载数据，数据加载期间该部分索引组不能服务于相关的查询。请确定是否提交？'
   }
 }

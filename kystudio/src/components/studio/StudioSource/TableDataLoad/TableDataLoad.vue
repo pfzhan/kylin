@@ -7,56 +7,18 @@
       </div>
       <div class="info-row">
         <span class="info-label font-medium">{{$t('partitionKey')}}</span>
-        <span class="info-value ky-no-br-space">
-          <el-select
-            v-guide.tablePartitionColumn
-            filterable
-            size="medium"
-            v-bind:value="table.partitionColumn"
-            @change="handleChangePartition">
-            <el-option :label="$t('noPartition')" value=""></el-option>
-            <el-option
-              v-for="item in table.dateTypeColumns"
-              :key="item.name"
-              :label="item.name"
-              :value="item.name">
-              <span style="float: left">{{ item.name }}</span>
-              <span class="ky-option-sub-info">{{ item.datatype }}</span>
-            </el-option>
-          </el-select>
-        </span>
+        <span class="info-value">
+          <span v-if="table.partitionColumn">{{table.partitionColumn}}</span>
+          <span v-else>{{$t('noPartition')}}</span>
+        </span><el-tooltip effect="dark" :content="$t('partitionSetting')" placement="top">
+          <span class="edit-btn ksd-ml-5">
+            <i class="el-icon-ksd-table_edit" @click="editPartition"></i>
+          </span>
+        </el-tooltip>
       </div>
       <div class="info-row" v-show="table.partitionColumn">
         <span class="info-label font-medium">{{$t('dateFormat')}}</span>
-        <span class="info-value">
-          <el-select
-            filterable
-            size="medium"
-            :disabled="isLoadingFormat"
-            @change="handleChangePartitionFormat"
-            :placeholder="$t('kylinLang.common.pleaseSelect')"
-            v-bind:value="table.format">
-            <el-option
-              v-for="item in dateFormats"
-              :key="item.label"
-              :label="item.label"
-              :value="item.value">
-            </el-option>
-          </el-select>
-          <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
-            <div style="display: inline-block;">
-              <el-button
-                size="medium"
-                class="ksd-ml-10"
-                :loading="isLoadingFormat"
-                v-guide.getPartitionColumnFormat
-                v-if="table.partitionColumn&&$store.state.project.projectPushdownConfig"
-                icon="el-icon-ksd-data_range_search"
-                @click="handleLoadFormat">
-              </el-button>
-            </div>
-          </el-tooltip>
-        </span>
+        <span class="info-value">{{table.format}}</span>
       </div>
     </div>
     <div class="hr inner"></div>
@@ -100,6 +62,63 @@
       <el-button type="primary" size="medium" v-if="(~['incremental', 'full'].indexOf(table.storageType) || table.partitionColumn)&&isShowLoadData" @click="handleLoadData()" v-guide.tableLoadDataBtn>{{$t('loadData')}}</el-button>
       <el-button v-if="~['incremental'].indexOf(table.storageType) || table.partitionColumn" size="medium" @click="handleRefreshData">{{$t('refreshData')}}</el-button>
     </div>
+    <el-dialog class="source-table-modal" width="660px"
+      :title="$t('partitionSetting')"
+      :visible="partitionSettingVisible"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      @close="handleClose">
+      <el-form :model="form" :rules="rules" ref="form" size="medium" label-position="top">
+        <el-form-item :label="$t('partitionKey')" prop="partitionColumn">
+          <el-select
+            v-guide.tablePartitionColumn
+            filterable
+            size="medium"
+            v-model="form.partitionColumn">
+            <el-option :label="$t('noPartition')" value=""></el-option>
+            <el-option
+              v-for="item in table.dateTypeColumns"
+              :key="item.name"
+              :label="item.name"
+              :value="item.name">
+              <span style="float: left">{{ item.name }}</span>
+              <span class="ky-option-sub-info">{{ item.datatype }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('dateFormat')" prop="format" v-if="form.partitionColumn">
+          <el-select
+            filterable
+            size="medium"
+            :disabled="isLoadingFormat"
+            :placeholder="$t('kylinLang.common.pleaseSelect')"
+            v-model="form.format">
+            <el-option
+              v-for="item in dateFormats"
+              :key="item.label"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select><el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
+            <div style="display: inline-block;">
+              <el-button
+                size="small"
+                class="ksd-ml-10"
+                :loading="isLoadingFormat"
+                v-guide.getPartitionColumnFormat
+                v-if="form.partitionColumn&&$store.state.project.projectPushdownConfig"
+                icon="el-icon-ksd-data_range_search"
+                @click="handleLoadFormat">
+              </el-button>
+            </div>
+          </el-tooltip>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain size="medium" @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" @click="handleChangePartition" :disabled="!isEditPartition" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -110,7 +129,7 @@ import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { _getPartitionInfo, _getFullLoadInfo, _getRefreshFullLoadInfo } from './handler'
-import { handleSuccessAsync, handleError } from '../../../../util'
+import { handleSuccessAsync, handleError, objectClone } from '../../../../util'
 import { getAffectedModelsType } from '../../../../config'
 
 @Component({
@@ -145,6 +164,12 @@ import { getAffectedModelsType } from '../../../../config'
 })
 export default class TableDataLoad extends Vue {
   isLoadingFormat = false
+  partitionSettingVisible = false
+  isLoading = false
+  form = {
+    partitionColumn: '',
+    format: ''
+  }
   dateFormats = [
     {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
     {label: 'yyyyMMdd', value: 'yyyyMMdd'},
@@ -154,12 +179,35 @@ export default class TableDataLoad extends Vue {
     // {label: 'yyyy-MM', value: 'yyyy-MM'},
     // {label: 'yyyyMM', value: 'yyyyMM'}
   ]
+  get rules () {
+    return {
+      partitionColumn: [{ message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'blur', required: true }],
+      format: [{ message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'blur', required: true }]
+    }
+  }
+  editPartition () {
+    this.form.partitionColumn = objectClone(this.table.partitionColumn)
+    this.form.format = objectClone(this.table.format) || 'yyyy-MM-dd'
+    this.$nextTick(() => {
+      this.partitionSettingVisible = true
+    })
+  }
+  handleClose () {
+    this.partitionSettingVisible = false
+  }
+  get isEditPartition () {
+    const oldForm = {
+      partitionColumn: this.table.partitionColumn,
+      format: this.table.format
+    }
+    return JSON.stringify(this.form) !== JSON.stringify(oldForm)
+  }
   async handleLoadFormat () {
     try {
       this.isLoadingFormat = true
-      const res = await this.fetchPartitionFormat({ project: this.project.name, table: this.table.fullName, partition_column: this.table.partitionColumn })
+      const res = await this.fetchPartitionFormat({ project: this.project.name, table: this.table.fullName, partition_column: this.form.partitionColumn })
       const data = await handleSuccessAsync(res)
-      this.handleChangePartitionFormat(data)
+      this.form.format = data
       this.isLoadingFormat = false
     } catch (e) {
       this.isLoadingFormat = false
@@ -174,15 +222,9 @@ export default class TableDataLoad extends Vue {
       }
       const { project, table } = this
       if (table.partitionColumn) {
-        const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table, format: this.table.format })
+        const rangeInfoTip = isChangePartition ? this.$t('suggestSetLoadRangeTip') + '<br/>' + this.$t('kylinLang.dataSource.rangeInfoTip') : this.$t('kylinLang.dataSource.rangeInfoTip')
+        const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table, format: this.table.format, rangeInfoTip: rangeInfoTip })
         isSubmit && this.$emit('fresh-tables')
-        // 如果是改变partition拉起的渲染range弹窗，关闭的时候给提示
-        if (!isSubmit && isChangePartition === true) {
-          this.$message({
-            message: this.$t('suggestSetLoadRangeTip'),
-            type: 'warning'
-          })
-        }
       } else {
         await this.handleLoadFullData()
         this.$emit('fresh-tables')
@@ -210,27 +252,17 @@ export default class TableDataLoad extends Vue {
     this.$emit('fresh-tables')
     this.$message({ type: 'success', message: this.$t('loadSuccessTip') })
   }
-  async handleChangePartition (value) {
+  async handleChangePartition () {
     try {
-      // const { modelCount, modelSize } = await this._getAffectedModelCountAndSize(getAffectedModelsType.TOGGLE_PARTITION)
-      // if (modelCount || modelSize) {
-      //   await this._showPartitionConfirm({ modelSize, partitionKey: value })
-      // }
-      await this._changePartitionKey(value, this.table.format)
-      if (value) {
-        this.table.partitionColumn = value
-        // await this.handleLoadData(true)
+      const { modelCount, modelSize } = await this._getAffectedModelCountAndSize(getAffectedModelsType.TOGGLE_PARTITION)
+      if (modelCount || modelSize) {
+        await this._showPartitionConfirm({ modelSize, partitionKey: this.form.partitionColumn })
       }
-      this.$emit('fresh-tables')
-    } catch (e) {
-      handleError(e)
-    }
-  }
-  async handleChangePartitionFormat (value) {
-    try {
-      await this._changePartitionKey(this.table.partitionColumn, value)
-      if (value) {
-        this.table.format = value
+      await this._changePartitionKey(this.form.partitionColumn, this.form.format)
+      this.partitionSettingVisible = false
+      if (this.form.partitionColumn) {
+        this.table.partitionColumn = this.form.partitionColumn
+        await this.handleLoadData(true)
       }
       this.$emit('fresh-tables')
     } catch (e) {
@@ -261,16 +293,16 @@ export default class TableDataLoad extends Vue {
   }
   _showPartitionConfirm ({ modelSize, partitionKey }) {
     const storageSize = Vue.filter('dataSize')(modelSize)
-    const tableName = this.table.name
+    const tableName = this.table.fullName
     const oldPartitionKey = this.table.partitionColumn || this.$t('noPartition')
     const newPartitionKey = partitionKey || this.$t('noPartition')
     const confirmTitle = this.$t('changePartitionTitle')
     const contentVal = { tableName, newPartitionKey, oldPartitionKey, storageSize }
     const confirmMessage1 = this.$t('changePartitionContent1', contentVal)
-    const confirmMessage2 = this.$t('changePartitionContent2', contentVal)
+    const confirmMessage2 = partitionKey ? this.$t('changePartitionContent2', contentVal) : this.$t('changePartitionContent21', contentVal)
     const confirmMessage3 = this.$t('changePartitionContent3', contentVal)
     const confirmMessage = _render(this.$createElement)
-    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const confirmButtonText = partitionKey ? this.$t('submitAndSetRange') : this.$t('kylinLang.common.submit')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
     return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
@@ -322,6 +354,19 @@ export default class TableDataLoad extends Vue {
   }
   .info-row:not(:last-child) {
     margin-bottom: 10px;
+  }
+  .edit-btn {
+    display: inline-block;
+    height: 22px;
+    width: 22px;
+    background-color: @base-color-9;
+    border-radius: 50%;
+    color: @base-color;
+    text-align: center;
+    &:hover {
+      background-color: @base-color;
+      color: @fff;
+    }
   }
   // .hr.dashed {
   //   height: 1px;

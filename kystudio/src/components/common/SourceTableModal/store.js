@@ -21,7 +21,8 @@ const initialState = JSON.stringify({
   },
   table: null,
   project: null,
-  model: null
+  model: null,
+  rangeInfoTip: ''
 })
 
 export default {
@@ -49,10 +50,10 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, project = {}, table = {}, model = {}, format }) {
+    [types.CALL_MODAL] ({ commit }, { editType, project = {}, table = {}, model = {}, format, rangeInfoTip }) {
       return new Promise((resolve, reject) => {
         try {
-          commit(types.SET_MODAL, { editType, project, table, model, format, callback: resolve })
+          commit(types.SET_MODAL, { editType, project, table, model, format, rangeInfoTip, callback: resolve })
           commit(types.INIT_FORM)
           commit(types.SHOW_MODAL)
         } catch (e) {
