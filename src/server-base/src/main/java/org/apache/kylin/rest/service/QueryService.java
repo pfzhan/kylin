@@ -121,17 +121,18 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
+import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.kylin.rest.util.QueryCacheSignatureUtil;
 import org.apache.kylin.rest.util.QueryRequestLimits;
+import org.apache.kylin.rest.util.SparderUIUtil;
 import org.apache.kylin.rest.util.TableauInterceptor;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Sampler;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
-import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.utils.YarnInfoFetcherUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -154,7 +155,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
-import org.apache.kylin.rest.util.PrepareSQLUtils;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
@@ -707,7 +707,8 @@ public class QueryService extends BasicService {
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
             String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
         String sqlString = sqlRequest.getSql();
-        if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams() && isPrepareStatementWithParams(sqlRequest)) {
+        if (KapConfig.getInstanceFromEnv().enablePushdownPrepareStatementWithParams()
+                && isPrepareStatementWithParams(sqlRequest)) {
             sqlString = PrepareSQLUtils.fillInParams(sqlString, ((PrepareSqlRequest) sqlRequest).getParams());
         }
         return PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), sqlString, sqlRequest.getLimit(),
@@ -1131,21 +1132,16 @@ public class QueryService extends BasicService {
         return response;
     }
 
+    @Autowired
+    @Qualifier("sparderUIUtil")
+    private SparderUIUtil sparderUIUtil;
+
     private void setAppMaterURL(SQLResponse response) {
         if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
             try {
                 String executionID = QueryContext.current().getExecutionID();
                 if (!executionID.isEmpty()) {
-                    // mater URL like this:
-                    // http://host:8088/proxy/application_1571903613081_0047/SQL/execution/?id=0
-                    String trackingUrl = SparderEnv.APP_MASTER_TRACK_URL();
-                    if (trackingUrl == null) {
-                        String id = SparderEnv.getSparkSession().sparkContext().applicationId();
-                        trackingUrl = YarnInfoFetcherUtils.getTrackingUrl(id);
-                        SparderEnv.setAPPMasterTrackURL(trackingUrl);
-                    }
-                    String materURL = trackingUrl + "SQL/execution/?id=" + executionID;
-                    response.setAppMasterURL(materURL);
+                    response.setAppMasterURL(sparderUIUtil.getSQLTrackingPath(executionID));
                 }
             } catch (Throwable th) {
                 logger.error("Get app master for sql failed", th);
