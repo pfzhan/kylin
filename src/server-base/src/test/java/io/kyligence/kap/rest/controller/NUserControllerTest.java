@@ -134,10 +134,11 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        Mockito.doReturn(true).when(env).acceptsProfiles("testing");
+        Mockito.doReturn(true).when(env).acceptsProfiles("testing", "custom");
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserController).setContentNegotiationManager(contentNegotiationManager)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserController)
+                .setContentNegotiationManager(contentNegotiationManager).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
         List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
@@ -238,8 +239,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(userService).deleteUser(Mockito.anyString());
         Mockito.doNothing().when(accessService).revokeProjectPermission(Mockito.anyString(), Mockito.anyString());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/user/{username:.+}", "u1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(nUserController).delete("u1");

@@ -87,7 +87,9 @@ public class NUserController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NUserController.class);
 
-    private static final String PROFILE = "testing";
+    private static final String PROFILE_DEFAULT = "testing";
+
+    private static final String PROFILE_CUSTOM = "custom";
 
     private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_ ]*$");
     @Autowired
@@ -126,7 +128,7 @@ public class NUserController extends NBasicController {
         }
         List<ManagedUser> all = userService.listUsers();
         logger.info("All {} users", all.size());
-        if (all.isEmpty() && env.acceptsProfiles(PROFILE)) {
+        if (all.isEmpty() && env.acceptsProfiles(PROFILE_DEFAULT)) {
             createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
             createAdminUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
             createAdminUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
@@ -345,7 +347,7 @@ public class NUserController extends NBasicController {
 
     private void checkProfile() {
         val msg = MsgPicker.getMsg();
-        if (!env.acceptsProfiles(PROFILE)) {
+        if (!env.acceptsProfiles(PROFILE_DEFAULT, PROFILE_CUSTOM)) {
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }
