@@ -817,6 +817,7 @@ public class ModelService extends BasicService {
         nDataModel.setAlias(newModelName);
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
+        changeModelOwner(nDataModel);
         val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
         cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid());
     }
@@ -2246,5 +2247,16 @@ public class ModelService extends BasicService {
         });
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                 modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+    }
+
+    private void changeModelOwner(NDataModel model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (Objects.nonNull(auth) && Objects.nonNull(auth.getPrincipal())) {
+            if (auth.getPrincipal() instanceof UserDetails) {
+                model.setOwner(((UserDetails) auth.getPrincipal()).getUsername());
+            } else {
+                model.setOwner(auth.getPrincipal().toString());
+            }
+        }
     }
 }

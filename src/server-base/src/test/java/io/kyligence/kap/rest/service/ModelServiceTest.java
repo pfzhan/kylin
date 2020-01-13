@@ -79,6 +79,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.Serializer;
@@ -97,6 +98,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -113,6 +115,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Function;
@@ -746,9 +750,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCloneModel() {
+        final String randomUser = RandomStringUtils.randomAlphabetic(5);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(randomUser, "123456", Constant.ROLE_ADMIN));
         modelService.cloneModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "test_encoding_new", "default");
-        List<NDataModelResponse> models = modelService.getModels("", "default", true, "", null, "last_modify", true);
-        Assert.assertEquals(7, models.size());
+        List<NDataModelResponse> models = modelService.getModels("test_encoding_new", "default", true, "", null,
+                "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(randomUser, models.get(0).getOwner());
     }
 
     @Test
