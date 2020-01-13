@@ -219,7 +219,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(15, projectInstances.size());
+        Assert.assertEquals(16, projectInstances.size());
 
     }
 
@@ -234,7 +234,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("", false);
-        Assert.assertEquals(15, projectInstances.size());
+        Assert.assertEquals(16, projectInstances.size());
 
     }
 

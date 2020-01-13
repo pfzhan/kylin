@@ -223,10 +223,6 @@ public class ComputedColumnDesc implements Serializable {
         SqlNode sqlNode = CalciteParser.getExpNode(getExpression());
         sqlNode.accept(modifyAlias);
         setExpression(sqlNode.toSqlString(HiveSqlDialect.DEFAULT).toString());
-
-        SqlNode innerSqlNode = CalciteParser.getExpNode(getInnerExpression());
-        innerSqlNode.accept(modifyAlias);
-        setInnerExpression(innerSqlNode.toSqlString(HiveSqlDialect.DEFAULT).toString());
     }
 
 }

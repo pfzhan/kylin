@@ -82,6 +82,21 @@ public class HivePushDownConverterTest {
     }
 
     @Test
+    public void testReplaceQuote() {
+        String originString = "select tbl.\"DATE\" from tbl";
+        HivePushDownConverter converter = new HivePushDownConverter();
+        String replacedString = converter.convert(originString, "", "", false);
+        Assert.assertEquals("select tbl.`DATE` from tbl", replacedString);
+
+        // A case makes mistake, if this limitation doesn't exist any more, this method will fail
+        originString = "select CASE WHEN CUSTOMER.C_ADDRESS LIKE '%j5JsirBM9P%' THEN '\"bad' ELSE NULL END"
+                + " from SSB.CUSTOMER";
+        replacedString = converter.convert(originString, "", "", false);
+        Assert.assertEquals("select CASE WHEN CUSTOMER.C_ADDRESS LIKE '%j5JsirBM9P%' THEN '`bad' ELSE NULL END"
+                + " from SSB.CUSTOMER", replacedString);
+    }
+
+    @Test
     public void testCastVariantSubstringGrammar() {
         HivePushDownConverter converter = new HivePushDownConverter();
         String originString = "select substring( lstg_format_name   from   1  for   4 ) from test_kylin_fact limit 10;";

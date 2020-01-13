@@ -37,6 +37,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -855,6 +857,35 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertFalse(accelerationInfoMap.get(sqls[0]).isNotSucceed());
 
         Assert.assertEquals(0, computedColumns.size());
+    }
+
+    @Test
+    public void testCCWithKeywordColumn() {
+        String[] sqls = new String[] { "select id from keyword.test_keyword_column group by id" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "keyword", sqls);
+        smartMaster.runAll();
+
+        val modelContexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, modelContexts.size());
+        val targetModel = modelContexts.get(0).getTargetModel();
+
+        ComputedColumnDesc cc1 = new ComputedColumnDesc();
+        cc1.setTableIdentity("KEYWORD.TEST_KEYWORD_COLUMN");
+        cc1.setExpression("year(TEST_KEYWORD_COLUMN.\"DATE\")");
+        cc1.setInnerExpression("year(TEST_KEYWORD_COLUMN.`DATE`)");
+        cc1.setColumnName("CC_1");
+
+        ComputedColumnDesc cc2 = new ComputedColumnDesc();
+        cc2.setTableIdentity("KEYWORD.TEST_KEYWORD_COLUMN");
+        cc2.setExpression("substring(TEST_KEYWORD_COLUMN.\"STRING\", 1, 2)");
+        cc2.setInnerExpression("substring(TEST_KEYWORD_COLUMN.`STRING`, 1, 2)");
+        cc2.setColumnName("CC_1");
+
+        List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList(cc1, cc2);
+
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(targetModel, computedColumnDescs);
+        Assert.assertEquals("INTEGER", cc1.getDatatype());
+        Assert.assertEquals("VARCHAR", cc2.getDatatype());
     }
 
     @Test

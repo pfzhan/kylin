@@ -59,10 +59,10 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(HivePushDownConverter.class);
 
-    private static final Pattern EXTRACT_PATTERN = Pattern.compile("extract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
+    private static final Pattern EXTRACT_PATTERN = Pattern.compile("\\bextract\\s*(\\()\\s*(.*?)\\s*from(\\s+)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern TIMESTAMP_ADD_DIFF_PATTERN = Pattern
-            .compile("timestamp(add|diff)\\s*\\(\\s*(.*?)\\s*,", Pattern.CASE_INSENSITIVE);
+            .compile("\\btimestamp(add|diff)\\s*\\(\\s*(.*?)\\s*,", Pattern.CASE_INSENSITIVE);
     private static final Pattern SELECT_PATTERN = Pattern.compile("^select", Pattern.CASE_INSENSITIVE);
     private static final Pattern LIMIT_PATTERN = Pattern.compile("(limit\\s+[0-9;]+)$", Pattern.CASE_INSENSITIVE);
     private static final Pattern GROUPING_SETS_PATTERN = Pattern

@@ -1162,7 +1162,7 @@ public class ModelService extends BasicService {
         return new NRecomendationListResponse(originDataModelResponseList, newDataModelResponseList);
     }
 
-    private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) throws Exception {
+    private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) {
 
         if (modelRequest.getRecommendation() == null) {
             // new model
@@ -1543,9 +1543,9 @@ public class ModelService extends BasicService {
                 continue;
 
             //replace computed columns with basic columns
-            String ccExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc);
-            ComputedColumnDesc.simpleParserCheck(ccExpression, dataModelDesc.getAliasMap().keySet());
-            cc.setInnerExpression(ccExpression);
+            ComputedColumnDesc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
+            String innerExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc);
+            cc.setInnerExpression(innerExpression);
 
             //check by data source, this could be slow
             long ts = System.currentTimeMillis();
@@ -1617,6 +1617,8 @@ public class ModelService extends BasicService {
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
             String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc);
             ccDesc.setInnerExpression(ccExpression);
+            TblColRef tblColRef = model.findColumn(ccDesc.getTableAlias(), ccDesc.getColumnName());
+            tblColRef.getColumnDesc().setComputedColumn(ccExpression);
         }
     }
 
