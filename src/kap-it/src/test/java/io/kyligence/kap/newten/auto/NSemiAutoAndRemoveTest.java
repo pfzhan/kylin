@@ -65,6 +65,11 @@ public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
         super.tearDown();
     }
 
+    @Override
+    public String getProject() {
+        return "default";
+    }
+
     @Test
     public void testAllQueries() throws Exception {
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");

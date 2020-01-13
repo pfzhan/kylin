@@ -90,11 +90,6 @@ public class SemiAutoTestBase extends NSuggestTestBase {
         super.tearDown();
     }
 
-    @Override
-    public String getProject() {
-        return "default";
-    }
-
     protected void prepareModels(String project, NSuggestTestBase.TestScenario... testScenarios) throws IOException {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         prjManager.updateProject(getProject(), copyForWrite -> {

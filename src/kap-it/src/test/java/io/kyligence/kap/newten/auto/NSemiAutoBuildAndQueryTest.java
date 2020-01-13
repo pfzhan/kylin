@@ -69,6 +69,12 @@ public class NSemiAutoBuildAndQueryTest extends SemiAutoTestBase {
         super.tearDown();
     }
 
+    @Override
+    public String getProject() {
+        return "default";
+    }
+
+
     @Test
     public void testTwoModelLayout() throws Exception {
         val optManager = OptimizeRecommendationManager.getInstance(getTestConfig(), getProject());
