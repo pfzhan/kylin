@@ -197,7 +197,7 @@ public class NExecAndComp {
             } catch (RuntimeException e) {
                 if ((e.getCause().getCause() instanceof NoRealizationFoundException)) {
                     logger.info("The query ({}) : {} fail", joinType, query);
-                    return;
+                    continue;
                 }
             }
             throw new IllegalStateException("query " + query + " not fail");

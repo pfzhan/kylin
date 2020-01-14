@@ -1565,6 +1565,8 @@ public class TableService extends BasicService {
         return NHiveTableName.getInstance().loadHiveTableName(force);
     }
 
+    private static final String SSB_ERROR_MSG = "import ssb data error.";
+
     public void importSSBDataBase() {
         if (checkSSBDataBase()) {
             return;
@@ -1579,11 +1581,11 @@ public class TableService extends BasicService {
             try {
                 exec.execute(sampleSh, patternedLogger);
             } catch (ShellException e) {
-                logger.error("import ssb data error.", e);
-                throw new BadRequestException("import ssb data error.", ResponseCode.CODE_UNDEFINED, e);
+                logger.error(SSB_ERROR_MSG, e);
+                throw new BadRequestException(SSB_ERROR_MSG, ResponseCode.CODE_UNDEFINED, e);
             }
             if (!checkSSBDataBase()) {
-                throw new BadRequestException("import ssb data error.");
+                throw new BadRequestException(SSB_ERROR_MSG);
             }
         }
     }

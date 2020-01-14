@@ -16,5 +16,5 @@
 -- limitations under the License.
 --
 
-select LSTG_FORMAT_NAME,slr_segment_cd ,sum(ITEM_COUNT), count(1) as TRANS_CNT from test_kylin_fact
- group by LSTG_FORMAT_NAME ,slr_segment_cd
+select LSTG_SITE_ID,slr_segment_cd ,sum(ITEM_COUNT), count(1) as TRANS_CNT from test_kylin_fact
+ group by LSTG_SITE_ID ,slr_segment_cd
