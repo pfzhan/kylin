@@ -68,7 +68,7 @@
                 {{$t('dataRange')}}: {{dataRange}}
               </div>
               <div class="filter-tags-agg" v-show="filterTags.length">
-                <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
+                <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
                 <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
               </div>
               <el-table
@@ -687,7 +687,7 @@ export default class ModelAggregate extends Vue {
   }
   .filter-tags-agg {
     margin-bottom: 10px;
-    padding: 1px 5px;
+    padding: 0 5px 4px 3px;
     box-sizing: border-box;
     position: relative;
     font-size: 12px;
@@ -695,15 +695,16 @@ export default class ModelAggregate extends Vue {
     .filter-tags-layout {
       max-width: calc(~'100% - 80px');
       display: inline-block;
-      line-height: 30px;
+      // line-height: 30px;
     }
     .el-tag {
       margin-left: 5px;
+      margin-top: 4px;
     }
     .clear-all-filters {
       position: absolute;
       top: 5px;
-      right: 10px;
+      right: 8px;
       font-size: 12px;
       color: @base-color;
       cursor: pointer;

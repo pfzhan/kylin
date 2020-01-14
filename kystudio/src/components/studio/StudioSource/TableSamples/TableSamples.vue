@@ -8,7 +8,7 @@
         <div class="right">
           <el-input size="medium" clearable class="filter-input ksd-ml-10" :placeholder="$t('filterColumns')"
             prefix-icon="el-icon-search" v-bind:value="filterText" @input="filterColumns"></el-input>
-          <el-select size="medium" class="filter-input" value-key="range" v-model="samplePageRange" v-if="pagerSampleOptions.length">
+          <el-select size="medium" class="filter-input column-filter-input" value-key="range" v-model="samplePageRange" v-if="pagerSampleOptions.length">
             <el-option v-for="pager in pagerSampleOptions" :key="pager.label" :value="pager" :label="$t('pageRange', {pageRange: pager.label})"></el-option>
           </el-select>
         </div>
@@ -169,6 +169,9 @@ export default class TableSamples extends Vue {
   .filter-input {
     width: 210px;
     float: right;
+  }
+  .column-filter-input {
+    width: 180px;
   }
   .cell {
     white-space: nowrap;

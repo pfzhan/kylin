@@ -1515,20 +1515,20 @@ export default class JobsList extends Vue {
   .filter-status-list {
     background: @background-disabled-color;
     margin-bottom: 10px;
-    padding: 1px 5px;
+    padding: 0px 5px 5px;
     box-sizing: border-box;
     .tag-layout {
       width: calc(~'100% - 100px');
       display: inline-block;
-      line-height: 34px;
-    }
-    span {
-      margin-left: 5px;
+      .el-tag {
+        margin-left: 5px;
+        margin-top: 5px;
+      }
     }
     .clear-all-tags {
       position: absolute;
       top: 8px;
-      right: 22px;
+      right: 10px;
       font-size: 14px;
       color: @base-color;
       cursor: pointer;
