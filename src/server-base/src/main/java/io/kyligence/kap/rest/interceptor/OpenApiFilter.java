@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.interceptor;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+
 import java.io.IOException;
 
 import javax.servlet.Filter;
@@ -56,7 +58,9 @@ public class OpenApiFilter implements Filter {
             if (servletRequest.getRequestURI().startsWith(PREFIX)) {
                 String redirectUri = servletRequest.getRequestURI().substring(CONTEXT_PATH.length())
                         .replaceFirst("/open/", "/");
-                servletRequest.getRequestDispatcher(redirectUri).forward(servletRequest, response);
+                HeaderMapRequestWrapper requestWrapper = new HeaderMapRequestWrapper(servletRequest);
+                requestWrapper.addHeader("Accept", HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON);
+                servletRequest.getRequestDispatcher(redirectUri).forward(requestWrapper, response);
                 return;
             }
         }
