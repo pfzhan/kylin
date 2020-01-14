@@ -24,7 +24,7 @@ package org.apache.spark.utils
 
 import java.util.{Map => JMap}
 
-import io.kyligence.kap.cluster.{AvailableResource, ClusterInfoFetcher, ResourceInfo}
+import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
 import io.kyligence.kap.engine.spark.job.SparkJobConstants
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
@@ -69,11 +69,11 @@ object ResourceUtils extends Logging {
   }
 
 
-  def checkResource(sparkConf: SparkConf, clusterInfo: ClusterInfoFetcher): Boolean = {
+  def checkResource(sparkConf: SparkConf, clusterManager: IClusterManager): Boolean = {
     val queue = sparkConf.get("spark.yarn.queue", "default")
     val driverMemory = (Utils.byteStringAsMb(sparkConf.get(DRIVER_MEMORY)) + Utils.byteStringAsMb(sparkConf.get(DRIVER_OVERHEAD))).toInt
     val driverCores = sparkConf.get(DRIVER_CORES).toInt
-    val queueAvailable = minusDriverResource(clusterInfo.fetchQueueAvailableResource(queue), driverMemory, driverCores)
+    val queueAvailable = minusDriverResource(clusterManager.fetchQueueAvailableResource(queue), driverMemory, driverCores)
     val instances = sparkConf.get(EXECUTOR_INSTANCES).toInt
     val executorMemory = (Utils.byteStringAsMb(sparkConf.get(EXECUTOR_MEMORY))
       + Utils.byteStringAsMb(sparkConf.get(EXECUTOR_OVERHEAD))) * instances

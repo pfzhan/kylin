@@ -50,7 +50,7 @@ class TestJobWorkSpace extends SparderBaseFunSuite {
 
   test("return 1 when job failed") {
     val config = Mockito.mock(classOf[KylinConfig])
-    Mockito.when(config.getClusterInfoFetcherClassName).thenReturn("io.kyligence.kap.cluster.YarnInfoFetcher")
+    Mockito.when(config.getClusterManagerClassName).thenReturn("io.kyligence.kap.cluster.YarnClusterManager")
     KylinBuildEnv.getOrCreate(config)
     val args = Array("-className", "org.apache.spark.application.UnknownThrowableJob")
     val (application, appArgs) = JobWorkSpace.resolveArgs(args)

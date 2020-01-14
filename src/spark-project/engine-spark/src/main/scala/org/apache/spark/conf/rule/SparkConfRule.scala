@@ -110,8 +110,8 @@ class ExecutorInstancesRule extends SparkConfRule {
     val calculateExecutorInsByLayoutSize = calculateExecutorInstanceSizeByLayoutSize(Integer.parseInt(layoutSize))
 
 
-    val availableMem = helper.getFetcher.fetchQueueAvailableResource(queue).available.memory
-    val availableCore = helper.getFetcher.fetchQueueAvailableResource(queue).available.vCores
+    val availableMem = helper.getClusterManager.fetchQueueAvailableResource(queue).available.memory
+    val availableCore = helper.getClusterManager.fetchQueueAvailableResource(queue).available.vCores
     val executorMem = Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_MEMORY))
     +Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD))
 

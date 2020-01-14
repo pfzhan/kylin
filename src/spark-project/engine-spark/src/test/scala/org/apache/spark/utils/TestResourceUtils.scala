@@ -23,7 +23,7 @@
 package org.apache.spark.utils
 
 import com.google.common.collect.Maps
-import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, YarnInfoFetcher}
+import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, YarnClusterManager}
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.common.SparderBaseFunSuite
@@ -31,7 +31,7 @@ import org.apache.spark.sql.hive.utils.DetectItem
 import org.mockito.Mockito
 
 class TestResourceUtils extends SparderBaseFunSuite {
-  private val fetcher: YarnInfoFetcher = Mockito.mock(classOf[YarnInfoFetcher])
+  private val fetcher: YarnClusterManager = Mockito.mock(classOf[YarnClusterManager])
 
   // test case: available(10, 10)  executor(20, 10) driver(1, 1)
   test("checkResource return false when available memory does not meet acquirement") {

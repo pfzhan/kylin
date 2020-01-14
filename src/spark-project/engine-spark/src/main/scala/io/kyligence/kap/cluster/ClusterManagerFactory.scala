@@ -21,13 +21,14 @@
  */
 
 package io.kyligence.kap.cluster
+
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.util.KylinReflectUtils
 
 
-object ClusterInfoFetcherFactory {
+object ClusterManagerFactory {
 
-  def create(kylinConfig: KylinConfig): ClusterInfoFetcher = {
-    KylinReflectUtils.createObject(kylinConfig.getClusterInfoFetcherClassName)._1.asInstanceOf[ClusterInfoFetcher]
+  def create(kylinConfig: KylinConfig): IClusterManager = {
+    KylinReflectUtils.createObject(kylinConfig.getClusterManagerClassName)._1.asInstanceOf[IClusterManager]
   }
 }

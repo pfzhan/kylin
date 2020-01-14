@@ -42,18 +42,18 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cluster.AvailableResource;
 import io.kyligence.kap.cluster.ResourceInfo;
-import io.kyligence.kap.cluster.YarnInfoFetcher;
+import io.kyligence.kap.cluster.YarnClusterManager;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 
 public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
-    private YarnInfoFetcher fetcher = mock(YarnInfoFetcher.class);
+    private YarnClusterManager clusterManager = mock(YarnClusterManager.class);
 
     @Before
     public void setup() throws Exception {
         staticCreateTestMetadata();
         KylinBuildEnv.getOrCreate(KylinConfig.getInstanceFromEnv());
-        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+        Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(100, 100), new ResourceInfo(60480, 100)));
     }
 
@@ -65,7 +65,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testOneGradeWhenLessTHan1GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        helper.setFetcher(fetcher);
+        helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
@@ -92,7 +92,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTwoGradeWhenLessTHan10GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        helper.setFetcher(fetcher);
+        helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 8L * 1024 * 1024 * 1024 + "b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
@@ -117,7 +117,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testThreeGradeWhenLessHan100GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        helper.setFetcher(fetcher);
+        helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 50L * 1024 * 1024 * 1024 + "b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
@@ -142,7 +142,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testFourGradeWhenGreaterThanOrEqual100GB() {
         SparkConfHelper helper = new SparkConfHelper();
-        helper.setFetcher(fetcher);
+        helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 100L * 1024 * 1024 * 1024 + "b");
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "10");
         helper.setConf(SparkConfHelper.DEFAULT_QUEUE, "default");
@@ -204,17 +204,17 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     public void testExecutorInstancesRule() {
         ExecutorInstancesRule instancesRule = new ExecutorInstancesRule();
         SparkConfHelper helper = new SparkConfHelper();
-        helper.setFetcher(fetcher);
+        helper.setClusterManager(clusterManager);
         // case: v1 == v2 > v3, spark.executor.instances = v1
         resetSparkConfHelper(helper);
-        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+        Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(100, 100), new ResourceInfo(60480, 100)));
         instancesRule.apply(helper);
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
 
         // case: v1 == v2 < v4 < v3, spark.executor.instances = v4
         resetSparkConfHelper(helper);
-        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+        Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(20480, 100), new ResourceInfo(60480, 100)));
         instancesRule.apply(helper);
         Assert.assertEquals("14", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));
@@ -240,7 +240,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
 
         // case: v1 <  v 4 < v2 < v3, spark.executor.instances = v2
         resetSparkConfHelper(helper);
-        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+        Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(60480, 100), new ResourceInfo(60480, 100)));
         helper.setOption(SparkConfHelper.LAYOUT_SIZE, "1200");
         instancesRule.apply(helper);
@@ -269,7 +269,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testExecutorInstancesRuleWhenError() {
         SparkConfHelper helper = new SparkConfHelper();
-        Mockito.when(fetcher.fetchQueueAvailableResource("default"))
+        Mockito.when(clusterManager.fetchQueueAvailableResource("default"))
                 .thenReturn(new AvailableResource(new ResourceInfo(-60480, -100), new ResourceInfo(-60480, -100)));
         helper.generateSparkConf();
         Assert.assertEquals("5", helper.getConf(SparkConfHelper.EXECUTOR_INSTANCES));

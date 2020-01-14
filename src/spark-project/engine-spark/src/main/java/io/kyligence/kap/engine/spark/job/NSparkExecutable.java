@@ -31,7 +31,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -39,17 +38,10 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.api.records.ApplicationReport;
-import org.apache.hadoop.yarn.api.records.YarnApplicationState;
-import org.apache.hadoop.yarn.client.api.YarnClient;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -61,7 +53,6 @@ import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -75,6 +66,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cluster.ClusterManagerFactory;
+import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
@@ -204,7 +197,7 @@ public class NSparkExecutable extends AbstractExecutable {
         if (config.isUTEnv()) {
             return runLocalMode(filePath);
         } else {
-            killOrphanApplicationIfExists(config);
+            killOrphanApplicationIfExists(getId());
             return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
                     "-className " + getSparkSubmitClassName() + " " + filePath, getParent().getId());
         }
@@ -271,38 +264,9 @@ public class NSparkExecutable extends AbstractExecutable {
         return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
-    private void killOrphanApplicationIfExists(KylinConfig config) {
-        PatternedLogger patternedLogger = new PatternedLogger(logger);
-        String orphanApplicationId = null;
-
-        try (YarnClient yarnClient = YarnClient.createYarnClient()) {
-            Configuration yarnConfiguration = new YarnConfiguration();
-            // bug of yarn : https://issues.apache.org/jira/browse/SPARK-15343
-            yarnConfiguration.set("yarn.timeline-service.enabled", "false");
-            yarnClient.init(yarnConfiguration);
-            yarnClient.start();
-
-            Set<String> types = Sets.newHashSet("SPARK");
-            EnumSet<YarnApplicationState> states = EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
-                    YarnApplicationState.SUBMITTED, YarnApplicationState.ACCEPTED, YarnApplicationState.RUNNING);
-            val applicationReports = yarnClient.getApplications(types, states);
-
-            if (CollectionUtils.isEmpty(applicationReports))
-                return;
-
-            for (ApplicationReport report : applicationReports) {
-                if (report.getName().equalsIgnoreCase("job_step_" + getId())) {
-                    orphanApplicationId = report.getApplicationId().toString();
-                    // kill orphan application by command line
-                    String killApplicationCmd = "yarn application -kill " + orphanApplicationId;
-                    config.getCliCommandExecutor().execute(killApplicationCmd, patternedLogger);
-                }
-            }
-        } catch (ShellException ex1) {
-            logger.error("kill orphan yarn application {} failed.", orphanApplicationId);
-        } catch (YarnException | IOException ex2) {
-            logger.error("get yarn application failed");
-        }
+    private void killOrphanApplicationIfExists(String jobStepId) {
+        final IClusterManager cm = ClusterManagerFactory.create(getConfig());
+        cm.killApplication(jobStepId);
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,

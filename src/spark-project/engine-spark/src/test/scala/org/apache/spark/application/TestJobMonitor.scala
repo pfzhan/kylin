@@ -25,7 +25,7 @@ package org.apache.spark.application
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
-import io.kyligence.kap.cluster.{AvailableResource, ClusterInfoFetcher, ResourceInfo}
+import io.kyligence.kap.cluster.{AvailableResource, IClusterManager, ResourceInfo}
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.scheduler._
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
@@ -46,7 +46,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   Mockito.when(config.getMaxAllocationResourceProportion).thenReturn(proportion)
   Mockito.when(config.getSparkEngineRetryMemoryGradient).thenReturn(gradient)
   Mockito.when(config.getSparkEngineRetryOverheadMemoryGradient).thenReturn(overheadGradient)
-  Mockito.when(config.getClusterInfoFetcherClassName).thenReturn("org.apache.spark.application.MockFetcher")
+  Mockito.when(config.getClusterManagerClassName).thenReturn("org.apache.spark.application.MockClusterManager")
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -72,7 +72,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   test("post ExceedMaxRetry event when current retry times greater than Max") {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(0)
-      val env = KylinBuildEnv.getOrCreate(config)
+      KylinBuildEnv.getOrCreate(config)
       new JobMonitor(eventLoop)
       val receiveExceedMaxRetry = new AtomicBoolean(false)
       val countDownLatch = new CountDownLatch(3)
@@ -102,7 +102,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val overhead = "400MB"
       val cores = "2"
       val maxAllocation = 2400
-      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       env.sparkConf.set(EXECUTOR_CORES, cores)
@@ -131,7 +131,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val overhead = "400MB"
       val cores = "1"
       val maxAllocation = 2400
-      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       env.sparkConf.set(EXECUTOR_CORES, cores)
@@ -163,7 +163,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "2000MB"
       val overhead = "400MB"
       val maxAllocation = 2500
-      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       val countDownLatch = new CountDownLatch(2)
@@ -190,7 +190,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "3000MB"
       val overhead = "400MB"
       val maxAllocation = 2500
-      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       val countDownLatch = new CountDownLatch(2)
@@ -218,7 +218,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       val memory = "2000MB"
       val overhead = "400MB"
       val maxAllocation = 4000
-      env.clusterInfoFetcher.asInstanceOf[MockFetcher].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
+      env.clusterManager.asInstanceOf[MockClusterManager].setMaxAllocation(ResourceInfo(maxAllocation, Int.MaxValue))
       env.sparkConf.set(EXECUTOR_MEMORY, memory)
       env.sparkConf.set(EXECUTOR_OVERHEAD, overhead)
       val countDownLatch = new CountDownLatch(2)
@@ -241,7 +241,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   test("post JobFailed event when receive UnknownThrowable event") {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-      val env = KylinBuildEnv.getOrCreate(config)
+      KylinBuildEnv.getOrCreate(config)
       new JobMonitor(eventLoop)
       val countDownLatch = new CountDownLatch(2)
       val receiveJobFailed = new AtomicBoolean(false)
@@ -266,7 +266,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
   test("post JobFailed event when receive class not found event") {
     withEventLoop { eventLoop =>
       Mockito.when(config.getSparkEngineMaxRetryTime).thenReturn(1)
-      val env = KylinBuildEnv.getOrCreate(config)
+      KylinBuildEnv.getOrCreate(config)
       new JobMonitor(eventLoop)
       val countDownLatch = new CountDownLatch(2)
       val receiveRunJob = new AtomicBoolean(false)
@@ -317,7 +317,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
 
 }
 
-class MockFetcher extends ClusterInfoFetcher {
+class MockClusterManager extends IClusterManager {
   private var maxAllocation: ResourceInfo = _
 
   def setMaxAllocation(allocation: ResourceInfo): Unit = {
@@ -327,4 +327,8 @@ class MockFetcher extends ClusterInfoFetcher {
   override def fetchMaximumResourceAllocation: ResourceInfo = maxAllocation
 
   override def fetchQueueAvailableResource(queueName: String): AvailableResource = null
+
+  override def getTrackingUrl(applicationId: String): String = null
+
+  override def killApplication(jobStepId: String): Unit = {}
 }

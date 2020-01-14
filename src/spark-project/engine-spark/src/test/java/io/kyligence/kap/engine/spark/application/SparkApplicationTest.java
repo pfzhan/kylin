@@ -108,7 +108,7 @@ public class SparkApplicationTest extends NSparkBasicTest {
         });
 
         Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
-                .getTrackingUrl("application_1561370224051_0160");
+                .getTrackingUrl(null, "application_1561370224051_0160");
 
         Map<String, String> payload = new HashMap<>(5);
         payload.put("project", "test_job_output");
@@ -131,7 +131,7 @@ public class SparkApplicationTest extends NSparkBasicTest {
 
         Mockito.reset(application);
         Mockito.doReturn("http://sandbox.hortonworks.com:8088/proxy/application_1561370224051_0160/").when(application)
-                .getTrackingUrl("application_1561370224051_0160");
+                .getTrackingUrl(null, "application_1561370224051_0160");
         Mockito.doReturn(Boolean.FALSE).when(application).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
         Assert.assertFalse(application.updateSparkJobExtraInfo("/kylin/api/jobs/spark", "test_job_output",
                 "cb91189b-2b12-4527-aa35-0130e7d54ec0", extraInfo));

@@ -1069,9 +1069,9 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
     }
 
-    public String getClusterInfoFetcherClassName() {
-        return getOptional("kylin.engine.spark.cluster-info-fetcher-class-name",
-                "io.kyligence.kap.cluster.YarnInfoFetcher");
+    public String getClusterManagerClassName() {
+        return getOptional("kylin.engine.spark.cluster-manager-class-name",
+                "io.kyligence.kap.cluster.YarnClusterManager");
     }
 
     public void overrideSparkJobJarPath(String path) {

@@ -26,7 +26,7 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util.concurrent.atomic.AtomicReference
 
-import io.kyligence.kap.cluster.{ClusterInfoFetcher, ClusterInfoFetcherFactory}
+import io.kyligence.kap.cluster.{ClusterManagerFactory, IClusterManager}
 import javax.annotation.concurrent.NotThreadSafe
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.SparkConf
@@ -39,7 +39,7 @@ class KylinBuildEnv(config: KylinConfig) {
 
   val kylinConfig: KylinConfig = config
 
-  lazy val clusterInfoFetcher: ClusterInfoFetcher = ClusterInfoFetcherFactory.create(config)
+  lazy val clusterManager: IClusterManager = ClusterManagerFactory.create(config)
 
   var encodingDataSkew = false
 

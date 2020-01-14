@@ -24,10 +24,14 @@ package io.kyligence.kap.cluster
 
 import org.apache.hadoop.yarn.api.records.Resource
 
-trait ClusterInfoFetcher {
+trait IClusterManager {
   def fetchMaximumResourceAllocation: ResourceInfo
 
   def fetchQueueAvailableResource(queueName: String): AvailableResource
+
+  def getTrackingUrl(applicationId: String): String
+
+  def killApplication(jobStepId: String): Unit
 }
 
 // memory unit is MB

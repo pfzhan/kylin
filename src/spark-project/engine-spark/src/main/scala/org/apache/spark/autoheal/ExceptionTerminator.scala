@@ -79,7 +79,7 @@ object ExceptionTerminator extends Logging {
     val retryOverhead = Math.ceil(retryMemory * overheadGradient).toInt
 
     val proportion = KylinBuildEnv.get().kylinConfig.getMaxAllocationResourceProportion
-    val maxResourceMemory = (env.clusterInfoFetcher.fetchMaximumResourceAllocation.memory * proportion).toInt
+    val maxResourceMemory = (env.clusterManager.fetchMaximumResourceAllocation.memory * proportion).toInt
     val overheadMem = Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
     val maxMemory = maxResourceMemory - overheadMem
     val maxOverheadMem = (maxMemory * overheadGradient).toInt

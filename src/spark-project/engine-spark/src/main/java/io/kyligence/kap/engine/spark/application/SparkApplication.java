@@ -40,7 +40,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -64,12 +63,12 @@ import org.apache.spark.sql.execution.SparkStrategy;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
-import org.apache.spark.utils.YarnInfoFetcherUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
@@ -162,15 +161,13 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     /**
-     * get tracking url by yarn app id
+     * get tracking url by application id
      *
-     * @param yarnAppId
+     * @param applicationId
      * @return
-     * @throws IOException
-     * @throws YarnException
      */
-    public String getTrackingUrl(String yarnAppId) throws IOException, YarnException {
-        return YarnInfoFetcherUtils.getTrackingUrl(yarnAppId);
+    public String getTrackingUrl(IClusterManager cm, String applicationId) {
+        return cm.getTrackingUrl(applicationId);
     }
 
     /**
@@ -201,14 +198,14 @@ public abstract class SparkApplication implements Application, IKeep {
         return Boolean.FALSE;
     }
 
-    private Map<String, String> getYarnInfo() {
-        String yarnAppId = ss.sparkContext().applicationId();
+    private Map<String, String> getTrackingInfo(IClusterManager cm) {
+        String applicationId = ss.sparkContext().applicationId();
         Map<String, String> extraInfo = new HashMap<>();
-        extraInfo.put("yarn_app_id", yarnAppId);
+        extraInfo.put("yarn_app_id", applicationId);
         try {
-            extraInfo.put("yarn_app_url", getTrackingUrl(yarnAppId));
-        } catch (IOException | YarnException e) {
-            logger.error("get yarn tracking url failed!", e);
+            extraInfo.put("yarn_app_url", getTrackingUrl(cm, applicationId));
+        } catch (Exception e) {
+            logger.error("get tracking url failed!", e);
         }
         return extraInfo;
     }
@@ -251,7 +248,7 @@ public abstract class SparkApplication implements Application, IKeep {
                 logger.info("Sleep for random seconds to avoid submitting too many spark job at the same time.");
                 Thread.sleep((long) (Math.random() * 60 * 1000));
                 try {
-                    while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterInfoFetcher())) {
+                    while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
                         long waitTime = (long) (Math.random() * 10 * 60 * 1000L);
                         logger.info("Current available resource in cluster is not sufficient, wait for a period: {}.",
                                 waitTime);
@@ -278,7 +275,8 @@ public abstract class SparkApplication implements Application, IKeep {
                     .getOrCreate();
 
             if (isJobOnCluster(sparkConf)) {
-                updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId, getYarnInfo());
+                updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
+                        getTrackingInfo(buildEnv.clusterManager()));
             }
 
             JoinMemoryManager.releaseAllMemory();
@@ -323,7 +321,7 @@ public abstract class SparkApplication implements Application, IKeep {
     private void autoSetSparkConf(SparkConf sparkConf) throws Exception {
         logger.info("Start set spark conf automatically.");
         SparkConfHelper helper = new SparkConfHelper();
-        helper.setFetcher(KylinBuildEnv.get().clusterInfoFetcher());
+        helper.setClusterManager(KylinBuildEnv.get().clusterManager());
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         String contentSize = chooseContentSize(shareDir);
 

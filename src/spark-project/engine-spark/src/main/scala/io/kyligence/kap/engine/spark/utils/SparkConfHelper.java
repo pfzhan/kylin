@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cluster.ClusterInfoFetcher;
+import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv;
 
 public class SparkConfHelper {
@@ -52,7 +52,7 @@ public class SparkConfHelper {
     // spark configurations
     private HashMap<String, String> confs = Maps.newHashMap();
 
-    private ClusterInfoFetcher fetcher;
+    private IClusterManager clusterManager;
 
     // options key
     public static final String SOURCE_TABLE_SIZE = "source_table_size";
@@ -94,12 +94,12 @@ public class SparkConfHelper {
         return confs.getOrDefault(key, null);
     }
 
-    public ClusterInfoFetcher getFetcher() {
-        return fetcher;
+    public IClusterManager getClusterManager() {
+        return clusterManager;
     }
 
-    public void setFetcher(ClusterInfoFetcher fetcher) {
-        this.fetcher = fetcher;
+    public void setClusterManager(IClusterManager clusterManager) {
+        this.clusterManager = clusterManager;
     }
 
     public void applySparkConf(SparkConf sparkConf) {
