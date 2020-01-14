@@ -29,7 +29,7 @@
             <user_access :roleOrName="props.row.role_or_name" :projectName="currentProject" :type="props.row.type"></user_access>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('userOrGroup')" prop="role_or_name">
+        <el-table-column :label="$t('userOrGroup')" prop="role_or_name" class-name="role-name-cell" show-overflow-tooltip>
           <template slot-scope="props">
             <i :class="{'el-icon-ksd-table_admin': props.row.type === 'User', 'el-icon-ksd-table_group': props.row.type === 'Group'}"></i>
             <span>{{props.row.role_or_name}}</span>
@@ -94,7 +94,7 @@
         </el-select>
         <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterUser" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100" v-if="accessMeta.principal"></kap-filter-select> -->
         <el-select
-          class="name-select"
+          :class="['name-select', {'has-selected': !accessMeta.sids.length}]"
           v-model="accessMeta.sids"
           :disabled="isEditAuthor"
           multiple
@@ -115,7 +115,7 @@
         </el-select>
         <!-- <kap-filter-select class="name-select" :asyn="true" @req="filterGroup" v-model="accessMeta.sids" :disabled="isEditAuthor" multiple :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100" v-else></kap-filter-select> -->
         <el-select
-          class="name-select"
+          :class="['name-select', {'has-selected': !accessMeta.sids.length}]"
           v-model="accessMeta.sids"
           :disabled="isEditAuthor"
           multiple
@@ -542,7 +542,15 @@ export default class ProjectAuthority extends Vue {
           color: @base-color;
         }
       }
+      .role-name-cell {
+        .cell {
+          white-space: pre;
+        }
+      }
     }
+  }
+  .el-select-dropdown__item {
+    white-space: pre !important;
   }
   .author_dialog {
     .el-alert {
@@ -582,6 +590,13 @@ export default class ProjectAuthority extends Vue {
       .type-select {
         width: 150px;
         margin-left: 5px;
+      }
+      .name-select.has-selected {
+        .el-select__tags {
+          input {
+            margin-left: 30px;
+          }
+        }
       }
     }
   }

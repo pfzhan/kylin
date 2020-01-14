@@ -363,7 +363,9 @@ export default class ModelPartitionModal extends Vue {
     this.isLoadingFormat = false
   }
 
-  savePartitionConfirm () {
+  async savePartitionConfirm () {
+    await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
+    await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
       if (this.prevPartitionMeta.table && !this.partitionMeta.table) {
         kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
@@ -383,9 +385,7 @@ export default class ModelPartitionModal extends Vue {
     }
   }
 
-  async savePartition () {
-    await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
-    await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
+  savePartition () {
     this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
     let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
     if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
