@@ -98,12 +98,13 @@ public class KylinClient implements IRemoteClient {
 
     private static final Logger logger = LoggerFactory.getLogger(KylinClient.class);
     private static final String APPLICATION = "application/json";
-    private static String timeZone;
 
     private final KylinConnection conn;
     private final Properties connProps;
     private DefaultHttpClient httpClient;
     private final ObjectMapper jsonMapper;
+
+    private String timeZone;
 
     public KylinClient(KylinConnection conn) {
         this.conn = conn;
@@ -185,7 +186,7 @@ public class KylinClient implements IRemoteClient {
         return result;
     }
 
-    private static Object wrapObject(String value, int sqlType) {
+    private Object wrapObject(String value, int sqlType) {
         if (null == value) {
             return null;
         }
@@ -233,7 +234,7 @@ public class KylinClient implements IRemoteClient {
         return value;
     }
 
-    private static Timestamp timestampConverter(String value) {
+    private Timestamp timestampConverter(String value) {
         try {
             return new Timestamp(parseDateTime(value, "yyyy-MM-dd HH:mm:ss"));
         } catch (ParseException ex) {
@@ -242,7 +243,7 @@ public class KylinClient implements IRemoteClient {
         }
     }
 
-    private static Date dateConverter(String value) {
+    private Date dateConverter(String value) {
         try {
             return new Date(parseDateTime(value, "yyyy-MM-dd"));
         } catch (ParseException ex) {
@@ -251,7 +252,7 @@ public class KylinClient implements IRemoteClient {
         }
     }
 
-    private static Time timeConverter(String value) {
+    private Time timeConverter(String value) {
         try {
             return new Time(parseDateTime(value, "HH:mm:ss"));
         } catch (ParseException ex) {
@@ -260,7 +261,7 @@ public class KylinClient implements IRemoteClient {
         }
     }
 
-    private static long parseDateTime(String value, String format) throws ParseException {
+    private long parseDateTime(String value, String format) throws ParseException {
         SimpleDateFormat formatter = new SimpleDateFormat(format);
         formatter.setTimeZone(TimeZone.getTimeZone(timeZone));
 
