@@ -177,7 +177,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
                 .get("query_histories");
         modelAlias = queryHistories.get(2).getNativeQueryRealizations().stream()
                 .map(NativeQueryRealization::getModelAlias).collect(Collectors.toSet());
-        Assert.assertTrue(modelAlias.contains("deleted model"));
+        Assert.assertTrue(modelAlias.contains(QueryHistoryService.DELETED_MODEL));
 
     }
 

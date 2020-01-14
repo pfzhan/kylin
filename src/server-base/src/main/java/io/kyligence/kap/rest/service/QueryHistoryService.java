@@ -66,6 +66,7 @@ import lombok.val;
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryService.class);
+    public static final String DELETED_MODEL = "Deleted Model";
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -113,7 +114,7 @@ public class QueryHistoryService extends BasicService {
                     realization.setValid(false);
                     val brokenModel = dataModelManager.getDataModelDesc(realization.getModelId());
                     if (brokenModel == null) {
-                        realization.setModelAlias("deleted model");
+                        realization.setModelAlias(DELETED_MODEL);
                         realizations.add(realization);
                         return;
                     }
