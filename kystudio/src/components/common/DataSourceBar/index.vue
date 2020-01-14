@@ -430,7 +430,7 @@ export default class DataSourceBar extends Vue {
     })
   }
   reloadTables () {
-    return this.handleFilter(this.filterText)
+    this.handleFilter(this.filterText)
   }
   async handleLoadMore (data, node) {
     let dbName = (data.parent.label).toLocaleLowerCase()

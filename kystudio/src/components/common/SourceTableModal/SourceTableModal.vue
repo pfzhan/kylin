@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="source-table-modal" width="660px"
+  <el-dialog class="source-table-modal" width="560px"
     :title="$t(modalTitle)"
     :visible="isShow"
     @open="handleOpen"
@@ -19,12 +19,12 @@
           {{$t('customLoadRange')}}
         </el-radio> -->
         <el-alert
+          :title="$t('kylinLang.dataSource.rangeInfoTip')"
           type="info"
           class="ksd-pt-0"
           :show-background="false"
           :closable="false"
           show-icon>
-          <span slot="title" v-html="rangeInfoTip"></span>
         </el-alert>
         <div class="ky-no-br-space">
         <el-date-picker
@@ -71,12 +71,12 @@
       <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
         <div class="item-desc">{{$t('refreshRangeDesc')}}</div>
         <el-alert
+          :title="$t('kylinLang.dataSource.rangeInfoTip')"
           type="info"
           class="ksd-pt-0"
           :show-background="false"
           :closable="false"
           show-icon>
-          <span slot="title" v-html="rangeInfoTip"></span>
         </el-alert>
         <div class="ky-no-br-space">
           <el-date-picker
@@ -141,8 +141,7 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
       project: state => state.project,
       table: state => state.table,
       model: state => state.model,
-      format: state => state.format,
-      rangeInfoTip: state => state.rangeInfoTip
+      format: state => state.format
     })
   },
   methods: {
