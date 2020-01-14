@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.kyligence.kap.cluster.SchedulerInfoCmdHelper;
 import io.kyligence.kap.tool.util.HadoopConfExtractor;
 import lombok.val;
 
@@ -89,7 +90,13 @@ public class KapGetClusterInfo {
         }
 
         logger.info("yarn metrics response: {}", response);
-        JsonNode clusterMetrics = new ObjectMapper().readTree(response).path("clusterMetrics");
+        JsonNode clusterMetrics;
+        try {
+            clusterMetrics = new ObjectMapper().readTree(response).path("clusterMetrics");
+        } catch (Exception e) {
+            logger.warn("Failed to get clusterMetrics from cluster.", e);
+            clusterMetrics = new ObjectMapper().readTree(SchedulerInfoCmdHelper.metricsInfo()).path("clusterMetrics");
+        }
         clusterMetricsMap.put(AVAILABLE_VIRTUAL_CORE, clusterMetrics.path(AVAILABLE_VIRTUAL_CORE).intValue());
         clusterMetricsMap.put(AVAILABLE_MEMORY, clusterMetrics.path(AVAILABLE_MEMORY).intValue());
     }

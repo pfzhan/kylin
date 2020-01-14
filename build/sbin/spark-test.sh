@@ -81,6 +81,32 @@ then
 fi
 echo "SPARK_HOME is set to ${SPARK_HOME}"
 
+function config_item_java_options_add_suffix()
+{
+    source_conf_tmp=$1
+    conf_key_tmp=$2
+    conf_value_tmp=$3
+
+    if [[ "${source_conf_tmp}" == *${conf_key_tmp}=* ]]; then
+        echo "${source_conf_tmp}" | sed "s~${conf_key_tmp}=~${conf_key_tmp}=${conf_value_tmp} ~g"
+    else
+        echo "${source_conf_tmp} --conf ${conf_key_tmp}=${conf_value_tmp} "
+    fi
+}
+
+function config_item_yarn_dist_add_suffix()
+{
+    source_conf_tmp=$1
+    conf_key_tmp=$2
+    conf_value_tmp=$3
+
+    if [[ "${source_conf_tmp}" == *${conf_key_tmp}=* ]]; then
+        echo "${source_conf_tmp}" | sed "s~${conf_key_tmp}=~${conf_key_tmp}=${conf_value_tmp},~g"
+    else
+        echo "${source_conf_tmp} --conf ${conf_key_tmp}=${conf_value_tmp} "
+    fi
+}
+
 function retrieveSparkEnvProps()
 {
  # spark envs
@@ -103,12 +129,28 @@ function retrieveSparkEnvProps()
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
         confStr=`echo ${confStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
+        confStr=$(config_item_java_options_add_suffix "${confStr}" "spark.yarn.am.extraJavaOptions" "-Djava.security.krb5.conf=krb5.conf")
+        confStr=$(config_item_java_options_add_suffix "${confStr}" "spark.executor.extraJavaOptions" "-Djava.security.krb5.conf=krb5.conf")
+        confStr=$(config_item_java_options_add_suffix "${confStr}" "spark.driver.extraJavaOptions" "-Djava.security.krb5.conf=${KYLIN_HOME}/conf/krb5.conf")
+
+        code_tmp=`echo "$SPARK_CONF_PROPS" | grep -c -E "spark.yarn.dist.files=.*krb5.conf"`
+        if [[ ${code_tmp} == 0 ]];then
+            confStr=$(config_item_yarn_dist_add_suffix "${confStr}" "spark.yarn.dist.files" "${KYLIN_HOME}/conf/krb5.conf")
+        fi
     fi
 
     engineConfStr=`echo "$SPARK_ENGINE_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
         engineConfStr=`echo ${engineConfStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`
+        engineConfStr=$(config_item_java_options_add_suffix "${engineConfStr}" "spark.yarn.am.extraJavaOptions" "-Djava.security.krb5.conf=krb5.conf")
+        engineConfStr=$(config_item_java_options_add_suffix "${engineConfStr}" "spark.executor.extraJavaOptions" "-Djava.security.krb5.conf=krb5.conf")
+        engineConfStr=$(config_item_java_options_add_suffix "${engineConfStr}" "spark.driver.extraJavaOptions" "-Djava.security.krb5.conf=${KYLIN_HOME}/conf/krb5.conf")
+
+        code_tmp=`echo "$SPARK_ENGINE_CONF_PROPS" | grep -c -E "spark.yarn.dist.files=.*krb5.conf"`
+        if [[ ${code_tmp} == 0 ]];then
+            engineConfStr=$(config_item_yarn_dist_add_suffix "${engineConfStr}" "spark.yarn.dist.files" "${KYLIN_HOME}/conf/krb5.conf")
+        fi
     fi
 
     confStr=`removeInvalidSparkConfValue "$SPARK_CONF_PROPS" "$confStr"`

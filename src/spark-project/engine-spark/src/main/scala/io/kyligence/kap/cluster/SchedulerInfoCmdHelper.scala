@@ -35,6 +35,15 @@ object SchedulerInfoCmdHelper extends Logging {
 
   def schedulerInfo: String = {
     val cmds = getSocketAddress.map(address => genCmd(address._1, address._2))
+    getInfoByCmds(cmds)
+  }
+
+  def metricsInfo: String = {
+    val cmds = getSocketAddress.map(address => genMetricsCmd(address._1, address._2))
+    getInfoByCmds(cmds)
+  }
+
+  private[cluster] def getInfoByCmds(cmds: Iterable[String]): String = {
     val results = cmds.map { cmd =>
       try {
         execute(cmd)
@@ -82,6 +91,15 @@ object SchedulerInfoCmdHelper extends Logging {
       s"https://$hostName:$port/ws/v1/cluster/scheduler"
     } else {
       s"http://$hostName:$port/ws/v1/cluster/scheduler"
+    }
+    s"""curl -k --negotiate -u : "$uri""""
+  }
+
+  private[cluster] def genMetricsCmd(hostName: String, port: Int): String = {
+    val uri = if (useHttps) {
+      s"https://$hostName:$port/ws/v1/cluster/metrics"
+    } else {
+      s"http://$hostName:$port/ws/v1/cluster/metrics"
     }
     s"""curl -k --negotiate -u : "$uri""""
   }

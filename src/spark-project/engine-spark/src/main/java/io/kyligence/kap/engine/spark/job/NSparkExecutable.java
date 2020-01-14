@@ -483,7 +483,7 @@ public class NSparkExecutable extends AbstractExecutable {
         Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
         if (sparkConfigOverride.containsKey(configName)) {
             String conf = sparkConfigOverride.get(configName);
-            if (!StringUtils.contains(conf, "java.security.krb5.conf")) {
+            if (StringUtils.contains(conf, "java.security.krb5.conf")) {
                 return config;
             }
             sb.append(conf);

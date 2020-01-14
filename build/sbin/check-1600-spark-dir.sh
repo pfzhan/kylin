@@ -19,7 +19,7 @@ function checkDirExistAndPermission() {
 
     if [[ $message == "hive-scratch" ]]; then
         # rwxrwxrw-
-        hadoop ${hadoop_conf_param} fs -chmod -R 775 ${directory}
+        hadoop ${hadoop_conf_param} fs -chmod -R 733 ${directory}
     fi
 
     # test write permission
