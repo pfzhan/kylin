@@ -679,6 +679,7 @@ export default class JobsList extends Vue {
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
+      if (!this.currentSelectedProject) return reject()
       let data = {}
       const statuses = this.filter.status.join(',')
       Object.keys(this.filter).forEach(key => key !== 'status' && (data[key] = this.filter[key]))
