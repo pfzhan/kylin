@@ -54,16 +54,16 @@ import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.annotation.PostConstruct;
 
 @Slf4j
 @Service("licenseInfoService")
@@ -119,7 +119,7 @@ public class LicenseInfoService extends BasicService {
     @Qualifier("normalRestTemplate")
     private RestTemplate restTemplate;
 
-    @EventListener(AppInitializedEvent.class)
+    @PostConstruct
     public void init() {
         init(code -> log.info("code {}", code));
     }

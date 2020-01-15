@@ -69,12 +69,18 @@ public class QueryNodeFilter implements Filter {
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     static {
+        // data source
         routeGetApiSet.add("/kylin/api/tables/reload_hive_table_name");
         routeGetApiSet.add("/kylin/api/tables/project_table_names");
 
+        // jdbc, odbc, query
         notRoutePostApiSet.add("/kylin/api/query");
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
+
+        // license
+        notRoutePostApiSet.add("/kylin/api/system/license/content");
+        notRoutePostApiSet.add("/kylin/api/system/license/file");
     }
 
     @Autowired
