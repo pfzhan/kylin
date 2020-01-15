@@ -42,11 +42,13 @@ object ExpressionConverter {
 
   val unaryParameterFunc = mutable.HashSet("ucase", "lcase", "base64",
     "sentences", "unbase64", "crc32", "md5", "sha", "sha1",
+    //time
+    "weekofyear",
     // math
     "cbrt", "cosh", "expm1", "factorial", "log1p", "log2", "rint", "sinh", "tanh"
   )
 
-  val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad",  "conv")
+  val ternaryParameterFunc = mutable.HashSet("replace", "substring_index", "lpad", "rpad", "conv")
   val binaryParameterFunc =
     mutable.HashSet("decode", "encode", "find_in_set", "levenshtein", "sha2",
       "trunc", "add_months", "date_add", "date_sub", "from_unixtime", "from_utc_timestamp", "to_utc_timestamp",

@@ -1,0 +1,1 @@
+select weekofyear('2020-01-15') from test_kylin_fact limit 10

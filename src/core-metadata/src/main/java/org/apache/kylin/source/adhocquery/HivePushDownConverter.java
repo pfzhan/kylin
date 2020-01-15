@@ -71,8 +71,6 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
     private static final Pattern VAR_SUBSTRING_PATTERN = Pattern
             .compile("\\bsubstring\\s*\\(\\s*(.*?)\\s+from\\s+(.*?)\\s+for\\s+(.*?)\\s*\\)", Pattern.CASE_INSENSITIVE);
 
-    private static final String WEEK_PATTERN = "(?i)\\bweek\\s*\\(";
-
     public static String replaceString(String originString, String fromString, String toString) {
         return originString.replace(fromString, toString);
     }
@@ -188,9 +186,6 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
         // Support variant substring grammar
         convertedSql = castVariantSubstringGrammar(convertedSql);
-
-        // Support week function for pushdown
-        convertedSql = convertedSql.replaceAll(WEEK_PATTERN, "WEEKOFYEAR(");
 
         return convertedSql;
     }

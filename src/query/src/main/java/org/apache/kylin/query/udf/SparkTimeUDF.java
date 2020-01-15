@@ -42,46 +42,59 @@
 
 package org.apache.kylin.query.udf;
 
-import org.apache.calcite.linq4j.function.Parameter;
-import org.apache.calcite.sql.type.NotConstant;
-
 import java.sql.Date;
 import java.sql.Timestamp;
 
+import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.sql.type.NotConstant;
+
 public class SparkTimeUDF implements NotConstant {
-    public Object TRUNC(@Parameter(name = "date") Date exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Object TRUNC(@Parameter(name = "date") Date exp1, @Parameter(name = "str2") String exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object ADD_MONTHS(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) throws CalciteNotSupportException {
+    public Object ADD_MONTHS(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object DATE_ADD(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) throws CalciteNotSupportException {
+    public Object DATE_ADD(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object DATE_SUB(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2) throws CalciteNotSupportException {
+    public Object DATE_SUB(@Parameter(name = "date") Date exp1, @Parameter(name = "num2") Integer exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object FROM_UNIXTIME(@Parameter(name = "long1") Long exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Object FROM_UNIXTIME(@Parameter(name = "long1") Long exp1, @Parameter(name = "str2") String exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object FROM_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Object FROM_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2) throws CalciteNotSupportException {
+    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2)
+            throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2, @Parameter(name = "t2") Boolean exp3) throws CalciteNotSupportException {
+    public Object MONTHS_BETWEEN(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "t2") Timestamp exp2,
+            @Parameter(name = "t2") Boolean exp3) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 
-    public Object TO_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2) throws CalciteNotSupportException {
+    public Object TO_UTC_TIMESTAMP(@Parameter(name = "t1") Timestamp exp1, @Parameter(name = "str2") String exp2)
+            throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
+    }
+
+    public Object WEEKOFYEAR(@Parameter(name = "t1") Object exp1) throws CalciteNotSupportException {
         throw new CalciteNotSupportException();
     }
 }

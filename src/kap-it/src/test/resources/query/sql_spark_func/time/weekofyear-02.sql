@@ -1,0 +1,1 @@
+select weekofyear(CAL_DT) from TEST_KYLIN_FACT
