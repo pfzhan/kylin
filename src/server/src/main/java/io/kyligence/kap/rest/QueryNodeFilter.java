@@ -65,12 +65,18 @@ import lombok.extern.slf4j.Slf4j;
 public class QueryNodeFilter implements Filter {
 
     private static final String API_PREFIX = "/kylin/api";
+
+    private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     static {
+        routeGetApiSet.add("/kylin/api/tables/reload_hive_table_name");
+        routeGetApiSet.add("/kylin/api/tables/project_table_names");
+
         notRoutePostApiSet.add("/kylin/api/query");
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
     }
+
     @Autowired
     RestTemplate restTemplate;
 
@@ -86,16 +92,18 @@ public class QueryNodeFilter implements Filter {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
             HttpServletResponse servletResponse = (HttpServletResponse) response;
+            // not start with /kylin/api
             if (!servletRequest.getRequestURI().startsWith(API_PREFIX)) {
                 chain.doFilter(request, response);
                 return;
             }
-            if (servletRequest.getRequestURI().startsWith(API_PREFIX) && servletRequest.getMethod().equals("GET")) {
+            // start with /kylin/api
+            if (servletRequest.getMethod().equals("GET") && !routeGetApiSet.contains(servletRequest.getRequestURI())) {
                 chain.doFilter(request, response);
                 return;
             }
-            if (notRoutePostApiSet.contains(servletRequest.getRequestURI())
-                    && servletRequest.getMethod().equals("POST")) {
+            if (servletRequest.getMethod().equals("POST")
+                    && notRoutePostApiSet.contains(servletRequest.getRequestURI())) {
                 chain.doFilter(request, response);
                 return;
             }
