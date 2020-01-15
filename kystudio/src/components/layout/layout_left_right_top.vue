@@ -226,7 +226,8 @@ let MessageBox = ElementUI.MessageBox
       'briefMenuGet',
       'currentProjectData',
       'availableMenus',
-      'isAutoProject'
+      'isAutoProject',
+      'isGuideMode'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -343,7 +344,10 @@ export default class LayoutLeftRightTop extends Vue {
     if (newVal !== val) {
       this.manualClose = true
     }
-    this.noProjectTips()
+    // 新手引导模式不用反复弹提示
+    if (!this.isGuideMode) {
+      this.noProjectTips()
+    }
   }
   setGlobalMask (notifyContect) {
     this.isGlobalMaskShow = true
@@ -755,7 +759,10 @@ export default class LayoutLeftRightTop extends Vue {
       this.loadSpeedInfo()
       this.circleLoadSpeedInfo()
     }
-    this.noProjectTips()
+    // 新手引导模式不用反复弹提示
+    if (!this.isGuideMode) {
+      this.noProjectTips()
+    }
   }
   destroyed () {
     clearTimeout(this.ST)

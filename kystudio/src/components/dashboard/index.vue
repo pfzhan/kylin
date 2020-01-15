@@ -65,7 +65,7 @@
                     <span v-if="quotaInfo.garbage_storage_size>=0">{{quotaInfo.garbage_storage_size | dataSize}}</span>
                     <span v-else>--</span><common-tip placement="right" :content="$t('clear')" v-if="!$store.state.project.isSemiAutomatic&&dashboardActions.includes('clearStorage')"><!-- 半自动挡时隐藏清理按钮 -->
                       <i class="el-icon-ksd-clear ksd-ml-10 clear-btn"
-                      :class="{'is_no_quota': isNoQuota, 'is-disabled': !quotaInfo.garbage_storage_size}"
+                      :class="{'is_no_quota': isNoQuota, 'is-disabled': !quotaInfo.garbage_storage_size || quotaInfo.garbage_storage_size === -1}"
                     @click="clearStorage"></i>
                     </common-tip>
                   </div>
@@ -586,7 +586,7 @@ export default class Dashboard extends Vue {
     window.onresize = null
   }
   clearStorage () {
-    if (!this.currentSelectedProject || !this.quotaInfo.garbage_storage_size) {
+    if (!this.currentSelectedProject || !this.quotaInfo.garbage_storage_size || this.quotaInfo.garbage_storage_size === -1) {
       return
     }
     this.clearTrash({project: this.currentSelectedProject}).then((res) => {
