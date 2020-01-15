@@ -345,7 +345,7 @@ public class NSmartMaster {
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
+            if (modelCtx.noNeedToSave()) {
                 continue;
             }
             IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
@@ -447,7 +447,7 @@ public class NSmartMaster {
         log.info("Start saving optimized model to metadata.");
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
+            if (modelCtx.noNeedToSave()) {
                 continue;
             }
             NDataModel model = modelCtx.getTargetModel();

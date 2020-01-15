@@ -47,6 +47,29 @@ import lombok.var;
 
 public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
 
+    private static final String[] sqls = new String[] {
+            "select order_id, count(*) from test_order group by order_id limit 1",
+            "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
+            "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
+                    + "INNER JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n"
+                    + "ON \"TEST_KYLIN_FACT\".\"ORDER_ID\"=\"TEST_ORDER\".\"ORDER_ID\"\n"
+                    + "INNER JOIN \"EDW\".\"TEST_SELLER_TYPE_DIM\" as \"TEST_SELLER_TYPE_DIM\"\n"
+                    + "ON \"TEST_KYLIN_FACT\".\"SLR_SEGMENT_CD\"=\"TEST_SELLER_TYPE_DIM\".\"SELLER_TYPE_CD\"\n"
+                    + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" as \"TEST_CAL_DT\"\n"
+                    + "ON \"TEST_KYLIN_FACT\".\"CAL_DT\"=\"TEST_CAL_DT\".\"CAL_DT\"\n"
+                    + "INNER JOIN \"DEFAULT\".\"TEST_CATEGORY_GROUPINGS\" as \"TEST_CATEGORY_GROUPINGS\"\n"
+                    + "ON \"TEST_KYLIN_FACT\".\"LEAF_CATEG_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"LEAF_CATEG_ID\" AND \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_CATEGORY_GROUPINGS\".\"SITE_ID\"\n"
+                    + "INNER JOIN \"EDW\".\"TEST_SITES\" as \"TEST_SITES\"\n"
+                    + "ON \"TEST_KYLIN_FACT\".\"LSTG_SITE_ID\"=\"TEST_SITES\".\"SITE_ID\"\n"
+                    + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"SELLER_ACCOUNT\"\n"
+                    + "ON \"TEST_KYLIN_FACT\".\"SELLER_ID\"=\"SELLER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                    + "INNER JOIN \"DEFAULT\".\"TEST_ACCOUNT\" as \"BUYER_ACCOUNT\"\n"
+                    + "ON \"TEST_ORDER\".\"BUYER_ID\"=\"BUYER_ACCOUNT\".\"ACCOUNT_ID\"\n"
+                    + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"SELLER_COUNTRY\"\n"
+                    + "ON \"SELLER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"SELLER_COUNTRY\".\"COUNTRY\"\n"
+                    + "INNER JOIN \"DEFAULT\".\"TEST_COUNTRY\" as \"BUYER_COUNTRY\"\n"
+                    + "ON \"BUYER_ACCOUNT\".\"ACCOUNT_COUNTRY\"=\"BUYER_COUNTRY\".\"COUNTRY\" group by test_kylin_fact.cal_dt" };
+
     @After
     public void tearDown() {
         restoreAllSystemProp();
@@ -215,27 +238,44 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         val modelSizeBeforeAcc = dfManager.listUnderliningDataModels().size();
 
-        val sql = new String[] { "select order_id, count(*) from test_order group by order_id limit 1" };
-
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("default"));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
         getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
 
-        val smartMaster = new NSmartMaster(getTestConfig(), "default", sql);
+        val smartMaster = new NSmartMaster(getTestConfig(), "default", sqls);
         smartMaster.runAll();
 
-        val originalModel = smartMaster.getContext().getModelContexts().get(0).getOriginModel();
-        val originalIndexPlan = indexPlanManager.getIndexPlan(originalModel.getUuid());
-        val originalLayoutSize = originalIndexPlan.getAllLayouts().size();
-        val targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-        val targetIndexPlan = indexPlanManager.getIndexPlan(targetModel.getUuid());
+        smartMaster.getContext().getAccelerateInfoMap()
+                .forEach((sql, accInfo) -> Assert.assertFalse(accInfo.isNotSucceed()));
+        smartMaster.getContext().getModelContexts().forEach(modelContext -> {
+            val originalModel = modelContext.getOriginModel();
+            val originalIndexPlan = indexPlanManager.getIndexPlan(originalModel.getUuid());
+            val originalLayoutSize = originalIndexPlan.getAllLayouts().size();
+            val targetModel = modelContext.getTargetModel();
+            val targetIndexPlan = indexPlanManager.getIndexPlan(targetModel.getUuid());
 
-        Assert.assertEquals(modelSizeBeforeAcc, dfManager.listUnderliningDataModels().size());
-        Assert.assertEquals(originalModel.getUuid(), targetModel.getUuid());
-        Assert.assertEquals(originalLayoutSize, targetIndexPlan.getAllLayouts().size());
-        Assert.assertTrue(smartMaster.getContext().getModelContexts().get(0).isSnapshotSelected());
+            Assert.assertEquals(modelSizeBeforeAcc, dfManager.listUnderliningDataModels().size());
+            Assert.assertEquals(originalModel.getUuid(), targetModel.getUuid());
+            Assert.assertEquals(originalLayoutSize, targetIndexPlan.getAllLayouts().size());
+            Assert.assertEquals(1, modelContext.getModelTree().getOlapContexts().size());
+            val sql = modelContext.getModelTree().getOlapContexts().iterator().next().sql;
+            if (sql.equalsIgnoreCase(sqls[0])) {
+                Assert.assertTrue(modelContext.isSnapshotSelected());
+                return;
+            }
+
+            if (sql.equalsIgnoreCase(sqls[1])) {
+                Assert.assertTrue(modelContext.isSnapshotSelected());
+                return;
+            }
+
+            if (sql.equalsIgnoreCase(sqls[2])) {
+                Assert.assertFalse(modelContext.isSnapshotSelected());
+                return;
+            }
+        });
     }
 
     @Test
@@ -244,26 +284,43 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         val modelSizeBeforeAcc = dfManager.listUnderliningDataModels().size();
 
-        val sql = new String[] { "select order_id, count(*) from test_order group by order_id limit 1" };
-
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("default"));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
 
-        val smartMaster = new NSmartMaster(getTestConfig(), "default", sql);
+        val smartMaster = new NSmartMaster(getTestConfig(), "default", sqls);
         smartMaster.runAll();
 
-        val originalModel = smartMaster.getContext().getModelContexts().get(0).getOriginModel();
-        val originalIndexPlan = indexPlanManager.getIndexPlan(originalModel.getUuid());
-        val originalLayoutSize = originalIndexPlan.getAllLayouts().size();
-        val targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-        val targetIndexPlan = indexPlanManager.getIndexPlan(targetModel.getUuid());
+        smartMaster.getContext().getAccelerateInfoMap()
+                .forEach((sql, accInfo) -> Assert.assertFalse(accInfo.isNotSucceed()));
+        smartMaster.getContext().getModelContexts().forEach(modelContext -> {
+            val originalModel = modelContext.getOriginModel();
+            val originalIndexPlan = indexPlanManager.getIndexPlan(originalModel.getUuid());
+            val originalLayoutSize = originalIndexPlan.getAllLayouts().size();
+            val targetModel = modelContext.getTargetModel();
+            val targetIndexPlan = indexPlanManager.getIndexPlan(targetModel.getUuid());
 
-        Assert.assertEquals(modelSizeBeforeAcc, dfManager.listUnderliningDataModels().size());
-        Assert.assertEquals(originalModel.getUuid(), targetModel.getUuid());
-        Assert.assertEquals(originalLayoutSize, targetIndexPlan.getAllLayouts().size());
-        Assert.assertTrue(smartMaster.getContext().getModelContexts().get(0).isSnapshotSelected());
+            Assert.assertEquals(modelSizeBeforeAcc, dfManager.listUnderliningDataModels().size());
+            Assert.assertEquals(originalModel.getUuid(), targetModel.getUuid());
+            Assert.assertEquals(originalLayoutSize, targetIndexPlan.getAllLayouts().size());
+            Assert.assertEquals(1, modelContext.getModelTree().getOlapContexts().size());
+            val sql = modelContext.getModelTree().getOlapContexts().iterator().next().sql;
+            if (sql.equalsIgnoreCase(sqls[0])) {
+                Assert.assertTrue(modelContext.isSnapshotSelected());
+                return;
+            }
+
+            if (sql.equalsIgnoreCase(sqls[1])) {
+                Assert.assertTrue(modelContext.isSnapshotSelected());
+                return;
+            }
+
+            if (sql.equalsIgnoreCase(sqls[2])) {
+                Assert.assertFalse(modelContext.isSnapshotSelected());
+                return;
+            }
+        });
     }
 
     @Test
@@ -296,6 +353,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         indexPlan = indexPlanManager.getIndexPlan(models.get(0).getUuid());
         Assert.assertEquals(1, indexPlan.getAllLayouts().size());
         Assert.assertFalse(indexPlan.getAllLayouts().get(0).getIndex().isTableIndex());
-        Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID", models.get(0).getColRef(indexPlan.getAllLayouts().get(0).getColOrder().get(0)).getIdentity());
+        Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_ID",
+                models.get(0).getColRef(indexPlan.getAllLayouts().get(0).getColOrder().get(0)).getIdentity());
     }
 }

@@ -205,6 +205,10 @@ public class NSmartContext {
             // we can not modify rule_based_indexes
             return this.targetIndexPlan == null || CollectionUtils.isEmpty(this.targetIndexPlan.getIndexes());
         }
+
+        public boolean noNeedToSave() {
+            return withoutTargetModel() || withoutAnyIndexes() || this.snapshotSelected;
+        }
     }
 
     public NModelContext createModelContext(ModelTree modelTree) {

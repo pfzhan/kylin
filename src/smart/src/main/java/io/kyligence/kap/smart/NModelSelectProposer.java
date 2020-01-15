@@ -78,7 +78,7 @@ public class NModelSelectProposer extends NAbstractProposer {
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
             NDataModel model = selectExistedModel(modelTree, modelContext);
-            if (model == null || selectedModel.contains(model.getUuid())) {
+            if (model == null || (selectedModel.contains(model.getUuid()) && !modelContext.isSnapshotSelected())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
                 if (model != null) {
@@ -89,13 +89,15 @@ public class NModelSelectProposer extends NAbstractProposer {
             }
             // found matched, then use it
             modelContext.setOriginModel(model);
-            selectedModel.add(model.getUuid());
             NDataModel targetModel = dataModelManager.copyForWrite(model);
             initModel(targetModel);
             targetModel.getComputedColumnDescs().forEach(cc -> {
                 modelContext.getUsedCC().put(cc.getExpression(), cc);
             });
             modelContext.setTargetModel(targetModel);
+
+            if (!modelContext.isSnapshotSelected())
+                selectedModel.add(model.getUuid());
         }
 
         //if cannot create new model, record pending message
