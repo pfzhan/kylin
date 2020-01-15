@@ -68,7 +68,7 @@
     <el-dialog class="import-ssb" :append-to-body="true" :title="$t('importSSB')" :visible.sync="importSSBvisible" :close-on-click-modal="false" width="660px" @close="resetImportSSB">
       <div class="ksd-center" v-if="!isImportSuccess&&!isShowImportError">
         <div class="ksd-mb-20">{{$t('importTips')}}</div>
-        <div class="progress-bar"><el-progress :percentage="percent"></el-progress></div>
+        <div class="progress-bar"><el-progress :stroke-width="12" :percentage="percent"></el-progress></div>
         <div class="inprogress ksd-fs-12">{{$t('importInprogress')}}</div>
       </div>
       <div class="ksd-center" v-if="isImportSuccess&&!isShowImportError">
@@ -521,6 +521,12 @@
   .import-ssb {
     .progress-bar {
       margin: 0 40px;
+      .el-progress__text {
+        font-size: 14px !important;
+      }
+    }
+    .el-alert a {
+      text-decoration: underline;
     }
     .inprogress {
       color: @text-disabled-color;
