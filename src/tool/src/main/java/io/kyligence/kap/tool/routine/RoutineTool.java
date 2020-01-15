@@ -63,7 +63,9 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
             System.out.println("cleanup HDFS finished");
         } catch (Exception e) {
             log.error("cleanup HDFS failed", e);
-            System.out.println(StorageCleaner.ANSI_RED + "cleanup HDFS failed" + StorageCleaner.ANSI_RESET);
+            System.out.println(StorageCleaner.ANSI_RED
+                    + "cleanup HDFS failed. Detailed Message is at ${KYLIN_HOME}/logs/shell.stderr"
+                    + StorageCleaner.ANSI_RESET);
         }
     }
 
