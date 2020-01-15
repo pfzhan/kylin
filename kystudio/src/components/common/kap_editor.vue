@@ -71,6 +71,10 @@ export default {
     alwaysShowCopyBtn: {
       type: Boolean,
       default: true
+    },
+    tipsHeight: {
+      type: Number,
+      default: 32
     }
   },
   data () {
@@ -99,12 +103,15 @@ export default {
     wrapStyle () {
       return {
         // height: this.isAbridge && this.showLimitTip ? 'auto' : this.editorStyle.height,
-        height: this.isAbridge && this.showLimitTip ? this.editorStyle.height + 32 : this.editorStyle.height + 2,
+        height: this.isAbridge && this.showLimitTip ? this.editorStyle.height + this.tipsHeight : this.editorStyle.height + 2,
         width: this.editorStyle.width
       }
     }
   },
   methods: {
+    editorResize () {
+      this.editorDragData.height = +this.height || 0
+    },
     changeInput () {
       this.updateEditor(this.$refs.kapEditor.editor)
       this.$emit('input', this.editorData)
@@ -327,9 +334,9 @@ export default {
     }
     .limit-sql-tip {
       width: calc(~'100% + 2px');
-      height: 30px;
+      /* height: 30px;
+      line-height: 30px; */
       text-align: center;
-      line-height: 30px;
       font-size: 12px;
       background: @fff;
       color: @text-normal-color;
@@ -337,6 +344,8 @@ export default {
       border-bottom: none;
       box-sizing: border-box;
       margin-left: -1px;
+      padding:5px 0;
+      line-height: 1.8;
     }
   }
 </style>

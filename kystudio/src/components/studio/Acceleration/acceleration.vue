@@ -124,7 +124,18 @@
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-12 ksd-fs-14">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10" v-loading="sqlLoading" element-loading-spinner="el-icon-loading">
-            <kap-editor ref="blackInputBox" :height="inputHeight" :dragable="false" :readOnly="true" lang="sql" theme="chrome" v-model="blackSql">
+            <kap-editor
+              :key="'editor_' + inputHeight"
+              ref="blackInputBox"
+              :height="inputHeight"
+              :tipsHeight="sqlTipsHeight"
+              :dragable="false"
+              :readOnly="true"
+              lang="sql"
+              :needFormater="true"
+              :isAbridge="true"
+              theme="chrome"
+              v-model="blackSql">
             </kap-editor>
           </div>
         </el-col>
@@ -221,6 +232,7 @@ import { mapActions, mapMutations, mapGetters, mapState } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
+import { sqlRowsLimit, sqlStrLenLimit } from '../../../config/index'
 import accelerationTable from './acceleration_table'
 import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
 @Component({
@@ -346,7 +358,8 @@ export default class FavoriteQuery extends Vue {
   importSqlVisible = false
   ruleSettingVisible = false
   blackListVisible = false
-  inputHeight = 424
+  inputHeight = 422
+  sqlTipsHeight = this.$store.state.system.lang === 'en' ? 40 : 50
   isEditSql = false
   blackSqlFilter = ''
   sqlLoading = false
@@ -667,7 +680,7 @@ export default class FavoriteQuery extends Vue {
 
   openBlackList () {
     this.blackListVisible = true
-    this.inputHeight = 424
+    this.inputHeight = 422
     this.blackSql = ''
     this.isEditSql = false
     this.getBlackList()
@@ -702,7 +715,7 @@ export default class FavoriteQuery extends Vue {
     this.sqlFormatterObj = {}
   }
 
-  async viewBlackSql (row) {
+  /* async viewBlackSql (row) {
     this.showLoading()
     this.activeSqlObj = row
     let formatterSql
@@ -718,6 +731,21 @@ export default class FavoriteQuery extends Vue {
       this.$refs.blackInputBox.$emit('input', formatterSql)
       this.hideLoading()
     }
+  } */
+  viewBlackSql (row) {
+    let showLimitTip = false
+    let sqlTextArr = row.sql_pattern.split('\n')
+    // 要手动传入高度
+    if ((sqlTextArr.length > 0 && sqlTextArr.length > sqlRowsLimit) || (sqlTextArr.length === 0 && row.sql_pattern.length > sqlStrLenLimit)) {
+      showLimitTip = true
+    }
+    this.inputHeight = showLimitTip ? (424 - this.sqlTipsHeight) : 422
+    this.$nextTick(() => {
+      if (this.$refs && this.$refs['blackInputBox']) {
+        this.$refs.blackInputBox.$emit('input', row.sql_pattern)
+        this.$refs.blackInputBox.editorResize()
+      }
+    })
   }
 
   delBlack (id) {

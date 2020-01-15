@@ -35,7 +35,7 @@
           </div>
           <el-dialog
             :title="$t('savedQueries')"
-            width="720px"
+            width="960px"
             class="saved_query_dialog"
             top="5vh"
             limited-area
