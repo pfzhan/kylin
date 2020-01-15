@@ -273,8 +273,6 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         String result = inputSql;
 
         Set<String> ccColNamesWithPrefix = Sets.newHashSet();
-        dataModelDesc.getComputedColumnNames()
-                .forEach(cc -> ccColNamesWithPrefix.add(ComputedColumnDesc.getInternalCcName(cc)));
         ccColNamesWithPrefix.addAll(dataModelDesc.getComputedColumnNames());
         List<SqlIdentifier> columnUsages = ColumnUsagesFinder.getColumnUsages(selectOrOrderby, ccColNamesWithPrefix);
         if (columnUsages.size() == 0) {

@@ -142,15 +142,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.acl.AclTCR;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -767,8 +768,7 @@ public class QueryService extends BasicService {
                         columnMeta.getString(23));
 
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
-                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")
-                        && !ComputedColumnDesc.isComputedColumnName(colmnMeta.getCOLUMN_NAME())) {
+                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
                     tableMap.get(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME()).addColumn(colmnMeta);
                 }
             }
@@ -795,7 +795,7 @@ public class QueryService extends BasicService {
             conn = getConnection(project);
             DatabaseMetaData metaData = conn.getMetaData();
             tableMap = constructTableMeta(metaData);
-            columnMap = constructTblColMeta(metaData);
+            columnMap = constructTblColMeta(metaData, project);
             addColsToTblMeta(tableMap, columnMap);
         } finally {
             close(null, null, conn);
@@ -862,10 +862,12 @@ public class QueryService extends BasicService {
         }
     }
 
-    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(DatabaseMetaData metaData)
+    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(DatabaseMetaData metaData, String project)
             throws SQLException {
 
         LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
         try (ResultSet columnMeta = metaData.getColumns(null, null, null, null)) {
             while (columnMeta.next()) {
                 String catalogName = columnMeta.getString(1);
@@ -883,9 +885,13 @@ public class QueryService extends BasicService {
                         columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
                         columnMeta.getString(23));
 
+                if (projectInstance.isSmartMode() && isComputedColumn(project, colmnMeta.getCOLUMN_NAME().toUpperCase(),
+                        colmnMeta.getTABLE_NAME())) {
+                    continue;
+                }
+
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
-                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")
-                        && !ComputedColumnDesc.isComputedColumnName(colmnMeta.getCOLUMN_NAME())) {
+                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
                     columnMap.put(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME() + "#"
                             + colmnMeta.getCOLUMN_NAME(), colmnMeta);
                 }
@@ -893,6 +899,26 @@ public class QueryService extends BasicService {
 
             return columnMap;
         }
+    }
+
+    /**
+     *
+     * @param project
+     * @param ccName
+     * @param table only support table alias like "TEST_COUNT" or table indentity "default.TEST_COUNT"
+     * @return
+     */
+    private boolean isComputedColumn(String project, String ccName, String table) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        SetMultimap<String, String> prj2ccNames = HashMultimap.create();
+        projectManager.listAllRealizations(project).forEach(rea -> {
+            prj2ccNames.putAll(rea.getModel().getRootFactTable().getAlias(), rea.getModel().getComputedColumnNames());
+            prj2ccNames.putAll(rea.getModel().getRootFactTableName(), rea.getModel().getComputedColumnNames());
+        });
+        if (CollectionUtils.isNotEmpty(prj2ccNames.get(table)) && prj2ccNames.get(table).contains(ccName)) {
+            return true;
+        }
+        return false;
     }
 
     private void addColsToTblMeta(Map<String, TableMetaWithType> tblMap,

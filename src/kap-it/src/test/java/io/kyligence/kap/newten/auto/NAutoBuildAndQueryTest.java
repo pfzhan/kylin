@@ -172,7 +172,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testCCWithSelectStar() throws Exception {
-        KylinConfig.getInstanceFromEnv().setProperty("kap.query.expose-computed-column", "TRUE");
+        overwriteSystemProp("kap.query.expose-computed-column", "TRUE");
         new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1).execute();
         new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4).execute();
     }

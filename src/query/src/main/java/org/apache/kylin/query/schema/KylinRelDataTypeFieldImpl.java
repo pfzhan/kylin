@@ -40,29 +40,24 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query;
+package org.apache.kylin.query.schema;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.query.schema.OLAPSchemaFactory;
+import lombok.Getter;
 
-public class QueryConnection {
+public class KylinRelDataTypeFieldImpl extends RelDataTypeFieldImpl {
 
-    public static Connection getConnection(String project) throws SQLException {
+    enum ColumnType {
+        CC_FIELD, ORIGIN_FILED, PRE_CALC_FIELD
+    }
 
-        File olapTmp = OLAPSchemaFactory.createTempOLAPJson(project, KylinConfig.getInstanceFromEnv());
-        Properties info = new Properties();
-        info.putAll(KylinConfig.getInstanceFromEnv().getCalciteExtrasProperties());
-        info.put("model", olapTmp.getAbsolutePath());
-        info.put("typeSystem", "org.apache.kylin.query.calcite.KylinRelDataTypeSystem");
-        info.put("DEFAULT_NULL_COLLATION", "LOW");
-        info.put("caseSensitive", "false");
-        info.put("customerValidator", "org.apache.kylin.query.schema.KylinSqlValidator");
-        return DriverManager.getConnection("jdbc:calcite:", info);
+    @Getter
+    private ColumnType columnType;
+
+    public KylinRelDataTypeFieldImpl(String name, int index, RelDataType type, ColumnType fieldType) {
+        super(name, index, type);
+        this.columnType = fieldType;
     }
 }

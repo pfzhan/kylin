@@ -244,10 +244,6 @@ public class ImplicitCCTest {
                 mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"),
                 mockComputedColumnDesc("cc6", "{fn convert(table1.a, double)}", "TABLE1"));
         mockCCs = ConvertToComputedColumn.getCCListSortByLength(mockCCs);
-        for (ComputedColumnDesc cc : mockCCs) {
-            System.out.println(cc.getColumnName());
-        }
-
         BiMap<String, String> aliasMapping = HashBiMap.create();
         aliasMapping.put("T1", "TABLE1");
         aliasMapping.put("T2", "TABLE2");

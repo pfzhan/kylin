@@ -106,7 +106,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 computedColumnDesc.getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_1), AVG(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_1), AVG(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -128,7 +128,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 computedColumnDesc.getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_2), AVG(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_2), AVG(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -139,8 +139,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
      */
     @Test
     public void testProposeMultiCCToOneModel() {
-        // The 'price*item_count' should be replaced by auto_cc_1
-        // The 'price+item_count' will produce another cc expression auto_cc_2.
+        // The 'price*item_count' should be replaced by auto1
+        // The 'price+item_count' will produce another cc expression auto2.
         // (query5: left() supported by CALCITE-3005, left() supported by spark2.3+).
         String query1 = "select price*item_count from test_kylin_fact";
         String query2 = "select sum(price*item_count) from test_kylin_fact"; // one cc
@@ -390,7 +390,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                     computedColumnDesc.getExpression());
 
             String convertedQuery = convertCC(query);
-            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
             Assert.assertEquals(expectedQuery, convertedQuery);
         }
 
@@ -408,7 +408,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                     computedColumnDesc.getInnerExpression());
 
             String convertedQuery = convertCC(query);
-            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_2), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+            String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_2), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
             Assert.assertEquals(expectedQuery, convertedQuery);
         }
     }
@@ -430,7 +430,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", computedColumnDesc.getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_2), AVG(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_2), AVG(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -447,7 +447,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT", computedColumnDesc.getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT TEST_KYLIN_FACT._CC_CC_AUTO_1 AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
+        String expectedQuery = "SELECT SUM(PRICE_TOTAL), CAL_DT FROM (SELECT TEST_KYLIN_FACT.CC_AUTO_1 AS PRICE_TOTAL, CAL_DT FROM TEST_KYLIN_FACT) T GROUP BY CAL_DT";
         Assert.assertEquals(expectedQuery, convertedQuery);
     }
 
@@ -478,10 +478,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("TEST_KYLIN_FACT.PRICE + 10", computedColumnDesc.getExpression());
 
         String convertedQuery = convertCC(query);
-        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT._CC_CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String expectedQuery = "SELECT SUM(TEST_KYLIN_FACT.CC_AUTO_1), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
         Assert.assertNotEquals(expectedQuery, convertedQuery);
         Assert.assertNotEquals(query, convertedQuery);
-        String actualQuery = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE TEST_KYLIN_FACT._CC_CC_AUTO_1 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        String actualQuery = "SELECT SUM(CASE WHEN 9 > 10 THEN 100 ELSE TEST_KYLIN_FACT.CC_AUTO_1 END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
         Assert.assertEquals(actualQuery, convertedQuery);
     }
 

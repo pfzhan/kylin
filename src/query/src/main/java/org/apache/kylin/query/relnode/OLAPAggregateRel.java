@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -467,7 +466,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         for (TblColRef group : groups) {
             if (group.getColumnDesc().isComputedColumn()) {
                 RelDataType rewriteFieldType = OLAPTable.createSqlType(typeFactory, group.getType(), true);
-                this.context.rewriteFields.put(ComputedColumnDesc.getInternalCcName(group.getName()), rewriteFieldType);
+                this.context.rewriteFields.put(group.getName(), rewriteFieldType);
             }
         }
     }

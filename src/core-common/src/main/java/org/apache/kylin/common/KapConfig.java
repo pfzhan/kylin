@@ -788,11 +788,10 @@ public class KapConfig {
     }
 
     /**
-     * expose computed column in 'select * ...'
-     * computed column name will appear without "_CC_" prefix
+     * expose computed column
      * @return
      */
-    public Boolean exposeComputedColumn() {
+    public Boolean exposeComputedColumnInSelectStar() {
         return Boolean.parseBoolean(config.getOptional("kap.query.expose-computed-column", FALSE));
     }
 }

@@ -162,14 +162,6 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
         }
 
-        /*
-         * if kap.query.expose-computed-column=true, then cc column should appear with its original name
-         * convert cc column to its internal name only when kap.query.expose-computed-column=false
-         */
-        if (!KapConfig.getInstanceFromEnv().exposeComputedColumn()) {
-            sql = replaceCcName(sql, dataModelDescs);
-        }
-
         return sql;
     }
 

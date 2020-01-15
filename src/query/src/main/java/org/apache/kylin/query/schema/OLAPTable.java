@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -63,6 +62,7 @@ import org.apache.calcite.plan.RelOptTable.ToRelContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
@@ -71,7 +71,6 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -87,7 +86,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
@@ -165,17 +163,24 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
 
     @SuppressWarnings("deprecation")
     private RelDataType deriveRowType(RelDataTypeFactory typeFactory) {
-        RelDataTypeFactory.FieldInfoBuilder fieldInfo = typeFactory.builder();
+        //TODO Add Fluid API to build a list of fields, TypeFactory.Builder
+        KylinRelDataTypeFactoryImpl kylinRelDataTypeFactory = new KylinRelDataTypeFactoryImpl(typeFactory);
+        List<String> fieldNameList = Lists.newArrayList();
+        List<RelDataType> typeList = Lists.newArrayList();
+        List<KylinRelDataTypeFieldImpl.ColumnType> colTypes = Lists.newArrayList();
         for (ColumnDesc column : sourceColumns) {
-            RelDataType sqlType = createSqlType(typeFactory, column.getUpgradedType(), column.isNullable());
-            sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, typeFactory);
-            if (column.isComputedColumn() && !KapConfig.getInstanceFromEnv().exposeComputedColumn()) {
-                fieldInfo.add(ComputedColumnDesc.getInternalCcName(column.getName()), sqlType);
+            RelDataType sqlType = createSqlType(kylinRelDataTypeFactory, column.getUpgradedType(), column.isNullable());
+            sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, kylinRelDataTypeFactory);
+            typeList.add(sqlType);
+            if (column.isComputedColumn()) {
+                fieldNameList.add(column.getName());
+                colTypes.add(KylinRelDataTypeFieldImpl.ColumnType.CC_FIELD);
             } else {
-                fieldInfo.add(column.getName(), sqlType);
+                fieldNameList.add(column.getName());
+                colTypes.add(KylinRelDataTypeFieldImpl.ColumnType.ORIGIN_FILED);
             }
         }
-        return typeFactory.createStructType(fieldInfo);
+        return kylinRelDataTypeFactory.createStructType(StructKind.FULLY_QUALIFIED, typeList, fieldNameList, colTypes);
     }
 
     public static RelDataType createSqlType(RelDataTypeFactory typeFactory, DataType dataType, boolean isNullable) {

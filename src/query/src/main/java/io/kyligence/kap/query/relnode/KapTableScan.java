@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import io.kyligence.kap.query.optrule.KapMinusRule;
-import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -82,12 +80,14 @@ import io.kyligence.kap.query.optrule.KapFilterJoinRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
+import io.kyligence.kap.query.optrule.KapMinusRule;
 import io.kyligence.kap.query.optrule.KapOLAPToEnumerableConverterRule;
 import io.kyligence.kap.query.optrule.KapProjectMergeRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
+import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
 import io.kyligence.kap.query.optrule.SumConstantConvertRule;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 
@@ -137,7 +137,8 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         //        if (!KapConfig.getInstanceFromEnv().getSkipCorrReduceRule()) {
         //            planner.addRule(CorrReduceFunctionRule.INSTANCE);
         //        }
-        if (KapConfig.getInstanceFromEnv().isSparderEnabled() && KapConfig.getInstanceFromEnv().splitGroupSetsIntoUnion()) {
+        if (KapConfig.getInstanceFromEnv().isSparderEnabled()
+                && KapConfig.getInstanceFromEnv().splitGroupSetsIntoUnion()) {
             planner.addRule(AggregateMultipleExpandRule.INSTANCE);
         }
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
@@ -250,9 +251,8 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
                 // do not include
                 // 1. col with _KY_
                 // 2. CC col when exposeComputedColumn config is set to false
-                if (!tblColRef.getName().startsWith("_KY_") &&
-                        !(tblColRef.getColumnDesc().isComputedColumn() && !KapConfig.getInstanceFromEnv().exposeComputedColumn())
-                        ) {
+                if (!tblColRef.getName().startsWith("_KY_") && !(tblColRef.getColumnDesc().isComputedColumn()
+                        && !KapConfig.getInstanceFromEnv().exposeComputedColumnInSelectStar())) {
                     context.allColumns.add(tblColRef);
                 }
             }
@@ -299,8 +299,8 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
                 topProjParent = parent;
             }
 
-            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel || parent instanceof KapMinusRel
-                    || parent instanceof KapAggregateRel) {
+            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel
+                    || parent instanceof KapMinusRel || parent instanceof KapAggregateRel) {
                 topProjParent = null;
             }
         }

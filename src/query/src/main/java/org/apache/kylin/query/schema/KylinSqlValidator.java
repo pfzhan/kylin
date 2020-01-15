@@ -39,30 +39,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.kylin.query.schema;
 
-package org.apache.kylin.query;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlInsert;
+import org.apache.calcite.sql.validate.SelectScope;
+import org.apache.calcite.sql.validate.SqlValidatorImpl;
+import org.apache.kylin.common.KapConfig;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Properties;
+public class KylinSqlValidator extends SqlValidatorImpl {
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.query.schema.OLAPSchemaFactory;
+    public KylinSqlValidator(SqlValidatorImpl calciteSqlValidator) {
+        super(calciteSqlValidator.getOperatorTable(), calciteSqlValidator.getCatalogReader(),
+                calciteSqlValidator.getTypeFactory(), calciteSqlValidator.getConformance());
+    }
 
-public class QueryConnection {
+    @Override
+    protected boolean needAddOrExpandField(SqlIdentifier exp, SelectScope scope, RelDataTypeField field) {
+        if (isRolledUpColumn(exp, scope)) {
+            return false;
+        }
+        if ((field instanceof KylinRelDataTypeFieldImpl)
+                && KylinRelDataTypeFieldImpl.ColumnType.CC_FIELD == ((KylinRelDataTypeFieldImpl) field)
+                        .getColumnType()) {
+            return KapConfig.getInstanceFromEnv().exposeComputedColumnInSelectStar();
+        }
+        return true;
+    }
 
-    public static Connection getConnection(String project) throws SQLException {
+    @Override
+    protected RelDataType getLogicalSourceRowType(RelDataType sourceRowType, SqlInsert insert) {
+        final RelDataType superType = super.getLogicalSourceRowType(sourceRowType, insert);
+        return ((JavaTypeFactory) typeFactory).toSql(superType);
+    }
 
-        File olapTmp = OLAPSchemaFactory.createTempOLAPJson(project, KylinConfig.getInstanceFromEnv());
-        Properties info = new Properties();
-        info.putAll(KylinConfig.getInstanceFromEnv().getCalciteExtrasProperties());
-        info.put("model", olapTmp.getAbsolutePath());
-        info.put("typeSystem", "org.apache.kylin.query.calcite.KylinRelDataTypeSystem");
-        info.put("DEFAULT_NULL_COLLATION", "LOW");
-        info.put("caseSensitive", "false");
-        info.put("customerValidator", "org.apache.kylin.query.schema.KylinSqlValidator");
-        return DriverManager.getConnection("jdbc:calcite:", info);
+    @Override
+    protected RelDataType getLogicalTargetRowType(RelDataType targetRowType, SqlInsert insert) {
+        final RelDataType superType = super.getLogicalTargetRowType(targetRowType, insert);
+        return ((JavaTypeFactory) typeFactory).toSql(superType);
     }
 }
