@@ -275,7 +275,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testCleanupProjectGarbage() throws IOException {
+    public void testCleanupProjectGarbage() throws Exception {
         prepareLayoutHitCount();
         Mockito.doNothing().when(asyncTaskService).cleanupStorage();
         projectService.cleanupGarbage(PROJECT);

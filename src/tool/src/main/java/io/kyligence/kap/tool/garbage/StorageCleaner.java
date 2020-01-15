@@ -101,7 +101,7 @@ public class StorageCleaner {
 
     private Set<StorageItem> allFileSystems = Sets.newHashSet();
 
-    public void execute() throws IOException {
+    public void execute() throws Exception {
         long start = System.currentTimeMillis();
         val config = KylinConfig.getInstanceFromEnv();
         long startTime = System.currentTimeMillis();
@@ -179,7 +179,7 @@ public class StorageCleaner {
         projectCleaner.execute();
     }
 
-    public boolean cleanup() throws IOException {
+    public boolean cleanup() {
         boolean success = true;
         if (cleanup) {
             for (StorageItem item : outdatedItems) {
@@ -314,7 +314,7 @@ public class StorageCleaner {
         }
     }
 
-    private void addItem(FileSystem fs, Path itemPath, long protectionTime) throws IOException {
+    private void addItem(FileSystem fs, Path itemPath, long protectionTime) throws Exception {
         val status = fs.getFileStatus(itemPath);
         if (status.getPath().getName().startsWith(".")) {
             return;
@@ -335,7 +335,7 @@ public class StorageCleaner {
                 + segDetails.getUuid() + "/" + dataLayout.getLayoutId();
     }
 
-    private void collectFromHDFS(StorageItem item) throws IOException {
+    private void collectFromHDFS(StorageItem item) throws Exception {
         val projectFolders = item.getFs().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_"));
         for (FileStatus projectFolder : projectFolders) {
             List<FileTreeNode> tableSnapshotParents = Lists.newArrayList();

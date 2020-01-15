@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.tool.routine;
 
-import java.io.IOException;
-
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.ExecutableApplication;
@@ -62,11 +60,11 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
             StorageCleaner storageCleaner = new StorageCleaner(cleanup);
             System.out.println("Start cleanup HDFS");
             storageCleaner.execute();
-        } catch (IOException e) {
+            System.out.println("cleanup HDFS finished");
+        } catch (Exception e) {
             log.error("cleanup HDFS failed", e);
-            System.err.println("cleanup HDFS failed");
+            System.out.println(StorageCleaner.ANSI_RED + "cleanup HDFS failed" + StorageCleaner.ANSI_RESET);
         }
-        System.out.println("cleanup HDFS finished");
     }
 
     private boolean printUsage(OptionsHelper optionsHelper) {

@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
-
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -42,7 +40,7 @@ public class AsyncTaskService {
     private static final String GLOBAL = "global";
 
     @Async
-    public void cleanupStorage() throws IOException {
+    public void cleanupStorage() throws Exception {
 
         long startAt = System.currentTimeMillis();
         try {

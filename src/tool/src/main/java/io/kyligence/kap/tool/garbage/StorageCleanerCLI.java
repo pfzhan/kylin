@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.tool.garbage;
 
-import java.io.IOException;
-
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +34,7 @@ public class StorageCleanerCLI {
         try {
             log.info("Start cleanup HDFS");
             storageCleaner.execute();
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("cleanup HDFS failed", e);
         }
         log.info("cleanup HDFS finished");

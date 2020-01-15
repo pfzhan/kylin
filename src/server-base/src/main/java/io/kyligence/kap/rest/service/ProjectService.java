@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -220,7 +219,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public void cleanupGarbage(String project) throws IOException {
+    public void cleanupGarbage(String project) throws Exception {
         updateProjectRegularRule(project);
         GarbageCleaner.cleanupMetadataManually(project);
         asyncTaskService.cleanupStorage();

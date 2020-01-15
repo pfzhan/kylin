@@ -74,7 +74,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
 
     @Test
     @Ignore
-    public void testCleanupGarbage() throws IOException {
+    public void testCleanupGarbage() throws Exception {
         val cleaner = new StorageCleaner();
 
         val baseDir = new File(getTestConfig().getMetadataUrl().getIdentifier()).getParentFile();
@@ -92,7 +92,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCleanupAfterTruncate() throws IOException {
+    public void testCleanupAfterTruncate() throws Exception {
         val cleaner = new StorageCleaner();
 
         val projects = NProjectManager.getInstance(getTestConfig()).listAllProjects();
@@ -109,7 +109,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCleanupAfterRemoveTable() throws IOException {
+    public void testCleanupAfterRemoveTable() throws Exception {
         val cleaner = new StorageCleaner();
 
         NTableMetadataManager.getInstance(getTestConfig(), "default").removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
@@ -125,7 +125,7 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCleanup_WithRunningJobs() throws IOException {
+    public void testCleanup_WithRunningJobs() throws Exception {
         val jobMgr = NExecutableManager.getInstance(getTestConfig(), "default");
         val job1 = new DefaultChainedExecutable();
         job1.setProject("default");
