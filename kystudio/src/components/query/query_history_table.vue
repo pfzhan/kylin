@@ -17,6 +17,7 @@
       border
       class="history-table"
       :empty-text="emptyText"
+      :expand-row-keys="toggleExpandId"
       @expand-change="expandChange"
       :row-key="val => val.query_id"
       ref="queryHistoryTable"
@@ -55,11 +56,13 @@
                     <th class="label">{{$t('kylinLang.query.duration')}}</th>
                     <td>{{props.row.duration / 1000 | fixed(2)}}s</td>
                   </tr>
-                  <tr class="ksd-tr">
+                  <tr class="ksd-tr" :class="{'active': props.row.hightlight_realizations}">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td style="padding: 3px 10px;">
                       <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
-                        <el-tag size="small" :type="item.valid ? '' : 'info'" :class="{'model-tag': item.valid}" v-for="item in props.row.realizations" :key="item.modelId" @click.native="openIndexDialog(item)">{{item.modelAlias}}</el-tag>
+                        <span v-for="(item, index) in props.row.realizations" :key="item.modelId">
+                          <span @click="openIndexDialog(item)" :class="{'model-tag': item.valid, 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                        </span>
                       </div>
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
                     </td>
@@ -129,10 +132,9 @@
         prop="realizations"
         width="250">
         <template slot-scope="props">
-          <div class="tag-ellipsis">
+          <div class="tag-ellipsis" :class="{'hasMore': checkIsShowMore(props.row.realizations)}">
             <template v-if="props.row.realizations && props.row.realizations.length">
-              <el-tag :type="props.row.realizations[0].valid ? '' : 'info'" size="small" :key="props.row.realizations[0].modelId">{{props.row.realizations[0].modelAlias}}</el-tag>
-              <el-tag class="realizationsNumTag" size="small" :key="'realizationLen'" v-if="props.row.realizations.length > 1"><span @click="handleExpandType(props)">{{'+' + (props.row.realizations.length - 1)}}</span></el-tag>
+              <el-tag v-for="(item, index) in props.row.realizations" v-if="index < checkShowCount(props.row.realizations)" :type="item.valid ? 'success' : 'info'" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag><a v-if="checkIsShowMore(props.row.realizations)" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: props.row.realizations.length - checkShowCount(props.row.realizations)})}}</a>
             </template>
             <template v-else>
               <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
@@ -154,7 +156,7 @@
 </template>
 
 <script>
-import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime } from '../../util/business'
+import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime, getStringLength } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
@@ -187,7 +189,8 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       sqlDetailTip: 'Please click sql to get more informations',
       taskStatus: 'Task Status',
       realization: 'Query',
-      clearAll: 'Clear All'
+      clearAll: 'Clear All',
+      showDetail: 'More {count}'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -198,7 +201,8 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       sqlDetailTip: '更多信息请点击 SQL 语句',
       taskStatus: '任务状态',
       realization: '查询对象',
-      clearAll: '清除所有'
+      clearAll: '清除所有',
+      showDetail: '更多 {count}'
     }
   },
   filters: {
@@ -256,6 +260,7 @@ export default class QueryHistoryTable extends Vue {
       element['flexHeight'] = 0
       element['editorH'] = 0
     })
+    this.toggleExpandId = []
   }
 
   // 清除查询开始事件筛选项
@@ -294,6 +299,44 @@ export default class QueryHistoryTable extends Vue {
     return this.isHasFilterValue ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
+  // 控制是否显示查看更多
+  checkIsShowMore (arr) {
+    let str = ''
+    if (arr && arr.length) {
+      // 如果将全部的模型合并后，超过30个字符，就肯定要显示更多
+      for (let i = 0; i < arr.length; i++) {
+        let item = arr[i]
+        str = str + item.modelAlias
+      }
+      return arr.length > 1 && getStringLength(str) >= 30
+    } else {
+      return false
+    }
+  }
+  checkShowCount (arr) {
+    let str = ''
+    let idx = 1
+    if (arr && arr.length) {
+      for (let i = 0; i < arr.length; i++) {
+        let item = arr[i]
+        str = str + item.modelAlias
+        // 如果第一个就超30个字符了，就直接返回下标1
+        if (i === 0 && getStringLength(str) >= 30) {
+          idx = 1
+          break
+        } else {
+          if (arr.length > 1 && getStringLength(str) >= 30) {
+            idx = i
+            break
+          } else { // 如果每次加上名字后，还是可以放得下，就让下标+1，保证都正常渲染
+            idx = i + 1
+          }
+        }
+      }
+    }
+    return idx
+  }
+
   sqlOverLimit (sql) {
     return sql.length > this.sqlLimitRows
   }
@@ -302,6 +345,7 @@ export default class QueryHistoryTable extends Vue {
     if (this.toggleExpandId.includes(e.query_id)) {
       const index = this.toggleExpandId.indexOf(e.query_id)
       this.toggleExpandId.splice(index, 1)
+      e.hightlight_realizations = false
       return
     }
     this.currentExpandId = e.query_id
@@ -324,8 +368,13 @@ export default class QueryHistoryTable extends Vue {
     })
   }
 
-  handleExpandType (props) {
-    this.$refs.queryHistoryTable.toggleRowExpansion(props.row, true)
+  handleExpandType (props, realizations) {
+    // 点击的时候根据当前是展开还是收起，进行展开收起
+    let flag = this.toggleExpandId.indexOf(props.row.query_id) === -1
+    if (realizations) {
+      props.row.hightlight_realizations = flag
+    }
+    this.$refs.queryHistoryTable.toggleRowExpansion(props.row, flag)
   }
 
   onCopy () {
@@ -416,6 +465,7 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
   filterList () {
+    this.toggleExpandId = []
     this.$emit('loadFilterList', {...this.filterData, server: this.filterData.server.join('')})
   }
 
@@ -698,6 +748,11 @@ export default class QueryHistoryTable extends Vue {
         line-height: 1.8;
         .el-col {
           position: relative;
+          .history_detail_table{
+            tr.active{
+              background-color: @base-color-9;
+            }
+          }
         }
       }
     }
@@ -741,20 +796,50 @@ export default class QueryHistoryTable extends Vue {
         overflow: hidden;
         font-size: 0;
         line-height: 1;
+        display:flex;
+        align-items: center;
+        /* position:relative; */
+        &.hasMore{
+          .el-tag{
+            max-width: calc(~"100% - 85px");
+            &.showMore{
+              max-width: 80px;
+            }
+          }
+        }
         .el-tag:not(:last-child) {
           margin-right: 5px;
-          margin-bottom: 5px;
         }
-        .el-tag.realizationsNumTag{
+        .el-tag{
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .showMore{
+          max-width: 80px;
+          text-overflow: ellipsis;
+          font-size:12px;
+          line-height: 20px;
+          height:20px;
+          border-radius: 10px;
+          box-sizing: border-box;
+          display:inline-block;
+          border: none;
           &:hover{
+            text-decoration: none;
             cursor:pointer;
           }
         }
+        /* .el-tag.realizationsNumTag{
+          &:hover{
+            cursor:pointer;
+          }
+        } */
       }
       .realization-tags {
         display: flex;
         flex-wrap: wrap;
-        .el-tag {
+        /* .el-tag {
           margin: 2.5px 10px 2.5px 0;
           border: none;
           background: none;
@@ -764,6 +849,16 @@ export default class QueryHistoryTable extends Vue {
           &.model-tag {
             cursor: pointer;
           }
+        } */
+        .model-tag {
+          color: @base-color;
+          cursor: pointer;
+        }
+        .disable{
+          color: @text-disabled-color;
+        }
+        .split{
+          margin-right:10px;
         }
       }
       .el-date-editor {

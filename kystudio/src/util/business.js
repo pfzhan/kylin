@@ -369,3 +369,15 @@ export function getGmtDateFromUtcLike (value) {
     return new Date(transToServerGmtTime(value).replace(/\s+GMT[+-]\d+$/, '').replace(/-/g, '/'))
   }
 }
+
+export function getStringLength (value) {
+  let len = 0
+  value.split('').forEach((v) => {
+    if (/[\u4e00-\u9fa5]/.test(v)) {
+      len += 2
+    } else {
+      len += 1
+    }
+  })
+  return len
+}
