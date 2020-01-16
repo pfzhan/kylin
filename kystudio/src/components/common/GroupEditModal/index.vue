@@ -15,7 +15,7 @@
       <el-form-item v-if="isFieldShow('users')">
         <el-transfer
           filterable
-          :data="totalUsers.map(item => ({...item, label: item.value}))"
+          :data="totalUserData"
           :value="form.selected_users"
           :before-query="queryHandler"
           :total-elements="totalSizes"
@@ -118,6 +118,10 @@ export default class GroupEditModal extends Vue {
 
   get isShowLoadMore () {
     return this.page_offset < Math.ceil(this.totalUsersSize / this.pageSize) - 1
+  }
+
+  get totalUserData () {
+    return this.totalUsers.length ? this.totalUsers.map(item => ({...item, label: item.value})) : []
   }
 
   // Computed Method: 计算每个Form的field是否显示

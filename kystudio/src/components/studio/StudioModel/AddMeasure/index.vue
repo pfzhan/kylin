@@ -64,10 +64,11 @@
         </div>
         <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
-      <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem">
+      <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
             <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
+              <i slot="prefix" class="el-input__icon el-icon-search" v-if="!column.value"></i>
               <el-option
                 v-for="(item, index) in getParameterValue2"
                 :key="index"
@@ -79,7 +80,7 @@
             </el-select>
           </div>
           <el-button type="primary" plain icon="el-icon-ksd-add_2" size="mini" v-if="measure.expression === 'TOP_N' && index == 0" circle @click="addNewProperty" class="ksd-ml-10"></el-button><el-button
-           type="primary" icon="el-icon-minus" size="mini" circle @click="deleteProperty(index)" class="del-pro ksd-ml-5" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
+           type="primary" icon="el-icon-minus" size="mini" circle @click="deleteProperty(index)" class="del-pro" :class="[measure.expression === 'COUNT_DISTINCT' ? 'ksd-ml-10' : 'ksd-ml-5', {'del-margin-more': measure.expression === 'TOP_N' && index > 0}]" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
       </el-form-item>
       <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
@@ -568,7 +569,7 @@ export default class AddMeasure extends Vue {
       width: 390px;
     }
     .del-margin-more {
-      margin-left: 55px !important;
+      margin-left: 37px !important;
     }
     .value-label {
       color: @text-title-color;
@@ -584,6 +585,9 @@ export default class AddMeasure extends Vue {
         background-color: @grey-4;
         color: @line-border-color;
       }
+    }
+    .measure-column-multiple {
+      margin-top: -10px;
     }
   }
   .el-select-group__wrap {
