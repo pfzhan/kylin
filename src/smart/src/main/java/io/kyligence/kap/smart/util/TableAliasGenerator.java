@@ -46,8 +46,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 public class TableAliasGenerator {
 
     private static final Logger logger = LoggerFactory.getLogger(TableAliasGenerator.class);
-    private static final String _KEY_ = "_KEY_";
-    private static final String __TO__ = "__TO__";
+    private static final String KEY = "_KEY_";
+    private static final String TO = "__TO__";
 
     public static TableAliasDict generateNewDict(String[] tableNames) {
         String[] sortedNames = new HashSet<String>(Arrays.asList(tableNames)).toArray(new String[0]);
@@ -182,11 +182,11 @@ public class TableAliasGenerator {
                     alias.append(Arrays.toString(Arrays.stream(joinDesc.getForeignKeyColumns())
                             .map(join -> join.getTableRef().getTableIdentity()).toArray()));
                 } else {
-                    alias.append(_KEY_ + Arrays.toString(
+                    alias.append(KEY + Arrays.toString(
                             Arrays.stream(joinDesc.getPrimaryKeyColumns()).map(TblColRef::getName).toArray()));
                     alias.append(
-                            __TO__ + getAlias(joinDesc.getForeignKeyColumns()[0].getTableRef().getTableIdentity()));
-                    alias.append(_KEY_ + Arrays.toString(
+                            TO + getAlias(joinDesc.getForeignKeyColumns()[0].getTableRef().getTableIdentity()));
+                    alias.append(KEY + Arrays.toString(
                             Arrays.stream(joinDesc.getForeignKeyColumns()).map(TblColRef::getName).toArray()));
                 }
             }

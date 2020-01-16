@@ -65,7 +65,7 @@ public class CollectSetSerializer extends DataTypeSerializer<CollectSetCounter> 
 
     @Override
     public void serialize(CollectSetCounter value, ByteBuffer out) {
-
+        // do nothing
     }
 
     @Override
