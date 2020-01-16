@@ -337,11 +337,11 @@ public class ModelService extends BasicService {
 
     public NCubeDescResponse getCubeWithExactModelName(String modelAlias, String projectName) {
         if (getProjectManager().getProject(projectName) == null) {
-            throw new RuntimeException("project not found");
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), projectName));
         }
         NDataModel dataModel = getDataModelManager(projectName).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
-            throw new RuntimeException("model not found");
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         NDataModelResponse cube = new NDataModelResponse(dataModel);
         NCubeDescResponse result = new NCubeDescResponse();
@@ -1873,8 +1873,8 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                        + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+                throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
+                        indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
             }
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
@@ -1882,8 +1882,8 @@ public class ModelService extends BasicService {
                     val measureNames = Arrays.stream(agg.getMeasures())
                             .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                    throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                            + "'s agg group still contains measures " + measureNames);
+                    throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
+                            indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));
                 }
             }
         }
@@ -1896,8 +1896,8 @@ public class ModelService extends BasicService {
         if (!allNamedColumns.containsAll(tableIndexColumns)) {
             val columnNames = tableIndexColumns.stream().filter(x -> !allNamedColumns.contains(x))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-            throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                    + "'s table index still contains columns " + StringUtils.join(columnNames, ","));
+            throw new IllegalStateException(String.format(MsgPicker.getMsg().getTABLEINDEX_COLUMN_NOTFOUND(),
+                    indexPlan.getModel().getUuid(), StringUtils.join(columnNames, ",")));
         }
 
         //check recommend agg index contains removed columns
@@ -1909,16 +1909,17 @@ public class ModelService extends BasicService {
                 val dimensionNames = allDimensions.stream()
                         .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                        + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
+                throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
+                        indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
             }
 
             if (!newModel.getEffectiveMeasureMap().keySet().containsAll(aggIndex.getMeasures())) {
                 val measureNames = aggIndex.getMeasures().stream()
                         .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
                         .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
-                throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
-                        + "'s agg group still contains measures " + measureNames);
+                throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
+                        indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));
+
             }
         }
     }
@@ -2255,11 +2256,11 @@ public class ModelService extends BasicService {
 
     public NModelDescResponse getModelDesc(String modelAlias, String project) {
         if (getProjectManager().getProject(project) == null) {
-            throw new RuntimeException("project not found");
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         NDataModel dataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
-            throw new RuntimeException("model not found");
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         NDataModelResponse model = new NDataModelResponse(dataModel);
         NModelDescResponse response = new NModelDescResponse();
@@ -2295,18 +2296,18 @@ public class ModelService extends BasicService {
     public void updateDataModelParatitionDesc(String project, String modelAlias,
             ModelParatitionDescRequest modelParatitionDescRequest) {
         if (getProjectManager().getProject(project) == null) {
-            throw new RuntimeException("project not found");
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         NDataModel oldDataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (oldDataModel == null) {
-            throw new RuntimeException("model not found");
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
 
         PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
         if (partitionDesc != null) {
             String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
             if (!partitionDesc.getPartitionDateColumn().toUpperCase().startsWith(rootFactTable + ".")) {
-                throw new RuntimeException("partition_date_column must use root fact table column");
+                throw new BadRequestException("partition_date_column must use root fact table column");
             }
         }
 

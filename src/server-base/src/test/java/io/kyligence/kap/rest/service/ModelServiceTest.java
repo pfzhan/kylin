@@ -3495,7 +3495,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val modelRequest = prepare();
         modelRequest.getSimplifiedDimensions().remove(0);
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("agg group still contains dimensions TEST_SITES.SITE_NAME");
+        thrown.expectMessage("agg group still contains dimension(s) TEST_SITES.SITE_NAME");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 
@@ -3506,7 +3506,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 modelRequest.getSimplifiedMeasures().stream().filter(measure -> measure.getId() != 100005)
                         .sorted(Comparator.comparingInt(SimplifiedMeasure::getId)).collect(Collectors.toList()));
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("agg group still contains measures [ITEM_COUNT_MAX]");
+        thrown.expectMessage("agg group still contains measure(s) ITEM_COUNT_MAX");
         modelService.updateDataModelSemantic("default", modelRequest);
     }
 

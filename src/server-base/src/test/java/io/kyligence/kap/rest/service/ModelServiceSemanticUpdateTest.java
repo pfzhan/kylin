@@ -501,7 +501,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         request.getComputedColumnDescs().remove(ccDesc);
 
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("table index still contains columns TEST_KYLIN_FACT.DEAL_YEAR");
+        thrown.expectMessage("table index still contains column(s) TEST_KYLIN_FACT.DEAL_YEAR");
         modelService.updateDataModelSemantic("default", request);
     }
 
@@ -516,7 +516,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(dimDesc);
         request.getSimplifiedDimensions().remove(dimDesc);
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("agg group still contains dimensions TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
+        thrown.expectMessage("agg group still contains dimension(s) TEST_KYLIN_FACT.LSTG_FORMAT_NAME");
         modelService.updateDataModelSemantic("default", request);
     }
 
@@ -526,7 +526,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val request = newSemanticRequest(modelId);
         request.getSimplifiedMeasures().remove(1);
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("agg group still contains measures [GMV_SUM]");
+        thrown.expectMessage("agg group still contains measure(s) GMV_SUM");
         modelService.updateDataModelSemantic("default", request);
     }
 
@@ -546,7 +546,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     public void testRemoveDimensionsWithCubePlanRule() throws Exception {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage(
-                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains dimensions TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
+                "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains dimension(s) TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
         indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", cubeBasic -> {
             val rule = new NRuleBasedIndex();

@@ -713,4 +713,16 @@ public class Message {
     public String getPUSHDOWN_DATARANGE_TIMEOUT() {
         return "Detect timeout, please set the data range manually.";
     }
+
+    public String getAGGINDEX_DIMENSION_NOTFOUND() {
+        return "model %s's agg group still contains dimension(s) %s";
+    }
+
+    public String getTABLEINDEX_COLUMN_NOTFOUND() {
+        return "model %s's table index still contains column(s) %s";
+    }
+
+    public String getAGGINDEX_MEASURE_NOTFOUND() {
+        return "model %s's agg group still contains measure(s) %s";
+    }
 }
