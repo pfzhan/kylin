@@ -432,6 +432,13 @@ export default class DataSourceBar extends Vue {
   reloadTables () {
     this.handleFilter(this.filterText)
   }
+  // 表数据变化，需要刷新，且保持之前的选中项 3016 临时修改方案
+  async refreshTables () {
+    await this.loadTreeData(this.filterText)
+    freshTreeOrder(this)
+    // 刷完表之后，需要重置之前选中的表
+    this.recoverySelectedTable()
+  }
   async handleLoadMore (data, node) {
     let dbName = (data.parent.label).toLocaleLowerCase()
     const { id: databaseId } = data.parent
