@@ -23,9 +23,16 @@
  */
 package io.kyligence.kap.spark.common.logging;
 
-import com.google.common.collect.Lists;
-import lombok.Getter;
-import lombok.Setter;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.List;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -35,14 +42,10 @@ import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.spi.LoggingEvent;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.List;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingDeque;
+import com.google.common.collect.Lists;
+
+import lombok.Getter;
+import lombok.Setter;
 
 public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
 
@@ -126,7 +129,11 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
     @Override
     public void append(LoggingEvent loggingEvent) {
         try {
-            logBufferQue.put(loggingEvent);
+            boolean offered = logBufferQue.offer(loggingEvent, 10, TimeUnit.SECONDS);
+            if (!offered) {
+                LogLog.error("LogEvent cannot put into the logBufferQue, log event content:");
+                printLoggingEvent(loggingEvent);
+            }
         } catch (InterruptedException e) {
             LogLog.warn("Append logging event interrupted!", e);
             // Restore interrupted state...
