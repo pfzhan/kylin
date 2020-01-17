@@ -73,6 +73,7 @@ public class NExecutableDao {
         this.crud = new CachedCrudAssist<ExecutablePO>(getStore(), resourceRootPath, "", ExecutablePO.class) {
             @Override
             protected ExecutablePO initEntityAfterReload(ExecutablePO entity, String resourceName) {
+                entity.setProject(project);
                 return entity;
             }
         };

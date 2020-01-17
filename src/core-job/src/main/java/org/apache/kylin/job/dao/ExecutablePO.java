@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.job.execution.JobTypeEnum;
 
@@ -98,4 +99,16 @@ public class ExecutablePO extends RootPersistentEntity {
 
     @JsonProperty("output")
     private ExecutableOutputPO output = new ExecutableOutputPO();
+
+    private String project;
+
+    @Override
+    public String getResourcePath() {
+        return concatResourcePath(getUuid(), project);
+    }
+
+    public static String concatResourcePath(String name, String project) {
+        return new StringBuilder().append("/").append(project).append(ResourceStore.EXECUTABLE_JOB).append("/")
+                .append(name).toString();
+    }
 }

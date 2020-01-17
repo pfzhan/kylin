@@ -133,6 +133,7 @@ public class NExecutableManager {
 
     public static ExecutablePO toPO(AbstractExecutable executable, String project) {
         ExecutablePO result = new ExecutablePO();
+        result.setProject(project);
         result.setName(executable.getName());
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
