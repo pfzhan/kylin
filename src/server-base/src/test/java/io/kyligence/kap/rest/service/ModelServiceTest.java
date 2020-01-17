@@ -701,6 +701,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testGetAffectedSegmentsResponse_NoRelatedModel() {
+        RefreshAffectedSegmentsResponse response = modelService.getRefreshAffectedSegmentsResponse("default",
+                "DEFAULT.NO_TABLE", "0", "" + Long.MAX_VALUE);
+        Assert.assertEquals(0, response.getByteSize());
+    }
+
+    @Test
     public void testGetAffectedSegmentsResponse_TwoModelWithDiffSegment() {
         prepareTwoOnlineModels();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");

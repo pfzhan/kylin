@@ -951,6 +951,11 @@ public class ModelService extends BasicService {
                 relatedModelResponse -> relatedModelResponse.getManagementType().equals(ManagementType.TABLE_ORIENTED))
                 .collect(Collectors.toList());
 
+        if (CollectionUtils.isEmpty(models)) {
+            logger.info("No segment to refresh, No related model.");
+            return new RefreshAffectedSegmentsResponse(0, start, end);
+        }
+
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange toBeRefreshSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
