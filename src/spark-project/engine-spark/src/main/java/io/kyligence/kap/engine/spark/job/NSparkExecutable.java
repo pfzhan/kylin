@@ -259,9 +259,11 @@ public class NSparkExecutable extends AbstractExecutable {
         jobOverrides.put("user.timezone", KylinConfig.getInstanceFromEnv().getTimeZone());
         jobOverrides.put("spark.driver.log4j.appender.hdfs.File",
                 Objects.isNull(this.getLogPath()) ? "null" : this.getLogPath());
-        jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
 
-        return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
+        val props = kylinConfigExt.exportToProperties();
+        props.putAll(jobOverrides);
+
+        return KylinConfig.createKylinConfig(props);
     }
 
     private void killOrphanApplicationIfExists(String jobStepId) {
