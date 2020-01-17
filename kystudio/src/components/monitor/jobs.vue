@@ -729,6 +729,7 @@ export default class JobsList extends Vue {
   }
   getWaittingJobModels () {
     return new Promise((resolve, reject) => {
+      if (!this.currentSelectedProject) return reject()
       this.losdWaittingJobModels({project: this.filter.project}).then((res) => {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
