@@ -107,7 +107,7 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.query_id')" prop="query_id" width="120" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit">
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_limit" min-width="120">
         <template slot-scope="props">
           <el-popover
             ref="sql-popover"
@@ -303,12 +303,12 @@ export default class QueryHistoryTable extends Vue {
   checkIsShowMore (arr) {
     let str = ''
     if (arr && arr.length) {
-      // 如果将全部的模型合并后，超过30个字符，就肯定要显示更多
+      // 如果将全部的模型合并后，超过21个字符，就肯定要显示更多
       for (let i = 0; i < arr.length; i++) {
         let item = arr[i]
         str = str + item.modelAlias
       }
-      return arr.length > 1 && getStringLength(str) >= 30
+      return arr.length > 1 && getStringLength(str) >= 21
     } else {
       return false
     }
@@ -320,12 +320,12 @@ export default class QueryHistoryTable extends Vue {
       for (let i = 0; i < arr.length; i++) {
         let item = arr[i]
         str = str + item.modelAlias
-        // 如果第一个就超30个字符了，就直接返回下标1
-        if (i === 0 && getStringLength(str) >= 30) {
+        // 如果第一个就超21个字符了，就直接返回下标1
+        if (i === 0 && getStringLength(str) >= 21) {
           idx = 1
           break
         } else {
-          if (arr.length > 1 && getStringLength(str) >= 30) {
+          if (arr.length > 1 && getStringLength(str) >= 21) {
             idx = i
             break
           } else { // 如果每次加上名字后，还是可以放得下，就让下标+1，保证都正常渲染
@@ -803,7 +803,9 @@ export default class QueryHistoryTable extends Vue {
           .el-tag{
             max-width: calc(~"100% - 85px");
             &.showMore{
+              width:auto;
               max-width: 80px;
+              min-width: 60px;
             }
           }
         }
@@ -816,7 +818,9 @@ export default class QueryHistoryTable extends Vue {
           text-overflow: ellipsis;
         }
         .showMore{
+          width:auto;
           max-width: 80px;
+          min-width: 60px;
           text-overflow: ellipsis;
           font-size:12px;
           line-height: 20px;
