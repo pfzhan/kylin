@@ -21,7 +21,7 @@
           <el-button size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-table_delete" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group><el-button
-        plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
+        plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('refreshList')}}</el-button>
       </el-col>
       <el-col :span="6">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject_alias" v-global-key-event.enter.debounce="filterChange" @clear="filterChange()" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
@@ -406,7 +406,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       project: 'Project',
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
-      filter: 'Filter'
+      filter: 'Filter',
+      refreshList: 'Refresh List'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -478,7 +479,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       project: '项目',
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
-      filter: '筛选'
+      filter: '筛选',
+      refreshList: '刷新列表'
     }
   }
 })
