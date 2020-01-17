@@ -37,6 +37,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -365,17 +366,25 @@ public class MetadataTool extends ExecutableApplication {
 
         } else {
             log.info("start to restore project {}", project);
-            val globalDestResources = resourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT).stream()
-                    .filter(x -> Paths.get(x).getFileName().toString().startsWith(project)).collect(Collectors.toSet());
+            val destResources = resourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT);
+
+            Set<String> globalDestResources = null;
+            if (Objects.nonNull(destResources)) {
+                globalDestResources = destResources.stream()
+                        .filter(x -> Paths.get(x).getFileName().toString().startsWith(project)).collect(Collectors.toSet());
+            }
+
             val globalSrcResources = restoreMetadataStore.list(ResourceStore.PROJECT_ROOT).stream()
                     .filter(x -> Paths.get(x).getFileName().toString().startsWith(project))
                     .map(x -> ResourceStore.PROJECT_ROOT + x).collect(Collectors.toSet());
+
+            Set<String> finalGlobalDestResources = globalDestResources;
+
             UnitOfWork.doInTransactionWithRetry(
-                    () -> doRestore(restoreMetadataStore, globalDestResources, globalSrcResources),
+                    () -> doRestore(restoreMetadataStore, finalGlobalDestResources, globalSrcResources),
                     UnitOfWork.GLOBAL_UNIT, 1);
 
             val projectPath = "/" + project;
-            val destResources = resourceStore.listResourcesRecursively(projectPath);
             val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
                     .collect(Collectors.toSet());
             UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, destResources, srcResources),
