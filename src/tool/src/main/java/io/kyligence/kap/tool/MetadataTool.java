@@ -366,11 +366,11 @@ public class MetadataTool extends ExecutableApplication {
 
         } else {
             log.info("start to restore project {}", project);
-            val destResources = resourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT);
+            val destGlobalProjectResources = resourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT);
 
             Set<String> globalDestResources = null;
-            if (Objects.nonNull(destResources)) {
-                globalDestResources = destResources.stream()
+            if (Objects.nonNull(destGlobalProjectResources)) {
+                globalDestResources = destGlobalProjectResources.stream()
                         .filter(x -> Paths.get(x).getFileName().toString().startsWith(project)).collect(Collectors.toSet());
             }
 
@@ -385,6 +385,7 @@ public class MetadataTool extends ExecutableApplication {
                     UnitOfWork.GLOBAL_UNIT, 1);
 
             val projectPath = "/" + project;
+            val destResources = resourceStore.listResourcesRecursively(projectPath);
             val srcResources = restoreMetadataStore.list(projectPath).stream().map(x -> projectPath + x)
                     .collect(Collectors.toSet());
             UnitOfWork.doInTransactionWithRetry(() -> doRestore(restoreMetadataStore, destResources, srcResources),
