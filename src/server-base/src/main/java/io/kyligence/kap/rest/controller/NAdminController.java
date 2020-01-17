@@ -72,6 +72,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kap.web.hide-feature.limited-lookup");
         propertyKeys.add("kap.smart.conf.aggGroup.strategy");
         propertyKeys.add("kap.canary.default-canaries-period-min");
+        propertyKeys.add("kylin.env.smart-mode-enabled");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 

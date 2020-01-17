@@ -586,7 +586,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.parseLong(getOptional("kylin.dictionary.null-encoding-opt-threshold", "40000000"));
     }
 
-
     // ============================================================================
     // CUBE
     // ============================================================================
@@ -1873,5 +1872,9 @@ public abstract class KylinConfigBase implements Serializable {
             logger.error("Detect a malformed long value, set to a default value {}", defaultValue);
         }
         return result;
+    }
+
+    public Boolean isSmartModelEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.env.smart-mode-enabled", "false"));
     }
 }
