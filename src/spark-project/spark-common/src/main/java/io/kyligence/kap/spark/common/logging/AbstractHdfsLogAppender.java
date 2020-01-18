@@ -239,8 +239,9 @@ public abstract class AbstractHdfsLogAppender extends AppenderSkeleton {
                 int eventSize = getLogBufferQue().size();
                 if (eventSize > getLogQueueCapacity() * QUEUE_FLUSH_THRESHOLD
                         || System.currentTimeMillis() - start > getFlushInterval()) {
-                    flushLog(eventSize, transaction);
+                    // update start time before doing flushLog to avoid exception when flushLog
                     start = System.currentTimeMillis();
+                    flushLog(eventSize, transaction);
                 } else {
                     Thread.sleep(getFlushInterval() / 100);
                 }
