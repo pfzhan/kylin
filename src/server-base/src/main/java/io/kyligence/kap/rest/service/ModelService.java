@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static java.util.stream.Collectors.groupingBy;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -1124,43 +1126,56 @@ public class ModelService extends BasicService {
                 sqls.toArray(new String[0]), reuseExistedModel, true);
         val recommendationsMap = reuseExistedModel ? smartMaster.selectAndGenRecommendation()
                 : smartMaster.recommendNewModelAndIndex();
-        return constructModelRecommendResponse(recommendationsMap, smartMaster.getContext());
+        return constructModelRecommendListResponse(recommendationsMap, smartMaster.getContext());
     }
 
-    private NRecomendationListResponse constructModelRecommendResponse(
+    private NRecomendationListResponse constructModelRecommendListResponse(
             Map<NDataModel, OptimizeRecommendation> recommendationsMap, NSmartContext context) {
         List<NRecomendationListResponse.NRecomendedDataModelResponse> newDataModelResponseList = Lists.newArrayList();
         List<NRecomendationListResponse.NRecomendedDataModelResponse> originDataModelResponseList = Lists
                 .newArrayList();
 
-        for (NSmartContext.NModelContext modelContext : context.getModelContexts()) {
-            if (modelContext.getTargetModel() == null) {
-                continue;
-            }
+        context.getModelContexts().stream().filter(modelContext -> !modelContext.withoutTargetModel())
+                .collect(groupingBy(modelContext -> modelContext.getTargetModel().getUuid()))
+                .forEach((modelId, modelContextList) -> {
 
-            NRecomendationListResponse.NRecomendedDataModelResponse response = new NRecomendationListResponse.NRecomendedDataModelResponse(
-                    modelContext.getTargetModel());
-            Set<String> acceleratedSqls = Sets.newHashSet();
-            modelContext.getModelTree().getOlapContexts().forEach(ctx -> acceleratedSqls.add(ctx.sql));
-            response.setDimensions(modelContext.getTargetModel().getAllNamedColumns().stream()
-                    .filter(dim -> dim.isDimension()).collect(Collectors.toList()));
-            response.setSqls(Lists.newArrayList(acceleratedSqls));
+                    constructModelRecommendResponse(modelContextList, recommendationsMap, originDataModelResponseList,
+                            newDataModelResponseList);
 
-            if (recommendationsMap.get(modelContext.getTargetModel()) != null) {
-                response.setRecommendationResponse(
-                        new OptRecommendationResponse(recommendationsMap.get(modelContext.getTargetModel()), null));
-            } else {
-                // build Agg && Table index
-                IndexPlan indexPlan = modelContext.getTargetIndexPlan();
-                response.setIndices(indexPlan);
-            }
-            if (modelContext.getOriginModel() == null) {
-                newDataModelResponseList.add(response);
-            } else {
-                originDataModelResponseList.add(response);
-            }
-        }
+                });
         return new NRecomendationListResponse(originDataModelResponseList, newDataModelResponseList);
+    }
+
+    private void constructModelRecommendResponse(List<NSmartContext.NModelContext> modelContextList,
+            Map<NDataModel, OptimizeRecommendation> recommendationsMap,
+            List<NRecomendationListResponse.NRecomendedDataModelResponse> originModelList,
+            List<NRecomendationListResponse.NRecomendedDataModelResponse> newModelList) {
+
+        val sqls = modelContextList.stream()
+                .flatMap(modelContext -> modelContext.getModelTree().getOlapContexts().stream())
+                .map(olapContext -> olapContext.sql).collect(Collectors.toSet());
+        val modelContext = modelContextList.stream().filter(modelCtx -> !modelCtx.isSnapshotSelected()).findAny()
+                .orElse(modelContextList.get(0));
+
+        val response = new NRecomendationListResponse.NRecomendedDataModelResponse(modelContext.getTargetModel());
+        response.setDimensions(modelContext.getTargetModel().getAllNamedColumns().stream()
+                .filter(dim -> dim.isDimension()).collect(Collectors.toList()));
+        response.setSqls(Lists.newArrayList(sqls));
+
+        if (recommendationsMap.get(modelContext.getTargetModel()) != null) {
+            response.setRecommendationResponse(
+                    new OptRecommendationResponse(recommendationsMap.get(modelContext.getTargetModel()), null));
+        } else {
+            // build Agg && Table index
+            val indexPlan = modelContext.getTargetIndexPlan();
+            response.setIndices(indexPlan);
+        }
+
+        if (modelContext.getOriginModel() == null) {
+            newModelList.add(response);
+        } else {
+            originModelList.add(response);
+        }
     }
 
     private NDataModel doCheckBeforeModelSave(String project, ModelRequest modelRequest) {
