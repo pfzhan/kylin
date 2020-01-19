@@ -45,9 +45,10 @@ package org.apache.kylin.query.schema;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.Getter;
 
-public class KylinRelDataTypeFieldImpl extends RelDataTypeFieldImpl {
+public class KylinRelDataTypeFieldImpl extends RelDataTypeFieldImpl implements IKeep {
 
     enum ColumnType {
         CC_FIELD, ORIGIN_FILED, PRE_CALC_FIELD
