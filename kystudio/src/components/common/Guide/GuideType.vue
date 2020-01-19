@@ -7,17 +7,7 @@
     :close-on-press-escape="false">
     <div>
       <el-row :gutter="20">
-        <el-col :span="12" >
-          <div class="guide-type-content">
-            <div class="guide-pic">
-              <i class="el-icon-ksd-smart_mode"></i>
-            </div>
-            <div class="guide-title">{{$t('smartMode')}}</div>
-            <div class="guide-desc" :class="$lang=='en'? 'en' : ''">{{$t('smartModeDesc')}}</div>
-            <div class="guide-footer" @click="startAuto"><el-button size="medium" type="primary"  style="width:100%">{{$t('start')}}</el-button></div>
-         </div>
-        </el-col>
-        <el-col :span="12">
+        <el-col :span="isSmartModeEnabled ? 12 : 24">
           <div class="guide-type-content">
             <div class="guide-pic">
               <i class="el-icon-ksd-expert_mode"></i>
@@ -27,6 +17,16 @@
             <div class="guide-footer" @click="startManual"><el-button size="medium" type="primary" style="width:100%">{{$t('start')}}</el-button></div>
           </div>
         </el-col>
+        <el-col :span="12" v-if="isSmartModeEnabled">
+          <div class="guide-type-content">
+            <div class="guide-pic">
+              <i class="el-icon-ksd-smart_mode"></i>
+            </div>
+            <div class="guide-title">{{$t('smartMode')}}</div>
+            <div class="guide-desc" :class="$lang=='en'? 'en' : ''">{{$t('smartModeDesc')}}</div>
+            <div class="guide-footer" @click="startAuto"><el-button size="medium" type="primary"  style="width:100%">{{$t('start')}}</el-button></div>
+         </div>
+        </el-col>
       </el-row>
     </div>
   </el-dialog>
@@ -34,8 +34,12 @@
 <script>
   import Vue from 'vue'
   import { Component } from 'vue-property-decorator'
+  import { mapGetters } from 'vuex'
   @Component({
     computed: {
+      ...mapGetters([
+        'isSmartModeEnabled'
+      ]),
       showGuideModeCheckDialog () {
         return this.$store.state.system.guideConfig.guideModeCheckDialog
       },

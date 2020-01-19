@@ -40,7 +40,8 @@ export default {
       },
       targetList: {}
     },
-    showLisenceSuccessDialog: false
+    showLisenceSuccessDialog: false,
+    smartModeEnabled: 'false'
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -125,6 +126,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.export-allow-other', key: 'allowNotAdminExport'})
           commit(types.GET_CONF_BY_NAME, {name: 'kap.canary.default-canaries-period-min', key: 'canaryReloadTimer'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.source.default', key: 'sourceDefault'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.env.smart-mode-enabled', key: 'smartModeEnabled'})
           resolve(response)
         }, () => {
           reject()
@@ -201,6 +203,9 @@ export default {
     },
     isGuideMode (state) {
       return state.guideConfig.globalMaskVisible
+    },
+    isSmartModeEnabled: (state) => {
+      return state.smartModeEnabled === 'true'
     },
     supportUrl: (state) => {
       return process.qa ? 'http://supportqa.kyligence.io' : 'https://support.kyligence.io'

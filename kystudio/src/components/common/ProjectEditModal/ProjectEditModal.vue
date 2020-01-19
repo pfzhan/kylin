@@ -11,24 +11,9 @@
         <label for="name" class="el-form-item__label">{{$t('projectType')}}</label>
         <el-row :gutter="20">
           <!-- project type 4 -->
-          <el-col class="clearfix" :span="12">
-            <div class="project-type" style="float: right;" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
-              <div class="project-type-button" @click="inputHandler('type', 'AUTO_MAINTAIN')" v-guide.changeAutoProjectType>
-                <div class="project-type-icon">
-                  <i class="el-icon-ksd-smart_mode"></i>
-                </div>
-              </div>
-              <div class="project-type-title">
-                <span class="font-medium">{{$t('projectType4')}}</span>
-              </div>
-              <div class="project-type-desc">
-                <span>{{$t('projectType4Desc')}}</span>
-              </div>
-            </div>
-          </el-col>
-          <el-col :span="12">
+          <el-col :span="isSmartModeEnabled ? 12 : 24">
             <!-- project type 2 -->
-            <div class="project-type" :class="{ active: form.type === 'MANUAL_MAINTAIN' }">
+            <div class="project-type" :class="{ active: form.type === 'MANUAL_MAINTAIN', 'ksd-fright': isSmartModeEnabled, 'ksd-margin-auto': !isSmartModeEnabled }">
               <div class="project-type-button" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeMunalProjectType>
                 <div class="project-type-icon">
                   <i class="el-icon-ksd-expert_mode"></i>
@@ -39,6 +24,21 @@
               </div>
               <div class="project-type-desc">
                 <span>{{$t('projectType2Desc')}}</span>
+              </div>
+            </div>
+          </el-col>
+          <el-col class="clearfix" :span="12" v-if="isSmartModeEnabled">
+            <div class="project-type" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
+              <div class="project-type-button" @click="inputHandler('type', 'AUTO_MAINTAIN')" v-guide.changeAutoProjectType>
+                <div class="project-type-icon">
+                  <i class="el-icon-ksd-smart_mode"></i>
+                </div>
+              </div>
+              <div class="project-type-title">
+                <span class="font-medium">{{$t('projectType4')}}</span>
+              </div>
+              <div class="project-type-desc">
+                <span>{{$t('projectType4Desc')}}</span>
               </div>
             </div>
           </el-col>
@@ -129,7 +129,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapState, mapMutations, mapActions } from 'vuex'
+import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 
 import vuex from '../../../store'
 import locales from './locales'
@@ -152,7 +152,10 @@ vuex.registerModule(['modals', 'ProjectEditModal'], store)
       isShow: state => state.isShow,
       editType: state => state.editType,
       callback: state => state.callback
-    })
+    }),
+    ...mapGetters([
+      'isSmartModeEnabled'
+    ])
   },
   methods: {
     // Store方法注入
