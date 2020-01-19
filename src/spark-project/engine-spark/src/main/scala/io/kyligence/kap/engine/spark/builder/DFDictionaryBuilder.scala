@@ -42,8 +42,9 @@ import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
-import io.kyligence.kap.engine.spark.utils.QueryExecutionCache
-import org.apache.spark.sql.execution.FilterExec
+import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, Metrics, QueryExecutionCache}
+import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
+import org.apache.spark.sql.execution.{FileSourceScanExec, FilterExec}
 
 class DFDictionaryBuilder(
   val dataset: Dataset[Row],
@@ -117,13 +118,8 @@ class DFDictionaryBuilder(
           logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
           0
         }
-        val tableScanMetrics = filterExec.get.child.metrics.get("numOutputRows")
-        val fileOut = if (tableScanMetrics.isDefined) {
-          tableScanMetrics.get.value
-        } else {
-          logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
-          0
-        }
+        val tableScanMetrics = JobMetricsUtils.collectOutputRows(filterExec.get)
+        val fileOut = tableScanMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)
         logInfo(s"Null value number is ${fileOut - filtered}")
         if (!KylinBuildEnv.get().encodingDataSkew) {
           KylinBuildEnv.get().encodingDataSkew = (fileOut - filtered) > seg.getConfig.getNullEncodingOptimizeThreshold
