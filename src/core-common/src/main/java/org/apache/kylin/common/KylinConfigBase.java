@@ -250,12 +250,35 @@ public abstract class KylinConfigBase implements Serializable {
         properties.setProperty(BCC.check(key), value);
     }
 
+    private void wrapKerberosInfo(String configName) {
+        StringBuilder sb = new StringBuilder();
+        if (properties.containsKey(configName)) {
+            String conf = (String) properties.get(configName);
+            if (StringUtils.contains(conf, "java.security.krb5.conf")) {
+                return;
+            }
+            sb.append(conf);
+        }
+
+        if (Boolean.valueOf(this.getOptional("kap.kerberos.enabled", "false"))) {
+            if (this.getOptional("kap.kerberos.platform", "").equalsIgnoreCase(KapConfig.FI_PLATFORM)
+                    || Boolean.valueOf(this.getOptional("kap.platform.zk.kerberos.enable", "false"))) {
+                sb.append(String.format(" -Djava.security.krb5.conf=%s", "./__spark_conf__/__hadoop_conf__/krb5.conf"));
+            }
+        }
+
+        setProperty(configName, sb.toString());
+    }
+
     final protected void reloadKylinConfig(Properties properties) {
         this.properties = BCC.check(properties);
         setProperty("kylin.metadata.url.identifier", getMetadataUrlPrefix());
         setProperty("kylin.log.spark-executor-properties-file", getLogSparkExecutorPropertiesFile());
         setProperty("kylin.log.spark-driver-properties-file", getLogSparkDriverPropertiesFile());
         setProperty("kylin.log.spark-appmaster-properties-file", getLogSparkAppMasterPropertiesFile());
+
+        wrapKerberosInfo("kylin.engine.spark-conf.spark.executor.extraJavaOptions");
+        wrapKerberosInfo("kylin.engine.spark-conf.spark.yarn.am.extraJavaOptions");
 
         // https://github.com/kyligence/kap/issues/12654
         this.properties.put(WORKING_DIR_PROP,

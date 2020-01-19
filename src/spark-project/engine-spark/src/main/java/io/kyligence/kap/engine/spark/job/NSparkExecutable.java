@@ -151,8 +151,6 @@ public class NSparkExecutable extends AbstractExecutable {
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         this.setLogPath(getSparkDriverLogHdfsPath(context.getConfig()));
         final KylinConfig config = wrapConfig(context);
-        wrapKerberosInfo(config, "spark.executor.extraJavaOptions");
-        wrapKerberosInfo(config, "spark.yarn.am.extraJavaOptions");
 
         String sparkHome = KylinConfig.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
@@ -440,28 +438,6 @@ public class NSparkExecutable extends AbstractExecutable {
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);
-    }
-
-    private KylinConfig wrapKerberosInfo(KylinConfig config, String configName) {
-        StringBuilder sb = new StringBuilder();
-        Map<String, String> sparkConfigOverride = config.getSparkConfigOverride();
-        if (sparkConfigOverride.containsKey(configName)) {
-            String conf = sparkConfigOverride.get(configName);
-            if (StringUtils.contains(conf, "java.security.krb5.conf")) {
-                return config;
-            }
-            sb.append(conf);
-        }
-        KapConfig kapConfig = KapConfig.wrap(config);
-        if (kapConfig.isKerberosEnabled()) {
-            if (kapConfig.getKerberosPlatform().equalsIgnoreCase(KapConfig.FI_PLATFORM)
-                    || kapConfig.getPlatformZKEnable()) {
-                sb.append(String.format(" -Djava.security.krb5.conf=%s", "./__spark_conf__/__hadoop_conf__/krb5.conf"));
-            }
-        }
-
-        config.setProperty("kylin.engine.spark-conf." + configName, sb.toString());
-        return config;
     }
 
     private void deleteJobTmpDirectoryOnExists() {
