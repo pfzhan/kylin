@@ -36,7 +36,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -55,6 +54,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import com.google.common.collect.Sets;
+
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -72,6 +73,7 @@ public class QueryNodeFilter implements Filter {
         // data source
         routeGetApiSet.add("/kylin/api/tables/reload_hive_table_name");
         routeGetApiSet.add("/kylin/api/tables/project_table_names");
+        routeGetApiSet.add("/kylin/api/query/favorite_queries");
 
         // jdbc, odbc, query
         notRoutePostApiSet.add("/kylin/api/query");

@@ -62,16 +62,18 @@ public class LicenseFilter implements Filter {
             throws IOException, ServletException {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
-            boolean noNeedLicenseCheck = Arrays.stream(apiWhiteList).map(white -> PREFIX + white)
-                    .anyMatch(api -> servletRequest.getRequestURI().startsWith(api));
-            if (!noNeedLicenseCheck) {
-                try {
-                    val info = licenseInfoService.extractLicenseInfo();
-                    licenseInfoService.verifyLicense(info);
-                } catch (Exception e) {
-                    servletRequest.setAttribute("error", new UnauthorizedException(e.getMessage()));
-                    servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
-                    return;
+            if (servletRequest.getRequestURI().startsWith(PREFIX)) {
+                boolean noNeedLicenseCheck = Arrays.stream(apiWhiteList).map(white -> PREFIX + white)
+                        .anyMatch(api -> servletRequest.getRequestURI().startsWith(api));
+                if (!noNeedLicenseCheck) {
+                    try {
+                        val info = licenseInfoService.extractLicenseInfo();
+                        licenseInfoService.verifyLicense(info);
+                    } catch (Exception e) {
+                        servletRequest.setAttribute("error", new UnauthorizedException(e.getMessage()));
+                        servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
+                        return;
+                    }
                 }
             }
         }
