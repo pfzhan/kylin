@@ -69,6 +69,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.assertj.core.api.Assertions;
@@ -226,6 +227,13 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableResponse> jobs12 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1"));
 
+        DataResult<List<ExecutableResponse>> jobs13 = jobService.listJobs(jobFilter, 0, 10);
+        Assert.assertEquals(3, jobs13.getValue().size());
+
+        String jobId = jobs13.getValue().get(0).getId();
+        jobFilter.setKey(jobId);
+        DataResult<List<ExecutableResponse>> jobs14 = jobService.listJobs(jobFilter, 0, 10);
+        Assert.assertTrue(jobs14.getValue().size() == 1 && jobs14.getValue().get(0).getId().equals(jobId));
     }
 
     private List<ProjectInstance> mockProjects() {

@@ -163,11 +163,12 @@ public class JobService extends BasicService {
                     return matchedExecutableStates.contains(state)
                             || matchedJobStatusEnums.contains(parseToJobStatus(state));
                 })).and(abstractExecutable -> {
-                    String subject = jobFilter.getSubjectAlias();
+                    String subject = StringUtils.trim(jobFilter.getKey());
                     if (StringUtils.isEmpty(subject)) {
                         return true;
                     }
-                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject);
+                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetSubjectAlias(), subject)
+                            || StringUtils.containsIgnoreCase(abstractExecutable.getId(), subject);
                 }).and(abstractExecutable -> {
                     List<String> jobNames = jobFilter.getJobNames();
                     if (CollectionUtils.isEmpty(jobNames)) {
@@ -206,7 +207,7 @@ public class JobService extends BasicService {
             ExecutableState state = abstractExecutable.getStatus();
             return matchedExecutableStates.contains(state) || matchedJobStatusEnums.contains(parseToJobStatus(state));
         })).and(abstractExecutable -> {
-            String subject = jobFilter.getSubjectAlias();
+            String subject = jobFilter.getKey();
             if (StringUtils.isEmpty(subject)) {
                 return true;
             }

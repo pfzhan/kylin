@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -43,7 +43,7 @@ public class JobFilter {
 
     private String subject;
 
-    private String subjectAlias;
+    private String key;
 
     private String project;
 

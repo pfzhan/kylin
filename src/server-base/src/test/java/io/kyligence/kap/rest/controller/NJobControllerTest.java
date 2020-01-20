@@ -42,10 +42,11 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -70,12 +71,11 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
+import io.kyligence.kap.rest.request.SparkJobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 public class NJobControllerTest {
 
@@ -92,8 +92,8 @@ public class NJobControllerTest {
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nJobController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nJobController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
@@ -113,11 +113,12 @@ public class NJobControllerTest {
         Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("page_offset", "0").param("page_size", "10")
-                .param("time_filter", "1").param("subject", "").param("subject_alias", "").param("job_names", "")
+                .param("time_filter", "1").param("subject", "").param("key", "").param("job_names", "")
                 .param("statuses", "NEW,RUNNING").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nJobController).getJobList(statuses, jobNames, 1, "", "", "default", 0, 10, "last_modified", true);
+        Mockito.verify(nJobController).getJobList(statuses, jobNames, 1, "", "", "default", 0, 10, "last_modified",
+                true);
     }
 
     @Test
