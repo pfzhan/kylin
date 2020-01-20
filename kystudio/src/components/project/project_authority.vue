@@ -531,7 +531,7 @@ export default class ProjectAuthority extends Vue {
   }
 }
 </script>
-<style lang="less">
+<style lang="less" scoped>
   @import '../../assets/styles/variables.less';
   #projectAuth {
     padding: 20px;
@@ -550,7 +550,7 @@ export default class ProjectAuthority extends Vue {
     }
   }
   .el-select-dropdown__item {
-    white-space: pre !important;
+    white-space: pre-wrap !important;
   }
   .author_dialog {
     .el-alert {
