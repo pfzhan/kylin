@@ -135,7 +135,7 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { fieldVisiableMaps, titleMaps, getSubmitData, disabledProperties } from './handler'
-import { validate, validateTypes, handleError, fromObjToArr, handleSuccessAsync } from '../../../util'
+import { validate, validateTypes, handleError, fromObjToArr, handleSuccessAsync, handleWaiting } from '../../../util'
 
 const { PROJECT_NAME } = validateTypes
 
@@ -281,6 +281,8 @@ export default class ProjectEditModal extends Vue {
             res = await handleSuccessAsync(await this.updateProject(data))
             break
         }
+        // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
+        await handleWaiting()
         this.$message({
           type: 'success',
           message: this.$t('saveSuccessful')

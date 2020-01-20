@@ -70,7 +70,7 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { titleMaps, cancelMaps, confirmMaps, getSubmitData, editTypes } from './handler'
-import { handleSuccessAsync, handleError } from '../../../util'
+import { handleSuccessAsync, handleError, handleWaiting } from '../../../util'
 import { set } from '../../../util/object'
 
 import SourceSelect from './SourceSelect/SourceSelect.vue'
@@ -220,6 +220,8 @@ export default class DataSourceModal extends Vue {
       // }
       case editTypes.SELECT_SOURCE: {
         await this.updateProjectDatasource(submitData)
+        // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
+        await handleWaiting()
         await this.loadAllProject()
         return this.setModal({ editType: this.form.project.override_kylin_properties['kylin.source.default'] })
       }
@@ -248,6 +250,8 @@ export default class DataSourceModal extends Vue {
       case editTypes.RDBMS:
       case editTypes.RDBMS2: {
         const response = await this.importTable(submitData)
+        // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
+        await handleWaiting()
         return await handleSuccessAsync(response)
       }
     }

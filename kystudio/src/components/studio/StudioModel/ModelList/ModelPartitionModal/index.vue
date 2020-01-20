@@ -102,7 +102,7 @@ import store, { types } from './store'
 import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { isDatePartitionType, objectClone, kapConfirm } from '../../../../../util'
+import { isDatePartitionType, objectClone, kapConfirm, handleWaiting } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
@@ -408,7 +408,9 @@ export default class ModelPartitionModal extends Vue {
         checkData.partition_desc = null
       }
       this.checkFilterConditon(checkData).then((res) => {
-        handleSuccess(res, () => {
+        handleSuccess(res, async () => {
+          // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
+          await handleWaiting()
           this.handleClose(true)
           this.isLoadingSave = false
         })

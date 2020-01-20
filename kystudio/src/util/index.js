@@ -545,6 +545,15 @@ export async function handleSuccessAsync (responses) {
     })
   }
 }
+
+export function handleWaiting () {
+  return new Promise((resolve) => {
+    window.setTimeout(() => {
+      return resolve()
+    }, 2000)
+  })
+}
+
 // 获取object full mapping
 export function getFullMapping (mapping) {
   const fullMapping = { ...mapping }
