@@ -84,11 +84,13 @@ public class SparderUIUtil {
     private final HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(
             HttpClientBuilder.create().setMaxConnPerRoute(128).setMaxConnTotal(1024).disableRedirectHandling().build());
 
-    private volatile String webUrl = null;
+    private volatile String webUrl;
 
-    private volatile String amSQLBase = null;
+    private volatile String amSQLBase;
 
-    private volatile String appId = null;
+    private volatile String appId;
+
+    private volatile String eraseProxyUriBase;
 
     public void proxy(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {
 
@@ -121,6 +123,8 @@ public class SparderUIUtil {
             return;
         }
 
+        // reset
+        eraseProxyUriBase = null;
         // try to fetch amWebUrl if exists
         try (ClientHttpResponse response = execute(
                 UriComponentsBuilder.fromHttpUrl(ui.webUrl()).path(SQL_EXECUTION_PAGE).query("id=1").build().toUri(),
@@ -132,10 +136,25 @@ public class SparderUIUtil {
                 appId = ui.appId();
                 return;
             }
-        }
 
-        webUrl = ui.webUrl();
-        appId = ui.appId();
+            // workaround:
+            // when driver and rm are at the same machine
+            // the AmIpFilter will doFilter incorrectly
+            // so we should erase the proxy_uri_base when rewriting the response data.
+            final String proxyUriBase = "/proxy/" + ui.appId();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody()))) {
+                String line;
+                while (Objects.nonNull(line = br.readLine())) {
+                    if (line.contains(proxyUriBase)) {
+                        eraseProxyUriBase = proxyUriBase;
+                        break;
+                    }
+                }
+            }
+
+            webUrl = ui.webUrl();
+            appId = ui.appId();
+        }
     }
 
     private ClientHttpResponse execute(URI uri, HttpMethod method) throws IOException {
@@ -169,15 +188,20 @@ public class SparderUIUtil {
             return;
         }
 
+        final String fWebUrl = webUrl;
+        final String fProxyUriBase = eraseProxyUriBase;
         final PrintWriter writer = servletResponse.getWriter();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody()))) {
             String line;
             while (Objects.nonNull(line = br.readLine())) {
+                if (Objects.nonNull(fProxyUriBase)) {
+                    line = line.replace(fProxyUriBase, "");
+                }
                 line = line.replace("href=\"/", "href=\"" + KYLIN_UI_BASE + "/");
                 line = line.replace("href='/", "href='" + KYLIN_UI_BASE + "/");
                 line = line.replace("src=\"/", "src=\"" + KYLIN_UI_BASE + "/");
                 line = line.replace("src='/", "src='" + KYLIN_UI_BASE + "/");
-                line = line.replace(webUrl, KYLIN_UI_BASE);
+                line = line.replace(fWebUrl, KYLIN_UI_BASE);
                 writer.write(line);
                 writer.println();
             }
