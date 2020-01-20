@@ -138,7 +138,7 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Before
     public void setup() {
         overwriteSystemProp("HADOOP_USER_NAME", "root");
-        //        overwriteSystemProp("kylin.garbage.remove-included-table-index", "true");
+        overwriteSystemProp("kylin.garbage.customized-strategy-enabled", "false");
         staticCreateTestMetadata();
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));

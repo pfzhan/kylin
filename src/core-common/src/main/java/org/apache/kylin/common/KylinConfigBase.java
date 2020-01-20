@@ -1742,7 +1742,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isCustomizedGcStrategyEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.garbage.customized-strategy-enabled", "false"));
+        return Boolean.parseBoolean(getOptional("kylin.garbage.customized-strategy-enabled", "true"));
     }
 
     public double getLayoutSimilarityThreshold() {

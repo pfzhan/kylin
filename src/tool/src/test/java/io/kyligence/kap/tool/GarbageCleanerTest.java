@@ -69,6 +69,7 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     public void setup() {
         createTestMetadata();
         initTestData();
+        overwriteSystemProp("kylin.garbage.customized-strategy-enabled", "false");
     }
 
     @After

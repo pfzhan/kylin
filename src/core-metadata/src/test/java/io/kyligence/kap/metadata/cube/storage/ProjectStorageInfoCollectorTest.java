@@ -73,6 +73,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
+        overwriteSystemProp("kylin.garbage.customized-strategy-enabled", "false");
     }
 
     @After
