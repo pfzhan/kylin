@@ -372,7 +372,9 @@ public class PushDownUtil {
         public SqlNode visit(SqlCall call) {
             if (call instanceof SqlSelect) {
                 SqlSelect select = (SqlSelect) call;
-                select.getFrom().accept(this);
+                if (select.getFrom() != null) {
+                    select.getFrom().accept(this);
+                }
                 return null;
             }
             if (call instanceof SqlOrderBy) {
