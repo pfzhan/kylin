@@ -16,7 +16,7 @@ export default {
     propertyEmptyKey: 'Project Config name is required.',
     propertyEmptyValue: 'Project Config value is required.',
     projectType2: 'AI Augmented Mode',
-    projectType2Desc: 'AI Augmented Mode: Drag and drop source tables to your own model from blank.',
+    projectType2Desc: 'AI Augmented Mode: Drag source tables to design your own model. The system will provide recommendations based on your query behaviour.',
     projectType4: 'Smart Mode',
     projectType4Desc: 'Smart Mode: Building index for source table, the system will accelerate your desired SQL statements.'
   },
@@ -37,7 +37,7 @@ export default {
     propertyEmptyKey: '项目配置名不能为空',
     propertyEmptyValue: '项目配置值不能为空',
     projectType2: 'AI 增强模式',
-    projectType2Desc: 'AI 增强模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。',
+    projectType2Desc: 'AI 增强模式：通过从数据源中拖拽表，您可以手动创建直观的多维分析模型。同时，系统将根据您的查询历史提供模型建议。',
     projectType4: '智能模式',
     projectType4Desc: '智能模式：通过对表创建索引，系统将加速常用的分析查询语句。'
   }

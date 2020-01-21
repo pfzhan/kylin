@@ -339,7 +339,7 @@ export default class ProjectEditModal extends Vue {
     margin-bottom: 10px;
   }
   .project-type {
-    width: 245px;
+    width: 268px;
     height: 200px;
     * {
       transition: all .15s;

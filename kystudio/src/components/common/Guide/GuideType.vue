@@ -1,7 +1,7 @@
 <template>
   <el-dialog class="guide-box" :append-to-body="true" width="720px" limited-area
     :before-close="closeShowGuideModeCheckDialog"
-    :title="$t('switchModeTitle')"
+    :title="modeTitle"
     :close-on-click-modal="false"
     :visible="showGuideModeCheckDialog"
     :close-on-press-escape="false">
@@ -61,7 +61,8 @@
         smartMode: 'Smart Mode',
         switchModeTitle: 'Which mode do you want to explore?',
         exportModeDesc: 'The AI augmented mode is recommended for analysis based on multi-dimensional models.',
-        smartModeDesc: 'The smart mode is recommended for exploring data via Business Intelligence tools, and SQL statements will be accelerated transparently by the system.'
+        smartModeDesc: 'The smart mode is recommended for exploring data via Business Intelligence tools, and SQL statements will be accelerated transparently by the system.',
+        startGuide: 'Start User Guide'
       },
       'zh-cn': {
         start: '开始',
@@ -69,7 +70,8 @@
         smartMode: '智能模式',
         switchModeTitle: '请选择你想探索的模式',
         exportModeDesc: 'AI 增强模式适用于对多维建模进行分析。',
-        smartModeDesc: '智能模式适用于直接通过 BI 探索数据，系统将透明地加速 BI 发出的 SQL 语句。'
+        smartModeDesc: '智能模式适用于直接通过 BI 探索数据，系统将透明地加速 BI 发出的 SQL 语句。',
+        startGuide: '开始新手指引'
       }
     }
   })
@@ -81,6 +83,9 @@
       showContent: false
     }
     guide = null
+    get modeTitle () {
+      return this.isSmartModeEnabled ? this.$t('switchModeTitle') : this.$t('startGuide')
+    }
     showGlobalMask () {
       this.$store.state.system.guideConfig.globalMaskVisible = true
     }
