@@ -366,7 +366,7 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 tableService.getProjectTables(project, table, offset, limit, true, (databaseName, tableName) -> {
-                    return tableService.getTableNameResponsesInCache(project, databaseName, tableName);
+                    return tableService.getHiveTableNameResponses(project, databaseName, tableName);
                 }), "");
     }
 

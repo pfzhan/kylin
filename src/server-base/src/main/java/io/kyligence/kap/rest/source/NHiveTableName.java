@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
@@ -71,6 +72,10 @@ public class NHiveTableName implements Runnable {
         boolean isAllNode = KylinConfig.getInstanceFromEnv().getServerMode().equals(Constant.SERVER_MODE_ALL);
         if (!isAllNode) {
             throw new RuntimeException("Only all node can load hive table name");
+        }
+        if (!KylinConfig.getInstanceFromEnv().getLoadHiveTablenameEnabled()) {
+            throw new BadRequestException(
+                    "This operator is not allowed , Please set kap.table.load-hive-tablename-cached.enabled=true and try again");
         }
         if (force && !isRunning && lock.tryLock()) {
             try {

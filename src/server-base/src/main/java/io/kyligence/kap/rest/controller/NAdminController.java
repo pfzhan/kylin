@@ -73,6 +73,7 @@ public class NAdminController extends NBasicController {
         propertyKeys.add("kap.smart.conf.aggGroup.strategy");
         propertyKeys.add("kap.canary.default-canaries-period-min");
         propertyKeys.add("kylin.env.smart-mode-enabled");
+        propertyKeys.add("kap.table.load-hive-tablename-enabled");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
 

@@ -1544,6 +1544,15 @@ public class TableService extends BasicService {
         return new Pair<>(existed.toArray(new String[0]), failed);
     }
 
+    public List<TableNameResponse> getHiveTableNameResponses(String project, String database, final String table)
+            throws Exception {
+        if (Boolean.TRUE.equals(KylinConfig.getInstanceFromEnv().getLoadHiveTablenameEnabled())) {
+            return getTableNameResponsesInCache(project, database, table);
+        } else {
+            return getTableNameResponses(project, database, table);
+        }
+    }
+
     public List<TableNameResponse> getTableNameResponsesInCache(String project, String database, final String table)
             throws Exception {
         aclEvaluate.checkProjectReadPermission(project);
