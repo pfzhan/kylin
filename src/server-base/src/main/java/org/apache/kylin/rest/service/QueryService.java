@@ -751,7 +751,8 @@ public class QueryService extends BasicService {
             }
 
             columnMeta = metaData.getColumns(null, null, null, null);
-
+            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(project);
             while (columnMeta.next()) {
                 String catalogName = columnMeta.getString(1);
                 String schemaName = columnMeta.getString(2);
@@ -766,6 +767,11 @@ public class QueryService extends BasicService {
                         columnMeta.getInt(17), columnMeta.getString(18), columnMeta.getString(19),
                         columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
                         columnMeta.getString(23));
+
+                if (projectInstance.isSmartMode() && isComputedColumn(project, colmnMeta.getCOLUMN_NAME().toUpperCase(),
+                        colmnMeta.getTABLE_NAME())) {
+                    continue;
+                }
 
                 if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
                         && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
@@ -910,15 +916,16 @@ public class QueryService extends BasicService {
      */
     private boolean isComputedColumn(String project, String ccName, String table) {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        SetMultimap<String, String> prj2ccNames = HashMultimap.create();
+        SetMultimap<String, String> tbl2ccNames = HashMultimap.create();
         projectManager.listAllRealizations(project).forEach(rea -> {
-            prj2ccNames.putAll(rea.getModel().getRootFactTable().getAlias(), rea.getModel().getComputedColumnNames());
-            prj2ccNames.putAll(rea.getModel().getRootFactTableName(), rea.getModel().getComputedColumnNames());
+            val upperCaseCcNames = rea.getModel().getComputedColumnNames().stream().map(String::toUpperCase)
+                    .collect(Collectors.toList());
+            tbl2ccNames.putAll(rea.getModel().getRootFactTable().getAlias().toUpperCase(), upperCaseCcNames);
+            tbl2ccNames.putAll(rea.getModel().getRootFactTableName().toUpperCase(), upperCaseCcNames);
         });
-        if (CollectionUtils.isNotEmpty(prj2ccNames.get(table)) && prj2ccNames.get(table).contains(ccName)) {
-            return true;
-        }
-        return false;
+
+        return CollectionUtils.isNotEmpty(tbl2ccNames.get(table.toUpperCase()))
+                && tbl2ccNames.get(table.toUpperCase()).contains(ccName.toUpperCase());
     }
 
     private void addColsToTblMeta(Map<String, TableMetaWithType> tblMap,
