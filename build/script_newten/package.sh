@@ -69,7 +69,7 @@ cat > build/CHANGELOG.md <<EOL
 - Optimize the query functions:
 
 - - Support a new measure collect_set(column)
-  - Support unix_timestamp, concat_ws function
+  - Support unix_timestamp function
 
 - Improve user experience
 
@@ -80,8 +80,6 @@ cat > build/CHANGELOG.md <<EOL
 - Safety and stability
 
   - Provide a CLI tool to clean up invalid files on HDFS
-
-  - Support for metadata URL in load balancer configuration
 
 - Optimize API function list
 
