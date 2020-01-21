@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
+import io.kyligence.kap.cluster.YarnClusterManager;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -129,6 +130,7 @@ import org.apache.kylin.rest.util.TableauInterceptor;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Sampler;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
+import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1176,7 +1178,20 @@ public class QueryService extends BasicService {
             try {
                 String executionID = QueryContext.current().getExecutionID();
                 if (!executionID.isEmpty()) {
-                    response.setAppMasterURL(sparderUIUtil.getSQLTrackingPath(executionID));
+                    if (KapConfig.getInstanceFromEnv().getKerberosPlatform().equals("FI")) {
+                        // mater URL like this:
+                        // http://host:8088/proxy/application_1571903613081_0047/SQL/execution/?id=0
+                        String trackingUrl = SparderEnv.APP_MASTER_TRACK_URL();
+                        if (trackingUrl == null) {
+                            String id = SparderEnv.getSparkSession().sparkContext().applicationId();
+                            trackingUrl = new YarnClusterManager().getTrackingUrl(id);
+                            SparderEnv.setAPPMasterTrackURL(trackingUrl);
+                        }
+                        String materURL = trackingUrl + "SQL/execution/?id=" + executionID;
+                        response.setAppMasterURL(materURL);
+                    } else {
+                        response.setAppMasterURL(sparderUIUtil.getSQLTrackingPath(executionID));
+                    }
                 }
             } catch (Throwable th) {
                 logger.error("Get app master for sql failed", th);
