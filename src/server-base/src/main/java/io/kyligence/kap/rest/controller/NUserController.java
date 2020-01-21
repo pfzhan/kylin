@@ -232,7 +232,7 @@ public class NUserController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-        if (project == null) {
+        if (StringUtils.isEmpty(project)) {
             aclEvaluate.checkIsGlobalAdmin();
         } else {
             aclEvaluate.checkProjectAdminPermission(project);
