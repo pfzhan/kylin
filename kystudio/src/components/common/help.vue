@@ -82,7 +82,7 @@
         :closable="false"
         class="ksd-mb-10"
         show-icon
-        type="error">
+        type="warning">
         <span slot="title" class="ksd-fs-14">{{$t('importFailed1')}}<a target="_blank" :href="$t('manualLinkURL')">{{$t('manualLink')}}</a>{{$t('importFailed2')}}</span>
       </el-alert>
       <div slot="footer" class="dialog-footer" v-if="!isImportSuccess&&isShowImportError">
@@ -161,18 +161,19 @@
               if (data) {
                 this.$store.state.system.guideConfig.guideModeCheckDialog = true
               } else {
+                this.isShowImportError = true
                 this.importSSBvisible = true
-                this.importLoading()
-                this.importSSBDatabase().then((res) => {
-                  handleSuccess(res, (data) => {
-                    this.percent = 100
-                    this.$nextTick(() => {
-                      this.isImportSuccess = true
-                    })
-                  })
-                }, (r) => {
-                  this.isShowImportError = true
-                })
+                // this.importLoading()
+                // this.importSSBDatabase().then((res) => {
+                //   handleSuccess(res, (data) => {
+                //     this.percent = 100
+                //     this.$nextTick(() => {
+                //       this.isImportSuccess = true
+                //     })
+                //   })
+                // }, (r) => {
+                //   this.isShowImportError = true
+                // })
               }
             })
           }, (errResp) => {
@@ -419,10 +420,10 @@
         importInprogress: 'This process will take approximately 2 minutes, please wait for a while.',
         importSuccessTips: 'Imported SSB sample dataset successfully. Now you can start the user guide.',
         startGuide: 'Start user guide',
-        importFailed1: 'Failed to import SSB sample dataset. Please refer to ',
+        importFailed1: 'The complete SSB sample dataset is not detected in the current system. Please refer to ',
         manualLink: 'the manual',
         manualLinkURL: 'https://docs.kyligence.io/books/v4.0/en/datasource/import_hive.en.html',
-        importFailed2: ' to restart the user guide after importing the SSB dataset manually.'
+        importFailed2: ' to restart the user guide after importing the SSB sample dataset manually.'
       },
       'zh-cn': {
         autoUpload: '自动上传',
@@ -465,10 +466,10 @@
         importInprogress: '该过程需要大约 2 分钟，请稍候。',
         importSuccessTips: '导入成功，现在可以开始新手指引了。',
         startGuide: '进入新手指引',
-        importFailed1: '导入 SSB 样例数据集失败。请参照',
+        importFailed1: '当前系统中未检测到完整的 SSB 样例数据集，请参照',
         manualLink: '手册',
         manualLinkURL: 'https://docs.kyligence.io/books/v4.0/zh-cn/datasource/import_hive.cn.html',
-        importFailed2: '手动导入 SSB 数据集后重新开始新手指引。'
+        importFailed2: '手动导入 SSB 样例数据集后重新开始新手指引。'
       }
     }
   }
