@@ -46,11 +46,13 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
+import io.kyligence.kap.rest.request.TableLoadRequest;
 
-public class OpenTableControllerTest {
+public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -70,10 +72,12 @@ public class OpenTableControllerTest {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     private void mockGetTable(String project, String tableName) {
@@ -122,6 +126,22 @@ public class OpenTableControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openTableController).refreshSegments(Mockito.any(RefreshSegmentsRequest.class));
+    }
+
+    @Test
+    public void testLoadTables() throws Exception {
+        TableLoadRequest tableLoadRequest = new TableLoadRequest();
+        tableLoadRequest.setDatabases(new String[] { "kk" });
+        tableLoadRequest.setTables(new String[] { "hh.kk" });
+        tableLoadRequest.setNeedSampling(false);
+        tableLoadRequest.setProject("default");
+        Mockito.doAnswer(x -> null).when(nTableController).loadTables(tableLoadRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).loadTables(tableLoadRequest);
     }
 
 }

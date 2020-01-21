@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -58,6 +59,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
@@ -199,6 +201,11 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
             throws Exception {
         checkProjectName(tableLoadRequest.getProject());
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(tableLoadRequest.getProject()) == null) {
+            throw new BadRequestException(
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), tableLoadRequest.getProject()));
+        }
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
             throw new BadRequestException("You should select at least one table or database to load!!");
         }
@@ -223,7 +230,7 @@ public class NTableController extends NBasicController {
             loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
         }
 
-        if (!loadTableResponse.getLoaded().isEmpty() && tableLoadRequest.isNeedSampling()) {
+        if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows());

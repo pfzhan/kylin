@@ -49,6 +49,8 @@ import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NTableController;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
+import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.service.TableService;
 
 @Controller
@@ -80,6 +82,18 @@ public class OpenTableController extends NBasicController {
             throws IOException {
         List<TableDesc> result = tableService.getTableDesc(project, true, table, database, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
+    }
+
+    @PostMapping(value = "")
+    @ResponseBody
+    public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
+            throws Exception {
+        checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
+        if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
+            checkRequiredArg("sampling_rows", tableLoadRequest.getSamplingRows());
+        }
+
+        return tableController.loadTables(tableLoadRequest);
     }
 
     /**
