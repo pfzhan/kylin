@@ -58,6 +58,62 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.11 release note
+
+**Feature**
+
+- Optimize Hadoop platform compatibility: Support Huawei FusionInsight 6.5.1
+
+**Enhancement**
+
+- Optimize the query functions:
+
+- - Support a new measure collect_set(column)
+  - Support unix_timestamp, concat_ws function
+
+- Improve user experience
+
+  - Optimize the interactions of filtering in the list
+
+  - Add a GIF in model editing page to guide the modeling
+
+- Safety and stability
+
+  - Provide a CLI tool to clean up invalid files on HDFS
+
+  - Support for metadata URL in load balancer configuration
+
+- Optimize API function list
+
+  - Support to define partition column
+
+  - Support to get job list
+
+**Bugfix**
+
+- In cluster deployment mode, the query node can't work properly as well if the All node is unavailable.
+- In FI 6.5.1, there are no spark_logs in the full diagnostic package
+- In FI 6.5.1, check-1600-spark-dir.sh fails to modify hive-scratch permissions
+- Connect Kyligence MDX failed if the model contains computed columns
+- Building job fails, when computed column expression contains double quotes
+- When the model contains a TopN measure, the build job may fail with ERROR: Comparison method violates its general contract!
+- When using the SQL file to create models, the model advisor page appears blank if the SQL can be answered by a snapshot of other models.
+- When the "TableName_ColumnName" of different tables can be spliced as the same string, it will return an error "Duplicate column names" when accelerating the query
+- Some queries may fail to accelerate when the partial match of the model is enabled and multiple queries can be answered by the same model
+- The sampling data result is incorrect when the source table contains null values
+- The number of use should not be null if the index has never been hit
+- The index ID in the recommendation list may have duplicated values
+- The recommendation list is not up-to-date after manually deleting the index which is suggested as being deleted
+- The Admin page may occur an exception when there is no project exists
+- When the user name is long, the GUI may display an exception
+- The User Guide cannot be executed when the user name contains spaces
+- Cannot distinguish multiple spaces in the user/user group name
+- The related table index is not deleted after deleting the table in the model
+- Reload table fails when the partition column of the model is deleted from the source table
+- The content of the "Answered By" column may not show completely in the query history page
+- Cannot execute the SQL again after copying it from the query history page
+- After cloning a model created by other users, the owner of the new cloned model is incorrect
+
 #### Kyligence Enterprise 4.0.10 release note
 
 **Feature**
