@@ -103,6 +103,7 @@
           @blur="(e) => filterUser(e.target.value)"
           :placeholder="$t('kylinLang.common.pleaseInputUserName')"
           :remote-method="filterUser"
+          popper-class="author-select"
           v-if="accessMeta.principal">
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!accessMeta.sids.length"></i>
           <el-option
@@ -531,7 +532,7 @@ export default class ProjectAuthority extends Vue {
   }
 }
 </script>
-<style lang="less" scoped>
+<style lang="less">
   @import '../../assets/styles/variables.less';
   #projectAuth {
     padding: 20px;
@@ -549,8 +550,10 @@ export default class ProjectAuthority extends Vue {
       }
     }
   }
-  .el-select-dropdown__item {
-    white-space: pre-wrap !important;
+  .author-select {
+    .el-select-dropdown__item {
+      white-space: pre-wrap;
+    }
   }
   .author_dialog {
     .el-alert {
