@@ -1,4 +1,5 @@
 <template>
+<div style="height: 100%;">
   <aside class="data-source-bar" :style="dataSourceStyle">
     <section class="header clearfix" v-if="isShowActionGroup">
       <div class="header-text font-medium">
@@ -80,8 +81,11 @@
         <el-button size="medium" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </el-dialog> -->
-    <div class="ky-drag-layout-bar" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">||</div>
   </aside>
+  <div class="ky-drag-layout-line" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">
+    <div class="ky-drag-layout-bar" unselectable="on" v-if="isShowDragWidthBar" v-drag:change.width="dataSourceDragData">||</div>
+  </div>
+</div>
 </template>
 
 <script>
@@ -593,12 +597,29 @@ export default class DataSourceBar extends Vue {
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
-
-.data-source-bar {
+.ky-drag-layout-line {
+  height: 100%;
+  border-left: 1px solid @line-border-color;
+  cursor: col-resize;
+  float: left;
+  z-index: 8;
+  width: 2px;
+  position: relative;
   .ky-drag-layout-bar {
-    right:-7px;
+    right:-4px;
     top:200px;
   }
+  &:hover {
+    border-color: @base-color;
+    .ky-drag-layout-bar {
+      background: #e6f3fb;
+      border: solid 1px #0988DE;
+      color: #0988DE;
+    }
+  }
+}
+.data-source-bar {
+  float: left;
   position:relative;
   height: 100%;
   .header,
