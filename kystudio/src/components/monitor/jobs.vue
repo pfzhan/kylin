@@ -40,226 +40,227 @@
         <el-checkbox v-model="isSelectAll" @change="selectAllChange">{{$t('selectAll')}}</el-checkbox>
       </div>
     </transition>
-    <el-table class="ksd-el-table jobs-table"
-      tooltip-effect="dark"
-      border
-      ref="jobsTable"
-      :data="jobsList"
-      highlight-current-row
-      :default-sort = "{prop: 'create_time', order: 'descending'}"
-      :empty-text="emptyText"
-      @sort-change="sortJobList"
-      @selection-change="handleSelectionChange"
-      @select="handleSelect"
-      @select-all="handleSelectAll"
-      @cell-click="showLineSteps"
-      :row-class-name="tableRowClassName"
-      :style="{width:showStep?'70%':'100%'}"
-      :key="$store.state.project.isAllProject">
-      <el-table-column type="selection" align="center" width="44"></el-table-column>
-      <el-table-column align="center" width="40" prop="icon" v-if="monitorActions.includes('jobActions')">
-        <template slot-scope="scope">
-          <i :class="{
-            'el-icon-arrow-right': scope.row.id !== selectedJob.id || !showStep,
-            'el-icon-arrow-down': scope.row.id == selectedJob.id && showStep}"></i>
-        </template>
-      </el-table-column>
-      <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">
-        <template slot-scope="scope">
-          {{$t(scope.row.job_name)}}
-        </template>
-      </el-table-column>
-      <el-table-column v-if="$store.state.project.isAllProject"
-        :label="$t('project')"
-        sortable='custom'
-        :width="120"
-        show-overflow-tooltip
-        prop="project">
-      </el-table-column>
-      <el-table-column
-        :label="$t('TargetSubject')"
-        sortable="custom"
-        min-width="140"
-        show-overflow-tooltip
-        prop="target_subject">
-        <template slot-scope="scope">
-          <span :class="{'is-disabled': scope.row.target_subject_error}">{{scope.row.target_subject}}</span>
-        </template>
-      </el-table-column>
-       <el-table-column
-        :label="$t('dataRange')"
-        min-width="180"
-        show-overflow-tooltip>
-        <template slot-scope="scope">
-          <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
-          <span v-else>{{scope.row.data_range_start | toServerGMTDate}} - {{scope.row.data_range_end | toServerGMTDate}}</span>
-        </template>
-      </el-table-column>
-      <el-table-column
-        width="180"
-        :filters="allStatus.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.status" :label="$t('ProgressStatus')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')">
-        <template slot-scope="scope">
-          <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
-        </template>
-      </el-table-column>
-      <el-table-column
-        width="218"
-        :label="$t('startTime')"
-        show-overflow-tooltip
-        prop="create_time"
-        sortable="custom">
-        <template slot-scope="scope">
-          {{transToGmtTime(scope.row.create_time)}}
-        </template>
-      </el-table-column>
-      <el-table-column
-        width="105"
-        sortable="custom"
-        prop="duration"
-        :label="$t('Duration')">
-        <template slot-scope="scope">
-          {{scope.row.duration/60/1000 | number(2) }}  mins
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('Actions')"
-        v-if="monitorActions.includes('jobActions')"
-        width="83">
-        <template slot-scope="scope">
-          <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-            <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project)"></i>
-          </common-tip>
-          <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'||scope.row.job_status=='RUNNING'">
-            <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project)"></i>
-          </common-tip>
-          <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-            <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id], scope.row.project)"></i>
-          </common-tip>
-          <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
-            <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project)"></i>
-          </common-tip>
-        </template>
-      </el-table-column>
-    </el-table>
-
-
-    <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
-
-    <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}" id="stepList">
-
-      <div class="timeline-item">
-        <div class="timeline-body">
-          <table class="table table-striped table-bordered ksd-table" cellpadding="0" cellspacing="0">
-            <tr>
-              <td>{{$t('kylinLang.common.jobs')}} ID</td>
-              <td class="single-line greyd0">
-                {{selectedJob.id}}
-              </td>
-            </tr>
-            <tr>
-              <td>{{$t('TargetSubject')}}</td>
-              <td>
-                <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || $store.state.project.isAllProject">{{selectedJob.target_subject}}</span>
-                <a v-else @click="gotoModelList(selectedJob.target_subject)">{{selectedJob.target_subject}}</a>
-              </td>
-            </tr>
-            <tr>
-              <td>{{$t('kylinLang.common.status')}}</td>
-              <td>
-                <el-tag
-                  size="small"
-                  :type="getJobStatusTag">
-                  {{selectedJob.job_status}}
-                </el-tag>
-              </td>
-            </tr>
-            <tr>
-              <td>{{$t('waiting')}}</td>
-              <td>{{selectedJob.wait_time/60/1000 | number(2)}} mins</td>
-            </tr>
-            <tr>
-              <td>{{$t('duration')}}</td>
-              <td class="greyd0">{{selectedJob.duration/60/1000 | number(2)}} mins</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-      <p class="time-hd">
-        {{$t('jobDetails')}}
-      </p>
-      <ul class="timeline">
-
-        <li v-for="(step, index) in selectedJob.details" :key="index" :class="{'finished' : step.step_status=='FINISHED'}">
-          <el-popover
-            placement="left"
-            width="300"
-            trigger="hover" popper-class="jobPoplayer">
-            <i slot="reference" class="fa"
-               :class="{
-              'el-icon-ksd-more_05' : step.step_status=='PENDING'|| step.step_status=='STOPPED',
-              'el-icon-loading' : step.step_status=='WAITING' || step.step_status=='RUNNING',
-              'el-icon-ksd-good_health' : step.step_status=='FINISHED',
-              'el-icon-ksd-error_01' : step.step_status=='ERROR',
-              'el-icon-ksd-table_discard' : step.step_status=='DISCARDED'
-            }">
-            </i>
-            <ul >
-              <li>{{$t('sequenceId')}}: {{step.sequence_id}}</li>
-              <li>{{$t('kylinLang.common.status')}}: {{step.step_status}}</li>
-              <li>{{$t('waiting')}}: {{step.wait_time/60/1000 | number(2)}} mins</li>
-              <li>{{$t('duration')}}: {{step.duration/60/1000 | number(2)}} mins</li>
-              <li>{{$t('startTime')}}: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
-              <li>{{$t('endTime')}}: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
-              <li v-if="step.info.hdfs_bytes_written">Data Size: <span>{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
-            </ul>
-          </el-popover>
-
-          <div class="timeline-item timer-line">
-            <div class="timeline-header ">
-              <p class="stepname single-line">{{step.name}}</p>
-            </div>
+    <el-row :gutter="10">
+      <el-col :span="showStep?17:24">
+        <el-table class="ksd-el-table jobs-table"
+          tooltip-effect="dark"
+          border
+          ref="jobsTable"
+          :data="jobsList"
+          highlight-current-row
+          :default-sort = "{prop: 'create_time', order: 'descending'}"
+          :empty-text="emptyText"
+          @sort-change="sortJobList"
+          @selection-change="handleSelectionChange"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
+          @cell-click="showLineSteps"
+          :row-class-name="tableRowClassName"
+          :key="$store.state.project.isAllProject">
+          <el-table-column type="selection" align="center" width="44"></el-table-column>
+          <el-table-column align="center" width="40" prop="icon" v-if="monitorActions.includes('jobActions')">
+            <template slot-scope="scope">
+              <i :class="{
+                'el-icon-arrow-right': scope.row.id !== selectedJob.id || !showStep,
+                'el-icon-arrow-down': scope.row.id == selectedJob.id && showStep}"></i>
+            </template>
+          </el-table-column>
+          <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">
+            <template slot-scope="scope">
+              {{$t(scope.row.job_name)}}
+            </template>
+          </el-table-column>
+          <el-table-column v-if="$store.state.project.isAllProject"
+            :label="$t('project')"
+            sortable='custom'
+            :width="120"
+            show-overflow-tooltip
+            prop="project">
+          </el-table-column>
+          <el-table-column
+            :label="$t('TargetSubject')"
+            sortable="custom"
+            min-width="140"
+            show-overflow-tooltip
+            prop="target_subject">
+            <template slot-scope="scope">
+              <span :class="{'is-disabled': scope.row.target_subject_error}">{{scope.row.target_subject}}</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('dataRange')"
+            min-width="180"
+            show-overflow-tooltip>
+            <template slot-scope="scope">
+              <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
+              <span v-else>{{scope.row.data_range_start | toServerGMTDate}} - {{scope.row.data_range_end | toServerGMTDate}}</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            width="180"
+            :filters="allStatus.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.status" :label="$t('ProgressStatus')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'status')">
+            <template slot-scope="scope">
+              <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
+            </template>
+          </el-table-column>
+          <el-table-column
+            width="218"
+            :label="$t('startTime')"
+            show-overflow-tooltip
+            prop="create_time"
+            sortable="custom">
+            <template slot-scope="scope">
+              {{transToGmtTime(scope.row.create_time)}}
+            </template>
+          </el-table-column>
+          <el-table-column
+            width="105"
+            sortable="custom"
+            prop="duration"
+            :label="$t('Duration')">
+            <template slot-scope="scope">
+              {{scope.row.duration/60/1000 | number(2) }}  mins
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="$t('Actions')"
+            v-if="monitorActions.includes('jobActions')"
+            width="83">
+            <template slot-scope="scope">
+              <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
+                <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project)"></i>
+              </common-tip>
+              <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'||scope.row.job_status=='RUNNING'">
+                <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project)"></i>
+              </common-tip>
+              <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
+                <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id], scope.row.project)"></i>
+              </common-tip>
+              <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
+                <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project)"></i>
+              </common-tip>
+            </template>
+          </el-table-column>
+        </el-table>
+        <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
+      </el-col>
+      <el-col :span="7" v-if="showStep">
+        <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}">
+          <div class="timeline-item">
             <div class="timeline-body">
-              <span class="steptime jobActivityLabel" v-if="step.exec_start_time && step.exec_end_time">
-                <i class="el-icon-time"></i>
-                {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
-              </span>
-
-              <div v-if="step.info.hdfs_bytes_written">
-                <span class="jobActivityLabel">Data Size: </span>
-                <span>{{step.info.hdfs_bytes_written|dataSize}}</span>
-              </div>
-              <div>
-                <span class="jobActivityLabel">{{$t('waiting')}}: </span>
-                <span v-if="step.wait_time">{{step.wait_time/60/1000 | number(2)}} mins</span>
-                <span v-else>0</span>
-              </div>
-              <div>
-                <span class="jobActivityLabel">{{$t('duration')}}: </span>
-                <span v-if="step.duration">{{step.duration/60/1000 | number(2)}} mins</span>
-                <span v-else>0
-                  <!-- <img src="../../assets/img/dot.gif" height="12px" width="10px"/> -->
-                </span>
-                <br />
-              </div>
-            </div>
-            <div class="timeline-footer">
-              
-              <!-- <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i> -->
-              <common-tip :content="$t('sparkJobTip')">
-                <a :href="step.info.yarn_application_tracking_url" target="_blank">
-                    <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
-                </a>
-              </common-tip>
-              <common-tip :content="$t('logInfoTip')">
-                <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-details ksd-ml-4" @click="clickFile(step)"></i>
-              </common-tip>
+              <table class="table table-striped table-bordered ksd-table" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>{{$t('kylinLang.common.jobs')}} ID</td>
+                  <td class="single-line greyd0">
+                    {{selectedJob.id}}
+                  </td>
+                </tr>
+                <tr>
+                  <td>{{$t('TargetSubject')}}</td>
+                  <td>
+                    <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || $store.state.project.isAllProject">{{selectedJob.target_subject}}</span>
+                    <a v-else @click="gotoModelList(selectedJob.target_subject)">{{selectedJob.target_subject}}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>{{$t('kylinLang.common.status')}}</td>
+                  <td>
+                    <el-tag
+                      size="small"
+                      :type="getJobStatusTag">
+                      {{selectedJob.job_status}}
+                    </el-tag>
+                  </td>
+                </tr>
+                <tr>
+                  <td>{{$t('waiting')}}</td>
+                  <td>{{selectedJob.wait_time/60/1000 | number(2)}} mins</td>
+                </tr>
+                <tr>
+                  <td>{{$t('duration')}}</td>
+                  <td class="greyd0">{{selectedJob.duration/60/1000 | number(2)}} mins</td>
+                </tr>
+              </table>
             </div>
           </div>
-        </li>
-      </ul>
-      <div class='job-btn' @click='showStep=false'><i class='el-icon-d-arrow-right' aria-hidden='true'></i>
-      </div>
-    </el-card>
+          <p class="time-hd">
+            {{$t('jobDetails')}}
+          </p>
+          <ul class="timeline">
+
+            <li v-for="(step, index) in selectedJob.details" :key="index" :class="{'finished' : step.step_status=='FINISHED'}">
+              <el-popover
+                placement="left"
+                width="300"
+                trigger="hover" popper-class="jobPoplayer">
+                <i slot="reference" class="fa"
+                  :class="{
+                  'el-icon-ksd-more_05' : step.step_status=='PENDING'|| step.step_status=='STOPPED',
+                  'el-icon-loading' : step.step_status=='WAITING' || step.step_status=='RUNNING',
+                  'el-icon-ksd-good_health' : step.step_status=='FINISHED',
+                  'el-icon-ksd-error_01' : step.step_status=='ERROR',
+                  'el-icon-ksd-table_discard' : step.step_status=='DISCARDED'
+                }">
+                </i>
+                <ul >
+                  <li>{{$t('sequenceId')}}: {{step.sequence_id}}</li>
+                  <li>{{$t('kylinLang.common.status')}}: {{step.step_status}}</li>
+                  <li>{{$t('waiting')}}: {{step.wait_time/60/1000 | number(2)}} mins</li>
+                  <li>{{$t('duration')}}: {{step.duration/60/1000 | number(2)}} mins</li>
+                  <li>{{$t('startTime')}}: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
+                  <li>{{$t('endTime')}}: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
+                  <li v-if="step.info.hdfs_bytes_written">Data Size: <span>{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
+                </ul>
+              </el-popover>
+
+              <div class="timeline-item timer-line">
+                <div class="timeline-header ">
+                  <p class="stepname single-line">{{step.name}}</p>
+                </div>
+                <div class="timeline-body">
+                  <span class="steptime jobActivityLabel" v-if="step.exec_start_time && step.exec_end_time">
+                    <i class="el-icon-time"></i>
+                    {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
+                  </span>
+
+                  <div v-if="step.info.hdfs_bytes_written">
+                    <span class="jobActivityLabel">Data Size: </span>
+                    <span>{{step.info.hdfs_bytes_written|dataSize}}</span>
+                  </div>
+                  <div>
+                    <span class="jobActivityLabel">{{$t('waiting')}}: </span>
+                    <span v-if="step.wait_time">{{step.wait_time/60/1000 | number(2)}} mins</span>
+                    <span v-else>0</span>
+                  </div>
+                  <div>
+                    <span class="jobActivityLabel">{{$t('duration')}}: </span>
+                    <span v-if="step.duration">{{step.duration/60/1000 | number(2)}} mins</span>
+                    <span v-else>0
+                      <!-- <img src="../../assets/img/dot.gif" height="12px" width="10px"/> -->
+                    </span>
+                    <br />
+                  </div>
+                </div>
+                <div class="timeline-footer">
+                  
+                  <!-- <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i> -->
+                  <common-tip :content="$t('sparkJobTip')">
+                    <a :href="step.info.yarn_application_tracking_url" target="_blank">
+                        <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-export"></i>
+                    </a>
+                  </common-tip>
+                  <common-tip :content="$t('logInfoTip')">
+                    <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-details ksd-ml-4" @click="clickFile(step)"></i>
+                  </common-tip>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <div class='job-btn' @click='showStep=false'><i class='el-icon-d-arrow-right' aria-hidden='true'></i>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
     <el-dialog :title="$t('waitingJobList')" limited-area :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="waitingJobListVisibel" width="480px">
       <div v-if="waitingJob">
         <div style="height:14px;line-height:14px;">
@@ -553,7 +554,7 @@ export default class JobsList extends Vue {
   closeTips () {
     this.$store.state.user.isShowAdminTips = false
     cacheLocalStorage('isHideAdminTips', true)
-    this.scrollRightBar(true)
+    // this.scrollRightBar(null, true)
   }
   handleCommand (uuid) {
     this.waitingJobListVisibel = true
@@ -675,9 +676,9 @@ export default class JobsList extends Vue {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     // window.removeEventListener('click', this.closeIt)
-    if (document.getElementById('scrollBox')) {
-      document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
-    }
+    // if (document.getElementById('scrollBox')) {
+    //   document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
+    // }
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
@@ -765,28 +766,29 @@ export default class JobsList extends Vue {
       return ''
     }
   }
-  scrollRightBar (needRizeTop) {
-    clearTimeout(this.scrollST)
-    this.scrollST = setTimeout(() => {
-      if (this.showStep) {
-        var sTop = document.getElementById('scrollBox').scrollTop
-        if (sTop < this.beforeScrollPos || needRizeTop) {
-          var result = sTop
-          var defaultTop = 92
-          if (this.$el.querySelector('.admin-tips')) {
-            defaultTop = 129
-          }
-          if (sTop < defaultTop) {
-            result = defaultTop
-          }
-          document.getElementById('stepList').style.top = result + 'px'
-        }
-        if (sTop === 0) {
-          this.beforeScrollPos = 0
-        }
-      }
-    }, 400)
-  }
+  // scrollRightBar (e, needRizeTop) {
+  //   clearTimeout(this.scrollST)
+  //   this.scrollST = setTimeout(() => {
+  //     if (this.showStep) {
+  //       var sTop = document.getElementById('scrollBox').scrollTop
+  //       console.log(this.beforeScrollPos)
+  //       if (sTop < this.beforeScrollPos || needRizeTop) {
+  //         var result = sTop
+  //         var defaultTop = 92
+  //         if (this.$el.querySelector('.admin-tips')) {
+  //           defaultTop = 129
+  //         }
+  //         if (sTop < defaultTop) {
+  //           result = defaultTop
+  //         }
+  //         document.getElementById('stepList').style.top = result + 'px'
+  //       }
+  //       if (sTop === 0) {
+  //         this.beforeScrollPos = 0
+  //       }
+  //     }
+  //   }, 400)
+  // }
   animatedNum (newValue, oldValue) {
     new TWEEN.Tween({
       number: oldValue
@@ -1265,13 +1267,14 @@ export default class JobsList extends Vue {
       position: relative;
     }
     .job-step {
-      width: 30%;
+      // width: 30%;
       min-height: calc(~'100vh - 167px');
       box-sizing: border-box;
-      z-index: 100;
-      position: absolute;
-      top: 0;
-      right: 0;
+      position: relative;
+      // z-index: 100;
+      // position: absolute;
+      // top: 0;
+      // right: 0;
       &.is-admin-tips {
         min-height: calc(~'100vh - 181px');
       }
