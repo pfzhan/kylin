@@ -374,6 +374,7 @@ export default class Dashboard extends Vue {
   }
   @Watch('daterange')
   onDatepickerChange () {
+    this.loadDashInfo()
     if (this.showQueryChart) {
       this.getQueryBarChartData()
       this.getQueryLineChartData()
