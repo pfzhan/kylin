@@ -117,6 +117,9 @@
           width="200px"
           :render-header="renderAdviceHeader"
           v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
+          <template slot-scope="scope">
+            <span class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
+          </template>
          </el-table-column>
          <el-table-column
           header-align="right"
@@ -468,6 +471,10 @@ export default class ModelList extends Vue {
       this.$refs.modelListTable.toggleRowExpansion(item)
     })
   }
+  async openRecommendDialog (modelDesc) {
+    const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
+    isSubmit && this.loadModelsList()
+  }
   async handleCommand (command, modelDesc) {
     if (command === 'dataCheck') {
       this.checkModelData({
@@ -478,8 +485,7 @@ export default class ModelList extends Vue {
         }
       })
     } else if (command === 'recommendations') {
-      const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
-      isSubmit && this.loadModelsList()
+      this.openRecommendDialog(modelDesc)
     } else if (command === 'dataLoad') {
       this.getModelByModelName({model_name: modelDesc.alias, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {
@@ -735,6 +741,10 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    .recommend-btn {
+      color: @base-color;
+      cursor: pointer;
+    }
     span.is-disabled {
       color: @text-disabled-color;
     }
