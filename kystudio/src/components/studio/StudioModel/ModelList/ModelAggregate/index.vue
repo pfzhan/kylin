@@ -382,6 +382,7 @@ export default class ModelAggregate extends Vue {
     </span>)
   }
   async buildAggIndex () {
+    await kapConfirm(this.$t('bulidTips', {modelName: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('buildIndex'), type: 'warning'})
     try {
       this.buildIndexLoading = true
       let res = await this.buildIndex({

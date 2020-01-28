@@ -39,7 +39,8 @@ export default {
     AVAILABLE: 'ONLINE',
     TO_BE_DELETED: 'LOCKED',
     BUILDING: 'BUILDING',
-    clearAll: 'Clear All'
+    clearAll: 'Clear All',
+    bulidTips: 'Are you sure to build all indices under the model {modelName}?'
   },
   'zh-cn': {
     aggregateGroup: '聚合索引',
@@ -81,6 +82,7 @@ export default {
     AVAILABLE: '在线',
     TO_BE_DELETED: '锁定',
     BUILDING: '构建中',
-    clearAll: '清除所有'
+    clearAll: '清除所有',
+    bulidTips: '你确认要构建模型 {modelName} 下的所有索引吗？'
   }
 }

@@ -15,7 +15,8 @@ export default {
     groupMembership: 'Group Membership',
     cofirmDelUser: 'Are you sure to delete the user {userName}?',
     delUserTitle: 'Delete User',
-    userList: 'User List'
+    userList: 'User List',
+    changeUserTips: 'Are you sure to {status} the user {userName}?'
   },
   'zh-cn': {
     back: '返回',
@@ -33,6 +34,7 @@ export default {
     groupMembership: '分组',
     cofirmDelUser: '确认删除用户 {userName} 吗？',
     delUserTitle: '删除用户',
-    userList: '用户列表'
+    userList: '用户列表',
+    changeUserTips: '你确认要{status}用户 {userName} 吗？'
   }
 }

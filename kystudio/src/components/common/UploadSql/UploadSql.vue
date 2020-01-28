@@ -83,8 +83,8 @@
               </kap-editor>
               <div class="operatorBox" v-if="isEditSql">
                 <div class="btn-group ksd-fright ky-no-br-space">
-                  <el-button size="small" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
-                  <el-button type="primary" size="small" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+                  <el-button size="small" plain @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
+                  <el-button size="small" :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
                 </div>
               </div>
             </div>
@@ -180,7 +180,7 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
-import { handleSuccess, kapConfirm } from '../../../util/business'
+import { handleSuccess, kapConfirm, kapWarn } from '../../../util/business'
 import SuggestModel from './SuggestModel.vue'
 
 vuex.registerModule(['modals', 'UploadSqlModel'], store)
@@ -611,6 +611,10 @@ export default class UploadSqlModel extends Vue {
     }
   }
   async editWhiteSql (sqlObj) {
+    if (this.isEditSql) {
+      kapWarn(this.$t('editSqlTips'))
+      return
+    }
     this.isEditSql = true
     this.inputHeight = 382
     if (sqlObj.capable) {
@@ -637,6 +641,10 @@ export default class UploadSqlModel extends Vue {
     this.isReadOnly = false
   }
   async activeSql (sqlObj) {
+    if (this.isEditSql) {
+      kapWarn(this.$t('editSqlTips'))
+      return
+    }
     this.activeSqlObj = sqlObj
     this.isEditSql = false
     this.isReadOnly = true

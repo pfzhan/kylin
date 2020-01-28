@@ -83,12 +83,14 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
     'en': {
       trace: 'Trace',
       queryBox: 'Query Box',
-      linkToSpark: 'Jump to Spark Web UI'
+      linkToSpark: 'Jump to Spark Web UI',
+      resetTips: 'Are you sure to reset the SQL Editor?'
     },
     'zh-cn': {
       trace: '追踪',
       queryBox: '查询窗口',
-      linkToSpark: '跳转至 Spark 任务详情'
+      linkToSpark: '跳转至 Spark 任务详情',
+      resetTips: '你确认要重置查询编辑器吗？'
     }
   }
 })
@@ -152,7 +154,8 @@ export default class QueryTab extends Vue {
       this.listRows = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
     })
   }
-  resetQuery () {
+  async resetQuery () {
+    await kapConfirm(this.$t('resetTips'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.query.clear'), type: 'warning'})
     this.$emit('resetQuery')
     this.$nextTick(() => {
       this.sourceSchema = ''

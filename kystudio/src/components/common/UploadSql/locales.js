@@ -27,7 +27,8 @@ export default {
     newModelList: 'New Model',
     newModelTips: 'You can select the new models you want and expand to see which SQL these models come from. Click the Submit button and the new models will be added to the model list, which you can view and edit on the model page.',
     originModelTips: 'You can observe the number of new recommendations for existing models and expand to see which SQL these recommendations come from. The new recommendations have been added to the recommendation lists of the corresponding models, where you can accept the required recommendations.',
-    existedAnsweredModels: 'There already exist models which can match some of the SQLs who need to be accelerated. Do you need to convert these SQLs into the recommendation of the corresponding models? If convert, new recommendations will be added to the recommendation lists of the corresponding models directly. If not, new models will be created to match these SQLs.'
+    existedAnsweredModels: 'There already exist models which can match some of the SQLs who need to be accelerated. Do you need to convert these SQLs into the recommendation of the corresponding models? If convert, new recommendations will be added to the recommendation lists of the corresponding models directly. If not, new models will be created to match these SQLs.',
+    editSqlTips: 'You have unfinished modifications.'
   },
   'zh-cn': {
     importSql: '导入 SQL 文件',
@@ -57,6 +58,7 @@ export default {
     newModelList: '新增模型',
     newModelTips: '您可以勾选需要的新模型，并展开查看该模型来自于哪些SQL。点击提交按钮，所勾选的模型将会被加入模型列表，您可以在模型页面进行查看和编辑。',
     originModelTips: '您可以查看已有模型的新增建议数量，并展开查看它们来自于哪些SQL。新增优化建议已经被加入对应模型的优化建议列表中，您可以在对应模型的优化建议中选择并通过需要的建议。',
-    existedAnsweredModels: '当前已存在模型可以回答部分所需加速的SQL，请问是否将这部分SQL转换为对应模型的优化建议？如果转换，新增优化建议将被直接加入对应模型的优化建议列表，如果不转换，将对这部分SQL建立新的模型。'
+    existedAnsweredModels: '当前已存在模型可以回答部分所需加速的SQL，请问是否将这部分SQL转换为对应模型的优化建议？如果转换，新增优化建议将被直接加入对应模型的优化建议列表，如果不转换，将对这部分SQL建立新的模型。',
+    editSqlTips: '你有未完成的修改。'
   }
 }
