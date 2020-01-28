@@ -14,7 +14,7 @@ export const modelRenderConfig = {
   baseLeft: 100, // 可视区域距离画布最左侧距离
   baseTop: 10, // 可视区域距离画布最顶部距离
   tableBoxWidth: 220, // table盒子宽度
-  tableBoxHeight: 180, // table盒子高度
+  tableBoxHeight: 200, // table盒子高度
   tableBoxLeft: 50, // table盒子相对于左侧兄弟元素距离
   tableBoxTop: 50, // table盒子相对于顶部兄弟元素距离
   zoom: 9,
