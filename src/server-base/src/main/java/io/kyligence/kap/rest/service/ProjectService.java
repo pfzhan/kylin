@@ -57,7 +57,6 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -232,12 +231,10 @@ public class ProjectService extends BasicService {
         if (favoriteScheduler.hasStarted()) {
             List<Future> futures = favoriteScheduler.scheduleImmediately();
             for (val future : futures) {
-                while (!future.isDone()) {
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        throw Throwables.propagate(e);
-                    }
+                try {
+                    future.get();
+                } catch (Exception e) {
+                    logger.error("msg", e);
                 }
             }
         }
