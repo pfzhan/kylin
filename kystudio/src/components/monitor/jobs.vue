@@ -160,7 +160,7 @@
                   <td>{{$t('TargetSubject')}}</td>
                   <td>
                     <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || selectedJob.target_subject_error">{{selectedJob.target_subject}}</span>
-                    <a v-else @click="gotoModelList(selectedJob)">{{selectedJob.target_subject}}</a>
+                    <a class="link" v-else @click="gotoModelList(selectedJob)">{{selectedJob.target_subject}}</a>
                   </td>
                 </tr>
                 <tr>
@@ -1304,6 +1304,9 @@ export default class JobsList extends Vue {
               word-break: break-word;
               a {
                 color: @base-color;
+                &.link{
+                  text-decoration: underline;
+                }
               }
             }
           &:last-child {
