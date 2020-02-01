@@ -581,7 +581,7 @@ export default class BatchMeasureModal extends Vue {
   listenEvent () {
     if (!this.$refs.batchMeasures.$el.children.length) return
     for (let item of this.$refs.batchMeasures.$el.children[0].children) {
-      item.classList.value.indexOf('el-dialog__body') > -1 && (item.addEventListener('scroll', this.addScrollEvent), this.scrollDom = item)
+      item.classList[0].indexOf('el-dialog__body') > -1 && (item.addEventListener('scroll', this.addScrollEvent), this.scrollDom = item)
     }
     this.getTableTops()
   }
@@ -597,10 +597,11 @@ export default class BatchMeasureModal extends Vue {
           return
         }
         const scrollTable = document.querySelectorAll('.scroll-table-item')
-        this.scrollTableList.forEach((item, index) => {
+
+        for (var index = 0; index < this.scrollTableList.length; index++) {
           const target = scrollTable[index].getElementsByClassName('el-table__header-wrapper')
 
-          if (!target.length) return
+          if (!target.length) continue
 
           if (index === list.length - 1 && !overCurrentHeightList[index]) {
             this.targetFixedTable = target
@@ -610,7 +611,7 @@ export default class BatchMeasureModal extends Vue {
             target[0].style.cssText = ''
             target[0].nextSibling.style.cssText = ''
           }
-        })
+        }
       }
     } catch (e) {
       console.error(e)

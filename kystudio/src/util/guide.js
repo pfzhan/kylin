@@ -76,7 +76,7 @@ class Guide {
     resolve()
   }
   _focus (el) {
-    el.focus && el.focus()
+    // el.focus && el.focus()
   }
   _input (el, val, resolve) {
     this._focus(el)

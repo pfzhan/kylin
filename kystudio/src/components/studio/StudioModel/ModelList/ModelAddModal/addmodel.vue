@@ -1,9 +1,9 @@
 <template>
-   <el-dialog :title="$t('kylinLang.model.addModel')" limited-area width="480px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="closeModal()">
+   <el-dialog :title="$t('kylinLang.model.addModel')" limited-area width="480px" :visible="isShow" v-if="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="closeModal()">
       <el-form :model="createModelMeta" @submit.native.prevent :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
         <el-form-item prop="newName">
           <span slot="label">{{$t('kylinLang.model.modelName')}}<common-tip :content="$t('kylinLang.model.modelNameTips')"><i class="el-icon-ksd-what ksd-ml-5"></i></common-tip></span>
-          <el-input v-focus="isShow" v-guide.inputModelName  v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
+          <el-input v-guide.inputModelName name="modelName" v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc">
          <el-input
@@ -23,7 +23,7 @@
 </template>
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import vuex from '../../../../../store'
 import { NamedRegex } from 'config'
@@ -33,7 +33,7 @@ import store, { types } from './store'
 vuex.registerModule(['modals', 'ModelAddModal'], store)
 @Component({
   computed: {
-    ...mapGetters(['currentSelectedProject']),
+    ...mapGetters(['currentSelectedProject', 'isGuideMode']),
     ...mapState('ModelAddModal', {
       isShow: state => state.isShow,
       callback: state => state.callback
@@ -60,6 +60,15 @@ export default class ModelAddModal extends Vue {
   }
   rules = {
     newName: [{ required: true, validator: this.checkName, trigger: 'blur' }]
+  }
+  @Watch('isShow')
+  changeShowType (newVal, oldVal) {
+    if (!oldVal && newVal) {
+      this.$nextTick(() => {
+        const dom = this.$el.querySelector('input[name=modelName]')
+        dom && !this.isGuideMode && dom.focus()
+      })
+    }
   }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
