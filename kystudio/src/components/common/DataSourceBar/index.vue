@@ -1,5 +1,5 @@
 <template>
-<div style="height: 100%;">
+<div style="height: 100%;" class="clearfix">
   <aside class="data-source-bar" :style="dataSourceStyle">
     <section class="header clearfix" v-if="isShowActionGroup">
       <div class="header-text font-medium">
@@ -599,14 +599,13 @@ export default class DataSourceBar extends Vue {
 @import '../../../assets/styles/variables.less';
 .ky-drag-layout-line {
   height: 100%;
-  border-left: 1px solid @line-border-color;
+  border-left: 1px solid #cfd8dc;
   cursor: col-resize;
   float: left;
   z-index: 8;
-  width: 2px;
   position: relative;
   .ky-drag-layout-bar {
-    right:-4px;
+    right:-5px;
     top:200px;
   }
   &:hover {
@@ -622,6 +621,7 @@ export default class DataSourceBar extends Vue {
   float: left;
   position:relative;
   height: 100%;
+  width: 100%;
   .header,
   .body {
     width: 250px;
