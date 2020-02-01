@@ -84,7 +84,8 @@
             show-overflow-tooltip
             prop="target_subject">
             <template slot-scope="scope">
-              <span :class="{'is-disabled': scope.row.target_subject_error}">{{scope.row.target_subject}}</span>
+              <span :class="{'is-disabled': scope.row.target_subject_error}" v-if="scope.row.job_name === 'TABLE_SAMPLING' || scope.row.target_subject_error">{{scope.row.target_subject}}</span>
+              <a class="link" v-else @click="gotoModelList(scope.row)">{{scope.row.target_subject}}</a>
             </template>
           </el-table-column>
           <el-table-column
@@ -158,8 +159,8 @@
                 <tr>
                   <td>{{$t('TargetSubject')}}</td>
                   <td>
-                    <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || $store.state.project.isAllProject">{{selectedJob.target_subject}}</span>
-                    <a v-else @click="gotoModelList(selectedJob.target_subject)">{{selectedJob.target_subject}}</a>
+                    <span v-if="selectedJob.job_name === 'TABLE_SAMPLING' || selectedJob.target_subject_error">{{selectedJob.target_subject}}</span>
+                    <a v-else @click="gotoModelList(selectedJob)">{{selectedJob.target_subject}}</a>
                   </td>
                 </tr>
                 <tr>
@@ -300,7 +301,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapMutations } from 'vuex'
 import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
@@ -324,6 +325,9 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
+    }),
+    ...mapMutations({
+      setProject: 'SET_PROJECT'
     })
   },
   computed: {
@@ -590,8 +594,15 @@ export default class JobsList extends Vue {
     }
     return true
   }
-  gotoModelList (modelAlias) {
-    this.$router.push({name: 'ModelList', params: { modelAlias: modelAlias }})
+  gotoModelList (item) {
+    // 暂停轮询，清掉计时器
+    clearTimeout(this.stCycle)
+    this.isPausePolling = true
+    // 如果是全 project 模式，需要先改变当前 project 选中值
+    if (this.$store.state.project.isAllProject) {
+      this.setProject(item.project)
+    }
+    this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
   }
   renderColumn (h) {
     let items = []
@@ -1455,6 +1466,10 @@ export default class JobsList extends Vue {
     .jobs-table {
       span.is-disabled {
         color: @text-disabled-color;
+      }
+      .link{
+        text-decoration: underline;
+        color:@base-color;
       }
       .el-icon-ksd-filter {
         position: relative;
