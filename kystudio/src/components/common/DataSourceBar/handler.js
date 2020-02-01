@@ -190,10 +190,17 @@ export function getTableObj (that, database, table, ignoreColumn) {
     dateRange: dateRangeStr,
     isSelected: false,
     parent: database,
+    isMore: false,
+    child_options: {
+      page_offset: 1,
+      page_size: 10
+    },
     __data: table
   }
   if (!ignoreColumn) {
-    tableObj.children = getColumnObjArray(that, tableObj)
+    tableObj.children = getColumnObjArray(that, tableObj).slice(0, tableObj.child_options.page_size - 1)
+    tableObj.childContent = getColumnObjArray(that, tableObj)
+    tableObj.isMore = tableObj.childContent.length > tableObj.child_options.page_size
   } else {
     tableObj.children = null
   }
@@ -282,6 +289,7 @@ export function freshTreeOrder (that) {
       })
       database.children.forEach(table => {
         table.children && table.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+        table.childContent && table.childContent.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
       })
     })
   })

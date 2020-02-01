@@ -255,7 +255,15 @@ export default class TreeList extends Vue {
   }
   handleNodeClick (data, node) {
     switch (data.type) {
-      case 'isMore': this.$emit('load-more', data, node); break
+      case 'isMore':
+        if (data.text === 'columns') {
+          data.parent.child_options.page_offset += 1
+          'childContent' in data.parent && (data.parent.children = data.parent.childContent.slice(0, data.parent.child_options.page_offset * data.parent.child_options.page_size - 1))
+          data.parent.isMore = data.parent.child_options.page_offset * data.parent.child_options.page_size < data.parent.childContent.length
+        } else {
+          this.$emit('load-more', data, node)
+        }
+        break
       default: this.$emit('click', data, node); break
     }
   }
@@ -334,7 +342,7 @@ export default class TreeList extends Vue {
       }
       if (lastChild && lastChild.type !== 'isMore') {
         data.children = data.children.filter(child => child.type !== 'isMore')
-        data.children.push({ id: 'isMore', label: '', type: 'isMore', isSelected: false, parent: data })
+        data.children.push({ id: 'isMore', label: '', type: 'isMore', isSelected: false, parent: data, text: 'childContent' in data ? 'columns' : '' })
       }
     } else {
       if (hasMoreNode) {
