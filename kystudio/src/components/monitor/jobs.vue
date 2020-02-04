@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="jobListPage">
   <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips&&isAdminRole" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20">
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
@@ -40,8 +40,8 @@
         <el-checkbox v-model="isSelectAll" @change="selectAllChange">{{$t('selectAll')}}</el-checkbox>
       </div>
     </transition>
-    <el-row :gutter="10">
-      <el-col :span="showStep?17:24">
+    <el-row :gutter="10" id="listBox">
+      <el-col :span="showStep?17:24" id="leftTableBox">
         <el-table class="ksd-el-table jobs-table"
           tooltip-effect="dark"
           border
@@ -145,8 +145,8 @@
         </el-table>
         <kap-pager :totalSize="jobTotal" :curPage="filter.page_offset+1"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </el-col>
-      <el-col :span="7" v-if="showStep">
-        <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}">
+      <el-col :span="7" v-if="showStep" id="rightDetail">
+        <el-card v-show="showStep" class="card-width job-step" :class="{'is-admin-tips': $store.state.user.isShowAdminTips&&isAdminRole}" id="stepList">
           <div class="timeline-item">
             <div class="timeline-body">
               <table class="table table-striped table-bordered ksd-table" cellpadding="0" cellspacing="0">
@@ -678,18 +678,17 @@ export default class JobsList extends Vue {
     clearTimeout(this.stCycle)
   }
   mounted () {
-    // window.addEventListener('click', this.closeIt)
-    // if (document.getElementById('scrollBox')) {
-    //   document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
-    // }
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').addEventListener('scroll', this.scrollRightBar, false)
+    }
   }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     // window.removeEventListener('click', this.closeIt)
-    // if (document.getElementById('scrollBox')) {
-    //   document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
-    // }
+    if (document.getElementById('scrollContent')) {
+      document.getElementById('scrollContent').removeEventListener('scroll', this.scrollRightBar, false)
+    }
   }
   getJobsList () {
     return new Promise((resolve, reject) => {
@@ -777,29 +776,55 @@ export default class JobsList extends Vue {
       return ''
     }
   }
-  // scrollRightBar (e, needRizeTop) {
-  //   clearTimeout(this.scrollST)
-  //   this.scrollST = setTimeout(() => {
-  //     if (this.showStep) {
-  //       var sTop = document.getElementById('scrollBox').scrollTop
-  //       console.log(this.beforeScrollPos)
-  //       if (sTop < this.beforeScrollPos || needRizeTop) {
-  //         var result = sTop
-  //         var defaultTop = 92
-  //         if (this.$el.querySelector('.admin-tips')) {
-  //           defaultTop = 129
-  //         }
-  //         if (sTop < defaultTop) {
-  //           result = defaultTop
-  //         }
-  //         document.getElementById('stepList').style.top = result + 'px'
-  //       }
-  //       if (sTop === 0) {
-  //         this.beforeScrollPos = 0
-  //       }
-  //     }
-  //   }, 400)
-  // }
+  setRightBarTop () {
+    // 默认右侧详情的位移为 0
+    let result = 0
+    // 左边列表区域的高度
+    let leftTableH = document.getElementById('leftTableBox').clientHeight
+    // 右侧详情的高度
+    let rightStepDetailH = document.getElementById('stepList').clientHeight
+    // 可视区剔除掉导航头后的高度
+    let screenH = document.documentElement.clientHeight - 52
+    // 当前滚动距离
+    let sTop = document.getElementById('scrollContent').scrollTop
+    // this.beforeScrollPos = sTop
+    // 整个列表区距离顶部的位移
+    let listBoxOffsetTop = document.getElementById('listBox').offsetTop
+    /*
+      1、列表在一屏内，详情也在一屏，相当于没有滚动条，不做啥处理
+      2、列表在一屏内，详情超出一屏幕，让详情跟着滚，其实同1
+      3、列表超出一屏，详情在一屏内，让详情始终顶边即可
+      4、列表超出一屏，详情也超出一屏，列表高度比详情高度小，这种只能跟着滚，不做顶边
+      5、列表超出一屏，详情也超出一屏，列表高度比详情高度大，详情不断改位置，一直到，详情底部位置和列表一致了，位置就保持不变了
+    */
+    // 列表在一屏幕以内的，都是跟着滚，保持 0 即可，其余情况开始判断
+    if (leftTableH > screenH) {
+      if (rightStepDetailH <= screenH) { // 详情在一屏幕内的，滚动后超出界面了，保持顶边，其余时候也是 0
+        if (sTop > listBoxOffsetTop) {
+          result = sTop - listBoxOffsetTop
+        }
+      } else {
+        // 列表超出一屏，详情也超出一屏，列表高度比详情高度大，详情不断改位置，一直到，详情底部位置和列表一致了，位置就保持不变了，其余情况就还是跟着滚的 0
+        if (leftTableH > rightStepDetailH) {
+          let temp = leftTableH - rightStepDetailH
+          if (sTop > listBoxOffsetTop) {
+            result = sTop - listBoxOffsetTop > temp ? temp : sTop - listBoxOffsetTop
+          }
+        }
+      }
+    }
+    if (document.getElementById('stepList')) {
+      document.getElementById('stepList').style.top = result + 'px'
+    }
+  }
+  scrollRightBar (e, needRizeTop) {
+    clearTimeout(this.scrollST)
+    this.scrollST = setTimeout(() => {
+      if (this.showStep) {
+        this.setRightBarTop()
+      }
+    }, 400)
+  }
   animatedNum (newValue, oldValue) {
     new TWEEN.Tween({
       number: oldValue
@@ -1138,17 +1163,7 @@ export default class JobsList extends Vue {
         handleSuccess(res, (data) => {
           this.$nextTick(() => {
             this.$set(this.selectedJob, 'details', data)
-            var sTop = document.getElementById('scrollBox').scrollTop
-            this.beforeScrollPos = sTop
-            /* var result = sTop
-            var defaultTop = 92
-            if (this.$el.querySelector('.admin-tips')) {
-              defaultTop = 129
-            }
-            if (sTop < defaultTop) {
-              result = defaultTop
-            }
-            document.getElementById('stepList').style.top = result + 'px' */
+            this.setRightBarTop()
           })
         }, (resError) => {
           handleError(resError)
