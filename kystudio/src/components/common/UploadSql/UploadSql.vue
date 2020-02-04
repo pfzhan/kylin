@@ -329,6 +329,10 @@ export default class UploadSqlModel extends Vue {
     }, 500)
   }
   delWhiteComfirm (id) {
+    if (this.isEditSql) {
+      kapWarn(this.$t('editSqlTips'))
+      return
+    }
     kapConfirm(this.$t('delSql'), null, this.$t('delSqlTitle')).then(() => {
       this.delWhite(id)
     })
