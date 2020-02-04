@@ -7,7 +7,7 @@
         <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model_name" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
         </el-input>
       </div>
-      <div class="ky-no-br-space">
+      <div class="ky-no-br-space model-list-header">
         <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
           <span>{{$t('kylinLang.common.model')}}</span>
         </el-button>
@@ -694,7 +694,7 @@ export default class ModelList extends Vue {
       display: none;
     }
   }
-  .ky-no-br-space {
+  .model-list-header {
     height: 50px;
   }
   .full-model-slide-fade-enter-active {
