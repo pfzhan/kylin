@@ -267,6 +267,7 @@ export default class UploadSqlModel extends Vue {
     this.uploadFlag = 'step1'
     this.uploadItems = []
     this.activeSqlObj = null
+    this.isEditSql = false
     this.pagerTableData = []
     this.whiteSqlFilter = ''
     this.importLoading = false
