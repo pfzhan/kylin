@@ -91,12 +91,9 @@ public class NExecutableManager {
     private static final Logger logger = LoggerFactory.getLogger(NExecutableManager.class);
     private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
 
-    private static final int CMD_EXEC_TIMEOUT_SEC = 5;
-    private static final int PROCESS_TERM_TIMEOUT_SEC = 5;
+    private static final int CMD_EXEC_TIMEOUT_SEC = 60;
 
-    private static final String SIGKILL = "-9";
-    private static final String SIGTERM = "-15";
-    private static final String KILL_CHILD_PROCESS = "kill-child-process.sh";
+    private static final String KILL_PROCESS_TREE = "kill-process-tree.sh";
 
     private static final Set<String> REMOVE_INFO = Sets.newHashSet(ExecutableConstants.YARN_APP_ID,
             ExecutableConstants.YARN_APP_URL, ExecutableConstants.YARN_JOB_WAIT_TIME,
@@ -550,48 +547,31 @@ public class NExecutableManager {
 
     public void destroyProcess(String jobId) {
         Process originProc = JobProcessContext.getProcess(jobId);
-        if (originProc != null && originProc.isAlive()) {
+        if (Objects.nonNull(originProc) && originProc.isAlive()) {
             try {
                 final int ppid = getPid(originProc);
                 logger.info("start to destroy process {} of job {}", ppid, jobId);
                 //build cmd template
-                StringBuilder sb = new StringBuilder("bash ");
-                sb.append(Paths.get(KylinConfig.getKylinHome(), "sbin", KILL_CHILD_PROCESS));
-                sb.append(" %s ").append(ppid);
-                final String template = sb.toString();
-                //SIGTERM
-                final String termCmd = String.format(template, SIGTERM);
-                Process termProc = Runtime.getRuntime().exec(termCmd);
-                if (termProc.waitFor(CMD_EXEC_TIMEOUT_SEC, TimeUnit.SECONDS)) {
-                    logger.info("try to destroy process {} of job {} by SIGTERM, exec cmd '{}', exitValue : {}", ppid,
-                            jobId, termCmd, termProc.exitValue());
-                    if (originProc.waitFor(PROCESS_TERM_TIMEOUT_SEC, TimeUnit.SECONDS)) {
-                        logger.info("destroy process {} of job {} successfully in {}s", ppid, jobId,
-                                PROCESS_TERM_TIMEOUT_SEC);
-                        return;
-                    }
-                    logger.info("destroy process {} of job {} by SIGTERM exceed {}s", ppid, jobId,
-                            PROCESS_TERM_TIMEOUT_SEC);
-                }
-                //SIGKILL
-                final String killCmd = String.format(template, SIGKILL);
+                StringBuilder cmdBuilder = new StringBuilder("bash ");
+                cmdBuilder.append(Paths.get(KylinConfig.getKylinHome(), "sbin", KILL_PROCESS_TREE));
+                cmdBuilder.append(" ");
+                cmdBuilder.append(ppid);
+                final String killCmd = cmdBuilder.toString();
                 Process killProc = Runtime.getRuntime().exec(killCmd);
                 if (killProc.waitFor(CMD_EXEC_TIMEOUT_SEC, TimeUnit.SECONDS)) {
-                    logger.info("try to destroy process {} of job {} by SIGKILL, exec cmd '{}', exitValue : {}", ppid,
-                            jobId, killCmd, killProc.exitValue());
-                    if (originProc.waitFor(PROCESS_TERM_TIMEOUT_SEC, TimeUnit.SECONDS)) {
-                        logger.info("destroy process {} of job {} successfully in {}s", ppid, jobId,
-                                PROCESS_TERM_TIMEOUT_SEC);
+                    logger.info("try to destroy process {} of job {}, exec cmd '{}', exitValue : {}", ppid, jobId,
+                            killCmd, killProc.exitValue());
+                    if (!originProc.isAlive()) {
+                        logger.info("destroy process {} of job {} SUCCEED.", ppid, jobId);
                         return;
                     }
-                    logger.info("destroy process {} of job {} by SIGKILL exceed {}s", ppid, jobId,
-                            PROCESS_TERM_TIMEOUT_SEC);
+                    logger.info("destroy process {} of job {} FAILED.", ppid, jobId);
                 }
 
                 //generally, code executing wouldn't reach here
-                logger.warn("destroy process {} of job {} exceed {}s.", ppid, jobId, CMD_EXEC_TIMEOUT_SEC);
+                logger.warn("destroy process {} of job {} TIMEOUT exceed {}s.", ppid, jobId, CMD_EXEC_TIMEOUT_SEC);
             } catch (Exception e) {
-                logger.error("destroy process of job {} failed.", jobId, e);
+                logger.error("destroy process of job {} FAILED.", jobId, e);
             }
         }
     }
