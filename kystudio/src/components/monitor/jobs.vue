@@ -1140,7 +1140,7 @@ export default class JobsList extends Vue {
             this.$set(this.selectedJob, 'details', data)
             var sTop = document.getElementById('scrollBox').scrollTop
             this.beforeScrollPos = sTop
-            var result = sTop
+            /* var result = sTop
             var defaultTop = 92
             if (this.$el.querySelector('.admin-tips')) {
               defaultTop = 129
@@ -1148,7 +1148,7 @@ export default class JobsList extends Vue {
             if (sTop < defaultTop) {
               result = defaultTop
             }
-            document.getElementById('stepList').style.top = result + 'px'
+            document.getElementById('stepList').style.top = result + 'px' */
           })
         }, (resError) => {
           handleError(resError)
