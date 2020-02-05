@@ -17,7 +17,7 @@
         </el-select>
       </el-form-item>
       <el-form-item v-if="measure.expression === 'TOP_N'|| measure.expression === 'PERCENTILE_APPROX' || measure.expression === 'COUNT_DISTINCT'" :label="$t('return_type')" >
-        <el-select :popper-append-to-body="false" size="medium" v-model="measure.return_type" class="measures-width">
+        <el-select :popper-append-to-body="false" size="medium" v-model="measure.return_type" class="measures-width" @change="changeReturnType">
           <el-option
             v-for="(item, index) in getSelectDataType"
             :key="index"
@@ -33,7 +33,8 @@
           <div class="flex-item">
             <el-select v-guide.measureReturnValSelect :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
-            'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
+            'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N',
+            'error-tip': showMutipleColumnsTip}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
             filterable @change="changeParamValue" :disabled="isEdit">
               <i slot="prefix" class="el-input__icon el-icon-search" v-if="!measure.parameterValue.value"></i>
@@ -67,7 +68,7 @@
       <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem" :class="{'measure-column-multiple': measure.expression === 'COUNT_DISTINCT'}">
         <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
-            <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
+            <el-select :class="['measures-width', {'error-tip': showMutipleColumnsTip}]" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')" filterable @change="changeConColParamValue(column.value, index)">
               <i slot="prefix" class="el-input__icon el-icon-search" v-if="!column.value"></i>
               <el-option
                 v-for="(item, index) in getParameterValue2"
@@ -149,7 +150,8 @@ import $ from 'jquery'
       addCCTip: 'Create Computed Column',
       editMeasureTitle: 'Edit Measure',
       addMeasureTitle: 'Add Measure',
-      sameColumn: 'Column has been defined as a measure by the same function'
+      sameColumn: 'Column has been defined as a measure by the same function',
+      selectMutipleColumnsTip: 'The {expression} function supports only one column when the function parameter is {params}.'
     },
     'zh-cn': {
       requiredName: '请输入度量名称',
@@ -167,7 +169,8 @@ import $ from 'jquery'
       addCCTip: '创建可计算列',
       editMeasureTitle: '编辑度量',
       addMeasureTitle: '添加度量',
-      sameColumn: '该列已被相同函数定义为度量'
+      sameColumn: '该列已被相同函数定义为度量',
+      selectMutipleColumnsTip: '{expression} 函数在函数参数为 {params} 时仅支持选择单列。'
     }
   }
 })
@@ -224,6 +227,7 @@ export default class AddMeasure extends Vue {
   integerType = ['bigint', 'int', 'integer', 'smallint', 'tinyint']
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
+  showMutipleColumnsTip = false
 
   get rules () {
     return {
@@ -290,6 +294,7 @@ export default class AddMeasure extends Vue {
     this.corrCCVisible = false
     this.ccVisible = false
     this.isEdit = false
+    this.showMutipleColumnsTip = false
     if (this.measure.expression === 'SUM(constant)' || this.measure.expression === 'COUNT(constant)') {
       this.measure.parameterValue.type = 'constant'
       this.measure.parameterValue.value = 1
@@ -310,6 +315,14 @@ export default class AddMeasure extends Vue {
       this.measure.convertedColumns = [{type: 'column', value: '', table_guid: null}]
     } else {
       this.measure.convertedColumns = []
+    }
+  }
+
+  changeReturnType () {
+    this.showMutipleColumnsTip = false
+    if (this.measure.expression === 'COUNT_DISTINCT') {
+      this.measure.convertedColumns = []
+      this.measure.parameterValue.value = ''
     }
   }
 
@@ -483,6 +496,21 @@ export default class AddMeasure extends Vue {
   checkMeasure () {
     this.$refs.measureForm.validate((valid) => {
       if (valid) {
+        // 老数据有多列但函数参数仅支持单列，此时提示错误信息
+        let message = ''
+        if (this.measure.expression === 'COUNT_DISTINCT' && this.measure.return_type === 'bitmap' && this.measure.convertedColumns.length) {
+          this.showMutipleColumnsTip = true
+          message = this.$t('selectMutipleColumnsTip', {expression: this.measure.expression, params: 'Precisely'})
+        }
+        if (this.showMutipleColumnsTip) {
+          this.$message({
+            type: 'error',
+            showClose: true,
+            duration: 0,
+            message
+          })
+          return
+        }
         const measureClone = objectClone(this.measure)
         // 判断该操作是否属于搜索入口进来
         let isFromSearchAciton = measureClone.fromSearch
@@ -516,6 +544,7 @@ export default class AddMeasure extends Vue {
     }
     this.ccVisible = false
     this.isEdit = false
+    this.showMutipleColumnsTip = false
   }
 
   initExpression () {
@@ -549,6 +578,13 @@ export default class AddMeasure extends Vue {
       this.resetMeasure()
     }
   }
+
+  @Watch('measure.convertedColumns')
+  onConvertedColumnsChange (val) {
+    if (this.measure.expression === 'COUNT_DISTINCT' && this.measure.return_type === 'bitmap' && !val.length) {
+      this.showMutipleColumnsTip = false
+    }
+  }
 }
 </script>
 
@@ -561,6 +597,11 @@ export default class AddMeasure extends Vue {
       .flex-item {
         flex-shrink: 1;
         width: 100%;
+        .error-tip {
+          input {
+            border: 1px solid @error-color-1;
+          }
+        }
       }
     }
     .measures-width {
