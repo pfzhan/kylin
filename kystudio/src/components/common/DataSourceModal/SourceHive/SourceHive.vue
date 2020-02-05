@@ -33,7 +33,7 @@
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
           <p class="empty-text">{{emptyText}}</p>
         </div>
-        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterData || treeData.length === 0) && !loadingTreeData">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
+        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterData || treeData.length === 0) && !loadingTreeData && loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -152,7 +152,7 @@
 
 <script>
 import Vue from 'vue'
-import { mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapActions, mapState } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 import Scrollbar from 'smooth-scrollbar'
 import locales from './locales'
@@ -185,7 +185,10 @@ import arealabel from '../../area_label.vue'
       'currentSelectedProject',
       'selectedProjectDatasource',
       'isGuideMode'
-    ])
+    ]),
+    ...mapState({
+      loadHiveTableNameEnabled: state => state.system.loadHiveTableNameEnabled
+    })
   },
   methods: {
     ...mapActions({
@@ -228,6 +231,7 @@ export default class SourceHive extends Vue {
   hasClickRefreshBtn = false
   pollingReloadStatusTimer = null // 轮询当前刷新状态的接口
   filterData = false // 打开弹窗时，不显示下面的立即刷新，执行了一次 handleFilter 后显示
+  prevFilterText = ''
 
   get emptyText () {
     return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -315,6 +319,7 @@ export default class SourceHive extends Vue {
     if (this.pollingReloadStatusTimer) {
       window.clearTimeout(this.pollingReloadStatusTimer)
     }
+    if (this.loadHiveTableNameEnabled === 'false') return
     // 立即刷新按钮，防止重复提交，如果是强制刷新的请求，并且正在刷新中，就返回，不做接口请求
     if (isForce && (this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn)) {
       return false
@@ -535,6 +540,12 @@ export default class SourceHive extends Vue {
     this.loadingTreeData = false
   }
   handleFilter () {
+    // 对比上一次搜索结果，如果一样就不请求接口 - 针对空值情况（修复筛选条件为空时多次调接口tree树不渲染问题）
+    if (this.prevFilterText === this.filterText && !this.prevFilterText && !this.filterText) {
+      return
+    } else {
+      this.prevFilterText = this.filterText
+    }
     // 只要执行次这个，就设为操作过搜索了，显示刷新数据的条条
     this.filterData = true
     // 如果前一次查询还在进行中，不发第二次接口

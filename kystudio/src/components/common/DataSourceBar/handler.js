@@ -199,7 +199,7 @@ export function getTableObj (that, database, table, ignoreColumn) {
   }
   if (!ignoreColumn) {
     let columnList = getColumnObjArray(that, tableObj).sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
-    tableObj.children = columnList.slice(0, tableObj.child_options.page_size - 1)
+    tableObj.children = columnList.slice(0, tableObj.child_options.page_size)
     tableObj.childContent = columnList
     tableObj.isMore = tableObj.childContent.length > tableObj.child_options.page_size
   } else {

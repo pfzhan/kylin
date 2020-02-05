@@ -41,7 +41,8 @@ export default {
       targetList: {}
     },
     showLisenceSuccessDialog: false,
-    smartModeEnabled: 'false'
+    smartModeEnabled: 'false',
+    loadHiveTableNameEnabled: 'true'
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -56,8 +57,14 @@ export default {
     [types.SAVE_ADMIN_CONF]: function (state, result) {
       state.adminConfig = result.conf
     },
-    [types.GET_CONF_BY_NAME]: function (state, {name, key}) {
-      state[key] = getProperty(name, state.serverConfig)
+    [types.GET_CONF_BY_NAME]: function (state, {name, key, defaultValue}) {
+      const v = getProperty(name, state.serverConfig)
+      // 配置为空时(没有匹配到），转为默认配置
+      if (!v && typeof defaultValue !== 'undefined') {
+        state[key] = defaultValue
+      } else {
+        state[key] = v
+      }
       return state[key]
     },
     [types.SAVE_INSTANCE_CONF_BY_NAME]: function (state, {key, val}) {
@@ -127,6 +134,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kap.canary.default-canaries-period-min', key: 'canaryReloadTimer'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.source.default', key: 'sourceDefault'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.env.smart-mode-enabled', key: 'smartModeEnabled'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.table.load-hive-tablename-enabled', key: 'loadHiveTableNameEnabled', defaultValue: 'true'})
           resolve(response)
         }, () => {
           reject()
