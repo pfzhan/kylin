@@ -1074,7 +1074,7 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void batchCreateModel(String project, List<ModelRequest> modelRequests) throws Exception {
+    public void batchCreateModel(String project, List<ModelRequest> modelRequests) {
         aclEvaluate.checkProjectWritePermission(project);
 
         for (ModelRequest modelRequest : modelRequests) {
@@ -1112,14 +1112,23 @@ public class ModelService extends BasicService {
         return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest), project);
     }
 
-    public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
-        if (CollectionUtils.isEmpty(sqls))
-            return true;
+    public List<NDataModel> couldAnsweredByExistedModels(String project, List<String> sqls) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            return Lists.newArrayList();
+        }
 
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
         smartMaster.selectExistedModel();
-        return CollectionUtils.isNotEmpty(smartMaster.getRecommendedModels());
+        return smartMaster.getRecommendedModels();
+    }
+
+    public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
+        if (CollectionUtils.isEmpty(sqls)) {
+            return true;
+        }
+
+        return CollectionUtils.isNotEmpty(couldAnsweredByExistedModels(project, sqls));
     }
 
     public NRecomendationListResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {

@@ -31,9 +31,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
+import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.FavoriteRequest;
+import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -265,6 +272,106 @@ public class OpenModelControllerTest {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(openModelController).updateParatitionDesc(project, modelAlias, modelParatitionDescRequest);
+    }
+
+    @Test
+    public void testCouldAnsweredByExistedModel() throws Exception {
+        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
+        FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/validation").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).couldAnsweredByExistedModel(Mockito.any());
+    }
+
+    @Test
+    public void testBuildIndicesManually() throws Exception {
+        BuildIndexRequest request = new BuildIndexRequest();
+        request.setProject("default");
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, request.getProject(), modelId);
+        Mockito.doAnswer(x -> null).when(nModelController).buildIndicesManually(modelId, request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/{model}/indexes", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).buildIndicesManually(eq(modelName), Mockito.any(BuildIndexRequest.class));
+    }
+
+    @Test
+    public void testGetRecommendationsByModel() throws Exception {
+        String project = "default";
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, project, modelId);
+
+        List<String> sources = Lists.newArrayList();
+        Mockito.doReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "")).when(nModelController)
+                .getOptimizeRecommendations(modelId, project, sources);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models//{model_name:.+}/recommendations", modelName)
+                .contentType(MediaType.APPLICATION_JSON).param("project", project)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).getOptimizeRecommendations(modelName, project, sources);
+    }
+
+    @Test
+    public void testApplyRecommendation() throws Exception {
+        String project = "default";
+        String modelName = "default_model_name";
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        mockGetModelName(modelName, project, modelId);
+
+        val request = new OpenApplyRecommendationsRequest();
+        request.setProject(project);
+
+        Mockito.doAnswer(x -> null).when(nModelController).applyOptimizeRecommendations(eq(modelId), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{model_name:.+}/recommendations", modelName)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).applyOptimizeRecommendations(eq(modelName),
+                Mockito.any(OpenApplyRecommendationsRequest.class));
+    }
+
+    @Test
+    public void testSuggestModelWithReuseExistedModel() throws Exception {
+        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
+        OpenSqlAccerelateRequest favoriteRequest = new OpenSqlAccerelateRequest("default", sqls, false);
+
+        // reuse existed model
+        val result = new NRecomendationListResponse(Lists.newArrayList(), Lists.newArrayList());
+        Mockito.doReturn(result).when(modelService).suggestModel(favoriteRequest.getProject(), sqls, true);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(favoriteRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).suggestModel(Mockito.any());
+    }
+
+    @Test
+    public void testGetRecommendationsByProject() throws Exception {
+        Mockito.doReturn(null).when(nModelController).getRecommendationsByProject("default");
+        // model and project is empty
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "default")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).getRecommendationsByProject("default");
+
+    }
+
+    @Test
+    public void testBatchApplyRecommendations() throws Exception {
+        Mockito.doReturn(null).when(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
     }
 
 }

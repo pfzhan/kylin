@@ -26,9 +26,12 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.request.FavoriteRequest;
+import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -47,6 +50,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
@@ -171,5 +182,88 @@ public class OpenModelController extends NBasicController {
         validateDataRange(modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
         modelService.updateDataModelParatitionDesc(project, modelAlias, modelParatitionDescRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @PostMapping(value = "/validation")
+    @ResponseBody
+    public EnvelopeResponse<List<String>> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
+        checkProjectName(request.getProject());
+
+        List<NDataModel> models = modelService.couldAnsweredByExistedModels(request.getProject(), request.getSqls());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                models.stream().map(NDataModel::getAlias).collect(Collectors.toList()), "");
+    }
+
+    @PostMapping(value = "/{model_name:.+}/indexes")
+    @ResponseBody
+    public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model_name") String modelAlias,
+            @RequestBody BuildIndexRequest request) {
+        checkProjectName(request.getProject());
+        String modelId = getModel(modelAlias, request.getProject()).getId();
+        return modelController.buildIndicesManually(modelId, request);
+    }
+
+    @GetMapping(value = "/{model_name:.+}/recommendations")
+    @ResponseBody
+    public EnvelopeResponse<OpenOptRecommendationResponse> getOptimizeRecommendations(
+            @PathVariable(value = "model_name") String modelAlias, //
+            @RequestParam(value = "project") String project, //
+            @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
+        checkProjectName(project);
+        String modelId = getModel(modelAlias, project).getId();
+
+        OptRecommendationResponse optRecommendationResponse = modelController
+                .getOptimizeRecommendations(modelId, project, sources).getData();
+
+        OpenOptRecommendationResponse result = null;
+        if (null != optRecommendationResponse) {
+            result = OpenOptRecommendationResponse.convert(optRecommendationResponse);
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
+    @PutMapping(value = "/{model_name:.+}/recommendations")
+    @ResponseBody
+    public EnvelopeResponse<String> applyOptimizeRecommendations(@PathVariable("model_name") String modelAlias,
+            @RequestBody OpenApplyRecommendationsRequest request) {
+        checkProjectName(request.getProject());
+        String modelId = getModel(modelAlias, request.getProject()).getId();
+        return modelController.applyOptimizeRecommendations(modelId, OpenApplyRecommendationsRequest.convert(request));
+    }
+
+    @PostMapping(value = "/suggest_model")
+    @ResponseBody
+    public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody OpenSqlAccerelateRequest request) {
+        checkProjectName(request.getProject());
+
+        NRecomendationListResponse nRecomendationListResponse = modelService.suggestModel(request.getProject(),
+                request.getSqls(), !request.getForce2CreateNewModel());
+
+        List<ModelRequest> modelRequests = nRecomendationListResponse.getNewModels().stream().map(model -> {
+            ModelRequest modelRequest = new ModelRequest(model);
+            modelRequest.setIndexPlan(model.getIndices());
+            return modelRequest;
+        }).collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(modelRequests)) {
+            modelService.batchCreateModel(request.getProject(), modelRequests);
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, nRecomendationListResponse, "");
+    }
+
+    @GetMapping(value = "/recommendations")
+    @ResponseBody
+    public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
+            @RequestParam("project") String project) {
+        checkProjectName(project);
+        return modelController.getRecommendationsByProject(project);
+    }
+
+    @PutMapping(value = "/recommendations/batch")
+    @ResponseBody
+    public EnvelopeResponse<String> batchApplyRecommendations(@RequestParam(value = "project") String project,
+            @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
+        checkProjectName(project);
+        return modelController.batchApplyRecommendations(project, modelAlias);
     }
 }

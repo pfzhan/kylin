@@ -63,6 +63,9 @@ public class OpenTableController extends NBasicController {
     @Autowired
     private TableService tableService;
 
+    private static final Integer MAX_SAMPLING_ROWS = 20_000_000;
+    private static final Integer MIN_SAMPLING_ROWS = 10_000;
+
     @VisibleForTesting
     public TableDesc getTable(String project, String tableName) {
         TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
@@ -90,7 +93,11 @@ public class OpenTableController extends NBasicController {
             throws Exception {
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
-            checkRequiredArg("sampling_rows", tableLoadRequest.getSamplingRows());
+            if (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS) {
+                tableLoadRequest.setSamplingRows(MAX_SAMPLING_ROWS);
+            } else if (tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS) {
+                tableLoadRequest.setSamplingRows(MIN_SAMPLING_ROWS);
+            }
         }
 
         return tableController.loadTables(tableLoadRequest);
