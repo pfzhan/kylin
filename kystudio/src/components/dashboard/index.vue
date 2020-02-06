@@ -683,7 +683,7 @@ export default class Dashboard extends Vue {
       margin: 20px;
     }
     .el-date-editor--daterange.el-input__inner {
-      width: 230px;
+      width: 240px;
     }
     .dash-card {
       border: 1px solid @line-border-color;
