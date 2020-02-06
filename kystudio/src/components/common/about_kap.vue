@@ -49,7 +49,7 @@
       <!-- <el-row class="text-center">
         <el-button type="primary" @click="requestLicense">{{$t('generateLicense')}}</el-button>
       </el-row> -->
-      <el-row class="gray text-center">Copyright 2016 Kyligence Inc. All rights reserved.</el-row>
+      <el-row class="gray text-center">Copyright 2020 Kyligence Inc. All rights reserved.</el-row>
     </div>
   </div>
 </template>
