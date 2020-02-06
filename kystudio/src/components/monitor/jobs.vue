@@ -24,7 +24,7 @@
         plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('refreshList')}}</el-button>
       </el-col>
       <el-col :span="6">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject_alias" v-global-key-event.enter.debounce="filterChange" @clear="filterChange()" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
+        <el-input :placeholder="$t('pleaseSearch')" v-model="filter.key" v-global-key-event.enter.debounce="filterChange" @clear="filterChange()" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
         </el-input>
       </el-col>
     </el-row>
@@ -412,7 +412,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       adminTips: 'Admin user can view all job information via Select All option in the project list.',
       clearAll: 'Clear All',
       filter: 'Filter',
-      refreshList: 'Refresh List'
+      refreshList: 'Refresh List',
+      pleaseSearch: 'Search Target Subject or Job ID'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -485,7 +486,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       adminTips: '系统管理员可以在项目列表中选择全部项目，查看所有项目下的任务信息。',
       clearAll: '清除所有',
       filter: '筛选',
-      refreshList: '刷新列表'
+      refreshList: '刷新列表',
+      pleaseSearch: '搜索任务对象或任务 ID'
     }
   }
 })
@@ -517,7 +519,7 @@ export default class JobsList extends Vue {
     sort_by: 'create_time',
     reverse: true,
     status: [],
-    subject_alias: ''
+    key: ''
   }
   waittingJobsFilter = {
     offset: 0,
@@ -542,7 +544,7 @@ export default class JobsList extends Vue {
   filterTags = []
 
   get emptyText () {
-    return this.filter.subject_alias || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+    return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
 
   @Watch('$store.state.project.isAllProject')
