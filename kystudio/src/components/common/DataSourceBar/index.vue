@@ -425,6 +425,10 @@ export default class DataSourceBar extends Vue {
   }
   handleFilter (filterText) {
     this.isSearchIng = true
+    const scrollDom = this.$el.querySelector('.scroll-content')
+    const scrollBarY = this.$el.querySelector('.scrollbar-thumb.scrollbar-thumb-y')
+    scrollDom && (scrollDom.style.transform = null)
+    scrollBarY && (scrollBarY.style.transform = null)
     return new Promise(async resolve => {
       await this.loadTreeData(filterText)
       this.filterText = filterText
