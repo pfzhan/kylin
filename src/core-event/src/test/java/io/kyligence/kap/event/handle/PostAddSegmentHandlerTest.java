@@ -42,9 +42,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -83,7 +82,7 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         // pause IncJob will mark dataflow status to LAG_BEHIND
         executableManager.pauseJob(job.getId());
 
-        testMarkDFOnlineIfNecessary();
+        testMarkDFOnlineIfNecessary((ExecutableAddSegmentHandler) job.getHandler());
         dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, dataflow.getStatus());
     }
@@ -113,8 +112,13 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.setCoveredRange(SegmentRange.TimePartitionedSegmentRange.createInfinite());
         dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
 
-        testMarkDFOnlineIfNecessary();
-        val dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+
+        val job = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        testMarkDFOnlineIfNecessary((ExecutableAddSegmentHandler) job.getHandler());
+        dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, dataflow.getStatus());
     }
 
@@ -154,8 +158,13 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.setCoveredRange(SegmentRange.TimePartitionedSegmentRange.createInfinite());
         dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
 
-        testMarkDFOnlineIfNecessary();
-        val dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+
+        val job = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        testMarkDFOnlineIfNecessary((ExecutableAddSegmentHandler) job.getHandler());
+        dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, dataflow.getStatus());
     }
 
@@ -179,8 +188,13 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.setCoveredRange(SegmentRange.TimePartitionedSegmentRange.createInfinite());
         dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
 
-        testMarkDFOnlineIfNecessary();
-        val dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+
+        val job = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        testMarkDFOnlineIfNecessary((ExecutableAddSegmentHandler) job.getHandler());
+        dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
         Assert.assertEquals(RealizationStatusEnum.ONLINE, dataflow.getStatus());
     }
 
@@ -209,26 +223,18 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
             copyForWrite.setIndexes(Lists.newArrayList());
         });
 
-        val event = new PostAddSegmentEvent();
-        event.setModelId(dataflowId);
-        event.setSegmentId(dataflow.getFirstSegment().getId());
-        event.setJobId(job.getId());
-
-        event.getEventHandler().handle(new EventContext(event, getTestConfig(), project));
-
+        job.getHandler().handleDiscardOrSuicidal();
         dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
-        Assert.assertEquals(dataflow.getFirstSegment().getStatus(), SegmentStatusEnum.READY);
+        Assert.assertEquals(SegmentStatusEnum.READY, dataflow.getFirstSegment().getStatus());
     }
 
-    private void testMarkDFOnlineIfNecessary()
+    private void testMarkDFOnlineIfNecessary(ExecutableAddSegmentHandler handler)
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
         val project = "default";
         val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        val postAddSegmentHandler = new PostAddSegmentHandler();
-        val method = postAddSegmentHandler.getClass().getDeclaredMethod("markDFOnlineIfNecessary", NDataflow.class);
+        val method = handler.getClass().getDeclaredMethod("markDFOnlineIfNecessary", NDataflow.class);
         method.setAccessible(true);
         var dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
-        method.invoke(postAddSegmentHandler, dataflow);
+        method.invoke(handler, dataflow);
     }
-
 }

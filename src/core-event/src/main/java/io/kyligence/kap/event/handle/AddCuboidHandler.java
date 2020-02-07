@@ -25,9 +25,6 @@ package io.kyligence.kap.event.handle;
 
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -38,12 +35,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 
 public class AddCuboidHandler extends AbstractEventWithJobHandler {
@@ -92,6 +93,18 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
 
         return NSparkCubingJob.create(Sets.newLinkedHashSet(readySegs), toBeProcessedLayouts, event.getOwner(),
                 JobTypeEnum.INDEX_BUILD, event.getJobId(), toBeDeletedLayouts);
+    }
+
+    protected void doHandleWithNullJob(EventContext eventContext) {
+        AddCuboidEvent event = (AddCuboidEvent) eventContext.getEvent();
+        String project = eventContext.getProject();
+
+        if (!checkSubjectExists(project, event.getModelId(), null, event)) {
+            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
+            return;
+        }
+
+        handleFavoriteQuery(eventContext);
     }
 
 }

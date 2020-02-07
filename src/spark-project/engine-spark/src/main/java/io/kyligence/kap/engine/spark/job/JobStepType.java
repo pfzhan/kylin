@@ -29,5 +29,7 @@ public enum JobStepType {
 
     CLEAN_UP_AFTER_MERGE, CUBING, MERGING,
 
-    SAMPLING
+    SAMPLING,
+
+    UPDATE_METADATA
 }

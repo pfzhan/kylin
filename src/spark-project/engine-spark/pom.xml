@@ -32,6 +32,7 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-sparder</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-spark-common</artifactId>

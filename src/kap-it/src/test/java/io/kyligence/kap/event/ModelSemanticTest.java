@@ -34,7 +34,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -175,9 +177,9 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         changeModelRequest();
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val firstStepEvents = eventDao.getEvents();
-        Assert.assertEquals(2, firstStepEvents.size());
+        Assert.assertEquals(1, firstStepEvents.size());
 
-        waitForEventFinished(0);
+        waitForEventAndJobFinished(0);
 
         val df = dfManager.getDataflow(MODEL_ID);
         Assert.assertEquals(2, df.getSegments().size());
@@ -189,8 +191,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     // see issue #8740
     public void testChange_WithReadySegment() throws Exception {
         changeModelRequest();
-        waitForEventFinished(0);
-
+        waitForEventAndJobFinished(0);
         NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT).updateIndexPlan(MODEL_ID,
                 copyForWrite -> {
                     copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(x -> x.getId() != 1000000)
@@ -199,7 +200,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         // update measure
         updateMeasureRequest();
-        waitForEventFinished(0);
+        waitForEventAndJobFinished(0);
 
         val result = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/{model}/relations", MODEL_ID)
@@ -213,7 +214,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     // see issue #8820
     public void testChange_ModelWithAggGroup() throws Exception {
         changeModelRequest();
-        waitForEventFinished(0);
+        waitForEventAndJobFinished(0);
 
         // init agg group
         val group1 = JsonUtil.readValue("{\n" + //
@@ -232,7 +233,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        waitForEventFinished(0);
+        waitForEventAndJobFinished(0);
 
         // update measures, throws an exception
         updateMeasureWithAgg();
@@ -329,4 +330,28 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         return 0L;
     }
 
+    private long waitForJobFinished(int expectedSize) throws InterruptedException {
+        NExecutableManager manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        List<Executable> jobs;
+        val startTime = System.currentTimeMillis();
+        while (true) {
+            int finishedEventNum = 0;
+            jobs = manager.getJobs().stream().map(manager::getJob).filter(e -> !e.getStatus().isFinalState())
+                    .collect(Collectors.toList());
+            log.debug("finished {}, all {}", finishedEventNum, jobs.size());
+            if (jobs.size() == expectedSize) {
+                break;
+            }
+            if (System.currentTimeMillis() - startTime > 200 * 1000) {
+                break;
+            }
+            Thread.sleep(1000);
+        }
+        return 0L;
+    }
+
+    private void waitForEventAndJobFinished(int expectedSize) throws Exception {
+        waitForEventFinished(expectedSize);
+        waitForJobFinished(expectedSize);
+    }
 }

@@ -29,8 +29,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -46,17 +44,18 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
+import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -65,8 +64,8 @@ public class SegmentHelper extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(SegmentHelper.class);
 
-
-    public void refreshRelatedModelSegments(String project, String tableName, SegmentRange toBeRefreshSegmentRange) throws IOException {
+    public void refreshRelatedModelSegments(String project, String tableName, SegmentRange toBeRefreshSegmentRange)
+            throws IOException {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
 
         TableDesc tableDesc = NTableMetadataManager.getInstance(kylinConfig, project).getTableDesc(tableName);
@@ -74,8 +73,7 @@ public class SegmentHelper extends BasicService {
             throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
         }
 
-        val models = NDataflowManager.getInstance(kylinConfig, project)
-                .getTableOrientedModelsUsingRootTable(tableDesc);
+        val models = NDataflowManager.getInstance(kylinConfig, project).getTableOrientedModelsUsingRootTable(tableDesc);
         boolean first = true;
         List<SegmentRange> firstRanges = Lists.newArrayList();
 
@@ -94,7 +92,8 @@ public class SegmentHelper extends BasicService {
 
                 if (!df.getStatus().equals(RealizationStatusEnum.LAG_BEHIND)) {
                     if (CollectionUtils.isEmpty(segments) && loadingRange == null) {
-                        logger.info("Refresh model {} without partition key, but it does not exist, build it.", modelId);
+                        logger.info("Refresh model {} without partition key, but it does not exist, build it.",
+                                modelId);
                         //Full build segment to refresh does not exist, build it.
                         buildFullSegment(model.getUuid(), project);
                         continue;
@@ -108,7 +107,8 @@ public class SegmentHelper extends BasicService {
                     refreshSegments(segments.getSegments(SegmentStatusEnum.READY), dfMgr, df, modelId, eventManager);
                     ranges.addAll(segments.stream().map(NDataSegment::getSegRange).collect(Collectors.toList()));
                     //remove new segment in lag behind models and then rebuild it
-                    handleRefreshLagBehindModel(project, df, segments.getSegments(SegmentStatusEnum.NEW), modelId, dfMgr, eventManager);
+                    handleRefreshLagBehindModel(project, df, segments.getSegments(SegmentStatusEnum.NEW), modelId,
+                            dfMgr, eventManager);
                 }
                 //check range in every model to refresh same
                 if (first) {
@@ -122,7 +122,8 @@ public class SegmentHelper extends BasicService {
         }
     }
 
-    private void refreshSegments(Segments<NDataSegment> segments, NDataflowManager dfMgr, NDataflow df, String modelId, EventManager eventManager) {
+    private void refreshSegments(Segments<NDataSegment> segments, NDataflowManager dfMgr, NDataflow df, String modelId,
+            EventManager eventManager) {
         for (NDataSegment seg : segments) {
             NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
 
@@ -132,13 +133,6 @@ public class SegmentHelper extends BasicService {
             refreshSegmentEvent.setJobId(UUID.randomUUID().toString());
             refreshSegmentEvent.setOwner(getUsername());
             eventManager.post(refreshSegmentEvent);
-
-            PostMergeOrRefreshSegmentEvent postE = new PostMergeOrRefreshSegmentEvent();
-            postE.setModelId(modelId);
-            postE.setSegmentId(newSeg.getId());
-            postE.setJobId(refreshSegmentEvent.getJobId());
-            postE.setOwner(getUsername());
-            eventManager.post(postE);
         }
     }
 
@@ -154,7 +148,8 @@ public class SegmentHelper extends BasicService {
         eventManager.postAddSegmentEvents(newSegment, model, getUsername());
     }
 
-    private void handleRefreshLagBehindModel(String project, NDataflow df, Segments<NDataSegment> newSegments, String modelId, NDataflowManager dfMgr, EventManager eventManager) throws IOException {
+    private void handleRefreshLagBehindModel(String project, NDataflow df, Segments<NDataSegment> newSegments,
+            String modelId, NDataflowManager dfMgr, EventManager eventManager) throws IOException {
         //if new segment missed, do nothing
         for (NDataSegment seg : newSegments) {
             handleJobAndOldSeg(project, seg, df, dfMgr);
@@ -165,7 +160,8 @@ public class SegmentHelper extends BasicService {
         }
     }
 
-    private void handleJobAndOldSeg(String project, NDataSegment seg, NDataflow df, NDataflowManager dfMgr) throws IOException {
+    private void handleJobAndOldSeg(String project, NDataSegment seg, NDataflow df, NDataflowManager dfMgr)
+            throws IOException {
         val jobManager = getExecutableManager(project);
         val jobs = jobManager.getAllExecutables();
         var segmentDeleted = false;
@@ -186,7 +182,6 @@ public class SegmentHelper extends BasicService {
         }
         logger.info("Drop segment {} and rebuild it immediately.", seg.getId());
     }
-
 
     public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();

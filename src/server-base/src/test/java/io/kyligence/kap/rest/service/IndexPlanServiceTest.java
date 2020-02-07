@@ -390,7 +390,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val allEvents = eventDao.getEvents();
         allEvents.sort(Event::compareTo);
 
-        Assert.assertEquals(2, allEvents.size());
+        Assert.assertEquals(1, allEvents.size());
         val newLayoutEvent = allEvents.get(0);
         Assert.assertTrue(newLayoutEvent instanceof AddCuboidEvent);
         Assert.assertTrue(clean.get());
@@ -510,7 +510,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val allEvents = eventDao.getEvents();
         allEvents.sort(Event::compareTo);
 
-        Assert.assertEquals(4, allEvents.size());
+        Assert.assertEquals(2, allEvents.size());
         Assert.assertTrue(clean.get());
     }
 
@@ -700,7 +700,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         Assert.assertEquals(AddCuboidEvent.class, events.get(0).getClass());
 
         // change shard by columns
@@ -719,7 +719,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
                 Assert.assertEquals(1, layout.getId() % IndexEntity.INDEX_ID_STEP);
             }
         }
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
     }
 
     @Test

@@ -22,24 +22,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.event.model;
+package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.event.handle.EventHandler;
-import io.kyligence.kap.event.handle.PostAddCuboidHandler;
-import lombok.Getter;
-import lombok.Setter;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecuteResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Getter
-@Setter
-public class PostAddCuboidEvent extends JobRelatedEvent {
+import com.google.common.base.Preconditions;
 
-    public PostAddCuboidEvent() {
-        super();
-    }
+import lombok.val;
+
+public class NSparkUpdateMetadataStep extends AbstractExecutable {
+
+    private static final Logger logger = LoggerFactory.getLogger(NSparkUpdateMetadataStep.class);
 
     @Override
-    public EventHandler getEventHandler() {
-        return new PostAddCuboidHandler();
+    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        val parent = getParent();
+        Preconditions.checkArgument(parent instanceof DefaultChainedExecutableOnModel);
+        val handler = ((DefaultChainedExecutableOnModel) parent).getHandler();
+        try {
+            handler.handleFinished();
+            return ExecuteResult.createSucceed();
+        } catch (Throwable throwable) {
+            logger.warn("");
+            return ExecuteResult.createError(throwable);
+        }
     }
-
 }

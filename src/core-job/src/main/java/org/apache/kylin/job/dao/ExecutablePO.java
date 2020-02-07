@@ -76,6 +76,9 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("type")
     private String type;
 
+    @JsonProperty("handler_type")
+    private String handlerType;
+
     @JsonProperty("params")
     private Map<String, String> params = Maps.newHashMap();
 

@@ -229,7 +229,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
         var events = eventDaoOfNewtenProj.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
         Assert.assertEquals(2, resultNoModel.get("job_list").size());
 
         Mockito.doReturn(new CheckAccelerateSqlListResult(Lists.newArrayList(sqls), Lists.newArrayList()))
@@ -239,7 +239,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
         events = eventDaoOfDefaultProj.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
         Assert.assertEquals(2, resultNoModel.get("job_list").size());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
@@ -255,7 +255,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
         var events = eventDaoOfNewtenProj.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
 
         // when there is origin model
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT);
@@ -263,7 +263,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
         events = eventDaoOfDefaultProj.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
 
         try {
             favoriteQueryService.acceptAccelerate(PROJECT, 10);
@@ -290,7 +290,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.acceptAccelerate("newten", 1);
 
         EventDao eventDao = EventDao.getInstance(getTestConfig(), "newten");
-        Assert.assertEquals(4, eventDao.getEvents().size());
+        Assert.assertEquals(2, eventDao.getEvents().size());
         Assert.assertEquals(2, eventDao.getJobRelatedEvents().size());
     }
 
@@ -334,7 +334,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         EventDao eventDaoOfDefaultProject = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDaoOfDefaultProject.getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
 
         Map<String, FavoriteQuery> accFQ = Maps.newHashMap();
         favoriteQueryManager.getAll().forEach(fq -> accFQ.putIfAbsent(fq.getSqlPattern(), fq));

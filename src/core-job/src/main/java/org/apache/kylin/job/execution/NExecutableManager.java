@@ -151,6 +151,12 @@ public class NExecutableManager {
                 tasks.add(toPO(task, project));
             }
             result.setTasks(tasks);
+            if (executable instanceof DefaultChainedExecutableOnModel) {
+                val handler = ((DefaultChainedExecutableOnModel) executable).getHandler();
+                if (handler != null) {
+                    result.setHandlerType(handler.getClass().getName());
+                }
+            }
         }
         return result;
     }
@@ -608,6 +614,23 @@ public class NExecutableManager {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);
                 for (ExecutablePO subTask : tasks) {
                     ((ChainedExecutable) result).addTask(fromPO(subTask));
+                }
+                if (result instanceof DefaultChainedExecutableOnModel) {
+                    val handlerType = executablePO.getHandlerType();
+                    if (handlerType != null) {
+                        Class<? extends ExecutableHandler> hClazz = ClassUtil.forName(handlerType,
+                                ExecutableHandler.class);
+                        Constructor<? extends ExecutableHandler> hConstructor = hClazz.getConstructor(String.class,
+                                String.class, String.class, String.class, String.class);
+                        String segmentId = CollectionUtils.isNotEmpty(result.getTargetSegments())
+                                ? result.getTargetSegments().get(0)
+                                : null;
+                        ExecutableHandler executableHandler = hConstructor.newInstance(project,
+                                result.getTargetSubject(), result.getSubmitter(),
+                                segmentId,
+                                result.getId());
+                        ((DefaultChainedExecutableOnModel) result).setHandler(executableHandler);
+                    }
                 }
             }
             return result;

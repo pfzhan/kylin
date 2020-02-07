@@ -99,7 +99,6 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -586,13 +585,9 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         event6.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         eventDao.addEvent(event6);
 
-        Event event7 = new PostAddCuboidEvent();
-        event7.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
+        Event event7 = new AddCuboidEvent();
+        event7.setModelId("not_existing_model");
         eventDao.addEvent(event7);
-
-        Event event8 = new AddCuboidEvent();
-        event8.setModelId("not_existing_model");
-        eventDao.addEvent(event8);
     }
 
     @Test

@@ -23,7 +23,20 @@
  */
 package io.kyligence.kap.newten;
 
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.ExecutableAddSegmentHandler;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -31,27 +44,12 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.event.handle.PostAddSegmentHandler;
-
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import lombok.val;
-
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.metadata.model.SegmentRange;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import org.junit.runner.RunWith;
 
 @RunWith(TimeZoneTestRunner.class)
 public class RetentionTest extends NLocalFileMetadataTestCase {
@@ -81,10 +79,11 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
             throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
-        Class clazz = PostAddSegmentHandler.class;
+        Class clazz = ExecutableAddSegmentHandler.class;
         Method method = clazz.getDeclaredMethod("handleRetention", String.class, String.class);
         method.setAccessible(true);
-        method.invoke(new PostAddSegmentHandler(), DEFAULT_PROJECT, df.getUuid());
+        method.invoke(new ExecutableAddSegmentHandler(DEFAULT_PROJECT, df.getUuid(), "", null, null), DEFAULT_PROJECT,
+                df.getUuid());
     }
 
     private NDataLoadingRange createDataloadingRange() throws IOException {
@@ -92,7 +91,8 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.updateRandomUuid();
         dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         dataLoadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
-        return NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT).createDataLoadingRange(dataLoadingRange);
+        return NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT)
+                .createDataLoadingRange(dataLoadingRange);
     }
 
     @Test
@@ -123,7 +123,6 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         modelUpdate.getSegmentConfig().setRetentionRange(retentionRange);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-
 
         mockAddSegmentSuccess();
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
@@ -169,16 +168,19 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
         //01-11
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"),
+                df.getSegments().get(0).getSegRange().getStart());
         //01-18
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-25 00:00:00"), df.getSegments().get(1).getSegRange().getEnd());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-25 00:00:00"),
+                df.getSegments().get(1).getSegRange().getEnd());
 
         val dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(loadingRange.getTableName());
 
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), dataLoadingRange.getCoveredRange().getStart());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"),
+                dataLoadingRange.getCoveredRange().getStart());
 
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-25 00:00:00"), dataLoadingRange.getCoveredRange().getEnd());
-
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-25 00:00:00"),
+                dataLoadingRange.getCoveredRange().getEnd());
 
     }
 
@@ -209,7 +211,6 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         dataflowManager.appendSegment(df, segmentRange);
 
-
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         val retentionRange = new RetentionRange();
         retentionRange.setRetentionRangeEnabled(true);
@@ -219,17 +220,17 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-
         mockAddSegmentSuccess();
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
 
         Assert.assertEquals(3, df.getSegments().size());
         //01/11
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-11 00:00:00"),
+                df.getSegments().get(0).getSegRange().getStart());
         //01/26
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-26 00:00:00"), df.getSegments().getLastSegment().getSegRange().getEnd());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-26 00:00:00"),
+                df.getSegments().getLastSegment().getSegRange().getEnd());
     }
-
 
     @Test
     public void testRetention_1Month_9WeekData() throws Exception {
@@ -261,16 +262,16 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-
         mockAddSegmentSuccess();
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         //retention
         Assert.assertEquals(4, df.getSegments().size());
         //02/08
-        Assert.assertEquals(DateFormat.stringToMillis("2010-02-08 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-02-08 00:00:00"),
+                df.getSegments().get(0).getSegRange().getStart());
         //03/08
-        Assert.assertEquals(DateFormat.stringToMillis("2010-03-08 00:00:00"), df.getSegments().getLastSegment().getSegRange().getEnd());
-
+        Assert.assertEquals(DateFormat.stringToMillis("2010-03-08 00:00:00"),
+                df.getSegments().getLastSegment().getSegRange().getEnd());
 
     }
 
@@ -303,15 +304,15 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-
         mockAddSegmentSuccess();
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(5, df.getSegments().size());
         //01/04
-        Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"), df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-01-04 00:00:00"),
+                df.getSegments().get(0).getSegRange().getStart());
         //02/08
-        Assert.assertEquals(DateFormat.stringToMillis("2010-02-08 00:00:00"), df.getSegments().getLastSegment().getSegRange().getEnd());
+        Assert.assertEquals(DateFormat.stringToMillis("2010-02-08 00:00:00"),
+                df.getSegments().getLastSegment().getSegRange().getEnd());
     }
-
 
 }

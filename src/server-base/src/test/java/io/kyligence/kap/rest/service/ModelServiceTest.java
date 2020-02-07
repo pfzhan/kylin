@@ -134,8 +134,6 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
@@ -643,7 +641,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventManager eventManager = EventManager.getInstance(getTestConfig(), project);
         eventManager.postAddCuboidEvents(modelId, "admin");
         EventDao eventDao = EventDao.getInstance(getTestConfig(), project);
-        Assert.assertEquals(2, eventDao.getEventsByModel(modelId).size());
+        Assert.assertEquals(1, eventDao.getEventsByModel(modelId).size());
         AtomicBoolean clean = new AtomicBoolean(false);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
@@ -1196,7 +1194,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
         List<Event> events = eventDao.getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
 
         events.sort(Comparator.comparingLong(Event::getSequenceId));
         val mergedSegment = dfManager.getDataflow(dfId).getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId());
@@ -2772,7 +2770,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(100L, dataflow.getSegments().get(0).getSegRange().getEnd());
 
-        Assert.assertTrue(events.get(2) instanceof AddCuboidEvent);
+        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
     }
 
     public void testBuildSegmentsManually_WithPushDown() throws Exception {
@@ -2858,9 +2856,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         eventDao.deleteAllEvents();
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         val events = eventDao.getEvents();
-        Assert.assertEquals(2, events.size());
-        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent
-                || events.get(0) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertEquals(1, events.size());
+        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
     }
 
     @Test
@@ -3199,7 +3196,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(BuildIndexResponse.BuildIndexType.NORM_BUILD, response.getType());
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
 
     }
@@ -3316,9 +3313,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEventsOrdered();
-        Assert.assertTrue(events.size() == 4);
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
     }
 
     @Test
@@ -3341,9 +3337,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEventsOrdered();
-        Assert.assertTrue(events.size() == 4);
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof PostAddSegmentEvent);
     }
 
     @Test
@@ -3369,13 +3364,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         df_basic_inner = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
-        Assert.assertTrue(df_basic_inner.getSegments().get(0).getId() != oldSeg.getId());
+        Assert.assertNotSame(df_basic_inner.getSegments().get(0).getId(), oldSeg.getId());
         List<Event> events = eventDao.getEventsOrdered();
-        Assert.assertTrue(events.size() == 4);
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof PostAddSegmentEvent);
-        Assert.assertTrue(events.get(2) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(3) instanceof PostAddSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof AddSegmentEvent);
     }
 
     @Test
@@ -3411,15 +3404,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEventsOrdered();
         //refresh 2 ready segs and rebuild two new segs
-        Assert.assertTrue(events.size() == 8);
+        Assert.assertEquals(4, events.size());
         Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
-        Assert.assertTrue(events.get(2) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(3) instanceof PostAddSegmentEvent);
-        Assert.assertTrue(events.get(4) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(5) instanceof PostMergeOrRefreshSegmentEvent);
-        Assert.assertTrue(events.get(6) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(2) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(3) instanceof AddSegmentEvent);
     }
 
     @Test
@@ -3456,15 +3445,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEventsOrdered();
         //refresh 2 ready segs in online model and one ready seg in lag behind and rebuild one new seg in lag behind
-        Assert.assertTrue(events.size() == 8);
+        Assert.assertEquals(4, events.size());
         Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof PostMergeOrRefreshSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof RefreshSegmentEvent);
         Assert.assertTrue(events.get(2) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(3) instanceof PostMergeOrRefreshSegmentEvent);
-        Assert.assertTrue(events.get(4) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(5) instanceof PostMergeOrRefreshSegmentEvent);
-        Assert.assertTrue(events.get(6) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(7) instanceof PostAddSegmentEvent);
+        Assert.assertTrue(events.get(3) instanceof AddSegmentEvent);
     }
 
     @Test

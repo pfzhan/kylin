@@ -54,9 +54,6 @@ import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
@@ -127,13 +124,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         event.setOwner("ADMIN");
         eventManager.post(event);
 
-        val postEvent = new PostAddSegmentEvent();
-        postEvent.setSegmentId(newSeg2.getId());
-        postEvent.setModelId(df.getModel().getUuid());
-        postEvent.setJobId(event.getJobId());
-        postEvent.setOwner("ADMIN");
-        eventManager.post(postEvent);
-
         waitEventFinish(event.getId(), 240 * 1000);
         // after create spark job remove some layouts
         val allLayouts = df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
@@ -143,7 +133,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         }).getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         allLayouts.removeAll(livedLayouts);
         dataflowManager.removeLayouts(df2, allLayouts);
-        waitEventFinish(postEvent.getId(), 240 * 1000);
+
+        waitJobFinish(event.getJobId(), 240 * 1000);
 
         val df3 = dataflowManager.getDataflow(df.getUuid());
         val cuboidsMap3 = df3.getLastSegment().getLayoutsMap();
@@ -164,8 +155,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         prepareFirstSegment(df.getUuid());
         modelManager.updateDataModel(df.getModel().getUuid(), copyForWrite -> {
-            copyForWrite.setAllMeasures(
-                    copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 100011).collect(Collectors.toList()));
+            copyForWrite.setAllMeasures(copyForWrite.getAllMeasures().stream().filter(m -> m.getId() != 100011)
+                    .collect(Collectors.toList()));
         });
         cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
             try {
@@ -190,13 +181,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         event.setOwner("ADMIN");
         eventManager.post(event);
 
-        val postEvent = new PostAddCuboidEvent();
-        postEvent.setModelId(df.getModel().getUuid());
-        postEvent.setJobId(event.getJobId());
-        postEvent.setOwner("ADMIN");
-        eventManager.post(postEvent);
-
-        waitEventFinish(postEvent.getId(), 240 * 1000);
+        waitJobFinish(event.getJobId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getUuid());
         val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
@@ -242,13 +227,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.removeLayouts(df, removeIds);
 
-        val postEvent = new PostMergeOrRefreshSegmentEvent();
-        postEvent.setModelId(df.getModel().getUuid());
-        postEvent.setJobId(event.getJobId());
-        postEvent.setSegmentId(newSeg.getId());
-        postEvent.setOwner("ADMIN");
-        eventManager.post(postEvent);
-        waitEventFinish(postEvent.getId(), 240 * 1000);
+        waitJobFinish(event.getJobId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getUuid());
         Assert.assertEquals(1, df2.getSegments().size());
@@ -268,8 +247,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val config = getTestConfig();
         val round1Deps = job.getDependentFiles();
         val files = FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().substring(7)), null, true).stream()
-                .map(File::getAbsolutePath)
-                .filter(f -> !f.contains("job_tmp") && !f.contains("table_exd"))
+                .map(File::getAbsolutePath).filter(f -> !f.contains("job_tmp") && !f.contains("table_exd"))
                 .collect(Collectors.toSet());
 
         // check
@@ -306,14 +284,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         event.setOwner("ADMIN");
         eventManager.post(event);
 
-        PostAddSegmentEvent postEvent = new PostAddSegmentEvent();
-        postEvent.setSegmentId(newSeg.getId());
-        postEvent.setModelId(df.getModel().getUuid());
-        postEvent.setJobId(event.getJobId());
-        postEvent.setOwner("ADMIN");
-        eventManager.post(postEvent);
-
-        waitEventFinish(postEvent.getId(), 240 * 1000);
+        waitJobFinish(event.getJobId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getUuid());
         val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
@@ -333,6 +304,15 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val start = System.currentTimeMillis();
         while (eventDao.getEvent(id) != null && (System.currentTimeMillis() - start) < maxMs) {
+            Thread.sleep(1000);
+        }
+    }
+
+    static void waitJobFinish(String id, long maxMs) throws InterruptedException {
+        val manager = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val start = System.currentTimeMillis();
+        while (manager.getJob(id) == null || (!manager.getJob(id).getStatus().isFinalState()
+                && (System.currentTimeMillis() - start) < maxMs)) {
             Thread.sleep(1000);
         }
     }

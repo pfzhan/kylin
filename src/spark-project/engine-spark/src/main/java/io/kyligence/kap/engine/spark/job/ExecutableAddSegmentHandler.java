@@ -21,33 +21,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.event.handle;
 
-import java.util.UUID;
+package io.kyligence.kap.engine.spark.job;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableHandler;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
-import io.kyligence.kap.engine.spark.job.NSparkExecutable;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -57,79 +47,55 @@ import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
-    private static final Logger logger = LoggerFactory.getLogger(PostAddSegmentHandler.class);
+public class ExecutableAddSegmentHandler extends ExecutableHandler {
+
+    public ExecutableAddSegmentHandler(String project, String modelId, String owner, String segmentId, String jobId) {
+        super(project, modelId, owner, segmentId, jobId);
+    }
 
     @Override
-    protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
-        PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
-        String project = eventContext.getProject();
-        val jobId = event.getJobId();
+    public void handleFinished() {
+        String project = getProject();
+        val executable = getExecutable();
+        val jobId = executable.getId();
         Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
-        if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
-            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
-            finishEvent(project, event.getId());
+        if (!checkSubjectExists(project, getModelId(), getSegmentId())) {
+            rollFQBackToInitialStatus(SUBJECT_NOT_EXIST_COMMENT);
             return;
         }
         val buildTask = executable.getTask(NSparkCubingStep.class);
         val dataflowId = ExecutableUtils.getDataflowId(buildTask);
-        try {
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val merger = new AfterBuildResourceMerger(kylinConfig, project);
-            executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
-                    .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
-                    .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
-            NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-            markDFOnlineIfNecessary(dfMgr.getDataflow(dataflowId));
-            handleRetention(project, event.getModelId());
-            //TODO: take care of this
-            autoMergeSegments(project, event.getModelId(), event.getOwner());
-            handleFavoriteQuery(eventContext);
-            finishEvent(project, event.getId());
-        } catch (Throwable throwable) {
-            logger.error("Process event " + event.toString() + " failed:", throwable);
-            throw throwable;
-        }
-    }
-
-    @Override
-    protected void doHandleWithNullJob(EventContext eventContext) {
-        PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
-        String project = eventContext.getProject();
-
-        if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
-            rollFQBackToInitialStatus(eventContext, SUBJECT_NOT_EXIST_COMMENT);
-            finishEvent(project, event.getId());
-            return;
-        }
-
-        makeSegmentReady(project, event);
-
-        handleFavoriteQuery(eventContext);
-        finishEvent(project, event.getId());
-    }
-
-    @Override
-    protected void doHandleWithSuicidalJob(EventContext eventContext, ChainedExecutable executable) {
-        if (((DefaultChainedExecutableOnModel) executable).checkAnyLayoutExists()) {
-            return;
-        }
-        PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
-        makeSegmentReady(eventContext.getProject(), event);
-    }
-
-    private void makeSegmentReady(String project, PostAddSegmentEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val segmentId = event.getSegmentId();
-
+        val merger = new AfterBuildResourceMerger(kylinConfig, project);
+        executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
+                .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
+                .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        NDataflow df = dfMgr.getDataflow(event.getModelId());
+        markDFOnlineIfNecessary(dfMgr.getDataflow(dataflowId));
+        handleRetention(project, getModelId());
+        //TODO: take care of this
+        autoMergeSegments(project, getModelId(), getOwner());
+        handleFavoriteQuery();
+    }
+
+    @Override
+    public void handleDiscardOrSuicidal() {
+        if (((DefaultChainedExecutableOnModel) getExecutable()).checkAnyLayoutExists()) {
+            return;
+        }
+        makeSegmentReady();
+    }
+
+    private void makeSegmentReady() {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val segmentId = getSegmentId();
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, getProject());
+        NDataflow df = dfMgr.getDataflow(getModelId());
 
         //update target seg's status
-        val dfUpdate = new NDataflowUpdate(event.getModelId());
+        val dfUpdate = new NDataflowUpdate(getModelId());
         val seg = df.copy().getSegment(segmentId);
         seg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(seg);
@@ -138,8 +104,8 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         markDFOnlineIfNecessary(dfMgr.getDataflow(df.getId()));
 
         //TODO: take care of this
-        handleRetention(project, event.getModelId());
-        autoMergeSegments(project, event.getModelId(), event.getOwner());
+        handleRetention(getProject(), getModelId());
+        autoMergeSegments(getProject(), getModelId(), getOwner());
     }
 
     private void autoMergeSegments(String project, String modelId, String owner) {
@@ -147,7 +113,6 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val df = dfManager.getDataflow(modelId);
         Segments segments = df.getSegments();
         SegmentRange rangeToMerge = null;
-        EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
         rangeToMerge = segments.autoMergeSegments(segmentConfig);
@@ -156,20 +121,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         } else {
             NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                     .mergeSegments(df, rangeToMerge, true);
-
-            val mergeEvent = new MergeSegmentEvent();
-            mergeEvent.setModelId(modelId);
-            mergeEvent.setSegmentId(mergeSeg.getId());
-            mergeEvent.setJobId(UUID.randomUUID().toString());
-            mergeEvent.setOwner(owner);
-            eventManager.post(mergeEvent);
-
-            val postMergeEvent = new PostMergeOrRefreshSegmentEvent();
-            postMergeEvent.setModelId(modelId);
-            postMergeEvent.setSegmentId(mergeSeg.getId());
-            postMergeEvent.setJobId(mergeEvent.getJobId());
-            postMergeEvent.setOwner(owner);
-            eventManager.post(postMergeEvent);
+            postEvent(MERGE_SEGMENT_EVENT_CLASS, mergeSeg.getId());
         }
 
     }
@@ -221,5 +173,4 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val df = dfManager.getDataflow(modelId);
         dfManager.handleRetention(df);
     }
-
 }

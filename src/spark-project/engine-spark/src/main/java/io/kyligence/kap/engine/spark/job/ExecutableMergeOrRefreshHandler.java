@@ -21,24 +21,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.event.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.event.handle.EventHandler;
-import io.kyligence.kap.event.handle.PostMergeOrRefreshSegmentHandler;
-import lombok.Getter;
-import lombok.Setter;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.ExecutableHandler;
 
-@Setter
-@Getter
-public class PostMergeOrRefreshSegmentEvent extends JobRelatedEvent {
+import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
+import lombok.val;
 
-    @JsonProperty("segment_id")
-    private String segmentId;
+public class ExecutableMergeOrRefreshHandler extends ExecutableHandler {
+
+    public ExecutableMergeOrRefreshHandler(String project, String modelId, String owner, String segmentId,
+            String jobId) {
+        super(project, modelId, owner, segmentId, jobId);
+    }
 
     @Override
-    public EventHandler getEventHandler() {
-        return new PostMergeOrRefreshSegmentHandler();
+    public void handleFinished() {
+        String project = getProject();
+        val executable = getExecutable();
+        if (!checkSubjectExists(project, getModelId(), getSegmentId())) {
+            return;
+        }
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
+        executable.getTasks().stream().filter(task -> task instanceof NSparkExecutable)
+                .filter(task -> ((NSparkExecutable) task).needMergeMetadata())
+                .forEach(task -> ((NSparkExecutable) task).mergerMetadata(merger));
+
+    }
+
+    @Override
+    public void handleDiscardOrSuicidal() {
+
     }
 }

@@ -49,9 +49,6 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
@@ -88,7 +85,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testChooseEventForeachModelWhenExistErrorJob(){
+    public void testChooseEventForeachModelWhenExistErrorJob() {
         List<Event> events = initEvents();
 
         Map<String, List<String>> modelExecutables = initModelExecutables(events);
@@ -97,7 +94,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         Map<String, Event> modelEvents = eventChecker.chooseEventForeachModel(events);
 
         Assert.assertEquals(1, modelEvents.size());
-        Assert.assertEquals(events.get(6), modelEvents.values().iterator().next());
+        Assert.assertEquals(events.get(3), modelEvents.values().iterator().next());
 
     }
 
@@ -115,8 +112,6 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         });
     }
 
-
-
     private Map<String, List<String>> initModelExecutables(List<Event> events) {
         Map<String, List<String>> map = Maps.newHashMap();
         Event first = events.get(0);
@@ -133,40 +128,20 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         addSegmentEvent.setModelId(modelId);
         initEvents.add(addSegmentEvent);
 
-        val postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setModelId(modelId);
-        initEvents.add(postAddSegmentEvent);
-
         val addCuboidEvent = new AddCuboidEvent();
         addCuboidEvent.setJobId(UUID.randomUUID().toString());
         addCuboidEvent.setModelId(modelId);
         initEvents.add(addCuboidEvent);
-
-        val postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setModelId(modelId);
-        initEvents.add(postAddCuboidEvent);
 
         val mergeSegmentEvent = new MergeSegmentEvent();
         mergeSegmentEvent.setJobId(UUID.randomUUID().toString());
         mergeSegmentEvent.setModelId(modelId);
         initEvents.add(mergeSegmentEvent);
 
-        val postMergeSegmentEvent = new PostMergeOrRefreshSegmentEvent();
-        postMergeSegmentEvent.setJobId(mergeSegmentEvent.getJobId());
-        postMergeSegmentEvent.setModelId(modelId);
-        initEvents.add(postMergeSegmentEvent);
-
         val addSegmentEvent2 = new AddSegmentEvent();
         addSegmentEvent2.setJobId(UUID.randomUUID().toString());
         addSegmentEvent2.setModelId(modelId);
         initEvents.add(addSegmentEvent2);
-
-        val postAddCuboidEvent2 = new PostAddCuboidEvent();
-        postAddCuboidEvent2.setJobId(addSegmentEvent2.getJobId());
-        postAddCuboidEvent2.setModelId(modelId);
-        initEvents.add(postAddCuboidEvent2);
 
         return initEvents;
     }

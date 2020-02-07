@@ -42,24 +42,9 @@
 
 package io.kyligence.kap.rest.CilUtils;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModelManager;
+import java.util.List;
+import java.util.UUID;
 
-import io.kyligence.kap.rest.cli.RecoverModelUtil;
-import lombok.val;
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -71,13 +56,24 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 
-import java.util.List;
-import java.util.UUID;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.cli.RecoverModelUtil;
+import lombok.val;
+import lombok.var;
 
 public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
-
 
     @Before
     public void setupResource() {
@@ -119,7 +115,7 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         RecoverModelUtil.recoverBySelf(df, config, "default");
 
         val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
 
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
@@ -169,10 +165,10 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
 
         val events = eventDao.getEventsOrdered();
         //addcuboid event, addsegment event
-        Assert.assertEquals(4, events.size());
-        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent || events.get(0) instanceof PostAddSegmentEvent);
+        Assert.assertEquals(2, events.size());
+        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
 
-        Assert.assertTrue(events.get(3) instanceof AddCuboidEvent || events.get(3) instanceof PostAddCuboidEvent);
+        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
     }
@@ -211,12 +207,11 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         RecoverModelUtil.recoverByDataloadingRange(df, config, "default");
 
         val events = eventDao.getEventsOrdered();
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, df.getStatus());
     }
-
 
     @Test
     public void testBrokenTableOrientedModel_hasUsefulSeg() {
@@ -229,7 +224,8 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         loadingRange.setColumnName("CAL_DT");
         //2012-01-03 2012-02-09  splited to 3 ranges
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
         loadingRangeManager.createDataLoadingRange(loadingRange);
         var df = dfManager.getDataflowByModelAlias("nmodel_basic");
         dfManager.updateDataflow(df.getId(), copyForWrite -> {
@@ -247,7 +243,8 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         // 1 ready seg is useful,but cuboid is empty
         val seg1 = new NDataSegment();
         //1/03-2/01
-        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-01 00:00:00")));
+        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-01 00:00:00")));
         seg1.setStatus(SegmentStatusEnum.READY);
         seg1.setId(UUID.randomUUID().toString());
         segs.add(seg1);
@@ -263,10 +260,10 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
 
         val events = eventDao.getEventsOrdered();
         //2 addsegmentevent, 1 addcuboid event
-        Assert.assertEquals(6, events.size());
+        Assert.assertEquals(3, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(2) instanceof AddSegmentEvent);
-        Assert.assertTrue(events.get(4) instanceof AddCuboidEvent);
+        Assert.assertTrue(events.get(1) instanceof AddSegmentEvent);
+        Assert.assertTrue(events.get(2) instanceof AddCuboidEvent);
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, df.getStatus());
 
@@ -283,7 +280,8 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         loadingRange.setColumnName("CAL_DT");
         //2012-01-03 2012-02-09  splited to 3 ranges
-        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
+        loadingRange.setCoveredRange(new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
         loadingRangeManager.createDataLoadingRange(loadingRange);
         var df = dfManager.getDataflowByModelAlias("nmodel_basic");
         dfManager.updateDataflow(df.getId(), copyForWrite -> {
@@ -301,14 +299,16 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         // 1 ready seg is useful,but cuboid is empty
         val seg1 = new NDataSegment();
         //1/03-2/01
-        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-01 00:00:00")));
+        seg1.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2012-01-03 00:00:00"), DateFormat.stringToMillis("2012-02-01 00:00:00")));
         seg1.setStatus(SegmentStatusEnum.READY);
         seg1.setId(UUID.randomUUID().toString());
         segs.add(seg1);
 
         val seg2 = new NDataSegment();
         //2/06-02/09
-        seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2012-02-06 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
+        seg2.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2012-02-06 00:00:00"), DateFormat.stringToMillis("2012-02-09 13:44:26")));
         seg2.setStatus(SegmentStatusEnum.READY);
         seg2.setId(UUID.randomUUID().toString());
         segs.add(seg2);
@@ -325,17 +325,18 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
         val events = eventDao.getEventsOrdered();
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
         //1 addsegmentevent, 1 addcuboid event
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        Assert.assertEquals(DateFormat.stringToMillis("2012-02-01 00:00:00") + "", df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
-        Assert.assertEquals(DateFormat.stringToMillis("2012-02-06 00:00:00") + "", df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2012-02-01 00:00:00") + "",
+                df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
+        Assert.assertEquals(DateFormat.stringToMillis("2012-02-06 00:00:00") + "",
+                df.getSegment(((AddSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
 
-        Assert.assertTrue(events.get(2) instanceof AddCuboidEvent);
+        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
 
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, df.getStatus());
 
     }
-
 
     @Test
     public void testBrokenTableOrientedModel_NoDataloadingRange() {
@@ -349,7 +350,6 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
             copyForWrite.setSegments(new Segments<>());
         });
 
-
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
 
         eventDao.deleteAllEvents();
@@ -358,7 +358,7 @@ public class RecoverModelUtilsTest extends NLocalFileMetadataTestCase {
 
         val events = eventDao.getEventsOrdered();
         //1 addsegmentevent
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         df = dfManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, df.getStatus());

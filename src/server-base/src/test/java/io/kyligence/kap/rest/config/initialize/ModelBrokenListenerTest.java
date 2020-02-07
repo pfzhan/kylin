@@ -56,9 +56,6 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -124,12 +121,7 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         addCuboidEvent.setOwner("ADMIN");
         eventManager.post(addCuboidEvent);
 
-        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setModelId(modelId);
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setOwner("ADMIN");
-        eventManager.post(postAddCuboidEvent);
-        Assert.assertEquals(2, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
+        Assert.assertEquals(1, EventDao.getInstance(getTestConfig(), project).getEventsByModel(modelId).size());
     }
 
     @Test
@@ -225,64 +217,6 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
     }
 
     @Test
-    public void testEventError() throws InterruptedException {
-        logger.info("ModelBrokenListenerTest testEventError");
-
-        eventOrchestrator = new EventOrchestrator(DEFAULT_PROJECT, getTestConfig());
-
-        val projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(DEFAULT_PROJECT);
-        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
-        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstanceUpdate);
-
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT);
-
-        ErrorEvent event = new ErrorEvent();
-        event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        event.setOwner("ADMIN");
-
-        ErrorEvent event2 = new ErrorEvent();
-        event2.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        event2.setOwner("ADMIN");
-
-        ErrorEvent event3 = new ErrorEvent();
-        event3.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        event3.setOwner("ADMIN");
-
-        eventManager.post(event);
-
-        eventManager.post(event2);
-
-        eventManager.post(event3);
-
-        Assert.assertEquals(3, eventDao.getEvents().size());
-
-        val eventOrchestrator = new EventOrchestrator(DEFAULT_PROJECT, getTestConfig());
-
-        var df = dfManager.getDataflowByModelAlias("nmodel_basic");
-        Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
-
-        await().atMost(60000, TimeUnit.MILLISECONDS)
-                .untilAsserted(() -> Assert.assertEquals(0, EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT)
-                        .getEventsByModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa").size()));
-
-        eventOrchestrator.shutdown();
-
-        await().atMost(6000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            val df2 = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT)
-                    .getDataflowByModelAlias("nmodel_basic");
-            Assert.assertEquals(RealizationStatusEnum.BROKEN, df2.getStatus());
-            Assert.assertEquals(true, df2.isEventError());
-        });
-        eventOrchestrator.forceShutdown();
-
-    }
-
-    @Test
     public void testHandleEventErrorOnExpertMode() {
         logger.info("ModelBrokenListenerTest testHandleEventErrorOnExpertMode");
 
@@ -338,40 +272,20 @@ public class ModelBrokenListenerTest extends CSVSourceTestCase {
         addSegmentEvent.setModelId(modelId);
         initEvents.add(addSegmentEvent);
 
-        val postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setModelId(modelId);
-        initEvents.add(postAddSegmentEvent);
-
         val addCuboidEvent = new AddCuboidEvent();
         addCuboidEvent.setJobId(UUID.randomUUID().toString());
         addCuboidEvent.setModelId(modelId);
         initEvents.add(addCuboidEvent);
-
-        val postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setModelId(modelId);
-        initEvents.add(postAddCuboidEvent);
 
         val mergeSegmentEvent = new MergeSegmentEvent();
         mergeSegmentEvent.setJobId(UUID.randomUUID().toString());
         mergeSegmentEvent.setModelId(modelId);
         initEvents.add(mergeSegmentEvent);
 
-        val postMergeSegmentEvent = new PostMergeOrRefreshSegmentEvent();
-        postMergeSegmentEvent.setJobId(mergeSegmentEvent.getJobId());
-        postMergeSegmentEvent.setModelId(modelId);
-        initEvents.add(postMergeSegmentEvent);
-
         val addSegmentEvent2 = new AddSegmentEvent();
         addSegmentEvent2.setJobId(UUID.randomUUID().toString());
         addSegmentEvent2.setModelId(modelId);
         initEvents.add(addSegmentEvent2);
-
-        val postAddCuboidEvent2 = new PostAddCuboidEvent();
-        postAddCuboidEvent2.setJobId(addSegmentEvent2.getJobId());
-        postAddCuboidEvent2.setModelId(modelId);
-        initEvents.add(postAddCuboidEvent2);
 
         return initEvents;
     }

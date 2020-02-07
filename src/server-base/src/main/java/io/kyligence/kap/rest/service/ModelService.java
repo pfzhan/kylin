@@ -107,7 +107,6 @@ import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
@@ -1819,13 +1818,6 @@ public class ModelService extends BasicService {
         mergeEvent.setJobId(UUID.randomUUID().toString());
         mergeEvent.setOwner(getUsername());
         eventManager.post(mergeEvent);
-
-        val postMergeEvent = new PostMergeOrRefreshSegmentEvent();
-        postMergeEvent.setModelId(modelId);
-        postMergeEvent.setSegmentId(mergeSeg.getId());
-        postMergeEvent.setJobId(mergeEvent.getJobId());
-        postMergeEvent.setOwner(getUsername());
-        eventManager.post(postMergeEvent);
     }
 
     @Transaction(project = 1)
@@ -1855,13 +1847,6 @@ public class ModelService extends BasicService {
             event.setOwner(getUsername());
             event.setJobId(UUID.randomUUID().toString());
             eventManager.post(event);
-
-            val event2 = new PostMergeOrRefreshSegmentEvent();
-            event2.setSegmentId(newSeg.getId());
-            event2.setModelId(modelId);
-            event2.setOwner(getUsername());
-            event2.setJobId(event.getJobId());
-            eventManager.post(event2);
 
             jobIds.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_REFRESH.toString(), event.getJobId()));
         }

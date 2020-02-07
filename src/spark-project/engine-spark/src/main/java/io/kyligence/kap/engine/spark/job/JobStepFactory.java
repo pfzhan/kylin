@@ -28,7 +28,9 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.metadata.model.Segments;
 
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -55,14 +57,13 @@ public class JobStepFactory {
         parent.addTask(step);
         //after addTask, step's id is changed
 
-        step.setDistMetaUrl(
-                KylinConfig.getInstanceFromEnv().getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
+        step.setDistMetaUrl(KylinConfig.getInstanceFromEnv().getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
         return step;
     }
 
-    public static NSparkExecutable addStep(DefaultChainedExecutable parent, JobStepType type,
+    public static AbstractExecutable addStep(DefaultChainedExecutable parent, JobStepType type,
             Set<NDataSegment> segments) {
-        NSparkExecutable step;
+        AbstractExecutable step;
         NDataflow df = segments.iterator().next().getDataflow();
         KylinConfigExt config = df.getConfig();
         switch (type) {
@@ -77,6 +78,14 @@ public class JobStepFactory {
             break;
         case CLEAN_UP_AFTER_MERGE:
             step = new NSparkCleanupAfterMergeStep();
+            break;
+        case UPDATE_METADATA:
+            if (!(parent instanceof DefaultChainedExecutableOnModel)) {
+                throw new IllegalArgumentException();
+            }
+            ((DefaultChainedExecutableOnModel) parent).setHandler(
+                    ExecutableHandlerFactory.createExecutableHandler((DefaultChainedExecutableOnModel) parent));
+            step = new NSparkUpdateMetadataStep();
             break;
         default:
             throw new IllegalArgumentException();
@@ -93,7 +102,9 @@ public class JobStepFactory {
         }
         parent.addTask(step);
         //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
+        if (step instanceof NSparkExecutable) {
+            ((NSparkExecutable) step).setDistMetaUrl(config.getJobTmpMetaStoreUrl(parent.getProject(), step.getId()));
+        }
         return step;
     }
 }

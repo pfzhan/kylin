@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
@@ -44,6 +46,10 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import lombok.val;
 
 public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
+
+    @Getter
+    @Setter
+    private ExecutableHandler handler;
 
     private String getTargetModel() {
         return getTargetSubject();
@@ -133,4 +139,17 @@ public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
         return NExecutableManager.getInstance(getConfig(), getProject()).countCuttingInJobByModel(model, parent) > 0;
     }
 
+    @Override
+    public void onExecuteDiscardHook(String jobId) {
+        if (handler != null) {
+            handler.handleDiscardOrSuicidal();
+        }
+    }
+
+    @Override
+    protected void onExecuteSuicidalHook(String jobId) {
+        if (handler != null) {
+            handler.handleDiscardOrSuicidal();
+        }
+    }
 }

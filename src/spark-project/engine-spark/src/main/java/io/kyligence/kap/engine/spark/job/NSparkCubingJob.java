@@ -104,6 +104,7 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
 
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments);
         JobStepFactory.addStep(job, JobStepType.CUBING, segments);
+        JobStepFactory.addStep(job, JobStepType.UPDATE_METADATA, segments);
         return job;
     }
 

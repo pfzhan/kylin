@@ -606,7 +606,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testTogglePartitionKey_OneToNull() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         var df = dfMgr.getDataflowByModelAlias("nmodel_basic");
-        Assert.assertTrue(df.getSegments().size() == 1);
+        Assert.assertEquals(1, df.getSegments().size());
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         var loadingRange = new NDataLoadingRange();
         loadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
@@ -623,7 +623,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(df.getSegments().size(), 1);
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        Assert.assertEquals(eventDao.getEventsByModel(df.getUuid()).size(), 2);
+        Assert.assertEquals(1, eventDao.getEventsByModel(df.getUuid()).size());
 
         loadingRange = loadingRangeMgr.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertNull(loadingRange);
@@ -924,7 +924,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertNull(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getPartitionDesc());
         val events = eventDao.getEvents();
         //do not build immediately
-        Assert.assertEquals(8, events.size());
+        Assert.assertEquals(4, events.size());
         // TODO check other events
         //        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
         //        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));
@@ -1073,15 +1073,15 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(tableService.isSqlContainsColumns("a > 10 OR b < 1", "DB.A", Sets.newHashSet("b")));
         Assert.assertFalse(
                 tableService.isSqlContainsColumns("A.a > 10 AND B.b < 1", "DB.C", Sets.newHashSet("a", "b")));
-        Assert.assertTrue(tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A",
-                Sets.newHashSet("a", "b", "c")));
+        Assert.assertTrue(
+                tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A", Sets.newHashSet("a", "b", "c")));
         Assert.assertFalse(tableService.isSqlContainsColumns("(A.a > 10 AND B.b < 1) OR C.c != 'string'", "DB.B",
                 Sets.newHashSet("a", "c")));
         Assert.assertFalse(tableService.isSqlContainsColumns("(A.a > 10 AND B.b < 1) OR C.c != 'string'", "DB.D",
                 Sets.newHashSet("a", "b", "c")));
         Assert.assertTrue(tableService.isSqlContainsColumns("(A.a > 10) AND B.b < 1", "A", Sets.newHashSet("a")));
-        Assert.assertTrue(tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A",
-                Sets.newHashSet("a", "b", "c")));
+        Assert.assertTrue(
+                tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A", Sets.newHashSet("a", "b", "c")));
 
     }
 }

@@ -1261,8 +1261,8 @@ public class TableService extends BasicService {
     void cleanRedundantEvents(String projectName, NDataModel model, List<Event> existEvents) {
         val eventDao = getEventDao(projectName);
         val events = eventDao.getEventsByModel(model.getId());
-        if (events.size() - existEvents.size() > 2) {
-            events.stream().skip(existEvents.size() + 2).forEach(event -> eventDao.deleteEvent(event.getId()));
+        if (events.size() - existEvents.size() > 1) {
+            events.stream().skip(existEvents.size() + 1).forEach(event -> eventDao.deleteEvent(event.getId()));
         }
     }
 

@@ -42,6 +42,13 @@
 
 package io.kyligence.kap.event.manager;
 
+import java.util.UUID;
+
+import io.kyligence.kap.common.obf.IKeepNames;
+import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
@@ -50,18 +57,10 @@ import io.kyligence.kap.common.scheduler.EventCreatedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
-import java.util.UUID;
-
-public class EventManager {
+public class EventManager implements IKeepNames {
 
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
@@ -106,8 +105,8 @@ public class EventManager {
         if (KylinConfig.getInstanceFromEnv().isUTEnv())
             SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project));
         else
-            UnitOfWork.get().doAfterUnit(
-                () -> SchedulerEventBusFactory.getInstance(config).postWithLimit(new EventCreatedNotifier(project)));
+            UnitOfWork.get().doAfterUnit(() -> SchedulerEventBusFactory.getInstance(config)
+                    .postWithLimit(new EventCreatedNotifier(project)));
 
         NMetricsGroup.counterInc(NMetricsName.EVENT_COUNTER, NMetricsCategory.PROJECT, project);
     }
@@ -122,13 +121,6 @@ public class EventManager {
         addSegmentEvent.setOwner(userName);
         post(addSegmentEvent);
 
-        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setModelId(modelId);
-        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
-        postAddSegmentEvent.setOwner(userName);
-        post(postAddSegmentEvent);
-
         return jobId;
     }
 
@@ -140,12 +132,6 @@ public class EventManager {
         addCuboidEvent.setJobId(jobId);
         addCuboidEvent.setOwner(userName);
         post(addCuboidEvent);
-
-        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setModelId(modelId);
-        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-        postAddCuboidEvent.setOwner(userName);
-        post(postAddCuboidEvent);
 
         return jobId;
     }

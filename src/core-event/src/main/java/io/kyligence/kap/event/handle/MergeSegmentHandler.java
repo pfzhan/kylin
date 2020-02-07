@@ -26,19 +26,24 @@ package io.kyligence.kap.event.handle;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -66,6 +71,35 @@ public class MergeSegmentHandler extends AbstractEventWithJobHandler {
 
         return NSparkMergingJob.merge(df.getSegment(event.getSegmentId()), Sets.newLinkedHashSet(layouts),
                 event.getOwner(), event.getJobId());
+
+    }
+
+    protected void doHandleWithNullJob(EventContext eventContext) {
+        val event = (MergeSegmentEvent) eventContext.getEvent();
+        String project = eventContext.getProject();
+
+        String modelId = event.getModelId();
+        String segmentId = event.getSegmentId();
+        if (!checkSubjectExists(project, modelId, segmentId, event)) {
+            finishEvent(project, event.getId());
+            return;
+        }
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfMgr.getDataflow(modelId);
+
+        //update target seg's status
+        val dfUpdate = new NDataflowUpdate(modelId);
+        NDataflow copy = df.copy();
+        val seg = copy.getSegment(segmentId);
+        seg.setStatus(SegmentStatusEnum.READY);
+        dfUpdate.setToUpdateSegs(seg);
+        List<NDataSegment> toRemoveSegs = dfMgr.getToRemoveSegs(df, seg);
+        dfUpdate.setToRemoveSegs(toRemoveSegs.toArray(new NDataSegment[0]));
+
+        dfMgr.updateDataflow(dfUpdate);
+
+        finishEvent(project, event.getId());
 
     }
 

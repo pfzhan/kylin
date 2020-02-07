@@ -70,7 +70,6 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -182,10 +181,8 @@ public class EventOrchestrator {
 
             modelEvents.forEach((model, value) -> {
                 val executableIds = modelExecutables.getOrDefault(model, Lists.newArrayList());
-                val event = value.stream()
-                        .filter(e -> CollectionUtils.isEmpty(executableIds)
-                                || ((e instanceof AddSegmentEvent || e instanceof PostAddSegmentEvent)
-                                        && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
+                val event = value.stream().filter(e -> CollectionUtils.isEmpty(executableIds)
+                        || ((e instanceof AddSegmentEvent) && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
                 )).findFirst().orElse(null);
                 if (event != null) {
                     String groupKey = genGroupKey(event);

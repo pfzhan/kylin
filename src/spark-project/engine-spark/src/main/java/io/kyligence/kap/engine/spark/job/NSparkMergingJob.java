@@ -77,6 +77,8 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
 
+
+
         job.setParam(NBatchConstants.P_JOB_ID, jobId);
         job.setParam(NBatchConstants.P_PROJECT_NAME, df.getProject());
         job.setParam(NBatchConstants.P_TARGET_MODEL, job.getTargetSubject());
@@ -89,6 +91,7 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
         JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, Sets.newHashSet(mergedSegment));
         JobStepFactory.addStep(job, JobStepType.MERGING, Sets.newHashSet(mergedSegment));
         JobStepFactory.addStep(job, JobStepType.CLEAN_UP_AFTER_MERGE, Sets.newHashSet(mergedSegment));
+        JobStepFactory.addStep(job, JobStepType.UPDATE_METADATA, Sets.newHashSet(mergedSegment));
 
         return job;
     }

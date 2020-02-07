@@ -27,22 +27,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.val;
 
 public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
 
@@ -70,6 +75,35 @@ public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
 
         return NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegment(event.getSegmentId())),
                 Sets.newLinkedHashSet(layouts), event.getOwner(), JobTypeEnum.INDEX_REFRESH, event.getJobId());
+    }
+
+    protected void doHandleWithNullJob(EventContext eventContext) {
+        val event = (RefreshSegmentEvent) eventContext.getEvent();
+        String project = eventContext.getProject();
+
+        String modelId = event.getModelId();
+        String segmentId = event.getSegmentId();
+        if (!checkSubjectExists(project, modelId, segmentId, event)) {
+            finishEvent(project, event.getId());
+            return;
+        }
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfMgr.getDataflow(modelId);
+
+        //update target seg's status
+        val dfUpdate = new NDataflowUpdate(modelId);
+        NDataflow copy = df.copy();
+        val seg = copy.getSegment(segmentId);
+        seg.setStatus(SegmentStatusEnum.READY);
+        dfUpdate.setToUpdateSegs(seg);
+        List<NDataSegment> toRemoveSegs = dfMgr.getToRemoveSegs(df, seg);
+        dfUpdate.setToRemoveSegs(toRemoveSegs.toArray(new NDataSegment[0]));
+
+        dfMgr.updateDataflow(dfUpdate);
+
+        finishEvent(project, event.getId());
+
     }
 
 }

@@ -597,7 +597,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertTrue(events.size() == 2);
+        Assert.assertEquals(1, events.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -619,7 +619,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(1, df.getSegments().size());
@@ -646,7 +646,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
 
         val df = dfMgr.getDataflow(MODEL_ID);
 
@@ -676,7 +676,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", originModel.getUuid(), originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -701,7 +701,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
@@ -726,7 +726,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, "1325347200000", "1388505600000");
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(1, df.getSegments().size());
@@ -841,7 +841,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
 
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
 
         val cube = indePlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
@@ -880,7 +880,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
 
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(df.getUuid());
         Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getLayoutsMap().size());
@@ -948,7 +948,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
 
         val newCube = indexPlanManager.getIndexPlan(indexPlan.getUuid());
         Assert.assertNotEquals(indexPlan.getRuleBasedIndex().getLayoutIdMapping().toString(),
@@ -1091,13 +1091,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNull(model.getPartitionDesc());
         events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(2, events.size());
+        Assert.assertEquals(1, events.size());
         modelParatitionDescRequest.setPartitionDesc(partitionDesc);
         modelService.updateDataModelParatitionDesc("default", model.getAlias(), modelParatitionDescRequest);
         model = modelMgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(partitionDesc, model.getPartitionDesc());
         events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
     }
 
 }
