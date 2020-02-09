@@ -900,6 +900,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testSuggestModel() {
         List<String> sqls = Lists.newArrayList();
+        Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
         val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
     }
@@ -907,6 +908,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testAnswerBySnapshot() {
         List<String> sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1");
+        Mockito.doReturn(false).when(modelService).isProjectNotExist(getProject());
         val result = modelService.couldAnsweredByExistedModel(getProject(), sqls);
         Assert.assertTrue(result);
     }

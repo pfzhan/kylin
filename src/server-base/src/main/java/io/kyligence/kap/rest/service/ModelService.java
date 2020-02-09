@@ -231,6 +231,12 @@ public class ModelService extends BasicService {
         return projectService.getReadableProjects().stream().map(ProjectInstance::getName).collect(Collectors.toSet());
     }
 
+    @VisibleForTesting
+    public Boolean isProjectNotExist(String project) {
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects(project, true);
+        return CollectionUtils.isEmpty(projectInstances);
+    }
+
     /**
      * for 3x rest api
      * @param modelAlias
@@ -1115,6 +1121,10 @@ public class ModelService extends BasicService {
     public List<NDataModel> couldAnsweredByExistedModels(String project, List<String> sqls) {
         if (CollectionUtils.isEmpty(sqls)) {
             return Lists.newArrayList();
+        }
+
+        if (isProjectNotExist(project)) {
+            throw new BadRequestException(String.format("Can not find the project: %s !", project));
         }
 
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,

@@ -442,6 +442,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        Mockito.doNothing().when(nTableController).updateDataSourceType("default", 11);
         initMockito(loadTableResponse, tableLoadRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
@@ -460,6 +461,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        Mockito.doNothing().when(nTableController).updateDataSourceType("default", 11);
         tableLoadRequest.setTables(null);
         tableLoadRequest.setDatabases(null);
         Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default")).thenReturn(loadTableResponse);
@@ -678,6 +680,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         loadTableResponse.setLoaded(loaded);
         loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        Mockito.doNothing().when(nTableController).updateDataSourceType("default", 11);
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(20000);
         initMockito(loadTableResponse, tableLoadRequest);
@@ -695,6 +698,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         loadTableResponse.setLoaded(loaded);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        Mockito.doNothing().when(nTableController).updateDataSourceType("default", 11);
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(200);
 
@@ -716,6 +720,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         loadTableResponse.setLoaded(loaded);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        Mockito.doNothing().when(nTableController).updateDataSourceType("default", 11);
         tableLoadRequest.setNeedSampling(true);
         tableLoadRequest.setSamplingRows(30_000_000);
 
