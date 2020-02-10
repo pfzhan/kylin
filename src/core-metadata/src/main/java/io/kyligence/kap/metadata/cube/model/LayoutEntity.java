@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -193,6 +194,15 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         return colRefs;
     }
 
+    public List<String> listBitmapMeasure() {
+        List<String> countDistinct = new ArrayList<>();
+        getOrderedMeasures().forEach((a, b) -> {
+            if ("bitmap".equals(b.getFunction().getReturnDataType().getName())) {
+                countDistinct.add(a.toString());
+            }
+        });
+        return countDistinct;
+    }
     public NDataModel getModel() {
         return index.getIndexPlan().getModel();
     }

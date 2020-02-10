@@ -93,6 +93,11 @@ public class NSparkCubingStep extends NSparkExecutable {
                 String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(project,
                         dataflowId, segId, layout.getId());
                 result.add(path);
+                if (dataflow.getIndexPlan().isFastBitmapEnabled()) {
+                    if (!layout.listBitmapMeasure().isEmpty()) {
+                        result.add(path + "_fast_bitmap");
+                    }
+                }
                 result.add(path + "_temp1");
                 result.add(path + "_temp2");
             }

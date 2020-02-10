@@ -24,13 +24,17 @@
 
 package org.apache.spark.sql.udf
 
+import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
+import com.esotericsoftware.kryo.io.{Input, KryoDataInput}
 import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
+import org.apache.kylin.measure.hllc.HLLCounter
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{FunctionEntity, KapFunctions, SparkSession}
+import org.roaringbitmap.longlong.Roaring64NavigableMap
 
 class UdfManager(sparkSession: SparkSession) extends Logging {
   private var udfCache: Cache[String, String] = _
@@ -38,7 +42,6 @@ class UdfManager(sparkSession: SparkSession) extends Logging {
   KapFunctions.builtin.foreach { case FunctionEntity(name, info, builder) =>
     sparkSession.sessionState.functionRegistry.registerFunction(name, info, builder)
   }
-
   udfCache = CacheBuilder.newBuilder
     .maximumSize(100)
     .expireAfterWrite(1, TimeUnit.HOURS)

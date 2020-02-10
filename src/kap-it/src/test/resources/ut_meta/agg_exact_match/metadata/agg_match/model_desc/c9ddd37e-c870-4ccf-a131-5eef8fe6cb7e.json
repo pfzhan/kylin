@@ -3,6 +3,7 @@
   "alias": "exact_match",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "owner": "ADMIN",
+  "fast_bitmap_enabled": true,
   "all_named_columns": [
     {
       "id": 0,
@@ -52,6 +53,18 @@
           "value": "TEST_KYLIN_FACT.PRICE"
         }],
         "returntype": "decimal(19,4)"
+      }
+    },
+    {
+      "id": 100002,
+      "name": "GMV_count",
+      "function": {
+        "expression": "COUNT_DISTINCT",
+        "parameters": [{
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.PRICE"
+        }],
+        "returntype": "bitmap"
       }
     }
   ],

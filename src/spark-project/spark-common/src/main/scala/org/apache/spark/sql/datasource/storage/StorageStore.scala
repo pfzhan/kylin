@@ -27,7 +27,7 @@ import java.util.{List => JList}
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.StorageUtils.findCountDistinctMeasure
-import io.kyligence.kap.engine.spark.utils.{Metrics, Repartitioner, StorageUtils}
+import io.kyligence.kap.engine.spark.utils.{JobMetrics, Metrics, Repartitioner, StorageUtils}
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataSegment}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -104,6 +104,14 @@ abstract class StorageStore extends Logging {
 
 class StorageStoreV1 extends StorageStore {
   override def save(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame): WriteTaskStats = {
+    val (metrics: JobMetrics, rowCount: Long, hadoopConf: Configuration, bucketNum: Int) =
+      repartitionWriter(layout, outputPath, kapConfig, dataFrame)
+    val (fileCount, byteSize) = collectFileCountAndSizeAfterSave(outputPath, hadoopConf)
+    checkAndWriterFastBitmapLayout(dataFrame, layout, kapConfig, outputPath)
+    WriteTaskStats(0, fileCount, byteSize, rowCount, metrics.getMetrics(Metrics.SOURCE_ROWS_CNT), bucketNum, new util.ArrayList[String]())
+  }
+
+  private def repartitionWriter(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame) = {
     val tempPath = outputPath.toString + "_temp1"
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
@@ -126,14 +134,42 @@ class StorageStoreV1 extends StorageStore {
       layout.getOrderedDimensions.keySet().asList()
     )
     repartitioner.doRepartition(outputPath.toString, tempPath, bucketNum, dataFrame.sparkSession)
-
-    val (fileCount, byteSize) = collectFileCountAndSizeAfterSave(outputPath, hadoopConf)
-    WriteTaskStats(0, fileCount, byteSize, rowCount, metrics.getMetrics(Metrics.SOURCE_ROWS_CNT), bucketNum, new util.ArrayList[String]())
+    (metrics, rowCount, hadoopConf, bucketNum)
   }
+
+  def checkAndWriterFastBitmapLayout(dataset: DataFrame, layoutEntity: LayoutEntity, kapConfig: KapConfig, layoutPath: Path): Unit = {
+    if (!layoutEntity.getIndex.getIndexPlan.isFastBitmapEnabled) {
+      return
+    }
+    val bitmaps = layoutEntity.listBitmapMeasure()
+    if (bitmaps.isEmpty) {
+      return
+    }
+    logInfo(s"Begin write fast bitmap cuboid. layout id is ${layoutEntity.getId}")
+    val outputPath = new Path(layoutPath.toString + "_fast_bitmap")
+
+    def replaceCountDistinctEvalColumn(list: java.util.List[String], dataFrame: DataFrame): DataFrame = {
+      val columns = dataFrame.schema.names.map(name =>
+        if (list.contains(name)) {
+          callUDF("eval_bitmap", col(name)).as(name)
+        } else {
+          col(name)
+        })
+      dataFrame.select(columns: _*)
+    }
+    val afterReplaced = replaceCountDistinctEvalColumn(bitmaps, dataset)
+    repartitionWriter(layoutEntity, outputPath, kapConfig, afterReplaced)
+  }
+
 
   override def read(dataflow: NDataflow, layout: LayoutEntity, sparkSession: SparkSession,
                     extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame = {
-    val indexCatalog = new FilePruner(sparkSession, options = extraOptions, layout.toSchema())
+    val structType = if ("true".equals(extraOptions.apply("isFastBitmapEnabled"))) {
+      layout.toExactlySchema()
+    } else {
+       layout.toSchema()
+    }
+    val indexCatalog = new FilePruner(sparkSession, options = extraOptions, structType)
     sparkSession.baseRelationToDataFrame(
       HadoopFsRelation(
         indexCatalog,

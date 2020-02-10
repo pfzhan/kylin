@@ -73,6 +73,10 @@ object LayoutEntityConverter {
     def toSchema() : StructType = {
       genCuboidSchemaFromNCuboidLayout(layoutEntity)
     }
+
+    def toExactlySchema() : StructType = {
+      genCuboidSchemaFromNCuboidLayout(layoutEntity, true)
+    }
   }
 
   def genCuboidSchemaFromNCuboidLayoutWithPartitionColumn(cuboid: LayoutEntity, partitionColumn: Seq[String]): StructType = {
@@ -99,23 +103,38 @@ object LayoutEntityConverter {
       })
   }
 
-  def genCuboidSchemaFromNCuboidLayout(cuboid: LayoutEntity): StructType = {
-    StructType(cuboid.getOrderedDimensions.asScala.map { i =>
-      StructField(
-        i._1.toString,
-        SparderTypeUtil.toSparkType(i._2.getType),
-        nullable = true
-      )
-    }.toSeq ++
+  def genCuboidSchemaFromNCuboidLayout(cuboid: LayoutEntity, isFastBitmapEnabled: Boolean = false): StructType = {
+    val measures = if (isFastBitmapEnabled) {
+      val countDistinctColumns = cuboid.listBitmapMeasure().asScala
+      cuboid.getOrderedMeasures.asScala.map {
+        i =>
+          if (countDistinctColumns.contains(i._1.toString)) {
+            StructField(i._1.toString, LongType, nullable = true)
+          } else {
+            StructField(
+              i._1.toString,
+              generateFunctionReturnDataType(i._2.getFunction),
+              nullable = true)
+          }
+      }.toSeq
+    } else {
       cuboid.getOrderedMeasures.asScala.map {
         i =>
           StructField(
             i._1.toString,
             generateFunctionReturnDataType(i._2.getFunction),
             nullable = true)
-      }.toSeq)
-  }
+      }.toSeq
+    }
 
+      StructType(cuboid.getOrderedDimensions.asScala.map { i =>
+      StructField(
+        i._1.toString,
+        SparderTypeUtil.toSparkType(i._2.getType),
+        nullable = true
+      )
+    }.toSeq ++ measures)
+  }
   def genBucketSpec(layoutEntity: LayoutEntity, partitionColumn: Set[String]): Option[BucketSpec] = {
     if (layoutEntity.getShardByColumns.isEmpty) {
       Option(BucketSpec(layoutEntity.getBucketNum,

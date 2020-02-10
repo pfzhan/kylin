@@ -89,7 +89,7 @@ object TableScanPlan extends Logging {
       val fileList = segments.asScala.map(
         seg => toCuboidPath(dataflow, cuboidLayout.getId, basePath, seg)
       )
-      val path = fileList.mkString(",")
+      val path = fileList.mkString(",") + olapContext.isFastBitmapEnabled
       lazy val segmentIDs = DebugUtils.applySeqString(segments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
       logDebug(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
       logDebug(s"size is ${cacheDf.get().size()}")
@@ -99,11 +99,12 @@ object TableScanPlan extends Logging {
         cacheDf.get().get(path)
       } else {
         import io.kyligence.kap.query.implicits._
-
         val d = session.kylin
           .format("parquet")
+          .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout)
           .toDF(columnNames: _*)
+        logInfo(s"put path is $path")
 
         logInfo(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, d)

@@ -36,6 +36,7 @@ import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.JavaConverters._
 

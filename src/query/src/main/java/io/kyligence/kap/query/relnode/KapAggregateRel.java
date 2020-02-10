@@ -24,6 +24,11 @@
 
 package io.kyligence.kap.query.relnode;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.query.util.ICutContextStrategy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+import java.util.stream.Collectors;
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -49,17 +55,16 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.calcite.util.Util;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
+import org.apache.kylin.query.relnode.KylinAggregateCall;
 import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
-
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
  *
@@ -174,7 +179,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         buildGroupSet();
         buildGroupSets();
     }
-    
+
     private void buildGroupSet() {
         List<TblColRef> groups = new ArrayList<>();
         List<Integer> groupKeys = new LinkedList<>();
@@ -276,7 +281,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         // only rewrite the innermost aggregation
         if (needRewrite()) {
             // rewrite the aggCalls
-            this.rewriteAggCalls = new ArrayList<AggregateCall>(aggCalls.size());
+            this.rewriteAggCalls = new ArrayList<>(aggCalls.size());
             for (int i = 0; i < this.aggCalls.size(); i++) {
                 AggregateCall aggCall = this.aggCalls.get(i);
                 if (SqlStdOperatorTable.GROUPING == aggCall.getAggregation()) {
@@ -292,11 +297,85 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 aggCall = rewriteAggCall(aggCall, cubeFunc);
                 this.rewriteAggCalls.add(aggCall);
             }
+            getContext().setExactlyAggregate(isExactlyMatched());
         }
 
         // rebuild rowType & columnRowType
         this.rowType = this.deriveRowType();
         this.columnRowType = this.buildColumnRowType();
+
+    }
+
+    public static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT");
+
+    private Boolean isExactlyMatched() {
+        if (!KapConfig.getInstanceFromEnv().needReplaceAggWhenExactlyMatched()) {
+             return false;
+        }
+        if (getSubContext().size() > 1) {
+            return false;
+        }
+        if (getContext().storageContext.getCandidate() == null) {
+            return false;
+        }
+        IndexEntity index = getContext().storageContext.getCandidate().getCuboidLayout().getIndex();
+        if (index.getModel().getStorageType() != 0) {
+            return false;
+        }
+        for (AggregateCall call: getRewriteAggCalls()) {
+              if (!supportedFunction.contains(getAggrFuncName(call))) {
+                    return false;
+              }
+              if (call.getArgList().size() > 1) {
+                  return false;
+              }
+              if (call instanceof KylinAggregateCall) {
+                  FunctionDesc func = ((KylinAggregateCall) call).getFunc();
+                  boolean  hasHllc = func.getReturnDataType() != null && func.getReturnDataType().getName().equals("hllc");
+                  if (hasHllc) {
+                      logger.info("Has hllc measure, not apply exactly match optimize.");
+                      return false;
+                  }
+                  boolean hasBitmap = func.getReturnDataType() != null && func.getReturnDataType().getName().equals("bitmap");
+                  if (hasBitmap && !index.getIndexPlan().isFastBitmapEnabled()) {
+                      return false;
+                  }
+                  if (hasBitmap) {
+                      getContext().setHasBitmapMeasure(true);
+                  }
+              }
+        }
+        Set<String> cuboidDimSet = new HashSet<>();
+        if (getContext() != null && getContext().storageContext.getCandidate() != null) {
+            cuboidDimSet = getContext().storageContext.getCandidate()
+                    .getCuboidLayout().getOrderedDimensions().values()
+                    .stream()
+                    .map(TblColRef::getIdentity)
+                    .collect(Collectors.toSet());
+
+        }
+        Set<String> groupByCols = getGroups().stream()
+                .map(TblColRef::getIdentity)
+                .collect(Collectors.toSet());
+
+        logger.info("group by cols:{}", groupByCols);
+        logger.info("cuboid dimensions: {}", cuboidDimSet);
+        // has count distinct but not enabled fast bitmap
+        boolean isDimensionMatch = !groupByCols.isEmpty() && groupByCols.equals(cuboidDimSet) && isSimpleGroupType();
+        if (!isDimensionMatch) {
+            return false;
+        } else {
+            NDataflow dataflow = (NDataflow) getContext().realization;
+            PartitionDesc partitionDesc = dataflow.getModel().getPartitionDesc();
+            if (partitionDesc != null && partitionDesc.getPartitionDateColumnRef() != null
+                    && getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet())
+                            .contains(partitionDesc.getPartitionDateColumnRef().getIdentity())) {
+                logger.info("Find partition column. skip agg");
+                return true;
+            } else {
+                return dataflow.getQueryableSegments().size() == 1;
+            }
+        }
     }
 
     @Override

@@ -14,7 +14,8 @@
       ],
       "measures": [
         100000,
-        100001
+        100001,
+        100002
       ],
       "layouts": [
         {
@@ -25,7 +26,8 @@
             1,
             2,
             100000,
-            100001
+            100001,
+            100002
           ],
           "storage_type": 20
         }
@@ -35,7 +37,9 @@
   "dictionaries": [],
   "next_aggregation_index_id": 1010000,
   "next_table_index_id": 20000040000,
-  "override_properties": {},
+  "override_properties": {
+    "kylin.query.fast-bitmap-enabled" : "true"
+  },
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,
   "auto_merge_time_ranges": null,

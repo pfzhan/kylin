@@ -21,7 +21,6 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import io.kyligence.kap.metadata.cube.model.NDataflow
 import io.kyligence.kap.query.relnode.KapAggregateRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
@@ -45,10 +44,7 @@ import scala.collection.JavaConverters._
 // scalastyle:off
 object AggregatePlan extends Logging {
   val binaryMeasureType =
-    List("COUNT_DISTINCT", "PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT")
-
-  val basicMeasureType =
-    List("SUM", "MIN", "MAX")
+    List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT")
 
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel,
@@ -60,16 +56,10 @@ object AggregatePlan extends Logging {
       .map(groupId => col(schemaNames.apply(groupId)))
       .toList
 
-    val df = if (KapConfig.getInstanceFromEnv.needReplaceAggWhenExactlyMatched()
-      && isExactlyMatched(rel)
-      && onlyHasOneSeg(rel)
-      && isAnsweredByAggIndex(rel)
-      && !containsGroupSets(rel)) {
-
+    val df = if (rel.getContext !=null && rel.getContext.isExactlyAggregate) {
       // exactly match, skip agg, direct project.
       val aggCols = rel.getRewriteAggCalls.asScala
         .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
-
       val prjList = groupList ++ aggCols
       logInfo(s"Query exactly match index, skip agg, project $prjList.")
       dataFrame.select(prjList: _*)
@@ -108,52 +98,6 @@ object AggregatePlan extends Logging {
       case e: Throwable => logWarning("Error occurred when generate filters", e)
         dataFrame
     }
-  }
-
-  private def containsGroupSets(rel: KapAggregateRel): Boolean = {
-    return !rel.isSimpleGroupType
-  }
-
-  private def onlyHasOneSeg(rel: KapAggregateRel): Boolean = {
-    rel.getContext.realization.asInstanceOf[NDataflow].getQueryableSegments.size() == 1
-  }
-
-  private def isAnsweredByAggIndex(rel: KapAggregateRel): Boolean = {
-    return !rel.getContext.isAnsweredByTableIndex
-  }
-
-  private def isExactlyMatched(rel: KapAggregateRel): Boolean = {
-    val olapContext = rel.getContext
-
-    val rewrites = rel.getRewriteAggCalls.asScala
-    // only support simple measure type.
-    if (rewrites.exists(call => !basicMeasureType.contains(OLAPAggregateRel.getAggrFuncName(call)))
-      // do not support the case that more than one arg.
-      || rewrites.exists(_.getArgList.size() > 1)
-      // do not support agg that has sub-contexts.
-      || rel.getSubContext.size() > 1) {
-      return false
-    }
-
-    val cuboidDimSet =
-      if (olapContext == null || olapContext.storageContext.getCandidate == null) {
-        Set.empty[String]
-      } else {
-        olapContext.storageContext.getCandidate
-          .getCuboidLayout
-          .getOrderedDimensions.asScala
-          .map(_._2.getIdentity)
-          .toSet
-      }
-
-    val groupByCols = rel.getGroups
-      .asScala
-      .map(_.getIdentity)
-      .toSet
-
-    logDebug("group by cols:" + groupByCols)
-    logDebug("cuboid dimensions:" + cuboidDimSet)
-    groupByCols.nonEmpty && groupByCols.equals(cuboidDimSet)
   }
 
   def buildAgg(schema: StructType,

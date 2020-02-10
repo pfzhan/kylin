@@ -129,9 +129,10 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, getProject(), SparderEnv.getSparkSession());
 
-        String exactly_match1 = "select sum(price) from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
+        String exactly_match1 = "select count (distinct price) as a from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME having count (distinct price)  > 0 ";
         Dataset<Row> m1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match1);
         Assert.assertFalse(existsAgg(m1));
+
 
         String exactly_match2 = "select count(*) from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME";
         Dataset<Row> m2 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match2);
@@ -145,9 +146,13 @@ public class NExactlyMatchTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(fieldNames[1].contains("GMV_SUM"));
         Assert.assertTrue(fieldNames[2].contains("CAL_DT"));
 
+        String exactly_match4 = "select count (distinct price) as a from TEST_KYLIN_FACT group by TRANS_ID, CAL_DT, LSTG_FORMAT_NAME having count (distinct price)  > 0 ";
+        Dataset<Row> m4 = NExecAndComp.queryCubeAndSkipCompute(getProject(), exactly_match1);
+        Assert.assertFalse(existsAgg(m4));
         // assert results
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("", exactly_match3));
+        query.add(Pair.newPair("", exactly_match4));
         NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
 
 

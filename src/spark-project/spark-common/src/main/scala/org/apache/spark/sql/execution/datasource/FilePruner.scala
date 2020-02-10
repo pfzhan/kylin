@@ -90,11 +90,20 @@ class FilePruner(val session: SparkSession,
   }
 
   val workingDir: String = KapConfig.wrap(dataflow.getConfig).getReadParquetStoragePath(dataflow.getProject)
+  val isFastBitmapEnabled: Boolean = options.apply("isFastBitmapEnabled").toBoolean
 
   override def rootPaths: Seq[Path] = {
-    dataflow.getQueryableSegments.asScala.map(
-      seg => new Path(s"$workingDir${dataflow.getUuid}/${seg.getId}/${layout.getId}")
-    )
+      dataflow.getQueryableSegments.asScala.map(
+        seg => new Path(toPath(seg.getId))
+      )
+  }
+
+  def toPath(segmentId: String): String = {
+    if (isFastBitmapEnabled) {
+      s"$workingDir${dataflow.getUuid}/${segmentId}/${layout.getId}_fast_bitmap"
+    } else {
+      s"$workingDir${dataflow.getUuid}/${segmentId}/${layout.getId}"
+    }
   }
 
   private lazy val segmentDirs: Seq[SegmentDirectory] = {
@@ -200,7 +209,7 @@ class FilePruner(val session: SparkSession,
     }
     QueryContext.current().record("seg_pruning")
     selected = selected.par.map { e =>
-      val path = new Path(s"$workingDir${dataflow.getUuid}/${e.segmentID}/${layout.getId}")
+      val path = new Path(toPath(e.segmentID))
       val maybeStatuses = fsc.getLeafFiles(path)
       if (maybeStatuses.isDefined) {
         SegmentDirectory(e.segmentID, maybeStatuses.get)

@@ -243,6 +243,27 @@ public class OLAPContext {
     @Setter
     private boolean hasAdminPermission = false;
 
+    public boolean isExactlyAggregate = false;
+
+    public boolean hasBitmapMeasure = false;
+
+    public boolean isExactlyAggregate() {
+        return isExactlyAggregate;
+    }
+
+    public void setExactlyAggregate(boolean exactlyAggregate) {
+        isExactlyAggregate = exactlyAggregate;
+    }
+
+    public boolean isFastBitmapEnabled() {
+        return isExactlyAggregate && hasBitmapMeasure;
+    }
+
+    public void setHasBitmapMeasure(boolean bitmapMeasure) {
+        hasBitmapMeasure = bitmapMeasure;
+    }
+
+
     public boolean isSimpleQuery() {
         return (joins.isEmpty()) && (groupByColumns.isEmpty()) && (aggregations.isEmpty());
     }

@@ -61,6 +61,11 @@ class KylinDataFrameManager(sparkSession: SparkSession) {
     option(key, value.toString)
   }
 
+  def isFastBitmapEnabled(isFastBitmapEnabled: Boolean): KylinDataFrameManager = {
+    option("isFastBitmapEnabled", isFastBitmapEnabled.toString)
+    this
+  }
+
   def cuboidTable(dataflow: NDataflow, layout: LayoutEntity): DataFrame = {
     option("project", dataflow.getProject)
     option("dataflowId", dataflow.getUuid)
