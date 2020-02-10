@@ -28,6 +28,8 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
+import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -234,7 +236,8 @@ public class OpenModelController extends NBasicController {
 
     @PostMapping(value = "/suggest_model")
     @ResponseBody
-    public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody OpenSqlAccerelateRequest request) {
+    public EnvelopeResponse<OpenNRecommendationListResponse> suggestModel(
+            @RequestBody OpenSqlAccerelateRequest request) {
         checkProjectName(request.getProject());
 
         NRecomendationListResponse nRecomendationListResponse = modelService.suggestModel(request.getProject(),
@@ -248,7 +251,8 @@ public class OpenModelController extends NBasicController {
         if (CollectionUtils.isNotEmpty(modelRequests)) {
             modelService.batchCreateModel(request.getProject(), modelRequests);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, nRecomendationListResponse, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
+                OpenNRecommendationListResponse.convert(nRecomendationListResponse), "");
     }
 
     @GetMapping(value = "/recommendations")
@@ -261,9 +265,17 @@ public class OpenModelController extends NBasicController {
 
     @PutMapping(value = "/recommendations/batch")
     @ResponseBody
-    public EnvelopeResponse<String> batchApplyRecommendations(@RequestParam(value = "project") String project,
-            @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
-        checkProjectName(project);
-        return modelController.batchApplyRecommendations(project, modelAlias);
+    public EnvelopeResponse<String> batchApplyRecommendations(
+            @RequestBody OpenBatchApplyRecommendationsRequest request) {
+        checkProjectName(request.getProject());
+        if (request.isFilterByModelNames()) {
+            if (CollectionUtils.isEmpty(request.getModelNames())) {
+                throw new BadRequestException("Model names should not be empty when filter by model names!");
+            }
+        } else {
+            request.setModelNames(null);
+        }
+
+        return modelController.batchApplyRecommendations(request.getProject(), request.getModelNames());
     }
 }

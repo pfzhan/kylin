@@ -28,6 +28,8 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.rest.service.ProjectService;
+import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.DataResult;
@@ -63,6 +65,9 @@ public class OpenTableController extends NBasicController {
     @Autowired
     private TableService tableService;
 
+    @Autowired
+    private ProjectService projectService;
+
     private static final Integer MAX_SAMPLING_ROWS = 20_000_000;
     private static final Integer MIN_SAMPLING_ROWS = 10_000;
 
@@ -73,6 +78,11 @@ public class OpenTableController extends NBasicController {
             throw new BadRequestException(String.format("Can not find the table with tableName: %s", tableName));
         }
         return table;
+    }
+
+    @VisibleForTesting
+    public void updateDataSourceType(String project, int dataSourceType) {
+        projectService.setDataSourceType(project, String.valueOf(dataSourceType));
     }
 
     @GetMapping(value = "")
@@ -99,6 +109,10 @@ public class OpenTableController extends NBasicController {
                 tableLoadRequest.setSamplingRows(MIN_SAMPLING_ROWS);
             }
         }
+
+        // default set data_source_type = 9
+        tableLoadRequest.setDataSourceType(ISourceAware.ID_SPARK);
+        updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 
         return tableController.loadTables(tableLoadRequest);
     }

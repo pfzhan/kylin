@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -61,7 +60,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
@@ -111,9 +109,6 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
-
-    @Autowired
-    private ProjectService projectService;
 
     @ApiOperation(value = "getTableDesc (update)", notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
     @GetMapping(value = "")
@@ -200,11 +195,6 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @VisibleForTesting
-    public void updateDataSourceType(String project, int dataSourceType) {
-        projectService.setDataSourceType(project, String.valueOf(dataSourceType));
-    }
-
     @ApiOperation(value = "loadTables (update)", notes = "Update Body: data_source_type, need_sampling, sampling_rows")
     @PostMapping(value = "")
     @ResponseBody
@@ -219,8 +209,6 @@ public class NTableController extends NBasicController {
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
             throw new BadRequestException("You should select at least one table or database to load!!");
         }
-
-        updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {

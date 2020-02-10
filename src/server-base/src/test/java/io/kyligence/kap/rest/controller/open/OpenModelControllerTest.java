@@ -34,6 +34,7 @@ import java.util.UUID;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
+import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
@@ -367,11 +368,32 @@ public class OpenModelControllerTest {
     public void testBatchApplyRecommendations() throws Exception {
         Mockito.doReturn(null).when(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
 
+        List<String> modelNames = Lists.newArrayList("model1, model2");
+        OpenBatchApplyRecommendationsRequest request = new OpenBatchApplyRecommendationsRequest();
+        request.setProject("default");
+        request.setModelNames(modelNames);
+
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
-                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(openModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
+        Mockito.verify(openModelController).batchApplyRecommendations(Mockito.any());
+    }
+
+    @Test
+    public void testBatchApplyRecommendations_emptyModelNames() throws Exception {
+        Mockito.doReturn(null).when(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
+
+        List<String> modelNames = Lists.newArrayList();
+        OpenBatchApplyRecommendationsRequest request = new OpenBatchApplyRecommendationsRequest();
+        request.setProject("default");
+        request.setModelNames(modelNames);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(openModelController).batchApplyRecommendations(Mockito.any());
     }
 
 }

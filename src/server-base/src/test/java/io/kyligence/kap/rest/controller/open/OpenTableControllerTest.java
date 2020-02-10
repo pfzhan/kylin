@@ -135,6 +135,7 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
         tableLoadRequest.setTables(new String[] { "hh.kk" });
         tableLoadRequest.setNeedSampling(false);
         tableLoadRequest.setProject("default");
+        Mockito.doNothing().when(openTableController).updateDataSourceType("default", 9);
         Mockito.doAnswer(x -> null).when(nTableController).loadTables(tableLoadRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
                 .contentType(MediaType.APPLICATION_JSON) //
