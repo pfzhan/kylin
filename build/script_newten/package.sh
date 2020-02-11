@@ -58,6 +58,33 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.0.12 release note
+
+**Enhancement**
+
+- Add the confirmation dialog box in some important operations such as modification or deletion to avoid the possibility of misoperation.
+- Improve product usability
+  - Model recommendation number can be clicked to show the detailed recommendations directly
+  - Support Job ID as the filter condition in job page.
+  - Clicking the target subject in the jobs list can jump to the referenced model.
+- Improve user interface
+  - Optimize the length of time range box in the dashboard page.
+  - Optimize the default height of table when editing model to remind users more clearly that tables can be expanded to view more information.
+- Rest API
+  - Provide new APIs for indexes building / model optimization / model validation
+
+**Bugfix**
+
+- After pausing a job in the job page, the corresponding process is not completely cleaned up
+- When the user guide is running, if the text input box is activated, user guide may fail with keyboard input
+- Charts are not updated synchronously when switching time range in the dashboard page
+- When setting a Count Distinct measure with a parameter of Precisely, building indexes may fail if multiple columns are selected
+- The job details cannot be scrolled with the scroll bar after the job details are expanded in the job page
+- When the source table contains about 4000 columns, it takes a long time to response and results are displayed without pagination.
+- In model editing page, if the measure contains computed column, it fails to choose other columns after changing the function type.
+
+
+
 #### Kyligence Enterprise 4.0.11 release note
 
 **Feature**
