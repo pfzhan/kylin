@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.event.model.EventContext;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -645,7 +646,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testCheckIndexCountWithinLimit() {
-        String aggGroupStr = "{\"includes\":[0,1,2,3,4,5,6,7,8,9,10,11],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[]}}";
+        String aggGroupStr = "{\"includes\":[0,1,2,3,4,5,6,7,8,9,10,11],\"select_rule\":{\"mandatory_dims\":[],\"hierarchy_dims\":[],\"joint_dims\":[],\"dim_cap\":2}}";
         NAggregationGroup aggGroup = null;
         try {
             aggGroup = JsonUtil.readValue(aggGroupStr, NAggregationGroup.class);
@@ -940,4 +941,61 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     }
 
+    @Test
+    public void testUpdateIndexPlanWithMDC() throws Exception {
+        // aggregationGroup1 will generate [1,2,10000] [1,3,10000] [1,4,10000] [1,10000] total 4 layout
+        NAggregationGroup aggregationGroup1 = new NAggregationGroup();
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4 });
+        aggregationGroup1.setMeasures(new Integer[] { 10000 });
+        SelectRule selectRule1 = new SelectRule();
+        selectRule1.setMandatoryDims(new Integer[] { 1 });
+        selectRule1.setDimCap(1);
+        aggregationGroup1.setSelectRule(selectRule1);
+
+        // aggregationGroup2 will generate [5,10000,10001] [5,6,7,10000,10001] total 2 layout
+        NAggregationGroup aggregationGroup2 = new NAggregationGroup();
+        aggregationGroup2.setIncludes(new Integer[] { 5, 6, 7 });
+        aggregationGroup2.setMeasures(new Integer[] { 10000, 10001 });
+        SelectRule selectRule2 = new SelectRule();
+        selectRule2.setMandatoryDims(new Integer[] { 5 });
+        selectRule2.setJointDims(new Integer[][] { { 6, 7 } });
+        aggregationGroup2.setSelectRule(selectRule2);
+
+        UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .build();
+        request.setGlobalDimCap(2);
+
+        AggIndexResponse aggIndexResponse = indexPlanService.calculateAggIndexCount(request);
+        List<AggIndexCombResult> aggIndexCounts = aggIndexResponse.getAggIndexCounts();
+        Assert.assertEquals(4L, aggIndexCounts.get(0).getResult());
+        Assert.assertEquals(2L, aggIndexCounts.get(1).getResult());
+        // 4 + 2 + baseCuboid
+        Assert.assertEquals(7L, aggIndexResponse.getTotalCount().getResult());
+
+        val diff = indexPlanService.calculateDiffRuleBasedIndex(request);
+        Assert.assertTrue(diff.getIncreaseLayouts().equals(7));
+
+        IndexPlan indexPlan = indexPlanService.updateRuleBasedCuboid("default", request).getFirst();
+        Assert.assertEquals(7, indexPlan.getRuleBaseLayouts().size());
+
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Event> events = eventDao.getEvents();
+        Event event = events.get(0);
+        EventContext eventContext = new EventContext(event, KylinConfig.getInstanceFromEnv(), "default");
+        event.getEventHandler().handle(eventContext);
+
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<LayoutEntity> ruleBaseLayouts = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .getIndexPlan().getRuleBaseLayouts();
+        Assert.assertEquals(7L, ruleBaseLayouts.size());
+        Assert.assertEquals("[1, 2, 10000]", ruleBaseLayouts.get(0).getColOrder().toString());
+        Assert.assertEquals("[5, 6, 7, 10000, 10001]", ruleBaseLayouts.get(1).getColOrder().toString());
+        Assert.assertEquals("[1, 3, 10000]", ruleBaseLayouts.get(2).getColOrder().toString());
+        Assert.assertEquals("[1, 4, 10000]", ruleBaseLayouts.get(3).getColOrder().toString());
+        Assert.assertEquals("[1, 10000]", ruleBaseLayouts.get(4).getColOrder().toString());
+        Assert.assertEquals("[5, 10000, 10001]", ruleBaseLayouts.get(5).getColOrder().toString());
+        Assert.assertEquals("[1, 2, 3, 4, 5, 6, 7, 10000, 10001]", ruleBaseLayouts.get(6).getColOrder().toString());
+    }
 }

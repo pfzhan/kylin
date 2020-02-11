@@ -57,6 +57,9 @@ public class UpdateRuleBasedCuboidRequest {
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> aggregationGroups;
 
+    @JsonProperty("global_dim_cap")
+    private Integer globalDimCap;
+
     @Builder.Default
     @JsonProperty("load_data")
     private boolean isLoadData = true;
@@ -65,6 +68,7 @@ public class UpdateRuleBasedCuboidRequest {
         val newRuleBasedCuboid = new NRuleBasedIndex();
         BeanUtils.copyProperties(this, newRuleBasedCuboid);
         newRuleBasedCuboid.setDimensions(getSortedDimensions());
+        newRuleBasedCuboid.setGlobalDimCap(globalDimCap);
 
         return newRuleBasedCuboid;
     }

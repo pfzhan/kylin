@@ -25,6 +25,7 @@ package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.IOException;
 
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -53,6 +54,7 @@ public class NAggregationGroupTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCalculateCuboidCombinationWithZeroDimcap() throws IOException {
         NAggregationGroup group = JsonUtil.readValue(AGG_GROUP, NAggregationGroup.class);
+        group.ruleBasedAggIndex = new NRuleBasedIndex();
         Assert.assertEquals(7, group.calculateCuboidCombination());
     }
 

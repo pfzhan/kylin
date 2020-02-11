@@ -88,7 +88,7 @@ public class NAggregationGroup implements Serializable {
     private List<BigInteger> joints;//each long is a group
     private BigInteger jointDimsMask;
     private List<BigInteger> normalDimMeas;//each long is a single dim
-    private NRuleBasedIndex ruleBasedAggIndex;
+    protected NRuleBasedIndex ruleBasedAggIndex;
     private boolean isMandatoryOnlyValid;
     private HashMap<BigInteger, BigInteger> dim2JointMap;
 
@@ -282,7 +282,7 @@ public class NAggregationGroup implements Serializable {
     public long calculateCuboidCombination() {
         long combination = 1;
         try {
-            if (this.getDimCap() > 0) {
+            if (this.getDimCap() > 0 || ruleBasedAggIndex.getGlobalDimCap() > 0) {
                 NCuboidScheduler cuboidScheduler = ruleBasedAggIndex.getInitialCuboidScheduler();
                 combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
             } else {

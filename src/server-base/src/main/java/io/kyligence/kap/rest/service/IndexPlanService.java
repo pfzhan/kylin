@@ -345,13 +345,18 @@ public class IndexPlanService extends BasicService {
             indexPlan.setRuleBasedIndex(request.convertToRuleBasedIndex());
         } catch (OutOfMaxCombinationException oe) {
             invalid = true;
-            log.error("Out of max combination, ", oe);
+            log.error("The number of cuboid for the cube exceeds the limit, ", oe);
         } catch (IllegalStateException e) {
             log.error(e.getMessage());
         }
 
         List<AggIndexCombResult> aggIndexCounts = Lists.newArrayList();
         for (NAggregationGroup group : aggregationGroups) {
+            if (group.getIncludes() != null && group.getIncludes().length == 0) {
+                aggIndexResult = AggIndexCombResult.successResult(0L);
+                aggIndexCounts.add(aggIndexResult);
+                continue;
+            }
             long count = group.calculateCuboidCombination();
             if (count > maxCount) {
                 aggIndexResult = AggIndexCombResult.errorResult();
@@ -374,6 +379,22 @@ public class IndexPlanService extends BasicService {
     public void checkIndexCountWithinLimit(UpdateRuleBasedCuboidRequest request) {
         val maxCount = getConfig().getCubeAggrGroupMaxCombination();
         List<NAggregationGroup> aggGroups = request.getAggregationGroups();
+
+        val indexPlan = getIndexPlan(request.getProject(), request.getModelId()).copy();
+
+        val aggregationGroupsCopy = aggGroups.stream()
+                .filter(aggGroup -> aggGroup.getIncludes() != null && aggGroup.getIncludes().length != 0)
+                .collect(Collectors.toList());
+        request.setAggregationGroups(aggregationGroupsCopy);
+
+        try {
+            indexPlan.setRuleBasedIndex(request.convertToRuleBasedIndex());
+        } catch (OutOfMaxCombinationException oe) {
+            log.error("The number of cuboid for the cube exceeds the limit, ", oe);
+        } catch (IllegalStateException e) {
+            log.error(e.getMessage());
+        }
+
         for (NAggregationGroup aggGroup : aggGroups) {
             long count = aggGroup.calculateCuboidCombination();
             if (count > maxCount) {

@@ -78,6 +78,10 @@ public class NRuleBasedIndex implements Serializable, IKeep {
     @JsonProperty("measures")
     private List<Integer> measures = Lists.newArrayList();
 
+    @Setter
+    @JsonProperty("global_dim_cap")
+    private Integer globalDimCap;
+
     @Getter
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> aggregationGroups = Lists.newArrayList();
@@ -177,6 +181,10 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             }
             return cuboidScheduler;
         }
+    }
+
+    public int getGlobalDimCap() {
+        return globalDimCap == null ? 0 : globalDimCap;
     }
 
     public int getColumnBitIndex(Integer colId) {

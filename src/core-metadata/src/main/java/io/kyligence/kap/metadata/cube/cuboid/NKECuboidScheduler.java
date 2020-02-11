@@ -339,6 +339,10 @@ public class NKECuboidScheduler extends NCuboidScheduler {
 
     private boolean checkDimCap(NAggregationGroup agg, BigInteger cuboidID) {
         int dimCap = agg.getDimCap();
+
+        if (dimCap == 0)
+            dimCap = ruleBasedAggIndex.getGlobalDimCap();
+
         if (dimCap <= 0)
             return true;
 
