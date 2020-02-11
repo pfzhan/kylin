@@ -36,7 +36,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPLimitRel;
@@ -126,14 +125,12 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
         this.columnRowType = buildColumnRowType();
         if (context != null) {
             if (!context.afterHavingClauseFilter && !context.afterLimit) {
-                Number limitValue = (Number) (((RexLiteral) localFetch).getValue());
-                int limit = limitValue.intValue();
+                int limit = translateRexToValue(localFetch, Integer.MAX_VALUE);
                 this.context.storageContext.setLimit(limit);
                 this.context.setLimit(limit);
 
                 if (localOffset != null) {
-                    Number offsetValue = (Number) (((RexLiteral) localOffset).getValue());
-                    int offset = offsetValue.intValue();
+                    int offset = translateRexToValue(localOffset, 0);
                     this.context.storageContext.setOffset(offset);
                 }
                 context.afterLimit = true;

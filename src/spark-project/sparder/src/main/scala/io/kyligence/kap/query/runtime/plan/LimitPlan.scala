@@ -22,8 +22,8 @@
 package io.kyligence.kap.query.runtime.plan
 
 import io.kyligence.kap.query.relnode.KapLimitRel
+import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
-import org.apache.calcite.rex.RexLiteral
 import org.apache.spark.sql.DataFrame
 
 object LimitPlan {
@@ -31,13 +31,16 @@ object LimitPlan {
     rel: KapLimitRel,
     dataContext: DataContext): DataFrame = {
     //    val schema = statefulDF.indexSchema
-    val limit = BigDecimal(rel.localFetch.asInstanceOf[RexLiteral].getValue.toString).toInt
+    val visitor = new SparderRexVisitor(inputs.get(0),
+      rel.getInput.getRowType,
+      dataContext)
+    val limit = BigDecimal(rel.localFetch.accept(visitor).toString).toInt
     if (rel.localOffset == null) {
       inputs
         .get(0)
         .limit(limit)
     } else {
-      val offset = BigDecimal(rel.localOffset.asInstanceOf[RexLiteral].getValue.toString).toInt
+      val offset = BigDecimal(rel.localOffset.accept(visitor).toString).toInt
       inputs
         .get(0)
         .limitRange(offset, offset + limit)

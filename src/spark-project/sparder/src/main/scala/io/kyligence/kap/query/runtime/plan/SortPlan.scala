@@ -43,7 +43,7 @@ object SortPlan extends Logging {
       .map(rex => {
         val visitor = new SparderRexVisitor(dataFrame,
                                             rel.getInput.getRowType,
-                                            null)
+          dataContext)
         rex.accept(visitor)
       })
       .map(c => k_lit(c))

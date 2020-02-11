@@ -38,6 +38,7 @@ import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -129,9 +130,16 @@ public class RexToTblColRefTranslator {
         } else if (rexNode instanceof RexCall) {
             RexCall call = (RexCall) rexNode;
             return translateRexCall(call, inputColumnRowType, fieldName);
+        } else if (rexNode instanceof RexDynamicParam) {
+            RexDynamicParam call = (RexDynamicParam) rexNode;
+            return translateRexDynamicParam(call);
         } else {
             throw new IllegalStateException("Unsupported RexNode " + rexNode);
         }
+    }
+
+    private TblColRef translateRexDynamicParam(RexDynamicParam rexParam) {
+        return TblColRef.newDynamicColumn(rexParam.getName());
     }
 
     private TblColRef translateFirstRexInputRef(RexCall call, ColumnRowType inputColumnRowType, String fieldName) {

@@ -64,6 +64,7 @@ import lombok.Setter;
 public class TblColRef implements Serializable {
 
     private static final String INNER_TABLE_NAME = "_kylin_table";
+    public static final String DYNAMIC_DATA_TYPE = "_dynamic_type";
 
     // used by projection rewrite, see OLAPProjectRel
     public enum InnerDataTypeEnum {
@@ -133,6 +134,16 @@ public class TblColRef implements Serializable {
         colRef.parserDescription = parserDescription;
         colRef.setOperator(operator);
         colRef.setOpreand(opreands);
+        return colRef;
+    }
+
+    public static TblColRef newDynamicColumn(String columnName) {
+        ColumnDesc column = new ColumnDesc();
+        column.setName(columnName);
+        column.setDatatype(DYNAMIC_DATA_TYPE);
+        TableDesc table = new TableDesc();
+        column.setTable(table);
+        TblColRef colRef = new TblColRef(column);
         return colRef;
     }
 

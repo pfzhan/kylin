@@ -48,6 +48,7 @@ import java.util.Properties;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
+import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -129,6 +130,14 @@ public class QueryUtilTest {
         final String errorMsg = QueryUtil.makeErrorMsgUserFriendly(exception);
         Assert.assertEquals("There is no column\t'age' in table 'test_kylin_fact'.\n"
                 + "Please contact Kyligence Enterprise technical support for more details.", errorMsg);
+    }
+
+    @Test
+    public void testMakeErrorMsgUserFriendlyForAccessDeniedException() {
+        String accessDeniedMsg = "Query failed, access DEFAULT.TEST_KYLIN_FACT denied";
+        Exception sqlException = new SQLException("exception while executing query", new AccessDeniedException("DEFAULT.TEST_KYLIN_FACT"));
+        String errorMessage = QueryUtil.makeErrorMsgUserFriendly(sqlException);
+        Assert.assertEquals(accessDeniedMsg, errorMessage);
     }
 
     @Test

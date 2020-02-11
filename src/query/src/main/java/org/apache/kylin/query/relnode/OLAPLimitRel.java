@@ -57,6 +57,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 
@@ -107,19 +108,27 @@ public class OLAPLimitRel extends SingleRel implements OLAPRel {
         // ignore limit after having clause
         // ignore limit after another limit, e.g. select A, count(*) from (select A,B from fact group by A,B limit 100) limit 10
         if (!context.afterHavingClauseFilter && !context.afterLimit) {
-            Number limitValue = (Number) (((RexLiteral) localFetch).getValue());
-            int limit = limitValue.intValue();
-            this.context.storageContext.setLimit(limit);
+            this.context.storageContext.setLimit(translateRexToValue(localFetch, Integer.MAX_VALUE));
 
             if (localOffset != null) {
-                Number offsetValue = (Number) (((RexLiteral) localOffset).getValue());
-                int offset = offsetValue.intValue();
-                this.context.storageContext.setOffset(offset);
+                this.context.storageContext.setOffset(translateRexToValue(localOffset, 0));
             }
 
             context.afterLimit = true;
         } else {
             this.context.storageContext.setOverlookOuterLimit();
+        }
+    }
+
+    protected Integer translateRexToValue(RexNode rexNode, int defaultValue) {
+        if (rexNode instanceof RexLiteral) {
+            RexLiteral rexLiteral = (RexLiteral) rexNode;
+            Number number = (Number) rexLiteral.getValue();
+            return number.intValue();
+        } else if (rexNode instanceof RexDynamicParam) {
+            return defaultValue;
+        } else {
+            throw new IllegalStateException("Unsupported RexNode for limit Rel " + rexNode);
         }
     }
 

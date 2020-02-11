@@ -53,6 +53,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
@@ -201,7 +202,7 @@ public class QueryUtil {
         Throwable cause = e;
         while (cause != null) {
             if (cause.getClass().getName().contains("ParseException") || cause instanceof NoSuchTableException
-                    || cause instanceof NoSuchDatabaseException) {
+                    || cause instanceof NoSuchDatabaseException || cause instanceof AccessDeniedException) {
                 msg = cause.getMessage();
                 break;
             }

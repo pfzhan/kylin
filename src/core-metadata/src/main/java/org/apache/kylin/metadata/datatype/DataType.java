@@ -63,6 +63,7 @@ import org.apache.kylin.common.util.BytesSerializer;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.measure.MeasureTypeFactory;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.TblColRef.InnerDataTypeEnum;
 
 /**
@@ -103,7 +104,7 @@ public class DataType implements Serializable {
                 "int4", "long8", // for test only
                 "float", "real", "double", "decimal", "numeric", //
                 "date", "time", "datetime", "timestamp", "array", //
-                InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType());
+                InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType(), TblColRef.DYNAMIC_DATA_TYPE);
 
         registerComplex("array\\<.*\\>");
     }

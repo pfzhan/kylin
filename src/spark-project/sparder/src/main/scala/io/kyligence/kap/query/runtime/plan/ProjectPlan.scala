@@ -44,7 +44,7 @@ object ProjectPlan extends Logging {
       .map(rex => {
         val visitor = new SparderRexVisitor(df,
           rel.getInput.getRowType,
-          null)
+          dataContext)
         (rex.accept(visitor), rex.isInstanceOf[RexInputRef])
       })
       .zipWithIndex
