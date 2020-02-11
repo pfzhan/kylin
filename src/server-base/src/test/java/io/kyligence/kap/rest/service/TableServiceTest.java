@@ -166,11 +166,11 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testGetTableDesc() throws IOException {
 
         List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "", "DEFAULT", true);
-        Assert.assertEquals(true, tableDesc.size() == 9);
+        Assert.assertEquals(9, tableDesc.size());
         List<TableDesc> tableDesc2 = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", false);
         Assert.assertEquals(1, tableDesc2.size());
         List<TableDesc> tables3 = tableService.getTableDesc("default", true, "", "", true);
-        Assert.assertEquals(true, tables3.size() == 12);
+        Assert.assertEquals(18, tables3.size());
         List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true);
         Assert.assertEquals("TEST_KYLIN_FACT", tables.get(0).getName());
         Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getStorageSize());
@@ -733,7 +733,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetTableAndColumns() {
         List<TablesAndColumnsResponse> result = tableService.getTableAndColumns("default");
-        Assert.assertEquals(12, result.size());
+        Assert.assertEquals(18, result.size());
     }
 
     @Test
@@ -933,7 +933,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetLoadedDatabases() {
         Set<String> loadedDatabases = tableService.getLoadedDatabases("default");
-        Assert.assertEquals(loadedDatabases.size(), 2);
+        Assert.assertEquals(loadedDatabases.size(), 3);
     }
 
     private TopTableRequest mockTopTableRequest() {
@@ -992,7 +992,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(response.getDatabases().size(), 3);
         Assert.assertEquals(response.getDatabases().get(0).getTables().size()
                 + response.getDatabases().get(1).getTables().size() + response.getDatabases().get(2).getTables().size(),
-                17);
+                18);
 
         response = tableService.getProjectTables("default", "TEST", 0, 14, true, (databaseName, tableName) -> {
             return tableService.getTableNameResponses("default", databaseName, tableName);

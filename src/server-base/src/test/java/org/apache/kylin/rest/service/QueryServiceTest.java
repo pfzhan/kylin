@@ -622,10 +622,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             tableSchemas = schemasAndTables.getFirst();
             tableNames = schemasAndTables.getSecond();
 
-            Assert.assertEquals(2, tableSchemas.size());
+            Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(12, tableNames.size());
+            Assert.assertEquals(18, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
