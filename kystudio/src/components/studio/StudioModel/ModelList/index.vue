@@ -118,7 +118,8 @@
           :render-header="renderAdviceHeader"
           v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
-            <span class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
+            <span v-if="scope.row.status !== 'BROKEN'" class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
+            <span v-else>{{scope.row.recommendations_count}}</span>
           </template>
          </el-table-column>
          <el-table-column
