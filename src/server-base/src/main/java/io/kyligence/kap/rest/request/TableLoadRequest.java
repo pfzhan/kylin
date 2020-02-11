@@ -31,7 +31,7 @@ import lombok.Data;
 @Data
 public class TableLoadRequest {
     @JsonProperty("data_source_type")
-    private int dataSourceType;
+    private int dataSourceType=9;
     private String project;
     private String[] tables;
     private String[] databases;

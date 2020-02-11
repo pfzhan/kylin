@@ -111,7 +111,9 @@ public class OpenTableController extends NBasicController {
         }
 
         // default set data_source_type = 9
-        tableLoadRequest.setDataSourceType(ISourceAware.ID_SPARK);
+        if (ISourceAware.ID_SPARK != tableLoadRequest.getDataSourceType()) {
+            throw new BadRequestException("Only support Hive as the data source. (data_source_type = 9)");
+        }
         updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 
         return tableController.loadTables(tableLoadRequest);
