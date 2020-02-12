@@ -18,6 +18,7 @@
     <el-table
       :data="favoriteTableData"
       border
+      v-loading="loading"
       class="favorite-table"
       ref="favoriteTable"
       :default-sort = "{prop: 'last_query_time', order: 'descending'}"
@@ -83,7 +84,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { handleSuccess, transToGmtTime } from '../../../util/business'
 import { handleError, indexOfObjWithSomeKey, objectClone } from '../../../util/index'
 @Component({
-  props: ['favoriteTableData', 'tab'],
+  props: ['favoriteTableData', 'tab', 'loading'],
   computed: {
     ...mapGetters([
       'currentSelectedProject'

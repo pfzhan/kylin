@@ -43,6 +43,7 @@
           <acceleration_table
             v-if="activeList=='waiting'"
             :favoriteTableData="favQueList.value"
+            :loading="listLoading"
             v-on:sortTable="sortFavoriteList"
             v-on:filterFav="filterFav"
             v-on:pausePolling="pausePolling"
@@ -55,6 +56,7 @@
           <acceleration_table
             v-if="activeList=='not_accelerated'"
             :favoriteTableData="favQueList.value"
+            :loading="listLoading"
             v-on:sortTable="sortFavoriteList"
             v-on:filterFav="filterFav"
             v-on:pausePolling="pausePolling"
@@ -67,6 +69,7 @@
           <acceleration_table
             v-if="activeList=='accelerated'"
             :favoriteTableData="favQueList.value"
+            :loading="listLoading"
             v-on:sortTable="sortFavoriteList"
             v-on:filterFav="filterFav"
             v-on:pausePolling="pausePolling"
@@ -344,6 +347,7 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
 })
 export default class FavoriteQuery extends Vue {
   favQueList = {}
+  listLoading = false
   checkedStatus = []
   activeList = 'waiting'
   statusMap = {
@@ -426,6 +430,11 @@ export default class FavoriteQuery extends Vue {
       pageSize: 10,
       offset: 0
     }
+    this.favQueList = {
+      value: [],
+      total_size: 0
+    }
+    this.listLoading = true
     this.reCallPolling()
     this.pageCurrentChange(0, 10)
   }
@@ -602,6 +611,7 @@ export default class FavoriteQuery extends Vue {
       })
       const data = await handleSuccessAsync(res)
       this.favQueList = data
+      this.listLoading = false
       resolve()
     })
   }
