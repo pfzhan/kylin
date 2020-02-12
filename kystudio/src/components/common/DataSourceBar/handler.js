@@ -26,7 +26,7 @@ export const render = {
           <div class="left">
             <i class="tree-icon el-icon-ksd-data_source"></i>
           </div>
-          <span>{label}</span><span class="defaultIcon">{isDefaultDB ? ' (Default)' : ''}</span>
+          <span title={label}>{label}</span><span class="defaultIcon">{isDefaultDB ? ' (Default)' : ''}</span>
         </div>
       )
     }

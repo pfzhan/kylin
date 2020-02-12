@@ -19,7 +19,7 @@ export function getDatabaseTablesTree (databases) {
       const { label } = data
       return (
         <div class="database">
-          <div class="label">
+          <div class="label el-tree-tooltip-box">
             {data.isSelected ? (
               <span class="el-icon-ksd-good_health"></span>
             ) : null}

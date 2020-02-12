@@ -900,6 +900,24 @@ export default class SourceHive extends Vue {
     .el-tree > .el-tree-node > .el-tree-node__content > .tree-item {
       position: static;
     }
+    .el-tree-node {
+      overflow-x: hidden;
+    }
+    .el-tree .el-tree-node__content {
+      .tree-item {
+        width: 377px;
+      }
+      .database .label {
+        text-overflow:ellipsis!important; 
+        overflow:hidden!important; 
+        word-break:keep-all!important;
+        white-space:nowrap!important;
+        width: 98%;
+      }
+      &:hover .database .label{
+        width: 85%;
+      }
+    }
     .select-all {
       display: none;
       position: absolute;
