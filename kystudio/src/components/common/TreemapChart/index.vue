@@ -18,7 +18,8 @@ import { Component, Watch } from 'vue-property-decorator'
       MANUAL_AGG: 'Custom(Aggregate Group) ',
       AUTO_AGG: 'Recommended(Aggregate Group)',
       MANUAL_TABLE: 'Custom(Table Index)',
-      AUTO_TABLE: 'Recommended(Table Index)'
+      AUTO_TABLE: 'Recommended(Table Index)',
+      aggregateIndexTree: 'Index Treemap'
     },
     'zh-cn': {
       storage: '数据大小',
@@ -26,7 +27,8 @@ import { Component, Watch } from 'vue-property-decorator'
       MANUAL_AGG: '自定义聚合索引',
       AUTO_AGG: '系统推荐聚合索引',
       MANUAL_TABLE: '自定义明细索引',
-      AUTO_TABLE: '系统推荐明细索引'
+      AUTO_TABLE: '系统推荐明细索引',
+      aggregateIndexTree: '索引展示图'
     }
   }
 })
@@ -61,9 +63,11 @@ export default class TreemapChart extends Vue {
   }
   get renderData () {
     var data = this.data
+    // 总共四组，计算四组总量大小
     if (!data) {
       return
     }
+    const totalValue = data[0].value + data[1].value + data[2].value + data[3].value
     const colorSaturationMax = 0.9
     const colorSaturationMin = 0.6
     data.forEach((d) => {
@@ -78,11 +82,18 @@ export default class TreemapChart extends Vue {
           ratio = (colorSaturationMax - colorSaturationMin) / usageMax
         }
       }
+      // 组与组之间，最小面积按总面积的百分之一
+      const minValue = totalValue / 100
+      d.size = d.value
+      d.value = d.value && d.value < minValue ? minValue : d.value
       d.children = d.children.map((c) => {
         const r = usageMax ? (colorSaturationMax - (c.usage * ratio)).toFixed(4) : colorSaturationMax
+        // 组内之间，最小面积按组总面积的千分之一
+        const minSize = d.size / 1000
         return {
           name: c.name,
-          value: c.value,
+          size: c.value,
+          value: c.value && c.value < minSize ? minSize : c.value,
           usage: c.usage,
           itemStyle: {color: '#81c6f4', colorSaturation: r}
         }
@@ -91,7 +102,9 @@ export default class TreemapChart extends Vue {
     var result = {
       type: 'treemap',
       data: [{
-        name: '',
+        name: this.$t('aggregateIndexTree'),
+        value: totalValue,
+        size: totalValue,
         children: [...data]
       }]
     }
@@ -128,7 +141,7 @@ export default class TreemapChart extends Vue {
           } else {
             tooltipContent = tooltipContent + this.$t(params.data.name) + '<br/>'
           }
-          tooltipContent = tooltipContent + this.$t('storage') + ': ' + Vue.filter('dataSize')(params.data.value)
+          tooltipContent = tooltipContent + this.$t('storage') + ': ' + Vue.filter('dataSize')(params.data.size)
           if (params.data.usage >= 0) {
             tooltipContent = tooltipContent + '<br/>' + this.$t('queryCount') + ': ' + params.data.usage
           }

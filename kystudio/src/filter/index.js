@@ -139,8 +139,10 @@ Vue.filter('dataSize', function (data) {
     size = (data / 1024 / 1024 / 1024).toFixed(2) + ' GB'
   } else if (data / 1024 / 1024 >= 1) {
     size = (data / 1024 / 1024).toFixed(2) + ' MB'
-  } else {
+  } else if (data / 1024 >= 1) {
     size = (data / 1024).toFixed(2) + ' KB'
+  } else {
+    size = data + ' B'
   }
   return size
 })
