@@ -578,6 +578,7 @@ export default class ModelAggregate extends Vue {
     }
     .el-icon-ksd-filter {
       position: relative;
+      top: 2px;
       left: 5px;
       &.isFilter,
       &:hover {

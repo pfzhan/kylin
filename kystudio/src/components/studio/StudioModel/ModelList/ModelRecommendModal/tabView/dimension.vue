@@ -31,7 +31,12 @@
       <el-table-column
         width="100"
         prop="recommendation_type"
-        :renderHeader="renderRecommendType">
+        :label="$t('th_recommendType')"
+        :filters="typeList.map(item => ({text: $t(item), value: item}))"
+        :filtered-value="checkedStatus"
+        filter-icon="el-icon-ksd-filter"
+        :show-multiple-footer="false"
+        :filter-change="(v) => filterFav(v)">
         <template slot-scope="scope">
           {{$t(scope.row.recommendation_type)}}
         </template>
@@ -111,6 +116,7 @@
     tableShowList = []
     ST = null
     dimensionValidPass = true // 判断表单校验是否通过
+    typeList = ['ADDITION', 'REMOVAL']
 
     /* @Watch('list', { deep: true })
     onListChange (val) {
@@ -126,7 +132,7 @@
     }
 
     get emptyText () {
-      return this.keyword ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+      return this.keyword || this.checkedStatus.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
     }
 
     // 检测是否有重名
@@ -187,7 +193,8 @@
       }, 100)
     }
 
-    filterFav () { // 筛选建议类型
+    filterFav (v) { // 筛选建议类型
+      this.checkedStatus = v
       if (this.checkedStatus.length === 0) {
         this.tableShowList = objectClone(this.list)
       } else {
@@ -196,26 +203,6 @@
         })
       }
       renderTableColumnSelected(this.tableShowList, this, 'dimensionList')
-    }
-
-    renderRecommendType (h) {
-      let typeList = ['ADDITION', 'REMOVAL']
-      let items = []
-      for (let i = 0; i < typeList.length; i++) {
-        items.push(<el-checkbox label={typeList[i]} key={typeList[i]}><span class="ksd-fs-12">{this.$t(typeList[i])}</span></el-checkbox>)
-      }
-      return (<span>
-        <span>{this.$t('th_recommendType')}</span>
-        <el-popover
-          ref="ipFilterPopover"
-          placement="bottom"
-          popperClass="filter-popover">
-          <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)} onChange={this.filterFav}>
-            {items}
-          </el-checkbox-group>
-          <i class={this.checkedStatus.length > 0 && this.checkedStatus.length < 3 ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-        </el-popover>
-      </span>)
     }
   }
 </script>

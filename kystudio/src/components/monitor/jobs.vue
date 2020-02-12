@@ -1494,7 +1494,7 @@ export default class JobsList extends Vue {
       .el-icon-ksd-filter {
         position: relative;
         font-size: 17px;
-        top: 1px;
+        top: 2px;
         left: 5px;
         &:hover,
         &.filter-open {

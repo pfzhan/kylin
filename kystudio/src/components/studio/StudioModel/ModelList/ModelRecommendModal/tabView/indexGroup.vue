@@ -6,6 +6,7 @@
       ref="indexList"
       class="index-table"
       border
+      :empty-text="emptyText"
       :data="tableShowList"
       style="width: 100%"
       @select-all="selectionAllChange"
@@ -115,7 +116,12 @@
       </el-table-column>
       <el-table-column
         width="160"
-        :renderHeader="renderRecommendType"
+        :label="$t('th_recommendType')"
+        :filters="typeList.map(item => ({text: $t(item), value: item}))"
+        :filtered-value="checkedStatus"
+        filter-icon="el-icon-ksd-filter"
+        :show-multiple-footer="false"
+        :filter-change="(v) => filterType(v, 'checkedStatus')"
         prop="type"
         show-overflow-tooltip>
         <template slot-scope="scope">
@@ -132,7 +138,12 @@
       </el-table-column>
       <el-table-column
         width="110"
-        :render-header="renderSource">
+        :label="$t('th_source')"
+        :filters="source.map(item => ({text: $t(item), value: item}))"
+        :filtered-value="sourceCheckedStatus"
+        filter-icon="el-icon-ksd-filter"
+        :show-multiple-footer="false"
+        :filter-change="(v) => filterType(v, 'sourceCheckedStatus')">
         <template slot-scope="scope">
           {{$t(scope.row.source)}}
         </template>
@@ -236,11 +247,17 @@
       frequency_time_window: '',
       low_frequency_threshold: 0
     }
+    typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE', 'REMOVE_TABLE']
+    source = ['imported', 'query_history']
 
     get noteWidth () {
       const len = []
       this.list.forEach(item => 'remove_reason' in item.info && (Array.isArray(item.info.remove_reason.length) ? len.push(item.info.remove_reason.length) : 1))
       return len.length ? (Math.max.apply(null, len) > 3 ? 3 * 130 : Math.max.apply(null, len) * 130) : 130
+    }
+
+    get emptyText () {
+      return this.sourceCheckedStatus.length || this.checkedStatus.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
     }
 
     created () {
@@ -325,43 +342,9 @@
       this.loadIndexList(row, {curpage: currentPage})
     }
 
-    renderRecommendType (h) {
-      let typeList = ['ADD_AGG', 'REMOVE_AGG', 'ADD_TABLE', 'REMOVE_TABLE']
-      let items = typeList.map(item => (<el-checkbox label={item} key={item}><span class="ksd-fs-12">{this.$t(item)}</span></el-checkbox>))
-      return (<span>
-        <span>{this.$t('th_recommendType')}</span>
-        <el-popover
-          ref="ipFilterPopover"
-          placement="bottom"
-          popperClass="filter-popover">
-          <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)} onChange={this.filterType}>
-            {items}
-          </el-checkbox-group>
-          <i class={this.checkedStatus.length > 0 && this.checkedStatus.length < 3 ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-        </el-popover>
-      </span>)
-    }
-
-    // index来源筛选项
-    renderSource () {
-      const source = ['imported', 'query_history']
-      const content = source.map(item => (<el-checkbox label={item} key={item}><span class="ksd-fs-12">{this.$t(item)}</span></el-checkbox>))
-      return (<span>
-        <span>{this.$t('th_source')}</span>
-          <el-popover
-            ref="sourcePopover"
-            placement="bottom"
-            popperClass="filter-popover">
-            <el-checkbox-group class="filter-groups" value={this.sourceCheckedStatus} onInput={val => (this.sourceCheckedStatus = val)} onChange={this.filterType}>
-              {content}
-            </el-checkbox-group>
-            <i class={this.sourceCheckedStatus.length > 0 && this.sourceCheckedStatus.length < 3 ? 'el-icon-ksd-filter isFilter' : 'el-icon-ksd-filter'} slot="reference"></i>
-          </el-popover>
-        </span>)
-    }
-
     // 筛选建议类型和来源
-    filterType () {
+    filterType (v, type) {
+      this[type] = v
       if (this.sourceCheckedStatus.length && this.checkedStatus.length) {
         this.tableShowList = this.list.filter(item => (item.source && this.sourceCheckedStatus.includes(item.source)) && (item.type && this.checkedStatus.includes(item.type)))
       } else if (this.sourceCheckedStatus.length || this.checkedStatus.length) {
