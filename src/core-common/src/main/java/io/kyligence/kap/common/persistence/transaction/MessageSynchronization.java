@@ -84,9 +84,16 @@ public class MessageSynchronization {
     private void replayUpdate(ResourceCreateOrUpdateEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         log.trace("replay update for res {}, with new version: {}", event.getResPath(),
-                event.getCreatedOrUpdated().getMvcc());
+            event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
+        if (config.getStreamingChangeMeta()) {
+            // streaming change meta, skip check, just a workround way
+            resourceStore.deleteResource(raw.getResPath());
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
+                    raw.getMvcc());
+            return;
+        }
         if (config.getServerMode().equals("query")) {
             resourceStore.deleteResource(raw.getResPath());
             resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),

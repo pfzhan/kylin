@@ -211,8 +211,14 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             T seg = this.get(i);
             if (seg.getStatus() != SegmentStatusEnum.READY)
                 continue;
-            if (latest == null || latest.getTSRange().end < seg.getTSRange().end) {
-                latest = seg;
+            if (seg.getSegRange() instanceof SegmentRange.TimePartitionedSegmentRange) {
+                if (latest == null || latest.getTSRange().end < seg.getTSRange().end) {
+                    latest = seg;
+                }
+            } else if (seg.isOffsetCube()) {
+                if (latest == null || latest.getKSRange().end < seg.getKSRange().end) {
+                    latest = seg;
+                }
             }
         }
         return latest;
@@ -233,11 +239,13 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     public Segments<T> getSegments(SegmentStatusEnum status) {
         Segments<T> result = new Segments<>();
 
+
         for (T segment : this) {
             if (segment.getStatus() == status) {
                 result.add(segment);
             }
         }
+
         return result;
     }
 
@@ -663,6 +671,9 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         // for all ready segments, sourceOffset MUST have no overlaps, SHOULD have no holes
         ISegment pre = null;
         for (ISegment seg : ready) {
+            if (seg.isOffsetCube()) {
+                continue;
+            }
             if (pre != null) {
                 if (pre.getSegRange().overlaps(seg.getSegRange()))
                     throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
@@ -678,8 +689,15 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         ISegment pre = null;
         for (ISegment seg : news) {
             if (pre != null) {
-                if (pre.getSegRange().overlaps(seg.getSegRange()))
-                    throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
+                if (pre.isOffsetCube()) {
+                    if (pre.getKSRange().overlaps(seg.getKSRange())) {
+                        throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
+                    }
+                } else {
+                    if (pre.getSegRange().overlaps(seg.getSegRange()))
+                        throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
+                }
+
             }
             pre = seg;
 
@@ -862,7 +880,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         }
         return calendar.getTimeInMillis();
     }
-
 
 
     public Segments getSegmentsByRangeContains(SegmentRange range) {

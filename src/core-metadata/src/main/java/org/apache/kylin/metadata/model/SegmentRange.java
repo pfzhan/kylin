@@ -313,7 +313,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
     }
 
-    public static class KafkaOffsetPartitionedSegmentRange extends BasicSegmentRange {
+    public static class KafkaOffsetPartitionedSegmentRange extends BasicSegmentRange  {
 
         @JsonProperty("source_partition_offset_start")
         private Map<Integer, Long> sourcePartitionOffsetStart;
@@ -326,6 +326,10 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         public KafkaOffsetPartitionedSegmentRange() {
+        }
+
+        public KafkaOffsetPartitionedSegmentRange(Long startOffset, Long endOffset) {
+            super(startOffset, endOffset);
         }
 
         public KafkaOffsetPartitionedSegmentRange(Long startOffset, Long endOffset,
@@ -368,6 +372,11 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
             KafkaOffsetPartitionedSegmentRange other = convertToKafkaOffset(o);
             return new KafkaOffsetPartitionedSegmentRange(this.end, other.end, this.getSourcePartitionOffsetEnd(),
                     other.getSourcePartitionOffsetEnd());
+        }
+
+        @Override
+        public boolean overlaps(SegmentRange o) {
+           return false;
         }
 
         @Override

@@ -36,6 +36,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -290,6 +292,23 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return newSegment;
     }
 
+    public NDataSegment appendSegmentForStreaming(NDataflow df, SegmentRange segRange) {
+        NDataSegment newSegment = newSegment(df, segRange);
+        newSegment.setStatus(SegmentStatusEnum.NEW);
+
+        Map<Long, NDataLayout> layoutsMap = new HashMap<>();
+        for (LayoutEntity layout : df.getIndexPlan().getAllLayouts()) {
+            NDataLayout ly = NDataLayout.newDataLayout(df, newSegment.getId(), layout.getId());
+            layoutsMap.put(ly.getLayoutId(), ly);
+        }
+        newSegment.setLayoutsMap(layoutsMap);
+        validateNewSegments(df, newSegment);
+        NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
+        upd.setToAddSegs(newSegment);
+        updateDataflow(upd);
+        return newSegment;
+    }
+
     public NDataSegment refreshSegment(NDataflow df, SegmentRange segRange) {
 
         NDataSegment newSegment = newSegment(df, segRange);
@@ -361,7 +380,13 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
         NDataSegment last = mergingSegments.get(mergingSegments.size() - 1);
         newSegment.setSegmentRange(first.getSegRange().coverWith(last.getSegRange()));
-        newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
+
+        if (first.isOffsetCube()) {
+            newSegment.setSegmentRange(segRange);
+        } else {
+            newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
+        }
+
         validateNewSegments(dataflowCopy, newSegment);
 
         NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getUuid());

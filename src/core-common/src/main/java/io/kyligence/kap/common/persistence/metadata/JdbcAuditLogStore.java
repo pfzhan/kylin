@@ -179,6 +179,13 @@ public class JdbcAuditLogStore implements AuditLogStore {
     public void restore(ResourceStore store, long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
         consumeExecutor = Executors.newSingleThreadExecutor();
+        if (config.getStreamingChangeMeta()) {
+            // streaming change meta, skip check, just a workround way
+            val maxId = getMaxId();
+            log.info("current maxId is {}", maxId);
+            consumeExecutor.submit(createFetcher(maxId));
+            return;
+        }
         withTransaction(transactionManager, () -> {
             val step = 1000L;
             val maxId = getMaxId();

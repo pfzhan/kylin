@@ -262,10 +262,18 @@ class FilePruner(val session: SparkSession,
       val reducedFilter = filters.flatMap(DataSourceStrategy.translateFilter).reduceLeft(And)
       segDirs.filter {
         e => {
-          val tsRange = dataflow.getSegment(e.segmentID).getTSRange
-          SegFilters(tsRange.getStart, tsRange.getEnd, pattern).foldFilter(reducedFilter) match {
-            case Trivial(true) => true
-            case Trivial(false) => false
+          if (dataflow.getSegment(e.segmentID).isOffsetCube) {
+            val ksRange = dataflow.getSegment(e.segmentID).getKSRange
+            SegFilters(ksRange.getStart, ksRange.getEnd, pattern).foldFilter(reducedFilter) match {
+              case Trivial(true) => true
+              case Trivial(false) => false
+            }
+          } else {
+            val tsRange = dataflow.getSegment(e.segmentID).getTSRange
+            SegFilters(tsRange.getStart, tsRange.getEnd, pattern).foldFilter(reducedFilter) match {
+              case Trivial(true) => true
+              case Trivial(false) => false
+            }
           }
         }
       }

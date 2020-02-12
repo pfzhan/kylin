@@ -100,6 +100,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     private transient NDataSegDetails segDetails; // transient, not required by spark cubing
     private transient Map<Long, NDataLayout> layoutsMap = Collections.emptyMap(); // transient, not required by spark cubing
+    
 
     public NDataSegment() {
     }
@@ -133,6 +134,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         }
     }
 
+    public void setLayoutsMap(Map<Long, NDataLayout> lym) {
+        this.layoutsMap = lym;
+    }
+
     @Override
     public KylinConfig getConfig() {
         return dataflow.getConfig();
@@ -146,6 +151,14 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @Override
     public SegmentRange getSegRange() {
         return segmentRange;
+    }
+
+    @Override
+    public SegmentRange.KafkaOffsetPartitionedSegmentRange getKSRange() {
+        if (segmentRange instanceof  SegmentRange.KafkaOffsetPartitionedSegmentRange) {
+            return (SegmentRange.KafkaOffsetPartitionedSegmentRange) segmentRange;
+        }
+        return null;
     }
 
     @Override
@@ -176,6 +189,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public NDataSegDetails getSegDetails() {
         return segDetails;
+    }
+
+    @Override
+    public int getLayoutSize() {
+        return layoutsMap.size();
     }
 
     @Override

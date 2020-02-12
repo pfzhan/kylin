@@ -24,11 +24,23 @@ package org.apache.spark.sql.common
 import java.util.TimeZone
 
 import org.apache.kylin.common.{KapConfig, QueryContext}
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.sideBySide
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
-object SparderQueryTest {
+object SparderQueryTest extends Logging {
+
+  def same(sparkDF: DataFrame,
+                     kylinAnswer: DataFrame,
+                     checkOrder: Boolean = false): Boolean = {
+    checkAnswerBySeq(castDataType(sparkDF, kylinAnswer), kylinAnswer.collect(), checkOrder) match {
+      case Some(errorMessage) =>
+        logInfo(errorMessage)
+        false
+      case None => true
+    }
+  }
 
   def checkAnswer(sparkDF: DataFrame,
                   kylinAnswer: DataFrame,
@@ -50,9 +62,9 @@ object SparderQueryTest {
     * @param checkToRDD  whether to verify deserialization to an RDD. This runs the query twice.
     */
   def checkAnswerBySeq(sparkDF: DataFrame,
-                  kylinAnswer: Seq[Row],
-                  checkOrder: Boolean = false,
-                  checkToRDD: Boolean = true): Option[String] = {
+                       kylinAnswer: Seq[Row],
+                       checkOrder: Boolean = false,
+                       checkToRDD: Boolean = true): Option[String] = {
     if (checkToRDD) {
       sparkDF.rdd.count() // Also attempt to deserialize as an RDD [SPARK-15791]
     }

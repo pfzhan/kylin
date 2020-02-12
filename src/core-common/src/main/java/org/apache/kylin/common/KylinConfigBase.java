@@ -1501,6 +1501,10 @@ public abstract class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.mode", "all");
     }
 
+    public Boolean getStreamingChangeMeta() {
+        return Boolean.parseBoolean(this.getOptional("kylin.server.streaming-change-meta", "false"));
+    }
+
     public String[] getRestServers() {
         return getOptionalStringArray("kylin.server.cluster-servers", new String[] { "admin:KYLIN@localhost:7070" });
     }
@@ -1839,6 +1843,26 @@ public abstract class KylinConfigBase implements Serializable {
 
     public String getStorageProvider() {
         return getOptional("kap.storage.provider", "org.apache.kylin.common.storage.DefaultStorageProvider");
+    }
+
+    public String getStreamingBaseCheckpointLocation() {
+        return getOptional("kylin.engine.streaming-base-ckeckpoint-location", "/kylin/checkpoint");
+    }
+
+    public Boolean getStreamingMetricsEnabled() {
+        return Boolean.parseBoolean(this.getOptional("kylin.engine.streaming-metrics-enabled", "false"));
+    }
+
+    public Integer getStreamingSegmentMergeThresholds() {
+        return Integer.parseInt(getOptional("kylin.engine.streaming-segment-merge-threshold", "20"));
+    }
+
+    public String getStreamingDuration() {
+        return getOptional("kylin.engine.streaming-duration", "30000");
+    }
+
+    public Boolean getTriggerOnce() {
+        return Boolean.parseBoolean(getOptional("kylin.engine.streaming-trigger-once", "false"));
     }
 
     public String getLogSparkDriverPropertiesFile() {

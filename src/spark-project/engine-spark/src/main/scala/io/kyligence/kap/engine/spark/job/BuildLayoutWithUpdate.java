@@ -35,13 +35,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
 public class BuildLayoutWithUpdate {
@@ -82,10 +83,20 @@ public class BuildLayoutWithUpdate {
                 }
                 for (NDataLayout layout : result.getLayouts()) {
                     logger.info("Update layout {} in dataflow {}, segment {}", layout.getLayoutId(), seg.getDataflow().getUuid(), seg.getId());
-                    NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
-                    update.setToAddOrUpdateLayouts(layout);
-                    NDataflowManager.getInstance(config, project).updateDataflow(update);
+                    if (KylinConfig.getInstanceFromEnv().getStreamingChangeMeta()) {
+                        UnitOfWork.doInTransactionWithRetry(() -> {
+                            NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
+                            update.setToAddOrUpdateLayouts(layout);
+                            NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);
+                            return 0;
+                        }, project);
+                    } else {
+                            NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
+                            update.setToAddOrUpdateLayouts(layout);
+                            NDataflowManager.getInstance(config, project).updateDataflow(update);
+                    }
                 }
+
             } catch (InterruptedException | ExecutionException e) {
                 shutDownPool();
                 throw new RuntimeException(e);

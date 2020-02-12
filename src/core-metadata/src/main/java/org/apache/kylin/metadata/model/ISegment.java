@@ -55,8 +55,12 @@ public interface ISegment extends Comparable<ISegment> {
     public boolean isOffsetCube();
     
     public SegmentRange getSegRange();
+
+    public SegmentRange.KafkaOffsetPartitionedSegmentRange getKSRange();
     
     public TimeRange getTSRange();
+
+    public int getLayoutSize();
 
     public NDataModel getModel();
 

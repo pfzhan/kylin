@@ -125,7 +125,13 @@ public enum NMetricsName {
     BUILD_UNAVAILABLE_DURATION("build_unavailable_duration"), QUERY_UNAVAILABLE_DURATION("query_unavailable_duration"),
 
     //event statistics
-    EVENT_GAUGE("event_num_gauge"), EVENT_COUNTER("event_created_total_num");
+    EVENT_GAUGE("event_num_gauge"), EVENT_COUNTER("event_created_total_num"),
+
+    // streaming statistics
+    BATCH_TIMES("batch_times"), NEW_DATA_AVAILABLE_BATCH_TIMRS("new_data_available_batch_times"), NUM_INPUT_ROWS("num_input_rows"),
+    INPUT_ROWS_PER_SECOND("input_rows_per_second"), BATCH_DURATION("batch_duration"),
+    RETAIN_SEGMENTS("retain_segments"), SEGMENTS_MERGE_THRESHOLDS("segments_merge_thresholds"), SEGMENTS_MERGE_COST_TIME("segments_merge_cost_time"),
+    MODEL_QUERYABLE_SEGMENT_NUM("model_queryable_segment_num");
 
     private String value;
 

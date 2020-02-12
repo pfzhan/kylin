@@ -84,8 +84,8 @@ public class DFBuildJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
     protected static String TEMP_DIR_SUFFIX = "_temp";
 
-    private NDataflowManager dfMgr;
-    private BuildLayoutWithUpdate buildLayoutWithUpdate;
+    protected NDataflowManager dfMgr;
+    protected BuildLayoutWithUpdate buildLayoutWithUpdate;
 
     @Override
     protected void doExecute() throws Exception {
@@ -160,7 +160,7 @@ public class DFBuildJob extends SparkApplication {
         }
     }
 
-    private void updateSegmentSourceBytesSize(String dataflowId, Map<String, Object> toUpdateSegmentSourceSize) {
+    protected void updateSegmentSourceBytesSize(String dataflowId, Map<String, Object> toUpdateSegmentSourceSize) {
         NDataflow dataflow = dfMgr.getDataflow(dataflowId);
         NDataflow newDF = dataflow.copy();
         val update = new NDataflowUpdate(dataflow.getUuid());
@@ -213,7 +213,7 @@ public class DFBuildJob extends SparkApplication {
         return dfMgr.getDataflow(dataflowId).getSegment(segId);
     }
 
-    private void build(Collection<NBuildSourceInfo> buildSourceInfos, String segId, NSpanningTree st)
+    protected void build(Collection<NBuildSourceInfo> buildSourceInfos, String segId, NSpanningTree st)
             throws IOException {
 
         val theFirstLevelBuildInfos = buildLayer(buildSourceInfos, segId, st);
@@ -275,7 +275,7 @@ public class DFBuildJob extends SparkApplication {
     }
 
     // decided and construct the next layer.
-    private List<NBuildSourceInfo> constructTheNextLayerBuildInfos( //
+    protected List<NBuildSourceInfo> constructTheNextLayerBuildInfos( //
             NSpanningTree st, //
             NDataSegment seg, //
             Collection<IndexEntity> allIndexesInCurrentLayer) { //
@@ -339,8 +339,9 @@ public class DFBuildJob extends SparkApplication {
         return layouts;
     }
 
-    private NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
+    protected NDataLayout saveAndUpdateLayout(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout)
             throws IOException {
+        ss.sparkContext().setLocalProperty("spark.scheduler.pool", "build");
         long layoutId = layout.getId();
         NDataLayout dataLayout = getDataLayout(seg, layoutId);
         val path = NSparkCubingUtil.getStoragePath(seg, layoutId);
@@ -363,7 +364,7 @@ public class DFBuildJob extends SparkApplication {
         return dataLayout;
     }
 
-    private NDataLayout getDataLayout(NDataSegment seg, long layoutId) {
+    protected NDataLayout getDataLayout(NDataSegment seg, long layoutId) {
         return NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
     }
 

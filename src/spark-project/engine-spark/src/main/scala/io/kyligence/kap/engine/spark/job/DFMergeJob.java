@@ -58,7 +58,7 @@ import lombok.val;
 
 public class DFMergeJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(DFMergeJob.class);
-    private BuildLayoutWithUpdate buildLayoutWithUpdate;
+    protected BuildLayoutWithUpdate buildLayoutWithUpdate;
 
     @Override
     protected void doExecute() throws Exception {
@@ -100,11 +100,15 @@ public class DFMergeJob extends SparkApplication {
         }
     }
 
-    private void mergeSegments(String dataflowId, String segmentId, Set<Long> specifiedCuboids) throws IOException {
+    protected List<NDataSegment> getMergingSegments(NDataflow dataflow,NDataSegment mergedSeg) {
+      return dataflow.getMergingSegments(mergedSeg);
+    }
+
+    protected void mergeSegments(String dataflowId, String segmentId, Set<Long> specifiedCuboids) throws IOException {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowId);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
-        final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
+        final List<NDataSegment> mergingSegments = getMergingSegments(dataflow, mergedSeg);
 
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAssist = generateMergeAssist(mergingSegments, ss, mergedSeg);
         for (DFLayoutMergeAssist assist : mergeCuboidsAssist.values()) {
@@ -162,6 +166,7 @@ public class DFMergeJob extends SparkApplication {
 
     private NDataLayout saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
             DFLayoutMergeAssist assist) throws IOException {
+        ss.sparkContext().setLocalProperty("spark.scheduler.pool", "merge");
         long layoutId = layout.getId();
         long sourceCount = 0L;
 

@@ -33,22 +33,108 @@ import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegm
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
+import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.functions.{col, expr}
-import org.apache.spark.sql.{AnalysisException, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{AnalysisException, DataFrame, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import io.kyligence.kap.engine.spark.NSparkCubingEngine
+
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StructField, StructType}
+import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.types.TimestampType
+import java.sql.Timestamp
+
+import org.apache.spark.storage.StorageLevel
+
 
 class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
-                      val seg: NDataSegment,
+                      var seg: NDataSegment,
                       val toBuildTree: NSpanningTree,
                       val ss: SparkSession,
                       val sourceInfo: NBuildSourceInfo) extends Logging {
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
+
+  def castDF(df: DataFrame, parsedSchema: StructType): DataFrame = {
+    df.selectExpr("CAST(value AS STRING) as rawValue").map { case Row(csv_string) =>
+      val sp = csv_string.toString.split(",")
+      Row(
+        (0 to parsedSchema.fields.length - 1).map { index =>
+          try {
+            parsedSchema.fields(index).dataType match {
+              case IntegerType => sp(index).toInt
+              case LongType => sp(index).toLong
+              case DoubleType => sp(index).toDouble
+              case TimestampType => new Timestamp(sp(index).toLong)
+              case _ => sp(index)
+            }
+          }
+          catch {
+            case ex: Exception =>
+              // scalastyle:off
+              System.out.println(s"cast dataframe schema fail ${ex.toString}  stackTrace is: ${ex.getStackTrace.toString} line is: ${csv_string}")
+            // scalastyle:on
+          }
+        }: _*
+      )
+    }(RowEncoder(parsedSchema))
+  }
+
+
+  def generateStreamingDataset(needJoin: Boolean = true): Dataset[Row] = {
+
+    var lookupTablesGlobal = mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]()
+    val model = flatTable.getDataModel
+    val tableDesc = model.getRootFactTable.getTableDesc
+    val kafkaParam = tableDesc.getKafkaParam
+
+    val originFactTable = SourceFactory
+      .createEngineAdapter(tableDesc, classOf[NSparkCubingEngine.NSparkCubingSource])
+      .getSourceData(tableDesc, ss, kafkaParam)
+
+    val schema =
+      StructType(
+        tableDesc.getColumns.map { columnDescs =>
+          StructField(columnDescs.getName, SparderTypeUtil.toSparkType(columnDescs.getType, false))
+        }
+      )
+    val factTable = castDF(originFactTable, schema)
+    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
+
+    var rootFactDataset: Dataset[Row] = factTable.alias(model.getRootFactTable.getAlias)
+
+    rootFactDataset = CreateFlatTable.changeSchemaToAliasDotName(rootFactDataset, model.getRootFactTable.getAlias)
+
+    if (lookupTablesGlobal.isEmpty) {
+      lookupTablesGlobal = generateLookupTableDataset(model, ccCols.toSeq, ss)
+      lookupTablesGlobal.foreach{ case (_, df) =>
+        df.persist(StorageLevel.MEMORY_ONLY)
+      }
+    }
+    joinFactTableWithLookupTables(rootFactDataset, lookupTablesGlobal, model, ss)
+  }
+
+  def encodeStreamingDataset(seg: NDataSegment, model: NDataModel, batchDataset: Dataset[Row]): Dataset[Row] = {
+    val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
+    val (dictCols, encodeCols): GlobalDictType = assemblyGlobalDictTuple(seg, toBuildTree)
+    val encodedDataset = encodeWithCols(batchDataset, ccCols, dictCols, encodeCols)
+    val filterEncodedDataset = applyFilterCondition(flatTable, encodedDataset)
+
+    flatTable match {
+      case joined: NCubeJoinedFlatTableDesc =>
+        changeSchemeToColumnIndice(filterEncodedDataset, joined)
+      case unsupported =>
+        throw new UnsupportedOperationException(
+          s"Unsupported flat table desc type : ${unsupported.getClass}.")
+    }
+  }
+
 
   def generateDataset(needEncode: Boolean = false, needJoin: Boolean = true): Dataset[Row] = {
     val model = flatTable.getDataModel
@@ -140,6 +226,7 @@ object CreateFlatTable extends Logging {
     val lookupTableDataset = generateLookupTableDataset(model, ccCols.toSeq, ss)
     joinFactTableWithLookupTables(rootFactDataset, lookupTableDataset, model, ss)
   }
+
 
   private def generateTableDataset(tableRef: TableRef,
                                    cols: Seq[TblColRef],
@@ -252,7 +339,6 @@ object CreateFlatTable extends Logging {
     }
     afterJoin
   }
-
   def changeSchemeToColumnIndice(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
     val structType = ds.schema
     val colIndices = flatTable.getIndices.asScala

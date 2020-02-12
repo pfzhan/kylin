@@ -59,6 +59,7 @@ object KylinUserSession extends Logging {
     assert(metaDataUrl.isDefined, "kylin.metadata.url need to be defined")
     val props = new Properties()
     props.setProperty("kylin.metadata.url", metaDataUrl.get)
+    props.setProperty("kylin.query.security.acl-tcr-enabled", "false")
     KylinConfig.setKylinConfigInEnvIfMissing(props)
   }
 

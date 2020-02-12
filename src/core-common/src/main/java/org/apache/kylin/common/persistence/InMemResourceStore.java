@@ -171,7 +171,7 @@ public class InMemResourceStore extends ResourceStore {
 
     private void checkEnv() {
         // UT env or replay thread can ignore transactional lock
-        if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying()) {
+        if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying() || kylinConfig.getStreamingChangeMeta()) {
             return;
         }
         Preconditions.checkState(!UnitOfWork.isReadonly(),

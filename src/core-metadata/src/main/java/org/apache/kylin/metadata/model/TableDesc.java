@@ -45,9 +45,11 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import com.google.common.base.Preconditions;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
@@ -63,7 +65,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.google.common.collect.Lists;
-
+import com.google.common.collect.Maps;
+import lombok.val;
 /**
  * Table Metadata from Source. All name should be uppercase.
  */
@@ -104,6 +107,12 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     private ColumnDesc[] columns;
     @JsonProperty("source_type")
     private int sourceType = ISourceAware.ID_HIVE;
+    @JsonProperty("kafka_bootstrap_servers")
+    private String kafkaBootstrapServers;
+    @JsonProperty("subscribe")
+    private String subscribe;
+    @JsonProperty("starting_offsets")
+    private String startingOffsets;
     @JsonProperty("table_type")
     private String tableType;
     //Sticky table
@@ -132,6 +141,9 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.lastModified = other.lastModified;
         this.name = other.name;
         this.sourceType = other.sourceType;
+        this.kafkaBootstrapServers = other.kafkaBootstrapServers;
+        this.subscribe = other.subscribe;
+        this.startingOffsets = other.startingOffsets;
         this.tableType = other.tableType;
         this.dataGen = other.dataGen;
         this.incrementLoading = other.incrementLoading;
@@ -412,6 +424,20 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getTableType() {
         return tableType;
+    }
+
+    public void setSubscribe(String subscribe) {
+        this.subscribe = subscribe;
+    }
+
+    public HashMap<String, String> getKafkaParam() {
+        Preconditions.checkState(this.kafkaBootstrapServers != null && this.subscribe != null && this.startingOffsets != null,
+                "table are not streaming table");
+        val kafkaParam = Maps.<String, String> newHashMap();
+        kafkaParam.put("kafka.bootstrap.servers", this.kafkaBootstrapServers);
+        kafkaParam.put("subscribe", subscribe);
+        kafkaParam.put("startingOffsets", startingOffsets);
+        return kafkaParam;
     }
 
     public void setTableType(String tableType) {

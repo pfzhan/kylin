@@ -25,7 +25,7 @@
 package io.kyligence.kap.common.metrics;
 
 public enum NMetricsCategory {
-    PROJECT("project"), JVM("jvm"), HOST("host"), GLOBAL("global");
+    PROJECT("project"), JVM("jvm"), HOST("host"), GLOBAL("global"), MODEL("model");
 
     private String value;
 

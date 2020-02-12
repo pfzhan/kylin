@@ -48,7 +48,7 @@ import org.apache.spark.sql.execution.{FileSourceScanExec, FilterExec}
 
 class DFDictionaryBuilder(
   val dataset: Dataset[Row],
-  val seg: NDataSegment,
+  @transient val seg: NDataSegment,
   val ss: SparkSession,
   val colRefSet: util.Set[TblColRef]) extends Logging with Serializable {
 

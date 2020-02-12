@@ -131,6 +131,10 @@ public class AppInitializer {
 
             //register all global metrics
             registerGlobalMetrics(kylinConfig);
+            if (kylinConfig.getStreamingChangeMeta()) {
+                // streaming change meta, skip check, just a workround way
+                resourceStore.catchup();
+            }
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");

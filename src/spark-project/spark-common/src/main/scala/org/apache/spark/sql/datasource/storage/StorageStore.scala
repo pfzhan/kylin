@@ -153,6 +153,7 @@ class StorageStoreV1 extends StorageStore {
   }
 }
 
+
 class StorageStoreV2 extends StorageStore with Logging {
 
   override def save(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame): WriteTaskStats = {
