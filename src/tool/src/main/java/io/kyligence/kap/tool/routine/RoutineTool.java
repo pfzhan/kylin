@@ -33,18 +33,23 @@ import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
+
 @Getter
 @Slf4j
 public class RoutineTool extends ExecutableApplication implements IKeep {
     private boolean cleanup;
+    private String[] projects = new String[0];
 
     private static final Option OPTION_CLEANUP = new Option("c", "cleanup", false, "cleanup hdfs garbage after check.");
+    private static final Option OPTION_PROJECTS = new Option("p", "projects", true, "specify projects to clearup.");
     private static final Option OPTION_HELP = new Option("h", "help", false, "print help message.");
 
     @Override
     protected Options getOptions() {
         Options options = new Options();
         options.addOption(OPTION_CLEANUP);
+        options.addOption(OPTION_PROJECTS);
         options.addOption(OPTION_HELP);
         return options;
     }
@@ -57,7 +62,7 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
         initOptionValues(optionsHelper);
 
         try {
-            StorageCleaner storageCleaner = new StorageCleaner(cleanup);
+            StorageCleaner storageCleaner = new StorageCleaner(cleanup, Arrays.asList(projects));
             System.out.println("Start cleanup HDFS");
             storageCleaner.execute();
             System.out.println("cleanup HDFS finished");
@@ -80,8 +85,11 @@ public class RoutineTool extends ExecutableApplication implements IKeep {
     private void initOptionValues(OptionsHelper optionsHelper) {
         this.cleanup = optionsHelper.hasOption(OPTION_CLEANUP);
 
-        log.info("RoutineTool has option cleanup: " + cleanup);
-        System.out.println("RoutineTool has option cleanup: " + cleanup);
+        if (optionsHelper.hasOption(OPTION_PROJECTS)) {
+            this.projects = optionsHelper.getOptionValue(OPTION_PROJECTS).split(",");
+        }
+        log.info("RoutineTool has option cleanup: " + cleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
+        System.out.println("RoutineTool has option cleanup: " + cleanup + (projects.length > 0 ? " projects: "+ optionsHelper.getOptionValue(OPTION_PROJECTS) : ""));
     }
 
     public static void main(String[] args) {

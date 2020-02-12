@@ -25,6 +25,8 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -148,6 +150,26 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
             Assert.assertFalse(garbagePaths.stream().anyMatch(p -> p.startsWith(file)));
             Assert.assertFalse(garbagePaths.stream().anyMatch(file::startsWith));
         }
+    }
+
+    @Test
+    public void testCleanup_withProjects() throws Exception {
+        val cleaner = new StorageCleaner(true, Collections.singletonList("default"));
+
+        NTableMetadataManager.getInstance(getTestConfig(), "default").removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
+        for (NDataflow dataflow : NDataflowManager.getInstance(getTestConfig(), "default").listAllDataflows()) {
+            NDataflowManager.getInstance(getTestConfig(), "default").dropDataflow(dataflow.getId());
+        }
+
+        cleaner.execute();
+        Collection<File> files = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")
+                + "/default" + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT), null, true);
+        Assert.assertEquals(0, files.size());
+
+        files = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")
+                + "/table_index" + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT), null, true);
+
+        Assert.assertNotEquals(0, files);
     }
 
     private void prepare() throws IOException {

@@ -34,6 +34,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -86,6 +88,7 @@ public class StorageCleaner {
     public static final String ANSI_RESET = "\u001B[0m";
 
     private final boolean cleanup;
+    private final Collection<String> projectNames;
     private long duration;
 
     public StorageCleaner() {
@@ -93,7 +96,12 @@ public class StorageCleaner {
     }
 
     public StorageCleaner(boolean cleanup) {
+        this(cleanup, Collections.emptyList());
+    }
+
+    public StorageCleaner(boolean cleanup, Collection<String> projects) {
         this.cleanup = cleanup;
+        this.projectNames = projects;
     }
 
     @Getter
@@ -105,7 +113,10 @@ public class StorageCleaner {
         long start = System.currentTimeMillis();
         val config = KylinConfig.getInstanceFromEnv();
         long startTime = System.currentTimeMillis();
-        val projects = NProjectManager.getInstance(config).listAllProjects();
+        val projects = NProjectManager.getInstance(config).listAllProjects()
+                .stream().filter(projectInstance -> projectNames.isEmpty() || projectNames.contains(projectInstance.getName()))
+                .collect(Collectors.toList());
+
         for (ProjectInstance project : projects) {
             val dataflows = NDataflowManager.getInstance(config, project.getName()).listAllDataflows();
             for (NDataflow dataflow : dataflows) {
@@ -182,12 +193,25 @@ public class StorageCleaner {
     public boolean cleanup() {
         boolean success = true;
         if (cleanup) {
+            Stats stats = new Stats() {
+                @Override
+                public void heartBeat() {
+                    double percent = 100D * (successItems.size() + errorItems.size()) / allItems.size();
+                    String logInfo = String.format(
+                            "Progress: %2.1f%%, %d resource, %d error", percent, allItems.size(), errorItems.size());
+                    System.out.println(logInfo);
+                }
+            };
+            stats.onAllStart(outdatedItems);
             for (StorageItem item : outdatedItems) {
                 log.debug("try to delete {}", item.getPath());
                 try {
+                    stats.onItemStart(item);
                     item.getFs().delete(new Path(item.getPath()), true);
+                    stats.onItemSuccess(item);
                 } catch (IOException e) {
                     log.error("delete file " + item.getPath() + " failed", e);
+                    stats.onItemError(item);
                     success = false;
                 }
             }
@@ -336,7 +360,8 @@ public class StorageCleaner {
     }
 
     private void collectFromHDFS(StorageItem item) throws Exception {
-        val projectFolders = item.getFs().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_"));
+        val projectFolders = item.getFs().listStatus(new Path(item.getPath()), path -> !path.getName().startsWith("_")
+                && (this.projectNames.isEmpty() || this.projectNames.contains(path.getName())));
         for (FileStatus projectFolder : projectFolders) {
             List<FileTreeNode> tableSnapshotParents = Lists.newArrayList();
             val projectNode = new ProjectFileTreeNode(projectFolder.getPath().getName());
@@ -469,5 +494,62 @@ public class StorageCleaner {
                     dataflows, segments, layouts);
         }
 
+    }
+
+    public static class Stats {
+
+        final public Set<StorageItem> allItems = Collections.synchronizedSet(new HashSet<>());
+        final public Set<StorageItem> startItem = Collections.synchronizedSet(new HashSet<>());
+        final public Set<StorageItem> successItems = Collections.synchronizedSet(new HashSet<>());
+        final public Set<StorageItem> errorItems = Collections.synchronizedSet(new HashSet<>());
+
+        public long createTime = System.nanoTime();
+        public long startTime;
+        public long endTime;
+
+        private void reset() {
+            startTime = endTime = 0;
+            allItems.clear();
+            startItem.clear();
+            successItems.clear();
+            errorItems.clear();
+        }
+
+        void onAllStart(Set<StorageItem> outDatedItems) {
+            // retry enters here too, reset everything first
+            reset();
+
+            log.debug("{} items to cleanup", outDatedItems.size());
+            allItems.addAll(outDatedItems);
+        }
+
+        void onAllDone() {
+            endTime = System.nanoTime();
+        }
+
+        void onItemStart(StorageItem item) {
+            heartBeat();
+            startItem.add(item);
+        }
+
+        void onItemError(StorageItem item) {
+            errorItems.add(item);
+        }
+
+        void onItemSuccess(StorageItem item) {
+            successItems.add(item);
+        }
+
+        public void onRetry() {
+            // for progress printing
+        }
+
+        public void heartBeat() {
+            // for progress printing
+        }
+
+        public boolean hasError() {
+            return !errorItems.isEmpty();
+        }
     }
 }

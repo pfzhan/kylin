@@ -55,4 +55,24 @@ public class RoutineToolTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(routineTool.isCleanup());
     }
 
+    @Test
+    public void testExecuteRoutineWithOptionProjects() {
+        RoutineTool routineTool = new RoutineTool();
+        routineTool.execute(new String[] {});
+
+        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertArrayEquals(new String[]{}, routineTool.getProjects());
+
+        routineTool.execute(new String[] {"--projects=ssb"});
+
+        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertArrayEquals(new String[]{"ssb"}, routineTool.getProjects());
+
+        routineTool.execute(new String[] {"--projects=ssb,default"});
+
+        Assert.assertFalse(routineTool.isCleanup());
+        Assert.assertArrayEquals(new String[]{"ssb", "default"}, routineTool.getProjects());
+
+    }
+
 }
