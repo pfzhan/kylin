@@ -1,6 +1,6 @@
 <template>
   <div class="treemap-chart">
-    <div id="renderBox" class="project-capacity"></div>
+    <div :id="'renderBox' + idTag" class="project-capacity"></div>
   </div>
 </template>
 
@@ -10,7 +10,7 @@ import echarts from 'echarts'
 import { Component, Watch } from 'vue-property-decorator'
 
 @Component({
-  props: ['data'],
+  props: ['data', 'idTag'],
   locales: {
     'en': {
       storage: 'Data Size',
@@ -117,7 +117,7 @@ export default class TreemapChart extends Vue {
     this.areaWidth = this.$el.offsetWidth
     this.$nextTick(() => {
       // 渲染正常project
-      this.myChart = echarts.init(document.getElementById('renderBox'))
+      this.myChart = echarts.init(document.getElementById('renderBox' + this.idTag))
       // 提示框format
       var tooltipConfig = {
         trigger: 'item',

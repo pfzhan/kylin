@@ -49,6 +49,7 @@
               v-else
               :data="cuboids"
               :search-id="filterArgs.key"
+              :idTag="model.uuid"
               @searchId="handleClickNode"/>
           </el-card>
         </el-col>
