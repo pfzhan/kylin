@@ -35,9 +35,9 @@ import java.util.List;
 public class OpenNRecommendationListResponse implements Serializable {
 
     @JsonProperty("original_model")
-    List<NRecomendationListResponse.NRecomendedDataModelResponse> originalModels;
+    private List<NRecomendationListResponse.NRecomendedDataModelResponse> originalModels;
     @JsonProperty("new_model")
-    List<NRecomendationListResponse.NRecomendedDataModelResponse> newModels;
+    private List<NRecomendationListResponse.NRecomendedDataModelResponse> newModels;
 
     public static OpenNRecommendationListResponse convert(NRecomendationListResponse response) {
         OpenNRecommendationListResponse openResponse = new OpenNRecommendationListResponse();
