@@ -938,14 +938,12 @@ export default class FavoriteQuery extends Vue {
     }
     .query-count {
       color: @text-title-color;
-      line-height: 40px;
-      height: 32px;
+      line-height: 30px;
+      height: 30px;
       display: inline-block;
     }
     .tips {
       span {
-        position: relative;
-        bottom: 2px;
         margin-left: 5px;
         color: @text-normal-color;
       }
