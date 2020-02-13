@@ -209,30 +209,30 @@ export default {
 </script>
 <style lang="less">
 
-.unchange{
+.unchange {
     display:none;
 }
 .area_label {
   overflow: hidden;
 }
-.area_label.unchange{
+.area_label.unchange {
   display: block;
 }
 .unchange{
-  .el-select-dropdown__empty{
+  .el-select-dropdown__empty {
      display:none;
   }
   .el-tag{
     cursor: pointer;
   }
-  .el-select .el-input{
-    .el-input__icon{
+  .el-select .el-input {
+    .el-input__icon {
       display:none
     }
   }
 
 }
-.area_label{
+.area_label {
   // .el-tag__close{
   //   position: absolute;
   //   right: 0;

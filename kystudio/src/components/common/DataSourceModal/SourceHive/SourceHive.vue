@@ -437,11 +437,13 @@ export default class SourceHive extends Vue {
     this.selectorWidth = selectorEl && selectorEl.getBoundingClientRect().width
   }
   refreshTagElWidth () {
-    const tagEls = this.$el.querySelectorAll('.el-tag')
+    const tagBox = this.$el.querySelectorAll('.source-hive .el-select__tags')
+    tagBox[0].style.maxWidth = `${this.selectorWidth}px`
+    const tagEls = this.$el.querySelectorAll('.source-hive .el-tag')
     for (let i = 0; i < tagEls.length; i++) {
       const tagEl = tagEls[i]
       tagEl.title = tagEl.innerText
-      tagEl.style.maxWidth = `${this.selectorWidth}px`
+      tagEl.style.maxWidth = `${this.selectorWidth - 5}px`
     }
   }
   async loadDatabase () {

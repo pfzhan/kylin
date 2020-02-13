@@ -868,6 +868,20 @@ export default class AggregateModal extends Vue {
   .mul-filter-select {
     .el-select__tags {
       padding-left: 15px;
+      .el-tag {
+        max-width: 841px;
+        padding-right: 20px;
+        position: relative;
+        display: inline-block;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+      .el-tag__close {
+        position: absolute;
+        top: 50%;
+        right: 2px;
+        transform: scale(0.8) translateY(-50%);
+      }
     }
     &.reset-padding {
       .el-select__tags {
