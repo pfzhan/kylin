@@ -155,6 +155,14 @@ public class JsonUtil {
         return indentMapper.writeValueAsString(value);
     }
 
+    public static <T> T convert(Object obj, Class<T> valueType) {
+        return mapper.convertValue(obj, valueType);
+    }
+
+    public static <T> T convert(Object obj, TypeReference<T> valueType) {
+        return mapper.convertValue(obj, valueType);
+    }
+
     public static <T> T deepCopy(T src, Class<T> valueType) throws IOException {
         String s = mapper.writeValueAsString(src);
         return mapper.readValue(s, valueType);

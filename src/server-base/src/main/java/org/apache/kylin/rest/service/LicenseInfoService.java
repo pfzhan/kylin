@@ -30,8 +30,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,12 +48,17 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.PostConstruct;
+
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -58,12 +71,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.annotation.PostConstruct;
 
 @Slf4j
 @Service("licenseInfoService")
@@ -184,6 +199,51 @@ public class LicenseInfoService extends BasicService {
             setProperty(KE_METASTORE, prefix, metaStoreId);
         } catch (Exception e) {
             log.error("Cannot get metastore uuid", e);
+        }
+    }
+
+    private String getMetastoreUUID() {
+        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        return store.getMetaStoreUUID();
+    }
+
+    private String calculateSignature(String input) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("MD5");
+            byte[] signature = md.digest(input.getBytes());
+            return new String(Base64.encodeBase64(signature));
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
+    private String getNetworkAddr() {
+        try {
+            List<String> result = Lists.newArrayList();
+            Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
+            while (networks.hasMoreElements()) {
+                NetworkInterface network = networks.nextElement();
+                byte[] mac = network.getHardwareAddress();
+
+                StringBuilder sb = new StringBuilder();
+                if (mac != null) {
+                    for (int i = 0; i < mac.length; i++) {
+                        sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+                    }
+                    List<String> inetAddrList = Lists.newArrayList();
+                    for (InterfaceAddress interAddr : network.getInterfaceAddresses()) {
+                        inetAddrList.add(interAddr.getAddress().getHostAddress());
+                    }
+                    sb.append("(" + org.apache.commons.lang.StringUtils.join(inetAddrList, ",") + ")");
+                }
+                if (sb.length() > 0) {
+                    result.add(sb.toString());
+                }
+            }
+            return org.apache.commons.lang.StringUtils.join(result, ",");
+        } catch (Exception e) {
+            return org.apache.commons.lang.StringUtils.EMPTY;
         }
     }
 
@@ -432,4 +492,27 @@ public class LicenseInfoService extends BasicService {
         return matcher.find();
     }
 
+    public String requestLicenseInfo() throws IOException {
+        LicenseInfo licenseInfo = extractLicenseInfo();
+        Map<String, String> systemInfo = Maps.newHashMap();
+        systemInfo.put("metastore", getMetastoreUUID());
+        systemInfo.put("network", getNetworkAddr());
+        systemInfo.put("os.name", System.getProperty("os.name"));
+        systemInfo.put("os.arch", System.getProperty("os.arch"));
+        systemInfo.put("os.version", System.getProperty("os.version"));
+        systemInfo.put("kylin.version", KylinVersion.getCurrentVersion().toString());
+        systemInfo.put("hostname", InetAddress.getLocalHost().getHostName());
+
+        StringBuilder output = new StringBuilder();
+        Map<String, String> licenseInfoMap = JsonUtil.convert(licenseInfo, new TypeReference<Map<String, String>>() {
+        });
+        for (Map.Entry<String, String> entry : licenseInfoMap.entrySet()) {
+            output.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        }
+        for (Map.Entry<String, String> entry : systemInfo.entrySet()) {
+            output.append(entry.getKey() + ":" + entry.getValue() + "\n");
+        }
+        output.append("signature:" + calculateSignature(output.toString()));
+        return output.toString();
+    }
 }

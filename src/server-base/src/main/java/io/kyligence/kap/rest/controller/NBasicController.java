@@ -153,19 +153,23 @@ public class NBasicController {
         }
     }
 
-    protected void setDownloadResponse(String downloadFile, final HttpServletResponse response) {
-        File file = new File(downloadFile);
+    protected void setDownloadResponse(File file, String fileName, final HttpServletResponse response) {
         try (InputStream fileInputStream = new FileInputStream(file);
                 OutputStream output = response.getOutputStream()) {
             response.reset();
             response.setContentType("application/octet-stream");
             response.setContentLength((int) (file.length()));
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
             IOUtils.copyLarge(fileInputStream, output);
             output.flush();
         } catch (IOException e) {
             throw new InternalErrorException("Failed to download file: " + e.getMessage(), e);
         }
+    }
+
+    protected void setDownloadResponse(String downloadFile, final HttpServletResponse response) {
+        File file = new File(downloadFile);
+        setDownloadResponse(file, file.getName(), response);
     }
 
     public boolean isAdmin() {

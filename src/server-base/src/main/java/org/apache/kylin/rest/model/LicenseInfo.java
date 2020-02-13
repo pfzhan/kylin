@@ -23,6 +23,7 @@
  */
 package org.apache.kylin.rest.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.kylin.rest.service.LicenseInfoService;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -68,4 +69,13 @@ public class LicenseInfo {
     @JsonProperty(LicenseInfoService.KE_LICENSE_CATEGORY)
     private String category;
 
+    @JsonIgnore
+    public boolean isEvaluation() {
+        return isEvaluation;
+    }
+
+    @JsonIgnore
+    public boolean isCloud() {
+        return isCloud;
+    }
 }

@@ -27,8 +27,13 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.model.LicenseInfo;
@@ -152,6 +157,16 @@ public class NSystemController extends NBasicController {
         }
         licenseInfoService.updateLicense(trialLicense.getData());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+    }
+
+    @ApiOperation(value = "get license info")
+    @GetMapping(value = "/license/info")
+    @ResponseBody
+    public void requestLicense(final HttpServletResponse response) throws IOException {
+        String info = licenseInfoService.requestLicenseInfo();
+        File licenseInfo = File.createTempFile("license", ".info");
+        FileUtils.write(licenseInfo, info, Charset.defaultCharset());
+        setDownloadResponse(licenseInfo, "license.info", response);
     }
 
 }
