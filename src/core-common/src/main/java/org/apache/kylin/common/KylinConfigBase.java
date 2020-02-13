@@ -1502,7 +1502,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Boolean getStreamingChangeMeta() {
-        return Boolean.parseBoolean(this.getOptional("kylin.server.streaming-change-meta", "false"));
+        return Boolean.parseBoolean(this.getOptional("kylin.server.streaming-change-meta", FALSE));
     }
 
     public String[] getRestServers() {
@@ -1862,7 +1862,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Boolean getTriggerOnce() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.streaming-trigger-once", "false"));
+        return Boolean.parseBoolean(getOptional("kylin.engine.streaming-trigger-once", FALSE));
     }
 
     public String getLogSparkDriverPropertiesFile() {

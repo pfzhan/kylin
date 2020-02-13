@@ -689,15 +689,9 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         ISegment pre = null;
         for (ISegment seg : news) {
             if (pre != null) {
-                if (pre.isOffsetCube()) {
-                    if (pre.getKSRange().overlaps(seg.getKSRange())) {
-                        throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
-                    }
-                } else {
-                    if (pre.getSegRange().overlaps(seg.getSegRange()))
-                        throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
+                if (!pre.isOffsetCube() && pre.getSegRange().overlaps(seg.getSegRange())) {
+                    throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
                 }
-
             }
             pre = seg;
 
