@@ -45,10 +45,10 @@
     </div>
     <div class="footer">
       <p class="details" v-html="$t('sendFile')"></p>
-      <!-- <a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a> -->
-      <!-- <el-row class="text-center">
+      <!-- <a class="buttonLink" target="_blank" href="kylin/api/system/license/requestLicense">{{$t('generateLicense')}}</a> -->
+      <el-row class="text-center">
         <el-button type="primary" @click="requestLicense">{{$t('generateLicense')}}</el-button>
-      </el-row> -->
+      </el-row>
       <el-row class="gray text-center">Copyright 2020 Kyligence Inc. All rights reserved.</el-row>
     </div>
   </div>
@@ -107,7 +107,7 @@ export default {
       }
     },
     requestLicense () {
-      location.href = 'api/kap/system/requestLicense'
+      location.href = 'kylin/api/system/license/requestLicense'
     }
     // getLicense () {
     //   let newWinLicense = window.open()
@@ -146,7 +146,7 @@ export default {
       license: 'License',
       statement: 'Service Statement',
       licenseStatement: 'License Statement: ',
-      sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.',
+      sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>.<br/>To apply for the ENTERPRISE license, please contact Kyligence sales with the License Request file.',
       noAccount: 'No account is configured in Kylin properties',
       generateLicense: 'Generate License Request File',
       updateLicense: 'Update License',
@@ -166,7 +166,7 @@ export default {
       license: '许可证',
       statement: '服务申明',
       licenseStatement: '许可声明：',
-      sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。',
+      sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。<br/>申请企业版许可证，请将下面生成的许可证申请文件发送给销售人员。',
       noAccount: '未在Kylin properties中配置KyAccount账号',
       generateLicense: '生成许可申请文件',
       updateLicense: '更新许可证',
@@ -214,8 +214,8 @@ export default {
 	// .header, 
 	// .container {padding-bottom:20px;border-bottom:1px solid #424860;}
 	h3 {margin-top:20px;font-size:14px;}
-	.details {line-height:24px;margin:20px 0 25px;}
-	.gray {margin-top:60px;color:#a2a2a2;font-size:12px;}
+	.details {line-height:24px;margin:20px 0 20px;}
+	.gray {margin-top:30px;color:#a2a2a2;font-size:12px;}
 	// .buttonLink {padding:10px;color: #fff;border-radius:2px;background: #35a8fe;text-decoration: none;}
   .el-input{
     width: 100%;
