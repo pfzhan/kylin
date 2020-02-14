@@ -133,7 +133,7 @@
         </div>
       </transition>
     </div>
-    <div class="sample-block">
+    <div :class="['sample-block', {'has-error': needSampling && errorMsg}]">
       <span class="ksd-title-label-small ksd-mr-10">{{$t('samplingTitle')}}</span><el-switch
         size="small"
         @change="handleSampling"
@@ -784,6 +784,9 @@ export default class SourceHive extends Vue {
         border-color: @color-danger;
       }
     }
+    &.has-error {
+      margin-top: 5px;
+    }
   }
   .content-body {
     position: relative;
@@ -871,7 +874,8 @@ export default class SourceHive extends Vue {
     height: 96px;
     border-radius: 2px;
     background-color: @base-color-9;
-    bottom: 25px;
+    // bottom: 25px;
+    margin-top: 10px;
     right: 20px;
     .header {
       color: @text-normal-color;
