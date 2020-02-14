@@ -33,7 +33,7 @@
         <div class="empty" v-if="!loadingTreeData && treeData.length===0">
           <p class="empty-text">{{emptyText}}</p>
         </div>
-        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="(filterData || treeData.length === 0) && !loadingTreeData && loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
+        <p class="ksd-right refreshNow" :class="{'isRefresh': reloadHiveTablesStatus.isRunning || hasClickRefreshBtn}" v-if="loadHiveTableNameEnabled === 'true'">{{$t('refreshText')}} <a href="javascript:;" @click="refreshHive(true)">{{refreshBtnText}}</a><el-tooltip class="item" effect="dark" :content="$t('refreshTips')" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></p>
       </div>
     </div>
     <div class="content" :style="contentStyle">
@@ -340,11 +340,28 @@ export default class SourceHive extends Vue {
       if (this._isDestroyed) {
         return false
       }
+      if (isForce) {
+        this.$message({
+          type: 'success',
+          message: this.$t('refreshSuccess'),
+          duration: 3000,
+          closeOtherMessages: true
+        })
+      }
       this.hasClickRefreshBtn = false
       this.reloadHiveTablesStatus.isRunning = res.data.data.is_running
       this.reloadHiveTablesStatus.time = res.data.data.time
       this.pollingReloadStatus()
     }, (res) => {
+      if (isForce) {
+        this.$message({
+          type: 'error',
+          message: this.$t('refreshError'),
+          showClose: true,
+          closeOtherMessages: true,
+          duration: 0
+        })
+      }
       this.reloadHiveTablesStatus.time = 0
       this.hasClickRefreshBtn = false
       this.reloadHiveTablesStatus.isRunning = false

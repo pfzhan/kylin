@@ -30,7 +30,9 @@ export default {
     refreshNow: 'Refresh now',
     refreshIng: 'Refreshing',
     refreshText: 'Can\'t find what you\'re looking for?',
-    refreshTips: 'The system caches the source table metadata periodically. If you can\'t find what you\'re looking for, you can refresh immediately or wait for the system to finish refreshing.'
+    refreshTips: 'The system caches the source table metadata periodically. If you can\'t find what you\'re looking for, you can refresh immediately or wait for the system to finish refreshing.',
+    refreshSuccess: 'Data source refreshed Successfully.',
+    refreshError: 'Failed to refresh data source.'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -63,6 +65,8 @@ export default {
     refreshNow: '立即刷新',
     refreshIng: '正在刷新',
     refreshText: '未找到想要搜索的内容？',
-    refreshTips: '系统会定时缓存源表元数据。如果未找到搜索结果，可以立即刷新，或等待系统刷新完毕。'
+    refreshTips: '系统会定时缓存源表元数据。如果未找到搜索结果，可以立即刷新，或等待系统刷新完毕。',
+    refreshSuccess: '数据源刷新成功',
+    refreshError: '数据源刷新失败'
   }
 }
