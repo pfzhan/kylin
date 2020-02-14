@@ -8,6 +8,7 @@
       :data="modelList"
       class="model-setting-table"
       border
+      v-scroll-shadow
       :empty-text="emptyText"
       style="width: 100%">
       <el-table-column width="230px" show-overflow-tooltip prop="alias" :label="modelTableTitle"></el-table-column>

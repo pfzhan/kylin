@@ -15,6 +15,7 @@
     <el-table
       :data="queryHistoryData"
       border
+      v-scroll-shadow
       class="history-table"
       :empty-text="emptyText"
       :expand-row-keys="toggleExpandId"

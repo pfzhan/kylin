@@ -537,3 +537,93 @@ Vue.directive('global-key-event', {
   }
 })
 
+// 增加滚动区域（上下左右）有滚动的情况下显示内阴影
+Vue.directive('scroll-shadow', {
+  inserted: function (el, binding) {
+    setTimeout(() => {
+      const wrapper = el.querySelector('.el-table__body-wrapper')
+      const tableDom = el.querySelector('.el-table__body-wrapper table')
+      let isScrollY = false
+      let isScrollX = false
+
+      // 判断table是否拥有滚动条
+      let fn = ({x = false, y = false}) => {
+        const currentClientRect = el && el.getBoundingClientRect()
+        const tableClientRect = tableDom && tableDom.getBoundingClientRect()
+        isScrollX = wrapper && tableDom && tableClientRect.width > currentClientRect.width
+        isScrollY = wrapper && tableDom && tableClientRect.height > currentClientRect.height
+
+        if (isScrollX && !x) {
+          let dom = document.createElement('div')
+          dom.classList = 'scroll-shadow-layout scrolling-x'
+          el.appendChild(dom)
+          wrapper.addEventListener('scroll', scrollEventX)
+        }
+        if (isScrollY && !y) {
+          let dom = document.createElement('div')
+          dom.classList = 'scroll-shadow-layout scrolling-y'
+          el.appendChild(dom)
+          wrapper.addEventListener('scroll', scrollEventY)
+        }
+      }
+
+      /**
+       * 监听x轴滚动事件添加相应阴影区域样式
+       * is-scrolling-left - 右侧阴影，is-scrolling-middle - 两侧阴影，is-scrolling-right - 左侧阴影
+       */
+      let scrollEventX = (e) => {
+        let targetElementClass = e.target.classList.value
+        const scrollLayout = el.getElementsByClassName('scroll-shadow-layout scrolling-x').length && el.getElementsByClassName('scroll-shadow-layout scrolling-x')[0]
+        if (!scrollLayout) return
+        if (targetElementClass.indexOf('is-scrolling-left') > -1) {
+          scrollLayout.classList = 'scroll-shadow-layout scrolling-x is-scrolling-left'
+        } else if (targetElementClass.indexOf('is-scrolling-middle') > -1) {
+          scrollLayout.classList = 'scroll-shadow-layout scrolling-x is-scrolling-middle'
+        } else {
+          scrollLayout.classList = 'scroll-shadow-layout scrolling-x is-scrolling-right'
+        }
+      }
+
+      // 监听y轴滚动事件添加相应阴影区域
+      let scrollEventY = (e) => {
+        let scrollT = e.target.scrollTop
+        let scrollH = e.target.scrollHeight
+        let clientH = e.target.clientHeight
+        let dom = el.getElementsByClassName('scroll-shadow-layout scrolling-y').length && el.getElementsByClassName('scroll-shadow-layout scrolling-y')[0]
+
+        if (scrollT === 0) {
+          dom.classList = 'scroll-shadow-layout scrolling-y is-scrolling-top'
+        } else if (scrollT > 0 && scrollT + clientH !== scrollH) {
+          dom.classList = 'scroll-shadow-layout scrolling-y is-scrolling-middle'
+        } else if (scrollT + clientH === scrollH) {
+          dom.classList = 'scroll-shadow-layout scrolling-y is-scrolling-bottom'
+        }
+      }
+
+      // 更改可视区域的大小，重新计算滚动属性
+      window.onresize = function () {
+        const resizeClientRect = el && el.getBoundingClientRect()
+        const resizeTableClientRect = tableDom && tableDom.getBoundingClientRect()
+        const scrollShadowDomX = el.getElementsByClassName('scroll-shadow-layout scrolling-x')
+        const scrollShadowDomY = el.getElementsByClassName('scroll-shadow-layout scrolling-y')
+
+        if (resizeTableClientRect.width - resizeClientRect.width < 2 && isScrollX) {
+          isScrollX = false
+          wrapper.removeEventListener('scroll', scrollEventX)
+          el.removeChild(scrollShadowDomX.length && scrollShadowDomX[0])
+        }
+        if (resizeTableClientRect.height - resizeClientRect.height < 2 && isScrollY) {
+          isScrollY = false
+          wrapper.removeEventListener('scroll', scrollEventY)
+          el.removeChild(scrollShadowDomY.length && scrollShadowDomY[0])
+        }
+        (!scrollShadowDomX.length || !scrollShadowDomY.length) && fn({x: scrollShadowDomX.length, y: scrollShadowDomY.length})
+      }
+      fn({})
+    }, 500)
+  },
+  unbind: function () {
+    window.onresize = null
+  }
+})
+

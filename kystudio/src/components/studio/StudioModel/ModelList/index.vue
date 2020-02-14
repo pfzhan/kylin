@@ -21,6 +21,7 @@
       </div>
       <el-table class="model_list_table"
         v-guide.scrollModelTable
+        v-scroll-shadow
         :data="modelArray"
         border
         :empty-text="emptyText"

@@ -45,6 +45,7 @@
         <el-table class="ksd-el-table jobs-table"
           tooltip-effect="dark"
           border
+          v-scroll-shadow
           ref="jobsTable"
           :data="jobsList"
           highlight-current-row

@@ -64,7 +64,8 @@
   	<div class="ksd-mt-10 grid-box narrowTable">
   		<el-table
 		    :data="pagerTableData"
-		    border
+        border
+        v-scroll-shadow
         ref="tableLayout"
 		    style="width: 100%;">
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
