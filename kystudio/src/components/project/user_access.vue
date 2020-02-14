@@ -40,7 +40,7 @@
                 <span class="ky-ellipsis" :class="data.class" :title="node.label">{{ node.label }}</span>
               </span>
             </el-tree>
-            <kap-nodata v-else>
+            <kap-nodata :content="emptyText" v-else>
             </kap-nodata>
           </div>
         </div>
@@ -63,14 +63,14 @@
           <div class="access-content" :class="{'all-tips': isAllColAccess&&!isEdit}">
             <div v-if="pagedFilterColumns.length">
               <ul>
-                <li v-for="(col, index) in pagedFilterColumns" :key="col.name">
-                  <el-checkbox @change="val => selectColumn(val, index)" :disabled="!isCurrentTableChecked" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
+                <li v-for="col in pagedFilterColumns" :key="col.name">
+                  <el-checkbox @change="val => selectColumn(val, col.name)" :disabled="!isCurrentTableChecked" size="medium" v-if="isEdit" :value="col.authorized">{{col.name}}</el-checkbox>
                   <span v-else>{{col.name}}</span>
                 </li>
               </ul>
               <div class="list-load-more" @click="loadMoreCols" v-if="pagedFilterColumns.length<filterCols.length">{{$t('loadMore')}}</div>
             </div>
-            <kap-nodata v-else>
+            <kap-nodata :content="emptyText2" v-else>
             </kap-nodata>
           </div>
         </div>
@@ -106,7 +106,7 @@
                 </el-row>
               </li>
             </ul>
-            <kap-nodata v-if="!isCurrentTableChecked&&!rows.length">
+            <kap-nodata :content="emptyText3" v-if="!isCurrentTableChecked&&!rows.length">
             </kap-nodata>
             <div class="view-all-tips" v-if="isCurrentTableChecked&&!rows.length">{{$t('viewAllDataTips')}}</div>
           </div>
@@ -238,6 +238,15 @@ export default class UserAccess extends Vue {
   loading = false
   columnPageSize = 100
   columnCurrentPage = 1
+  get emptyText () {
+    return this.tableFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+  get emptyText2 () {
+    return this.columnFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+  get emptyText3 () {
+    return this.rowFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
   showLoading () {
     this.loading = true
   }
@@ -504,8 +513,9 @@ export default class UserAccess extends Vue {
       this.submitLoading = false
     })
   }
-  selectColumn (val, index) {
+  selectColumn (val, col) {
     let columns = this.allTables[this.databaseIndex].tables[this.tableIndex].columns
+    const index = indexOfObjWithSomeKey(columns, 'column_name', col)
     columns[index].authorized = val
     this.tables[this.databaseIndex].originTables[this.tableIndex].columns = columns
     this.columns[index].authorized = val
