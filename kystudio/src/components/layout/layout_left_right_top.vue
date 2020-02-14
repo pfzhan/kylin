@@ -79,7 +79,7 @@
             <li><help></help></li>
             <li><change_lang ref="changeLangCom"></change_lang></li>
             <li>
-              <el-dropdown @command="handleCommand">
+              <el-dropdown @command="handleCommand" class="user-msg-dropdown">
                 <span class="el-dropdown-link">
                   <i class="el-icon-ksd-user ksd-mr-5 ksd-fs-16"></i><span class="ksd-fs-12 limit-user-name">{{currentUserInfo && currentUserInfo.username}}</span><i class="el-icon-caret-bottom"></i>
                 </span>
@@ -976,6 +976,25 @@ export default class LayoutLeftRightTop extends Vue {
               color: @base-color;
               * {
                 color: @base-color;
+              }
+            }
+            .user-msg-dropdown {
+              height: 24px;
+              .el-dropdown-link {
+                height: 100%;
+                display: inline-block;
+                line-height: 24px;
+                .el-icon-ksd-user {
+                  float: left;
+                  line-height: 24px;
+                }
+                .el-icon-caret-bottom {
+                  float: right;
+                  line-height: 24px;
+                }
+                .limit-user-name {
+                  line-height: 24px;
+                }
               }
             }
           }
