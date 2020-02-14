@@ -18,7 +18,7 @@
 #
 
 export JAVA_VM_XMS=1g
-export JAVA_VM_XMX=4g
+export JAVA_VM_XMX=8g
 
 # uncomment following to for it to take effect(the values need adjusting to fit your env)
 #export KYLIN_DEBUG_SETTINGS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
