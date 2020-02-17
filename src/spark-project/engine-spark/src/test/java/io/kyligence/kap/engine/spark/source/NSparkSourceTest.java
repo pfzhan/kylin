@@ -63,6 +63,32 @@ public class NSparkSourceTest extends NLocalWithSparkSessionTest {
         }
     }
 
+    /**
+     * for the issue: https://olapio.atlassian.net/browse/KE-9497
+     */
+    @Test
+    public void testGetSourceData() {
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");
+        TableDesc fact = tableMgr.getTableDesc("SSB.P_LINEORDER");
+        ColumnDesc[] columns = fact.getColumns();
+        columns[0].setName("1d");
+        columns[1].setName("234D");
+        columns[2].setName("3f");
+        columns[3].setName("4F");
+        columns[4].setName("5L");
+        columns[5].setName("6l");
+        fact.setColumns(columns);
+
+        Dataset<Row> df = SourceFactory.createEngineAdapter(fact, NSparkCubingEngine.NSparkCubingSource.class)
+                .getSourceData(fact, ss, Maps.newHashMap());
+        ColumnDesc[] colDescs = fact.getColumns();
+        for (int i = 0; i < colDescs.length; i++) {
+            StructField field = df.schema().fields()[i];
+            Assert.assertEquals(field.name(), colDescs[i].getName());
+            Assert.assertEquals(field.dataType(), SparderTypeUtil.toSparkType(colDescs[i].getType(), false));
+        }
+    }
+
     @Test
     public void testGetSegmentRange() {
         SegmentRange segmentRange = new NSparkDataSource().getSegmentRange("0", "21423423");

@@ -53,7 +53,7 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         for (ColumnDesc columnDesc : columnDescs) {
             if (!columnDesc.isComputedColumn()) {
                 kylinSchema = kylinSchema.add(columnDesc.getName(), SparderTypeUtil.toSparkType(columnDesc.getType(), false), true);
-                tblColNames.add(columnDesc.getName());
+                tblColNames.add("`"+columnDesc.getName()+"`");
             }
         }
         String[] colNames = tblColNames.toArray(new String[0]);
