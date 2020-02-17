@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -37,10 +39,15 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.garbage.CustomizedGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
+import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeContext;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
@@ -81,7 +88,7 @@ public class OptimizeRecommendationService extends BasicService {
     @Transaction(project = 1)
     public void applyRecommendations(ApplyRecommendationsRequest request, String project) {
         updateOptimizeRecom(request);
-
+        shiftLayoutHitCount(project, request.getModelId());
         val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
                 request.getModelId());
         val passCCItems = request.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
@@ -265,10 +272,43 @@ public class OptimizeRecommendationService extends BasicService {
                 .map(NDataflow::getModel);
         models.forEach(model -> {
             if (CollectionUtils.isEmpty(modelAlias) || modelAlias.contains(model.getAlias())) {
+                shiftLayoutHitCount(project, model.getUuid());
                 val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
                         model.getId());
                 verifier.verifyAll();
             }
         });
+    }
+
+    private void shiftLayoutHitCount(String project, String modelUuid) {
+        // removal recommendations
+        OptimizeRecommendation optimizeRecommendation = getOptRecommendationManager(project)
+                .getOptimizeRecommendation(modelUuid);
+        Set<Long> toBeDeletedLayouts = Sets.newHashSet();
+        for (LayoutRecommendationItem layoutRecommendation : optimizeRecommendation.getLayoutRecommendations()) {
+            if (!layoutRecommendation.isAdd()) {
+                toBeDeletedLayouts.add(layoutRecommendation.getLayout().getId());
+            }
+        }
+
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dfManager = NDataflowManager.getInstance(config, project);
+        NDataflow originDf = dfManager.getDataflow(modelUuid);
+        NDataflow copiedDf = originDf.copy();
+        val ignored = config.isCustomizedGcStrategyEnabled()
+                ? CustomizedGarbageCleaner.findGarbageLayouts(copiedDf).keySet()
+                : DefaultGarbageCleaner.findGarbageLayouts(copiedDf).keySet();
+        Map<Long, FrequencyMap> layoutHitCount = copiedDf.getLayoutHitCount();
+        layoutHitCount.forEach((id, freqMap) -> {
+            if (!toBeDeletedLayouts.contains(id)) {
+                val oriMap = originDf.getLayoutHitCount().get(id);
+                if (oriMap != null) {
+                    layoutHitCount.put(id, oriMap);
+                }
+            }
+        });
+
+        dfManager.updateDataflow(copiedDf.getUuid(),
+                copyForWrite -> copyForWrite.setLayoutHitCount(copiedDf.getLayoutHitCount()));
     }
 }

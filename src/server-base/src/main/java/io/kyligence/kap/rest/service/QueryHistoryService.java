@@ -255,12 +255,16 @@ public class QueryHistoryService extends BasicService {
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
             for (ProjectInstance project : projectManager.listAllProjects()) {
-                long startTime = System.currentTimeMillis();
-                logger.info("Start to delete query histories that are beyond max size for project<{}>",
-                        project.getName());
-                getQueryHistoryDao(project.getName()).deleteQueryHistoriesIfMaxSizeReached();
-                logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
-                        System.currentTimeMillis() - startTime);
+                try {
+                    long startTime = System.currentTimeMillis();
+                    logger.info("Start to delete query histories that are beyond max size for project<{}>",
+                            project.getName());
+                    getQueryHistoryDao(project.getName()).deleteQueryHistoriesIfMaxSizeReached();
+                    logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
+                            System.currentTimeMillis() - startTime);
+                } catch (Exception e) {
+                    logger.error("clean query histories<" + project.getName() + "> failed", e);
+                }
             }
 
         } finally {

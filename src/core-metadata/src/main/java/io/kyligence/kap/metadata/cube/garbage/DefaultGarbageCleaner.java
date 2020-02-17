@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -38,14 +37,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
 
-/**
- * DefaultGarbageCleaner only choose all agg layouts to handle when `kylin.garbage.only-tailor-agg-index` is true,
- * otherwise it will choose all layouts in current model. For smart-mode LowFreqLayoutGcStrategy works, expert-mode
- * RedundantLayoutGcStrategy works, semi-mode LowFreqLayoutGcStrategy and RedundantLayoutGcStrategy work.
- */
 public class DefaultGarbageCleaner {
 
     private static final AbstractGcStrategy[] GC_STRATEGIES = { new IncludedLayoutGcStrategy(),
@@ -62,15 +54,11 @@ public class DefaultGarbageCleaner {
             readyLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
         }
 
-        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(dataflow.getProject());
-        if (projectInstance.isSemiAutoMode() || projectInstance.isExpertMode()) {
-            val manual = readyLayouts.stream().filter(LayoutEntity::isManual).collect(Collectors.toList());
-            AbstractGcStrategy strategy = new SimilarLayoutGcStrategy();
-            strategy.collectGarbageLayouts(manual, dataflow)
-                    .forEach(id -> garbageLayoutTypeMap.put(id, strategy.getType()));
-        }
+        // only optimize auto layouts in default index optimizer
+        List<LayoutEntity> autoLayouts = readyLayouts.stream() //
+                .filter(layout -> !layout.isManual() && layout.isAuto()) //
+                .collect(Collectors.toList());
 
-        val autoLayouts = readyLayouts.stream().filter(LayoutEntity::isAuto).collect(Collectors.toList());
         for (AbstractGcStrategy strategy : GC_STRATEGIES) {
             strategy.collectGarbageLayouts(autoLayouts, dataflow)
                     .forEach(id -> garbageLayoutTypeMap.put(id, strategy.getType()));

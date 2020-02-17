@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.BitSets;
 import org.apache.kylin.common.util.JsonUtil;
 import org.slf4j.Logger;
@@ -41,12 +40,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.garbage.CustomizedGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
@@ -203,18 +198,6 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         if (isAdd()) {
             addLayout(context);
         } else {
-            // when remove layout, transfer layout hit count first
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            NDataflowManager dfManager = NDataflowManager.getInstance(config, context.getModel().getProject());
-            NDataflow dataflow = dfManager.getDataflow(context.getModel().getUuid()).copy();
-            if (config.isCustomizedGcStrategyEnabled()) {
-                CustomizedGarbageCleaner.findGarbageLayouts(dataflow);
-            } else {
-                DefaultGarbageCleaner.findGarbageLayouts(dataflow);
-            }
-            dfManager.updateDataflow(dataflow.getUuid(),
-                    copyForWrite -> copyForWrite.setLayoutHitCount(dataflow.getLayoutHitCount()));
-
             removeLayout(context, real);
         }
     }

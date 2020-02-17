@@ -49,6 +49,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -277,8 +278,8 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfoResponse.getStorageQuotaSize());
 
-        // layouts except 1 and 1000001 were all considered as garbage
-        Assert.assertEquals(4179043, storageVolumeInfoResponse.getGarbageStorageSize());
+        // for MODEL(MODEL_ID) layout-1000001 is manual and auto, it will be consider as manual layout
+        Assert.assertEquals(2988131, storageVolumeInfoResponse.getGarbageStorageSize());
     }
 
     @Test
@@ -338,18 +339,13 @@ public class ProjectServiceTest extends ServiceTestBase {
                         .getOptimizeRecommendation(model.getUuid());
                 List<LayoutRecommendationItem> layoutRecommendations = optimizeRecommendation
                         .getLayoutRecommendations();
-                Assert.assertEquals(5, layoutRecommendations.size());
+                // default index optimizer will not handle manual layouts.
+                Assert.assertEquals(2, layoutRecommendations.size());
                 layoutRecommendations.sort(Comparator.comparingLong(rec -> rec.getLayout().getId()));
-                Assert.assertEquals(30001L, layoutRecommendations.get(0).getLayout().getId());
+                Assert.assertEquals(70001L, layoutRecommendations.get(0).getLayout().getId());
                 Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(0).getRecommendationType());
-                Assert.assertEquals(40001L, layoutRecommendations.get(1).getLayout().getId());
+                Assert.assertEquals(80001L, layoutRecommendations.get(1).getLayout().getId());
                 Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(1).getRecommendationType());
-                Assert.assertEquals(50001L, layoutRecommendations.get(2).getLayout().getId());
-                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(2).getRecommendationType());
-                Assert.assertEquals(70001L, layoutRecommendations.get(3).getLayout().getId());
-                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(3).getRecommendationType());
-                Assert.assertEquals(80001L, layoutRecommendations.get(4).getLayout().getId());
-                Assert.assertEquals(RecommendationType.REMOVAL, layoutRecommendations.get(4).getRecommendationType());
                 continue;
             }
 
@@ -369,6 +365,9 @@ public class ProjectServiceTest extends ServiceTestBase {
                 if (latestReadySegment != null) {
                     List<LayoutEntity> allLayouts = dataflow.getIndexPlan().getAllLayouts();
                     List<LayoutEntity> autoLayouts = dataflow.getIndexPlan().getWhitelistLayouts();
+                    Set<LayoutEntity> manualLayouts = allLayouts.stream().filter(LayoutEntity::isManual)
+                            .collect(Collectors.toSet());
+                    autoLayouts.removeIf(manualLayouts::contains); // if a layout is manual and auto, consider as manual
                     autoLayouts.removeIf(layout -> !latestReadySegment.getLayoutsMap().containsKey(layout.getId()));
                     allLayouts.removeIf(layout -> !latestReadySegment.getLayoutsMap().containsKey(layout.getId()));
                     Assert.assertTrue(autoLayouts.isEmpty());

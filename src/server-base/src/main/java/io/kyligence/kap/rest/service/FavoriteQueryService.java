@@ -33,9 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
-import io.kyligence.kap.metadata.favorite.CreateFavoriteQueryResult;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -53,6 +50,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -67,6 +65,8 @@ import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
+import io.kyligence.kap.metadata.favorite.CreateFavoriteQueryResult;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
@@ -422,9 +422,13 @@ public class FavoriteQueryService extends BasicService {
             getProjectManager().listAllProjects().stream() //
                     .filter(ProjectInstance::isSemiAutoMode) //
                     .forEach(projectInstance -> {
-                        String projectName = projectInstance.getName();
-                        val config = KylinConfig.getInstanceFromEnv();
-                        accelerate(getAccelerableSqlPattern(projectName), projectName, config);
+                        try {
+                            String projectName = projectInstance.getName();
+                            val config = KylinConfig.getInstanceFromEnv();
+                            accelerate(getAccelerableSqlPattern(projectName), projectName, config);
+                        } catch (Exception e) {
+                            logger.error("generate recommendations<" + projectInstance.getName() + "> failed", e);
+                        }
                     });
         } finally {
             Thread.currentThread().setName(oldThreadName);
@@ -638,7 +642,11 @@ public class FavoriteQueryService extends BasicService {
             Thread.currentThread().setName("FavoriteQueryAdjustWorker");
 
             for (ProjectInstance project : getProjectManager().listAllProjects()) {
-                adjustFQForProject(project.getName());
+                try {
+                    adjustFQForProject(project.getName());
+                } catch (Exception e) {
+                    logger.warn("adjust false accelerated favorite query<" + project.getName() + "> failed", e);
+                }
             }
         } finally {
             Thread.currentThread().setName(oldThreadName);
