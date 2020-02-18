@@ -34,7 +34,7 @@
       <el-col :span="24">
         <el-form-item :label="$t('sampleData')">
           <el-checkbox v-model="form.useFirstLine">{{$t('useFirstLine')}}</el-checkbox>
-          <el-table :data="renderSampleData.body" border height="280px">
+          <el-table :data="renderSampleData.body" v-scroll-shadow border height="280px">
             <el-table-column
               v-for="(h, i) in renderSampleData.header"
               :prop="''+i"

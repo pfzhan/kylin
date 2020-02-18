@@ -14,7 +14,7 @@
         </el-input>
       </div>
     </div>
-    <el-table class="columns-body" :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange" border>
+    <el-table class="columns-body" v-scroll-shadow :data="currentColumns" :empty-text="emptyText" @sort-change="onSortChange" border>
       <el-table-column
         type="index"
         label="ID"

@@ -60,6 +60,7 @@
           <el-table
           nested
           size="medium"
+          v-scroll-shadow
           :data="showTableIndexDetail"
           height="529px"
           border class="table-index-detail">

@@ -5,6 +5,7 @@
       :data="suggestModels"
       class="model-table"
       border
+      v-scroll-shadow
       :ref="tableRef"
       style="width: 100%"
       @select="handleSelectionModel"
