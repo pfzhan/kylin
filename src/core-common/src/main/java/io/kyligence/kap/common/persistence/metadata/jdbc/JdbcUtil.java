@@ -27,14 +27,15 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.StorageURL;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.PersistException;
+import io.kyligence.kap.common.util.EncryptUtil;
 import lombok.val;
 
 public class JdbcUtil implements IKeep {
@@ -69,6 +70,11 @@ public class JdbcUtil implements IKeep {
         props.put("password", "");
         props.put("maxTotal", "50");
         props.putAll(url.getAllParameters());
+        String password = props.getProperty("password");
+        if (EncryptUtil.isEncrypted(password)) {
+            password = EncryptUtil.decryptPassInKylin(password);
+            props.put("password", password);
+        }
         return props;
     }
 

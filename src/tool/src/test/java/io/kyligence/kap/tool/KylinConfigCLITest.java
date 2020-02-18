@@ -50,7 +50,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -69,6 +71,42 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
 
         String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
         assertEquals("UT", val);
+        tmpOut.close();
+        FileUtils.forceDelete(f);
+        System.setOut(o);
+    }
+
+    @Test
+    public void testGetEncryptProperty() throws IOException {
+        final KylinConfig config = getTestConfig();
+        String property = "kap.influxdb.password";
+        config.setProperty(property, "ENC('YeqVr9MakSFbgxEec9sBwg==')");
+        PrintStream o = System.out;
+        File f = File.createTempFile("cfg", ".tmp");
+        PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
+        System.setOut(tmpOut);
+        KylinConfigCLI.main(new String[] { property, EncryptUtil.DEC_FLAG});
+
+        String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
+        assertEquals("kylin", val);
+        tmpOut.close();
+        FileUtils.forceDelete(f);
+        System.setOut(o);
+    }
+
+    @Test
+    public void testGetUnEncryptPropertyWithDECFlag() throws IOException {
+        final KylinConfig config = getTestConfig();
+        String property = "kap.influxdb.password";
+        config.setProperty(property, "kylin");
+        PrintStream o = System.out;
+        File f = File.createTempFile("cfg", ".tmp");
+        PrintStream tmpOut = new PrintStream(new FileOutputStream(f));
+        System.setOut(tmpOut);
+        KylinConfigCLI.main(new String[] { property, EncryptUtil.DEC_FLAG});
+
+        String val = FileUtils.readFileToString(f, Charset.defaultCharset()).trim();
+        assertEquals("kylin", val);
         tmpOut.close();
         FileUtils.forceDelete(f);
         System.setOut(o);

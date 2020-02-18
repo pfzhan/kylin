@@ -28,7 +28,7 @@ metrics_db_suffix=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.db`
 export KE_METRICS_DATABASE=${metadata_url_prefix}_${metrics_db_suffix}
 export INFLUXDB_ADDRESS=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.address`
 export INFLUXDB_USERNAME=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.username`
-export INFLUXDB_PASSWORD=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.password`
+export INFLUXDB_PASSWORD=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.password DEC`
 
 echo "Influxdb Address: $INFLUXDB_ADDRESS"
 echo "Metrics Database: $KE_METRICS_DATABASE"

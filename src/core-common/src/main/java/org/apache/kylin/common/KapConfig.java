@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -545,7 +546,11 @@ public class KapConfig {
     }
 
     public String influxdbPassword() {
-        return config.getOptional("kap.influxdb.password", "root");
+        String password = config.getOptional("kap.influxdb.password", "root");
+        if (EncryptUtil.isEncrypted(password)) {
+            password = EncryptUtil.decryptPassInKylin(password);
+        }
+        return password;
     }
 
     public int getInfluxDBFlushDuration() {

@@ -43,8 +43,10 @@
 package io.kyligence.kap.tool;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import org.apache.kylin.common.BackwardCompatibilityConfig;
 import org.apache.kylin.common.KylinConfig;
 
@@ -54,10 +56,15 @@ import io.kyligence.kap.common.obf.IKeep;
 
 public class KylinConfigCLI implements IKeep {
     public static void main(String[] args) {
+        boolean needDec = false;
         if (args.length != 1) {
-            System.err.println("Usage: KylinConfigCLI conf_name");
-            System.err.println("Example: KylinConfigCLI kylin.server.mode");
-            System.exit(1);
+            if (args.length < 2 || !Objects.equals(EncryptUtil.DEC_FLAG, args[1])) {
+                System.err.println("Usage: KylinConfigCLI conf_name");
+                System.err.println("Example: KylinConfigCLI kylin.server.mode");
+                System.exit(1);
+            } else {
+                needDec = true;
+            }
         }
 
         Properties config = KylinConfig.getInstanceFromEnv().exportToProperties();
@@ -69,7 +76,11 @@ public class KylinConfigCLI implements IKeep {
             if (value == null) {
                 value = "";
             }
-            System.out.println(value.trim());
+            if (needDec && EncryptUtil.isEncrypted(value)) {
+                System.out.println(EncryptUtil.decryptPassInKylin(value));
+            } else {
+                System.out.println(value.trim());
+            }
         } else {
             Map<String, String> props = getPropertiesByPrefix(config, key);
             for (Map.Entry<String, String> prop : props.entrySet()) {

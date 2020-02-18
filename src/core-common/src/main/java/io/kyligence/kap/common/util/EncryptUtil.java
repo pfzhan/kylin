@@ -46,6 +46,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 
 public class EncryptUtil {
     /**
@@ -53,6 +54,15 @@ public class EncryptUtil {
      */
     private static byte[] key = { 0x74, 0x68, 0x69, 0x73, 0x49, 0x73, 0x41, 0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x4b,
             0x65, 0x79 };
+
+    public static final String ENC_PREFIX = "ENC('";
+    public static final String ENC_SUBFIX = "')";
+
+    public static final String DEC_FLAG = "DEC";
+
+    public static boolean isEncrypted(String value) {
+        return StringUtils.isNotEmpty(value) && value.startsWith(ENC_PREFIX) && value.endsWith(ENC_SUBFIX);
+    }
 
     public static String encrypt(String strToEncrypt) {
         try {
@@ -76,6 +86,10 @@ public class EncryptUtil {
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+    }
+
+    public static String decryptPassInKylin(String value) {
+        return decrypt(value.substring(ENC_PREFIX.length(), value.length() - ENC_SUBFIX.length()));
     }
 
     private static void printUsage() {
