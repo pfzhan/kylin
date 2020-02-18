@@ -33,4 +33,6 @@ public interface ClusterManager extends IKeep {
     String getLocalServer();
 
     List<ServerInfoResponse> getQueryServers();
+
+    List<ServerInfoResponse> getJobServers();
 }

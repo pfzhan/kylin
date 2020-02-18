@@ -216,6 +216,14 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         executorService.execute(() -> {
             logger.info("Start to dump influxdb metrics.");
             InfluxDBTool.dumpInfluxDBMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
+        });
+
+        // influxdb sla monitor metrics
+        executorService.execute(() -> {
+            logger.info("Start to dump influxdb sla monitor metrics.");
+            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
         });
 
         executorService.shutdown();

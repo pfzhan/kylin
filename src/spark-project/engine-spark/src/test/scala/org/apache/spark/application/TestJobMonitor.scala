@@ -22,6 +22,7 @@
 
 package org.apache.spark.application
 
+import java.util
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -331,4 +332,6 @@ class MockClusterManager extends IClusterManager {
   override def getTrackingUrl(applicationId: String): String = null
 
   override def killApplication(jobStepId: String): Unit = {}
+
+  override def getRunningJobs(queues: util.Set[String]): util.List[String] = null
 }

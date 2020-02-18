@@ -1,11 +1,14 @@
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
  * http://kyligence.io
+ *
  * This software is the confidential and proprietary information of
  * Kyligence Inc. ("Confidential Information"). You shall not disclose
  * such Confidential Information and shall use it only in accordance
  * with the terms of the license agreement you entered into with
  * Kyligence Inc.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -17,40 +20,16 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
+package io.kyligence.kap.common.metrics.service;
 
-package io.kyligence.kap.cluster
+import java.util.Map;
 
-import java.util
+public interface MonitorMetricOperation {
 
-import org.apache.hadoop.yarn.api.records.Resource
+    Map<String, String> getTags();
 
-trait IClusterManager {
-  def fetchMaximumResourceAllocation: ResourceInfo
+    Map<String, Object> getFields();
 
-  def fetchQueueAvailableResource(queueName: String): AvailableResource
-
-  def getTrackingUrl(applicationId: String): String
-
-  def killApplication(jobStepId: String): Unit
-
-  def getRunningJobs(queues: util.Set[String]): util.List[String]
+    String getTable();
 }
-
-// memory unit is MB
-case class ResourceInfo(memory: Int, vCores: Int) {
-  def this(res: Resource) {
-    this(res.getMemory, res.getVirtualCores)
-  }
-
-  def reduceMin(other: ResourceInfo): ResourceInfo = {
-    ResourceInfo(Math.min(this.memory, other.memory), Math.min(this.vCores, other.vCores))
-  }
-
-  def percentage(percentage: Double): ResourceInfo = {
-    ResourceInfo(Math.floor(this.memory * percentage).toInt, Math.floor(this.vCores * percentage).toInt)
-  }
-}
-
-case class AvailableResource(available: ResourceInfo, max: ResourceInfo)

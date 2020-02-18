@@ -343,8 +343,7 @@ public class ProjectService extends BasicService {
         return String.join(",", Sets.newHashSet(stringList));
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public ProjectConfigResponse getProjectConfig(String project) {
+    public ProjectConfigResponse getProjectConfig0(String project) {
         val response = new ProjectConfigResponse();
         val projectInstance = getProjectManager().getProject(project);
         val config = projectInstance.getConfig();
@@ -380,6 +379,11 @@ public class ProjectService extends BasicService {
         response.setExposeComputedColumn(config.exposeComputedColumn());
 
         return response;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public ProjectConfigResponse getProjectConfig(String project) {
+        return getProjectConfig0(project);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")

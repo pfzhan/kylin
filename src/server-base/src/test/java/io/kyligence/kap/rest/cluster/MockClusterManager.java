@@ -1,11 +1,14 @@
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
  * http://kyligence.io
+ *
  * This software is the confidential and proprietary information of
  * Kyligence Inc. ("Confidential Information"). You shall not disclose
  * such Confidential Information and shall use it only in accordance
  * with the terms of the license agreement you entered into with
  * Kyligence Inc.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -17,40 +20,29 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
+package io.kyligence.kap.rest.cluster;
 
-package io.kyligence.kap.cluster
+import com.google.common.collect.Lists;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
+import org.apache.kylin.rest.constant.Constant;
 
-import java.util
+import java.util.List;
 
-import org.apache.hadoop.yarn.api.records.Resource
+public class MockClusterManager implements ClusterManager {
+    @Override
+    public String getLocalServer() {
+        return "127.0.0.1:7070";
+    }
 
-trait IClusterManager {
-  def fetchMaximumResourceAllocation: ResourceInfo
+    @Override
+    public List<ServerInfoResponse> getQueryServers() {
+        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", Constant.SERVER_MODE_QUERY),
+                new ServerInfoResponse("127.0.0.1:7071", Constant.SERVER_MODE_QUERY));
+    }
 
-  def fetchQueueAvailableResource(queueName: String): AvailableResource
-
-  def getTrackingUrl(applicationId: String): String
-
-  def killApplication(jobStepId: String): Unit
-
-  def getRunningJobs(queues: util.Set[String]): util.List[String]
+    @Override
+    public List<ServerInfoResponse> getJobServers() {
+        return Lists.newArrayList(new ServerInfoResponse("127.0.0.1:7070", Constant.SERVER_MODE_ALL));
+    }
 }
-
-// memory unit is MB
-case class ResourceInfo(memory: Int, vCores: Int) {
-  def this(res: Resource) {
-    this(res.getMemory, res.getVirtualCores)
-  }
-
-  def reduceMin(other: ResourceInfo): ResourceInfo = {
-    ResourceInfo(Math.min(this.memory, other.memory), Math.min(this.vCores, other.vCores))
-  }
-
-  def percentage(percentage: Double): ResourceInfo = {
-    ResourceInfo(Math.floor(this.memory * percentage).toInt, Math.floor(this.vCores * percentage).toInt)
-  }
-}
-
-case class AvailableResource(available: ResourceInfo, max: ResourceInfo)

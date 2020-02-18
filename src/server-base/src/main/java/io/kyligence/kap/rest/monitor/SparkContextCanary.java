@@ -21,15 +21,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.monitor;
 
-package io.kyligence.kap.rest;
-
-import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
+import io.kyligence.kap.common.metrics.NMetricsCategory;
+import io.kyligence.kap.common.metrics.NMetricsGroup;
+import io.kyligence.kap.common.metrics.NMetricsName;
+import lombok.Getter;
+import lombok.val;
 import org.apache.kylin.common.KapConfig;
 import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -37,10 +35,11 @@ import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
-import lombok.val;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SparkContextCanary {
     private static final Logger logger = LoggerFactory.getLogger(SparkContextCanary.class);
@@ -49,13 +48,17 @@ public class SparkContextCanary {
     private static final int THRESHOLD_TO_RESTART_SPARK = KapConfig.getInstanceFromEnv().getThresholdToRestartSpark();
     private static final int PERIOD_MINUTES = KapConfig.getInstanceFromEnv().getSparkCanaryPeriodMinutes();
 
-    // visible for test
-    static int errorAccumulated = 0;
+    @Getter
+    private static volatile int errorAccumulated = 0;
+    @Getter
+    private static volatile long lastResponseTime = -1;
+    @Getter
+    private static volatile boolean sparkRestarting = false;
 
     private SparkContextCanary() {
     }
 
-    static void init() {
+    public static void init() {
         if (!isStarted) {
             synchronized (SparkContextCanary.class) {
                 if (!isStarted) {
@@ -74,6 +77,7 @@ public class SparkContextCanary {
 
     static void monitor() {
         try {
+            long startTime = System.currentTimeMillis();
             // check spark sql context
             if (!SparderEnv.isSparkAvailable()) {
                 logger.info("Spark is unavailable, need to restart immediately.");
@@ -103,9 +107,11 @@ public class SparkContextCanary {
                 }
             }
 
+            lastResponseTime = System.currentTimeMillis() - startTime;
             logger.debug("Spark context errorAccumulated:{}", errorAccumulated);
 
             if (isError()) {
+                sparkRestarting = true;
                 try {
                     // Take repair action if error accumulated exceeds threshold
                     logger.warn("Repairing spark context");
@@ -115,6 +121,7 @@ public class SparkContextCanary {
                 } catch (Throwable th) {
                     logger.error("Restart spark context failed.", th);
                 }
+                sparkRestarting = false;
             }
         } catch (Throwable th) {
             logger.error("Error when monitoring Spark.", th);
@@ -130,5 +137,4 @@ public class SparkContextCanary {
 
         return jsc.parallelize(list).countAsync();
     }
-
 }

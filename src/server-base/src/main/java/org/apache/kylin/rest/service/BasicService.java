@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import java.util.Comparator;
 
+import io.kyligence.kap.common.metrics.service.MonitorDao;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -139,6 +140,10 @@ public abstract class BasicService {
 
     public QueryHistoryDAO getQueryHistoryDao(String project) {
         return QueryHistoryDAO.getInstance(getConfig(), project);
+    }
+
+    public MonitorDao getMonitorDao() {
+        return MonitorDao.getInstance();
     }
 
     public FavoriteQueryManager getFavoriteQueryManager(String project) {

@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.health;
 
-import io.kyligence.kap.rest.SparkContextCanary;
+import io.kyligence.kap.rest.monitor.SparkContextCanary;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.stereotype.Component;
 

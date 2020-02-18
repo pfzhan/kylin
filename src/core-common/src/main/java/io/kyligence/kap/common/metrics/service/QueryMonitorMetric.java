@@ -21,45 +21,43 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.cluster;
+package io.kyligence.kap.common.metrics.service;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
+import lombok.Getter;
+import lombok.Setter;
 
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
 
-@Slf4j
-@AllArgsConstructor
-public class DefaultClusterManager implements ClusterManager {
+@Getter
+@Setter
+public class QueryMonitorMetric extends MonitorMetric {
+    public static final String QUERY_MONITOR_METRIC_TABLE = "tb_query";
 
-    int port;
+    @JsonProperty("response_time")
+    @Column(name = "response_time")
+    private Long lastResponseTime = -1L;
+
+    @JsonProperty("error_accumulated")
+    @Column(name = "error_accumulated")
+    private Integer errorAccumulated = 0;
+
+    @JsonProperty("spark_restarting")
+    @Column(name = "spark_restarting")
+    private Boolean sparkRestarting = false;
 
     @Override
-    public String getLocalServer() {
-        try {
-            return InetAddress.getLocalHost().getHostName() + ":" + port;
-        } catch (UnknownHostException e) {
-            log.warn("cannot get hostname", e);
-            return "localhost:" + port;
-        }
+    public Map<String, Object> getFields() {
+        Map<String, Object> fields = super.getFields();
+        fields.put("response_time", this.getLastResponseTime());
+        fields.put("error_accumulated", this.getErrorAccumulated());
+        fields.put("spark_restarting", this.getSparkRestarting());
+        return fields;
     }
 
     @Override
-    public List<ServerInfoResponse> getQueryServers() {
-        List<ServerInfoResponse> servers = new ArrayList<>();
-        ServerInfoResponse server = new ServerInfoResponse();
-        server.setHost(getLocalServer());
-        server.setMode(ClusterConstant.ALL);
-        servers.add(server);
-        return servers;
-    }
-
-    @Override
-    public List<ServerInfoResponse> getJobServers() {
-        return getQueryServers();
+    public String getTable() {
+        return QUERY_MONITOR_METRIC_TABLE;
     }
 }

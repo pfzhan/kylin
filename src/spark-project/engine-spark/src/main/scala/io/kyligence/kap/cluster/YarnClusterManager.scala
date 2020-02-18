@@ -35,6 +35,8 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.exceptions.YarnException
 import org.apache.spark.internal.Logging
 
+import scala.collection.JavaConverters._
+
 class YarnClusterManager extends IClusterManager with Logging {
   private lazy val maximumResourceAllocation = {
     val yarnClient = YarnClient.createYarnClient
@@ -112,5 +114,29 @@ class YarnClusterManager extends IClusterManager with Logging {
     // https://issues.apache.org/jira/browse/SPARK-15343
     yarnConf.set("yarn.timeline-service.enabled", "false")
     yarnConf
+  }
+
+  def getRunningJobs(queues: util.Set[String]): util.List[String] = {
+    val yarnClient = YarnClient.createYarnClient
+    try {
+      yarnClient.init(getSpecifiedConf)
+      yarnClient.start()
+      if (queues.isEmpty) {
+        val applications = yarnClient.getApplications(util.EnumSet.of(YarnApplicationState.RUNNING))
+        if (null == applications) List().asJava
+        else applications.asScala.map(_.getName).asJava
+      } else {
+        val runningJobs: util.List[String] = new util.ArrayList[String]()
+        for (queue <- queues.asScala) {
+          val applications = yarnClient.getQueueInfo(queue).getApplications
+          if (null != applications) {
+            applications.asScala.filter(_.getYarnApplicationState == YarnApplicationState.RUNNING).map(_.getName).map(runningJobs.add)
+          }
+        }
+        runningJobs
+      }
+    } finally {
+      yarnClient.close()
+    }
   }
 }

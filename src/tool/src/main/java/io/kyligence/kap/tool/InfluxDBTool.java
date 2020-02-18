@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.tool;
 
+import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
 import io.kyligence.kap.tool.util.ToolUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
@@ -43,12 +44,22 @@ public class InfluxDBTool {
     }
 
     public static void dumpInfluxDBMetrics(File exportDir) {
-        File destDir = new File(exportDir, "system_metrics");
+        KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
+        String database = kapConfig.getMetricsDbNameWithMetadataUrlPrefix();
+        dumpInfluxDB(exportDir, "system_metrics", database);
+    }
+
+    public static void dumpInfluxDBMonitorMetrics(File exportDir) {
+        String database = InfluxDBInstance.generateDatabase(KylinConfig.getInstanceFromEnv());
+        dumpInfluxDB(exportDir, "monitor_metrics", database);
+    }
+
+    private static void dumpInfluxDB(File exportDir, String subDir, String database) {
+        File destDir = new File(exportDir, subDir);
 
         try {
             KapConfig kapConfig = KapConfig.wrap(KylinConfig.getInstanceFromEnv());
             String host = kapConfig.getMetricsRpcServiceBindAddress();
-            String metricsDBName = kapConfig.getMetricsDbNameWithMetadataUrlPrefix();
 
             File influxd = new File(INFLUXD_PATH);
             if (!influxd.exists()) {
@@ -57,16 +68,16 @@ public class InfluxDBTool {
             }
 
             String cmd = String.format("%s backup -portable -database %s -host %s %s", influxd.getAbsolutePath(),
-                    metricsDBName, host, destDir.getAbsolutePath());
+                    database, host, destDir.getAbsolutePath());
 
             FileUtils.forceMkdir(destDir);
 
             Pair<Integer, String> result = new CliCommandExecutor().execute(cmd, null);
             if (null != result.getSecond()) {
-                logger.debug("dumpInfluxDBMetrics: {}", result.getSecond());
+                logger.debug("dump InfluxDB, database: {}, info: {}", database, result.getSecond());
             }
         } catch (Exception e) {
-            logger.debug("Failed to dump influxdb metrics ", e);
+            logger.debug("Failed to dump influxdb by database: {} ", database, e);
         }
     }
 }

@@ -21,16 +21,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.monitor;
 
-package io.kyligence.kap.rest;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
 
@@ -62,7 +60,7 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 
         SparkContextCanary.monitor();
-        Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
+        Assert.assertEquals(0, SparkContextCanary.getErrorAccumulated());
     }
 
     @Test
@@ -72,18 +70,18 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
 
         // set kap.canary.sqlcontext-error-response-ms to 1
         // And SparkContextCanary numberCount will timeout
-        Assert.assertEquals(0, SparkContextCanary.errorAccumulated);
+        Assert.assertEquals(0, SparkContextCanary.getErrorAccumulated());
         System.setProperty("kap.canary.sqlcontext-error-response-ms", "1");
         SparkContextCanary.monitor();
 
         // errorAccumulated increase
-        Assert.assertEquals(1, SparkContextCanary.errorAccumulated);
+        Assert.assertEquals(1, SparkContextCanary.getErrorAccumulated());
 
         // reach threshold to restart spark. Reset errorAccumulated.
         SparkContextCanary.monitor();
-        Assert.assertEquals(2, SparkContextCanary.errorAccumulated);
+        Assert.assertEquals(2, SparkContextCanary.getErrorAccumulated());
         SparkContextCanary.monitor();
-        Assert.assertEquals(3, SparkContextCanary.errorAccumulated);
+        Assert.assertEquals(3, SparkContextCanary.getErrorAccumulated());
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 

@@ -594,6 +594,61 @@ public class KapConfig {
     }
 
     /**
+     * kap monitor
+     */
+    public Boolean isMonitorEnabled() {
+        return Boolean.valueOf(config.getOptional("kylin.monitor.enabled", "true"));
+    }
+
+    public String getMonitorDatabase() {
+        return String.valueOf(config.getOptional("kylin.monitor.db", "KE_MONITOR"));
+    }
+
+    public String getMonitorRetentionPolicy() {
+        return String.valueOf(config.getOptional("kylin.monitor.retention-policy", "KE_MONITOR_RP"));
+    }
+
+    public String getMonitorRetentionDuration() {
+        return String.valueOf(config.getOptional("kylin.monitor.retention-duration", "90d"));
+    }
+
+    public String getMonitorShardDuration() {
+        return String.valueOf(config.getOptional("kylin.monitor.shard-duration", "7d"));
+    }
+
+    public Integer getMonitorReplicationFactor() {
+        return Integer.valueOf(config.getOptional("kylin.monitor.replication-factor", "1"));
+    }
+
+    public Boolean isMonitorUserDefault() {
+        return Boolean.valueOf(config.getOptional("kylin.monitor.user-default", "true"));
+    }
+
+    public Long getMonitorInterval() {
+        return Long.valueOf(config.getOptional("kylin.monitor.interval", "60")) * 1000;
+    }
+
+    public long getJobStatisticInterval() {
+        return Long.valueOf(config.getOptional("kylin.monitor.job-statistic-interval", "3600")) * 1000;
+    }
+
+    public long getMaxPendingErrorJobs() {
+        return Long.valueOf(config.getOptional("kylin.monitor.job-pending-error-total", "20"));
+    }
+
+    public double getMaxPendingErrorJobsRation() {
+        double ration = Double.parseDouble(config.getOptional("kylin.monitor.job-pending-error-rate", "0.2"));
+        if (ration <= 0 || ration >= 1) {
+            return 0.2;
+        }
+        return ration;
+    }
+
+    public double getClusterCrashThreshhold() {
+        return Double.parseDouble(config.getOptional("kylin.monitor.cluster-crash-threshold", "0.8"));
+    }
+
+    /**
      * kap circuit-breaker
      */
     public Boolean isCircuitBreakerEnabled() {
@@ -781,7 +836,7 @@ public class KapConfig {
     }
 
     public int getThresholdToRestartSpark() {
-        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-threshold-to-restart-spark", "2"));
+        return Integer.parseInt(config.getOptional("kap.canary.sqlcontext-threshold-to-restart-spark", "3"));
     }
 
     public int getSparkCanaryErrorResponseMs() {

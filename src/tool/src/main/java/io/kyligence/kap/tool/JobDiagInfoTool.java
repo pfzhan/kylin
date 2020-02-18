@@ -109,7 +109,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         // dump job metadata
         executorService.execute(() -> {
             logger.info("Start to dump metadata.");
-
             try {
                 File metaDir = new File(exportDir, "metadata");
                 FileUtils.forceMkdir(metaDir);
@@ -119,7 +118,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             } catch (Exception e) {
                 logger.warn("Failed to extract job metadata.", e);
             }
-
             DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
         });
 
@@ -136,7 +134,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             } catch (Exception e) {
                 logger.warn("Failed to extract audit log.", e);
             }
-
             DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
         });
 
@@ -208,12 +205,17 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             KylinLogTool.extractJobTmp(exportDir, project, jobId);
             DiagnosticFilesChecker.writeMsgToFile("JOB_TMP", System.currentTimeMillis() - start, recordTime);
         });
-
         // influxdb metrics
         executorService.execute(() -> {
             logger.info("Start to dump influxdb metrics.");
             InfluxDBTool.dumpInfluxDBMetrics(exportDir);
             DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
+        });
+        // influxdb sla monitor metrics
+        executorService.execute(() -> {
+            logger.info("Start to dump influxdb sla monitor metrics.");
+            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
         });
 
         executorService.shutdown();

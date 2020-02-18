@@ -21,45 +21,50 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.cluster;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
+package io.kyligence.kap.rest.response;
+
 import java.util.List;
 
-import io.kyligence.kap.rest.response.ServerInfoResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Slf4j
-@AllArgsConstructor
-public class DefaultClusterManager implements ClusterManager {
+@Data
+public class ClusterStatisticStatusResponse {
+    @JsonProperty("start")
+    private long start;
+    @JsonProperty("end")
+    private long end;
+    @JsonProperty("interval")
+    private long interval;
 
-    int port;
+    @JsonProperty("job")
+    private List<NodeStatisticStatusResponse> job;
+    @JsonProperty("query")
+    private List<NodeStatisticStatusResponse> query;
 
-    @Override
-    public String getLocalServer() {
-        try {
-            return InetAddress.getLocalHost().getHostName() + ":" + port;
-        } catch (UnknownHostException e) {
-            log.warn("cannot get hostname", e);
-            return "localhost:" + port;
-        }
+    @Data
+    public static class NodeStatisticStatusResponse {
+        @JsonProperty("instance")
+        private String instance;
+        @JsonProperty("details")
+        private List<NodeTimeState> details;
+        @JsonProperty("unavailable_time")
+        private long unavailableTime;
+        @JsonProperty("unavailable_count")
+        private int unavailableCount;
     }
 
-    @Override
-    public List<ServerInfoResponse> getQueryServers() {
-        List<ServerInfoResponse> servers = new ArrayList<>();
-        ServerInfoResponse server = new ServerInfoResponse();
-        server.setHost(getLocalServer());
-        server.setMode(ClusterConstant.ALL);
-        servers.add(server);
-        return servers;
-    }
-
-    @Override
-    public List<ServerInfoResponse> getJobServers() {
-        return getQueryServers();
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NodeTimeState {
+        @JsonProperty("time")
+        private long time;
+        @JsonProperty("status")
+        private ClusterStatusResponse.NodeState state;
     }
 }

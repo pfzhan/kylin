@@ -63,4 +63,14 @@ public class InfluxDBToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(new File(mainDir, "system_metrics").exists());
     }
 
+    @Test
+    public void testDumpInfluxDBMonitorMetrics() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        InfluxDBTool.dumpInfluxDBMonitorMetrics(mainDir);
+
+        Assert.assertTrue(new File(mainDir, "monitor_metrics").exists());
+    }
+
 }

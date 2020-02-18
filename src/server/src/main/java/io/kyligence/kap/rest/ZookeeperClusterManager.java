@@ -74,12 +74,21 @@ public class ZookeeperClusterManager implements ClusterManager {
         List<ServerInfoResponse> servers = new ArrayList<>();
         for (val nodeType : Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.QUERY)) {
             for (val host : getQueryServers(nodeType)) {
-                ServerInfoResponse server = new ServerInfoResponse();
-                server.setHost(host);
-                server.setMode(nodeType);
-                servers.add(server);
+                servers.add(new ServerInfoResponse(host, nodeType));
             }
         }
         return servers;
     }
+
+    @Override
+    public List<ServerInfoResponse> getJobServers() {
+        List<ServerInfoResponse> servers = new ArrayList<>();
+        for (val nodeType : Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
+            for (val host : getQueryServers(nodeType)) {
+                servers.add(new ServerInfoResponse(host, nodeType));
+            }
+        }
+        return servers;
+    }
+
 }

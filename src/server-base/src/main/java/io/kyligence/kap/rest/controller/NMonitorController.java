@@ -29,23 +29,33 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.spark.memory.MetricsCollectHelper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.rest.response.ClusterStatisticStatusResponse;
+import io.kyligence.kap.rest.response.ClusterStatusResponse;
 import io.kyligence.kap.rest.response.ExecutorMemoryResponse;
 import io.kyligence.kap.rest.response.ExecutorThreadInfoResponse;
+import io.kyligence.kap.rest.service.MonitorService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
 @RequestMapping(value = "/api/monitor", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
 public class NMonitorController extends NBasicController {
+    @Autowired
+    @Qualifier("monitorService")
+    private MonitorService monitorService;
 
     @ApiOperation(value = "getMemoryMetrics (update)", notes = "Update URL: memory_info")
     @GetMapping(value = "/memory_info")
@@ -83,5 +93,22 @@ public class NMonitorController extends NBasicController {
             responseList.add(result);
         });
         return responseList;
+    }
+
+    @GetMapping(value = "/status")
+    @ResponseBody
+    public EnvelopeResponse<ClusterStatusResponse> getClusterCurrentStatus() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, monitorService.currentClusterStatus(), "");
+    }
+
+    @GetMapping(value = "/status/statistics")
+    @ResponseBody
+    public EnvelopeResponse<ClusterStatisticStatusResponse> getClusterStatisticStatus(
+            @RequestParam(value = "start") long start, @RequestParam(value = "end") long end) {
+        if (start > end) {
+            throw new BadRequestException(String.format("start: %s > end: %s", start, end));
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, monitorService.statisticCluster(start, end), "");
     }
 }

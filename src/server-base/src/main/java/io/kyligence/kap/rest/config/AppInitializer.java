@@ -28,6 +28,7 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.List;
 
+import io.kyligence.kap.rest.monitor.MonitorReporter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -141,6 +142,15 @@ public class AppInitializer {
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
             resourceStore.catchup();
+        }
+
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+        if (kapConfig.isMonitorEnabled()) {
+            try {
+                MonitorReporter.getInstance(kapConfig).startReporter();
+            } catch (Exception e) {
+                log.error("Failed to start monitor reporter!", e);
+            }
         }
 
         // register acl update listener
