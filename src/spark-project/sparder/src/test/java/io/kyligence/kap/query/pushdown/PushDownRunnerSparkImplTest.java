@@ -174,4 +174,18 @@ public class PushDownRunnerSparkImplTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, returnColumnMeta.size());
         Assert.assertEquals(QueryContext.PUSHDOWN_HIVE, pushDownRunnerSpark.getName());
     }
+
+    @Test
+    public void testCaseSensitiveOnAlias() {
+        PushDownRunnerSparkImpl pushDownRunnerSpark = new PushDownRunnerSparkImpl();
+        pushDownRunnerSpark.init(null);
+
+        List<List<String>> returnRows = Lists.newArrayList();
+        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
+        String alias = "OrderId";
+        String sql = "SELECT cast(ORDER_ID as integer) as " + alias + " FROM TEST_KYLIN_FACT limit 10";
+        pushDownRunnerSpark.executeQuery(sql, returnRows, returnColumnMeta, null);
+        Assert.assertEquals(returnColumnMeta.get(0).getName(), alias);
+    }
 }
