@@ -86,6 +86,9 @@ public class ProjectConfigResponse {
     @JsonProperty("yarn_queue")
     private String yarnQueue;
 
+    @JsonProperty("expose_computed_column")
+    private boolean exposeComputedColumn;
+
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
         case 1:

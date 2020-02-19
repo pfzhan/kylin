@@ -309,7 +309,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         val config = (KylinConfigExt) indexPlan.getConfig();
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertEquals(0, indexPlan.getOverrideProps().size());
-        Assert.assertEquals(1, config.getExtendedOverrides().size());
+        Assert.assertEquals(2, config.getExtendedOverrides().size());
     }
 
     @Test

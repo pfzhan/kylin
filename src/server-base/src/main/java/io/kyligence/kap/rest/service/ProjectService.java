@@ -34,6 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -104,11 +105,14 @@ public class ProjectService extends BasicService {
         Message msg = MsgPicker.getMsg();
         String description = newProject.getDescription();
         LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
+        if (overrideProps == null) {
+            overrideProps = Maps.newLinkedHashMap();
+        }
         if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            if (overrideProps == null) {
-                overrideProps = Maps.newLinkedHashMap();
-            }
             overrideProps.put("kap.metadata.semi-automatic-mode", "true");
+            overrideProps.put("kap.query.metadata.expose-computed-column", "true");
+        } else {
+            overrideProps.put("kap.query.metadata.expose-computed-column", "false");
         }
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
@@ -348,6 +352,8 @@ public class ProjectService extends BasicService {
 
         response.setYarnQueue(config.getOptional(SPARK_YARN_QUEUE, DEFAULT_VAL));
 
+        response.setExposeComputedColumn(config.exposeComputedColumn());
+
         return response;
     }
 
@@ -386,6 +392,16 @@ public class ProjectService extends BasicService {
             }
         });
     }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction
+    public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column",
+                    String.valueOf(computedColumnConfigRequest.getExposeComputedColumn()));
+        });
+    }
+
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction

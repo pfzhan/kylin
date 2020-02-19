@@ -527,6 +527,14 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kap.metadata.semi-automatic-mode", FALSE));
     }
 
+    /**
+     * expose computed column in the table metadata
+     * @return
+     */
+    public boolean exposeComputedColumn() {
+        return Boolean.parseBoolean(getOptional("kap.query.metadata.expose-computed-column", FALSE));
+    }
+
     // ============================================================================
     // DICTIONARY & SNAPSHOT
     // ============================================================================

@@ -413,6 +413,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         Assert.assertEquals(20, response.getFavoriteQueryThreshold());
         Assert.assertEquals(true, response.isAutoMergeEnabled());
         Assert.assertEquals(false, response.getRetentionRange().isRetentionRangeEnabled());
+        Assert.assertEquals(false, response.isExposeComputedColumn());
     }
 
     @Test
@@ -649,4 +650,38 @@ public class ProjectServiceTest extends ServiceTestBase {
                 .getOptional("kylin.engine.spark-conf.spark.yarn.queue", ""));
     }
 
+    @Test
+    public void testCreateProjectComputedColumnConfig() throws Exception {
+        // auto
+        {
+            ProjectInstance projectInstance = new ProjectInstance();
+            projectInstance.setName("project11");
+            projectInstance.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                projectService.createProject(projectInstance.getName(), projectInstance);
+                return null;
+            }, projectInstance.getName());
+            ProjectInstance projectInstance2 = projectManager.getProject("project11");
+            Assert.assertNotNull(projectInstance2);
+            Assert.assertEquals(MaintainModelType.AUTO_MAINTAIN, projectInstance2.getMaintainModelType());
+            Assert.assertFalse(projectInstance2.getConfig().exposeComputedColumn());
+            projectManager.dropProject("project11");
+        }
+
+        // manual
+        {
+            ProjectInstance projectInstance = new ProjectInstance();
+            projectInstance.setName("project11");
+            projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                projectService.createProject(projectInstance.getName(), projectInstance);
+                return null;
+            }, projectInstance.getName());
+            ProjectInstance projectInstance2 = projectManager.getProject("project11");
+            Assert.assertNotNull(projectInstance2);
+            Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN, projectInstance2.getMaintainModelType());
+            Assert.assertTrue(projectInstance2.getConfig().exposeComputedColumn());
+            projectManager.dropProject("project11");
+        }
+    }
 }

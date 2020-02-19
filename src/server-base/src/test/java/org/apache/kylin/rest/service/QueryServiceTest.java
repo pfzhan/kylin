@@ -60,6 +60,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -509,6 +510,41 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(
                     "WITH tableId as (select * from some_table1) , tableId2 AS (select * FROM some_table2) select * from tableId join tableId2 on tableId.a = tableId2.b;",
                     response.getExceptionMessage());
+        }
+    }
+
+    @Test
+    public void testExposedColumnsProjectConfig() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+
+        // expose computed column
+        {
+            projectManager.updateProject("default", copyForWrite ->
+                    copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", "true"));
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+
+            List<ColumnMeta> factColumns;
+            ColumnDesc[] columnDescs = findColumnDescs();
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+        }
+
+        // hide computed column
+        {
+            projectManager.updateProject("default", copyForWrite ->
+                    copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", "false"));
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+
+            List<ColumnMeta> factColumns;
+            ColumnDesc[] columnDescs = findColumnDescs();
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(columnDescs.length, factColumns.size());
+            Assert.assertFalse(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
     }
 

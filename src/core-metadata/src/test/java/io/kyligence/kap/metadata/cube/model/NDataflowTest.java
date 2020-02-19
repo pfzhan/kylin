@@ -82,7 +82,7 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
         val df = dsMgr.getDataflowByModelAlias("nmodel_basic");
         var config = df.getConfig();
         Assert.assertEquals(indexPlanConfig.base(), config.base());
-        Assert.assertEquals(1, config.getExtendedOverrides().size());
+        Assert.assertEquals(2, config.getExtendedOverrides().size());
 
         indexPlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             copyForWrite.getOverrideProps().put("test", "test");
@@ -90,6 +90,6 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
 
         config = df.getConfig();
         Assert.assertEquals(indexPlanConfig.base(), config.base());
-        Assert.assertEquals(2, config.getExtendedOverrides().size());
+        Assert.assertEquals(3, config.getExtendedOverrides().size());
     }
 }

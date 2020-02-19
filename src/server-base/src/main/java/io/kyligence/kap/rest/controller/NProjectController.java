@@ -31,6 +31,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -239,6 +240,16 @@ public class NProjectController extends NBasicController {
             @RequestBody PushDownConfigRequest pushDownConfigRequest) {
         checkRequiredArg("push_down_enabled", pushDownConfigRequest.getPushDownEnabled());
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateExposeComputedColumnConfig (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/computed_column_config")
+    @ResponseBody
+    public EnvelopeResponse<String> updatePushDownConfig(@PathVariable("project") String project,
+                                                         @RequestBody ComputedColumnConfigRequest computedColumnConfigRequest) {
+        checkRequiredArg("expose_computed_column", computedColumnConfigRequest.getExposeComputedColumn());
+        projectService.updateComputedColumnConfig(project, computedColumnConfigRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

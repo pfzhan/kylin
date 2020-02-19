@@ -770,8 +770,7 @@ public class QueryService extends BasicService {
                         columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
                         columnMeta.getString(23));
 
-                if (projectInstance.isSmartMode() && isComputedColumn(project, colmnMeta.getCOLUMN_NAME().toUpperCase(),
-                        colmnMeta.getTABLE_NAME())) {
+                if (!shouldExposeColumn(projectInstance, colmnMeta)) {
                     continue;
                 }
 
@@ -893,8 +892,7 @@ public class QueryService extends BasicService {
                         columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
                         columnMeta.getString(23));
 
-                if (projectInstance.isSmartMode() && isComputedColumn(project, colmnMeta.getCOLUMN_NAME().toUpperCase(),
-                        colmnMeta.getTABLE_NAME())) {
+                if (!shouldExposeColumn(projectInstance, colmnMeta)) {
                     continue;
                 }
 
@@ -907,6 +905,14 @@ public class QueryService extends BasicService {
 
             return columnMap;
         }
+    }
+
+    private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta) {
+        // check for cc exposing
+        if (isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(), columnMeta.getTABLE_NAME())) {
+            return projectInstance.getConfig().exposeComputedColumn();
+        }
+        return true;
     }
 
     /**
