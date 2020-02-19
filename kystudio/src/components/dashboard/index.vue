@@ -241,9 +241,9 @@ import LineChart from './LineChart'
     'en': {
       storageQuota: 'Storage Quota',
       acceImpact: 'Acceleration Ratio',
-      totalStorage: 'Total Storage',
+      totalStorage: 'Total Capacity',
       useageMana: 'Used Storage',
-      trash: 'Low usage Storage',
+      trash: 'Low Usage Storage',
       clear: 'Clear',
       queryCount: 'Query Count',
       viewDetail: 'View Detail',

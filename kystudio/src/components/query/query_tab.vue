@@ -49,6 +49,9 @@
       </div>
     </div>
     <queryresult :extraoption="extraoptionObj" :isWorkspace="isWorkspace" v-if="extraoptionObj&&!errinfo" :queryExportData="tabsItem.queryObj"></queryresult>
+    <div class="no-result-block" v-if="!extraoptionObj&&!isLoading">
+      <kap-nodata :content="$t('queryTips')"></kap-nodata>
+    </div>
     <save_query_dialog :show="saveQueryFormVisible" :sql="this.sourceSchema" :project="currentSelectedProject" v-on:closeModal="closeModal"></save_query_dialog>
   </div>
 </template>
@@ -84,13 +87,15 @@ import { kapConfirm, handleSuccess, handleError } from '../../util/business'
       trace: 'Trace',
       queryBox: 'Query Box',
       linkToSpark: 'Jump to Spark Web UI',
-      resetTips: 'Are you sure to reset the SQL Editor?'
+      resetTips: 'Are you sure to reset the SQL Editor?',
+      queryTips: 'You can enter SQL query in the SQL editor, and the results will be displayed here after the query is run.'
     },
     'zh-cn': {
       trace: '追踪',
       queryBox: '查询窗口',
       linkToSpark: '跳转至 Spark 任务详情',
-      resetTips: '你确认要重置查询编辑器吗？'
+      resetTips: '你确认要重置查询编辑器吗？',
+      queryTips: '您可在查询编辑器中输入 SQL 查询，待查询运行完成后，将在此显示结果。'
     }
   }
 })
@@ -306,6 +311,12 @@ export default class QueryTab extends Vue {
 </script>
 <style lang="less">
   @import '../../assets/styles/variables.less';
+  #queryTab {
+    .no-result-block {
+      height: calc(~'100vh - 380px');
+      position: relative;
+    }
+  }
   #queryPanelBox {
     .el-progress{
       margin-bottom: 10px;

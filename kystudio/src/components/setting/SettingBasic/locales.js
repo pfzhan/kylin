@@ -43,7 +43,7 @@ export default {
     storageGarbageDesc1: 'When ',
     storageGarbageDesc2: ' usage is lower than ',
     storageGarbageDesc3: ' times, then the storage of accelerated queries and indexes would be regarded as low usage storage.',
-    storageGarbageDesc3ForSemiAutomatic: ' times, then the storage of indices would be regarded as low usage storage.',
+    storageGarbageDesc3ForSemiAutomatic: ' times, then the storage of indexes would be regarded as low usage storage.',
     enableSemiAutomatic: 'Recommendation Mode:',
     enableSemiAutomaticDesc: 'After enabling this mode, the system will provide some recommendations for existing models by analyzing the query history and model usage.'
   },

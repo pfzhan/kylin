@@ -64,7 +64,7 @@ export default {
     noBrokenLink: 'No error join(s).',
     canNotRepairBrokenTip: 'Sorry the broken model couldn\'t be recovered as its metadata has too many information lost. You can delete the model or contact support to get more information.',
     searchColumn: 'Search column name',
-    modelChangeTips: 'You are modifying the model definition. After submitted, all indices of this model may be rebuilt. The model will be unavailable to serve queries until the indices are built successfully.',
+    modelChangeTips: 'You are modifying the model definition. After submitted, all indexes of this model may be rebuilt. The model will be unavailable to serve queries until the indexes are built successfully.',
     ignore: 'Ignore'
   },
   'zh-cn': {

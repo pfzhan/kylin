@@ -40,7 +40,7 @@ export default {
     TO_BE_DELETED: 'LOCKED',
     BUILDING: 'BUILDING',
     clearAll: 'Clear All',
-    bulidTips: 'Are you sure to build all indices under the model {modelName}?'
+    bulidTips: 'Are you sure to build all indexes under the model {modelName}?'
   },
   'zh-cn': {
     aggregateGroup: '聚合索引',

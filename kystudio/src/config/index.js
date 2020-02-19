@@ -6,7 +6,7 @@ let baseUrl
 let regexApiUrl
 
 let pageCount = 10
-let pageSizes = [5, 10, 20, 50, 100]
+let pageSizes = [10, 30, 50, 100]
 
 let speedInfoTimer = 6000
 

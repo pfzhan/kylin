@@ -38,9 +38,9 @@ export default {
     clearAllMeasuresTip: 'Are you sure to clear all measures of Aggregate-Group-{aggId}?',
     clearMeasureTitle: 'Clear Measures',
     aggGroupTip: 'You can define dimensions and measures in different aggregate groups according to your business scenario. In the dimension setting, it is recommended to select the frequently used grouping dimensions and filtering dimensions into the aggregate group in the descending order of the cardinality.',
-    increaseTips: 'After submitting, {increaseNum} index(indices) will be added into model {model_name}. The index(indices) can serve queries after being built. Are you sure to submit?',
-    decreaseTips: 'After submitting, {decreaseNum} index(indices) will be deleted from model {model_name}. The index(indices) cannot serve queries after being deleted, and the delete operation cannot be recovered. Are you sure to submit? ',
-    mixTips: 'After submitting, {decreaseNum} index(indices) will be deleted and {increaseNum} index(indices) will be added in model {model_name}. At this point, the influenced indices will be changed to "LOCKED" status and can still serve queries. All the changes will take effect after the new indices are built successfully. Please note that the deleted indices cannot be recovered. Are you sure to submit? '
+    increaseTips: 'After submitting, {increaseNum} index(indexes) will be added into model {model_name}. The index(indexes) can serve queries after being built. Are you sure to submit?',
+    decreaseTips: 'After submitting, {decreaseNum} index(indexes) will be deleted from model {model_name}. The index(indexes) cannot serve queries after being deleted, and the delete operation cannot be recovered. Are you sure to submit? ',
+    mixTips: 'After submitting, {decreaseNum} index(indexes) will be deleted and {increaseNum} index(indexes) will be added in model {model_name}. At this point, the influenced indexes will be changed to "LOCKED" status and can still serve queries. All the changes will take effect after the new indexes are built successfully. Please note that the deleted indexes cannot be recovered. Are you sure to submit? '
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',

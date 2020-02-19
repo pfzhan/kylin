@@ -209,8 +209,8 @@ import tableAccess from './table_access'
       authorTips1: 'By default, a user/user group will be automatically granted all access permissions on all tables in this project after added into this project.',
       authorTips2: `What role does Kyligence Enterprise provide?<br>
       The relationship of each role is as below: Admin > Management > Operation > Query. For example, Admin includes all the permissions of the other three roles and Management includes all the permissions of Operation and Query.<br>
-      1. Query: Query as the business analyst has permissions to query tables or indices.<br>
-      2. Operation: Operation as the operator has permissions to build indices and monitor job status.<br>
+      1. Query: Query as the business analyst has permissions to query tables or indexes.<br>
+      2. Operation: Operation as the operator has permissions to build indexes and monitor job status.<br>
       3. Management: Management as the model designer has permissions to load tables and design models.<br>
       4. Admin: Admin as the project admin has all permissions and can manage and maintain this project, which includes loading tables, authority user access permissions, etc.`
     },
