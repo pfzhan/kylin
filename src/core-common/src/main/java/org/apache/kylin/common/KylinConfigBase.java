@@ -1850,7 +1850,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Boolean getStreamingMetricsEnabled() {
-        return Boolean.parseBoolean(this.getOptional("kylin.engine.streaming-metrics-enabled", "false"));
+        return Boolean.parseBoolean(this.getOptional("kylin.engine.streaming-metrics-enabled", FALSE));
     }
 
     public Integer getStreamingSegmentMergeThresholds() {

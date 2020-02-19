@@ -136,6 +136,7 @@
             **/io/kyligence/kap/engine/spark/builder/DFTableEncoder.java,
             **/io/kyligence/kap/engine/spark/builder/DFLayoutMergeAssist.java,
             **/io/kyligence/kap/engine/spark/job/DFMergeJob.java,
+            **/io/kyligence/kap/engine/spark/streaming/*
             **/io/kyligence/kap/engine/spark/builder/DFBuildJob.java,
             **/io/kyligence/kap/engine/spark/builder/DFDictionaryBuilder.java,
             **/io/kyligence/kap/tool/CuratorOperator.java,
