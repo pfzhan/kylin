@@ -501,8 +501,9 @@ export default class UploadSqlModel extends Vue {
         handleSuccess(res, (data) => {
           this.submitSqlLoading = false
           const importedMsg = this.$t('addSuccess', {importedNum: data.imported})
-          const existedMsg = data.imported < sqls.length ? this.$t('existedMsg', {existedNum: sqls.length - data.imported}) : ''
-          this.$alert(importedMsg + existedMsg + this.$t('end'), this.$t('kylinLang.common.notice'), {
+          const existedMsg1 = data.imported < sqls.length ? this.$t('existedMsg1', {existedNum: sqls.length - data.imported}) : ''
+          const existedMsg2 = data.blacklist ? this.$t('existedMsg2', {blackNum: data.blacklist}) : ''
+          this.$alert(importedMsg + existedMsg1 + existedMsg2 + this.$t('end'), this.$t('kylinLang.common.notice'), {
             confirmButtonText: this.$t('kylinLang.common.ok'),
             iconClass: 'el-icon-info primary'
           })
@@ -605,7 +606,7 @@ export default class UploadSqlModel extends Vue {
         this.$refs.multipleTable.toggleRowSelection(row)
       })
     } else {
-      this.$refs.multipleTable.clearSelection()
+      this.$refs.multipleTable && this.$refs.multipleTable.clearSelection()
     }
   }
   get uploadHeader () {
@@ -632,14 +633,14 @@ export default class UploadSqlModel extends Vue {
     let formatterSql
     if (this.sqlFormatterObj[sqlObj.id]) {
       formatterSql = this.sqlFormatterObj[sqlObj.id]
-      this.$refs.whiteInputBox.$emit('input', formatterSql)
+      this.$refs.whiteInputBox && this.$refs.whiteInputBox.$emit('input', formatterSql)
     } else {
       this.showLoading()
       const res = await this.formatSql({sqls: [sqlObj.sql]})
       const data = await handleSuccessAsync(res)
       formatterSql = data[0]
       this.sqlFormatterObj[sqlObj.id] = formatterSql
-      this.$refs.whiteInputBox.$emit('input', formatterSql)
+      this.$refs.whiteInputBox && this.$refs.whiteInputBox.$emit('input', formatterSql)
       this.hideLoading()
     }
     this.activeSqlObj = sqlObj
@@ -664,14 +665,14 @@ export default class UploadSqlModel extends Vue {
     let formatterSql
     if (this.sqlFormatterObj[sqlObj.id]) {
       formatterSql = this.sqlFormatterObj[sqlObj.id]
-      this.$refs.whiteInputBox.$emit('input', formatterSql)
+      this.$refs.whiteInputBox && this.$refs.whiteInputBox.$emit('input', formatterSql)
     } else {
       this.showLoading()
       const res = await this.formatSql({sqls: [sqlObj.sql]})
       const data = await handleSuccessAsync(res)
       formatterSql = data[0]
       this.sqlFormatterObj[sqlObj.id] = formatterSql
-      this.$refs.whiteInputBox.$emit('input', formatterSql)
+      this.$refs.whiteInputBox && this.$refs.whiteInputBox.$emit('input', formatterSql)
       this.hideLoading()
     }
   }
