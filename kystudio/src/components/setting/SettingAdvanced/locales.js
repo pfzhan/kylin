@@ -23,7 +23,11 @@ export default {
     yarnQueueTip: 'The system admin user can set the YARN Application Queue of the project. After setting the queue, the jobs will be submitted to the specified queue to achieve computing resources allocation and separation between projects.',
     yarnQueueWarn: 'Note: please confirm that the set queue is available, otherwise the jobs may fail to execute or be submitted to the default queue in YARN.',
     yarnIsEmpty: 'The queue name is required',
-    yarnFormat: 'Incorrect format'
+    yarnFormat: 'Incorrect format',
+    computedColumns: 'Computed Columns',
+    exposingCC: 'Exposing Computed Columns',
+    exposingCCDesc: 'After turning on this option, when the system is connected to Kyligence Enterprise, the system will expose computed columns to it.',
+    confirmCloseExposeCC: 'If you turn off this option, when the system is connected to Kyligence Enterprise, Kyligence Enterprise will not expose the computed columns defined in Kyligence Enterprise to it. This operation may make the system connected to Kyligence Enterprise unusable.'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -49,6 +53,10 @@ export default {
     yarnQueueTip: '系统管理员可以设置项目的 YARN 资源队列，设置后任务将被提交到指定的队列，以实现项目间计算资源的调配和隔离。',
     yarnQueueWarn: '注意：请确认设置的队列可用，否则任务可能会执行失败或被提交到 YARN 默认的资源队列。',
     yarnIsEmpty: '请输入队列名称',
-    yarnFormat: '格式错误'
+    yarnFormat: '格式错误',
+    computedColumns: '可计算列',
+    exposingCC: '暴露可计算列',
+    exposingCCDesc: '开启该选项后，当系统对接 Kyligence Enterprise 时，系统会向其暴露可计算列。',
+    confirmCloseExposeCC: '若关闭该选项，当系统对接 Kyligence Enterprise 时，Kyligence Enterprise 将不会向其暴露定义在 Kyligence Enterprise 中的可计算列。该操作可能会导致此前对接 Kyligence Enterprise 的系统无法使用。'
   }
 }

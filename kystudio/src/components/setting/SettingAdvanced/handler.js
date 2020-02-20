@@ -53,3 +53,10 @@ export function _getYarnNameSetting (data) {
     yarn_queue: data.yarn_queue
   }
 }
+
+export function _getExposeCCSetting (data) {
+  return {
+    project: data.project,
+    expose_computed_column: data.expose_computed_column
+  }
+}

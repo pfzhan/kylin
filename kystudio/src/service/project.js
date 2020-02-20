@@ -97,5 +97,8 @@ export default {
   },
   updateYarnQueue (body) {
     return Vue.resource(apiUrl + 'projects/' + body.project + '/yarn_queue').update(body)
+  },
+  updateExposeCCConfig (body) {
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/computed_column_config').update(body)
   }
 }

@@ -139,6 +139,23 @@
         </div>
       </el-form>
     </EditableBlock>
+    <!-- 可计算列 -->
+    <EditableBlock
+      :header-content="$t('computedColumns')"
+      :isEditable="false">
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('exposingCC')}}</span><span class="setting-value fixed">
+          <el-switch
+            size="small"
+            v-model="form.expose_computed_column"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch(value)">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('exposingCCDesc')}}</div>
+      </div>
+    </EditableBlock>
   </div>
 </template>
 
@@ -149,7 +166,8 @@ import { mapActions, mapGetters, mapState } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import { handleError, handleSuccessAsync } from '../../../util'
-import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting } from './handler'
+import { kapConfirm } from 'util/business'
+import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   props: {
@@ -165,7 +183,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       resetConfig: 'RESET_PROJECT_CONFIG',
       updateDefaultDBSettings: 'UPDATE_DEFAULT_DB_SETTINGS',
       fetchDatabases: 'FETCH_DATABASES',
-      updateYarnQueue: 'UPDATE_YARN_QUEUE'
+      updateYarnQueue: 'UPDATE_YARN_QUEUE',
+      updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG'
     })
   },
   components: {
@@ -174,7 +193,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'currentProjectData'
+      'currentProjectData',
+      'isAutoProject'
     ]),
     ...mapState({
       currentUser: state => state.user.currentUser
@@ -192,8 +212,8 @@ export default class SettingAdvanced extends Vue {
     data_load_empty_notification_enabled: true,
     job_notification_emails: [],
     default_database: this.$store.state.project.projectDefaultDB || '',
-    yarn_queue: this.$store.state.project.yarn_queue || ''
-
+    yarn_queue: this.$store.state.project.yarn_queue || '',
+    expose_computed_column: !this.isAutoProject
   }
   get accelerateRules () {
     return {
@@ -247,6 +267,7 @@ export default class SettingAdvanced extends Vue {
     this.handleInit('job-alert')
     this.handleInit('defaultDB-settings')
     this.handleInit('yarn-name')
+    this.handleInit('expose_computed_column')
   }
   handleInit (type) {
     switch (type) {
@@ -264,6 +285,36 @@ export default class SettingAdvanced extends Vue {
       case 'yarn-name': {
         this.form = { ...this.form, ..._getYarnNameSetting(this.project) }; break
       }
+      case 'expose_computed_column': {
+        this.form = { ...this.form, ..._getExposeCCSetting(this.project) }; break
+      }
+    }
+  }
+  async handleSwitch (value) {
+    try {
+      const submitData = _getExposeCCSetting(this.project)
+      if (!value) {
+        try {
+          await kapConfirm(this.$t('confirmCloseExposeCC'))
+          submitData.expose_computed_column = value
+          try {
+            await this.updateExposeCCConfig(submitData)
+          } catch (e) {
+            handleError(e)
+          }
+          this.$emit('reload-setting')
+          this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+        } catch (e) {
+          this.form.expose_computed_column = !value
+        }
+      } else {
+        submitData.expose_computed_column = value
+        await this.updateExposeCCConfig(submitData)
+        this.$emit('reload-setting')
+        this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+      }
+    } catch (e) {
+      handleError(e)
     }
   }
   async handleSubmit (type, successCallback, errorCallback) {

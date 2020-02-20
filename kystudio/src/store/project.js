@@ -216,6 +216,9 @@ export default {
     },
     [types.UPDATE_YARN_QUEUE]: function (_, para) {
       return api.project.updateYarnQueue(para)
+    },
+    [types.UPDATE_EXPOSE_CC_CONFIG]: function ({ commit }, para) {
+      return api.project.updateExposeCCConfig(para)
     }
   },
   getters: {
