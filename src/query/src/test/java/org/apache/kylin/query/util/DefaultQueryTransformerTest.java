@@ -105,45 +105,6 @@ public class DefaultQueryTransformerTest {
     }
 
     @Test
-    public void testForceCastTimeUnitFunction() {
-        DefaultQueryTransformer transformer = new DefaultQueryTransformer();
-        String sql = "select year( cast('2012-01-01' as date)     ), month('2012-01-01' ) from kylin_sales";
-        String correctSql = transformer.transform(sql, "", "");
-        assertTrue("select year( cast('2012-01-01' as date)     ), month(cast('2012-01-01' as date)) from kylin_sales"
-                .equalsIgnoreCase(correctSql));
-
-        sql = "select {fn year('2012-01-01')} from kylin_sales";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select {fn year(cast('2012-01-01' as date))} from kylin_sales".equalsIgnoreCase(correctSql));
-
-        sql = "select day(  date   '2012-01-01') from kylin_sales";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select day(  date   '2012-01-01') from kylin_sales".equalsIgnoreCase(correctSql));
-
-        sql = "select year({fn convert('2012-01-01', date)}) from kylin_sales";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select year({fn convert('2012-01-01', date)}) from kylin_sales".equalsIgnoreCase(correctSql));
-
-        sql = "select year({fn convert('2012-01-01', sql_date)}) from kylin_sales";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select year({fn convert('2012-01-01', sql_date)}) from kylin_sales".equalsIgnoreCase(correctSql));
-
-        sql = "select year(shipdate) from tbl";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select year(cast(shipdate as date)) from tbl".equalsIgnoreCase(correctSql));
-        correctSql = transformer.transform(correctSql, "", "");
-        assertTrue("select year(cast(shipdate as date)) from tbl".equalsIgnoreCase(correctSql));
-
-        sql = "select year({fn convert(shipdate, date)}) from tbl";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select year({fn convert(shipdate, date)}) from tbl".equalsIgnoreCase(correctSql));
-
-        sql = "select weekofyear(shipdate) from tbl";
-        correctSql = transformer.transform(sql, "", "");
-        assertTrue("select weekofyear(shipdate) from tbl".equalsIgnoreCase(correctSql));
-    }
-
-    @Test
     public void testTransformIntervalFunction() {
         DefaultQueryTransformer transformer = new DefaultQueryTransformer();
         String sql = "select ( date '2001-09-28' + interval floor(1.5) day ) from test_kylin_fact";

@@ -68,9 +68,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
     //TODO #11033
     private static final Pattern PIN_SUM_OF_CAST = Pattern.compile(S0 + "\\bSUM" + S0 + "\\(" + S0 + "CAST" + S0 + "\\("
             + S0 + "([^\\s,]+)" + S0 + "AS" + SM + "DOUBLE" + S0 + "\\)" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PTN_DT_FUNCTION = Pattern.compile(
-            S0 + "\\b(YEAR|QUARTER|MONTH|WEEK|DAY|DAYOFYEAR|DAYOFMONTH|DAYOFWEEK)" + "\\(([^()]+)\\)",
-            Pattern.CASE_INSENSITIVE);
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
@@ -79,7 +76,6 @@ public class DefaultQueryTransformer implements IQueryTransformer {
         sql = transformSumOfNumericLiteral(sql);
         sql = transformNotEqual(sql);
         sql = transformIntervalFunc(sql);
-        sql = transformTypeOfArgInTimeUnitFunc(sql);
         return sql;
     }
 
@@ -153,37 +149,4 @@ public class DefaultQueryTransformer implements IQueryTransformer {
         return sql;
     }
 
-    /*
-     * Support these cases: the actual value of 'colName' is date, but the column type is string.
-     *    year('2012-01-01')      -> year(cast('2012-01-01' as date))
-     *    {fn year('2012-01-01')} -> {fn year(cast('2012-01-01' as date))}
-     *    year(colName)           -> year(cast(colName as date))
-     *
-     *    year(date '2012-01-01') -> ignored
-     *    year(cast('2012-01-01' as date)) -> ignored
-     *    year({fn convert('2012-01-01', date)}) -> ignored
-     *    year(cast(colName, date)) -> ignored
-     *    year({fn convert(colName, date)} -> ignored
-     */
-    private static String transformTypeOfArgInTimeUnitFunc(String sql) {
-        Matcher m = PTN_DT_FUNCTION.matcher(sql);
-
-        if (!m.find()) {
-            return sql;
-        }
-
-        String left = sql.substring(0, m.start());
-        String str = m.group();
-        String right = sql.substring(m.end());
-
-        String convertedStr = str;
-        if (!str.toUpperCase().contains(" AS ") && !str.toUpperCase().replaceAll(SM, " ").contains("DATE '")
-                && !str.toUpperCase().contains(" CONVERT(")) {
-            String functionName = m.group(1);
-            String functionParam = m.group(2);
-            convertedStr = " " + functionName + "(cast(" + functionParam.trim() + " as date))";
-        }
-
-        return left + convertedStr + transformTypeOfArgInTimeUnitFunc(right);
-    }
 }
