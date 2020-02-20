@@ -264,8 +264,15 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
                 && context.getAllIndexesMap().get(identifier).getLayouts().contains(item.getLayout())) {
             val indexEntity = context.getAllIndexesMap().get(identifier);
             LayoutEntity layout = item.getLayout();
-            if (item.isAggIndex() && layout.isManual()) {
-                context.getIndexPlan().addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+            val layoutInIndexPlan = indexEntity.getLayouts().stream().filter(l -> l.getId() == layout.getId())
+                    .findFirst().orElse(null);
+            if (layoutInIndexPlan == null) {
+                return;
+            }
+            if (layoutInIndexPlan.isManual()) {
+                if (!real) {
+                    context.deleteLayoutRecommendationItem(itemId);
+                }
                 return;
             }
             indexEntity.getLayouts().remove(layout);

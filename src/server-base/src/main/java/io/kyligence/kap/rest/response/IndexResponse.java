@@ -70,7 +70,7 @@ public class IndexResponse {
     private long lastModifiedTime;
 
     @JsonIgnore
-    private boolean isAuto;
+    private boolean isManual;
 
     public enum Status {
         EMPTY, BUILDING, TO_BE_DELETED, AVAILABLE
@@ -83,16 +83,16 @@ public class IndexResponse {
     @JsonProperty("source")
     public Source getSource() {
         if (getId() < IndexEntity.TABLE_INDEX_START_ID) {
-            if (isAuto()) {
-                return Source.AUTO_AGG;
-            } else {
+            if (isManual()) {
                 return Source.MANUAL_AGG;
+            } else {
+                return Source.AUTO_AGG;
             }
         } else {
-            if (isAuto()) {
-                return IndexResponse.Source.AUTO_TABLE;
+            if (isManual()) {
+                return Source.MANUAL_TABLE;
             } else {
-                return IndexResponse.Source.MANUAL_TABLE;
+                return Source.AUTO_TABLE;
             }
         }
 
