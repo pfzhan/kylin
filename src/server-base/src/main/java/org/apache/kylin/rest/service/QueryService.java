@@ -44,6 +44,8 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
 import io.kyligence.kap.cluster.YarnClusterManager;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -320,42 +322,36 @@ public class QueryService extends BasicService {
         if (!response.isException() && response.getResults() != null) {
             resultRowCount = response.getResults().size();
         }
-
-        String newLine = System.getProperty("line.separator");
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(newLine);
-        stringBuilder.append("==========================[QUERY]===============================").append(newLine);
-        stringBuilder.append("Query Id: ").append(QueryContext.current().getQueryId()).append(newLine);
-        stringBuilder.append("SQL: ").append(request.getSql()).append(newLine);
-        stringBuilder.append("User: ").append(user).append(newLine);
-        stringBuilder.append("Success: ").append((null == response.getExceptionMessage())).append(newLine);
-        stringBuilder.append("Duration: ").append(duration).append(newLine);
-        stringBuilder.append("Project: ").append(request.getProject()).append(newLine);
-        stringBuilder.append("Realization Names: ").append(modelNames).append(newLine);
-        stringBuilder.append("Index Layout Ids: ").append(layoutIds).append(newLine);
-        stringBuilder.append("Is Partial Match Model: ").append(isPartialMatchModel).append(newLine);
-        stringBuilder.append("Scan rows: ").append(response.getScanRows()).append(newLine);
-        stringBuilder.append("Total Scan rows: ").append(response.getTotalScanRows()).append(newLine);
-        stringBuilder.append("Scan bytes: ").append(response.getScanBytes()).append(newLine);
-        stringBuilder.append("Total Scan Bytes: ").append(response.getTotalScanBytes()).append(newLine);
-        stringBuilder.append("Result Row Count: ").append(resultRowCount).append(newLine);
-        stringBuilder.append("Shuffle partitions: ").append(response.getShufflePartitions()).append(newLine);
-        stringBuilder.append("Accept Partial: ").append(request.isAcceptPartial()).append(newLine);
-        stringBuilder.append("Is Partial Result: ").append(response.isPartial()).append(newLine);
-        stringBuilder.append("Hit Exception Cache: ").append(response.isHitExceptionCache()).append(newLine);
-        stringBuilder.append("Storage Cache Used: ").append(response.isStorageCacheUsed()).append(newLine);
-        stringBuilder.append("Is Query Push-Down: ").append(response.isQueryPushDown()).append(newLine);
-        stringBuilder.append("Is Prepare: ").append(response.isPrepare()).append(newLine);
-        stringBuilder.append("Is Timeout: ").append(response.isTimeout()).append(newLine);
-        stringBuilder.append("Trace URL: ").append(response.getTraceUrl()).append(newLine);
-        stringBuilder.append("Time Line Schema: ").append(QueryContext.current().getSchema()).append(newLine);
-        stringBuilder.append("Time Line: ").append(QueryContext.current().getTimeLine()).append(newLine);
-        stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
-        stringBuilder.append("==========================[QUERY]===============================").append(newLine);
-
-        String log = stringBuilder.toString();
-
+        LogReport report = new LogReport()
+                .put(LogReport.QUERY_ID           , QueryContext.current().getQueryId())
+                .put(LogReport.SQL                , request.getSql())
+                .put(LogReport.USER               , user)
+                .put(LogReport.SUCCESS, null == response.getExceptionMessage())
+                .put(LogReport.DURATION, duration)
+                .put(LogReport.PROJECT, request.getProject())
+                .put(LogReport.REALIZATION_NAMES, modelNames)
+                .put(LogReport.INDEX_LAYOUT_IDS, layoutIds)
+                .put(LogReport.IS_PARTIAL_MATCH_MODEL, isPartialMatchModel)
+                .put(LogReport.SCAN_ROWS, response.getScanRows())
+                .put(LogReport.TOTAL_SCAN_ROWS, response.getTotalScanRows())
+                .put(LogReport.SCAN_BYTES, response.getScanBytes())
+                .put(LogReport.TOTAL_SCAN_BYTES, response.getTotalScanBytes())
+                .put(LogReport.RESULT_ROW_COUNT, resultRowCount)
+                .put(LogReport.SHUFFLE_PARTITIONS, response.getShufflePartitions())
+                .put(LogReport.ACCEPT_PARTIAL, request.isAcceptPartial())
+                .put(LogReport.PARTIAL_RESULT, response.isPartial())
+                .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
+                .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
+                .put(LogReport.PUSH_DOWN, response.isQueryPushDown())
+                .put(LogReport.IS_PREPARE, response.isPrepare())
+                .put(LogReport.TIMEOUT, response.isTimeout())
+                .put(LogReport.TRACE_URL, response.getTraceUrl())
+                .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
+                .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
+                .put(LogReport.ERROR_MSG, response.getExceptionMessage());
+        String log = report.oldStyleLog();
         logger.info(log);
+        logger.info(report.jsonStyleLog());
         return log;
     }
 
@@ -1337,6 +1333,121 @@ public class QueryService extends BasicService {
 
         @JsonProperty
         private List<Query> queries = Lists.newArrayList();
+    }
+
+    public static class LogReport {
+        static final String QUERY_ID            = "id";
+        static final String SQL                 = "sql";
+        static final String USER                = "user";
+        static final String SUCCESS = "success";
+        static final String DURATION = "duration";
+        static final String PROJECT = "project";
+        static final String REALIZATION_NAMES = "realization";
+        static final String INDEX_LAYOUT_IDS = "layout";
+        static final String IS_PARTIAL_MATCH_MODEL = "is_partial_match";
+        static final String SCAN_ROWS = "scan_rows";
+        static final String TOTAL_SCAN_ROWS = "total_scan_rows";
+        static final String SCAN_BYTES = "scan_bytes";
+        static final String TOTAL_SCAN_BYTES = "total_scan_bytes";
+        static final String RESULT_ROW_COUNT = "result_row_count";
+        static final String SHUFFLE_PARTITIONS = "shuffle_partitions";
+        static final String ACCEPT_PARTIAL = "accept_partial";
+        static final String PARTIAL_RESULT = "is_partial_result";
+        static final String HIT_EXCEPTION_CACHE = "hit_exception_cache";
+        static final String STORAGE_CACHE_USED = "storage_cache_used";
+        static final String PUSH_DOWN = "push_down";
+        static final String IS_PREPARE = "is_prepare";
+        static final String TIMEOUT = "timeout";
+        static final String TRACE_URL = "trace_url";
+        static final String TIMELINE_SCHEMA = "timeline_schema";
+        static final String TIMELINE = "timeline";
+        static final String ERROR_MSG = "error_msg";
+
+        static final ImmutableMap<String, String> O2N =
+                new ImmutableMap.Builder<String, String>()
+                        .put(QUERY_ID, "Query Id: ")
+                        .put(SQL, "SQL: ")
+                        .put(USER, "User: ")
+                        .put(SUCCESS, "Success: ")
+                        .put(DURATION, "Duration: ")
+                        .put(PROJECT, "Project: ")
+                        .put(REALIZATION_NAMES, "Realization Names: ")
+                        .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ")
+                        .put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ")
+                        .put(SCAN_ROWS, "Scan rows: ")
+                        .put(TOTAL_SCAN_ROWS, "Total Scan rows: ")
+                        .put(SCAN_BYTES, "Scan bytes: ")
+                        .put(TOTAL_SCAN_BYTES, "Total Scan Bytes: ")
+                        .put(RESULT_ROW_COUNT, "Result Row Count: ")
+                        .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ")
+                        .put(ACCEPT_PARTIAL, "Accept Partial: ")
+                        .put(PARTIAL_RESULT, "Is Partial Result: ")
+                        .put(HIT_EXCEPTION_CACHE, "Hit Exception Cache: ")
+                        .put(STORAGE_CACHE_USED, "Storage Cache Used: ")
+                        .put(PUSH_DOWN, "Is Query Push-Down: ")
+                        .put(IS_PREPARE, "Is Prepare: ")
+                        .put(TIMEOUT, "Is Timeout: ")
+                        .put(TRACE_URL, "Trace URL: ")
+                        .put(TIMELINE_SCHEMA, "Time Line Schema: ")
+                        .put(TIMELINE, "Time Line: ")
+                        .put(ERROR_MSG, "Message: ")
+                        .build();
+
+        private Map<String, Object> logs = new HashMap<>(100);
+
+        public LogReport put(String key, String value) {
+            if(!StringUtils.isEmpty(value))
+                logs.put(key, value);
+            return this;
+        }
+        public LogReport put(String key, Object value) {
+            if(value != null)
+                logs.put(key, value);
+            return this;
+        }
+
+        private String get(String key) {
+            Object value = logs.get(key);
+            if (value == null) return "null";
+            return value.toString();
+        }
+        public  String  oldStyleLog() {
+
+            String newLine = System.getProperty("line.separator");
+            return newLine +
+                "==========================[QUERY]===============================" + newLine +
+                O2N.get(QUERY_ID) + get(QUERY_ID) + newLine +
+                O2N.get(SQL) + get(SQL) + newLine +
+                O2N.get(USER) + get(USER) + newLine +
+                O2N.get(SUCCESS) + get(SUCCESS) + newLine +
+                O2N.get(DURATION) + get(DURATION) + newLine +
+                O2N.get(PROJECT) + get(PROJECT) + newLine +
+                O2N.get(REALIZATION_NAMES) + get(REALIZATION_NAMES) + newLine +
+                O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine +
+                O2N.get(IS_PARTIAL_MATCH_MODEL) + get(IS_PARTIAL_MATCH_MODEL) + newLine +
+                O2N.get(SCAN_ROWS) + get(SCAN_ROWS) + newLine +
+                O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine +
+                O2N.get(SCAN_BYTES) + get(SCAN_BYTES) + newLine +
+                O2N.get(TOTAL_SCAN_BYTES) + get(TOTAL_SCAN_BYTES) + newLine +
+                O2N.get(RESULT_ROW_COUNT) + get(RESULT_ROW_COUNT) + newLine +
+                O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine +
+                O2N.get(ACCEPT_PARTIAL) + get(ACCEPT_PARTIAL) + newLine +
+                O2N.get(PARTIAL_RESULT) + get(PARTIAL_RESULT) + newLine +
+                O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine +
+                O2N.get(STORAGE_CACHE_USED) + get(STORAGE_CACHE_USED) + newLine +
+                O2N.get(PUSH_DOWN) + get(PUSH_DOWN) + newLine +
+                O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine +
+                O2N.get(TIMEOUT) + get(TIMEOUT) + newLine +
+                O2N.get(TRACE_URL) + get(TRACE_URL) + newLine +
+                O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA) + newLine +
+                O2N.get(TIMELINE) + get(TIMELINE) + newLine +
+                O2N.get(ERROR_MSG) + get(ERROR_MSG) + newLine +
+                "==========================[QUERY]===============================" + newLine;
+        }
+
+        public String jsonStyleLog() {
+            return "[QUERY SUMMARY]: " + new Gson().toJson(logs);
+        }
     }
 
 }

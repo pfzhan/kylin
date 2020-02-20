@@ -106,7 +106,7 @@ case class OptIntersectCount(child: Expression,
       }
     } catch {
       case th: KryoException if th.getMessage.contains("Buffer overflow") =>
-        logInfo(s"Resize buffer size to ${array.length * 2}")
+        logWarning(s"Resize buffer size to ${array.length * 2}")
         array = new Array[Byte](array.length * 2)
         output.setBuffer(array)
         serialize(counter)
@@ -130,7 +130,7 @@ case class OptIntersectCount(child: Expression,
       array.slice(0, i)
     } catch {
       case th: KryoException if th.getMessage.contains("Buffer overflow") =>
-        logInfo(s"Resize buffer size to ${array.length * 2}")
+        logWarning(s"Resize buffer size to ${array.length * 2}")
         array = new Array[Byte](array.length * 2)
         output.setBuffer(array)
         serializeBitmap(buffer)

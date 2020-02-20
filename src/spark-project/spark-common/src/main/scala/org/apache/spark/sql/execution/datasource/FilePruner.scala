@@ -278,7 +278,7 @@ class FilePruner(val session: SparkSession,
         }
       }
     }
-    logInfo(s"Selected files after segments pruning:" + filteredStatuses.map(_.segmentID))
+    logInfo(s"After pruning segments: ${FilePruner.prunedSegmentInfo(segDirs, filteredStatuses)}")
     filteredStatuses
   }
 
@@ -301,7 +301,7 @@ class FilePruner(val session: SparkSession,
         })
         SegmentDirectory(segID, selected)
       }
-      logInfo(s"Selected files after shards pruning:" + pruned.flatMap(_.files).map(_.getPath.toString).mkString(";"))
+      logInfo(s"After pruning shards: ${FilePruner.prunedSegmentInfo(segDirs, pruned)}")
       pruned
     }
     filteredStatuses
@@ -367,6 +367,16 @@ object FilePruner {
     // we need to get 00001.
     val partitionId = p.getName.split("-", 3)(1).toInt
     partitionId
+  }
+
+  def prunedSegmentInfo(segDirs: Seq[SegmentDirectory], prunedDirs: Seq[SegmentDirectory]): String = {
+    val files : Seq[SegmentDirectory] => Seq[Long] =
+      _.flatMap(s => if (s.files == null) Nil else s.files).map(_.getLen)
+
+    val all = files(segDirs)
+    val pruned = files(prunedDirs)
+
+    s"[Segments: ${prunedDirs.size}/${segDirs.size}, Files: ${pruned.size}/${all.size}, Bytes: ${pruned.sum}/${all.sum}]"
   }
 }
 

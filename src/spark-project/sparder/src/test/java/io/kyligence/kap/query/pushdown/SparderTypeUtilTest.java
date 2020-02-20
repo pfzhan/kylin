@@ -49,6 +49,7 @@ import java.sql.Timestamp;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.spark.sql.util.SparderTypeUtil;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class SparderTypeUtilTest {
@@ -69,5 +70,17 @@ public class SparderTypeUtilTest {
         assert (SparderTypeUtil.convertStringToValue("", tp.createType(Date.class), false).equals(0));
         assert (SparderTypeUtil.convertStringToValue("", tp.createType(Time.class), false).equals(0L));
         assert (SparderTypeUtil.convertStringToValue("", tp.createType(Timestamp.class), false).equals(0L));
+    }
+
+    @Test
+    public void testUnMatchType() {
+        JavaTypeFactoryImpl tp = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+        assert (SparderTypeUtil.convertStringToValue("", tp.createType(BigDecimal.class), false)
+                .equals(new BigDecimal(0)));
+        Double value = 0.604951272091475354;
+        Object convert_value =
+                SparderTypeUtil.convertStringToValue(value, tp.createType(long.class), false);
+        Assert.assertEquals(Long.class, convert_value.getClass());
+        Assert.assertEquals(0L, convert_value);
     }
 }

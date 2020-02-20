@@ -294,7 +294,7 @@ object SparderTypeUtil extends Logging {
         a
       } catch {
         case th: Throwable =>
-          logError(s"Error for convert value : $s , class: ${s.getClass}", th)
+          logWarning(s"""convertStringToValue failed: {"v": "${s}", "cls": "${s.getClass}", "type": "$sqlTypeName"}""")
           // fixme aron never come to here, for coverage ignore.
           safetyConvertStringToValue(s, rowType, toCalcite)
       }

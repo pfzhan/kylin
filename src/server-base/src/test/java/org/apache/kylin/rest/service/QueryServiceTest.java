@@ -58,6 +58,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -951,5 +953,59 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(queryId, response.getQueryId());
     }
+    @Test
+    public  void testQueryLogMatch() {
+        final String sql = "select * from test";
+        final String project = "default";
+        final SQLRequest request = new SQLRequest();
+        request.setProject(project);
+        request.setSql(sql);
 
+        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        String log = queryService.logQuery(request, response);
+        //
+        final  int groupCnt = 26;
+        String matchNewLine = "\\n";
+        String s =
+                "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine +
+                        "SQL:\\s(.*?)" + matchNewLine +
+                        "User:\\s(.*?)" + matchNewLine +
+                        "Success:\\s(.*?)" + matchNewLine +
+                        "Duration:\\s(.*?)" + matchNewLine +
+                        "Project:\\s(.*?)" + matchNewLine +
+                        "Realization Names:\\s\\[(.*?)\\]" + matchNewLine +
+                        "Index Layout Ids:\\s\\[(.*?)\\]" + matchNewLine +
+                        "Is Partial Match Model:\\s\\[(.*?)\\]" + matchNewLine +
+                        "Scan rows:\\s(.*?)" + matchNewLine +
+                        "Total Scan rows:\\s(.*?)" + matchNewLine +
+                        "Scan bytes:\\s(.*?)" + matchNewLine +
+                        "Total Scan Bytes:\\s(.*?)" + matchNewLine +
+                        "Result Row Count:\\s(.*?)" + matchNewLine +
+                        "Shuffle partitions:\\s(.*?)" + matchNewLine +
+                        "Accept Partial:\\s(.*?)" + matchNewLine +
+                        "Is Partial Result:\\s(.*?)" + matchNewLine +
+                        "Hit Exception Cache:\\s(.*?)" + matchNewLine +
+                        "Storage Cache Used:\\s(.*?)" + matchNewLine +
+                        "Is Query Push-Down:\\s(.*?)" + matchNewLine +
+                        "Is Prepare:\\s(.*?)" + matchNewLine +
+                        "Is Timeout:\\s(.*?)" + matchNewLine +
+                        "Trace URL:\\s(.*?)" + matchNewLine +
+                        "Time Line Schema:\\s(.*?)" + matchNewLine +
+                        "Time Line:\\s(.*?)" + matchNewLine +
+                        "Message:\\s(.*?)" + matchNewLine +
+                        "[=]+\\[QUERY\\][=]+.*";
+        Pattern pattern = Pattern.compile(s);
+        Matcher matcher = pattern.matcher(log);
+
+        Assert.assertTrue(matcher.find());
+        for (int i = 0; i < groupCnt; i++)
+            Assert.assertNotNull(matcher.group(i));
+        Assert.assertEquals(groupCnt, matcher.groupCount());
+
+        Assert.assertEquals(QueryContext.current().getQueryId(), matcher.group(1));
+        Assert.assertEquals(sql, matcher.group(2));
+        Assert.assertEquals(project, matcher.group(6));
+        Assert.assertFalse(Boolean.parseBoolean(matcher.group(4)));
+        Assert.assertEquals("null", matcher.group(23)); //Trace URL
+    }
 }

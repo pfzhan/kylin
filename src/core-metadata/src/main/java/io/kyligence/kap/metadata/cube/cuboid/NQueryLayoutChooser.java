@@ -74,11 +74,12 @@ public class NQueryLayoutChooser {
 
     public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectCuboidLayout(
             NDataSegment segment, SQLDigest sqlDigest) {
+
+        logger.info("Starting matching sql {}", sqlDigest);
         if (segment == null) {
             logger.info("Exclude this segments because there are no ready segments");
             return null;
         }
-
         List<NLayoutCandidate> candidates = new ArrayList<>();
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
         for (NDataLayout cuboid : segment.getSegDetails().getLayouts()) {
@@ -96,8 +97,7 @@ public class NQueryLayoutChooser {
                 matched = matchTableIndex(cuboid.getLayout(), segment.getDataflow(), unmatchedCols, needDerive,
                         tempResult);
                 if (!matched) {
-                    logger.info("Table index {} does not match sql {}, unmatched columns {}", cuboid, sqlDigest,
-                            unmatchedCols);
+                    logger.debug("Table index {} with unmatched columns {}", cuboid, unmatchedCols);
                 }
             }
             if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
@@ -106,8 +106,8 @@ public class NQueryLayoutChooser {
                 matched = matchAggIndex(sqlDigest, cuboid.getLayout(), segment.getDataflow(), unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
                 if (!matched) {
-                    logger.info("Agg index {} does not match sql {}, unmatched columns {}, unmatched metrics {}",
-                            cuboid, sqlDigest, unmatchedCols, unmatchedMetrics);
+                    logger.debug("Agg index {} with unmatched columns {}, unmatched metrics {}", cuboid,
+                            unmatchedCols, unmatchedMetrics);
                 }
             }
             if (!matched) {

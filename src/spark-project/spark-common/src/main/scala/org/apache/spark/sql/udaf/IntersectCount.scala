@@ -94,7 +94,7 @@ case class IntersectCount(child1: Expression, child2: Expression, child3: Expres
       }
     } catch {
       case th: KryoException if th.getMessage.contains("Buffer overflow") =>
-        logInfo(s"Resize buffer size to ${array.length * 2}")
+        logWarning(s"Resize buffer size to ${array.length * 2}")
         array = new Array[Byte](array.length * 2)
         output.setBuffer(array)
         serialize(counter)

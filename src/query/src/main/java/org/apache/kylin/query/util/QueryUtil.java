@@ -89,7 +89,7 @@ public class QueryUtil {
             String defaultSchema, boolean isCCNeeded) {
         String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
         massagedSql = transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
-        logger.info("SQL massage result: {}", massagedSql);
+        logger.debug("SQL massage result: {}", massagedSql);
         QueryContext.current().record("massage");
         return massagedSql;
     }
@@ -99,7 +99,6 @@ public class QueryUtil {
         initQueryTransformersIfNeeded(kylinConfig, isCCNeeded);
         for (IQueryTransformer t : queryTransformers) {
             sql = t.transform(sql, project, defaultSchema);
-            logger.debug("SQL transformed by {}, result: {}", t.getClass(), sql);
         }
         return sql;
     }
@@ -152,6 +151,7 @@ public class QueryUtil {
         }
 
         queryTransformers = Collections.unmodifiableList(transformers);
+        logger.debug("SQL transformer: {}", queryTransformers);
     }
 
     public static String massagePushDownSql(String sql, String project, String defaultSchema, boolean isPrepare) {

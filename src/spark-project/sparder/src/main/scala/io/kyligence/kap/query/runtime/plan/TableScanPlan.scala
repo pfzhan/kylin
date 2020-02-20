@@ -25,6 +25,7 @@ import java.util
 import java.util.concurrent.ConcurrentHashMap
 
 import com.google.common.collect.{Lists, Sets}
+import io.kyligence.kap.engine.spark.utils.DebugUtils
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
@@ -90,8 +91,9 @@ object TableScanPlan extends Logging {
         seg => toCuboidPath(dataflow, cuboidLayout.getId, basePath, seg)
       )
       val path = fileList.mkString(",")
-      logInfo(s"path is $path")
-      logInfo(s"size is ${cacheDf.get().size()}")
+      lazy val segmentIDs = DebugUtils.applySeqString(segments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
+      logDebug(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
+      logDebug(s"size is ${cacheDf.get().size()}")
 
       var df = if (cacheDf.get().containsKey(path)) {
         logInfo(s"Reuse df: ${cuboidLayout.getId}")
@@ -104,7 +106,7 @@ object TableScanPlan extends Logging {
           .cuboidTable(dataflow, cuboidLayout)
           .toDF(columnNames: _*)
 
-        logInfo(s"put path is $path")
+        logInfo(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, d)
         d
       }
