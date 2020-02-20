@@ -500,7 +500,7 @@ export default class UploadSqlModel extends Vue {
       this.addTofavoriteList({project: this.currentSelectedProject, sqls: sqls}).then((res) => {
         handleSuccess(res, (data) => {
           this.submitSqlLoading = false
-          const importedMsg = this.$t('addSuccess', {importedNum: data.imported})
+          const importedMsg = this.$t('addSuccess', {sqlsNum: sqls.length, importedNum: data.imported})
           const existedMsg1 = data.imported < sqls.length ? this.$t('existedMsg1', {existedNum: sqls.length - data.imported}) : ''
           const existedMsg2 = data.blacklist ? this.$t('existedMsg2', {blackNum: data.blacklist}) : ''
           this.$alert(importedMsg + existedMsg1 + existedMsg2 + this.$t('end'), this.$t('kylinLang.common.notice'), {
