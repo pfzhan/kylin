@@ -199,7 +199,11 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   }
 
   private def buildDict(ds: Dataset[Row], dictCols: Set[TblColRef]): Unit = {
-    val matchedCols = filterCols(ds, dictCols)
+    val matchedCols = if (seg.getIndexPlan.isSkipEncodeIntegerFamilyEnabled) {
+      filterOutIntegerFamilyType(ds, dictCols)
+    } else {
+      filterCols(ds, dictCols)
+    }
     val builder = new DFDictionaryBuilder(ds, seg, ss, Sets.newHashSet(matchedCols.asJavaCollection))
     builder.buildDictSet()
   }

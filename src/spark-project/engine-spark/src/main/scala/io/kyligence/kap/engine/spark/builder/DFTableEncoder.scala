@@ -32,7 +32,7 @@ import org.apache.spark.dict.NGlobalDictionaryV2
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.functions.{col, _}
-import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.types.{LongType, StringType}
 import org.apache.spark.sql.{Dataset, Row}
 
 import scala.collection.JavaConverters._
@@ -48,7 +48,24 @@ object DFTableEncoder extends Logging {
     val sourceCnt = ds.count()
     val bucketThreshold = seg.getConfig.getGlobalDictV2ThresholdBucketSize
     val minBucketSize: Long = sourceCnt / bucketThreshold
-    val encodingArgs = cols.asScala.map{
+
+    var encodingCols = scala.collection.mutable.Set.empty[TblColRef]
+
+    if (seg.getIndexPlan.isSkipEncodeIntegerFamilyEnabled) {
+      encodingCols = cols.asScala.filterNot(_.getType.isIntegerFamily)
+
+      val noEncodeCols = cols.asScala.filter(_.getType.isIntegerFamily).map {
+        ref =>
+          val encodeColRef = convertFromDot(ref.getIdentity)
+          val aliasName = encodeColRef.concat(ENCODE_SUFFIX)
+          col(encodeColRef).cast(LongType).as(aliasName)
+      }.toSeq
+      partitionedDs = partitionedDs.select(partitionedDs.schema.map(ty => col(ty.name)) ++ noEncodeCols : _*)
+    } else {
+      encodingCols = cols.asScala
+    }
+
+    val encodingArgs = encodingCols.map {
       ref =>
         val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
         val bucketSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions)
@@ -65,6 +82,7 @@ object DFTableEncoder extends Logging {
         (enlargedBucketSize, col(encodeColRef).cast(StringType), columns, aliasName,
           bucketSize == 1)
       }
+
     if (KylinBuildEnv.get() != null && KylinBuildEnv.get().encodingDataSkew) {
       encodingArgs.foreach {
         case (enlargedBucketSize, repartitionColumn, projects, aliasName, false) =>

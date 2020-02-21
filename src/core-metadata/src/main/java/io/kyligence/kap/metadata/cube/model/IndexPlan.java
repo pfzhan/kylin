@@ -945,4 +945,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         }
         removeLayouts(toRemovedMap, comparator, deleteAuto, deleteManual);
     }
+
+    public boolean isSkipEncodeIntegerFamilyEnabled() {
+        return overrideProps.containsKey("kylin.query.skip-encode-integer-enabled")
+                && Boolean.parseBoolean(overrideProps.get("kylin.query.skip-encode-integer-enabled"));
+    }
 }

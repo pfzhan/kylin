@@ -43,6 +43,11 @@ object DFBuilderHelper extends Logging {
       isValidExpr(convertFromDot(cc.getExpressionInSourceDB), ds))
   }
 
+  def filterOutIntegerFamilyType(ds: Dataset[Row], needCheckCols: Set[TblColRef]): Set[TblColRef] = {
+    needCheckCols.filterNot(_.getType.isIntegerFamily).filter(cc =>
+      isValidExpr(convertFromDot(cc.getExpressionInSourceDB), ds))
+  }
+
   def isValidExpr(colExpr: String, ds: Dataset[Row]): Boolean = {
     Try(ds.select(expr(colExpr))) match {
       case Success(_) =>
