@@ -169,7 +169,10 @@ import tableAccess from './table_access'
       getAvailableUserOrGroupList: 'ACCESS_AVAILABLE_USER_OR_GROUP',
       saveProjectAccess: 'SAVE_PROJECT_ACCESS',
       editProjectAccess: 'EDIT_PROJECT_ACCESS',
-      getUserAccessByProject: 'USER_ACCESS'
+      getUserAccessByProject: 'USER_ACCESS',
+      resetProjectState: 'RESET_PROJECT_STATE',
+      saveTabs: 'SET_QUERY_TABS',
+      loginOut: 'LOGIN_OUT'
     })
   },
   computed: {
@@ -212,7 +215,8 @@ import tableAccess from './table_access'
       1. Query: Query as the business analyst has permissions to query tables or indexes.<br>
       2. Operation: Operation as the operator has permissions to build indexes and monitor job status.<br>
       3. Management: Management as the model designer has permissions to load tables and design models.<br>
-      4. Admin: Admin as the project admin has all permissions and can manage and maintain this project, which includes loading tables, authority user access permissions, etc.`
+      4. Admin: Admin as the project admin has all permissions and can manage and maintain this project, which includes loading tables, authority user access permissions, etc.`,
+      noAuthorityTip: 'Access denied. Please try again after logging in.'
     },
     'zh-cn': {
       projectTitle: '{projectName} 权限',
@@ -244,7 +248,8 @@ import tableAccess from './table_access'
       1. Query：定位为一般分析师，只需要项目中的表或者模型/索引的查询权限。<br>
       2. Operation：定位为公司／组织内的IT运维人员，负责模型/索引的运维工作。<br>
       3. Management：定位为业务部门的建模人员，对数据的业务情况很清楚，负责对数据进行导入、设计模型等。<br>
-      4. Admin：定义为项目的管理员，拥有项目内的所有权限，负责对项目进行整体运维和管理，包括授权等。`
+      4. Admin：定义为项目的管理员，拥有项目内的所有权限，负责对项目进行整体运维和管理，包括授权等。`,
+      noAuthorityTip: '当前用户无访问权限，请重新登录后进行尝试。'
     }
   }
 })
@@ -376,15 +381,38 @@ export default class ProjectAuthority extends Vue {
   removeAccess (id, username, promission, principal) {
     kapConfirm(this.$t('deleteAccessTip', {userName: username}), null, this.$t('deleteAccessTitle')).then(() => {
       this.delProjectAccess({id: this.currentProjectId, aid: id, userName: username, principal: principal}).then((res) => {
-        this.initAccessData()
-        this.loadAccess()
-        this.reloadAvaliableUserAndGroup()
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
         })
+
+        const { data } = res.data
+        if (typeof data === 'boolean' && !data) {
+          this.noAuthorityModal()
+          return
+        }
+        this.initAccessData()
+        this.loadAccess()
+        this.reloadAvaliableUserAndGroup()
       }, (res) => {
         handleError(res)
+      })
+    })
+  }
+  // 无权限登出二次确认弹窗
+  noAuthorityModal () {
+    kapConfirm(this.$t('noAuthorityTip'), { showClose: false, showCancelButton: false, type: 'warning' }).then(() => {
+      const resetDataAndLoginOut = () => {
+        localStorage.setItem('buyit', false)
+        // reset 所有的project信息
+        this.resetProjectState()
+        this.saveTabs({tabs: null})
+        this.$router.push({name: 'Login', params: { ignoreIntercept: true }})
+      }
+      this.loginOut().then(() => {
+        resetDataAndLoginOut()
+      }).catch(() => {
+        resetDataAndLoginOut()
       })
     })
   }
@@ -471,12 +499,16 @@ export default class ProjectAuthority extends Vue {
       handleSuccess(res, (data) => {
         this.submitLoading = false
         this.authorizationVisible = false
-        this.initAccessData()
-        this.loadAccess()
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.saveSuccess')
         })
+        if (actionType === 'editProjectAccess' && typeof data === 'boolean' && !data) {
+          this.noAuthorityModal()
+          return
+        }
+        this.initAccessData()
+        this.loadAccess()
         !this.isEditAuthor && this.reloadAvaliableUserAndGroup()
       })
     }, (res) => {

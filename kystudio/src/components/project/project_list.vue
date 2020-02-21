@@ -228,7 +228,7 @@ export default {
       },
       selected_project: localStorage.getItem('selected_project'),
       projectWidth: '440px',
-      filterData: {page_offset: 0, page_size: pageCount, exact: false, project: ''}
+      filterData: {page_offset: 0, page_size: pageCount, exact: false, project: '', permission: 'ADMINISTRATION'}
     }
   },
   components: {
