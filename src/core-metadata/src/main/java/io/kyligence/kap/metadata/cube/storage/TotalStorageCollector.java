@@ -35,7 +35,7 @@ public class TotalStorageCollector implements StorageInfoCollector {
 
     @Override
     public void collect(KylinConfig config, String project, StorageVolumeInfo storageVolumeInfo) throws IOException {
-        String strPath = config.getHdfsWorkingDirectory(project);
+        String strPath = config.getWorkingDirectoryWithConfiguredFs(project);
         Path path = new Path(strPath);
         FileSystem fs = path.getFileSystem(HadoopUtil.getCurrentConfiguration());
         long totalStorageSize = 0L;

@@ -132,10 +132,21 @@ public class NSparkExecutable extends AbstractExecutable {
         return this.getParam(NBatchConstants.P_JARS);
     }
 
-    protected void setDistMetaUrl(StorageURL storageURL) {
+    private boolean isLocalFs() {
         String fs = HadoopUtil.getWorkingFileSystem().getUri().toString();
+        return fs.startsWith("file:");
+    }
+
+    private String getDistMetaFs() {
+        String defaultFs = HadoopUtil.getWorkingFileSystem().getUri().toString();
+        String engineWriteFs = KylinConfig.getInstanceFromEnv().getEngineWriteFs();
+        return StringUtils.isBlank(engineWriteFs) ? defaultFs : engineWriteFs;
+    }
+
+    protected void setDistMetaUrl(StorageURL storageURL) {
+        String fs = getDistMetaFs();
         HashMap<String, String> stringStringHashMap = Maps.newHashMap(storageURL.getAllParameters());
-        if (!fs.startsWith("file:")) {
+        if (!isLocalFs()) {
             stringStringHashMap.put("path", fs + storageURL.getParameter("path"));
         }
         StorageURL copy = storageURL.copy(stringStringHashMap);

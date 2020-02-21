@@ -67,6 +67,7 @@ import org.apache.kylin.common.lock.DistributedLockFactory;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1666,15 +1667,24 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public String getHdfsWorkingDirectory(String project) {
-        if (isProjectIsolationEnabled() && project != null) {
+        if (project != null) {
             return new Path(getHdfsWorkingDirectory(), project).toString() + "/";
         } else {
             return getHdfsWorkingDirectory();
         }
     }
 
-    public boolean isProjectIsolationEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.metadata.project-isolation-enable", "true"));
+    public String getWorkingDirectoryWithConfiguredFs(String project) {
+        String engineWriteFs = getEngineWriteFs();
+        if (StringUtils.isEmpty(engineWriteFs)) {
+            return getHdfsWorkingDirectory(project);
+        }
+        // convert scheme from defaultFs to configured Fs
+        engineWriteFs = new Path(engineWriteFs, getHdfsWorkingDirectoryWithoutScheme()).toString();
+        if (project != null) {
+            engineWriteFs = new Path(engineWriteFs, project).toString() + "/";
+        }
+        return engineWriteFs;
     }
 
     private String getReadHdfsWorkingDirectory() {
@@ -1934,5 +1944,10 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Boolean isSmartModelEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.env.smart-mode-enabled", FALSE));
+    }
+
+    public String getEngineWriteFs() {
+        String engineWriteFs = getOptional("kylin.env.engine-write-fs", "");
+        return StringUtil.dropSuffix(engineWriteFs, File.separator);
     }
 }

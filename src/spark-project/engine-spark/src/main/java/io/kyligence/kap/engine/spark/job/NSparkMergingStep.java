@@ -48,7 +48,7 @@ import lombok.val;
 
 @NoArgsConstructor
 public class NSparkMergingStep extends NSparkExecutable {
-    private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(NSparkMergingStep.class);
 
     public NSparkMergingStep(String sparkSubmitClassName) {
         this.setSparkSubmitClassName(sparkSubmitClassName);

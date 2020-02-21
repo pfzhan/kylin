@@ -99,7 +99,8 @@ public class HDFSMetadataStore extends MetadataStore {
                 }
             } else {
                 fs = HadoopUtil.getWorkingFileSystem();
-                rootPath = fs.makeQualified(new Path(path));
+                Path tempPath = new Path(path);
+                rootPath = tempPath.toUri().getScheme() != null ? tempPath : fs.makeQualified(tempPath);
             }
 
             if (!fs.exists(rootPath)) {
@@ -227,8 +228,11 @@ public class HDFSMetadataStore extends MetadataStore {
         try {
             TreeSet<String> fileList = new TreeSet<>();
             RemoteIterator<LocatedFileStatus> it = fs.listFiles(filePath, true);
+            // if you set kylin.env.engine-write-fs, the schema may be inconsistent.
+            Path replacedPath = Path.getPathWithoutSchemeAndAuthority(filePath);
+            String replacedValue = fs.makeQualified(replacedPath).toString();
             while (it.hasNext()) {
-                fileList.add(it.next().getPath().toString().replace(filePath.toString(), ""));
+                fileList.add(it.next().getPath().toString().replace(replacedValue, ""));
             }
             return fileList;
         } catch (IOException e) {
