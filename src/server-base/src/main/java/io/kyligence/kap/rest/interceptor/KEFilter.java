@@ -39,7 +39,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
-@Order(-200)
+@Order(-600)
 public class KEFilter implements Filter {
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
