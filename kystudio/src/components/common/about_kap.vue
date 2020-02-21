@@ -45,7 +45,7 @@
     </div>
     <div class="footer">
       <p class="details" v-html="$t('sendFile')"></p>
-      <!-- <a class="buttonLink" target="_blank" href="kylin/api/system/license/requestLicense">{{$t('generateLicense')}}</a> -->
+      <!-- <a class="buttonLink" target="_blank" href="kylin/api/system/license/info">{{$t('generateLicense')}}</a> -->
       <el-row class="text-center">
         <el-button type="primary" @click="requestLicense">{{$t('generateLicense')}}</el-button>
       </el-row>
@@ -107,7 +107,7 @@ export default {
       }
     },
     requestLicense () {
-      location.href = 'kylin/api/system/license/requestLicense'
+      location.href = 'kylin/api/system/license/info'
     }
     // getLicense () {
     //   let newWinLicense = window.open()
