@@ -52,6 +52,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.security.AclPermissionType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -147,7 +148,7 @@ public class NProjectControllerTest {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nProjectController).getProjects("default", 0, 10, false);
+        Mockito.verify(nProjectController).getProjects("default", 0, 10, false, AclPermissionType.READ);
 
     }
 

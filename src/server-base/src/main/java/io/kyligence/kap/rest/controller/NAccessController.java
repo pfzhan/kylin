@@ -73,6 +73,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.BatchAccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -94,6 +95,10 @@ public class NAccessController extends NBasicController {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
+
+    @Autowired
+    @Qualifier("projectService")
+    private ProjectService projectService;
 
     /**
      * Get current user's permission in the project
@@ -193,7 +198,7 @@ public class NAccessController extends NBasicController {
     @ApiOperation(value = "batchGrant (update)", notes = "Update Body: access_entry_id")
     @PutMapping(value = "/{type:.+}/{uuid:.+}")
     @ResponseBody
-    public EnvelopeResponse<String> updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
+    public EnvelopeResponse<Boolean> updateAcl(@PathVariable("type") String type, @PathVariable("uuid") String uuid,
             @RequestBody AccessRequest accessRequest) throws IOException {
         checkSid(accessRequest);
         AclEntity ae = accessService.getAclEntity(type, uuid);
@@ -202,14 +207,14 @@ public class NAccessController extends NBasicController {
             throw new BadRequestException("Operation failed, unknown permission:" + accessRequest.getPermission());
         }
         accessService.update(ae, accessRequest.getAccessEntryId(), permission);
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
     }
 
     @ApiOperation(value = "revokeAcl (update)", notes = "URL: entity_type; Update Param: entity_type; Update Body: access_entry_id")
     @DeleteMapping(value = "/{entity_type:.+}/{uuid:.+}")
     @ResponseBody
-    public EnvelopeResponse<String> revokeAcl(@PathVariable("entity_type") String entityType,
+    public EnvelopeResponse<Boolean> revokeAcl(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, //
             @RequestParam("access_entry_id") Integer accessEntryId, //
             @RequestParam("sid") String sid, //
@@ -220,7 +225,8 @@ public class NAccessController extends NBasicController {
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.revokeAclTCR(uuid, sid, principal);
         }
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
     }
 
     private List<String> getAllUserNames() throws IOException {

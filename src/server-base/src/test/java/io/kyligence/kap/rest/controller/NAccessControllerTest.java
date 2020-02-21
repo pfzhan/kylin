@@ -58,6 +58,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.kyligence.kap.rest.service.ProjectService;
 
 public class NAccessControllerTest {
 
@@ -72,6 +73,9 @@ public class NAccessControllerTest {
     @Mock
     private AclTCRService aclTCRService;
 
+    @Mock
+    private ProjectService projectService;
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -79,6 +83,12 @@ public class NAccessControllerTest {
     private NAccessController nAccessController = Mockito.spy(new NAccessController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+
+    private String type = "ProjectInstance";
+
+    private String uuid = "u126snk32242152";
+
+    private String sid = "user_g1";
 
     @Before
     public void setup() {
@@ -112,9 +122,6 @@ public class NAccessControllerTest {
 
     @Test
     public void testGrantPermissionForValidUser() throws Exception {
-        String type = "ProjectInstance";
-        String uuid = "u126snk32242152";
-        String sid = "user_g1";
         AccessRequest accessRequest = new AccessRequest();
         accessRequest.setSid(sid);
         accessRequest.setPrincipal(true);
@@ -143,9 +150,37 @@ public class NAccessControllerTest {
         testGrantPermissionForUser(sid, expectedErrorMsg);
     }
 
+    @Test
+    public void testUpdateAcl() throws Exception {
+        AccessRequest accessRequest = new AccessRequest();
+        accessRequest.setSid(sid);
+        accessRequest.setPrincipal(true);
+        accessRequest.setPermission("OPERATION");
+
+        Mockito.doReturn(true).when(userService).userExists(sid);
+        Mockito.doNothing().when(aclTCRService).updateAclTCR(uuid, null);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/access/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(accessRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nAccessController).updateAcl(type, uuid, accessRequest);
+    }
+
+    @Test
+    public void testRevokeAcl() throws Exception {
+        Mockito.doReturn(true).when(userService).userExists(sid);
+        Mockito.doNothing().when(aclTCRService).revokeAclTCR(uuid, true);
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/{type}/{uuid}", type, uuid)
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("access_entry_id", "1")
+                .param("sid", sid)
+                .param("principal", "true")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nAccessController).revokeAcl(type, uuid, 1, sid, true);
+    }
+
     private void testGrantPermissionForUser(String sid, String expectedMsg) throws Exception {
-        String type = "ProjectInstance";
-        String uuid = "u428vfn31748";
         AccessRequest accessRequest = new AccessRequest();
         accessRequest.setSid(sid);
         Mockito.doNothing().when(accessService).grant(type, uuid, "1", true, "ADMIN");
@@ -155,5 +190,4 @@ public class NAccessControllerTest {
                 .andExpect(MockMvcResultMatchers.content().string(containsString(expectedMsg)));
         Mockito.verify(nAccessController).grant(type, uuid, accessRequest);
     }
-
 }

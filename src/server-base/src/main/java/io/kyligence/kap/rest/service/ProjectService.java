@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Future;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -46,6 +47,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclManager;
+import org.apache.kylin.rest.security.AclPermissionType;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -126,21 +128,42 @@ public class ProjectService extends BasicService {
     }
 
     public List<ProjectInstance> getReadableProjects() {
-        return getReadableProjects(null, false);
+        return getProjectsFilterByExactMatchAndPermission(null, false, AclPermissionType.READ);
+    }
+
+    public List<ProjectInstance> getAdminProjects() {
+        return getProjectsFilterByExactMatchAndPermission(null, false, AclPermissionType.ADMINISTRATION);
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName, boolean exactMatch) {
-        val allProjects = getProjectManager().listAllProjects();
+        return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionType.READ);
+    }
 
-        if (StringUtils.isNotEmpty(projectName)) {
-            return allProjects.stream().filter(
-                    project -> (!exactMatch && project.getName().toUpperCase().contains(projectName.toUpperCase()))
-                            || (exactMatch && project.getName().equals(projectName)))
-                    .filter(project -> aclEvaluate.hasProjectReadPermission(project)).collect(Collectors.toList());
+    public List<ProjectInstance> getProjectsFilterByExactMatchAndPermission(final String projectName, boolean exactMatch,
+                                                                            String permission) {
+        Predicate<ProjectInstance> filter;
+        switch (permission) {
+            case AclPermissionType.READ:
+                filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
+                break;
+            case AclPermissionType.OPERATION:
+                filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
+                break;
+            case AclPermissionType.MANAGEMENT:
+                filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
+                break;
+            case AclPermissionType.ADMINISTRATION:
+                filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
+                break;
+            default:
+                throw new BadRequestException("Operation failed, unknown permission:" + permission);
         }
-
-        return allProjects.stream().filter(project -> aclEvaluate.hasProjectReadPermission(project))
-                .collect(Collectors.toList());
+        if (StringUtils.isNotBlank(projectName)) {
+            Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch && projectInstance.getName().equals(projectName))
+                    || (!exactMatch && projectInstance.getName().toUpperCase().contains(projectName.toUpperCase()));
+            filter = filter.and(exactMatchFilter);
+        }
+        return getProjectsWithFilter(filter);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
@@ -587,5 +610,10 @@ public class ProjectService extends BasicService {
         projectManager.updateProject(project, copyForWrite -> {
             toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
         });
+    }
+
+    private List<ProjectInstance> getProjectsWithFilter(Predicate<ProjectInstance> filter) {
+        val allProjects = getProjectManager().listAllProjects();
+        return allProjects.stream().filter(filter).collect(Collectors.toList());
     }
 }
