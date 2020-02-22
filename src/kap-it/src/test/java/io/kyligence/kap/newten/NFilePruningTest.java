@@ -56,7 +56,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import scala.runtime.AbstractFunction1;
 
-
 @RunWith(TimeZoneTestRunner.class)
 public class NFilePruningTest extends NLocalWithSparkSessionTest {
 
@@ -81,6 +80,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         sparkConf.set("spark.sql.adaptive.enabled", "true");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
+        SparderEnv.addFilePrunerListFileTriggerRule();
 
         System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
                 + ss.conf().get("spark.sql.catalogImplementation") + "]");
@@ -116,6 +116,23 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts),
                 true);
         assertResultsAndScanFiles(base, 1);
+    }
+
+    @Test
+    public void testSegPruningAffectBroadcastConf() throws Exception {
+        SparderEnv.getSparkSession().sessionState().conf().setLocalProperty("spark.sql.autoBroadcastJoinThreshold", "-1");
+        buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001);
+        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.cube-broadcast-threshold", "76000");
+        val df = NExecAndComp.queryCubeAndSkipCompute(getProject(), base);
+        val executedPlan = df.queryExecution().executedPlan();
+        Assert.assertEquals(String.valueOf(11L * 1024 * 1024), SparderEnv.getSparkSession().conf().get("spark.sql.autoBroadcastJoinThreshold"));
+
+        String and_pruning0 = base
+            + "where TEST_TIME_ENC > TIMESTAMP '2011-01-01 00:00:00' and TEST_TIME_ENC < TIMESTAMP '2013-01-01 00:00:00'";
+        val df1 = NExecAndComp.queryCubeAndSkipCompute(getProject(), and_pruning0);
+        val executedPlan1 = df1.queryExecution().executedPlan();
+        Assert.assertEquals(String.valueOf(10L * 1024 * 1024), SparderEnv.getSparkSession().conf().get("spark.sql.autoBroadcastJoinThreshold"));
     }
 
     @Test

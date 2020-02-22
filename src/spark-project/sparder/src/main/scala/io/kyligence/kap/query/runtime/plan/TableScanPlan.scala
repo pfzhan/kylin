@@ -72,7 +72,6 @@ object TableScanPlan extends Logging {
     val olapContext = rel.getContext
     rel.getContext.bindVariable(dataContext)
     val dataflow = olapContext.realization.asInstanceOf[NDataflow]
-
     val cuboidDF = {
       val segments = dataflow.getQueryableSegments
       olapContext.resetSQLDigest()

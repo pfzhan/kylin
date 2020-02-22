@@ -75,7 +75,7 @@ case class ShardSpec(numShards: Int,
 class FilePruner(val session: SparkSession,
                  val options: Map[String, String],
                  val dataSchema: StructType)
-  extends FileIndex with ResetShufflePartition with Logging {
+  extends FileIndex with ResetShufflePartition with ResetBroadcastThreshold with Logging {
 
   private val dataflow: NDataflow = {
     val dataflowId = options.getOrElse("dataflowId", sys.error("dataflowId option is required"))
@@ -187,6 +187,7 @@ class FilePruner(val session: SparkSession,
     if (cached.containsKey((partitionFilters, dataFilters))) {
       return cached.get((partitionFilters, dataFilters))
     }
+
     require(isResolved)
     val timePartitionFilters = getSpecFilter(dataFilters, timePartitionColumn)
     logInfo(s"Applying time partition filters: ${timePartitionFilters.mkString(",")}")
@@ -215,7 +216,10 @@ class FilePruner(val session: SparkSession,
       pruneShards
     }
     QueryContext.current().record("shard_pruning")
-    setShufflePartitions(selected.flatMap(partition => partition.files).map(_.getLen).sum, session)
+    val totalFileSize = selected.flatMap(partition => partition.files).map(_.getLen).sum
+    logInfo(s"totalFileSize is ${totalFileSize}")
+    setShufflePartitions(totalFileSize, session)
+    setBroadcastThreshold(totalFileSize, session)
     val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
     QueryContext.current().addAndGetSourceScanRows(sourceRows)
     if (selected.isEmpty) {

@@ -1306,6 +1306,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.large-query-threshold", String.valueOf(1000000)));
     }
 
+    public Long getCubeBroadcastThreshold() {
+        return Long.parseLong(getOptional("kylin.query.cube-broadcast-threshold", String.valueOf(1024L * 1024 * 1024)));
+    }
+
     public int getDerivedInThreshold() {
         return Integer.parseInt(getOptional("kylin.query.derived-filter-translation-threshold", "20"));
     }

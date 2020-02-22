@@ -33,6 +33,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 
 import scala.collection.JavaConverters._
 
@@ -94,7 +95,9 @@ object ResultPlan extends Logging {
       QueryContext.current().getSql,
       interruptOnCancel = true)
     try {
+      logInfo(s"before executedPlan autoBroadcastJoinThreshold is ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}")
       df.queryExecution.executedPlan
+      logInfo(s"after executedPlan autoBroadcastJoinThreshold is ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}")
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getSourceScanRows.toString)
       logInfo(s"source_scan_rows is ${QueryContext.current().getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
@@ -149,6 +152,8 @@ object ResultPlan extends Logging {
     // remember clear local properties.
     df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
+    df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.autoBroadcastJoinThreshold", null)
+    FilePrunerListFileTriggerRule.cached = None
     SparderEnv.setDF(df)
     TableScanPlan.cacheDf.get().clear()
     HadoopUtil.setCurrentConfiguration(null)

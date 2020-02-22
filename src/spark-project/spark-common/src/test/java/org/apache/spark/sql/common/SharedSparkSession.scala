@@ -26,9 +26,10 @@ import java.io.File
 import org.apache.commons.io.FileUtils
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{DataFrame, SparkSession, SQLContext, SQLImplicits}
+import org.apache.spark.sql.{DataFrame, SQLContext, SQLImplicits, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
+import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 trait SharedSparkSession
@@ -69,6 +70,7 @@ trait SharedSparkSession
       .config("spark.sql.adaptive.enabled", "true")
       .config(conf)
       .getOrCreate
+     _spark.experimental.extraOptimizations ++= Seq(FilePrunerListFileTriggerRule)
     _jsc = new JavaSparkContext(_spark.sparkContext)
     _sc = _spark.sparkContext
   }

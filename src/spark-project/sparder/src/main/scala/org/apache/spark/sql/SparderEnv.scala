@@ -35,6 +35,7 @@ import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.datasource.{KylinSourceStrategy, LayoutFileSourceStrategy}
+import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.apache.spark.sql.execution.ui.PostQueryExecutionForKylin
 import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.util.Utils
@@ -115,6 +116,10 @@ object SparderEnv extends Logging {
     }
   }
 
+  def addFilePrunerListFileTriggerRule(): Unit = {
+    getSparkSession.experimental.extraOptimizations ++= Seq(FilePrunerListFileTriggerRule)
+  }
+
   def initSpark(): Unit = withClassLoad {
     this.synchronized {
       if (initializingThread == null && (spark == null || spark.sparkContext.isStopped)) {
@@ -145,6 +150,7 @@ object SparderEnv extends Logging {
                     .enableHiveSupport()
                     .getOrCreateKylinSession()
               }
+              sparkSession.experimental.extraOptimizations ++= Seq(FilePrunerListFileTriggerRule)
               spark = sparkSession
               logInfo("Spark context started successfully with stack trace:")
               logInfo(Thread.currentThread().getStackTrace.mkString("\n"))
