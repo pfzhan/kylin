@@ -125,6 +125,7 @@
           @blur="(e) => filterGroup(e.target.value)"
           :placeholder="$t('kylinLang.common.pleaseInputUserGroup')"
           :remote-method="filterGroup"
+          popper-class="author-select"
           v-else>
           <i slot="prefix" class="el-input__icon el-icon-search" v-if="!accessMeta.sids.length"></i>
           <el-option
