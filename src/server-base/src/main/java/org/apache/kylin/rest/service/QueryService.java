@@ -353,7 +353,11 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
-        try (SetThreadName ignored = new SetThreadName("Query %s", QueryContext.current().getQueryId())) {
+        final QueryContext queryContext = QueryContext.current();
+        if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
+            queryContext.setQueryId(sqlRequest.getQueryId());
+        }
+        try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
             long t = System.currentTimeMillis();
             aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
             logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
