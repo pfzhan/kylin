@@ -432,8 +432,6 @@ public class QueryAliasMatcher {
         boolean reUseSubqeury = false;
 
         if (subQuery != null) {
-            logger.debug(
-                    "Query from a subquery, re-use its QueryAliasMatchInfo only if the subquery is a \"select *\" query");
 
             if (subQuery.getSelectList().size() == 1 && subQuery.getSelectList().get(0).toString().equals("*")) {
                 reUseSubqeury = true;

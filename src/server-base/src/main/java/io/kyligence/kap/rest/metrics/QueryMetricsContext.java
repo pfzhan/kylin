@@ -205,8 +205,6 @@ public class QueryMetricsContext {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, server, suite,
-                queryDuration, totalScanBytes, errorType);
     }
 
     private void collectErrorType(final QueryContext context) {

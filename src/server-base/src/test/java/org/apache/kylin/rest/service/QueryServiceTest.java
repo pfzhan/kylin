@@ -988,4 +988,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(Boolean.parseBoolean(matcher.group(4)));
         Assert.assertEquals("null", matcher.group(23)); //Trace URL
     }
+
+    @Test
+    public void testQueryIDShouldBeDifferentAfterReset() {
+        QueryContext curOld = QueryContext.current();
+        QueryContext.reset();
+        QueryContext curNew = QueryContext.current();
+        Pattern uuid_p =
+                Pattern.compile("([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}");
+        Assert.assertNotNull(curNew);
+        Assert.assertTrue(StringUtils.isNotEmpty(curNew.getQueryId()));
+
+        Matcher matcher = uuid_p.matcher(curNew.getQueryId());
+        Assert.assertTrue(matcher.find());
+
+        Assert.assertNotEquals(curOld.getQueryId(), curNew.getQueryId());
+    }
 }

@@ -353,11 +353,15 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
-        long t = System.currentTimeMillis();
-        aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
-        logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
-        sqlRequest.setUsername(getUsername());
-        return queryWithCache(sqlRequest, isQueryInspect);
+        try (SetThreadName ignored = new SetThreadName("Query %s", QueryContext.current().getQueryId())) {
+            long t = System.currentTimeMillis();
+            aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
+            logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
+            sqlRequest.setUsername(getUsername());
+            return queryWithCache(sqlRequest, isQueryInspect);
+        } finally {
+            QueryContext.reset();
+        }
     }
 
     private <T> T doTransactionEnabled(UnitOfWork.Callback<T> f, String project) throws Exception {
@@ -395,21 +399,17 @@ public class QueryService extends BasicService {
         if (sqlRequest.getBackdoorToggles() != null)
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
 
-        final QueryContext queryContext = QueryContext.current();
-        if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
-            queryContext.setQueryId(sqlRequest.getQueryId());
-        }
-        QueryMetricsContext.start(queryContext.getQueryId(), getDefaultServer());
+        QueryMetricsContext.start(QueryContext.current().getQueryId(), getDefaultServer());
 
         TraceScope scope = null;
         if (kylinConfig.isHtraceTracingEveryQuery() || BackdoorToggles.getHtraceEnabled()) {
             logger.info("Current query is under tracing");
             HtraceInit.init();
-            scope = Trace.startSpan("query life cycle for " + queryContext.getQueryId(), Sampler.ALWAYS);
+            scope = Trace.startSpan("query life cycle for " + QueryContext.current().getQueryId(), Sampler.ALWAYS);
         }
         String traceUrl = getTraceUrl(scope);
 
-        try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
+        try {
             long startTime = System.currentTimeMillis();
 
             SQLResponse sqlResponse = null;
@@ -417,7 +417,6 @@ public class QueryService extends BasicService {
             String project = sqlRequest.getProject();
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
             logger.info("Using project: {}", project);
-            logger.info("The original query: {}", sql);
 
             sql = QueryUtil.removeCommentInSql(sql);
 
@@ -467,7 +466,6 @@ public class QueryService extends BasicService {
 
         } finally {
             BackdoorToggles.cleanToggles();
-            QueryContext.reset();
             if (QueryMetricsContext.isStarted()) {
                 QueryMetricsContext.reset();
             }
@@ -509,9 +507,6 @@ public class QueryService extends BasicService {
             long scanCountThreshold = kylinConfig.getQueryScanCountCacheThreshold();
             long scanBytesThreshold = kylinConfig.getQueryScanBytesCacheThreshold();
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
-            logger.info("Stats of SQL response: isException: {}, duration: {}, total scan count {}", //
-                    String.valueOf(sqlResponse.isException()), String.valueOf(sqlResponse.getDuration()),
-                    String.valueOf(sqlResponse.getTotalScanRows()));
             if (checkCondition(queryCacheEnabled, "query cache is disabled") //
                     && checkCondition(!sqlResponse.isException(), "query has exception") //
                     && checkCondition(
@@ -601,11 +596,9 @@ public class QueryService extends BasicService {
 
         Element element = null;
         if ((element = exceptionCache.get(sqlRequest.getCacheKey())) != null) {
-            logger.info("The sqlResponse is found in EXCEPTION_QUERY_CACHE");
             response = (SQLResponse) element.getObjectValue();
             response.setHitExceptionCache(true);
         } else if ((element = successCache.get(sqlRequest.getCacheKey())) != null) {
-            logger.info("The sqlResponse is found in SUCCESS_QUERY_CACHE");
             response = (SQLResponse) element.getObjectValue();
             if (QueryCacheSignatureUtil.checkCacheExpired(response, sqlRequest.getProject())) {
                 return null;
@@ -642,14 +635,11 @@ public class QueryService extends BasicService {
                 String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
                         sqlRequest.getLimit(), sqlRequest.getOffset(), queryExec.getSchema(), true);
 
+                //CAUTION: should not change sqlRequest content!
                 QueryContext.current().setCorrectedSql(correctedSql);
+                boolean hasChangedSQL = !correctedSql.equals(sqlRequest.getSql());
+                logger.info("The corrected query: {}", hasChangedSQL ? correctedSql : "same as original SQL");
 
-                if (!correctedSql.equals(sqlRequest.getSql())) {
-                    logger.info("The corrected query: {}", correctedSql);
-
-                    //CAUTION: should not change sqlRequest content!
-                    //sqlRequest.setSql(correctedSql);
-                }
                 Trace.addTimelineAnnotation("query massaged");
 
                 // add extra parameters into olap context, like acceptPartial

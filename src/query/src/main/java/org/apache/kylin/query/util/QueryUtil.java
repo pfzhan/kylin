@@ -89,7 +89,6 @@ public class QueryUtil {
             String defaultSchema, boolean isCCNeeded) {
         String massagedSql = normalMassageSql(kylinConfig, sql, limit, offset);
         massagedSql = transformSql(kylinConfig, massagedSql, project, defaultSchema, isCCNeeded);
-        logger.debug("SQL massage result: {}", massagedSql);
         QueryContext.current().record("massage");
         return massagedSql;
     }
