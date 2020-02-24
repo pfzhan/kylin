@@ -48,7 +48,7 @@ function logRotate() {
 
         let p_cnt=keep_limit-1
         # renames logs .1 trough .${keep_limit}
-        while [[ $keep_limit -ne 1 ]]; do
+        while [[ $keep_limit -gt 1 ]]; do
             if [ -f ${target_file}.${p_cnt} ] ; then
                 mv -f ${target_file}.${p_cnt} ${target_file}.${keep_limit}
             fi
