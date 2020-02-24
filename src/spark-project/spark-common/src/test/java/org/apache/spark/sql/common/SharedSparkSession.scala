@@ -24,12 +24,14 @@ package org.apache.spark.sql.common
 import java.io.File
 
 import org.apache.commons.io.FileUtils
+import org.apache.hadoop.hive.conf.HiveConf.ConfVars
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SQLContext, SQLImplicits, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
+import org.apache.spark.util.Utils
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 trait SharedSparkSession
@@ -55,12 +57,22 @@ trait SharedSparkSession
     if (file.exists()) {
       FileUtils.deleteDirectory(file)
     }
+
+    // Copied from TestHive
+    // HDFS root scratch dir requires the write all (733) permission. For each connecting user,
+    // an HDFS scratch dir: ${hive.exec.scratchdir}/<username> is created, with
+    // ${hive.scratch.dir.permission}. To resolve the permission issue, the simplest way is to
+    // delete it. Later, it will be re-created with the right permission.
+    val scratchDir = Utils.createTempDir()
+    if(scratchDir.exists()) {
+      FileUtils.deleteDirectory(scratchDir)
+    }
+    conf.set(ConfVars.SCRATCHDIR.varname, scratchDir.toString)
     initSpark()
   }
 
    def initSpark(): Unit = {
     _spark = SparkSession.builder
-      //      .enableHiveSupport()
       .master(master)
       .appName(getClass.getSimpleName)
       .config("spark.sql.shuffle.partitions", "4")

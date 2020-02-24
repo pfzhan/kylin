@@ -32,17 +32,21 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
   conf.set("spark.sql.catalogImplementation", "hive")
   test("Test load error view") {
     SparderEnv.setSparkSession(spark)
+
+    spark.sql("CREATE TABLE hive_table (a int, b int)")
+
     withTable("hive_table") {
+
+      val view = CatalogTable(
+        identifier = TableIdentifier("view"),
+        tableType = CatalogTableType.VIEW,
+        storage = CatalogStorageFormat.empty,
+        schema = new StructType().add("a", "double").add("b", "int"),
+        viewText = Some("SELECT 1.0 AS `a`, `b` FROM hive_table AS gen_subquery_0")
+      )
+      spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+
       withView("view") {
-        spark.sql("CREATE TABLE hive_table (a int, b int)")
-        val view = CatalogTable(
-          identifier = TableIdentifier("view"),
-          tableType = CatalogTableType.VIEW,
-          storage = CatalogStorageFormat.empty,
-          schema = new StructType().add("a", "double").add("b", "int"),
-          viewText = Some("SELECT 1.0 AS `a`, `b` FROM hive_table AS gen_subquery_0")
-        )
-        spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
         val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "view")).getMessage
         assert(message.contains("Error for parser view: "))
       }
@@ -51,15 +55,17 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   test("Test load csv") {
     SparderEnv.setSparkSession(spark)
+
+    val view = CatalogTable(
+      identifier = TableIdentifier("hive_table"),
+      tableType = CatalogTableType.MANAGED,
+      storage = CatalogStorageFormat.empty,
+      schema = new StructType().add("a", "double").add("b", "int"),
+      properties = Map("skip.header.line.count" -> "1")
+    )
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+
     withTable("hive_table") {
-      val view = CatalogTable(
-        identifier = TableIdentifier("hive_table"),
-        tableType = CatalogTableType.MANAGED,
-        storage = CatalogStorageFormat.empty,
-        schema = new StructType().add("a", "double").add("b", "int"),
-        properties = Map("skip.header.line.count" -> "1")
-      )
-      spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
       val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table")).getMessage
       assert(message.contains("The current product version does not support such source data"))
     }
@@ -67,20 +73,20 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   test("Test load hive type") {
     SparderEnv.setSparkSession(spark)
+
+    val view = CatalogTable(
+      identifier = TableIdentifier("hive_table_types"),
+      tableType = CatalogTableType.MANAGED,
+      storage = CatalogStorageFormat.empty,
+      schema = new StructType()
+        .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
+        .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
+        .add("c", "int"),
+      properties = Map()
+    )
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+
     withTable("hive_table_types") {
-
-      val view = CatalogTable(
-        identifier = TableIdentifier("hive_table_types"),
-        tableType = CatalogTableType.MANAGED,
-        storage = CatalogStorageFormat.empty,
-        schema = new StructType()
-          .add("a", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "char(10)").build())
-          .add("b", "string", nullable = true, new MetadataBuilder().putString("HIVE_TYPE_STRING", "varchar(33)").build())
-          .add("c", "int"),
-        properties = Map()
-      )
-
-      spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
       val meta = new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")
       assert(meta.allColumns.get(0).dataType == "char(10)")
       assert(meta.allColumns.get(1).dataType == "varchar(33)")
@@ -90,14 +96,14 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   test("Test load hive type with unsupported type array") {
     SparderEnv.setSparkSession(spark)
+
+    val st = new StructType()
+      .add("c", "int")
+      .add("array", ArrayType(LongType))
+    val view = createTmpCatalog(st)
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+
     withTable("hive_table_types") {
-
-      val st = new StructType()
-        .add("c", "int")
-        .add("array", ArrayType(LongType))
-      val view = createTmpCatalog(st)
-
-      spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
       val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")).getMessage
       assert(message.contains("Error for parser table:"))
       assert(message.contains("unsupoort type: array"))
@@ -106,14 +112,14 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   test("Test load hive type with unsupported type map") {
     SparderEnv.setSparkSession(spark)
+
+    val st = new StructType()
+      .add("c", "int")
+      .add("d", MapType(StringType, StringType))
+    val view = createTmpCatalog(st)
+    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
+
     withTable("hive_table_types") {
-
-      val st = new StructType()
-        .add("c", "int")
-        .add("d", MapType(StringType, StringType))
-      val view = createTmpCatalog(st)
-
-      spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
       val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")).getMessage
       assert(message.contains("Error for parser table:"))
       assert(message.contains("unsupoort type: map"))
@@ -122,14 +128,14 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
 
   test("Test load hive type with unsupported type struct") {
     SparderEnv.setSparkSession(spark)
+
+    val st = new StructType()
+      .add("c", "int")
+      .add("d", new StructType().add("map", MapType(StringType, StringType)))
+    val catalogTable = createTmpCatalog(st)
+    spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false)
+
     withTable("hive_table_types") {
-
-      val st = new StructType()
-        .add("c", "int")
-        .add("d", new StructType().add("map", MapType(StringType, StringType)))
-      val catalogTable = createTmpCatalog(st)
-
-      spark.sessionState.catalog.createTable(catalogTable, ignoreIfExists = false)
       val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table_types")).getMessage
       assert(message.contains("Error for parser table:"))
       assert(message.contains("unsupoort type: struct"))
