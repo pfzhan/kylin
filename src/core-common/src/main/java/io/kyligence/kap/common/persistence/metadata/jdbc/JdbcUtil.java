@@ -67,14 +67,13 @@ public class JdbcUtil implements IKeep {
         props.put("driverClassName", "org.postgresql.Driver");
         props.put("url", "jdbc:postgresql://sandbox:5432/kylin");
         props.put("username", "postgres");
-        props.put("password", "");
         props.put("maxTotal", "50");
         props.putAll(url.getAllParameters());
-        String password = props.getProperty("password");
+        String password = props.getProperty("password", "");
         if (EncryptUtil.isEncrypted(password)) {
             password = EncryptUtil.decryptPassInKylin(password);
-            props.put("password", password);
         }
+        props.put("password", password);
         return props;
     }
 

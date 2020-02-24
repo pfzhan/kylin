@@ -227,16 +227,17 @@ public class LicenseInfoService extends BasicService {
                 byte[] mac = network.getHardwareAddress();
 
                 StringBuilder sb = new StringBuilder();
-                if (mac != null) {
-                    for (int i = 0; i < mac.length; i++) {
-                        sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
-                    }
-                    List<String> inetAddrList = Lists.newArrayList();
-                    for (InterfaceAddress interAddr : network.getInterfaceAddresses()) {
-                        inetAddrList.add(interAddr.getAddress().getHostAddress());
-                    }
-                    sb.append("(" + org.apache.commons.lang.StringUtils.join(inetAddrList, ",") + ")");
+                if (mac == null) {
+                    continue;
                 }
+                for (int i = 0; i < mac.length; i++) {
+                    sb.append(String.format("%02X%s", mac[i], (i < mac.length - 1) ? "-" : ""));
+                }
+                List<String> inetAddrList = Lists.newArrayList();
+                for (InterfaceAddress interAddr : network.getInterfaceAddresses()) {
+                    inetAddrList.add(interAddr.getAddress().getHostAddress());
+                }
+                sb.append("(" + org.apache.commons.lang.StringUtils.join(inetAddrList, ",") + ")");
                 if (sb.length() > 0) {
                     result.add(sb.toString());
                 }
@@ -501,7 +502,7 @@ public class LicenseInfoService extends BasicService {
         systemInfo.put("os.arch", System.getProperty("os.arch"));
         systemInfo.put("os.version", System.getProperty("os.version"));
         systemInfo.put("kylin.version", KylinVersion.getCurrentVersion().toString());
-        systemInfo.put("hostname", InetAddress.getLocalHost().getHostName());
+        systemInfo.put(HOSTNAME, InetAddress.getLocalHost().getHostName());
 
         StringBuilder output = new StringBuilder();
         Map<String, String> licenseInfoMap = JsonUtil.convert(licenseInfo, new TypeReference<Map<String, String>>() {
