@@ -79,6 +79,33 @@ public class DataType implements Serializable {
     private static final String TYPE_PATTEN_TAIL = "\\s*" //
             + "(?:" + "[(]" + "([\\d\\s,]+)" + "[)]" + ")?";
 
+    private static final String VARCHAR = "varchar";
+    private static final String CHAR = "char";
+    private static final String INTEGER = "integer";
+    private static final String TINY_INT = "tinyint";
+    private static final String SMALL_INT = "smallint";
+    private static final String BIGINT = "bigint";
+    private static final String FLOAT = "float";
+    private static final String DECIMAL = "decimal";
+    private static final String DOUBLE = "double";
+    private static final String NUMERIC = "numeric";
+    private static final String TIMESTAMP = "timestamp";
+    private static final String DATETIME = "datetime";
+    private static final String DATE = "date";
+    private static final String TIME = "time";
+    private static final String REAL = "real";
+    private static final String ANY_STR = "any";
+    private static final String STRING = "string";
+    private static final String BOOLEAN = "boolean";
+    private static final String BYTE = "byte";
+    private static final String BINARY = "binary";
+    private static final String INT = "int";
+    private static final String SHORT = "short";
+    private static final String LONG = "long";
+    private static final String INT4 = "int4";
+    private static final String LONG8 = "long8";
+    private static final String ARRAY = "array";
+
     public static synchronized void register(String... typeNames) {
         VALID_TYPES.addAll(Arrays.asList(typeNames));
 
@@ -98,12 +125,12 @@ public class DataType implements Serializable {
 
     static {
         // standard sql types, ref: http://www.w3schools.com/sql/sql_datatypes_general.asp
-        register("any", "char", "varchar", "string", //
-                "boolean", "byte", "binary", //
-                "int", "short", "long", "integer", "tinyint", "smallint", "bigint", //
-                "int4", "long8", // for test only
-                "float", "real", "double", "decimal", "numeric", //
-                "date", "time", "datetime", "timestamp", "array", //
+        register(ANY_STR, CHAR, VARCHAR, STRING, //
+                BOOLEAN, BYTE, BINARY, //
+                INT, SHORT, LONG, INTEGER, TINY_INT, SMALL_INT, BIGINT, //
+                INT4, LONG8, // for test only
+                FLOAT, REAL, DOUBLE, DECIMAL, NUMERIC, //
+                DATE, TIME, DATETIME, TIMESTAMP, ARRAY, //
                 InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType(), TblColRef.DYNAMIC_DATA_TYPE);
 
         registerComplex("array\\<.*\\>");
@@ -116,33 +143,33 @@ public class DataType implements Serializable {
     public static final Set<String> STRING_FAMILY = new HashSet<String>();
     private static final Map<String, String> LEGACY_TYPE_MAP = new HashMap<String, String>();
     static {
-        INTEGER_FAMILY.add("tinyint");
-        INTEGER_FAMILY.add("smallint");
-        INTEGER_FAMILY.add("integer");
-        INTEGER_FAMILY.add("bigint");
-        INTEGER_FAMILY.add("int4");
-        INTEGER_FAMILY.add("long8");
+        INTEGER_FAMILY.add(TINY_INT);
+        INTEGER_FAMILY.add(SMALL_INT);
+        INTEGER_FAMILY.add(INTEGER);
+        INTEGER_FAMILY.add(BIGINT);
+        INTEGER_FAMILY.add(INT4);
+        INTEGER_FAMILY.add(LONG8);
 
         NUMBER_FAMILY.addAll(INTEGER_FAMILY);
-        NUMBER_FAMILY.add("float");
-        NUMBER_FAMILY.add("double");
-        NUMBER_FAMILY.add("decimal");
-        NUMBER_FAMILY.add("real");
-        NUMBER_FAMILY.add("numeric");
+        NUMBER_FAMILY.add(FLOAT);
+        NUMBER_FAMILY.add(DOUBLE);
+        NUMBER_FAMILY.add(DECIMAL);
+        NUMBER_FAMILY.add(REAL);
+        NUMBER_FAMILY.add(NUMERIC);
 
-        DATETIME_FAMILY.add("date");
-        DATETIME_FAMILY.add("time");
-        DATETIME_FAMILY.add("datetime");
-        DATETIME_FAMILY.add("timestamp");
+        DATETIME_FAMILY.add(DATE);
+        DATETIME_FAMILY.add(TIME);
+        DATETIME_FAMILY.add(DATETIME);
+        DATETIME_FAMILY.add(TIMESTAMP);
 
-        STRING_FAMILY.add("varchar");
-        STRING_FAMILY.add("char");
+        STRING_FAMILY.add(VARCHAR);
+        STRING_FAMILY.add(CHAR);
 
-        LEGACY_TYPE_MAP.put("byte", "tinyint");
-        LEGACY_TYPE_MAP.put("int", "integer");
-        LEGACY_TYPE_MAP.put("short", "smallint");
-        LEGACY_TYPE_MAP.put("long", "bigint");
-        LEGACY_TYPE_MAP.put("string", "varchar");
+        LEGACY_TYPE_MAP.put(BYTE, TINY_INT);
+        LEGACY_TYPE_MAP.put(INT, INTEGER);
+        LEGACY_TYPE_MAP.put(SHORT, SMALL_INT);
+        LEGACY_TYPE_MAP.put(LONG, BIGINT);
+        LEGACY_TYPE_MAP.put(STRING, VARCHAR);
         LEGACY_TYPE_MAP.put("hllc10", "hllc(10)");
         LEGACY_TYPE_MAP.put("hllc12", "hllc(12)");
         LEGACY_TYPE_MAP.put("hllc14", "hllc(14)");
@@ -152,7 +179,7 @@ public class DataType implements Serializable {
 
     private static final ConcurrentMap<DataType, DataType> CACHE = new ConcurrentHashMap<DataType, DataType>();
 
-    public static final DataType ANY = DataType.getType("any");
+    public static final DataType ANY = DataType.getType(ANY_STR);
 
     static {
         //to ensure the MeasureTypeFactory class has initialized
@@ -235,11 +262,11 @@ public class DataType implements Serializable {
             // why 256(255) as default? 
             // to save memory at frontend, e.g. tableau will
             // allocate memory according to this
-            if (name.equals("char")) {
+            if (name.equals(CHAR)) {
                 precision = KylinConfig.getInstanceFromEnv().getDefaultCharPrecision();
-            } else if (name.equals("varchar")) {
+            } else if (name.equals(VARCHAR)) {
                 precision = KylinConfig.getInstanceFromEnv().getDefaultVarcharPrecision();
-            } else if ((name.equals("decimal") || name.equals("numeric"))) {
+            } else if ((name.equals(DECIMAL) || name.equals(NUMERIC))) {
                 precision = KylinConfig.getInstanceFromEnv().getDefaultDecimalPrecision();
                 scale = KylinConfig.getInstanceFromEnv().getDefaultDecimalScale();
             }
@@ -302,51 +329,51 @@ public class DataType implements Serializable {
     }
 
     public boolean isDate() {
-        return name.equals("date");
+        return name.equals(DATE);
     }
 
     public boolean isTime() {
-        return name.equals("time");
+        return name.equals(TIME);
     }
 
     public boolean isTimestamp() {
-        return name.equals("timestamp");
+        return name.equals(TIMESTAMP);
     }
 
     public boolean isDatetime() {
-        return name.equals("datetime");
+        return name.equals(DATETIME);
     }
 
     public boolean isTinyInt() {
-        return name.equals("tinyint");
+        return name.equals(TINY_INT);
     }
 
     public boolean isSmallInt() {
-        return name.equals("smallint");
+        return name.equals(SMALL_INT);
     }
 
     public boolean isInt() {
-        return name.equals("integer");
+        return name.equals(INTEGER);
     }
 
     public boolean isBigInt() {
-        return name.equals("bigint");
+        return name.equals(BIGINT);
     }
 
     public boolean isFloat() {
-        return name.equals("float");
+        return name.equals(FLOAT);
     }
 
     public boolean isDouble() {
-        return name.equals("double");
+        return name.equals(DOUBLE);
     }
 
     public boolean isDecimal() {
-        return name.equals("decimal");
+        return name.equals(DECIMAL);
     }
 
     public boolean isBoolean() {
-        return name.equals("boolean");
+        return name.equals(BOOLEAN);
     }
 
     public String getName() {
