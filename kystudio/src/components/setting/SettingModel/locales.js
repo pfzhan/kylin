@@ -48,7 +48,12 @@ export default {
     sparkInstances: 'The number of executors to use on each application.',
     sparkMemory: 'The amount of memory to use per executor process.',
     sparkShuffle: 'The number of partitions to use when shuffling data for joins or aggregations.',
-    baseCuboidConfig: 'According to your business scenario, you can decide whether to add an index that contains dimensions and measures defined in all aggregate groups. The index can answer queries across multiple aggregate groups, but this will impact query performance. In addition to this, there are some storage and building costs by adding this index.'
+    baseCuboidConfig: 'According to your business scenario, you can decide whether to add an index that contains dimensions and measures defined in all aggregate groups. The index can answer queries across multiple aggregate groups, but this will impact query performance. In addition to this, there are some storage and building costs by adding this index.',
+    customSettings: 'Custom Settings',
+    customOptions: 'Besides the defined configurations, you can also add some advanced settings.<br/><i class="el-icon-ksd-alert"></i>Note: It`s highly recommended to use this feature with the support of Kyligence Service Team.',
+    customSettingKeyPlaceholder: 'Please enter the configuration...',
+    customSettingValuePlaceholder: 'Please enter the value...',
+    delCustomConfigTip: 'Are you sure to delete custom setting item {name}？'
   },
   'zh-cn': {
     modifyTime: '修改时间',
@@ -99,6 +104,11 @@ export default {
     sparkInstances: '单个 Application 拥有的 Executor 数量。',
     sparkMemory: '单个 Executor 最大内存。',
     sparkShuffle: '在处理 join 或 aggregation 时，shuffle 数据的分区数量。',
-    baseCuboidConfig: '根据您的业务场景，可以选择是否需要添加一个包含所有聚合组内已定义的维度和度量的索引。该索引可以回答跨聚合组的查询，但是查询性能将有所下降，同时添加该索引将带来一定的存储与构建开销。'
+    baseCuboidConfig: '根据您的业务场景，可以选择是否需要添加一个包含所有聚合组内已定义的维度和度量的索引。该索引可以回答跨聚合组的查询，但是查询性能将有所下降，同时添加该索引将带来一定的存储与构建开销。',
+    customSettings: '自定义设置',
+    customOptions: '除了系统当前已定义的参数外，还可以通过输入一些高级参数进行配置。<br/><i class="el-icon-ksd-alert"></i>注意：我们强烈建议您在 Kyligence 服务人员的支持下使用该功能。',
+    customSettingKeyPlaceholder: '请输入配置项...',
+    customSettingValuePlaceholder: '请输入参数值...',
+    delCustomConfigTip: '确认删除自定义参数 {name} 吗？'
   }
 }

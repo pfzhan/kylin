@@ -49,7 +49,7 @@
           </div>
           <div v-if="scope.row.override_props">
             <div v-for="(propValue, key) in scope.row.override_props" :key="key">
-              <template v-if="!key.split('.').includes('cube')">
+              <template v-if="key.includes('kylin.engine.spark-conf')">
                 <span class="model-setting-item" @click="editSparkItem(scope.row, key)">
                   <!-- 去掉前缀kylin.engine.spark-conf. -->
                   {{key.substring(24)}}:<span>{{propValue}}</span>
@@ -59,13 +59,22 @@
                   <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
                 </common-tip>
               </template>
-              <template v-else>
+              <template v-else-if="key.split('.').includes('cube')">
                 <span class="model-setting-item" @click="editCubeItem(scope.row, key)">
                   {{key.split('.').slice(-1).toString()}}:<span>{{propValue}}</span>
                 </span><common-tip :content="$t('kylinLang.common.edit')">
                   <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editCubeItem(scope.row, key)"></i>
                 </common-tip><common-tip :content="$t('kylinLang.common.delete')">
                   <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, key)"></i>
+                </common-tip>
+              </template>
+              <template v-else>
+                <span class="model-setting-item" @click="editCustomSettingItem(scope.row, key)">
+                  {{key}}:<span>{{propValue}}</span>
+                </span><common-tip :content="$t('kylinLang.common.edit')">
+                  <i class="el-icon-ksd-table_edit ksd-mr-5 ksd-ml-10" @click="editCustomSettingItem(scope.row, key)"></i>
+                </common-tip><common-tip :content="$t('kylinLang.common.delete')">
+                  <i class="el-icon-ksd-symbol_type" @click="removeCustomSettingItem(scope.row, key)"></i>
                 </common-tip>
               </template>
             </div>
@@ -98,7 +107,7 @@
               :value="item">
             </el-option>
           </el-select>
-          <p>{{optionDesc[modelSettingForm.settingItem]}}</p>
+          <p v-html="optionDesc[modelSettingForm.settingItem]"></p>
         </el-form-item>
         <el-form-item :label="$t('autoMerge')" class="ksd-mb-10" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Auto-merge'">
           <el-checkbox-group v-model="modelSettingForm.autoMerge" class="merge-groups">
@@ -135,7 +144,16 @@
             >
             </el-option>
           </el-select>
-          <!-- <span class="ksd-ml-5" v-if="modelSettingForm.settingItem==='is-base-cuboid-always-valid'">G</span> -->
+        </el-form-item>
+        <el-form-item :label="$t(modelSettingForm.settingItem)" v-if="step=='stepTwo'&&modelSettingForm.settingItem === 'customSettings'">
+          <div class="custom-settings" v-for="(item, index) in modelSettingForm[modelSettingForm.settingItem]" :key="index">
+            <el-input class="custom-param-key" v-model="modelSettingForm[modelSettingForm.settingItem][index][0]" :placeholder="$t('customSettingKeyPlaceholder')" />
+            <el-input class="custom-param-value" v-model="modelSettingForm[modelSettingForm.settingItem][index][1]" :placeholder="$t('customSettingValuePlaceholder')" />
+            <span class="ky-no-br-space ksd-ml-5">
+              <el-button type="primary" icon="el-icon-ksd-add_2" plain circle size="mini" @click="addCustomSetting"></el-button>
+              <el-button icon="el-icon-minus" class="ksd-ml-5" plain circle size="mini" :disabled="modelSettingForm[modelSettingForm.settingItem].length === 1 && index === 0" @click="removeCustomSetting(index)"></el-button>
+            </span>
+          </div>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
@@ -175,7 +193,8 @@ const initialSettingForm = JSON.stringify({
   'spark.executor.instances': null,
   'spark.executor.memory': null,
   'spark.sql.shuffle.partitions': null,
-  'is-base-cuboid-always-valid': 0
+  'is-base-cuboid-always-valid': 0,
+  customSettings: [[]]
 })
 
 @Component({
@@ -228,7 +247,7 @@ export default class SettingStorage extends Vue {
     if (this.isAutoProject) {
       return ['spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions']
     } else {
-      return ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'is-base-cuboid-always-valid']
+      return ['Auto-merge', 'Volatile Range', 'Retention Threshold', 'spark.executor.cores', 'spark.executor.instances', 'spark.executor.memory', 'spark.sql.shuffle.partitions', 'is-base-cuboid-always-valid', 'customSettings']
     }
   }
   get availableRetentionRange () {
@@ -259,7 +278,8 @@ export default class SettingStorage extends Vue {
       'spark.executor.instances': this.$t('sparkInstances'),
       'spark.executor.memory': this.$t('sparkMemory'),
       'spark.sql.shuffle.partitions': this.$t('sparkShuffle'),
-      'is-base-cuboid-always-valid': this.$t('baseCuboidConfig')
+      'is-base-cuboid-always-valid': this.$t('baseCuboidConfig'),
+      'customSettings': this.$t('customOptions')
     }
   }
   get rules () {
@@ -296,6 +316,8 @@ export default class SettingStorage extends Vue {
       return true
     } else if (this.modelSettingForm.settingItem === 'is-base-cuboid-always-valid' && this.modelSettingForm[this.modelSettingForm.settingItem] === '') {
       return true
+    } else if (this.modelSettingForm.settingItem === 'customSettings' && (!this.modelSettingForm[this.modelSettingForm.settingItem].flat().length || this.modelSettingForm[this.modelSettingForm.settingItem].some(it => it.length === 1))) {
+      return true
     } else {
       return false
     }
@@ -307,6 +329,22 @@ export default class SettingStorage extends Vue {
       rowCopy['auto_merge_enabled'] = type !== 'auto_merge_time_ranges' ? rowCopy['auto_merge_enabled'] : null
       rowCopy['retention_range'] = type !== 'auto_merge_time_ranges' ? rowCopy['retention_range'] : null
       if (type.indexOf('spark.') !== -1 || type.indexOf('cube.') !== -1) {
+        delete rowCopy.override_props[type]
+      }
+      this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, rowCopy)).then((res) => {
+        handleSuccess(res, () => {
+          this.getConfigList()
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    })
+  }
+  // 移除自定义配置项
+  removeCustomSettingItem (row, type) {
+    kapConfirm(this.$t('delCustomConfigTip', {name: type})).then(() => {
+      const rowCopy = objectClone(row)
+      if (type in rowCopy.override_props) {
         delete rowCopy.override_props[type]
       }
       this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, rowCopy)).then((res) => {
@@ -380,6 +418,18 @@ export default class SettingStorage extends Vue {
     this.isEdit = true
     this.editModelSetting = true
   }
+  // 编辑自定义设置
+  editCustomSettingItem (row, key) {
+    let customList = []
+    customList.push([key, row.override_props[key]])
+    this.modelSettingForm.name = row.alias
+    this.modelSettingForm.settingItem = 'customSettings'
+    this.modelSettingForm[this.modelSettingForm.settingItem] = customList
+    this.activeRow = row
+    this.step = 'stepTwo'
+    this.isEdit = true
+    this.editModelSetting = true
+  }
   submit () {
     if (this.modelSettingForm.settingItem === 'Auto-merge') {
       this.activeRow.auto_merge_time_ranges = this.modelSettingForm.autoMerge
@@ -403,6 +453,13 @@ export default class SettingStorage extends Vue {
     }
     if (this.modelSettingForm.settingItem === 'is-base-cuboid-always-valid') {
       this.activeRow.override_props['kylin.cube.aggrgroup.is-base-cuboid-always-valid'] = !this.modelSettingForm['is-base-cuboid-always-valid']
+    }
+    if (this.modelSettingForm.settingItem === 'customSettings') {
+      let customData = {}
+      this.modelSettingForm.customSettings.forEach(item => {
+        customData[item[0]] = item[1]
+      })
+      this.activeRow.override_props = {...this.activeRow.override_props, ...customData}
     }
     this.isLoading = true
     this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, this.activeRow)).then((res) => {
@@ -430,6 +487,14 @@ export default class SettingStorage extends Vue {
   searchModels () {
     this.filter.page_offset = 0
     this.getConfigList()
+  }
+  // 增加自定义配置项
+  addCustomSetting () {
+    this.modelSettingForm[this.modelSettingForm.settingItem].unshift([])
+  }
+  // 删除某个自定义配置项
+  removeCustomSetting (index) {
+    this.modelSettingForm[this.modelSettingForm.settingItem].splice(index, 1)
   }
   created () {
     this.getConfigList()
@@ -462,6 +527,9 @@ export default class SettingStorage extends Vue {
   }
 }
 .model-setting-dialog {
+  .el-dialog__body {
+    max-height: 550px !important;
+  }
   .el-form-item__content p {
     font-size: 12px;
     line-height: 16px;
@@ -484,6 +552,19 @@ export default class SettingStorage extends Vue {
   .retention-input {
     display: inline-block;
     width: 100px;
+  }
+  .custom-settings {
+    .custom-param-key {
+      width: 250px;
+    }
+    .custom-param-value {
+      width: 124px;
+    }
+  }
+  .el-icon-ksd-alert {
+    font-size: 14px;
+    color: @warning-color-1;
+    margin-right: 5px;
   }
 }
 </style>
