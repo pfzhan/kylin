@@ -68,7 +68,7 @@ object AggregatePlan extends Logging {
       val aggList = buildAgg(dataFrame.schema, rel)
       val groupSets = rel.getRewriteGroupSets.asScala
         .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
-      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets))
+      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
     }
     logInfo(s"Gen aggregate cost Time :${System.currentTimeMillis() - start} ")
     df

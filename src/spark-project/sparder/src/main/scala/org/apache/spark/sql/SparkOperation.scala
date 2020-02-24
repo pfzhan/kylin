@@ -66,7 +66,7 @@ object SparkOperation {
   }
 
   def agg(aggArgc: AggArgc): DataFrame = {
-    if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty && aggArgc.groupSets.nonEmpty) {
+    if (aggArgc.agg.nonEmpty && aggArgc.group.nonEmpty && !aggArgc.isSimpleGroup && aggArgc.groupSets.nonEmpty) {
       Dataset.ofRows(
         aggArgc.dataFrame.sparkSession,
         GroupingSets(
@@ -106,4 +106,4 @@ object SparkOperation {
   */
 }
 
-case class AggArgc(dataFrame: DataFrame, group: List[Column], agg: List[Column], groupSets: List[List[Column]])
+case class AggArgc(dataFrame: DataFrame, group: List[Column], agg: List[Column], groupSets: List[List[Column]], isSimpleGroup: Boolean)
