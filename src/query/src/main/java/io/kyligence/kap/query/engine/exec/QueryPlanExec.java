@@ -22,16 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.exec;
+package io.kyligence.kap.query.engine.exec;
+
+import java.util.List;
 
 import org.apache.calcite.DataContext;
-import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
 
-public interface QueryEngine {
+/**
+ * implement and execute a physical plan
+ */
+public interface QueryPlanExec {
 
-    public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType);
+    List<List<String>> execute(RelNode rel, DataContext dataContext);
 
-    public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType);
 }

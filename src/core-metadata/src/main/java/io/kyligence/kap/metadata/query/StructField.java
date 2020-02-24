@@ -33,7 +33,7 @@ public class StructField {
     private int scale;
     private boolean nullable;
 
-    private StructField(String name, int dataType, String dataTypeName, int precision, int scale, boolean nullable) {
+    public StructField(String name, int dataType, String dataTypeName, int precision, int scale, boolean nullable) {
         this.name = name;
         this.dataType = dataType;
         this.dataTypeName = dataTypeName;

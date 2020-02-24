@@ -47,10 +47,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -123,6 +119,8 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -184,35 +182,20 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {
-        final ResultSetMetaData metaData = Mockito.mock(ResultSetMetaData.class);
-        Mockito.when(metaData.getColumnCount()).thenReturn(0);
-
-        final ResultSet resultSet = Mockito.mock(ResultSet.class);
-        Mockito.when(resultSet.getMetaData()).thenReturn(metaData);
-
-        final PreparedStatement statement = Mockito.mock(PreparedStatement.class);
-        Mockito.when(statement.executeQuery()).thenReturn(resultSet);
-        Mockito.when(statement.executeQuery(sql)).thenReturn(resultSet);
-
-        final Connection connection = Mockito.mock(Connection.class);
-        Mockito.when(connection.createStatement()).thenReturn(statement);
-        Mockito.when(connection.prepareStatement(sql)).thenReturn(statement);
-
-        Mockito.when(queryService.getConnection(project)).thenReturn(connection);
+        final QueryResult queryResult = Mockito.mock(QueryResult.class);
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
     }
 
     private void stubQueryConnectionSQLException(final String sql, final String project) throws Exception {
         final SQLException sqlException = new SQLException();
 
-        final PreparedStatement statement = Mockito.mock(PreparedStatement.class);
-        Mockito.when(statement.executeQuery()).thenThrow(sqlException);
-        Mockito.when(statement.executeQuery(sql)).thenThrow(sqlException);
-
-        final Connection connection = Mockito.mock(Connection.class);
-        Mockito.when(connection.createStatement()).thenReturn(statement);
-        Mockito.when(connection.prepareStatement(sql)).thenReturn(statement);
-
-        Mockito.when(queryService.getConnection(project)).thenReturn(connection);
+        final QueryResult queryResult = Mockito.mock(QueryResult.class);
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
         // mock PushDownUtil
         SQLRequest sqlRequest = new SQLRequest();
@@ -231,15 +214,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     private void stubPushDownException(final String sql, final String project) throws Exception {
         final SQLException sqlException = new SQLException();
 
-        final PreparedStatement statement = Mockito.mock(PreparedStatement.class);
-        Mockito.when(statement.executeQuery()).thenThrow(sqlException);
-        Mockito.when(statement.executeQuery(sql)).thenThrow(sqlException);
-
-        final Connection connection = Mockito.mock(Connection.class);
-        Mockito.when(connection.createStatement()).thenReturn(statement);
-        Mockito.when(connection.prepareStatement(sql)).thenReturn(statement);
-
-        Mockito.when(queryService.getConnection(project)).thenReturn(connection);
+        final QueryResult queryResult = Mockito.mock(QueryResult.class);
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        Mockito.when(queryExec.executeQuery(sql)).thenReturn(queryResult);
+        Mockito.when(queryService.newQueryExec(project)).thenReturn(queryExec);
+        Mockito.when(queryExec.executeQuery(sql)).thenThrow(sqlException);
 
         QueryContext.current().setPushdownEngine("HIVE");
 
@@ -252,7 +231,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void stubQueryConnectionException(final String project) throws Exception {
-        Mockito.when(queryService.getConnection(project))
+        Mockito.when(queryService.newQueryExec(project))
                 .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
     }
 
@@ -442,7 +421,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final String sql = "select * from exception_table";
         final String project = "newten";
 
-        Mockito.when(queryService.getConnection(project))
+
+        Mockito.when(queryService.newQueryExec(project))
                 .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
 
         final SQLRequest request = new SQLRequest();

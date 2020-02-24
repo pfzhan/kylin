@@ -26,11 +26,7 @@ package io.kyligence.kap.newten;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,11 +37,10 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.util.DBUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.KylinTestBase;
-import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.Dataset;
@@ -59,6 +54,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
@@ -506,21 +502,24 @@ public class NExecAndComp {
     }
 
     public static Dataset<Row> queryCube(String prj, String sql, List<String> parameters) throws SQLException {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+        SparderEnv.setDF(null); // clear last df
+        // if this config is on
+        // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
+        String prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE");
         try {
-            conn = QueryConnection.getConnection(prj);
-            stmt = conn.prepareStatement(sql);
-            for (int i = 1; parameters != null && i <= parameters.size(); i++) {
-                stmt.setString(i, parameters.get(i - 1).trim());
+            QueryExec queryExec = new QueryExec(prj, KylinConfig.getInstanceFromEnv());
+            if (parameters != null) {
+                for (int i = 0; i < parameters.size(); i++) {
+                    queryExec.setPrepareParam(i, parameters.get(i));
+                }
             }
-            rs = stmt.executeQuery();
+            queryExec.executeQuery(sql);
         } finally {
-            DBUtils.closeQuietly(rs);
-            DBUtils.closeQuietly(stmt);
-            DBUtils.closeQuietly(conn);
-            SparderEnv.cleanCompute();
+            if (prevRunLocalConf != null) {
+                System.setProperty("kap.query.engine.run-constant-query-locally", prevRunLocalConf);
+            } else {
+                System.clearProperty("kap.query.engine.run-constant-query-locally");
+            }
         }
         return SparderEnv.getDF();
     }
@@ -543,28 +542,6 @@ public class NExecAndComp {
 
     public static List<List<String>> queryCubeWithJDBC(String prj, String sql) throws Exception {
         //      SparderEnv.skipCompute();
-        Connection conn = null;
-        Statement stmt = null;
-        ResultSet rs = null;
-        List<List<String>> results = Lists.newArrayList();
-        try {
-            conn = QueryConnection.getConnection(prj);
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery(sql);
-            int columnCount = rs.getMetaData().getColumnCount();
-            while (rs.next()) {
-                List<String> oneRow = Lists.newArrayListWithCapacity(columnCount);
-                for (int i = 0; i < columnCount; i++) {
-                    oneRow.add((rs.getString(i + 1)));
-                }
-
-                results.add(oneRow);
-            }
-        } finally {
-            DBUtils.closeQuietly(rs);
-            DBUtils.closeQuietly(stmt);
-            DBUtils.closeQuietly(conn);
-        }
-        return results;
+        return new QueryExec(prj, KylinConfig.getInstanceFromEnv()).executeQuery(sql).getRows();
     }
 }

@@ -38,12 +38,14 @@ import org.apache.kylin.query.KylinTestBase;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.filter.MassinFilterManager;
 
+@Ignore
 public class ITMassinFilterManagerTest extends KylinTestBase {
     private static final String[] testStrings = new String[] { "Apple", "Banana", "Kylin" };
     private MassinFilterManager manager;

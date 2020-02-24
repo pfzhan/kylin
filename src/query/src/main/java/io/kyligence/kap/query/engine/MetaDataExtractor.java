@@ -22,43 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query;
+package io.kyligence.kap.query.engine;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.query.KylinTestBase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+
+import io.kyligence.kap.metadata.query.StructField;
 
 /**
+ * extract table and column metadata from context
  */
-public class NKylinTestBase extends KylinTestBase {
+public class MetaDataExtractor {
 
-    private static final Logger logger = LoggerFactory.getLogger(NKylinTestBase.class);
-
-    protected static void setupAll() throws Exception {
-        //setup env
-        NLocalFileMetadataTestCase.staticCreateTestMetadata();
-        config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
-
-        //setup cube conn
-        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-//        cubeConnection = QueryConnection.getConnection(project);
-    }
-    
-    @Override
-    protected String getProject() {
-        return ProjectInstance.DEFAULT_PROJECT_NAME;
+    public List<StructField> getColumnMetadata(RelNode rel) {
+        return rel.getRowType().getFieldList().stream()
+                .map(type -> relDataTypeToStructField(type.getKey(), type.getValue())).collect(Collectors.toList());
     }
 
-    protected static void clean() {
-        if (cubeConnection != null)
-            closeConnection(cubeConnection);
-
-        NLocalFileMetadataTestCase.staticCleanupTestMetadata();
+    private static StructField relDataTypeToStructField(String fieldName, RelDataType relDataType) {
+        return new StructField(
+                fieldName,
+                relDataType.getSqlTypeName().getJdbcOrdinal(),
+                relDataType.getSqlTypeName().getName(),
+                relDataType.getPrecision(),
+                relDataType.getScale(),
+                relDataType.isNullable());
     }
-
 }

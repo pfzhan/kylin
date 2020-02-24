@@ -24,20 +24,18 @@
 
 package io.kyligence.kap.smart.query.mockup;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Collection;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
 
@@ -62,10 +60,10 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
             return record;
         }
 
-        try (Connection conn = QueryConnection.getConnection(projectName);
-                Statement statement = conn.createStatement();
-                ResultSet ignored = statement
-                        .executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema(), true))) {
+        try {
+            // execute and discard the result data
+            QueryExec queryExec = new QueryExec(projectName, KylinConfig.getInstanceFromEnv());
+            queryExec.executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, queryExec.getSchema(), true));
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) { // cannot replace with Exception, e may a instance of Error

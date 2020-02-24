@@ -111,6 +111,10 @@ public class DateFormat {
         return getDateFormat(pattern).format(new Date(millis));
     }
 
+    public static String formatDayToEpchoToDateStr(long daysToEpoch) {
+        return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000);
+    }
+
     public static String dateToString(Date date, String pattern) {
         return getDateFormat(pattern).format(date);
     }

@@ -32,6 +32,7 @@ import java.io.File;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -41,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.junit.SparkTestRunner;
 
+@Ignore
 @RunWith(SparkTestRunner.class)
 public class ITKapLimitEnabledTest extends KapTestBase {
 

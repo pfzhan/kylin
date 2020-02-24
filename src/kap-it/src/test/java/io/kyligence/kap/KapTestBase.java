@@ -30,7 +30,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.SandboxMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.KylinTestBase;
-import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.source.jdbc.H2Database;
 
 public class KapTestBase extends KylinTestBase {
@@ -43,7 +42,7 @@ public class KapTestBase extends KylinTestBase {
 
         //setup cube conn
         String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-        cubeConnection = QueryConnection.getConnection(project);
+//        cubeConnection = QueryConnection.getConnection(project);
 
         //setup h2
         h2Connection = DriverManager.getConnection("jdbc:h2:mem:db" + (h2InstanceCount++) + ";CACHE_SIZE=32072", "sa",

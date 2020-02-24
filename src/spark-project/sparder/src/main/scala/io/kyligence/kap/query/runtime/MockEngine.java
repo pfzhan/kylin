@@ -7,23 +7,14 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 
 import io.kyligence.kap.query.MockContext;
-import io.kyligence.kap.query.exec.QueryEngine;
+import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
+
+import java.util.List;
 
 public class MockEngine implements QueryEngine {
-    @Override
-    public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
-        MockContext.current().setDataContext(dataContext);
-        MockContext.current().setRelDataType(resultType);
-        MockContext.current().setRelNode(relNode);
-
-        return Linq4j.emptyEnumerable();
-    }
 
     @Override
-    public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType) {
-        MockContext.current().setDataContext(dataContext);
-        MockContext.current().setRelDataType(resultType);
-        MockContext.current().setRelNode(relNode);
-        return Linq4j.emptyEnumerable();
+    public List<List<String>> compute(DataContext dataContext, RelNode relNode) {
+        return null;
     }
 }

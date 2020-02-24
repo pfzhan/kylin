@@ -715,6 +715,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
     }
 
+    public boolean runConstantQueryLocally() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.run-constant-query-locally", TRUE));
+    }
+
     /**
      * Kerberos
      */

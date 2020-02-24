@@ -26,9 +26,10 @@ import java.io.File
 import java.nio.file.Paths
 import java.sql.SQLException
 
+import io.kyligence.kap.query.engine.QueryExec
+import scala.util.{Failure, Success, Try}
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.query.QueryConnection
 import org.apache.kylin.query.util.QueryUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -59,10 +60,19 @@ class KylinSession(
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
-    val connection = QueryConnection.getConnection(project)
-    val convertedSql =
-      QueryUtil.massageSql(sql, project, 0, 0, connection.getSchema, true)
-    connection.createStatement().execute(convertedSql)
+    val prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE")
+    try {
+      val queryExec = new QueryExec(project, KylinConfig.getInstanceFromEnv)
+      val convertedSql =
+        QueryUtil.massageSql(sql, project, 0, 0, queryExec.getSchema, true)
+      queryExec.executeQuery(convertedSql)
+    } finally {
+      if (prevRunLocalConf == null) {
+        System.clearProperty("kap.query.engine.run-constant-query-locally")
+      } else {
+        System.setProperty("kap.query.engine.run-constant-query-locally", prevRunLocalConf)
+      }
+    }
     SparderEnv.getDF
   }
 

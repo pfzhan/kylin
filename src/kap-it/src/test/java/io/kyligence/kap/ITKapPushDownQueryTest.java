@@ -38,6 +38,7 @@ import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ import com.google.common.base.Throwables;
 
 import io.kyligence.kap.junit.SparkTestRunner;
 
+@Ignore
 @RunWith(SparkTestRunner.class)
 public class ITKapPushDownQueryTest extends KapTestBase {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";

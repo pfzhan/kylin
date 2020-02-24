@@ -24,16 +24,14 @@
 
 package io.kyligence.kap.query;
 
-import io.kyligence.kap.newten.auto.NSuggestTestBase;
-import io.kyligence.kap.smart.NSmartMaster;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.query.QueryConnection;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import io.kyligence.kap.newten.auto.NSuggestTestBase;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.smart.NSmartMaster;
+import lombok.val;
 
 public class DynamicQueryTest extends NSuggestTestBase {
     private static final String PROJECT = "newten";
@@ -44,12 +42,11 @@ public class DynamicQueryTest extends NSuggestTestBase {
         getTestConfig().setProperty("kylin.query.use-tableindex-answer-non-raw-query", "true");
 
         String sql = "select max(LSTG_SITE_ID/?) from TEST_KYLIN_FACT";
-        val stmt = getConnection().prepareStatement(sql);
-        stmt.setInt(1, 2);
-        val resultSet = stmt.executeQuery();
-        Assert.assertTrue(resultSet.next());
-        val result = resultSet.getInt(1);
-        Assert.assertEquals(105, result);
+        QueryExec queryExec = new QueryExec(PROJECT, KylinConfig.getInstanceFromEnv());
+        queryExec.setPrepareParam(0, 2);
+        val resultSet = queryExec.executeQuery(sql);
+        Assert.assertTrue(resultSet.getRows().size()>0);
+        Assert.assertEquals(resultSet.getRows().get(0).get(0), "105");
     }
 
     @Test
@@ -58,22 +55,17 @@ public class DynamicQueryTest extends NSuggestTestBase {
                 "select * from (select cal_dt, count(*) from test_kylin_fact group by cal_dt order by cal_dt) as test_kylin_fact order by cal_dt" });
 
         String sql = "select * from (select cal_dt, count(*) from test_kylin_fact group by cal_dt order by cal_dt limit ? offset ?) as test_kylin_fact order by cal_dt limit ? offset ?";
-        val stmt = getConnection().prepareStatement(sql);
-        stmt.setInt(1, 100);
-        stmt.setInt(2, 100);
-        stmt.setInt(3, 1);
-        stmt.setInt(4, 10);
-        val resultSet = stmt.executeQuery();
-        Assert.assertTrue(resultSet.next());
-        val date = resultSet.getString(1);
-        val count = resultSet.getInt(2);
+        QueryExec queryExec = new QueryExec(PROJECT, KylinConfig.getInstanceFromEnv());
+        queryExec.setPrepareParam(0, 100);
+        queryExec.setPrepareParam(1, 100);
+        queryExec.setPrepareParam(2, 1);
+        queryExec.setPrepareParam(3, 10);
+        val resultSet = queryExec.executeQuery(sql);
+        Assert.assertEquals(resultSet.getRows().size(), 1);
+        val date = resultSet.getRows().get(0).get(0);
+        val count = resultSet.getRows().get(0).get(1);
         Assert.assertEquals("2012-04-21", date);
-        Assert.assertEquals(16, count);
-        Assert.assertFalse(resultSet.next());
-    }
-
-    private Connection getConnection() throws SQLException {
-        return QueryConnection.getConnection(PROJECT);
+        Assert.assertEquals("16", count);
     }
 
     private void proposeAndBuildIndex(String[] sqls) throws InterruptedException {

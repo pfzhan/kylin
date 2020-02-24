@@ -45,7 +45,6 @@ package org.apache.kylin.query;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 
 import org.apache.commons.cli.CommandLine;
@@ -82,18 +81,18 @@ public class QueryCli {
         Statement stmt = null;
         ResultSet rs = null;
         try {
-            conn = QueryConnection.getConnection(null);
 
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery(sql);
-            int n = 0;
-            ResultSetMetaData meta = rs.getMetaData();
-            while (rs.next()) {
-                n++;
-                for (int i = 1; i <= meta.getColumnCount(); i++) {
-                    System.out.println(n + " - " + meta.getColumnLabel(i) + ":\t" + rs.getObject(i));
-                }
-            }
+            // remove since this class looks deprecated
+//            stmt = conn.createStatement();
+//            rs = stmt.executeQuery(sql);
+//            int n = 0;
+//            ResultSetMetaData meta = rs.getMetaData();
+//            while (rs.next()) {
+//                n++;
+//                for (int i = 1; i <= meta.getColumnCount(); i++) {
+//                    System.out.println(n + " - " + meta.getColumnLabel(i) + ":\t" + rs.getObject(i));
+//                }
+//            }
         } finally {
             DBUtils.closeQuietly(rs);
             DBUtils.closeQuietly(stmt);

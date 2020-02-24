@@ -56,7 +56,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
@@ -74,12 +73,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
-import org.apache.calcite.config.CalciteConnectionConfig;
-import org.apache.calcite.jdbc.CalcitePrepare;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
-import org.apache.calcite.prepare.OnlyPrepareEarlyAbortException;
-import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -160,6 +154,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
+import io.kyligence.kap.metadata.query.StructField;
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
@@ -249,9 +246,9 @@ public class QueryService extends BasicService {
         logger.debug("Query pushdown enabled, redirect the non-select query to pushdown engine.");
         Connection conn = null;
         try {
-            conn = getConnection(sqlRequest.getProject());
+            QueryExec queryExec = newQueryExec(sqlRequest.getProject());
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownNonSelectQuery(
-                    sqlRequest.getProject(), sqlRequest.getSql(), conn.getSchema(), BackdoorToggles.getPrepareOnly());
+                    sqlRequest.getProject(), sqlRequest.getSql(), queryExec.getSchema(), BackdoorToggles.getPrepareOnly());
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
@@ -620,70 +617,69 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
-        try (Connection conn = getConnection(sqlRequest.getProject())) {
-            try {
-                return doTransactionEnabled(() -> {
-                    final boolean hasAdminPermission = AclPermissionUtil.isAdminInProject(sqlRequest.getProject());
-                    String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
-                    QueryContext context = QueryContext.current();
-                    context.setUsername(userInfo);
-                    context.setGroups(AclPermissionUtil.getCurrentUserGroups());
-                    context.setHasAdminPermission(hasAdminPermission);
-                    final Collection<? extends GrantedAuthority> grantedAuthorities = SecurityContextHolder.getContext()
-                            .getAuthentication().getAuthorities();
-                    for (GrantedAuthority grantedAuthority : grantedAuthorities) {
-                        userInfo += ",";
-                        userInfo += grantedAuthority.getAuthority();
-                    }
-
-                    SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
-                    if (null != fakeResponse) {
-                        logger.debug("Return fake response, is exception? " + fakeResponse.isException());
-                        return fakeResponse;
-                    }
-
-                    String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
-                            sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema(), true);
-
-                    QueryContext.current().setCorrectedSql(correctedSql);
-
-                    if (!correctedSql.equals(sqlRequest.getSql())) {
-                        logger.info("The corrected query: {}", correctedSql);
-
-                        //CAUTION: should not change sqlRequest content!
-                        //sqlRequest.setSql(correctedSql);
-                    }
-                    Trace.addTimelineAnnotation("query massaged");
-
-                    // add extra parameters into olap context, like acceptPartial
-                    Map<String, String> parameters = new HashMap<String, String>();
-                    parameters.put(OLAPContext.PRM_USER_AUTHEN_INFO, userInfo);
-                    parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
-                    parameters.put(OLAPContext.PRM_PROJECT_PERMISSION,
-                            hasAdminPermission ? OLAPContext.HAS_ADMIN_PERMISSION : OLAPContext.HAS_EMPTY_PERMISSION);
-                    OLAPContext.setParameters(parameters);
-                    // force clear the query context before a new query
-                    clearThreadLocalContexts();
-                    return execute(correctedSql, sqlRequest, conn);
-                }, sqlRequest.getProject());
-            } catch (TransactionException e) {
-                if (e.getCause() instanceof SQLException) {
-                    return pushDownQuery((SQLException) e.getCause(), sqlRequest, conn);
-                } else {
-                    throw e;
+        QueryExec queryExec = newQueryExec(sqlRequest.getProject());
+        try {
+            return doTransactionEnabled(() -> {
+                final boolean hasAdminPermission = AclPermissionUtil.isAdminInProject(sqlRequest.getProject());
+                String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
+                QueryContext context = QueryContext.current();
+                context.setUsername(userInfo);
+                context.setGroups(AclPermissionUtil.getCurrentUserGroups());
+                context.setHasAdminPermission(hasAdminPermission);
+                final Collection<? extends GrantedAuthority> grantedAuthorities = SecurityContextHolder.getContext()
+                        .getAuthentication().getAuthorities();
+                for (GrantedAuthority grantedAuthority : grantedAuthorities) {
+                    userInfo += ",";
+                    userInfo += grantedAuthority.getAuthority();
                 }
-            } catch (SQLException e) {
-                return pushDownQuery(e, sqlRequest, conn);
+
+                SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
+                if (null != fakeResponse) {
+                    logger.debug("Return fake response, is exception? " + fakeResponse.isException());
+                    return fakeResponse;
+                }
+
+                String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
+                        sqlRequest.getLimit(), sqlRequest.getOffset(), queryExec.getSchema(), true);
+
+                QueryContext.current().setCorrectedSql(correctedSql);
+
+                if (!correctedSql.equals(sqlRequest.getSql())) {
+                    logger.info("The corrected query: {}", correctedSql);
+
+                    //CAUTION: should not change sqlRequest content!
+                    //sqlRequest.setSql(correctedSql);
+                }
+                Trace.addTimelineAnnotation("query massaged");
+
+                // add extra parameters into olap context, like acceptPartial
+                Map<String, String> parameters = new HashMap<String, String>();
+                parameters.put(OLAPContext.PRM_USER_AUTHEN_INFO, userInfo);
+                parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
+                parameters.put(OLAPContext.PRM_PROJECT_PERMISSION,
+                        hasAdminPermission ? OLAPContext.HAS_ADMIN_PERMISSION : OLAPContext.HAS_EMPTY_PERMISSION);
+                OLAPContext.setParameters(parameters);
+                // force clear the query context before a new query
+                clearThreadLocalContexts();
+                return execute(correctedSql, sqlRequest, queryExec);
+            }, sqlRequest.getProject());
+        } catch (TransactionException e) {
+            if (e.getCause() instanceof SQLException) {
+                return pushDownQuery((SQLException) e.getCause(), sqlRequest, queryExec.getSchema());
+            } else {
+                throw e;
             }
+        } catch (SQLException e) {
+            return pushDownQuery(e, sqlRequest, queryExec.getSchema());
         }
     }
 
-    private SQLResponse pushDownQuery(SQLException sqlException, SQLRequest sqlRequest, Connection conn)
+    private SQLResponse pushDownQuery(SQLException sqlException, SQLRequest sqlRequest, String defaultSchema)
             throws SQLException {
         QueryContext.current().setOlapCause(sqlException);
         Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
         try {
-            r = tryPushDownSelectQuery(sqlRequest, conn.getSchema(), sqlException, BackdoorToggles.getPrepareOnly());
+            r = tryPushDownSelectQuery(sqlRequest, defaultSchema, sqlException, BackdoorToggles.getPrepareOnly());
         } catch (Exception e2) {
             logger.error("pushdown engine failed current query too", e2);
             //exception in pushdown, throw it instead of exception in calcite
@@ -701,8 +697,14 @@ public class QueryService extends BasicService {
         OLAPContext.clearThreadLocalContexts();
     }
 
+    @Deprecated
+    // use newQueryExec instead
     public Connection getConnection(String project) throws SQLException {
         return QueryConnection.getConnection(project);
+    }
+
+    public QueryExec newQueryExec(String project) {
+        return new QueryExec(project, KylinConfig.getInstanceFromEnv());
     }
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,
@@ -716,6 +718,7 @@ public class QueryService extends BasicService {
                 sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare);
     }
 
+    // TODO: refactor the getMetatdata method and get table meta from ProjectManager directly
     public List<TableMeta> getMetadata(String project) throws SQLException {
 
         Connection conn = null;
@@ -785,6 +788,7 @@ public class QueryService extends BasicService {
         return filterAuthorized(project, tableMetas, TableMeta.class);
     }
 
+    // TODO: refactor the getMetatdata method and get table meta from ProjectManager directly
     @SuppressWarnings("checkstyle:methodlength")
     public List<TableMetaWithType> getMetadataV2(String project) throws SQLException {
 
@@ -979,6 +983,7 @@ public class QueryService extends BasicService {
         }
     }
 
+    // TODO remove if no need
     protected void processStatementAttr(Statement s, SQLRequest sqlRequest) throws SQLException {
         Integer statementMaxRows = BackdoorToggles.getStatementMaxRows();
         if (statementMaxRows != null) {
@@ -987,13 +992,7 @@ public class QueryService extends BasicService {
         }
     }
 
-    /**
-     * @param correctedSql
-     * @param sqlRequest
-     * @return
-     * @throws Exception
-     */
-    private SQLResponse execute(String correctedSql, SQLRequest sqlRequest, Connection conn) throws Exception {
+    private SQLResponse execute(String correctedSql, SQLRequest sqlRequest, QueryExec queryExec) throws Exception {
         Statement stat = null;
         ResultSet resultSet = null;
         boolean isPushDown = false;
@@ -1005,46 +1004,30 @@ public class QueryService extends BasicService {
 
             // special case for prepare query.
             if (BackdoorToggles.getPrepareOnly()) {
-                return getPrepareOnlySqlResponse(correctedSql, conn, isPushDown, results, columnMetas);
+                return getPrepareOnlySqlResponse(correctedSql, queryExec, isPushDown, results, columnMetas);
             }
+
 
             if (isPrepareStatementWithParams(sqlRequest)) {
-
-                stat = conn.prepareStatement(correctedSql); // to be closed in the finally
-                PreparedStatement prepared = (PreparedStatement) stat;
-                processStatementAttr(prepared, sqlRequest);
                 for (int i = 0; i < ((PrepareSqlRequest) sqlRequest).getParams().length; i++) {
-                    setParam(prepared, i + 1, ((PrepareSqlRequest) sqlRequest).getParams()[i]);
+                    setParam(queryExec, i, ((PrepareSqlRequest) sqlRequest).getParams()[i]);
                 }
-                resultSet = prepared.executeQuery();
-            } else {
-                stat = conn.createStatement();
-                processStatementAttr(stat, sqlRequest);
-                resultSet = stat.executeQuery(correctedSql);
             }
+            // special case for prepare query.
+            QueryResult queryResult = queryExec.executeQuery(correctedSql);
 
-            ResultSetMetaData metaData = resultSet.getMetaData();
-            int columnCount = metaData.getColumnCount();
+            int columnCount = queryResult.getColumns().size();
+            List<StructField> fieldList = queryResult.getColumns();
 
-            // Fill in selected column meta
-            for (int i = 1; i <= columnCount; ++i) {
-                columnMetas.add(new SelectedColumnMeta(metaData.isAutoIncrement(i), metaData.isCaseSensitive(i),
-                        metaData.isSearchable(i), metaData.isCurrency(i), metaData.isNullable(i), metaData.isSigned(i),
-                        metaData.getColumnDisplaySize(i), metaData.getColumnLabel(i), metaData.getColumnName(i),
-                        metaData.getSchemaName(i), metaData.getCatalogName(i), metaData.getTableName(i),
-                        metaData.getPrecision(i), metaData.getScale(i), metaData.getColumnType(i),
-                        metaData.getColumnTypeName(i), metaData.isReadOnly(i), metaData.isWritable(i),
-                        metaData.isDefinitelyWritable(i)));
-            }
+            results.addAll(queryResult.getRows());
 
-            // fill in results
-            while (resultSet.next()) {
-                List<String> oneRow = Lists.newArrayListWithCapacity(columnCount);
-                for (int i = 0; i < columnCount; i++) {
-                    oneRow.add((resultSet.getString(i + 1)));
-                }
-
-                results.add(oneRow);
+            // fill in selected column meta
+            for (int i = 0; i < columnCount; ++i) {
+                int nullable = fieldList.get(i).isNullable() ? 1 : 0;
+                columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, Integer.MAX_VALUE,
+                        fieldList.get(i).getName(), fieldList.get(i).getName(), null, null,
+                        null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
+                        fieldList.get(i).getDataTypeName(), false, false, false));
             }
 
         } finally {
@@ -1058,46 +1041,29 @@ public class QueryService extends BasicService {
         return QueryUtil.makeErrorMsgUserFriendly(e);
     }
 
-    private SQLResponse getPrepareOnlySqlResponse(String correctedSql, Connection conn, Boolean isPushDown,
-            List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
+    private SQLResponse getPrepareOnlySqlResponse(String correctedSql, QueryExec queryExec, Boolean isPushDown,
+                                                  List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
 
         CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
 
         PreparedStatement preparedStatement = null;
         try {
-            preparedStatement = conn.prepareStatement(correctedSql);
-            throw new IllegalStateException("Should have thrown OnlyPrepareEarlyAbortException");
-        } catch (Exception e) {
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause != null && rootCause instanceof OnlyPrepareEarlyAbortException) {
-                OnlyPrepareEarlyAbortException abortException = (OnlyPrepareEarlyAbortException) rootCause;
-                CalcitePrepare.Context context = abortException.getContext();
-                CalcitePrepare.ParseResult preparedResult = abortException.getPreparedResult();
-                List<RelDataTypeField> fieldList = preparedResult.rowType.getFieldList();
+            List<StructField> fields = queryExec.getColumnMetaData(correctedSql);
+            for (int i = 0; i < fields.size(); ++i) {
 
-                CalciteConnectionConfig config = context.config();
+                StructField field = fields.get(i);
+                String columnName = field.getName();
 
-                // Fill in selected column meta
-                for (int i = 0; i < fieldList.size(); ++i) {
-
-                    RelDataTypeField field = fieldList.get(i);
-                    String columnName = field.getKey();
-
-                    if (columnName.startsWith("_KY_")) {
-                        continue;
-                    }
-                    BasicSqlType basicSqlType = (BasicSqlType) field.getValue();
-
-                    columnMetas.add(new SelectedColumnMeta(false, config.caseSensitive(), false, false,
-                            basicSqlType.isNullable() ? 1 : 0, true, basicSqlType.getPrecision(), columnName,
-                            columnName, null, null, null, basicSqlType.getPrecision(),
-                            basicSqlType.getScale() < 0 ? 0 : basicSqlType.getScale(),
-                            basicSqlType.getSqlTypeName().getJdbcOrdinal(), basicSqlType.getSqlTypeName().getName(),
-                            true, false, false));
+                if (columnName.startsWith("_KY_")) {
+                    continue;
                 }
 
-            } else {
-                throw e;
+                columnMetas.add(new SelectedColumnMeta(false, false, false, false,
+                        field.isNullable() ? 1 : 0, true, field.getPrecision(), columnName,
+                        columnName, null, null, null, field.getPrecision(),
+                        Math.max(field.getScale(), 0),
+                        field.getDataType(), field.getDataTypeName(),
+                        true, false, false));
             }
         } finally {
             CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(false);
@@ -1202,12 +1168,12 @@ public class QueryService extends BasicService {
     }
 
     /**
-     * @param preparedState
+     * @param queryExec
+     * @param index 0 based index
      * @param param
      * @throws SQLException
      */
-    private void setParam(PreparedStatement preparedState, int index, PrepareSqlRequest.StateParam param)
-            throws SQLException {
+    private void setParam(QueryExec queryExec, int index, PrepareSqlRequest.StateParam param) {
         boolean isNull = (null == param.getValue());
 
         Class<?> clazz;
@@ -1220,51 +1186,51 @@ public class QueryService extends BasicService {
         Rep rep = Rep.of(clazz);
 
         switch (rep) {
-        case PRIMITIVE_CHAR:
-        case CHARACTER:
-        case STRING:
-            preparedState.setString(index, isNull ? null : String.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_INT:
-        case INTEGER:
-            preparedState.setInt(index, isNull ? 0 : Integer.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_SHORT:
-        case SHORT:
-            preparedState.setShort(index, isNull ? 0 : Short.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_LONG:
-        case LONG:
-            preparedState.setLong(index, isNull ? 0 : Long.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_FLOAT:
-        case FLOAT:
-            preparedState.setFloat(index, isNull ? 0 : Float.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_DOUBLE:
-        case DOUBLE:
-            preparedState.setDouble(index, isNull ? 0 : Double.valueOf(param.getValue()));
-            break;
-        case PRIMITIVE_BOOLEAN:
-        case BOOLEAN:
-            preparedState.setBoolean(index, !isNull && Boolean.parseBoolean(param.getValue()));
-            break;
-        case PRIMITIVE_BYTE:
-        case BYTE:
-            preparedState.setByte(index, isNull ? 0 : Byte.valueOf(param.getValue()));
-            break;
-        case JAVA_UTIL_DATE:
-        case JAVA_SQL_DATE:
-            preparedState.setDate(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
-            break;
-        case JAVA_SQL_TIME:
-            preparedState.setTime(index, isNull ? null : Time.valueOf(param.getValue()));
-            break;
-        case JAVA_SQL_TIMESTAMP:
-            preparedState.setTimestamp(index, isNull ? null : Timestamp.valueOf(param.getValue()));
-            break;
-        default:
-            preparedState.setObject(index, isNull ? null : param.getValue());
+            case PRIMITIVE_CHAR:
+            case CHARACTER:
+            case STRING:
+                queryExec.setPrepareParam(index, isNull ? null : String.valueOf(param.getValue()));
+                break;
+            case PRIMITIVE_INT:
+            case INTEGER:
+                queryExec.setPrepareParam(index, isNull ? 0 : Integer.valueOf(param.getValue()));
+                break;
+            case PRIMITIVE_SHORT:
+            case SHORT:
+                queryExec.setPrepareParam(index, isNull ? 0 : Short.valueOf(param.getValue()));
+                break;
+            case PRIMITIVE_LONG:
+            case LONG:
+                queryExec.setPrepareParam(index, isNull ? 0 : Long.valueOf(param.getValue()));
+                break;
+            case PRIMITIVE_FLOAT:
+            case FLOAT:
+                queryExec.setPrepareParam(index, isNull ? 0 : Float.valueOf(param.getValue()));
+                break;
+            case PRIMITIVE_DOUBLE:
+            case DOUBLE:
+                queryExec.setPrepareParam(index, isNull ? 0 : Double.valueOf(param.getValue()));
+                break;
+            case PRIMITIVE_BOOLEAN:
+            case BOOLEAN:
+                queryExec.setPrepareParam(index, !isNull && Boolean.parseBoolean(param.getValue()));
+                break;
+            case PRIMITIVE_BYTE:
+            case BYTE:
+                queryExec.setPrepareParam(index, isNull ? 0 : Byte.valueOf(param.getValue()));
+                break;
+            case JAVA_UTIL_DATE:
+            case JAVA_SQL_DATE:
+                queryExec.setPrepareParam(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
+                break;
+            case JAVA_SQL_TIME:
+                queryExec.setPrepareParam(index, isNull ? null : Time.valueOf(param.getValue()));
+                break;
+            case JAVA_SQL_TIMESTAMP:
+                queryExec.setPrepareParam(index, isNull ? null : Timestamp.valueOf(param.getValue()));
+                break;
+            default:
+                queryExec.setPrepareParam(index, isNull ? null : param.getValue());
         }
     }
 

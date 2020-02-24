@@ -34,27 +34,14 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.query.exec.QueryEngine;
+import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
 import io.kyligence.kap.query.runtime.plan.ResultPlan;
 import io.kyligence.kap.query.runtime.plan.ResultType;
 
+import java.util.List;
+
 public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);
-
-    @Override
-    public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
-        Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
-        log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
-        return ResultPlan.getResult(sparkPlan, resultType, ResultType.SCALA()).right().get();
-
-    }
-
-    @Override
-    public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType) {
-        Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
-        log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
-        return ResultPlan.getResult(sparkPlan, resultType, ResultType.NORMAL()).left().get();
-    }
 
     private Dataset<Row> toSparkPlan(DataContext dataContext, RelNode relNode) {
         log.info("Begin planning spark plan.");
@@ -66,5 +53,10 @@ public class SparkEngine implements QueryEngine {
         QueryContext.current().record("to_spark_plan");
         log.info("Plan take {} ms", takeTime);
         return calciteToSparkPlaner.getResult();
+    }
+
+    @Override
+    public List<List<String>> compute(DataContext dataContext, RelNode relNode) {
+        return QueryResultBuilder.toQueryResult(toSparkPlan(dataContext, relNode));
     }
 }

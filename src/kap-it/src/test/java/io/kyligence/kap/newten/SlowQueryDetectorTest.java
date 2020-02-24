@@ -126,7 +126,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Assert.fail(error);
         } catch (Exception e) {
             Assert.assertTrue(QueryContext.current().isTimeout());
-            Throwable cause = e.getCause().getCause();
+            Throwable cause = e.getCause();
             Assert.assertTrue(cause instanceof KylinTimeoutException);
             Assert.assertTrue(cause.getMessage().contains("Query timeout after:"));
 

@@ -32,9 +32,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
-import org.dbunit.database.DatabaseConnection;
-import org.dbunit.database.IDatabaseConnection;
-import org.dbunit.dataset.ITable;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -44,6 +41,8 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.data.QueryResult;
 import jersey.repackaged.com.google.common.collect.Lists;
 
 /**
@@ -86,6 +85,7 @@ public class NKapQueryTest extends NKylinTestBase {
         thrown.expectMessage("No realization");
         String x = KylinConfig.getInstanceFromEnv().getPushDownRunnerClassName();
         try {
+            System.setProperty("kap.query.engine.sparder-enabled", "true");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "true");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", "");
 
@@ -127,12 +127,10 @@ public class NKapQueryTest extends NKylinTestBase {
             String query = queries.get(i);
             // execute Kylin
             logger.info("Comparing query at position {} ", i);
-            IDatabaseConnection kylinConn = new DatabaseConnection(cubeConnection);
-            ITable kylinTable = executeQuery(kylinConn, "", query, false);
-            String queriedVersion = String.valueOf(kylinTable.getValue(0, "ret"));
+            QueryResult queryResult = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv()).executeQuery(query);
 
             // compare the result
-            Assert.assertEquals(expectedAnswers.get(i), queriedVersion);
+            Assert.assertEquals(expectedAnswers.get(i), queryResult.getRows().get(0).get(0));
         }
     }
     //

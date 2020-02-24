@@ -66,6 +66,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.LogManager;
 
+import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
@@ -162,6 +163,10 @@ public class KylinTestBase {
     protected static int compQueryCount = 0;
     protected static ArrayList<String> zeroResultQueries = new ArrayList<String>();
     protected static String ITDirHeader = "";
+
+    protected String getProject() {
+        return ProjectInstance.DEFAULT_PROJECT_NAME;
+    }
 
     protected static void closeConnection(Connection connection) {
         if (connection != null) {
@@ -285,12 +290,8 @@ public class KylinTestBase {
         Statement statement = null;
         ResultSet resultSet = null;
         try {
-            logger.info("start running...");
-            statement = cubeConnection.createStatement();
-            resultSet = statement.executeQuery(sql);
-            logger.info("stop running...");
 
-            return output(resultSet, needDisplay);
+            return new QueryExec(getProject(), KylinConfig.getInstanceFromEnv()).executeQuery(sql).getRows().size();
         } catch (SQLException sqlException) {
             Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(
                     ProjectInstance.DEFAULT_PROJECT_NAME, sql, "DEFAULT", sqlException,
@@ -802,7 +803,7 @@ public class KylinTestBase {
 
         //setup cube conn
         String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-        cubeConnection = QueryConnection.getConnection(project);
+//        cubeConnection = QueryConnection.getConnection(project);
 
         //setup h2
         h2Connection = DriverManager.getConnection("jdbc:h2:mem:db" + (h2InstanceCount++) + ";CACHE_SIZE=32072", "sa",

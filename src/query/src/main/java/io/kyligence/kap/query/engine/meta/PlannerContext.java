@@ -22,43 +22,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query;
+package io.kyligence.kap.query.engine.meta;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.query.KylinTestBase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.apache.calcite.config.CalciteConnectionConfig;
+import org.apache.calcite.plan.Context;
 
 /**
+ * a thin wrapper to hold optimizer context
  */
-public class NKylinTestBase extends KylinTestBase {
+public class PlannerContext implements Context {
 
-    private static final Logger logger = LoggerFactory.getLogger(NKylinTestBase.class);
+    private CalciteConnectionConfig connectionConfig;
 
-    protected static void setupAll() throws Exception {
-        //setup env
-        NLocalFileMetadataTestCase.staticCreateTestMetadata();
-        config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
-
-        //setup cube conn
-        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-//        cubeConnection = QueryConnection.getConnection(project);
+    public PlannerContext(CalciteConnectionConfig connectionConfig) {
+        this.connectionConfig = connectionConfig;
     }
-    
+
     @Override
-    protected String getProject() {
-        return ProjectInstance.DEFAULT_PROJECT_NAME;
+    public <T> T unwrap(Class<T> clazz) {
+        if(clazz == PlannerContext.class){
+            return (T) this;
+        } else if (clazz == CalciteConnectionConfig.class) {
+            return (T) connectionConfig;
+        } else{
+            return null;
+        }
     }
-
-    protected static void clean() {
-        if (cubeConnection != null)
-            closeConnection(cubeConnection);
-
-        NLocalFileMetadataTestCase.staticCleanupTestMetadata();
-    }
-
 }

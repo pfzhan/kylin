@@ -22,43 +22,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query;
+package io.kyligence.kap.query.engine.data;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.query.KylinTestBase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.List;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.StructField;
 
-/**
- */
-public class NKylinTestBase extends KylinTestBase {
+public class QueryResult {
 
-    private static final Logger logger = LoggerFactory.getLogger(NKylinTestBase.class);
+    private List<List<String>> rows;
+    private List<StructField> columns;
 
-    protected static void setupAll() throws Exception {
-        //setup env
-        NLocalFileMetadataTestCase.staticCreateTestMetadata();
-        config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.query.security.acl-tcr-enabled", "false");
-
-        //setup cube conn
-        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
-//        cubeConnection = QueryConnection.getConnection(project);
-    }
-    
-    @Override
-    protected String getProject() {
-        return ProjectInstance.DEFAULT_PROJECT_NAME;
+    public QueryResult(List<List<String>> rows, List<StructField> columns) {
+        this.rows = rows;
+        this.columns = columns;
     }
 
-    protected static void clean() {
-        if (cubeConnection != null)
-            closeConnection(cubeConnection);
-
-        NLocalFileMetadataTestCase.staticCleanupTestMetadata();
+    public List<List<String>> getRows() {
+        return rows;
     }
 
+    public List<StructField> getColumns() {
+        return columns;
+    }
 }

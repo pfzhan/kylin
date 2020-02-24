@@ -42,10 +42,33 @@
 
 package org.apache.kylin.rest.service;
 
+import java.io.IOException;
+import java.net.URL;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+
+import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -62,29 +85,6 @@ import io.kyligence.kap.shaded.influxdb.okio.Buffer;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.calcite.sql.validate.SqlValidatorException;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.request.SQLRequest;
-import org.apache.kylin.rest.util.AclEvaluate;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.io.IOException;
-import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 @Slf4j
 public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
@@ -124,17 +124,10 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
         System.clearProperty("kylin.query.cache-enabled");
     }
 
-    private void mockQueryException(QueryService queryService, Throwable throwable) throws Exception {
-        final PreparedStatement statement = Mockito.mock(PreparedStatement.class);
-        Mockito.when(statement.executeQuery(Mockito.anyString())).thenThrow(throwable);
-        Mockito.when(statement.executeQuery()).thenThrow(throwable);
-
-        final Connection connection = Mockito.mock(Connection.class);
-        Mockito.doReturn(statement).when(connection).createStatement();
-        Mockito.doReturn(statement).when(connection).prepareStatement(Mockito.anyString());
-
-        Mockito.doReturn(connection).when(queryService).getConnection(PROJECT);
-
+    private void mockQueryException(QueryService queryService, String sql, Throwable throwable) throws Exception {
+        final QueryExec queryExec = Mockito.mock(QueryExec.class);
+        Mockito.when(queryExec.executeQuery(sql)).thenThrow(throwable);
+        Mockito.when(queryService.newQueryExec(PROJECT)).thenReturn(queryExec);
     }
 
 
@@ -216,17 +209,19 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     public void testSyntaxErrorQuery() throws Exception {
         countDown = new CountDownLatch(1);
         SQLException exception = new SQLException(new SqlValidatorException("sql syntax error", new RuntimeException()));
-        mockQueryException(queryService, exception);
+        String sql1 = "select * from test_kylin_fact";
+        mockQueryException(queryService, sql1, exception);
         SQLRequest request = new SQLRequest();
         request.setProject(PROJECT);
-        request.setSql("select * from test_kylin_fact");
+        request.setSql(sql1);
         queryService.doQueryWithCache(request, false);
 
         countDown.await();
 
         countDown = new CountDownLatch(1);
         exception = new SQLException(new NoRealizationFoundException("time out", new RuntimeException()));
-        mockQueryException(queryService, exception);
+        String sql2 = "select * from test_account";
+        mockQueryException(queryService, sql2, exception);
         request = new SQLRequest();
         request.setProject(PROJECT);
         request.setSql("select * from test_account");

@@ -27,33 +27,20 @@ import java.util.List;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
-import org.apache.calcite.adapter.enumerable.JavaRowFormat;
-import org.apache.calcite.adapter.enumerable.PhysType;
-import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 
 import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.query.exec.SparderMethod;
-import io.kyligence.kap.query.util.QueryContextCutter;
 
 /**
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
  * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
  */
+// TODO remove the converter
 public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel, IKeepNames {
-
-    private static final String SPARDER_CALL_METHOD_NAME = "enumerable";
 
     public KapOLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
         super(cluster, traits, input);
@@ -67,53 +54,9 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
     @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
         //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", this);
-        QueryContext.current().record("end_plan");
-        QueryContext.current().setWithoutSyntaxError(true);
-        List<OLAPContext> contexts = QueryContextCutter.selectRealization(this,
-                BackdoorToggles.getIsQueryFromAutoModeling());
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", this);
-
-        // identify realization for each context
-        doAccessControl(contexts, (KapRel) getInput());
-        // rewrite query if necessary
-        OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
-        rewriteImplementor.visitChild(this, getInput());
-        QueryContext.current().setCalcitePlan(this.copy(getTraitSet(), getInputs()));
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", this);
-
-        boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
-        if (!sparderEnabled) {
-            QueryContext.current().setIsSparderUsed(false);
-            OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
-            EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
-            this.replaceInput(0, inputAsEnum);
-            return impl.visitChild(this, 0, inputAsEnum, pref);
-        } else {
-            QueryContext.current().setIsSparderUsed(true);
-            final PhysType physType = PhysTypeImpl.of(enumImplementor.getTypeFactory(), getRowType(),
-                    pref.preferCustom());
-            final BlockBuilder list = new BlockBuilder();
-
-            KapContext.setKapRel((KapRel) getInput());
-            KapContext.setRowType(getRowType());
-            if (QueryContext.current().isAsyncQuery()) {
-                Expression enumerable = list.append(SPARDER_CALL_METHOD_NAME,
-                        Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
-                list.add(Expressions.return_(null, enumerable));
-                return enumImplementor.result(physType, list.toBlock());
-            }
-            if (physType.getFormat() == JavaRowFormat.SCALAR) {
-                Expression enumerable = list.append(SPARDER_CALL_METHOD_NAME,
-                        Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));
-                list.add(Expressions.return_(null, enumerable));
-            } else {
-                Expression enumerable = list.append(SPARDER_CALL_METHOD_NAME,
-                        Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
-                list.add(Expressions.return_(null, enumerable));
-            }
-            QueryContext.current().record("end_rewrite");
-            return enumImplementor.result(physType, list.toBlock());
-        }
+        OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
+        EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
+        this.replaceInput(0, inputAsEnum);
+        return impl.visitChild(this, 0, inputAsEnum, pref);
     }
 }

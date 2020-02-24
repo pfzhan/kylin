@@ -33,36 +33,15 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
-import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
-import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
-import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
-import org.apache.calcite.rel.rules.DateRangeRules;
-import org.apache.calcite.rel.rules.FilterJoinRule;
-import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
-import org.apache.calcite.rel.rules.JoinCommuteRule;
-import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
-import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
-import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
-import org.apache.calcite.rel.rules.ReduceExpressionsRule;
-import org.apache.calcite.rel.rules.SemiJoinRule;
-import org.apache.calcite.rel.rules.SortJoinTransposeRule;
-import org.apache.calcite.rel.rules.SortUnionTransposeRule;
-import org.apache.calcite.rel.rules.UnionMergeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
-import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPProjectRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
@@ -74,21 +53,6 @@ import org.apache.kylin.query.schema.OLAPTable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.query.optrule.KAPValuesRule;
-import io.kyligence.kap.query.optrule.KapAggregateRule;
-import io.kyligence.kap.query.optrule.KapFilterJoinRule;
-import io.kyligence.kap.query.optrule.KapFilterRule;
-import io.kyligence.kap.query.optrule.KapJoinRule;
-import io.kyligence.kap.query.optrule.KapLimitRule;
-import io.kyligence.kap.query.optrule.KapMinusRule;
-import io.kyligence.kap.query.optrule.KapOLAPToEnumerableConverterRule;
-import io.kyligence.kap.query.optrule.KapProjectMergeRule;
-import io.kyligence.kap.query.optrule.KapProjectRule;
-import io.kyligence.kap.query.optrule.KapSortRule;
-import io.kyligence.kap.query.optrule.KapUnionRule;
-import io.kyligence.kap.query.optrule.KapWindowRule;
-import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
-import io.kyligence.kap.query.optrule.SumConstantConvertRule;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
@@ -108,93 +72,6 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
     @Override
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
         return;
-    }
-
-    @Override
-    public void register(RelOptPlanner planner) {
-        // force clear the query context before traversal relational operators
-        OLAPContext.clearThreadLocalContexts();
-        // register OLAP rules
-        //        addRules(planner, kylinConfig.getCalciteAddRule());
-        // register OLAP rules
-        planner.addRule(KapOLAPToEnumerableConverterRule.INSTANCE);
-        planner.addRule(KapFilterRule.INSTANCE);
-        planner.addRule(KapProjectRule.INSTANCE);
-        planner.addRule(KapAggregateRule.INSTANCE);
-        planner.addRule(KapJoinRule.INSTANCE);
-        planner.addRule(KapLimitRule.INSTANCE);
-        planner.addRule(KapSortRule.INSTANCE);
-        planner.addRule(KapUnionRule.INSTANCE);
-        planner.addRule(KapWindowRule.INSTANCE);
-        planner.addRule(KAPValuesRule.INSTANCE);
-        planner.addRule(KapMinusRule.INSTANCE);
-        planner.removeRule(ProjectMergeRule.INSTANCE);
-        planner.addRule(KapProjectMergeRule.INSTANCE);
-
-        // Support translate the grouping aggregate into union of simple aggregates
-        // if it's the auto-modeling dry run, then do not add the CorrReduceFunctionRule
-        // Todo cherry-pick CORR measure
-        //        if (!KapConfig.getInstanceFromEnv().getSkipCorrReduceRule()) {
-        //            planner.addRule(CorrReduceFunctionRule.INSTANCE);
-        //        }
-        if (KapConfig.getInstanceFromEnv().isSparderEnabled()
-                && KapConfig.getInstanceFromEnv().splitGroupSetsIntoUnion()) {
-            planner.addRule(AggregateMultipleExpandRule.INSTANCE);
-        }
-        planner.addRule(AggregateProjectReduceRule.INSTANCE);
-        planner.addRule(SumConstantConvertRule.INSTANCE);
-
-        // CalcitePrepareImpl.CONSTANT_REDUCTION_RULES
-        if (kylinConfig.isReduceExpressionsRulesEnabled()) {
-            planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
-            planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
-            planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
-            planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
-        }
-        // the ValuesReduceRule breaks query test somehow...
-        //        planner.addRule(ValuesReduceRule.FILTER_INSTANCE);
-        //        planner.addRule(ValuesReduceRule.PROJECT_FILTER_INSTANCE);
-        //        planner.addRule(ValuesReduceRule.PROJECT_INSTANCE);
-
-        removeRules(planner, kylinConfig.getCalciteRemoveRule());
-        if (!kylinConfig.isEnumerableRulesEnabled()) {
-            for (RelOptRule rule : CalcitePrepareImpl.ENUMERABLE_RULES) {
-                planner.removeRule(rule);
-            }
-        }
-        // since join is the entry point, we can't push filter past join
-        planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
-        planner.removeRule(FilterJoinRule.JOIN);
-        planner.addRule(KapFilterJoinRule.KAP_FILTER_ON_JOIN_JOIN);
-        planner.addRule(KapFilterJoinRule.KAP_FILTER_ON_JOIN_SCAN);
-        // since we don't have statistic of table, the optimization of join is too cost
-        planner.removeRule(JoinCommuteRule.INSTANCE);
-        planner.removeRule(JoinPushThroughJoinRule.LEFT);
-        planner.removeRule(JoinPushThroughJoinRule.RIGHT);
-
-        // keep tree structure like filter -> aggregation -> project -> join/table scan, implementOLAP() rely on this tree pattern
-        //        planner.removeRule(AggregateJoinTransposeRule.INSTANCE);
-        planner.removeRule(AggregateProjectMergeRule.INSTANCE);
-        planner.removeRule(FilterProjectTransposeRule.INSTANCE);
-        planner.removeRule(SortJoinTransposeRule.INSTANCE);
-        planner.removeRule(JoinPushExpressionsRule.INSTANCE);
-        planner.removeRule(SortUnionTransposeRule.INSTANCE);
-        planner.removeRule(JoinUnionTransposeRule.LEFT_UNION);
-        planner.removeRule(JoinUnionTransposeRule.RIGHT_UNION);
-        planner.removeRule(AggregateUnionTransposeRule.INSTANCE);
-        planner.removeRule(DateRangeRules.FILTER_INSTANCE);
-        planner.removeRule(SemiJoinRule.JOIN);
-        planner.removeRule(SemiJoinRule.PROJECT);
-        // distinct count will be split into a separated query that is joined with the left query
-        planner.removeRule(AggregateExpandDistinctAggregatesRule.INSTANCE);
-
-        // see Dec 26th email @ http://mail-archives.apache.org/mod_mbox/calcite-dev/201412.mbox/browser
-        planner.removeRule(ExpandConversionRule.INSTANCE);
-        // convert all right joins to left join since we only support left joins in model
-        planner.addRule(RightJoinToLeftJoinRule.INSTANCE);
-        // UnionMergeRule may slow volcano planner optimization on large number of union clause
-        // see KAP#16036
-        planner.removeRule(UnionMergeRule.INSTANCE);
     }
 
     @Override

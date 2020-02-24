@@ -22,8 +22,9 @@
 
 package io.kyligence.kap.common
 
+import io.kyligence.kap.query.engine.QueryExec
 import org.apache.commons.lang3.StringUtils
-import org.apache.kylin.query.QueryConnection
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.query.util.QueryUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{SharedSparkSession, SparderQueryTest}
@@ -57,10 +58,19 @@ trait QuerySupport
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
-    val connection = QueryConnection.getConnection(project)
-    val convertedSql =
-      QueryUtil.massageSql(sql, project, 0, 0, connection.getSchema, true)
-    connection.createStatement().execute(convertedSql)
+    val prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE")
+    try {
+      val queryExec = new QueryExec(project, KylinConfig.getInstanceFromEnv)
+      val convertedSql =
+        QueryUtil.massageSql(sql, project, 0, 0, queryExec.getSchema, true)
+      queryExec.executeQuery(convertedSql)
+    } finally {
+      if (prevRunLocalConf == null) {
+        System.clearProperty("kap.query.engine.run-constant-query-locally")
+      } else {
+        System.setProperty("kap.query.engine.run-constant-query-locally", prevRunLocalConf)
+      }
+    }
     SparderEnv.getDF
   }
 

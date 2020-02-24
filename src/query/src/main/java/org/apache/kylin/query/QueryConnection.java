@@ -53,6 +53,16 @@ import org.apache.kylin.query.schema.OLAPSchemaFactory;
 
 public class QueryConnection {
 
+    /**
+     * This class is only for the use of fetch table metadata in QueryService
+     * and will be removed completely in the future
+     * DO NOT use it for query or any other purpose
+     * For query, use QueryExec instead
+     * @param project
+     * @return
+     * @throws SQLException
+     */
+    @Deprecated
     public static Connection getConnection(String project) throws SQLException {
 
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(project, KylinConfig.getInstanceFromEnv());

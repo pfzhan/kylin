@@ -21,41 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.exec;
 
-import java.lang.reflect.Method;
-import java.util.HashMap;
+package io.kyligence.kap.query.engine.meta;
 
-import org.apache.calcite.DataContext;
-import org.apache.calcite.linq4j.tree.Types;
+import java.util.Properties;
+
+import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.NullCollation;
+import org.apache.kylin.common.KylinConfig;
 
 /**
- * Built-in methods in the Spark adapter.
- *
- * @see org.apache.calcite.util.BuiltInMethod
+ * wrapper for calcite configs defined in kylin props
  */
-public enum SparderMethod {
-    COLLECT(SparkExec.class, "collectToEnumerable", DataContext.class), //
-    COLLECT_SCALAR(SparkExec.class, "collectToScalarEnumerable", DataContext.class),
-    ASYNC_RESULT(SparkExec.class, "asyncResult", DataContext.class);
+public class KECalciteConfig extends CalciteConnectionConfigImpl {
 
-    private static final HashMap<Method, SparderMethod> MAP = new HashMap<Method, SparderMethod>();
-
-    static {
-        for (SparderMethod method : SparderMethod.values()) {
-            MAP.put(method.method, method);
-        }
+    private KECalciteConfig(Properties properties) {
+        super(properties);
     }
 
-    public final Method method;
-
-    SparderMethod(Class clazz, String methodName, Class... argumentTypes) {
-        this.method = Types.lookupMethod(clazz, methodName, argumentTypes);
+    public static KECalciteConfig fromKapConfig(KylinConfig kylinConfig) {
+        Properties props = new Properties();
+        props.putAll(kylinConfig.getCalciteExtrasProperties());
+        return new KECalciteConfig(props);
     }
 
-    public static SparderMethod lookup(Method method) {
-        return MAP.get(method);
+    @Override
+    public NullCollation defaultNullCollation() {
+        return NullCollation.LOW;
+    }
+
+    @Override
+    public boolean caseSensitive() {
+        return false;
     }
 }
-
-// End SparkMethod.java
