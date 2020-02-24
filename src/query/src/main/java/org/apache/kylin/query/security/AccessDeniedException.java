@@ -42,8 +42,35 @@
 
 package org.apache.kylin.query.security;
 
+import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+
 public class AccessDeniedException extends RuntimeException {
     public AccessDeniedException(String s) {
         super("Query failed, access " + s + " denied");
+    }
+
+    private static String pasteToErrorMsg(Set<String> unautorizedTables, Set<String> unautorizedColumns) {
+        StringBuilder errMsg = new StringBuilder("Query failed. You are not authorized to ");
+        if (!unautorizedTables.isEmpty()) {
+            String unautorizedTableStr = StringUtils.join(unautorizedTables, ",");
+            errMsg.append("tables ");
+            errMsg.append(unautorizedTableStr);
+        }
+        if (!unautorizedColumns.isEmpty()) {
+            if (!unautorizedTables.isEmpty()) {
+                errMsg.append(", ");
+            }
+            String unautorizedColumnStr = StringUtils.join(unautorizedColumns, ",");
+            errMsg.append("columns ");
+            errMsg.append(unautorizedColumnStr);
+        }
+        errMsg.append(".");
+        return errMsg.toString();
+    }
+
+    public AccessDeniedException(Set<String> unautorizedTables, Set<String> unautorizedColumns) {
+        super(pasteToErrorMsg(unautorizedTables, unautorizedColumns));
     }
 }

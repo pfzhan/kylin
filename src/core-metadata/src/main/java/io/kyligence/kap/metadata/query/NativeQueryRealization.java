@@ -26,6 +26,9 @@ package io.kyligence.kap.metadata.query;
 
 import java.io.Serializable;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
+import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,6 +45,11 @@ public class NativeQueryRealization implements Serializable {
     private String indexType;
     private boolean isPartialMatchModel;
     private boolean isValid = true;
+
+    @JsonUnwrapped
+    @Getter
+    @Setter
+    private NDataModelAclParams aclParams;
 
     public NativeQueryRealization(String modelId, String modelAlias, long layoutId, String indexType,
             boolean isPartialMatchModel) {

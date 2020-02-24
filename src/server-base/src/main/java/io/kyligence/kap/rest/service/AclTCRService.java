@@ -58,6 +58,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
@@ -109,19 +110,21 @@ public class AclTCRService extends BasicService {
     public List<AclTCRResponse> getAclTCRResponse(String project, String sid, boolean principal,
             boolean authorizedOnly) {
         aclEvaluate.checkProjectAdminPermission(project);
-        AclTCR authorized = getAclTCRManager(project).getAclTCR(sid, principal);
+        AclTCRManager aclTCRManager = getAclTCRManager(project);
+        AclTCR authorized = aclTCRManager.getAclTCR(sid, principal);
         if (Objects.isNull(authorized)) {
             return Lists.newArrayList();
         }
         if (Objects.isNull(authorized.getTable())) {
             //default all tables were authorized
-            return getAclTCRResponse(getAllDbAclTable(project));
+            return getAclTCRResponse(aclTCRManager.getAllDbAclTable(project));
         }
         if (authorizedOnly) {
-            return tagTableNum(getAclTCRResponse(getDbAclTable(project, authorized)), getDbTblColNum(project));
+            return tagTableNum(getAclTCRResponse(aclTCRManager.getDbAclTable(project, authorized)),
+                    getDbTblColNum(project));
         }
         //all tables with authorized tcr tagged
-        return getAclTCRResponse(project, getDbAclTable(project, authorized));
+        return getAclTCRResponse(project, aclTCRManager.getDbAclTable(project, authorized));
     }
 
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
@@ -204,7 +207,7 @@ public class AclTCRService extends BasicService {
     }
 
     private List<AclTCRResponse> getAclTCRResponse(String project, final TreeMap<String, AclTCR.Table> authorized) {
-        return getAllDbAclTable(project).entrySet().stream().map(de -> {
+        return getAclTCRManager(project).getAllDbAclTable(project).entrySet().stream().map(de -> {
             AclTCRResponse response = new AclTCRResponse();
             response.setDatabaseName(de.getKey());
             response.setAuthorizedTableNum(
@@ -250,58 +253,6 @@ public class AclTCRService extends BasicService {
             row.setItems(Lists.newArrayList(entry.getValue()));
             return row;
         }).collect(Collectors.toList());
-    }
-
-    private TreeMap<String, AclTCR.Table> getDbAclTable(String project, AclTCR authorized) {
-        if (Objects.isNull(authorized)) {
-            return Maps.newTreeMap();
-        }
-        if (Objects.isNull(authorized.getTable())) {
-            return getAllDbAclTable(project);
-        }
-        TreeMap<String, AclTCR.Table> db2AclTable = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
-        authorized.getTable().forEach((dbTblName, cr) -> {
-            TableDesc tableDesc = getTableManager(project).getTableDesc(dbTblName);
-            if (!db2AclTable.containsKey(tableDesc.getDatabase())) {
-                db2AclTable.put(tableDesc.getDatabase(), new AclTCR.Table());
-            }
-
-            if (Objects.isNull(cr) || Objects.isNull(cr.getColumn())) {
-                AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
-                AclTCR.Column aclColumn = new AclTCR.Column();
-                aclColumn.addAll(getTableColumns(tableDesc));
-                columnRow.setColumn(aclColumn);
-                if (Objects.nonNull(cr)) {
-                    columnRow.setRow(cr.getRow());
-                }
-                db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), columnRow);
-            } else {
-                db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), cr);
-            }
-        });
-        return db2AclTable;
-    }
-
-    private List<String> getTableColumns(TableDesc t) {
-        return Optional.ofNullable(t.getColumns()).map(Arrays::stream).orElseGet(Stream::empty).map(ColumnDesc::getName)
-                .collect(Collectors.toList());
-    }
-
-    private TreeMap<String, AclTCR.Table> getAllDbAclTable(String project) {
-        TreeMap<String, AclTCR.Table> db2AclTable = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
-        getTableManager(project).listAllTables().stream()
-                .filter(t -> StringUtils.isNotEmpty(t.getDatabase()) && StringUtils.isNotEmpty(t.getName()))
-                .forEach(t -> {
-                    AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
-                    AclTCR.Column aclColumn = new AclTCR.Column();
-                    aclColumn.addAll(getTableColumns(t));
-                    columnRow.setColumn(aclColumn);
-                    if (!db2AclTable.containsKey(t.getDatabase())) {
-                        db2AclTable.put(t.getDatabase(), new AclTCR.Table());
-                    }
-                    db2AclTable.get(t.getDatabase()).put(t.getName(), columnRow);
-                });
-        return db2AclTable;
     }
 
     private List<AclTCRResponse> tagTableNum(List<AclTCRResponse> responses,

@@ -1954,4 +1954,10 @@ public abstract class KylinConfigBase implements Serializable {
         String engineWriteFs = getOptional("kylin.env.engine-write-fs", "");
         return StringUtil.dropSuffix(engineWriteFs, File.separator);
     }
+
+    public boolean isAllowedProjectAdminGrantAcl() {
+        String option = getOptional("kylin.security.allow-project-admin-grant-acl", "true");
+        return !FALSE.equals(option);
+    }
+
 }

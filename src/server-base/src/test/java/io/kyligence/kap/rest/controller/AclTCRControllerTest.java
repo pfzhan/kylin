@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.io.IOException;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -53,8 +55,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
 public class AclTCRControllerTest {
 
     private MockMvc mockMvc;
@@ -79,8 +79,8 @@ public class AclTCRControllerTest {
     @Before
     public void setup() throws IOException {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(aclTCRController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(aclTCRController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -163,5 +163,17 @@ public class AclTCRControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(aclTCRController).updateProject("group", "g1", "default", Lists.newArrayList());
+    }
+
+    @Test
+    public void testGetAllowModifyAcl() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/acl/updatable") //
+                .param("project", "default") //
+                .content(JsonUtil.writeValueAsBytes(Lists.<AclTCRRequest> newArrayList())) //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(aclTCRController).getAllowAclUpdatable("default");
+
     }
 }

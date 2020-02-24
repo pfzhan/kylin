@@ -28,13 +28,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -155,4 +156,9 @@ public class NDataModelResponse extends NDataModel {
     @Getter
     @Setter
     private NDataModelOldParams oldParams;
+
+    @JsonUnwrapped
+    @Getter
+    @Setter
+    private NDataModelAclParams aclParams;
 }

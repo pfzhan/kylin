@@ -38,6 +38,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -101,6 +102,7 @@ public class AclTCRController extends NBasicController {
             @RequestParam("project") String project, //
             @RequestBody List<AclTCRRequest> requests) throws IOException {
         checkProjectName(project);
+        AclPermissionUtil.checkAclUpdatable(project);
         if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             updateSidAclTCR(project, sid, true, requests);
         } else if (sidType.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
@@ -108,6 +110,13 @@ public class AclTCRController extends NBasicController {
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @GetMapping(value = "/updatable")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> getAllowAclUpdatable(@RequestParam("project") String project) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AclPermissionUtil.isAclUpdatable(project),
+                "");
     }
 
     private List<AclTCRResponse> getProjectSidTCR(String project, String sid, boolean principal, boolean authorizedOnly)

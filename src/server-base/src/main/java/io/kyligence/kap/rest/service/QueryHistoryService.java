@@ -45,6 +45,7 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -60,6 +61,7 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
 
@@ -70,6 +72,10 @@ public class QueryHistoryService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
+
+    @Autowired
+    @Qualifier("modelService")
+    private ModelService modelService;
 
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
@@ -107,8 +113,11 @@ public class QueryHistoryService extends BasicService {
             List<NativeQueryRealization> realizations = Lists.newArrayList();
             query.transformRealizations().forEach(realization -> {
                 if (modelAliasMap.containsValue(realization.getModelId())) {
-                    String alias = dataModelManager.getDataModelDesc(realization.getModelId()).getAlias();
-                    realization.setModelAlias(alias);
+                    NDataModel nDataModel = dataModelManager.getDataModelDesc(realization.getModelId());
+                    NDataModelResponse model = (NDataModelResponse) modelService
+                            .updateReponseAcl(new NDataModelResponse(nDataModel), request.getProject());
+                    realization.setModelAlias(model.getAlias());
+                    realization.setAclParams(model.getAclParams());
                     realizations.add(realization);
                 } else {
                     realization.setValid(false);

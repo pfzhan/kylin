@@ -117,6 +117,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Function;
@@ -136,6 +137,8 @@ import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
@@ -160,6 +163,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
@@ -170,6 +174,7 @@ import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -915,8 +920,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testMultipleModelContextSelectedTheSameModel() {
-        val sqls = Lists.newArrayList(
-                "select order_id, count(*) from test_order group by order_id limit 1",
+        val sqls = Lists.newArrayList("select order_id, count(*) from test_order group by order_id limit 1",
                 "select cal_dt, count(*) from edw.test_cal_dt group by cal_dt limit 1",
                 "SELECT count(*) \n" + "FROM \n" + "\"DEFAULT\".\"TEST_KYLIN_FACT\" as \"TEST_KYLIN_FACT\" \n"
                         + "INNER JOIN \"DEFAULT\".\"TEST_ORDER\" as \"TEST_ORDER\"\n"
@@ -941,19 +945,27 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, response.getOriginModels().size());
         Assert.assertEquals(0, response.getNewModels().size());
         Assert.assertEquals(3, response.getOriginModels().get(0).getSqls().size());
-        Assert.assertEquals(0, response.getOriginModels().get(0).getRecommendationResponse().getDimensionRecommendations().size());
-        Assert.assertEquals(0, response.getOriginModels().get(0).getRecommendationResponse().getMeasureRecommendations().size());
-        Assert.assertEquals(0, response.getOriginModels().get(0).getRecommendationResponse().getCcRecommendations().size());
-        Assert.assertEquals(1, response.getOriginModels().get(0).getRecommendationResponse().getIndexRecommendations().size());
+        Assert.assertEquals(0,
+                response.getOriginModels().get(0).getRecommendationResponse().getDimensionRecommendations().size());
+        Assert.assertEquals(0,
+                response.getOriginModels().get(0).getRecommendationResponse().getMeasureRecommendations().size());
+        Assert.assertEquals(0,
+                response.getOriginModels().get(0).getRecommendationResponse().getCcRecommendations().size());
+        Assert.assertEquals(1,
+                response.getOriginModels().get(0).getRecommendationResponse().getIndexRecommendations().size());
 
         val response2 = modelService.suggestModel(getProject(), sqls.subList(0, 2), true);
         Assert.assertEquals(1, response2.getOriginModels().size());
         Assert.assertEquals(0, response2.getNewModels().size());
         Assert.assertEquals(2, response2.getOriginModels().get(0).getSqls().size());
-        Assert.assertEquals(0, response.getOriginModels().get(0).getRecommendationResponse().getDimensionRecommendations().size());
-        Assert.assertEquals(0, response.getOriginModels().get(0).getRecommendationResponse().getMeasureRecommendations().size());
-        Assert.assertEquals(0, response.getOriginModels().get(0).getRecommendationResponse().getCcRecommendations().size());
-        Assert.assertEquals(1, response.getOriginModels().get(0).getRecommendationResponse().getIndexRecommendations().size());
+        Assert.assertEquals(0,
+                response.getOriginModels().get(0).getRecommendationResponse().getDimensionRecommendations().size());
+        Assert.assertEquals(0,
+                response.getOriginModels().get(0).getRecommendationResponse().getMeasureRecommendations().size());
+        Assert.assertEquals(0,
+                response.getOriginModels().get(0).getRecommendationResponse().getCcRecommendations().size());
+        Assert.assertEquals(1,
+                response.getOriginModels().get(0).getRecommendationResponse().getIndexRecommendations().size());
     }
 
     private void prepareTwoOnlineModels() {
@@ -3716,5 +3728,46 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val res = modelService.getModels(alias, getProject(), false, "", null, "last_modify", true);
         Assert.assertEquals(1, res.size());
         Assert.assertEquals(4, res.get(0).getAvailableIndexesCount());
+    }
+
+    @Test
+    public void testUpdateReponseAcl() {
+        List<NDataModel> models = new ArrayList<>();
+        models.addAll(modelService.getModels("", "default", false, "", null, "last_modify", true));
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        val adminModels = modelService.updateReponseAcl(models, "default");
+        for (val model : adminModels) {
+            Assert.assertTrue(((NDataModelResponse) model).getAclParams().isVisible());
+            Assert.assertEquals(0, ((NDataModelResponse) model).getAclParams().getUnauthorizedTables().size());
+            Assert.assertEquals(0, ((NDataModelResponse) model).getAclParams().getUnauthorizedColumns().size());
+        }
+        val table = NTableMetadataManager.getInstance(getTestConfig(), "default").getTableDesc("DEFAULT.TEST_ENCODING");
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), "default");
+        AclTCR acl = new AclTCR();
+        AclTCR.Table aclTable = new AclTCR.Table();
+        AclTCR.ColumnRow aclColumnRow = new AclTCR.ColumnRow();
+        AclTCR.Column aclColumns = new AclTCR.Column();
+        Arrays.stream(table.getColumns()).forEach(x -> aclColumns.add(x.getName()));
+        aclColumnRow.setColumn(aclColumns);
+        aclTable.put("DEFAULT.TEST_ENCODING", aclColumnRow);
+        acl.setTable(aclTable);
+        manager.updateAclTCR(acl, "user", true);
+        BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+        val user = new ManagedUser("user", pwdEncoder.encode("pw"), false);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken(user, "ANALYST", Constant.ROLE_ANALYST));
+        val noAdminModels = modelService.updateReponseAcl(models, "default");
+        for (val model : noAdminModels) {
+            if (model.getAlias().equals("test_encoding")) {
+                Assert.assertTrue(((NDataModelResponse) model).getAclParams().isVisible());
+                Assert.assertEquals(0, ((NDataModelResponse) model).getAclParams().getUnauthorizedTables().size());
+                Assert.assertEquals(0, ((NDataModelResponse) model).getAclParams().getUnauthorizedColumns().size());
+            } else {
+                Assert.assertFalse(((NDataModelResponse) model).getAclParams().isVisible());
+                Assert.assertTrue(((NDataModelResponse) model).getAclParams().getUnauthorizedTables().size() > 0);
+            }
+        }
+
     }
 }

@@ -21,53 +21,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.metadata.acl;
 
-package io.kyligence.kap.rest.response;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.kyligence.kap.metadata.acl.NDataModelAclParams;
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import com.google.common.collect.Sets;
 
-import java.util.HashMap;
-import java.util.Map;
+import lombok.Data;
 
-@Setter
-@Getter
-public class RelatedModelResponse extends NDataModel {
+@Data
+public class NDataModelAclParams {
+    @JsonProperty("unauthorized_tables")
+    private Set<String> unauthorizedTables = Sets.newHashSet();
 
-    @JsonProperty("status")
-    private RealizationStatusEnum status;
-    @JsonProperty("segment_ranges")
-    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
-    @JsonProperty("has_error_jobs")
-    private boolean hasErrorJobs;
+    @JsonProperty("unauthorized_columns")
+    private Set<String> unauthorizedColumns = Sets.newHashSet();
 
-    public RelatedModelResponse() {
-        super();
+    @JsonProperty("visible")
+    public boolean isVisible() {
+        return unauthorizedTables.isEmpty() && unauthorizedColumns.isEmpty();
     }
-
-    public RelatedModelResponse(NDataModel dataModel) {
-        super(dataModel);
-        this.setMvcc(dataModel.getMvcc());
-    }
-
-    /**
-     * for 3x rest api
-     */
-    @JsonUnwrapped
-    @Getter
-    @Setter
-    private NDataModelOldParams oldParams;
-
-    @JsonUnwrapped
-    @Getter
-    @Setter
-    private NDataModelAclParams aclParams;
 
 }

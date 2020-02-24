@@ -38,6 +38,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.var;
 
 public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
 
@@ -334,5 +335,48 @@ public class AclTCRManagerTest extends NLocalFileMetadataTestCase {
         table.put(dbTblUnload, null);
         acl.setTable(table);
         return acl;
+    }
+
+    @Test
+    public void testGetAllUnauthorizedTableColumn() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
+        prepareBasic(manager);
+
+        Map<String, Set<String>> tableColumns = Maps.newHashMap();
+        Set<String> columns1 = Sets.newHashSet();
+        columns1.addAll(Arrays.asList("c1", "c2", "c3", "c4", "c5"));
+        tableColumns.put(user1 + ".t1", columns1);
+        tableColumns.put(user1 + ".t2", null);
+        var result = manager.getAllUnauthorizedTableColumn(user1, Sets.newHashSet(group1), null);
+        Assert.assertTrue(result.getTables().size() == 0 && result.getColumns().size() == 0);
+        result = manager.getAllUnauthorizedTableColumn(user1, Sets.newHashSet(group1), tableColumns);
+        Assert.assertTrue(result.getTables().size() == 0 && result.getColumns().size() == 0);
+        result = manager.getAllUnauthorizedTableColumn(allAuthorizedUser1, Sets.newHashSet(allAuthorizedGroup1),
+                tableColumns);
+        Assert.assertTrue(result.getTables().size() == 0 && result.getColumns().size() == 0);
+
+        Set<String> columns2 = Sets.newHashSet();
+        columns2.addAll(Arrays.asList("c1", "c2", "c3", "c4", "c5", "c6"));
+        tableColumns.put(group1 + ".t1", columns2);
+        tableColumns.put(group1 + ".t2", null);
+        result = manager.getAllUnauthorizedTableColumn(user1, Sets.newHashSet(group1), tableColumns);
+        Assert.assertTrue(result.getTables().size() == 0 && result.getColumns().size() == 1
+                && result.getColumns().contains("g1.t1.c6"));
+
+        tableColumns.put(group1 + ".t0", null);
+        result = manager.getAllUnauthorizedTableColumn(user1, Sets.newHashSet(group1), tableColumns);
+        Assert.assertTrue(result.getTables().size() == 1 && result.getTables().contains("g1.t0")
+                && result.getColumns().size() == 1 && result.getColumns().contains("g1.t1.c6"));
+    }
+
+    @Test
+    public void testGetAuthTablesAndColumns() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), projectDefault);
+        var result = manager.getAuthTablesAndColumns(projectDefault, user1, true);
+        Assert.assertTrue(result.getTables().size() == 0 && result.getColumns().size() == 0);
+        manager.updateAclTCR(new AclTCR(), user1, true);
+        result = manager.getAuthTablesAndColumns(projectDefault, user1, true);
+        Assert.assertTrue(result.getTables().contains("DEFAULT.TEST_COUNTRY")
+                && result.getColumns().contains("DEFAULT.TEST_CATEGORY_GROUPINGS.BSNS_VRTCL_NAME"));
     }
 }

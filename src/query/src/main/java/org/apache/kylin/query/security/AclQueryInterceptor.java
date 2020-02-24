@@ -57,6 +57,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.acl.AclTCRDigest;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 
 public class AclQueryInterceptor {
@@ -97,10 +98,12 @@ public class AclQueryInterceptor {
             });
         });
 
-        AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project).failFastUnauthorizedTableColumn(
-                getUsername(contexts), Sets.newHashSet(getGroups(contexts)), dbTblColumns).ifPresent(identifier -> {
-                    throw new AccessDeniedException(identifier);
-                });
+        AclTCRDigest unauthTableAndColumn = AclTCRManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getAllUnauthorizedTableColumn(getUsername(contexts), Sets.newHashSet(getGroups(contexts)),
+                        dbTblColumns);
+        if (!unauthTableAndColumn.getTables().isEmpty() || !unauthTableAndColumn.getColumns().isEmpty()) {
+            throw new AccessDeniedException(unauthTableAndColumn.getTables(), unauthTableAndColumn.getColumns());
+        }
     }
 
     private static void handleCC(String project, ColumnDesc columnDesc, final Map<String, Set<String>> dbTblColumns) {
@@ -129,6 +132,7 @@ public class AclQueryInterceptor {
         if (CollectionUtils.isEmpty(contexts)) {
             return false;
         }
-        return getGroups(contexts).stream().anyMatch(Constant.ROLE_ADMIN::equals) || contexts.get(0).isHasAdminPermission();
+        return getGroups(contexts).stream().anyMatch(Constant.ROLE_ADMIN::equals)
+                || contexts.get(0).isHasAdminPermission();
     }
 }

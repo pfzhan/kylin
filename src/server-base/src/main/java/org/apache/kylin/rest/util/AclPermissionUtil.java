@@ -52,6 +52,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
@@ -214,6 +215,23 @@ public class AclPermissionUtil {
             return ((PrincipalSid) sid).getPrincipal();
         } else {
             return ((GrantedAuthoritySid) sid).getGrantedAuthority();
+        }
+    }
+
+    public static boolean isAclUpdatable(String project) {
+        return (isAdmin()
+                || (isAdminInProject(project) && KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()));
+    }
+
+    public static void checkAclUpdatable(String project) {
+        if (!AclPermissionUtil.isAclUpdatable(project)) {
+            if (KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()) {
+                throw new BadRequestException(
+                        "Access Denied, only system and project administrators can edit users' tables, columns, and rows permissions");
+            } else {
+                throw new BadRequestException(
+                        "Access Denied, only system administrators can edit users' tables, columns, and rows permissions");
+            }
         }
     }
 }

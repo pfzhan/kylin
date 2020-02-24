@@ -58,6 +58,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.JoinedFlatTable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -77,6 +78,7 @@ import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.HivePushDownConverter;
@@ -107,6 +109,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeForWeb;
@@ -2366,5 +2369,68 @@ public class ModelService extends BasicService {
                 model.setOwner(auth.getPrincipal().toString());
             }
         }
+    }
+
+    public List<NDataModel> updateReponseAcl(List<NDataModel> models, String project) {
+        if (AclPermissionUtil.isAdmin() || AclPermissionUtil.isAdminInProject(project)) {
+            for (val model : models) {
+                NDataModelAclParams aclParams = new NDataModelAclParams();
+                aclParams.setUnauthorizedTables(Sets.newHashSet());
+                aclParams.setUnauthorizedColumns(Sets.newHashSet());
+                if (model instanceof NDataModelResponse) {
+                    ((NDataModelResponse) model).setAclParams(aclParams);
+                } else if (model instanceof RelatedModelResponse) {
+                    ((RelatedModelResponse) model).setAclParams(aclParams);
+                }
+            }
+            return models;
+        }
+        String username = AclPermissionUtil.getCurrentUsername();
+        Set<String> allAuthTables = Sets.newHashSet();
+        Set<String> allAuthColumns = Sets.newHashSet();
+        var auths = getAclTCRManager(project).getAuthTablesAndColumns(project, username, true);
+        allAuthTables.addAll(auths.getTables());
+        allAuthColumns.addAll(auths.getColumns());
+        Set<String> groups = AclPermissionUtil.getCurrentUserGroups();
+        for (val group : groups) {
+            auths = getAclTCRManager(project).getAuthTablesAndColumns(project, group, false);
+            allAuthTables.addAll(auths.getTables());
+            allAuthColumns.addAll(auths.getColumns());
+        }
+        List<NDataModel> normalModel = new ArrayList<>();
+        List<NDataModel> noVisibleModel = new ArrayList<>();
+        for (val model : models) {
+            Set<String> tablesNoAcl = Sets.newHashSet();
+            Set<String> columnsNoAcl = Sets.newHashSet();
+            Set<String> tables = Sets.newHashSet();
+            model.getJoinTables().forEach(table -> tables.add(table.getTable()));
+            tables.add(model.getRootFactTableName());
+            tables.stream().filter(table -> !allAuthTables.contains(table)).forEach(table -> tablesNoAcl.add(table));
+            for (String table : tables) {
+                if (!allAuthTables.contains(table))
+                    continue;
+                ColumnDesc[] columnDescs = NTableMetadataManager.getInstance(getConfig(), project).getTableDesc(table)
+                        .getColumns();
+                Arrays.stream(columnDescs).map(column -> table + "." + column.getName())
+                        .filter(column -> !allAuthColumns.contains(column)).forEach(column -> columnsNoAcl.add(column));
+            }
+            NDataModelAclParams aclParams = new NDataModelAclParams();
+            aclParams.setUnauthorizedTables(tablesNoAcl);
+            aclParams.setUnauthorizedColumns(columnsNoAcl);
+            if (model instanceof NDataModelResponse) {
+                ((NDataModelResponse) model).setAclParams(aclParams);
+            } else if (model instanceof RelatedModelResponse) {
+                ((RelatedModelResponse) model).setAclParams(aclParams);
+            }
+            (aclParams.isVisible() ? normalModel : noVisibleModel).add(model);
+        }
+        List<NDataModel> result = new ArrayList<>(normalModel);
+        result.addAll(noVisibleModel);
+        return result;
+    }
+
+    public NDataModel updateReponseAcl(NDataModel model, String project) {
+        List<NDataModel> models = updateReponseAcl(Arrays.asList(model), project);
+        return models.get(0);
     }
 }

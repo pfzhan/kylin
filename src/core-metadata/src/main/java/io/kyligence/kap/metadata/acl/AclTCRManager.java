@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -52,6 +53,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import lombok.val;
 
 public class AclTCRManager {
 
@@ -229,6 +231,42 @@ public class AclTCRManager {
         }).filter(Optional::isPresent).findAny().orElse(Optional.empty());
     }
 
+    public AclTCRDigest getAllUnauthorizedTableColumn(String username, Set<String> groups,
+                                                      Map<String, Set<String>> tableColumns) {
+        Set<String> unauthTables = Sets.newHashSet();
+        Set<String> unauthColumns = Sets.newHashSet();
+        if (MapUtils.isEmpty(tableColumns)) {
+            return new AclTCRDigest();
+        }
+        final List<AclTCR> all = getAclTCRs(username, groups);
+        if (isTablesAuthorized(all)) {
+            return new AclTCRDigest();
+        }
+
+        final Map<String, Set<String>> authorizedTableColumns = getAuthorizedTableColumns(all);
+
+        for (val table : tableColumns.entrySet()) {
+            if (!authorizedTableColumns.containsKey(table.getKey())) {
+                unauthTables.add(table.getKey());
+                continue;
+            }
+            if (CollectionUtils.isEmpty(table.getValue())
+                    || Objects.isNull(authorizedTableColumns.get(table.getKey()))) {
+                continue;
+            }
+            for (val column : table.getValue()) {
+                if (!authorizedTableColumns.get(table.getKey()).contains(column)) {
+                    unauthColumns.add(table.getKey() + "." + column);
+                }
+            }
+        }
+        AclTCRDigest aclTCRDigest = new AclTCRDigest();
+        aclTCRDigest.setTables(unauthTables);
+        aclTCRDigest.setColumns(unauthColumns);
+        return aclTCRDigest;
+
+    }
+
     public Map<String, String> getTableColumnConcatWhereCondition(String username, Set<String> groups) {
         // <DB1.TABLE1, COLUMN_CONCAT_WHERE_CONDITION>
         Map<String, String> result = Maps.newHashMap();
@@ -383,5 +421,77 @@ public class AclTCRManager {
             authorizedCoarse.get(dbTblName).addAll(columnRow.getColumn());
         }));
         return authorizedCoarse;
+    }
+
+    public TreeMap<String, AclTCR.Table> getDbAclTable(String project, AclTCR authorized) {
+        if (Objects.isNull(authorized)) {
+            return Maps.newTreeMap();
+        }
+        if (Objects.isNull(authorized.getTable())) {
+            return getAllDbAclTable(project);
+        }
+        TreeMap<String, AclTCR.Table> db2AclTable = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
+        authorized.getTable().forEach((dbTblName, cr) -> {
+            TableDesc tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getTableDesc(dbTblName);
+            if (!db2AclTable.containsKey(tableDesc.getDatabase())) {
+                db2AclTable.put(tableDesc.getDatabase(), new AclTCR.Table());
+            }
+
+            if (Objects.isNull(cr) || Objects.isNull(cr.getColumn())) {
+                AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
+                AclTCR.Column aclColumn = new AclTCR.Column();
+                aclColumn.addAll(getTableColumns(tableDesc));
+                columnRow.setColumn(aclColumn);
+                if (Objects.nonNull(cr)) {
+                    columnRow.setRow(cr.getRow());
+                }
+                db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), columnRow);
+            } else {
+                db2AclTable.get(tableDesc.getDatabase()).put(tableDesc.getName(), cr);
+            }
+        });
+        return db2AclTable;
+    }
+
+    private List<String> getTableColumns(TableDesc t) {
+        return Optional.ofNullable(t.getColumns()).map(Arrays::stream).orElseGet(Stream::empty).map(ColumnDesc::getName)
+                .collect(Collectors.toList());
+    }
+
+    public TreeMap<String, AclTCR.Table> getAllDbAclTable(String project) {
+        TreeMap<String, AclTCR.Table> db2AclTable = Maps.newTreeMap(String.CASE_INSENSITIVE_ORDER);
+        NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listAllTables().stream()
+                .filter(t -> org.apache.commons.lang3.StringUtils.isNotEmpty(t.getDatabase())
+                        && org.apache.commons.lang3.StringUtils.isNotEmpty(t.getName()))
+                .forEach(t -> {
+                    AclTCR.ColumnRow columnRow = new AclTCR.ColumnRow();
+                    AclTCR.Column aclColumn = new AclTCR.Column();
+                    aclColumn.addAll(getTableColumns(t));
+                    columnRow.setColumn(aclColumn);
+                    if (!db2AclTable.containsKey(t.getDatabase())) {
+                        db2AclTable.put(t.getDatabase(), new AclTCR.Table());
+                    }
+                    db2AclTable.get(t.getDatabase()).put(t.getName(), columnRow);
+                });
+        return db2AclTable;
+    }
+
+    public AclTCRDigest getAuthTablesAndColumns(String project, String sid, boolean principal) {
+        Set<String> tables = Sets.newHashSet();
+        Set<String> columns = Sets.newHashSet();
+        val authorized = getDbAclTable(project, getAclTCR(sid, principal));
+        for (val database : authorized.entrySet()) {
+            for (val table : database.getValue().entrySet()) {
+                tables.add(database.getKey() + "." + table.getKey());
+                for (val column : table.getValue().getColumn()) {
+                    columns.add(database.getKey() + "." + table.getKey() + "." + column);
+                }
+            }
+        }
+        AclTCRDigest aclTCRDigest = new AclTCRDigest();
+        aclTCRDigest.setTables(tables);
+        aclTCRDigest.setColumns(columns);
+        return aclTCRDigest;
     }
 }

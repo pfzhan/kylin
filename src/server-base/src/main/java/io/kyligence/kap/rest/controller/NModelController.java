@@ -144,6 +144,7 @@ public class NModelController extends NBasicController {
         }
 
         models = modelService.addOldParams(models);
+        models = modelService.updateReponseAcl(models, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(models, offset, limit), "");
     }
 

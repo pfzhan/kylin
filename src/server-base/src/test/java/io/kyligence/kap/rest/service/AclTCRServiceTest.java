@@ -40,6 +40,7 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Sets;
@@ -52,7 +53,6 @@ import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.response.AclTCRResponse;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
 
