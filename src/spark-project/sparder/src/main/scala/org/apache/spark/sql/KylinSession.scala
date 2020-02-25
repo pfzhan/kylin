@@ -27,6 +27,7 @@ import java.nio.file.Paths
 import java.sql.SQLException
 
 import io.kyligence.kap.query.engine.QueryExec
+
 import scala.util.{Failure, Success, Try}
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.{KapConfig, KylinConfig}
@@ -36,6 +37,7 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession.Builder
 import org.apache.spark.sql.internal.{SessionState, SharedState}
 import org.apache.spark.sql.udf.UdfManager
+import org.apache.spark.ui.SparkUI
 import org.apache.spark.util.KylinReflectUtils
 import org.apache.spark.{SparkConf, SparkContext}
 
