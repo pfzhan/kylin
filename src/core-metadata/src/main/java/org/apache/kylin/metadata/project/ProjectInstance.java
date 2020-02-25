@@ -92,6 +92,8 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     public static final String DEFAULT_DATABASE = "DEFAULT";
 
+    public static final String EXPOSE_COMPUTED_COLUMN_CONF = "kap.query.metadata.expose-computed-column";
+
     private KylinConfigExt config;
 
     @JsonProperty("name")
@@ -163,8 +165,8 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         // https://olapio.atlassian.net/browse/KE-11535
         // to compatible with existing model
         // if expose-computed-column is empty, set it with the maintainModelType
-        if (!overrideKylinProps.containsKey("kap.query.metadata.expose-computed-column")) {
-            overrideKylinProps.put("kap.query.metadata.expose-computed-column",
+        if (!overrideKylinProps.containsKey(EXPOSE_COMPUTED_COLUMN_CONF)) {
+            overrideKylinProps.put(EXPOSE_COMPUTED_COLUMN_CONF,
                     String.valueOf(maintainModelType == MaintainModelType.MANUAL_MAINTAIN));
         }
         this.config = KylinConfigExt.createInstance(config, this.overrideKylinProps);

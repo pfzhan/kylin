@@ -112,9 +112,9 @@ public class ProjectService extends BasicService {
         }
         if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             overrideProps.put("kap.metadata.semi-automatic-mode", "true");
-            overrideProps.put("kap.query.metadata.expose-computed-column", "true");
+            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, "true");
         } else {
-            overrideProps.put("kap.query.metadata.expose-computed-column", "false");
+            overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, "false");
         }
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
@@ -420,7 +420,7 @@ public class ProjectService extends BasicService {
     @Transaction
     public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
-            copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column",
+            copyForWrite.getOverrideKylinProps().put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
                     String.valueOf(computedColumnConfigRequest.getExposeComputedColumn()));
         });
     }
