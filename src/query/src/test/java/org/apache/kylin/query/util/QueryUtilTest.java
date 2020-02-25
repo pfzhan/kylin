@@ -45,7 +45,6 @@ package org.apache.kylin.query.util;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.query.security.AccessDeniedException;
@@ -53,6 +52,7 @@ import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 
 public class QueryUtilTest {
@@ -110,7 +110,8 @@ public class QueryUtilTest {
             Assert.assertEquals(1, QueryUtil.queryTransformers.size());
             Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
 
-            config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName() + "," + ConvertToComputedColumn.class.getCanonicalName());
+            config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName() + ","
+                    + ConvertToComputedColumn.class.getCanonicalName());
             QueryUtil.initQueryTransformersIfNeeded(config, true);
             Assert.assertEquals(2, QueryUtil.queryTransformers.size());
             QueryUtil.initQueryTransformersIfNeeded(config, false);
@@ -125,8 +126,9 @@ public class QueryUtilTest {
                 QueryUtil.makeErrorMsgUserFriendly(new SQLException(new NoSuchTableException("default", "test_ab")))
                         .contains("default"));
 
-        final Exception exception = new IllegalStateException("\tThere is no column\t'age' in table 'test_kylin_fact'.\n"
-                + "Please contact Kyligence Enterprise technical support for more details.\n");
+        final Exception exception = new IllegalStateException(
+                "\tThere is no column\t'age' in table 'test_kylin_fact'.\n"
+                        + "Please contact Kyligence Enterprise technical support for more details.\n");
         final String errorMsg = QueryUtil.makeErrorMsgUserFriendly(exception);
         Assert.assertEquals("There is no column\t'age' in table 'test_kylin_fact'.\n"
                 + "Please contact Kyligence Enterprise technical support for more details.", errorMsg);
@@ -135,9 +137,30 @@ public class QueryUtilTest {
     @Test
     public void testMakeErrorMsgUserFriendlyForAccessDeniedException() {
         String accessDeniedMsg = "Query failed, access DEFAULT.TEST_KYLIN_FACT denied";
-        Exception sqlException = new SQLException("exception while executing query", new AccessDeniedException("DEFAULT.TEST_KYLIN_FACT"));
+        Exception sqlException = new SQLException("exception while executing query",
+                new AccessDeniedException("DEFAULT.TEST_KYLIN_FACT"));
         String errorMessage = QueryUtil.makeErrorMsgUserFriendly(sqlException);
         Assert.assertEquals(accessDeniedMsg, errorMessage);
+    }
+
+    @Test
+    public void testJudgeSelectStatementStartsWithParentheses() {
+        String sql = "(((SELECT COUNT(DISTINCT \"LO_SUPPKEY\"), \"LO_SUPPKEY\", \"LO_ORDERKEY\", \"LO_ORDERDATE\", \"LO_PARTKEY\", \"LO_REVENUE\" "
+                + "FROM \"SSB\".\"LINEORDER\" INNER JOIN \"SSB\".\"CUSTOMER\" ON (\"LO_CUSTKEY\" = \"C_CUSTKEY\") "
+                + "GROUP BY \"LO_SUPPKEY\", \"LO_ORDERKEY\", \"LO_ORDERDATE\", \"LO_PARTKEY\", \"LO_REVENUE\" "
+                + "UNION ALL "
+                + "SELECT COUNT(DISTINCT \"LO_SUPPKEY\"), \"LO_SUPPKEY\", \"LO_ORDERKEY\", \"LO_ORDERDATE\", \"LO_PARTKEY\", \"LO_REVENUE\" "
+                + "FROM \"SSB\".\"LINEORDER\" INNER JOIN \"SSB\".\"CUSTOMER\" ON (\"LO_CUSTKEY\" = \"C_CUSTKEY\") "
+                + "GROUP BY \"LO_SUPPKEY\", \"LO_ORDERKEY\", \"LO_ORDERDATE\", \"LO_PARTKEY\", \"LO_REVENUE\")\n) \n)";
+        Assert.assertTrue(QueryUtil.isSelectStatement(sql));
+    }
+
+    @Test
+    public void testIsSelectStatement() {
+        Assert.assertFalse(QueryUtil.isSelectStatement("INSERT INTO Person VALUES ('Li Si', 'Beijing');\n;\n"));
+        Assert.assertFalse(QueryUtil.isSelectStatement("UPDATE Person SET name = 'Fred' WHERE name = 'Li Si' "));
+        Assert.assertFalse(QueryUtil.isSelectStatement("DELETE FROM Person WHERE name = 'Wilson'"));
+        Assert.assertFalse(QueryUtil.isSelectStatement("drop table person"));
     }
 
     @Test
@@ -167,20 +190,15 @@ public class QueryUtilTest {
                                 + "order by SELLER_ID  --4 /* 7 */\n--5\n/* 7 */"));
 
         //test remove comment when comment contain ''
-        Assert.assertEquals(
-                "select sum(ITEM_COUNT) 'sum_count' \nfrom TEST_KYLIN_FACT 'table' ",
+        Assert.assertEquals("select sum(ITEM_COUNT) 'sum_count' \nfrom TEST_KYLIN_FACT 'table' ",
                 QueryUtil.removeCommentInSql(
                         "select sum(ITEM_COUNT) 'sum_count' -- 'comment' \nfrom TEST_KYLIN_FACT 'table' --comment"));
-        Assert.assertEquals(
-                "select sum(ITEM_COUNT) ",
-                QueryUtil.removeCommentInSql(
-                        "select sum(ITEM_COUNT) -- 'comment' --"));
+        Assert.assertEquals("select sum(ITEM_COUNT) ",
+                QueryUtil.removeCommentInSql("select sum(ITEM_COUNT) -- 'comment' --"));
 
         //test remove comment when comment contain , \t /
-        Assert.assertEquals(
-                "select sum(ITEM_COUNT) ",
-                QueryUtil.removeCommentInSql(
-                        "select sum(ITEM_COUNT) -- , --\t --/ --"));
+        Assert.assertEquals("select sum(ITEM_COUNT) ",
+                QueryUtil.removeCommentInSql("select sum(ITEM_COUNT) -- , --\t --/ --"));
 
         Assert.assertEquals("select 1 ", QueryUtil.removeCommentInSql("select 1 --注释"));
         Assert.assertEquals("select 1 ", QueryUtil.removeCommentInSql("select 1 /* 注释 */"));

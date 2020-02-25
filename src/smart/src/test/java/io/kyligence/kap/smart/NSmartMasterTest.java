@@ -594,6 +594,27 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
     }
 
     @Test
+    public void testProposeSelectStatementStartsWithParentheses() {
+        String sql = "(((SELECT SUM(\"PRICE\") FROM \"TEST_KYLIN_FACT\" WHERE ((\"LSTG_FORMAT_NAME\" = 'A') AND (\"LSTG_SITE_ID\" <> 'A')) "
+                + "UNION ALL SELECT SUM(\"PRICE\") FROM \"TEST_KYLIN_FACT\" WHERE ((\"LSTG_FORMAT_NAME\" = 'A') AND (\"LSTG_SITE_ID\" = 'A'))) "
+                + "UNION ALL SELECT SUM(\"PRICE\") FROM \"TEST_KYLIN_FACT\" WHERE ((\"LSTG_FORMAT_NAME\" = 'A') AND (\"LSTG_SITE_ID\" > 'A'))) "
+                + "UNION ALL SELECT SUM(\"PRICE\") FROM \"TEST_KYLIN_FACT\" WHERE ((\"LSTG_FORMAT_NAME\" = 'A') AND (\"LSTG_SITE_ID\" IN ('A'))))\n";
+
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", new String[] { sql });
+        smartMaster.runAll();
+        Map<String, AccelerateInfo> accelerationInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerationInfoMap.get(sql).isNotSucceed());
+        List<NSmartContext.NModelContext> contexts = smartMaster.getContext().getModelContexts();
+        Assert.assertEquals(1, contexts.size());
+        final NDataModel targetModel = contexts.get(0).getTargetModel();
+        final List<NDataModel.NamedColumn> dimensions = targetModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
+        final List<NDataModel.Measure> allMeasures = targetModel.getAllMeasures();
+        Assert.assertEquals(2, dimensions.size());
+        Assert.assertEquals(2, allMeasures.size());
+    }
+
+    @Test
     public void testProposeNewModel_InSemiMode() {
         // normal case 1. create totally new model and index (without rule-based-index), check the model and index_plan
         String[] sqls = new String[] {

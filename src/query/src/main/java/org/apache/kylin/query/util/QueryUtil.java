@@ -78,7 +78,8 @@ public class QueryUtil {
         String transform(String sql, String project, String defaultSchema);
     }
 
-    public static String massageSql(String sql, String project, int limit, int offset, String defaultSchema, boolean isCCNeeded) {
+    public static String massageSql(String sql, String project, int limit, int offset, String defaultSchema,
+            boolean isCCNeeded) {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(project);
         KylinConfig kylinConfig = projectInstance.getConfig();
@@ -93,7 +94,8 @@ public class QueryUtil {
         return massagedSql;
     }
 
-    private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema, boolean isCCNeeded) {
+    private static String transformSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema,
+            boolean isCCNeeded) {
         // customizable SQL transformation
         initQueryTransformersIfNeeded(kylinConfig, isCCNeeded);
         for (IQueryTransformer t : queryTransformers) {
@@ -129,7 +131,8 @@ public class QueryUtil {
         String[] currentTransformers = queryTransformers.stream().map(Object::getClass).map(Class::getCanonicalName)
                 .toArray(String[]::new);
         String[] configTransformers = kylinConfig.getQueryTransformers();
-        boolean containsCCTransformer = Arrays.stream(configTransformers).anyMatch(t -> t.equals("io.kyligence.kap.query.util.ConvertToComputedColumn"));
+        boolean containsCCTransformer = Arrays.stream(configTransformers)
+                .anyMatch(t -> t.equals("io.kyligence.kap.query.util.ConvertToComputedColumn"));
         boolean transformersEqual = Objects.deepEquals(currentTransformers, configTransformers);
         if (transformersEqual && (isCCNeeded || !containsCCTransformer)) {
             return;
@@ -224,7 +227,8 @@ public class QueryUtil {
             Pattern pattern = Pattern.compile("Error while executing SQL ([\\s\\S]*):(.*):(.*)");
             Matcher matcher = pattern.matcher(errorMsg);
             if (matcher.find()) {
-                return matcher.group(2).trim() + ": " + matcher.group(3).trim() + "\nwhile executing SQL: " + matcher.group(1).trim();
+                return matcher.group(2).trim() + ": " + matcher.group(3).trim() + "\nwhile executing SQL: "
+                        + matcher.group(1).trim();
             } else
                 return errorMsg;
         } catch (Exception e) {
@@ -236,6 +240,9 @@ public class QueryUtil {
         String sql1 = sql.toLowerCase();
         sql1 = removeCommentInSql(sql1);
         sql1 = sql1.trim();
+        while (sql1.startsWith("(")) {
+            sql1 = sql1.substring(1).trim();
+        }
         return sql1.startsWith("select") || (sql1.startsWith("with") && sql1.contains("select"))
                 || (sql1.startsWith("explain") && sql1.contains("select"));
     }
