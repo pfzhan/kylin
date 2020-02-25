@@ -97,7 +97,7 @@ public class QueryRouter {
                 candidates.add(new Candidate(real, sqlDigest, olapContext));
             }
         }
-        logger.info("Find candidates by table {} and project={} : {}", factTableName, projectName,
+        logger.debug("Find candidates by table {} and project={} : {}", factTableName, projectName,
                 StringUtils.join(candidates, ","));
         List<Candidate> originCandidates = Lists.newArrayList(candidates);
 
@@ -110,7 +110,7 @@ public class QueryRouter {
         }
 
         Candidate chosen = candidates.get(0);
-        logger.info("The realizations remaining: {}, and the final chosen one for current olap context {} is {}",
+        logger.debug("The realizations remaining: {}, and the final chosen one for current olap context {} is {}",
                 RoutingRule.getPrintableText(candidates), olapContext.id, chosen.realization.getCanonicalName());
         return chosen;
     }

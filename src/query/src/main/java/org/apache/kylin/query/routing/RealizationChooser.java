@@ -116,6 +116,7 @@ public class RealizationChooser {
         Map<NDataModel, Map<String, String>> model2AliasMap = Maps.newHashMap();
 
         // Step 2.1 try to exactly match model
+        logger.debug("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
             Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
             if (candidate != null) {
@@ -348,12 +349,8 @@ public class RealizationChooser {
                 ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
             matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp, partialMatch);
-            if (matched) {
-                logger.debug("Context join graph matched model {}, context join graph {}, model join graph {}", model,
-                        ctx.getJoinsGraph(), model.getJoinsGraph());
-            } else {
-                logger.debug("Context join graph missed model {}, context join graph {}, model join graph {}", model,
-                        ctx.getJoinsGraph(), model.getJoinsGraph());
+            if (!matched) {
+                logger.debug("Context join graph missed model {}, model join graph {}", model, model.getJoinsGraph());
                 logger.debug("Missed match nodes - Context {}, Model {}",
                         ctx.getJoinsGraph().unmatched(model.getJoinsGraph()),
                         model.getJoinsGraph().unmatched(ctx.getJoinsGraph()));

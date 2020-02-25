@@ -99,7 +99,7 @@ public class QueryContextCutter {
         List<OLAPContext> contexts = ContextUtil.listContextsHavingScan();
 
         for (OLAPContext olapContext : contexts) {
-            logger.info("Context for realization matching: {}", olapContext);
+            logger.debug("Context for realization matching: {}", olapContext);
         }
 
         if (!contexts.isEmpty()) {

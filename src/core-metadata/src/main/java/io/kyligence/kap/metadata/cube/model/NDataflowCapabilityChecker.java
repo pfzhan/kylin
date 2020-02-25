@@ -46,10 +46,10 @@ public class NDataflowCapabilityChecker {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowCapabilityChecker.class);
 
     public static CapabilityResult check(NDataflow dataflow, SQLDigest digest) {
-        logger.info("Matching Layout in dataflow {}, SQL digest {}", dataflow, digest);
+        logger.debug("Matching Layout in dataflow {}, SQL digest {}", dataflow, digest);
         CapabilityResult result = new CapabilityResult();
         if (digest.limitPrecedesAggr) {
-            logger.info("Exclude NDataflow {} because there's limit preceding aggregation", dataflow);
+            logger.debug("Exclude NDataflow {} because there's limit preceding aggregation", dataflow);
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.LIMIT_PRECEDE_AGGR);
             return result;
@@ -61,7 +61,7 @@ public class NDataflowCapabilityChecker {
         if (digest.joinDescs.isEmpty() && !rootFactTable.equals(digest.factTable)) {
             chosenCandidate = tryMatchLookup(dataflow, digest, result);
             if (chosenCandidate != null) {
-                logger.info("Matched table {} snapshot in dataflow {} ", digest.factTable, dataflow);
+                logger.debug("Matched table {} snapshot in dataflow {} ", digest.factTable, dataflow);
             }
         } else {
             // for query-on-facttable
@@ -91,7 +91,7 @@ public class NDataflowCapabilityChecker {
             return null;
 
         if (!dataflow.getLatestReadySegment().getSnapshots().containsKey(digest.factTable)) {
-            logger.info("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow, digest.factTable);
+            logger.debug("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow, digest.factTable);
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.NOT_EXIST_SNAPSHOT);
             result.capable = false;
@@ -107,7 +107,7 @@ public class NDataflowCapabilityChecker {
         }
 
         if (!unmatchedCols.isEmpty()) {
-            logger.info("Exclude NDataflow {} because unmatched dimensions [{}] in Snapshot", dataflow, unmatchedCols);
+            logger.debug("Exclude NDataflow {} because unmatched dimensions [{}] in Snapshot", dataflow, unmatchedCols);
             result.incapableCause = CapabilityResult.IncapableCause.unmatchedDimensions(unmatchedCols);
             return null;
         } else {

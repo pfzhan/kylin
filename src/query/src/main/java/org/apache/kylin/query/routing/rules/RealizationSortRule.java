@@ -58,11 +58,16 @@ public class RealizationSortRule extends RoutingRule {
 
     @Override
     public void apply(List<Candidate> candidates) {
+        if(candidates.isEmpty())
+            return ;
         StringBuilder sb = new StringBuilder();
         for (Candidate candidate : candidates) {
-            sb.append(candidate.getRealization().getCanonicalName() + " cost " + candidate.getCapability().cost + ". ");
+            sb.append(candidate.getRealization().getCanonicalName())
+              .append(" cost ")
+              .append(candidate.getCapability().cost)
+              .append(". ");
         }
-        logger.info(sb.toString());
+        logger.debug(sb.toString());
 
         Collections.sort(candidates);
     }
