@@ -57,6 +57,8 @@ public class SparkEngine implements QueryEngine {
 
     @Override
     public List<List<String>> compute(DataContext dataContext, RelNode relNode) {
-        return QueryResultBuilder.toQueryResult(toSparkPlan(dataContext, relNode));
+        Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
+        log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
+        return QueryResultBuilder.toQueryResult(sparkPlan);
     }
 }

@@ -486,15 +486,23 @@ public class NExecAndComp {
     }
 
     static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql, List<String> parameters) throws Exception {
-        SparderEnv.skipCompute();
-        Dataset<Row> df = queryCube(prj, sql, parameters);
-        return df;
+        try {
+            SparderEnv.skipCompute();
+            Dataset<Row> df = queryCube(prj, sql, parameters);
+            return df;
+        } finally {
+            SparderEnv.cleanCompute();
+        }
     }
 
     static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql) throws Exception {
-        SparderEnv.skipCompute();
-        Dataset<Row> df = queryCube(prj, sql, null);
-        return df;
+        try {
+            SparderEnv.skipCompute();
+            Dataset<Row> df = queryCube(prj, sql, null);
+            return df;
+        } finally {
+            SparderEnv.cleanCompute();
+        }
     }
 
     public static Dataset<Row> queryCube(String prj, String sql) throws SQLException {
