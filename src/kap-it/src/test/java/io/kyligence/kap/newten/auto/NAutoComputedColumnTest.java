@@ -58,6 +58,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     @Before
     public void setupCCConf() {
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
     }
 
     @Test

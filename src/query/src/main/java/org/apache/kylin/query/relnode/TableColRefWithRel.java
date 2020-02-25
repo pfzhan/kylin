@@ -24,16 +24,17 @@
 
 package org.apache.kylin.query.relnode;
 
-import io.kyligence.kap.query.relnode.KapRel;
 import org.apache.kylin.metadata.model.TblColRef;
 
-public class TableColRefWIthRel {
+import io.kyligence.kap.query.relnode.KapRel;
+
+public class TableColRefWithRel {
 
     private KapRel relNode;
 
     private TblColRef tblColRef;
 
-    public TableColRefWIthRel(KapRel relNode, TblColRef tblColRef) {
+    public TableColRefWithRel(KapRel relNode, TblColRef tblColRef) {
         this.relNode = relNode;
         this.tblColRef = tblColRef;
     }

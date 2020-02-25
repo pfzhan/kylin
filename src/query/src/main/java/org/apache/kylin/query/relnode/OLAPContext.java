@@ -201,7 +201,7 @@ public class OLAPContext {
     @Getter
     // collect inner columns in group keys
     // this filed is used by CC proposer only
-    private Set<TableColRefWIthRel> innerGroupByColumns = Sets.newLinkedHashSet();
+    private Set<TableColRefWithRel> innerGroupByColumns = Sets.newLinkedHashSet();
     @Setter
     @Getter
     // collect inner columns in filter
@@ -233,6 +233,10 @@ public class OLAPContext {
 
     // rewrite info
     public Map<String, RelDataType> rewriteFields = new HashMap<>();
+
+    @Getter
+    @Setter
+    private Map<TblColRef, TblColRef> groupCCColRewriteMapping = new HashMap<>();
 
     // hive query
     public String sql = "";
@@ -444,7 +448,7 @@ public class OLAPContext {
     public void addInnerGroupColumns(KapRel rel, Collection<TblColRef> innerGroupColumns) {
         Set<TblColRef> innerGroupColumnsSet = new HashSet<>(innerGroupColumns);
         for (TblColRef tblColRef : innerGroupColumnsSet) {
-            this.innerGroupByColumns.add(new TableColRefWIthRel(rel, tblColRef));
+            this.innerGroupByColumns.add(new TableColRefWithRel(rel, tblColRef));
         }
     }
 

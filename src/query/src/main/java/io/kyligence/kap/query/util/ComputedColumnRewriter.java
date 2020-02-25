@@ -35,7 +35,7 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.relnode.TableColRefWIthRel;
+import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +109,7 @@ public class ComputedColumnRewriter {
 
         // collect all aggRel with candidate CC group keys
         Map<KapAggregateRel, Map<TblColRef, TblColRef>> relColReplacementMapping = new HashMap<>();
-        for (TableColRefWIthRel tableColRefWIthRel : ctx.getInnerGroupByColumns()) {
+        for (TableColRefWithRel tableColRefWIthRel : ctx.getInnerGroupByColumns()) {
             SqlNode innerColExpr;
             try {
                 innerColExpr = CalciteParser.getExpNode(tableColRefWIthRel.getTblColRef().getParserDescription());

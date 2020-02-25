@@ -59,6 +59,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     public void testAllQueries() throws Exception {
         overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
         executeTestScenario(
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
@@ -148,9 +150,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Ignore("For development")
     public void testTemp() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
+        overwriteSystemProp("kap.query.expose-computed-column", "FALSE");
         Set<String> exclusionList = Sets.newHashSet();
         overwriteSystemProp("calcite.debug", "true");
-        new TestScenario(CompareLevel.SAME, "query/temp").execute();
+        new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/temp").execute();
     }
 
     @Test

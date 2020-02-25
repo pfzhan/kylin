@@ -38,7 +38,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.relnode.TableColRefWIthRel;
+import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.apache.kylin.query.routing.RealizationChooser;
 
 import com.google.common.collect.Lists;
@@ -221,7 +221,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
     private Collection<TblColRef> getGroupByInnerColumns(OLAPContext context) {
         Collection<TblColRef> resultSet = new HashSet<>();
-        for (TableColRefWIthRel groupByColRefWithRel : context.getInnerGroupByColumns()) {
+        for (TableColRefWithRel groupByColRefWithRel : context.getInnerGroupByColumns()) {
             TblColRef groupByColRef = groupByColRefWithRel.getTblColRef();
             Set<TblColRef> groupSourceColumns = groupByColRef.getSourceColumns();
             if (!groupByColRef.getSourceColumns().isEmpty()
@@ -235,7 +235,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
     /**
      * check and ensure that the cardinality of input cols is greater than or equal to the minCardinality
-     * If the cardinality of a column is missing, return true
+     * If the cardinality of a column is missing, return config "computed-column.suggestion.enabled-if-no-sampling"
      * @param colRefs
      * @param minCardinality
      * @return
@@ -244,7 +244,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         for (TblColRef colRef : colRefs) {
             long colCardinality = getColumnCardinality(colRef);
             if (colCardinality == -1) {
-                return true;
+                return this.getModelContext().getSmartContext().getSmartConfig().needProposeCcIfNoSampling();
             }
             if (colCardinality >= minCardinality) {
                 return true;

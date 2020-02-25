@@ -230,7 +230,7 @@ class CuboidSuggester {
     }
 
     private boolean isQualifiedSuggestPartitionBy(OLAPContext context, NDataModel nDataModel, List<Integer> dimIds) {
-        if (nDataModel.getStorageType() ==2 && (nDataModel.getPartitionDesc().getPartitionDateColumnRef() != null))  {
+        if (nDataModel.getStorageType() == 2 && (nDataModel.getPartitionDesc().getPartitionDateColumnRef() != null)) {
             Integer colId = nDataModel.getColId(nDataModel.getPartitionDesc().getPartitionDateColumnRef());
             return dimIds.contains(colId);
         }
@@ -359,7 +359,8 @@ class CuboidSuggester {
         return indexEntity;
     }
 
-    private List<Integer> suggestColOrder(final List<Integer> orderedDimIds, Set<Integer> measureIds, List<Integer> shardBy) {
+    private List<Integer> suggestColOrder(final List<Integer> orderedDimIds, Set<Integer> measureIds,
+            List<Integer> shardBy) {
         ArrayList<Integer> copyDimension = new ArrayList<>(orderedDimIds);
         copyDimension.removeAll(shardBy);
         List<Integer> colOrder = Lists.newArrayList();

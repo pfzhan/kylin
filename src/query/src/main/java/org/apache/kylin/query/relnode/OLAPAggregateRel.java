@@ -462,13 +462,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 }
             }
         }
-
-        for (TblColRef group : groups) {
-            if (group.getColumnDesc().isComputedColumn()) {
-                RelDataType rewriteFieldType = OLAPTable.createSqlType(typeFactory, group.getType(), true);
-                this.context.rewriteFields.put(group.getName(), rewriteFieldType);
-            }
-        }
     }
 
     protected void addToContextGroupBy(List<TblColRef> colRefs) {

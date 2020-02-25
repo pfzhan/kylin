@@ -159,6 +159,12 @@ public class NExecAndComp {
             addQueryPath(recAndQueryResult, query, sql);
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(prj, sql, query.getFirst());
+                if ((compareLevel == CompareLevel.SAME || compareLevel == CompareLevel.SAME_ORDER)
+                        && sparkResult.schema().fields().length != cubeResult.schema().fields().length) {
+                    logger.error("Failed on compare query ({}) :{} \n cube schema: {} \n, spark schema: {}", joinType,
+                            query, cubeResult.schema().fieldNames(), sparkResult.schema().fieldNames());
+                    throw new IllegalStateException("query (" + joinType + ") :" + query + " schema not match");
+                }
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
                 if (!compareResults(normRows(sparkRows), normRows(kapRows), compareLevel)) {

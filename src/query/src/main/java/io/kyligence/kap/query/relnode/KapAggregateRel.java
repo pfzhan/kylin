@@ -24,11 +24,6 @@
 
 package io.kyligence.kap.query.relnode;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.query.util.ICutContextStrategy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,9 +31,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.ImmutableList;
 import java.util.stream.Collectors;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -66,11 +60,19 @@ import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.query.util.ICutContextStrategy;
+import lombok.Getter;
+
 /**
  *
  */
 public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
-
 
     private ImmutableList<Integer> rewriteGroupKeys; // preserve the ordering of group keys after CC replacement
     private List<ImmutableBitSet> rewriteGroupSets; // group sets with cc replaced
@@ -78,11 +80,11 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     private Set<TblColRef> groupByInnerColumns = new HashSet<>(); // inner columns in group keys, for CC generation
 
     private Set<OLAPContext> subContexts = Sets.newHashSet();
-
+    @Getter
     private Map<TblColRef, TblColRef> groupCCColRewriteMapping = new HashMap<>(); // map the group by col with CC expr to its CC column
 
     public KapAggregateRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator,
-                           ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
+            ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
             throws InvalidRelException {
         super(cluster, traits, child, indicator, groupSet, groupSets, aggCalls);
         this.rewriteGroupKeys = ImmutableList.copyOf(groupSet.toList());
@@ -103,7 +105,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     @Override
     public Aggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator, ImmutableBitSet groupSet,
-                          List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+            List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
         try {
             return new KapAggregateRel(getCluster(), traitSet, input, indicator, groupSet, groupSets, aggCalls);
         } catch (InvalidRelException e) {
@@ -118,7 +120,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         olapContextImplementor.visitChild(getInput(), this, tempState);
         if (tempState.hasFreeTable()) {
             // since SINGLE_VALUE agg doesn't participant in any computation, context is allocated to the input rel
-            if (CollectionUtils.exists(aggCalls, aggCall -> ((AggregateCall)aggCall).getAggregation().getKind() == SqlKind.SINGLE_VALUE)) {
+            if (CollectionUtils.exists(aggCalls,
+                    aggCall -> ((AggregateCall) aggCall).getAggregation().getKind() == SqlKind.SINGLE_VALUE)) {
                 olapContextImplementor.allocateContext((KapRel) this.getInput(), this);
             } else {
                 olapContextImplementor.allocateContext(this, null);
@@ -206,7 +209,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
             TblColRef originalColumn = inputColumnRowType.getColumnByIndex(i);
             if (groupCCColRewriteMapping.containsKey(originalColumn)) {
                 groups.add(groupCCColRewriteMapping.get(originalColumn));
-                groupKeys.add(inputColumnRowType.getIndexByName(groupCCColRewriteMapping.get(originalColumn).getName()));
+                groupKeys
+                        .add(inputColumnRowType.getIndexByName(groupCCColRewriteMapping.get(originalColumn).getName()));
             } else {
                 Set<TblColRef> sourceColumns = inputColumnRowType.getSourceColumnsByIndex(i);
                 groups.addAll(sourceColumns);
@@ -238,6 +242,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     }
 
     private void updateContextGroupByColumns() {
+        context.getGroupByColumns().clear();
         for (TblColRef col : groups) {
             if (!col.isInnerColumn() && context.belongToContextTables(col)) {
                 context.getGroupByColumns().add(col);
@@ -310,7 +315,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     private Boolean isExactlyMatched() {
         if (!KapConfig.getInstanceFromEnv().needReplaceAggWhenExactlyMatched()) {
-             return false;
+            return false;
         }
         if (getSubContext().size() > 1) {
             return false;
@@ -322,46 +327,42 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         if (index.getModel().getStorageType() != 0) {
             return false;
         }
-        for (AggregateCall call: getRewriteAggCalls()) {
-              if (!supportedFunction.contains(getAggrFuncName(call))) {
+        for (AggregateCall call : getRewriteAggCalls()) {
+            if (!supportedFunction.contains(getAggrFuncName(call))) {
+                return false;
+            }
+            if (call.getArgList().size() > 1) {
+                return false;
+            }
+            if (call instanceof KylinAggregateCall) {
+                FunctionDesc func = ((KylinAggregateCall) call).getFunc();
+                boolean hasHllc = func.getReturnDataType() != null && func.getReturnDataType().getName().equals("hllc");
+                if (hasHllc) {
+                    logger.info("Has hllc measure, not apply exactly match optimize.");
                     return false;
-              }
-              if (call.getArgList().size() > 1) {
-                  return false;
-              }
-              if (call instanceof KylinAggregateCall) {
-                  FunctionDesc func = ((KylinAggregateCall) call).getFunc();
-                  boolean  hasHllc = func.getReturnDataType() != null && func.getReturnDataType().getName().equals("hllc");
-                  if (hasHllc) {
-                      logger.info("Has hllc measure, not apply exactly match optimize.");
-                      return false;
-                  }
-                  boolean hasBitmap = func.getReturnDataType() != null && func.getReturnDataType().getName().equals("bitmap");
-                  if (hasBitmap && !index.getIndexPlan().isFastBitmapEnabled()) {
-                      return false;
-                  }
-                  if (hasBitmap) {
-                      getContext().setHasBitmapMeasure(true);
-                  }
-              }
+                }
+                boolean hasBitmap = func.getReturnDataType() != null
+                        && func.getReturnDataType().getName().equals("bitmap");
+                if (hasBitmap && !index.getIndexPlan().isFastBitmapEnabled()) {
+                    return false;
+                }
+                if (hasBitmap) {
+                    getContext().setHasBitmapMeasure(true);
+                }
+            }
         }
         Set<String> cuboidDimSet = new HashSet<>();
         if (getContext() != null && getContext().storageContext.getCandidate() != null) {
-            cuboidDimSet = getContext().storageContext.getCandidate()
-                    .getCuboidLayout().getOrderedDimensions().values()
-                    .stream()
-                    .map(TblColRef::getIdentity)
-                    .collect(Collectors.toSet());
+            cuboidDimSet = getContext().storageContext.getCandidate().getCuboidLayout().getOrderedDimensions().values()
+                    .stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
 
         }
-        Set<String> groupByCols = getGroups().stream()
-                .map(TblColRef::getIdentity)
-                .collect(Collectors.toSet());
+        Set<String> groupByCols = getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
 
         logger.info("group by cols:{}", groupByCols);
         logger.info("cuboid dimensions: {}", cuboidDimSet);
         // has count distinct but not enabled fast bitmap
-        boolean isDimensionMatch = !groupByCols.isEmpty() && groupByCols.equals(cuboidDimSet) && isSimpleGroupType();
+        boolean isDimensionMatch = isDimExactlyMatch();
         if (!isDimensionMatch) {
             return false;
         } else {
@@ -378,6 +379,20 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         }
     }
 
+    private boolean isDimExactlyMatch() {
+        Set<String> groupByCols = getGroups().stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
+        Set<String> cuboidDimSet = new HashSet<>();
+        if (getContext() != null && getContext().storageContext.getCandidate() != null) {
+            cuboidDimSet = getContext().storageContext.getCandidate().getCuboidLayout().getOrderedDimensions().values()
+                    .stream().map(TblColRef::getIdentity).collect(Collectors.toSet());
+
+        }
+        return !groupByCols.isEmpty() && groupByCols.equals(cuboidDimSet) && isSimpleGroupType()
+                && (this.context.getInnerGroupByColumns().isEmpty()
+                        || !this.context.getGroupCCColRewriteMapping().isEmpty());
+
+    }
+
     @Override
     public Set<OLAPContext> getSubContext() {
         return this.subContexts;
@@ -386,6 +401,12 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     @Override
     public void setSubContexts(Set<OLAPContext> contexts) {
         this.subContexts = contexts;
+    }
+
+    @Override
+    protected void buildRewriteFieldsAndMetricsColumns() {
+        super.buildRewriteFieldsAndMetricsColumns();
+        this.context.setGroupCCColRewriteMapping(this.groupCCColRewriteMapping);
     }
 
     /**
@@ -443,19 +464,15 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     @Override
     public RelWriter explainTerms(RelWriter pw) {
         pw.input("input", getInput());
-        pw
-                .item("group-set", rewriteGroupKeys)
-                .itemIf("group-sets", rewriteGroupSets, getGroupType() != Group.SIMPLE)
-                .item("groups", groups)
-                .itemIf("indicator", indicator, indicator)
+        pw.item("group-set", rewriteGroupKeys).itemIf("group-sets", rewriteGroupSets, getGroupType() != Group.SIMPLE)
+                .item("groups", groups).itemIf("indicator", indicator, indicator)
                 .itemIf("aggs", rewriteAggCalls, pw.nest());
         if (!pw.nest()) {
             for (Ord<AggregateCall> ord : Ord.zip(rewriteAggCalls)) {
                 pw.item(Util.first(ord.e.name, "agg#" + ord.i), ord.e);
             }
         }
-        pw.item("ctx",
-                context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
+        pw.item("ctx", context == null ? "" : String.valueOf(context.id) + "@" + context.realization);
         return pw;
     }
 

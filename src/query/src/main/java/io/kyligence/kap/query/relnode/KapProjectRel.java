@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.plan.RelOptCluster;
@@ -45,16 +46,19 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPProjectRel;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
+import org.apache.kylin.query.schema.OLAPTable;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 import lombok.Setter;
 
@@ -161,39 +165,23 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
             return;
         }
 
-        // find missed rewrite fields
-        int paramIndex = this.rowType.getFieldList().size();
-        List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
-        List<RexNode> newExpList = new LinkedList<RexNode>();
-        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
-        for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
-            String rewriteFieldName = rewriteField.getKey();
-            rewriteFieldName = ComputedColumnDesc.getOriginCcName(rewriteFieldName); // strip off _CC_ prefix if any
-            int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
-            if (rowIndex >= 0) {
-                continue;
-            }
-            int inputIndex = inputColumnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
-            if (inputIndex >= 0) {
-                // new field
-                RelDataType fieldType = rewriteField.getValue();
-                RelDataTypeField newField = new RelDataTypeFieldImpl(rewriteFieldName, paramIndex++, fieldType);
-                newFieldList.add(newField);
-                // new project
-                RelDataTypeField inputField = getInput().getRowType().getFieldList().get(inputIndex);
-                RexInputRef newFieldRef = new RexInputRef(inputField.getIndex(), inputField.getType());
-                newExpList.add(newFieldRef);
-            }
-        }
+        Map<Integer, RelDataTypeField> needReplaceCCFieldList = replaceCcFiledWithOriginInnerCol();
+        List<RelDataTypeField> newFieldList = rebuildMissPreCalcField();
 
-        if (!newFieldList.isEmpty()) {
-            // rebuild projects
-            List<RexNode> newProjects = new ArrayList<RexNode>(this.rewriteProjects);
-            newProjects.addAll(newExpList);
-            this.rewriteProjects = newProjects;
-            // rebuild row type
+        // rebuild row type
+        if (!newFieldList.isEmpty() && needReplaceCCFieldList.isEmpty()) {
             RelDataTypeFactory.FieldInfoBuilder fieldInfo = getCluster().getTypeFactory().builder();
             fieldInfo.addAll(this.rowType.getFieldList());
+            fieldInfo.addAll(newFieldList);
+            this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
+        } else if (!newFieldList.isEmpty()) {
+            RelDataTypeFactory.FieldInfoBuilder fieldInfo = getCluster().getTypeFactory().builder();
+            List<RelDataTypeField> originfields = Lists.newArrayList(this.rowType.getFieldList());
+            for (Map.Entry<Integer, RelDataTypeField> integerRelDataTypeFieldEntry : needReplaceCCFieldList
+                    .entrySet()) {
+                originfields.set(integerRelDataTypeFieldEntry.getKey(), integerRelDataTypeFieldEntry.getValue());
+            }
+            fieldInfo.addAll(originfields);
             fieldInfo.addAll(newFieldList);
             this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
         }
@@ -218,5 +206,85 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     @Override
     public void setSubContexts(Set<OLAPContext> contexts) {
         this.subContexts = contexts;
+    }
+
+    private Map<Integer, RelDataTypeField> replaceCcFiledWithOriginInnerCol() {
+        Map<Integer, RelDataTypeField> needReplaceCCFieldList = Maps.newHashMap();
+        Map<Integer, RexNode> posInTupleToCcCol = Maps.newHashMap();
+        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        for (Map.Entry<TblColRef, TblColRef> originExprToCcCol : this.context.getGroupCCColRewriteMapping()
+                .entrySet()) {
+            String replaceCCField = originExprToCcCol.getValue().getName();
+            int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, replaceCCField);
+            if (rowIndex >= 0) {
+                continue;
+            }
+
+            int originExprIndex = findInnerColPosInPrjRelRowType(originExprToCcCol.getKey(), this);
+            Preconditions.checkArgument(originExprIndex >= 0,
+                    "The origin Computed Column Expression is not existed in {}", this);
+            int ccColInInputIndex = inputColumnRowType.getIndexByNameAndByContext(this.context, replaceCCField);
+            if (ccColInInputIndex >= 0) {
+                RelDataType ccFieldType = OLAPTable.createSqlType(getCluster().getTypeFactory(),
+                        originExprToCcCol.getValue().getType(), true);
+                RelDataTypeField newCcFiled = new RelDataTypeFieldImpl(replaceCCField, originExprIndex, ccFieldType);
+                needReplaceCCFieldList.put(originExprIndex, newCcFiled);
+                RelDataTypeField inputField = getInput().getRowType().getFieldList().get(ccColInInputIndex);
+                RexInputRef ccFiledRef = new RexInputRef(inputField.getIndex(), inputField.getType());
+                posInTupleToCcCol.put(originExprIndex, ccFiledRef);
+            }
+        }
+
+        if (!posInTupleToCcCol.isEmpty()) {
+            List<RexNode> newProjects = new ArrayList<RexNode>(this.rewriteProjects);
+            posInTupleToCcCol.forEach(newProjects::set);
+            this.rewriteProjects = newProjects;
+        }
+
+        return needReplaceCCFieldList;
+    }
+
+    private List<RelDataTypeField> rebuildMissPreCalcField() {
+
+        // find missed rewrite fields
+        List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
+        int paramIndex = this.rowType.getFieldList().size();
+        List<RexNode> newExpList = new ArrayList<RexNode>(this.rewriteProjects);
+        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
+            String rewriteFieldName = rewriteField.getKey();
+            int rowIndex = this.columnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
+            if (rowIndex >= 0) {
+                continue;
+            }
+            int inputIndex = inputColumnRowType.getIndexByNameAndByContext(this.context, rewriteFieldName);
+            if (inputIndex >= 0) {
+                // new field
+                RelDataType fieldType = rewriteField.getValue();
+                RelDataTypeField newField = new RelDataTypeFieldImpl(rewriteFieldName, paramIndex++, fieldType);
+                newFieldList.add(newField);
+                // new project
+                RelDataTypeField inputField = getInput().getRowType().getFieldList().get(inputIndex);
+                RexInputRef newFieldRef = new RexInputRef(inputField.getIndex(), inputField.getType());
+                newExpList.add(newFieldRef);
+            }
+        }
+
+        this.rewriteProjects = newExpList;
+        return newFieldList;
+    }
+
+    private Map<RelDataTypeField, RexNode> computeTupleInfoFromCtx(OLAPContext context,
+            Function<OLAPContext, Map<RelDataTypeField, RexNode>> filedToExprMap) {
+        return filedToExprMap.apply(context);
+    }
+
+    private int findInnerColPosInPrjRelRowType(TblColRef colRef, KapProjectRel rel) {
+        for (int i = 0; i < rel.getColumnRowType().getAllColumns().size(); i++) {
+            if (colRef.equals(rel.getColumnRowType().getColumnByIndex(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
