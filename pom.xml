@@ -130,13 +130,14 @@
             **/io/kyligence/kap/tool/common/HadoopConfExtractor.java,
             **/io/kyligence/kap/tool/hadoop/CheckHadoopConfDir.java,
             **/io/kyligence/kap/tool/hadoop/KapGetPathWithoutSchemeAndAuthorityCLI.java
+            **/io/kyligence/kap/engine/spark/streaming/**
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
             **/io/kyligence/kap/rest/*Server.java,
             **/io/kyligence/kap/engine/spark/builder/DFTableEncoder.java,
             **/io/kyligence/kap/engine/spark/builder/DFLayoutMergeAssist.java,
             **/io/kyligence/kap/engine/spark/job/DFMergeJob.java,
-            **/io/kyligence/kap/engine/spark/streaming/*
+            **/io/kyligence/kap/engine/spark/streaming/**
             **/io/kyligence/kap/engine/spark/builder/DFBuildJob.java,
             **/io/kyligence/kap/engine/spark/builder/DFDictionaryBuilder.java,
             **/io/kyligence/kap/tool/CuratorOperator.java,
