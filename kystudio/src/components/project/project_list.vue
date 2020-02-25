@@ -18,6 +18,7 @@
       :data="projectList"
       tooltip-effect="dark"
       border
+      v-scroll-shadow
       :empty-text="emptyText"
       class="project-table"
       style="width: 100%">

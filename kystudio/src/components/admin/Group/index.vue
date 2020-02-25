@@ -19,6 +19,7 @@
         :data="groupUsersList"
         class="group-table"
         :empty-text="emptyText"
+        v-scroll-shadow
         border>
         <el-table-column
           :label="$t('kylinLang.common.name')"
