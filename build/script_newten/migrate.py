@@ -5,6 +5,7 @@ import functools
 import traceback
 import argparse
 import sys
+import uuid
 
 logging.basicConfig(
     level='DEBUG', format='%(asctime)-15s %(levelname)s: %(message)s', stream=sys.stdout)
@@ -12,6 +13,7 @@ logging.basicConfig(
 INPUT_ROOT = './metadata'
 OUTPUT_ROOT = './newten_meta'
 TABLE_BLACK_LIST = []
+DEFAULT_AUTHORIZED = 1
 
 table_content_dict = {}
 model_content_dict = {}
@@ -101,6 +103,58 @@ INDEX_PLAN_TEMPLATE = '''
 }
 '''
 
+TABLE_COLUMN_ROW_ACL_TEMPLATE = '''
+{
+  "table" : null,
+  "uuid" : "",
+  "last_modified" : 1572605399208,
+  "create_time" : 1568701283526,
+  "version" : "4.0.0.0"
+}
+'''
+
+
+def migrate_user():
+    if not os.path.exists(INPUT_ROOT + '/user'):
+        return
+    if not os.path.exists(OUTPUT_ROOT + '/_global/user'):
+        os.makedirs(OUTPUT_ROOT + '/_global/user')
+    for user_name in os.listdir(INPUT_ROOT + '/user'):
+        with open(INPUT_ROOT + '/user/' + user_name, 'r') as user_file:
+            user_json = json.load(user_file)
+            user_json['create_time'] = user_json.get('create_time', user_json['last_modified'])
+            with open(OUTPUT_ROOT + '/_global/user/' + user_name, 'w') as new_user_file:
+                json.dump(user_json, new_user_file, indent=2)
+
+
+def migrate_user_group():
+    if not os.path.exists(INPUT_ROOT + '/user_group'):
+        return
+    if not os.path.exists(OUTPUT_ROOT + '/_global'):
+        os.makedirs(OUTPUT_ROOT + '/_global')
+    with open(INPUT_ROOT + '/user_group', 'r') as user_group_file:
+        user_group_json = json.load(user_group_file)
+        user_group_json['create_time'] = user_group_json.get('create_time', user_group_json['last_modified'])
+        if not user_group_json['uuid']:
+            user_group_json['uuid'] = str(uuid.uuid4())
+        with open(OUTPUT_ROOT + '/_global/user_group', 'w') as new_user_group_file:
+            json.dump(user_group_json, new_user_group_file, indent=2)
+
+
+def migrate_role_permission():
+    if not os.path.exists(INPUT_ROOT + '/acl'):
+        return
+    if not os.path.exists(OUTPUT_ROOT + '/_global/acl'):
+        os.makedirs(OUTPUT_ROOT + '/_global/acl')
+    for project_uuid in os.listdir(INPUT_ROOT + '/acl'):
+        with open(INPUT_ROOT + '/acl/' + project_uuid, 'r') as project_role_file:
+            project_role_json = json.load(project_role_file)
+            if not project_role_json['uuid']:
+                project_role_json['uuid'] = str(uuid.uuid4())
+            project_role_json['create_time'] = project_role_json.get('create_time', project_role_json['last_modified'])
+            with open(OUTPUT_ROOT + '/_global/acl/' + project_uuid, 'w') as new_project_role_file:
+                json.dump(project_role_json, new_project_role_file, indent=2)
+
 
 def prepare_project():
     ret = []
@@ -132,12 +186,27 @@ def prepare_project():
             project_json['create_time'] = project_origin_json.get('create_time_utc', 0)
             project_json['create_time_utc'] = project_origin_json.get('create_time_utc', 0)
 
-            pm = ProjectMigrator(plain_project_name, list(
-                set([x['realization'] for x in project_origin_json['realizations']])),
-                project_table_dict.get(plain_project_name, []))
+            user_whole = []
+            group_whole = []
+            if os.path.exists(INPUT_ROOT + '/acl/' + project_origin_json['uuid']):
+                with open(INPUT_ROOT + '/acl/' + project_origin_json['uuid'], 'r') as project_role_file:
+                    project_role_json = json.load(project_role_file)
+                    for role_entry in project_role_json['entries']:
+                        if 'a' in role_entry:
+                            group_whole.append(role_entry['a'])
+                        elif 'p' in role_entry:
+                            user_whole.append(role_entry['p'])
+            project_table = project_table_dict.get(plain_project_name, [])
+            project_table_column = {}
+            for table_name in project_table:
+                project_table_column[table_name] = [col_info['name'] for col_info in
+                                                    table_content_dict[(table_name, plain_project_name)]['columns']]
+
+            pm = ProjectMigrator(plain_project_name, user_whole, group_whole, project_table, project_table_column,
+                                 list(set([x['realization'] for x in project_origin_json['realizations']])))
             ret.append(pm)
         with open(OUTPUT_ROOT + '/_global/project/' + project_name, 'w') as new_project_file:
-            json.dump(project_json, new_project_file)
+            json.dump(project_json, new_project_file, indent=2)
         for sub in ['rule', 'dataflow', 'index_plan', 'model_desc', 'table']:
             if not os.path.exists(OUTPUT_ROOT + '/' + plain_project_name + '/' + sub):
                 os.makedirs(OUTPUT_ROOT + '/' + plain_project_name + '/' + sub)
@@ -225,12 +294,14 @@ def prepare_cube_model():
             raw_table_json = json.load(raw_table_file)
             model_name = raw_table_json['model_name']
             model_raw_table_dict[model_name] = [
-                raw_table_json] + model_raw_table_dict[model_name] if model_name in model_raw_table_dict else [raw_table_json]
+                                                   raw_table_json] + model_raw_table_dict[
+                                                   model_name] if model_name in model_raw_table_dict else [
+                raw_table_json]
 
 
 def model_all_named_columns(model_json, project_name):
     tables = [{'table': model_json['fact_table']}] + \
-        [x for x in model_json['lookups']]
+             [x for x in model_json['lookups']]
     columns = []
     for table_ref in tables:
         x = table_ref['table']
@@ -258,7 +329,8 @@ def model_all_named_columns(model_json, project_name):
     if 'computed_columns' in model_json:
         for cc in model_json['computed_columns']:
             col = {'id': id_index, 'status': 'DIMENSION',
-                   'name': cc['tableAlias'] + '_' + cc['columnName'], 'column': cc['tableAlias'] + '.' + cc['columnName']}
+                   'name': cc['tableAlias'] + '_' + cc['columnName'],
+                   'column': cc['tableAlias'] + '.' + cc['columnName']}
             columns.append(col)
             id_index += 1
     model_json['all_named_columns'] = columns
@@ -273,6 +345,7 @@ def migrate_measure_parameter(measure, measure_id):
             del p['next_parameter']
             return [p] + next_p
         return [p]
+
     measure['function']['parameters'] = recursive(origin_param)
     measure['id'] = measure_id
     measure['name'] = measure['name'].replace('.', '_')
@@ -297,6 +370,7 @@ def migrate_aggregation_groups(index_plan_json, model_json, aggregation_groups_j
         ret['select_rule']['joint_dims'] = [_replace_id_list(x)
                                             for x in group['select_rule']['joint_dims']]
         return ret
+
     index_plan_json['rule_based_index']['aggregation_groups'] = [
         _replace_group(x) for x in aggregation_groups_json['aggregation_groups']]
 
@@ -336,14 +410,206 @@ def migrate_table_index(index_plan_json, model_json, raw_table_list):
     index_plan_json['next_table_index_id'] = start_id
 
 
+def migrate_project_table_column_row_acl(project_name, user_whole, group_whole, table_whole, table_column_whole):
+    user_table_blacklist = {}
+    user_column_blacklist = {}
+    user_row_whitelist = {}
+    group_table_blacklist = {}
+    group_column_blacklist = {}
+    group_row_whitelist = {}
+    # table acl
+    if os.path.exists(INPUT_ROOT + '/table_acl/' + project_name):
+        with open(INPUT_ROOT + '/table_acl/' + project_name, 'r') as table_acl_file:
+            table_acl_json = json.load(table_acl_file)
+            table_blacklist_dict = table_acl_json['userTableBlackList']
+            for user_name in table_blacklist_dict.keys():
+                table_blacklist = table_blacklist_dict[user_name]['tables']
+                if len(table_blacklist) < 1:
+                    continue
+                user_table_blacklist[user_name] = table_blacklist
+
+            table_blacklist_dict = table_acl_json['groupTableBlackList']
+            for group_name in table_blacklist_dict.keys():
+                table_blacklist = table_blacklist_dict[group_name]['tables']
+                if len(table_blacklist) < 1:
+                    continue
+                group_table_blacklist[group_name] = table_blacklist
+
+    # column acl
+    if os.path.exists(INPUT_ROOT + '/column_acl/' + project_name):
+        with open(INPUT_ROOT + '/column_acl/' + project_name, 'r') as column_acl_file:
+            column_acl_json = json.load(column_acl_file)
+            column_blacklist_dict = column_acl_json['userColumnBlackList']
+            for user_name in column_blacklist_dict.keys():
+                table_column_dict = column_blacklist_dict[user_name]['columnsWithTable']
+                for table_name in table_column_dict.keys():
+                    column_blacklist = table_column_dict[table_name]
+                    if len(column_blacklist) < 1:
+                        continue
+                    if user_name not in user_column_blacklist:
+                        user_column_blacklist[user_name] = {}
+                    user_column_blacklist[user_name][table_name] = column_blacklist
+
+            column_blacklist_dict = column_acl_json['groupColumnBlackList']
+            for group_name in column_blacklist_dict.keys():
+                table_column_dict = column_blacklist_dict[group_name]['columnsWithTable']
+                for table_name in table_column_dict.keys():
+                    column_blacklist = table_column_dict[table_name]
+                    if len(column_blacklist) < 1:
+                        continue
+                    if group_name not in group_column_blacklist:
+                        group_column_blacklist[group_name] = {}
+                    group_column_blacklist[group_name][table_name] = column_blacklist
+
+    # row acl
+    if os.path.exists(INPUT_ROOT + '/row_acl/' + project_name + '/user'):
+        for user_name in os.listdir(INPUT_ROOT + '/row_acl/' + project_name + '/user'):
+            for table_name_suffix in os.listdir(INPUT_ROOT + '/row_acl/' + project_name + '/user/' + user_name):
+                table_name = os.path.splitext(table_name_suffix)[0]
+                with open(INPUT_ROOT + '/row_acl/' + project_name + '/user/' + user_name + '/' + table_name_suffix) \
+                        as row_acl_file:
+                    row_acl_json = json.load(row_acl_file)
+                    for column_name, row_value_list in row_acl_json['rowACL'].items():
+                        row_whitelist = [e[1] for e in row_value_list]
+                        if len(row_whitelist) < 1:
+                            continue
+                        if user_name not in user_row_whitelist:
+                            user_row_whitelist[user_name] = {}
+                        if table_name not in user_row_whitelist[user_name]:
+                            user_row_whitelist[user_name][table_name] = {}
+                        user_row_whitelist[user_name][table_name][column_name] = row_whitelist
+
+    if os.path.exists(INPUT_ROOT + '/row_acl/' + project_name + '/group'):
+        for group_name in os.listdir(INPUT_ROOT + '/row_acl/' + project_name + '/group'):
+            for table_name_suffix in os.listdir(INPUT_ROOT + '/row_acl/' + project_name + '/group/' + group_name):
+                table_name = os.path.splitext(table_name_suffix)[0]
+                with open(INPUT_ROOT + '/row_acl/' + project_name + '/group/' + group_name + '/' + table_name_suffix) \
+                        as row_acl_file:
+                    row_acl_json = json.load(row_acl_file)
+                    for column_name, row_value_list in row_acl_json['rowACL'].items():
+                        row_whitelist = [e[1] for e in row_value_list]
+                        if len(row_whitelist) < 1:
+                            continue
+                        if group_name not in group_row_whitelist:
+                            group_row_whitelist[group_name] = {}
+                        if table_name not in group_row_whitelist[group_name]:
+                            group_row_whitelist[group_name][table_name] = {}
+                        group_row_whitelist[group_name][table_name][column_name] = row_whitelist
+
+    # merge user table, column and row acl
+    for user_name in user_whole:
+        acl_json = json.loads(TABLE_COLUMN_ROW_ACL_TEMPLATE)
+        acl_json['uuid'] = str(uuid.uuid4())
+        should_fill = 0
+        if user_name in user_row_whitelist.keys():
+            for table_name in user_row_whitelist[user_name].keys():
+                should_fill = 1
+                if not acl_json['table']:
+                    acl_json['table'] = {}
+                if table_name not in acl_json['table']:
+                    acl_json['table'][table_name] = {}
+                if 'column' not in acl_json['table'][table_name]:
+                    acl_json['table'][table_name]['column'] = None
+                acl_json['table'][table_name]['row'] = user_row_whitelist[user_name][table_name]
+        if user_name in user_column_blacklist.keys():
+            for table_name in user_column_blacklist[user_name].keys():
+                should_fill = 1
+                if not acl_json['table']:
+                    acl_json['table'] = {}
+                if table_name not in acl_json['table']:
+                    acl_json['table'][table_name] = {}
+                if 'row' not in acl_json['table'][table_name]:
+                    acl_json['table'][table_name]['row'] = None
+                acl_json['table'][table_name]['column'] = [col for col in table_column_whole[table_name] if
+                                                           col not in user_column_blacklist[user_name][table_name]]
+
+        new_table_whole = table_whole
+        if user_name in user_table_blacklist.keys():
+            should_fill = 1
+            new_table_whole = [tbl for tbl in table_whole if tbl not in user_table_blacklist[user_name]]
+
+        if should_fill:
+            for table_name in new_table_whole:
+                if not acl_json['table']:
+                    acl_json['table'] = {}
+                if table_name not in acl_json['table']:
+                    acl_json['table'][table_name] = None
+        else:
+            if not DEFAULT_AUTHORIZED:
+                acl_json['table'] = {}
+
+        # persist user acl info
+        if not os.path.exists(OUTPUT_ROOT + '/' + project_name + '/acl/user'):
+            os.makedirs(OUTPUT_ROOT + '/' + project_name + '/acl/user')
+        with open(OUTPUT_ROOT + '/' + project_name + '/acl/user/' + user_name + '.json', 'w') as new_acl_file:
+            json.dump(acl_json, new_acl_file, indent=2)
+
+    # merge group table, column and row acl
+    for group_name in group_whole:
+        acl_json = json.loads(TABLE_COLUMN_ROW_ACL_TEMPLATE)
+        acl_json['uuid'] = str(uuid.uuid4())
+        should_fill = 0
+        if group_name in group_row_whitelist.keys():
+            for table_name in group_row_whitelist[group_name].keys():
+                should_fill = 1
+                if not acl_json['table']:
+                    acl_json['table'] = {}
+                if table_name not in acl_json['table']:
+                    acl_json['table'][table_name] = {}
+                if 'column' not in acl_json['table'][table_name]:
+                    acl_json['table'][table_name]['column'] = None
+                acl_json['table'][table_name]['row'] = group_row_whitelist[group_name][table_name]
+        if group_name in group_column_blacklist.keys():
+            for table_name in group_column_blacklist[group_name].keys():
+                should_fill = 1
+                if not acl_json['table']:
+                    acl_json['table'] = {}
+                if table_name not in acl_json['table']:
+                    acl_json['table'][table_name] = {}
+                if 'row' not in acl_json['table'][table_name]:
+                    acl_json['table'][table_name]['row'] = None
+                acl_json['table'][table_name]['column'] = [col for col in table_column_whole[table_name] if
+                                                           col not in group_column_blacklist[group_name][table_name]]
+
+        new_table_whole = table_whole
+        if group_name in group_table_blacklist.keys():
+            should_fill = 1
+            new_table_whole = [tbl for tbl in table_whole if tbl not in group_table_blacklist[group_name]]
+
+        if should_fill:
+            for table_name in new_table_whole:
+                if not acl_json['table']:
+                    acl_json['table'] = {}
+                if table_name not in acl_json['table']:
+                    acl_json['table'][table_name] = None
+        else:
+            if not DEFAULT_AUTHORIZED:
+                acl_json['table'] = {}
+
+        # persist group acl info
+        if not os.path.exists(OUTPUT_ROOT + '/' + project_name + '/acl/group'):
+            os.makedirs(OUTPUT_ROOT + '/' + project_name + '/acl/group')
+        with open(OUTPUT_ROOT + '/' + project_name + '/acl/group/' + group_name + '.json', 'w') as new_acl_file:
+            json.dump(acl_json, new_acl_file, indent=2)
+
+
 class ProjectMigrator:
-    def __init__(self, project, cubes, tables):
+    def __init__(self, project, user_whole, group_whole, tables, table_columns, cubes):
         self.project = project
-        self.cubes = cubes
+        self.user_whole = user_whole
+        self.group_whole = group_whole
         self.tables = tables
+        self.table_columns = table_columns
+        self.cubes = cubes
 
     def migrate(self):
         logging.info('start migrate project %s', self.project)
+
+        logging.info('migrating table, column and row acl')
+        migrate_project_table_column_row_acl(self.project, self.user_whole, self.group_whole, self.tables,
+                                             self.table_columns)
+        logging.info('migrate table, column and row acl succeed')
+
         for table_name in self.tables:
             logging.info('migrating table %s', table_name)
             self.migrate_table(table_name)
@@ -401,7 +667,7 @@ class ProjectMigrator:
             model_json['join_tables'] = model_json['lookups']
             model_all_named_columns(model_json, self.project)
             model_json['all_measures'] = [
-                migrate_measure_parameter(x, 100000+i) for i, x in enumerate(cube_json['measures'])]
+                migrate_measure_parameter(x, 100000 + i) for i, x in enumerate(cube_json['measures'])]
             model_json['management_type'] = 'MODEL_BASED'
             if 'partition_desc' in model_json:
                 model_json['partition_desc']['partition_type'] = 'APPEND'
@@ -434,13 +700,27 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description='migration from 2.x/3.x metadata')
-    parser.add_argument('-i', help='the folder of input metadata')
-    parser.add_argument('-o', help='the folder of output metadata')
+    parser.add_argument('-i', default='./metadata',
+                        help='the folder of input metadata')
+    parser.add_argument('-o', default='./newten_meta',
+                        help='the folder of output metadata')
+    parser.add_argument('-g', default=True,
+                        help="please keep with "
+                             "'kap.acl.project-internal-default-permission-granted' in kylin.properties")
     args = parser.parse_args()
+
+    print ('''
+    This tool is not responsible for the migration of user and user group information during user system integration when LDAP, AD and third-party permissions.
+    ''')
 
     INPUT_ROOT = args.i
     OUTPUT_ROOT = args.o
+    if not args.g:
+        DEFAULT_AUTHORIZED = 0
 
+    migrate_user()
+    migrate_user_group()
+    migrate_role_permission()
     pms = prepare_project()
     prepare_cube_model()
     for pm in pms:
