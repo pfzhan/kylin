@@ -219,6 +219,9 @@ export default {
     },
     [types.UPDATE_EXPOSE_CC_CONFIG]: function ({ commit }, para) {
       return api.project.updateExposeCCConfig(para)
+    },
+    [types.GET_ACL_PERMISSION]: function (_, para) {
+      return api.project.getAclPermission(para)
     }
   },
   getters: {

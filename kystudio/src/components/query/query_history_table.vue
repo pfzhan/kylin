@@ -62,7 +62,12 @@
                     <td style="padding: 3px 10px;">
                       <div v-if="props.row.realizations && props.row.realizations.length" class="realization-tags">
                         <span v-for="(item, index) in props.row.realizations" :key="item.modelId">
-                          <span @click="openIndexDialog(item)" :class="{'model-tag': item.valid, 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                          <template v-if="'visible' in item && !item.visible">
+                            <span @click="openAuthorityDialog(item)" class="no-authority-model"><i class="el-icon-ksd-lock"></i>{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                          </template>
+                          <template v-else>
+                            <span @click="openIndexDialog(item)" :class="{'model-tag': item.valid, 'disable': !item.valid}">{{item.modelAlias}}</span><span class="split" v-if="index < props.row.realizations.length-1">,</span>
+                          </template>
                         </span>
                       </div>
                       <div v-else class="realization-tags"><el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag></div>
@@ -135,7 +140,8 @@
         <template slot-scope="props">
           <div class="tag-ellipsis" :class="{'hasMore': checkIsShowMore(props.row.realizations)}">
             <template v-if="props.row.realizations && props.row.realizations.length">
-              <el-tag v-for="(item, index) in props.row.realizations" v-if="index < checkShowCount(props.row.realizations)" :type="item.valid ? 'success' : 'info'" size="small" :key="item.modelId">{{item.modelAlias}}</el-tag><a v-if="checkIsShowMore(props.row.realizations)" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: props.row.realizations.length - checkShowCount(props.row.realizations)})}}</a>
+              <el-tag v-for="(item, index) in props.row.realizations" :class="{'disabled': 'visible' in item && !item.visible}" v-if="index < checkShowCount(props.row.realizations)" :type="'visible' in item && !item.visible ? 'info' : item.valid ? 'success' : 'info'" size="small" :key="item.modelId"><i class="el-icon-ksd-lock" v-if="'visible' in item && !item.visible"></i>{{item.modelAlias}}</el-tag>
+              <a v-if="checkIsShowMore(props.row.realizations)" href="javascript:;" @click="handleExpandType(props, true)" class="showMore el-tag el-tag--small">{{$t('showDetail', {count: props.row.realizations.length - checkShowCount(props.row.realizations)})}}</a>
             </template>
             <template v-else>
               <el-tag type="warning" size="small" v-if="props.row.engine_type">{{props.row.engine_type}}</el-tag>
@@ -172,6 +178,9 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
     transToGmtTime: transToGmtTime,
     ...mapActions({
       markFav: 'MARK_FAV'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   computed: {
@@ -713,6 +722,28 @@ export default class QueryHistoryTable extends Vue {
     this.filterTags = []
     this.filterList()
   }
+  openAuthorityDialog (item) {
+    const { unauthorized_tables, unauthorized_columns, modelAlias } = item
+    let details = []
+    if (unauthorized_tables && unauthorized_tables.length) {
+      details.push({title: `Table (${unauthorized_tables.length})`, list: unauthorized_tables})
+    }
+    if (unauthorized_columns && unauthorized_columns.length) {
+      details.push({title: `Columns (${unauthorized_columns.length})`, list: unauthorized_columns})
+    }
+    this.callGlobalDetailDialog({
+      theme: 'plain-mult',
+      title: this.$t('kylinLang.model.authorityDetail'),
+      msg: this.$t('kylinLang.model.authorityMsg', {modelName: modelAlias}),
+      showCopyBtn: true,
+      showIcon: false,
+      showDetailDirect: true,
+      details,
+      showDetailBtn: false,
+      dialogType: 'error',
+      customClass: 'no-acl-model'
+    })
+  }
 }
 </script>
 
@@ -817,6 +848,11 @@ export default class QueryHistoryTable extends Vue {
           max-width: 100%;
           overflow: hidden;
           text-overflow: ellipsis;
+          &.disabled {
+            border: solid 1px #b2b2b2;
+            background-color: #f4f4f4;
+            color: #7f7f7f;
+          }
         }
         .showMore{
           width:auto;
@@ -864,6 +900,13 @@ export default class QueryHistoryTable extends Vue {
         }
         .split{
           margin-right:10px;
+        }
+        .no-authority-model {
+          color: #7f7f7f;
+          cursor: pointer;
+          &:hover {
+            color: #0988de;
+          }
         }
       }
       .el-date-editor {

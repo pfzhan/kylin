@@ -7,19 +7,20 @@
     :append-to-body="true"
     :visible.sync="isShow"
     limited-area
+    :custom-class="customClass"
     :close-on-press-escape="false">
     <el-alert
       :type="dialogType"
       :show-background="false"
       :closable="false"
-      show-icon>
+      :show-icon="showIcon">
       <span style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
       <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn" class="show-detail">{{$t('kylinLang.common.seeDetail')}}  
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
       </a>
       <p v-if="showDetail && detailMsg" class="ksd-mt-15 detailMsg" :class="{'en-lang': $store.state.system.lang === 'en'}" v-html="filterInjectScript(detailMsg).replace(/\n/g, '<br/>')"></p>
-      <div v-if="showDetail" style="padding-top:10px;">
+      <div v-if="showDetailDirect || showDetail" style="padding-top:10px;">
         <template v-if="theme === 'plain-mult'">
           <div v-for="item in details">
             <p class="mult-title">{{item.title}}</p>
@@ -83,6 +84,9 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       detailMsg: state => state.detailMsg, // 详情里其他的文案信息
       isShow: state => state.isShow,
       dialogType: state => state.dialogType,
+      showIcon: state => state.showIcon,
+      showDetailDirect: state => state.showDetailDirect, // 默认展示详情信息
+      customClass: state => state.customClass,
       showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
       showCopyBtn: state => state.showCopyBtn,
       needCallbackWhenClose: state => state.needCallbackWhenClose, // 数据源处的特殊需求，关闭时执行回调

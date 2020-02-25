@@ -251,7 +251,9 @@ exports.default = {
     hasNoFact: '模型需要有一个事实表',
     cycleLinkTip: '当前Join连接后，会导致表与表形成闭环。',
     aloneTableTip: '有 {aloneCount} 张表未与事实表直接或间接关联(A join B)，继续保存模型会丢失这些表。',
-    aloneTableTipTitle: '表关联不完整'
+    aloneTableTipTitle: '表关联不完整',
+    authorityDetail: '权限详情',
+    authorityMsg: '您无法访问模型 {modelName}，因为缺少访问以下表和列的数据权限。'
   },
   cube: {
     tableIndex: '索引',

@@ -100,5 +100,8 @@ export default {
   },
   updateExposeCCConfig (body) {
     return Vue.resource(apiUrl + 'projects/' + body.project + '/computed_column_config').update(body)
+  },
+  getAclPermission (data) {
+    return Vue.resource(apiUrl + 'acl/updatable').get(data)
   }
 }

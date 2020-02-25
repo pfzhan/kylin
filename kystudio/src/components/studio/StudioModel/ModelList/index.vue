@@ -28,13 +28,14 @@
         tooltip-effect="dark"
         :expand-row-keys="expandedRows"
         :row-key="renderRowKey"
+        :row-class-name="setRowClass"
         @expand-change="expandRow"
         :default-sort = "{prop: 'gmtTime', order: 'descending'}"
         @sort-change="onSortChange"
         :cell-class-name="renderColumnClass"
         ref="modelListTable"
         style="width: 100%">
-        <el-table-column  width="34" type="expand">
+        <el-table-column width="34" type="expand">
           <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
             <transition name="full-model-slide-fade">
               <div :class="renderFullExpandClass(props.row)">
@@ -119,7 +120,7 @@
           :render-header="renderAdviceHeader"
           v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
           <template slot-scope="scope">
-            <span v-if="scope.row.status !== 'BROKEN'" class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
+            <span v-if="scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible)" class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
             <span v-else>{{scope.row.recommendations_count}}</span>
           </template>
          </el-table-column>
@@ -169,39 +170,46 @@
         v-if="!isAutoProject"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
-            <common-tip :content="$t('kylinLang.common.edit')" v-if="datasourceActions.includes('modelActions')">
-              <i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i>
-            </common-tip>
-            <common-tip :content="$t('kylinLang.common.repair')" v-if="datasourceActions.includes('modelActions')">
-              <i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i>
-            </common-tip>
-            <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')" class="ksd-ml-10">
-              <i class="el-icon-ksd-data_range ksd-fs-14" v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
-            </common-tip>
-            <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="datasourceActions.includes('modelActions')">
-              <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
-                <span class="el-dropdown-link" >
-                    <i class="el-icon-ksd-table_others ksd-fs-14"></i>
-                </span>
-                <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
-                  <!-- 数据检测移动至project 级别处理， -->
-                  <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
-                  <!-- 设置partition -->
-                  <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
-                  <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
-                  <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                  <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
-                  <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
-                  <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
-                  <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
-                  <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
-                  <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
-                  <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN'">{{$t('purge')}}</el-dropdown-item>
-                  <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
-                  <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
-                </el-dropdown-menu>
-              </el-dropdown>
-            </common-tip>
+            <template v-if="'visible' in scope.row && !scope.row.visible">
+              <common-tip :content="$t('authorityDetails')">
+                <i class="el-icon-ksd-lock ksd-fs-14" @click="showNoAuthorityContent(scope.row)"></i>
+              </common-tip>
+            </template>
+            <template v-else>
+              <common-tip :content="$t('kylinLang.common.edit')" v-if="datasourceActions.includes('modelActions')">
+                <i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i>
+              </common-tip>
+              <common-tip :content="$t('kylinLang.common.repair')" v-if="datasourceActions.includes('modelActions')">
+                <i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i>
+              </common-tip>
+              <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')" class="ksd-ml-10">
+                <i class="el-icon-ksd-data_range ksd-fs-14" v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
+              </common-tip>
+              <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="datasourceActions.includes('modelActions')">
+                <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
+                  <span class="el-dropdown-link" >
+                      <i class="el-icon-ksd-table_others ksd-fs-14"></i>
+                  </span>
+                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
+                    <!-- 数据检测移动至project 级别处理， -->
+                    <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
+                    <!-- 设置partition -->
+                    <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
+                    <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
+                    <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
+                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
+                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                    <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
+                    <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN'">{{$t('purge')}}</el-dropdown-item>
+                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
+              </common-tip>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -259,7 +267,7 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
         // vm.showFull = true
       }
       if (to.params.modelAlias) {
-        vm.currentEditModel = to.params.modelAlias
+        // vm.currentEditModel = to.params.modelAlias
         vm.filterArgs.model_name = to.params.modelAlias
         vm.filterArgs.exact = true
       }
@@ -311,6 +319,9 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
     }),
     ...mapActions('UploadSqlModel', {
       showUploadSqlDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -354,6 +365,12 @@ export default class ModelList extends Vue {
     this.showUploadSqlDialog({
       isGenerateModel: true
     })
+  }
+  changeCurrentType (res) {
+  }
+  setRowClass (res) {
+    const {row} = res
+    return 'visible' in row && !row.visible ? 'no-authority-model' : ''
   }
   get emptyText () {
     return this.filterArgs.model_name ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -400,7 +417,7 @@ export default class ModelList extends Vue {
     return row.alias
   }
   renderColumnClass ({row, column, rowIndex, columnIndex}) {
-    if (row.status === 'BROKEN' && columnIndex === 0) {
+    if ((row.status === 'BROKEN' || ('visible' in row && !row.visible)) && columnIndex === 0) {
       return 'broken-column'
     }
   }
@@ -686,6 +703,29 @@ export default class ModelList extends Vue {
     this.filterTags = []
     this.pageCurrentChange(0, this.filterArgs.page_size)
   }
+  // 展示model无权限的相关table和columns信息
+  showNoAuthorityContent (row) {
+    const { unauthorized_tables, unauthorized_columns } = row
+    let details = []
+    if (unauthorized_tables && unauthorized_tables.length) {
+      details.push({title: `Table (${unauthorized_tables.length})`, list: unauthorized_tables})
+    }
+    if (unauthorized_columns && unauthorized_columns.length) {
+      details.push({title: `Columns (${unauthorized_columns.length})`, list: unauthorized_columns})
+    }
+    this.callGlobalDetailDialog({
+      theme: 'plain-mult',
+      title: this.$t('kylinLang.model.authorityDetail'),
+      msg: this.$t('kylinLang.model.authorityMsg', {modelName: row.name}),
+      showCopyBtn: true,
+      showIcon: false,
+      showDetailDirect: true,
+      details,
+      showDetailBtn: false,
+      dialogType: 'error',
+      customClass: 'no-acl-model'
+    })
+  }
 }
 </script>
 <style lang="less">
@@ -765,6 +805,11 @@ export default class ModelList extends Vue {
         margin-left:10px;
         z-index: 10;
       }
+    }
+    .el-table__row.no-authority-model {
+      background-color: #f5f5f5;
+      color: @text-disabled-color;
+      // pointer-events: none;
     }
     .el-icon-ksd-filter {
       position: relative;
@@ -857,6 +902,13 @@ export default class ModelList extends Vue {
       font-size: 14px;
       color: @base-color;
       cursor: pointer;
+    }
+  }
+}
+.no-acl-model {
+  .dialog-detail {
+    .dialog-detail-scroll {
+      max-height: 200px;
     }
   }
 }

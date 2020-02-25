@@ -1,6 +1,6 @@
 <template>
   <div class="user-access-block" v-loading="loading">
-    <el-button type="primary" plain size="small" class="ksd-mb-10" @click="editAccess" v-if="!isEdit">{{$t('kylinLang.common.edit')}}</el-button>
+    <el-button type="primary" plain size="small" class="ksd-mb-10" @click="editAccess" v-if="!isEdit && isAuthority">{{$t('kylinLang.common.edit')}}</el-button>
     <el-row>
       <el-col :span="8">
         <div class="access-card">
@@ -163,7 +163,8 @@ import { pageSizeMapping } from '../../config'
   methods: {
     ...mapActions({
       getAccessDetailsByUser: 'GET_ACCESS_DETAILS_BY_USER',
-      submitAccessData: 'SUBMIT_ACCESS_DATA'
+      submitAccessData: 'SUBMIT_ACCESS_DATA',
+      getAclPermission: 'GET_ACL_PERMISSION'
     })
   },
   locales: {
@@ -238,6 +239,7 @@ export default class UserAccess extends Vue {
   loading = false
   columnPageSize = 100
   columnCurrentPage = 1
+  isAuthority = false
   get emptyText () {
     return this.tableFilter ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
   }
@@ -653,6 +655,14 @@ export default class UserAccess extends Vue {
   }
   created () {
     this.loadAccessDetails(true)
+    this.getAclPermission({project: this.projectName}).then((res) => {
+      const { data } = res.data
+      handleSuccess(res, () => {
+        this.isAuthority = data
+      })
+    }, (err) => {
+      handleError(err)
+    })
   }
 }
 </script>

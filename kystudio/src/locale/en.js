@@ -254,7 +254,9 @@ exports.default = {
     hasNoFact: 'Fact Table is mandatory for model',
     cycleLinkTip: 'The join may lead some tables joining in a circle.',
     aloneTableTip: '{aloneCount} tables haven\'t been joined with the fact table directly or via other dimension tables. The model may lose them if you continue to save the model anyway.',
-    aloneTableTipTitle: 'Incomplete Table Join'
+    aloneTableTipTitle: 'Incomplete Table Join',
+    authorityDetail: 'Permission denied details',
+    authorityMsg: 'You cannot access the model {modelName}. Because you lack data access to the following tables and columns.'
   },
   cube: {
     tableIndex: 'Table Index',

@@ -52,7 +52,8 @@ export default {
     tentative: 'Tentative',
     recommendations: 'Recommendation',
     recommendationsTip: 'By analyzing the query history and model usage, the system will provide some recommendations.',
-    clearAll: 'Clear All'
+    clearAll: 'Clear All',
+    authorityDetails: 'The details of authority'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -107,6 +108,7 @@ export default {
     tentative: '未知',
     recommendations: '优化建议',
     recommendationsTip: '系统将根据查询历史和模型使用情况，对当前模型的提供一些优化建议。',
-    clearAll: '清除所有'
+    clearAll: '清除所有',
+    authorityDetails: '权限详情'
   }
 }
