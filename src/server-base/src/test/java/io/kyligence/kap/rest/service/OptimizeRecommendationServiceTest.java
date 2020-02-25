@@ -117,6 +117,16 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     }
 
     private void prepare() throws IOException {
+        prepareWithoutRecommendations();
+
+        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
+        updateModelByFile(optimized, optimizedModelFile);
+        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
+        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
+        recommendationManager.optimize(optimized, indexPlanOptimized);
+    }
+
+    private void prepareWithoutRecommendations() throws IOException {
         dataflowManager.listAllDataflows().forEach(dataflow -> dataflowManager.dropDataflow(dataflow.getId()));
         indexPlanManager.listAllIndexPlans().forEach(indexPlan -> indexPlanManager.dropIndexPlan(indexPlan));
         modelManager.listAllModels().forEach(model -> modelManager.dropModel(model));
@@ -130,12 +140,6 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
 
         dataflowManager.createDataflow(indexPlanManager.getIndexPlan(id).copy(), "ADMIN");
         dataflowManager.updateDataflow(id, copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
-
-        val optimized = modelManager.copyForWrite(modelManager.getDataModelDesc(id));
-        updateModelByFile(optimized, optimizedModelFile);
-        val indexPlanOptimized = indexPlanManager.getIndexPlan(id).copy();
-        updateIndexPlanByFile(indexPlanOptimized, optimizedIndexPlanFile);
-        recommendationManager.optimize(optimized, indexPlanOptimized);
     }
 
     private void updateModelByFile(NDataModel model, String fileName) throws IOException {
@@ -509,6 +513,13 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     public void testBatchApplyRecommendationsWithNoModelNames() throws IOException {
         prepare();
 
+        service.batchApplyRecommendations("default", null);
+        Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
+    }
+
+    @Test
+    public void testWithoutRecommendationsButBatchApplyRecommendations() throws IOException {
+        prepareWithoutRecommendations();
         service.batchApplyRecommendations("default", null);
         Assert.assertEquals(0, recommendationManager.getRecommendationCount(id));
     }

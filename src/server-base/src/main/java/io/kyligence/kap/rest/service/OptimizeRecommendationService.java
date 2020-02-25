@@ -284,6 +284,9 @@ public class OptimizeRecommendationService extends BasicService {
         // removal recommendations
         OptimizeRecommendation optimizeRecommendation = getOptRecommendationManager(project)
                 .getOptimizeRecommendation(modelUuid);
+        if (optimizeRecommendation == null) {
+            return;
+        }
         Set<Long> toBeDeletedLayouts = Sets.newHashSet();
         for (LayoutRecommendationItem layoutRecommendation : optimizeRecommendation.getLayoutRecommendations()) {
             if (!layoutRecommendation.isAdd()) {
