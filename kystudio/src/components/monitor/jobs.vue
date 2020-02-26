@@ -973,7 +973,7 @@ export default class JobsList extends Vue {
     this.isSelectAllShow = false
     this.isSelectAll = false
     this.multipleSelection = []
-    this.$refs.jobsTable.clearSelection()
+    this.$refs.jobsTable && this.$refs.jobsTable.clearSelection()
     this.idsArrCopy = []
     this.idsArr = []
   }
