@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.query.runtime;
 
+import java.util.List;
+
 import org.apache.calcite.DataContext;
-import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.kylin.common.QueryContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -36,9 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.query.engine.exec.sparder.QueryEngine;
 import io.kyligence.kap.query.runtime.plan.ResultPlan;
-import io.kyligence.kap.query.runtime.plan.ResultType;
-
-import java.util.List;
 
 public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);
@@ -47,7 +44,6 @@ public class SparkEngine implements QueryEngine {
         log.info("Begin planning spark plan.");
         long start = System.currentTimeMillis();
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
-        long t = System.currentTimeMillis();
         calciteToSparkPlaner.go(relNode);
         long takeTime = System.currentTimeMillis() - start;
         QueryContext.current().record("to_spark_plan");
@@ -59,6 +55,6 @@ public class SparkEngine implements QueryEngine {
     public List<List<String>> compute(DataContext dataContext, RelNode relNode) {
         Dataset<Row> sparkPlan = toSparkPlan(dataContext, relNode);
         log.debug("SPARK LOGICAL PLAN {}", sparkPlan.queryExecution().logical());
-        return QueryResultBuilder.toQueryResult(sparkPlan);
+        return ResultPlan.getResult(sparkPlan);
     }
 }

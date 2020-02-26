@@ -21,19 +21,17 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import java.sql.Timestamp
+import java.util
+
 import com.google.common.cache.{Cache, CacheBuilder}
-import com.google.common.collect.Lists
-import io.kyligence.kap.query.runtime.plan.ResultType.ResultType
-import org.apache.calcite.linq4j.{Enumerable, Linq4j}
-import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exceptions.KylinTimeoutException
+import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
-import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.{DataFrame, SparderEnv}
-import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 
 import scala.collection.JavaConverters._
 
@@ -46,22 +44,7 @@ object ResultType extends Enumeration {
 object ResultPlan extends Logging {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
-  def collectEnumerable(df: DataFrame,
-                        rowType: RelDataType): Enumerable[Array[Any]] = {
-    val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
-    Linq4j.asEnumerable(rowsItr.array)
-  }
-
-  def collectScalarEnumerable(df: DataFrame,
-                              rowType: RelDataType): Enumerable[Any] = {
-    val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
-    val x = rowsItr.toIterable.map(a => a.apply(0)).asJava
-    Linq4j.asEnumerable(x)
-  }
-
-  private def collectInternal(df: DataFrame,
-                              rowType: RelDataType): Array[Array[Any]] = {
-    val resultTypes = rowType.getFieldList.asScala
+  private def collectInternal(df: DataFrame): util.List[util.List[String]] = {
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
@@ -108,19 +91,16 @@ object ResultPlan extends Logging {
       QueryContext.current().setScanRows(scanRows)
       QueryContext.current().setScanBytes(scanBytes)
       logInfo("Start transforming rows.")
-      val dt = rows.map { row =>
-        var rowIndex = 0
-        row.toSeq.map { cell => {
-          var vale = cell
-          val rType = resultTypes.apply(rowIndex).getType
-          val value = SparderTypeUtil.convertStringToValue(vale,
-            rType,
-            toCalcite = true)
-          rowIndex = rowIndex + 1
-          value
+      val dt = rows.map { row => row.toSeq.map { cell => {
+        if (cell == null) {
+          null
+        } else {
+          cell match {
+            case ts: Timestamp => DateFormat.formatToTimeWithoutMilliStr(ts.getTime)
+            case value => value.toString
+          }
         }
-        }.toArray
-      }
+      } }.asJava }.toSeq.asJava
       QueryContext.current.record("transform_result")
       logInfo("End of row transformation.")
       dt
@@ -160,23 +140,12 @@ object ResultPlan extends Logging {
     r
   }
 
-  def getResult(df: DataFrame, rowType: RelDataType, resultType: ResultType)
-  : Either[Enumerable[Array[Any]], Enumerable[Any]] = withScope(df) {
-    val result: Either[Enumerable[Array[Any]], Enumerable[Any]] =
-      resultType match {
-        case ResultType.NORMAL =>
-          if (SparderEnv.needCompute()) {
-            Left(ResultPlan.collectEnumerable(df, rowType))
-          } else {
-            Left(Linq4j.asEnumerable(Array.empty[Array[Any]]))
-          }
-        case ResultType.SCALA =>
-          if (SparderEnv.needCompute()) {
-            Right(ResultPlan.collectScalarEnumerable(df, rowType))
-          } else {
-            Right(Linq4j.asEnumerable(Lists.newArrayList[Any]()))
-          }
-      }
+  def getResult(df: DataFrame): util.List[util.List[String]] = withScope(df) {
+    val result = if (SparderEnv.needCompute()) {
+      collectInternal(df)
+    } else {
+      new util.LinkedList[util.List[String]]
+    }
     SparderEnv.cleanQueryInfo()
     result
   }

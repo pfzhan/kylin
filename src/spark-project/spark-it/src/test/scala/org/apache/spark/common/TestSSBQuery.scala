@@ -25,7 +25,7 @@ package org.apache.spark.common
 import io.kyligence.kap.benchmark.BenchmarkHelper
 import io.kyligence.kap.common.{JobSupport, LocalToYarnSupport, QuerySupport}
 import io.kyligence.kap.query.runtime.CalciteToSparkPlaner
-import io.kyligence.kap.query.runtime.plan.{ResultPlan, ResultType}
+import io.kyligence.kap.query.runtime.plan.ResultPlan
 import io.kyligence.kap.query.{MockContext, QueryConstants, QueryFetcher}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
@@ -105,7 +105,7 @@ class TestSSBQuery
       calciteToSparkPlaner.go(relNode)
       val dataFrame = calciteToSparkPlaner.getResult()
       () => {
-        ResultPlan.getResult(dataFrame, resultType, ResultType.SCALA)
+        ResultPlan.getResult(dataFrame)
       }
     })
     helper.runTest()
