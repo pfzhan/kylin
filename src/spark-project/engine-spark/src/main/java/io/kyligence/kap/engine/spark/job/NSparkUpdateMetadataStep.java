@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
@@ -38,6 +40,10 @@ import lombok.val;
 
 public class NSparkUpdateMetadataStep extends AbstractExecutable {
 
+    public NSparkUpdateMetadataStep() {
+        this.setName(ExecutableConstants.STEP_UPDATE_METADATA);
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(NSparkUpdateMetadataStep.class);
 
     @Override
@@ -46,7 +52,10 @@ public class NSparkUpdateMetadataStep extends AbstractExecutable {
         Preconditions.checkArgument(parent instanceof DefaultChainedExecutableOnModel);
         val handler = ((DefaultChainedExecutableOnModel) parent).getHandler();
         try {
-            handler.handleFinished();
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                handler.handleFinished();
+                return null;
+            }, handler.getProject());
             return ExecuteResult.createSucceed();
         } catch (Throwable throwable) {
             logger.warn("");

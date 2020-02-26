@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
@@ -43,6 +41,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ManagementType;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 
 public class DefaultChainedExecutableOnModel extends DefaultChainedExecutable {
