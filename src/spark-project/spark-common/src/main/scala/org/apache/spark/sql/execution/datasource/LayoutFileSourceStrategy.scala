@@ -22,6 +22,7 @@
 
 package org.apache.spark.sql.execution.datasource
 
+import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
@@ -56,7 +57,7 @@ import org.apache.spark.util.collection.BitSet
  *     is under the threshold with the addition of the next file, add it.  If not, open a new bucket
  *     and add it.  Proceed to the next file.
  */
-object LayoutFileSourceStrategy extends Strategy with Logging {
+object LayoutFileSourceStrategy extends Strategy with LogEx {
 
   // should prune buckets iff num buckets is greater than 1 and there is only one bucket column
   private def shouldPruneBuckets(bucketSpec: Option[BucketSpec]): Boolean = {
@@ -172,7 +173,7 @@ object LayoutFileSourceStrategy extends Strategy with Logging {
           .filterNot(SubqueryExpression.hasSubquery(_))
           .filter(_.references.subsetOf(partitionSet)))
 
-      logInfo(s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")
+      logInfoIf(partitionKeyFilters.nonEmpty)(s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")
 
       val bucketSpec: Option[BucketSpec] = fsRelation.bucketSpec
       val bucketSet = if (shouldPruneBuckets(bucketSpec)) {
@@ -189,7 +190,7 @@ object LayoutFileSourceStrategy extends Strategy with Logging {
 
       // Predicates with both partition keys and attributes need to be evaluated after the scan.
       val afterScanFilters = filterSet -- partitionKeyFilters.filter(_.references.nonEmpty)
-      logInfo(s"Post-Scan Filters: ${afterScanFilters.mkString(",")}")
+      logInfoIf(afterScanFilters.nonEmpty)(s"Post-Scan Filters: ${afterScanFilters.mkString(",")}")
 
       val filterAttributes = AttributeSet(afterScanFilters)
       val requiredExpressions: Seq[NamedExpression] = filterAttributes.toSeq ++ projects

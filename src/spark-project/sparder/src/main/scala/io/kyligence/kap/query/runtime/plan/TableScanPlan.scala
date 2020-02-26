@@ -25,7 +25,7 @@ import java.util
 import java.util.concurrent.ConcurrentHashMap
 
 import com.google.common.collect.{Lists, Sets}
-import io.kyligence.kap.engine.spark.utils.DebugUtils
+import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
@@ -37,7 +37,6 @@ import org.apache.calcite.DataContext
 import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.tuple.TupleInfo
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
@@ -48,7 +47,7 @@ import org.apache.spark.sql.{DataFrame, _}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
-object TableScanPlan extends Logging {
+object TableScanPlan extends LogEx {
 
   def listSegmentsForQuery(cube: NDataflow): util.List[NDataSegment] = {
     val r = new util.ArrayList[NDataSegment]
@@ -65,9 +64,8 @@ object TableScanPlan extends Logging {
     }
   }
 
-  def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = {
+  def createOLAPTable(rel: KapRel, dataContext: DataContext): DataFrame = logTime("table scan", info = true) {
 
-    val start = System.currentTimeMillis()
     val session: SparkSession = SparderEnv.getSparkSession
     val olapContext = rel.getContext
     rel.getContext.bindVariable(dataContext)
@@ -90,12 +88,12 @@ object TableScanPlan extends Logging {
         seg => toCuboidPath(dataflow, cuboidLayout.getId, basePath, seg)
       )
       val path = fileList.mkString(",") + olapContext.isFastBitmapEnabled
-      lazy val segmentIDs = DebugUtils.applySeqString(segments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
+      lazy val segmentIDs = LogUtils.jsonArray(segments.asScala)(e =>s"${e.getId} [${e.getSegRange.getStart}, ${e.getSegRange.getEnd})")
       logDebug(s"""Path is: {"base":"$basePath","dataflow":"${dataflow.getUuid}","segments":$segmentIDs,"layout": ${cuboidLayout.getId}}""")
       logDebug(s"size is ${cacheDf.get().size()}")
 
       var df = if (cacheDf.get().containsKey(path)) {
-        logInfo(s"Reuse df: ${cuboidLayout.getId}")
+        logDebug(s"Reuse df: ${cuboidLayout.getId}")
         cacheDf.get().get(path)
       } else {
         import io.kyligence.kap.query.implicits._
@@ -104,9 +102,7 @@ object TableScanPlan extends Logging {
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout)
           .toDF(columnNames: _*)
-        logInfo(s"put path is $path")
-
-        logInfo(s"Cache df: ${cuboidLayout.getId}")
+        logDebug(s"Cache df: ${cuboidLayout.getId}")
         cacheDf.get().put(path, d)
         d
       }
@@ -163,7 +159,7 @@ object TableScanPlan extends Logging {
         topNMapping)
       df.select(schema: _*)
     }
-    logInfo(s"Gen table scan cost Time :${System.currentTimeMillis() - start} ")
+
     cuboidDF
   }
 

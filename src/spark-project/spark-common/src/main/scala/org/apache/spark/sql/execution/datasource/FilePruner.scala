@@ -24,6 +24,7 @@ package org.apache.spark.sql.execution.datasource
 
 import java.sql.{Date, Timestamp}
 
+import io.kyligence.kap.engine.spark.utils.{LogUtils, LogEx}
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
@@ -32,7 +33,7 @@ import org.apache.kylin.metadata.model.PartitionDesc
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeSet, EmptyRow, Expression, Literal}
-import org.apache.spark.sql.catalyst.{expressions, InternalRow}
+import org.apache.spark.sql.catalyst.{InternalRow, expressions}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
@@ -75,7 +76,7 @@ case class ShardSpec(numShards: Int,
 class FilePruner(val session: SparkSession,
                  val options: Map[String, String],
                  val dataSchema: StructType)
-  extends FileIndex with ResetShufflePartition with ResetBroadcastThreshold with Logging {
+  extends FileIndex with ResetShufflePartition with ResetBroadcastThreshold with LogEx {
 
   private val dataflow: NDataflow = {
     val dataflowId = options.getOrElse("dataflowId", sys.error("dataflowId option is required"))
@@ -199,12 +200,12 @@ class FilePruner(val session: SparkSession,
 
     require(isResolved)
     val timePartitionFilters = getSpecFilter(dataFilters, timePartitionColumn)
-    logInfo(s"Applying time partition filters: ${timePartitionFilters.mkString(",")}")
+    logInfoIf(timePartitionFilters.nonEmpty)(s"Applying time partition filters: ${timePartitionFilters.mkString(",")}")
 
     val fsc = ShardFileStatusCache.getFileStatusCache(session)
 
     // segment pruning
-    var selected = afterPruning("segment", timePartitionFilters, segmentDirs) {
+    var selected = afterPruning("pruning segment", timePartitionFilters, segmentDirs) {
       pruneSegments
     }
     QueryContext.current().record("seg_pruning")
@@ -221,12 +222,11 @@ class FilePruner(val session: SparkSession,
     }.toIterator.toSeq
     QueryContext.current().record("fetch_file_status")
     // shards pruning
-    selected = afterPruning("shard", dataFilters, selected) {
+    selected = afterPruning("pruning shard", dataFilters, selected) {
       pruneShards
     }
     QueryContext.current().record("shard_pruning")
     val totalFileSize = selected.flatMap(partition => partition.files).map(_.getLen).sum
-    logInfo(s"totalFileSize is ${totalFileSize}")
     setShufflePartitions(totalFileSize, session)
     setBroadcastThreshold(totalFileSize, session)
     val sourceRows = selected.map(seg => dataflow.getSegment(seg.segmentID).getLayout(layout.getId).getRows).sum
@@ -250,13 +250,13 @@ class FilePruner(val session: SparkSession,
     } else {
       var selected = inputs
       try {
-        val startTime = System.nanoTime
-        selected = pruningFunc(specFilters, inputs)
-        val endTime = System.nanoTime()
-        logInfo(s"$pruningType pruning in ${(endTime - startTime).toDouble / 1000000} ms")
+        logTime(pruningType, info = true) {
+          selected = pruningFunc(specFilters, inputs)
+          logInfo(s"$pruningType: ${FilePruner.prunedSegmentInfo(inputs, selected)}")
+        }
       } catch {
         case th: Throwable =>
-          logError(s"Error occurs when $pruningType, scan all ${pruningType}s.", th)
+          logWarning(s"Error occurs when $pruningType, scan all ${pruningType}s.", th)
       }
       selected
     }
@@ -291,7 +291,6 @@ class FilePruner(val session: SparkSession,
         }
       }
     }
-    logInfo(s"After pruning segments: ${FilePruner.prunedSegmentInfo(segDirs, filteredStatuses)}")
     filteredStatuses
   }
 
@@ -314,7 +313,6 @@ class FilePruner(val session: SparkSession,
         })
         SegmentDirectory(segID, selected)
       }
-      logInfo(s"After pruning shards: ${FilePruner.prunedSegmentInfo(segDirs, pruned)}")
       pruned
     }
     filteredStatuses
@@ -389,7 +387,17 @@ object FilePruner {
     val all = files(segDirs)
     val pruned = files(prunedDirs)
 
-    s"[Segments: ${prunedDirs.size}/${segDirs.size}, Files: ${pruned.size}/${all.size}, Bytes: ${pruned.sum}/${all.sum}]"
+    val summary =
+      s""""nums":"${prunedDirs.size}/${segDirs.size}","files":"${pruned.size}/${all.size}",
+         |"bytes":"${pruned.sum}/${all.sum}"""".stripMargin.replaceAll("\\n", " ")
+
+    if (prunedDirs.nonEmpty && prunedDirs.size < segDirs.size ) {
+      val prunedDetails = LogUtils.jsonArray(prunedDirs)(_.segmentID)
+      val detail = s""""pruned":$prunedDetails"""
+      s"{$summary,$detail}"
+    } else {
+      s"{$summary}"
+    }
   }
 }
 

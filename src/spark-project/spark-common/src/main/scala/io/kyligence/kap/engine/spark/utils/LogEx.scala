@@ -25,12 +25,44 @@
 
 package io.kyligence.kap.engine.spark.utils
 
-object DebugUtils {
-  def applySeqString[T](seq: Seq[T], quote : Boolean = true)(f: T => String ) : String = {
-    if (quote) {
-      seq.map(f).map("\"" + _ + "\"").mkString("[", ",", "]")
-    } else {
-      seq.map(f).mkString("[", ",", "]")
+import org.apache.spark.internal.Logging
+import scala.reflect.ClassTag
+
+
+object LogUtils {
+  def jsonArray[T, U: ClassTag](seq: Seq[T])(f: T => U ) : String = {
+    implicitly[ClassTag[U]].runtimeClass match {
+      case _ : Class[String] =>
+        seq.map(f).map("\"" + _ + "\"").mkString("[", ",", "]")
+      case _ =>
+        seq.map(f).mkString("[", ",", "]")
     }
+  }
+}
+
+trait LogEx extends  Logging {
+
+  protected def logTime[U](action: String, info: Boolean = false)(body: => U): U = {
+    val start = System.currentTimeMillis()
+    val result = body
+    val end = System.currentTimeMillis()
+
+    // If action is quite fast, don't logging
+    if  (end - start > 2 ) {
+      if (info) {
+        logInfo(s"Run $action take ${end - start} ms")
+      } else {
+        logTrace(s"Run $action take ${end - start} ms")
+      }
+    }
+    result
+  }
+
+  protected def logInfoIf(filter: => Boolean)(msg: => String): Unit = {
+    if (filter) logInfo(msg)
+  }
+
+  protected def logWarningIf(filter: => Boolean)(msg: => String): Unit = {
+    if (filter) logWarning(msg)
   }
 }

@@ -84,9 +84,6 @@ class KylinFileSourceScanExec(
     inputRDD :: Nil
   }
 
-  @transient
-  private val pushedDownFilters = dataFilters.flatMap(DataSourceStrategy.translateFilter)
-  logInfo(s"Pushed Filters: ${pushedDownFilters.mkString(",")}")
 
   override lazy val (outputPartitioning, outputOrdering): (Partitioning, Seq[SortOrder]) = {
     val shardSpec = if (KylinConfig.getInstanceFromEnv.isShardingJoinOptEnabled) {

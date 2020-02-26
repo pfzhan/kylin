@@ -21,26 +21,22 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.relnode.KapFilterRel
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Column, DataFrame}
 
-object FilterPlan extends Logging {
+object FilterPlan extends LogEx {
   def filter(
               inputs: java.util.List[DataFrame],
               rel: KapFilterRel,
-              dataContext: DataContext): DataFrame = {
-    val start = System.currentTimeMillis()
-
-    val df = inputs.get(0)
-    val visitor = new SparderRexVisitor(df,
-      rel.getInput.getRowType,
-      dataContext)
-    val filterColumn = rel.getCondition.accept(visitor).asInstanceOf[Column]
-    val filterPlan = df.filter(filterColumn)
-    logInfo(s"Gen filter cost Time :${System.currentTimeMillis() - start} ")
-    filterPlan
+              dataContext: DataContext): DataFrame = logTime("filter", info = true) {
+      val df = inputs.get(0)
+      val visitor = new SparderRexVisitor(df,
+        rel.getInput.getRowType,
+        dataContext)
+      val filterColumn = rel.getCondition.accept(visitor).asInstanceOf[Column]
+      df.filter(filterColumn)
   }
 }

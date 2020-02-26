@@ -21,23 +21,21 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.relnode.KapProjectRel
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
 import org.apache.calcite.rex.RexInputRef
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.KapFunctions._
 
 import scala.collection.JavaConverters._
 
 
-object ProjectPlan extends Logging {
+object ProjectPlan extends LogEx {
   def select(inputs: java.util.List[DataFrame],
              rel: KapProjectRel,
-             dataContext: DataContext): DataFrame = {
-
-    val start = System.currentTimeMillis()
+             dataContext: DataContext): DataFrame = logTime("project", info = true) {
     val df = inputs.get(0)
     val duplicatedColumnsCount = collection.mutable.Map[Column, Int]()
     val selectedColumns = rel.rewriteProjects.asScala
@@ -68,8 +66,6 @@ object ProjectPlan extends Logging {
         }
       })
 
-    val prj = df.select(selectedColumns: _*)
-    logInfo(s"Gen project cost Time :${System.currentTimeMillis() - start} ")
-    prj
+    df.select(selectedColumns: _*)
   }
 }

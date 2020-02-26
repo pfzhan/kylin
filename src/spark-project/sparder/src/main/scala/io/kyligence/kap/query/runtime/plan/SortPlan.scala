@@ -21,22 +21,21 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.relnode.KapSortRel
 import io.kyligence.kap.query.runtime.SparderRexVisitor
 import org.apache.calcite.DataContext
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.KapFunctions._
 
 import scala.collection.JavaConverters._
 
 
-object SortPlan extends Logging {
+object SortPlan extends LogEx {
   def sort(inputs: java.util.List[DataFrame],
            rel: KapSortRel,
-           dataContext: DataContext): DataFrame = {
+           dataContext: DataContext): DataFrame = logTime("sort", info = true) {
 
-    val start = System.currentTimeMillis()
     val dataFrame = inputs.get(0)
 
     val columns = rel.getChildExps.asScala
@@ -79,8 +78,6 @@ object SortPlan extends Logging {
         }
       })
 
-    val df = inputs.get(0).sort(columns: _*)
-    logInfo(s"Gen sort cost Time :${System.currentTimeMillis() - start} ")
-    df
+    inputs.get(0).sort(columns: _*)
   }
 }

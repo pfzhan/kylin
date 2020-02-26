@@ -21,15 +21,14 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.relnode.KapAggregateRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.core.AggregateCall
 import org.apache.calcite.sql.SqlKind
-import org.apache.kylin.common.KapConfig
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{CreateArray, In}
@@ -42,36 +41,34 @@ import org.apache.spark.sql.util.SparderTypeUtil
 import scala.collection.JavaConverters._
 
 // scalastyle:off
-object AggregatePlan extends Logging {
+object AggregatePlan extends LogEx {
   val binaryMeasureType =
     List("PERCENTILE", "PERCENTILE_APPROX", "INTERSECT_COUNT", "COUNT_DISTINCT")
 
   def agg(inputs: java.util.List[DataFrame],
           rel: KapAggregateRel,
-          dataContext: DataContext): DataFrame = {
-    val start = System.currentTimeMillis()
-    var dataFrame = inputs.get(0)
-    val schemaNames = dataFrame.schema.fieldNames
-    val groupList = rel.getRewriteGroupKeys.asScala
-      .map(groupId => col(schemaNames.apply(groupId)))
-      .toList
+          dataContext: DataContext): DataFrame = logTime("aggregate", info = true) {
 
-    val df = if (rel.getContext !=null && rel.getContext.isExactlyAggregate) {
-      // exactly match, skip agg, direct project.
-      val aggCols = rel.getRewriteAggCalls.asScala
-        .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
-      val prjList = groupList ++ aggCols
-      logInfo(s"Query exactly match index, skip agg, project $prjList.")
-      dataFrame.select(prjList: _*)
-    } else {
-      dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
-      val aggList = buildAgg(dataFrame.schema, rel)
-      val groupSets = rel.getRewriteGroupSets.asScala
-        .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
-      SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
-    }
-    logInfo(s"Gen aggregate cost Time :${System.currentTimeMillis() - start} ")
-    df
+      var dataFrame = inputs.get(0)
+      val schemaNames = dataFrame.schema.fieldNames
+      val groupList = rel.getRewriteGroupKeys.asScala
+        .map(groupId => col(schemaNames.apply(groupId)))
+        .toList
+
+      if (rel.getContext != null && rel.getContext.isExactlyAggregate) {
+        // exactly match, skip agg, direct project.
+        val aggCols = rel.getRewriteAggCalls.asScala
+          .map(call => col(schemaNames.apply(call.getArgList.get(0)))).toList
+        val prjList = groupList ++ aggCols
+        logInfo(s"Query exactly match index, skip agg, project $prjList.")
+        dataFrame.select(prjList: _*)
+      } else {
+        dataFrame = genFiltersWhenIntersectCount(rel, dataFrame)
+        val aggList = buildAgg(dataFrame.schema, rel)
+        val groupSets = rel.getRewriteGroupSets.asScala
+          .map(groupSet => groupSet.asScala.map(groupId => col(schemaNames.apply(groupId))).toList).toList
+        SparkOperation.agg(AggArgc(dataFrame, groupList, aggList, groupSets, rel.isSimpleGroupType))
+      }
   }
 
   private def genFiltersWhenIntersectCount(rel: KapAggregateRel, dataFrame: DataFrame): DataFrame = {

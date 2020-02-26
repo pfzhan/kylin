@@ -25,10 +25,10 @@ import java.sql.Timestamp
 import java.util
 
 import com.google.common.cache.{Cache, CacheBuilder}
+import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.kylin.common.exceptions.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.{DataFrame, SparderEnv}
@@ -41,10 +41,10 @@ object ResultType extends Enumeration {
   val ASYNC, NORMAL, SCALA = Value
 }
 
-object ResultPlan extends Logging {
+object ResultPlan extends LogEx {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
-  private def collectInternal(df: DataFrame): util.List[util.List[String]] = {
+  private def collectInternal(df: DataFrame): util.List[util.List[String]] = logTime("collectInternal", info = true) {
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
@@ -78,19 +78,20 @@ object ResultPlan extends Logging {
       QueryContext.current().getSql,
       interruptOnCancel = true)
     try {
-      logInfo(s"before executedPlan autoBroadcastJoinThreshold is ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}")
+      val autoBroadcastJoinThreshold = SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold
       df.queryExecution.executedPlan
-      logInfo(s"after executedPlan autoBroadcastJoinThreshold is ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}")
+      logDebug(s"autoBroadcastJoinThreshold: [before:$autoBroadcastJoinThreshold, " +
+        s"after: ${SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold}]")
       sparkContext.setLocalProperty("source_scan_rows", QueryContext.current().getSourceScanRows.toString)
       logInfo(s"source_scan_rows is ${QueryContext.current().getSourceScanRows.toString}")
       QueryContext.current.record("executed_plan")
       val rows = df.collect()
       QueryContext.current.record("collect_result")
-      logInfo("End of data collection.")
+
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().setScanRows(scanRows)
       QueryContext.current().setScanBytes(scanBytes)
-      logInfo("Start transforming rows.")
+
       val dt = rows.map { row => row.toSeq.map { cell => {
         if (cell == null) {
           null
@@ -102,15 +103,12 @@ object ResultPlan extends Logging {
         }
       } }.asJava }.toSeq.asJava
       QueryContext.current.record("transform_result")
-      logInfo("End of row transformation.")
       dt
     } catch {
       case e: InterruptedException =>
         QueryContext.current().setTimeout(true)
         sparkContext.cancelJobGroup(jobGroup)
-        logInfo(
-          s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s",
-          e)
+        logWarning(s"Query timeouts after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s")
         throw new KylinTimeoutException(
           s"Query timeout after: ${KylinConfig.getInstanceFromEnv.getQueryTimeoutSeconds}s");
     } finally {
@@ -119,13 +117,13 @@ object ResultPlan extends Logging {
   }
 
   /**
-    * use to check acl  or other
-    *
-    * @param df   finally df
-    * @param body resultFunc
-    * @tparam U
-    * @return
-    */
+   * use to check acl  or other
+   *
+   * @param df   finally df
+   * @param body resultFunc
+   * @tparam U
+   * @return
+   */
   def withScope[U](df: DataFrame)(body: => U): U = {
     HadoopUtil.setCurrentConfiguration(df.sparkSession.sparkContext.hadoopConfiguration)
     val r = body
@@ -151,7 +149,7 @@ object ResultPlan extends Logging {
   }
 }
 
-object QueryToExecutionIDCache extends Logging {
+object QueryToExecutionIDCache extends LogEx {
   val KYLIN_QUERY_ID_KEY = "kylin.query.id"
 
   private val queryID2ExecutionID: Cache[String, String] =
@@ -159,19 +157,15 @@ object QueryToExecutionIDCache extends Logging {
 
   def getQueryExecutionID(queryID: String): String = {
     val executionID = queryID2ExecutionID.getIfPresent(queryID)
-    if (executionID == null) {
-      logWarning(s"Can not get execution ID by query ID $queryID")
-      ""
-    } else {
-      executionID
-    }
+    logWarningIf(executionID==null)(s"Can not get execution ID by query ID $queryID")
+    executionID
   }
 
   def setQueryExecutionID(queryID: String, executionID: String): Unit = {
-    if (queryID != null && !queryID.isEmpty) {
+    val hasQueryID = queryID != null && !queryID.isEmpty
+    logWarningIf( !hasQueryID )(s"Can not get query ID.")
+    if (hasQueryID) {
       queryID2ExecutionID.put(queryID, executionID)
-    } else {
-      logWarning(s"Can not get query ID.")
     }
   }
 }

@@ -27,16 +27,16 @@ package io.kyligence.kap.query.runtime
 import java.util
 
 import com.google.common.collect.Lists
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.query.relnode._
 import io.kyligence.kap.query.runtime.plan._
 import org.apache.calcite.DataContext
 import org.apache.calcite.rel.{RelNode, RelVisitor}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.JavaConverters._
 
-class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Logging {
+class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with LogEx {
   private val stack = new util.Stack[DataFrame]()
   private val setOpStack = new util.Stack[Int]()
 
@@ -56,13 +56,11 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
       case rel: KapTableScan =>
         rel.genExecFunc() match {
           case "executeLookupTableQuery" =>
-            logTime("executeLookupTableQuery") { TableScanPlan.createLookupTable(rel, dataContext) }
+            logTime("createLookupTable") { TableScanPlan.createLookupTable(rel, dataContext) }
           case "executeOLAPQuery" =>
-            logTime("executeOLAPQuery") { TableScanPlan.createOLAPTable(rel, dataContext) }
+            logTime("createOLAPTable") { TableScanPlan.createOLAPTable(rel, dataContext) }
           case "executeSimpleAggregationQuery" =>
-            logTime("executeSimpleAggregationQuery") {
-              TableScanPlan.createSingleRow(rel, dataContext)
-            }
+            logTime("createSingleRow") { TableScanPlan.createSingleRow(rel, dataContext) }
         }
       case rel: KapFilterRel =>
         logTime("filter") { FilterPlan.filter(Lists.newArrayList(stack.pop()), rel, dataContext) }
@@ -110,12 +108,5 @@ class CalciteToSparkPlaner(dataContext: DataContext) extends RelVisitor with Log
 
   def getResult(): DataFrame = {
     stack.pop()
-  }
-
-  def logTime[U](plan: String)(body: => U): U = {
-    val start = System.currentTimeMillis()
-    val result = body
-    logTrace(s"Run $plan take ${System.currentTimeMillis() - start}")
-    result
   }
 }

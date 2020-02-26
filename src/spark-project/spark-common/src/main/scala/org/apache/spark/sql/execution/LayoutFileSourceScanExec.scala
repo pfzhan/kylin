@@ -21,6 +21,7 @@
  */
 package org.apache.spark.sql.execution
 
+import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.spark.sql.catalyst.plans.QueryPlan
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
@@ -48,7 +49,7 @@ case class LayoutFileSourceScanExec(
   optionalBucketSet: Option[BitSet],
   dataFilters: Seq[Expression],
   override val tableIdentifier: Option[TableIdentifier])
-  extends DataSourceScanExec with ColumnarBatchScan {
+  extends DataSourceScanExec with ColumnarBatchScan with LogEx {
 
   // Note that some vals referring the file-based relation are lazy intentionally
   // so that this plan can be canonicalized on executor side too. See SPARK-23731.
@@ -162,8 +163,8 @@ case class LayoutFileSourceScanExec(
   }
 
   @transient
-  private val pushedDownFilters = dataFilters.flatMap(DataSourceStrategy.translateFilter)
-  logInfo(s"Pushed Filters: ${pushedDownFilters.mkString(",")}")
+  protected val pushedDownFilters = dataFilters.flatMap(DataSourceStrategy.translateFilter)
+  logInfoIf(pushedDownFilters.nonEmpty)(s"Pushed Filters: ${pushedDownFilters.mkString(",")}")
 
   override lazy val metadata: Map[String, String] = {
     def seqToString(seq: Seq[Any]) = seq.mkString("[", ", ", "]")

@@ -21,11 +21,11 @@
  */
 package org.apache.spark.sql.execution.datasource
 
-import org.apache.spark.internal.Logging
+import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.spark.sql.catalyst.planning.PhysicalOperation
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.expressions
-import org.apache.spark.sql.{execution, Strategy}
+import org.apache.spark.sql.{Strategy, execution}
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, SparkPlan}
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, AttributeSet, ExpressionSet, NamedExpression, SubqueryExpression}
@@ -53,7 +53,7 @@ import org.apache.spark.sql.catalyst.expressions.{AttributeReference, AttributeS
  * is under the threshold with the addition of the next file, add it.  If not, open a new bucket
  * and add it.  Proceed to the next file.
  */
-object KylinSourceStrategy extends Strategy with Logging {
+object KylinSourceStrategy extends Strategy with LogEx {
 
   def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
     case PhysicalOperation(projects, filters,
@@ -97,7 +97,7 @@ object KylinSourceStrategy extends Strategy with Logging {
       filePruner.resolve(l, fsRelation.sparkSession.sessionState.analyzer.resolver)
       //      inject end       //
 
-      logInfo(s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")
+      logInfoIf(partitionKeyFilters.nonEmpty)(s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")
 
       val dataColumns =
         l.resolve(fsRelation.dataSchema, fsRelation.sparkSession.sessionState.analyzer.resolver)
@@ -107,7 +107,7 @@ object KylinSourceStrategy extends Strategy with Logging {
 
       // Predicates with both partition keys and attributes need to be evaluated after the scan.
       val afterScanFilters = filterSet -- partitionKeyFilters.filter(_.references.nonEmpty)
-      logInfo(s"Post-Scan Filters: ${afterScanFilters.mkString(",")}")
+      logInfoIf(afterScanFilters.nonEmpty)(s"Post-Scan Filters: ${afterScanFilters.mkString(",")}")
 
       val filterAttributes = AttributeSet(afterScanFilters)
       val requiredExpressions: Seq[NamedExpression] = filterAttributes.toSeq ++ projects
@@ -121,8 +121,9 @@ object KylinSourceStrategy extends Strategy with Logging {
       logInfo(s"Output Data Schema: ${outputSchema.simpleString(5)}")
 
       val outputAttributes = readDataColumns ++ partitionColumns
-      // to trigger setShufflePartitions
-      filePruner.listFiles(partitionKeyFilters.iterator.toSeq, dataFilters.iterator.toSeq)
+      logTime("listFiles", info = true) {
+        filePruner.listFiles(partitionKeyFilters.iterator.toSeq, dataFilters.iterator.toSeq)
+      }
       val scan =
         new KylinFileSourceScanExec(
           fsRelation,
