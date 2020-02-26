@@ -21,16 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.cluster;
+package io.kyligence.kap.rest.handler;
 
-import java.util.List;
+import java.io.IOException;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.DefaultResponseErrorHandler;
 
-public interface ClusterManager extends IKeep {
+public class KapNoOpResponseErrorHandler extends DefaultResponseErrorHandler {
+    @Override
+    public boolean hasError(ClientHttpResponse response) throws IOException {
+        return false;
+    }
 
-    String getLocalServer();
+    @Override
+    public void handleError(ClientHttpResponse response) throws IOException {
 
-    List<ServerInfoResponse> getQueryServers();
+    }
+
 }

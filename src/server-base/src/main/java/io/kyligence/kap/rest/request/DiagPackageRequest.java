@@ -21,16 +21,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.cluster;
+package io.kyligence.kap.rest.request;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
+import lombok.Data;
 
-public interface ClusterManager extends IKeep {
-
-    String getLocalServer();
-
-    List<ServerInfoResponse> getQueryServers();
+@Data
+public class DiagPackageRequest {
+    private String start;
+    private String end;
+    @JsonProperty("job_id")
+    private String jobId;
 }

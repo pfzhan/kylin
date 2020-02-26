@@ -23,9 +23,19 @@
  */
 package io.kyligence.kap.tool;
 
-import com.google.common.base.Preconditions;
-import lombok.Getter;
-import lombok.Setter;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import javax.xml.bind.DatatypeConverter;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -41,21 +51,14 @@ import org.apache.kylin.common.util.TimeZoneUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.tool.util.HashFunction;
 import io.kyligence.kap.tool.util.ServerInfoUtil;
 import io.kyligence.kap.tool.util.ToolUtil;
 import io.kyligence.kap.tool.util.ZipFileUtil;
-
-import javax.xml.bind.DatatypeConverter;
+import lombok.Getter;
+import lombok.Setter;
 
 public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -119,6 +122,14 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     private boolean includeSystemEnv;
 
+    private enum StageEnum {
+        PREPARE, EXTRACT, COMPRESS, DONE
+    }
+
+    protected StageEnum stage = StageEnum.PREPARE;
+    protected ExecutorService executorService;
+    protected boolean mainTaskComplete;
+
     public AbstractInfoExtractorTool() {
         options = new Options();
         options.addOption(OPTION_DEST);
@@ -153,6 +164,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
+        stage = StageEnum.PREPARE;
         TimeZoneUtils.setDefaultTimeZone(kylinConfig);
 
         String exportDest = optionsHelper.getOptionValue(OPTION_DEST);
@@ -180,11 +192,13 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         if (!submodule) {
             dumpBasicDiagInfo();
         }
-
+        stage = StageEnum.EXTRACT;
+        mainTaskComplete = false;
         executeExtract(optionsHelper, exportDir);
-
+        mainTaskComplete = true;
         // compress to zip package
         if (shouldCompress) {
+            stage = StageEnum.COMPRESS;
             File tempZipFile = new File(UUID.randomUUID().toString() + ".zip");
             ZipFileUtil.compressZipFile(exportDir.getAbsolutePath(), tempZipFile.getAbsolutePath());
             FileUtils.cleanDirectory(exportDir);
@@ -197,6 +211,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             exportDest = zipFile.getAbsolutePath();
             exportDir = new File(exportDest);
         }
+        stage = StageEnum.DONE;
     }
 
     public void extractCommitFile(File exportDir) {
@@ -355,5 +370,22 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
 
     public long getLongOption(OptionsHelper optionsHelper, Option option, long defaultVal) {
         return optionsHelper.hasOption(option) ? Long.valueOf(optionsHelper.getOptionValue(option)) : defaultVal;
+    }
+
+    public String getStage() {
+        return stage.toString();
+    }
+
+    public float getProgress() {
+        if (executorService == null || getStage().equals("PREPARE")) {
+            return 0.0f;
+        }
+        if (getStage().equals("DONE")) {
+            return 1.0f;
+        }
+        long totalTaskCount = ((ThreadPoolExecutor) executorService).getTaskCount() + 1;
+        long completedTaskCount = ((ThreadPoolExecutor) executorService).getCompletedTaskCount()
+                + (mainTaskComplete ? 1 : 0);
+        return (float) completedTaskCount / totalTaskCount * 0.9f;
     }
 }

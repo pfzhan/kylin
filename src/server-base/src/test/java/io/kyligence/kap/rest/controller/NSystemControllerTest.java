@@ -23,7 +23,10 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +37,8 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -41,11 +46,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.DiagPackageRequest;
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 public class NSystemControllerTest extends NLocalFileMetadataTestCase {
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
@@ -66,8 +70,10 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         MockitoAnnotations.initMocks(this);
         ReflectionTestUtils.setField(nSystemController, "licenseInfoService", licenseInfoService);
-        mockMvc = MockMvcBuilders.standaloneSetup(nSystemController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nSystemController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
     }
 
@@ -120,4 +126,34 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testRemoteDumpDiagPackage() throws Exception {
+        DiagPackageRequest request = new DiagPackageRequest();
+        Mockito.doAnswer(x -> null).when(nSystemController).generateTaskForRemoteHost(Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/system/diag").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON))
+                .content(JsonUtil.writeValueAsString(request))).andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).getRemoteDumpDiagPackage(Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testGetRemoteDumpDiagPackage() throws Exception {
+        Mockito.doAnswer(x -> null).when(nSystemController).generateTaskForRemoteHost(Mockito.any(),
+                Mockito.anyString());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/system/diag/status").contentType(MediaType.APPLICATION_JSON)
+                .param("id", "id").param("host", "ip").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).getRemotePackageStatus(Mockito.anyString(), Mockito.anyString(),
+                Mockito.any());
+    }
+
+    @Test
+    public void testRemoteDownloadPackage() throws Exception {
+        Mockito.doNothing().when(nSystemController).downloadFromRemoteHost(Mockito.any(), Mockito.any(), Mockito.any());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/system/diag").contentType(MediaType.APPLICATION_JSON)
+                .param("id", "id").param("host", "ip").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).remoteDownloadPackage(Mockito.anyString(), Mockito.anyString(), Mockito.any(),
+                Mockito.any());
+    }
 }

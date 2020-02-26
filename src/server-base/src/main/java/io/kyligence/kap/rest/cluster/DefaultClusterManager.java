@@ -25,9 +25,10 @@ package io.kyligence.kap.rest.cluster;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,7 +49,12 @@ public class DefaultClusterManager implements ClusterManager {
     }
 
     @Override
-    public List<String> getQueryServers() {
-        return Lists.newArrayList(getLocalServer());
+    public List<ServerInfoResponse> getQueryServers() {
+        List<ServerInfoResponse> servers = new ArrayList<>();
+        ServerInfoResponse server = new ServerInfoResponse();
+        server.setHost(getLocalServer());
+        server.setMode(ClusterConstant.ALL);
+        servers.add(server);
+        return servers;
     }
 }

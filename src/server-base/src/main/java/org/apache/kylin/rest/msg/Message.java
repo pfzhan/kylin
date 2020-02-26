@@ -725,4 +725,12 @@ public class Message {
     public String getAGGINDEX_MEASURE_NOTFOUND() {
         return "model %s's agg group still contains measure(s) %s";
     }
+
+    public String getDOWNLOAD_FAILED() {
+        return "Failed to download file.";
+    }
+
+    public String getDIAG_PACKAGE_TIMEOUT() {
+        return "Package generating timeout, please contact Kyligence Support for help.";
+    }
 }

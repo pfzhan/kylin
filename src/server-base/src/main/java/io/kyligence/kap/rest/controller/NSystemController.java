@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.FileUtils;
@@ -53,7 +54,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import io.kyligence.kap.rest.request.BackupRequest;
+import io.kyligence.kap.rest.request.DiagPackageRequest;
 import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.DiagStatusResponse;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import io.kyligence.kap.rest.service.SystemService;
 import io.swagger.annotations.ApiOperation;
@@ -167,6 +170,48 @@ public class NSystemController extends NBasicController {
         File licenseInfo = File.createTempFile("license", ".info");
         FileUtils.write(licenseInfo, info, Charset.defaultCharset());
         setDownloadResponse(licenseInfo, "license.info", response);
+    }
+
+    @PostMapping(value = "/diag")
+    @ResponseBody
+    public EnvelopeResponse<String> getRemoteDumpDiagPackage(
+            @RequestParam(value = "host", required = false) String host,
+            @RequestBody DiagPackageRequest diagPackageRequest, final HttpServletRequest request) throws Exception {
+        validateDataRange(diagPackageRequest.getStart(), diagPackageRequest.getEnd());
+        if (StringUtils.isEmpty(host)) {
+            String uuid = systemService.dumpLocalDiagPackage(diagPackageRequest.getStart(), diagPackageRequest.getEnd(),
+                    diagPackageRequest.getJobId());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, uuid, "");
+        } else {
+            String url = host + "/kylin/api/system/diag";
+            return generateTaskForRemoteHost(request, url);
+        }
+    }
+
+    @GetMapping(value = "/diag/status")
+    @ResponseBody
+    public EnvelopeResponse<DiagStatusResponse> getRemotePackageStatus(
+            @RequestParam(value = "host", required = false) String host, @RequestParam(value = "id") String id,
+            final HttpServletRequest request) throws Exception {
+        if (StringUtils.isEmpty(host)) {
+            return systemService.getExtractorStatus(id);
+        } else {
+            String url = host + "/kylin/api/system/diag/status?id=" + id;
+            return generateTaskForRemoteHost(request, url);
+        }
+    }
+
+    @GetMapping(value = "/diag")
+    @ResponseBody
+    public void remoteDownloadPackage(@RequestParam(value = "host", required = false) String host,
+            @RequestParam(value = "id") String id, final HttpServletRequest request, final HttpServletResponse response)
+            throws Exception {
+        if (StringUtils.isEmpty(host)) {
+            setDownloadResponse(systemService.getDiagPackagePath(id), response);
+        } else {
+            String url = host + "/kylin/api/system/diag?id=" + id;
+            downloadFromRemoteHost(request, url, response);
+        }
     }
 
 }

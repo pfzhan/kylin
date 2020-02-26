@@ -23,14 +23,11 @@
  */
 package io.kyligence.kap.rest.cluster;
 
-import java.util.List;
+public class ClusterConstant {
+    private ClusterConstant() {
+    }
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-
-public interface ClusterManager extends IKeep {
-
-    String getLocalServer();
-
-    List<ServerInfoResponse> getQueryServers();
+    public static final String QUERY = "query";
+    public static final String ALL = "all";
+    public static final String JOB = "job";
 }

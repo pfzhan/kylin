@@ -24,7 +24,6 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -114,7 +113,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         logger.info("Time range: start={}, end={}", startTime, endTime);
 
         logger.info("Start diagnosis info extraction in {} threads.", threadsNum);
-        ExecutorService executorService = Executors.newFixedThreadPool(threadsNum);
+        executorService = Executors.newFixedThreadPool(threadsNum);
 
         // calculate time used
         final long start = System.currentTimeMillis();
@@ -220,8 +219,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         });
 
         executorService.shutdown();
-        if (!executorService.awaitTermination(getKapConfig().getDiagPackageTimeout(),
-                TimeUnit.SECONDS)) {
+        if (!executorService.awaitTermination(getKapConfig().getDiagPackageTimeout(), TimeUnit.SECONDS)) {
             executorService.shutdownNow();
             logger.info("diag diagnosis packaging timeout.");
             throw new KylinTimeoutException("diag diagnosis packaging timeout.");
@@ -240,7 +238,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
     }
 
     public long getDefaultStartTime() {
-        return DateTime.now().minusDays(getKapConfig().getExtractionStartTimeDays() - 1).withTimeAtStartOfDay().getMillis();
+        return DateTime.now().minusDays(getKapConfig().getExtractionStartTimeDays() - 1).withTimeAtStartOfDay()
+                .getMillis();
     }
 
     public long getDefaultEndTime() {

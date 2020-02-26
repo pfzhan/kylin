@@ -21,16 +21,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.cluster;
+package io.kyligence.kap.rest.response;
 
-import java.util.List;
+import lombok.Data;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
-
-public interface ClusterManager extends IKeep {
-
-    String getLocalServer();
-
-    List<ServerInfoResponse> getQueryServers();
+@Data
+public class DiagStatusResponse {
+    private String uuid;
+    private String status;
+    private String error;
+    private String stage;
+    private Float progress;
 }

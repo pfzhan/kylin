@@ -25,7 +25,6 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -71,7 +70,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
     private static final int DEFAULT_PARALLEL_SIZE = 4;
 
-    JobDiagInfoTool() {
+    public JobDiagInfoTool() {
         super();
         setPackageType("job");
 
@@ -96,7 +95,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
 
         logger.info("Start diagnosis job info extraction in {} threads.", threadsNum);
-        ExecutorService executorService = Executors.newFixedThreadPool(threadsNum);
+        executorService = Executors.newFixedThreadPool(threadsNum);
 
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
@@ -218,8 +217,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         });
 
         executorService.shutdown();
-        if (!executorService.awaitTermination(getKapConfig().getDiagPackageTimeout(),
-                TimeUnit.SECONDS)) {
+        if (!executorService.awaitTermination(getKapConfig().getDiagPackageTimeout(), TimeUnit.SECONDS)) {
             logger.info("diag diagnosis packaging timeout.");
             throw new KylinTimeoutException("diag diagnosis packaging timeout.");
         }

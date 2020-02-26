@@ -38,6 +38,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -87,6 +88,7 @@ import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SQLFormatRequest;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import io.swagger.annotations.ApiOperation;
@@ -194,8 +196,14 @@ public class NQueryController extends NBasicController {
 
     @GetMapping(value = "/servers")
     @ResponseBody
-    public EnvelopeResponse<List<String>> getQueryServers() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers(), "");
+    public EnvelopeResponse<List> getQueryServers(
+            @RequestParam(value = "ext", required = false, defaultValue = "false") boolean ext) {
+        if (ext) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers(), "");
+        } else {
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, clusterManager.getQueryServers().stream()
+                    .map(ServerInfoResponse::getHost).collect(Collectors.toList()), "");
+        }
     }
 
     private void checkGetQueryHistoriesParam(QueryHistoryRequest request) {

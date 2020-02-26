@@ -42,11 +42,13 @@
 
 package io.kyligence.kap.rest.controller;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -59,6 +61,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -67,11 +70,19 @@ import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -79,6 +90,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.RestTemplate;
 
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
@@ -86,6 +98,10 @@ import lombok.val;
 
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
+
+    @Autowired
+    @Qualifier("normalRestTemplate")
+    private RestTemplate restTemplate;
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
@@ -268,6 +284,51 @@ public class NBasicController {
             checkProjectName(request.getProject());
             checkRequiredArg("table", request.getTable());
             validateRange(request.getStart(), request.getEnd());
+        }
+    }
+
+    private ResponseEntity<byte[]> getHttpResponse(final HttpServletRequest request, String url) throws Exception {
+        val body = IOUtils.toByteArray(request.getInputStream());
+        HttpHeaders headers = new HttpHeaders();
+        Collections.list(request.getHeaderNames())
+                .forEach(k -> headers.put(k, Collections.list(request.getHeaders(k))));
+        //remove gzip
+        headers.remove("accept-encoding");
+        return restTemplate.exchange(url, HttpMethod.valueOf(request.getMethod()), new HttpEntity<>(body, headers),
+                byte[].class);
+    }
+
+    public <T> EnvelopeResponse<T> generateTaskForRemoteHost(final HttpServletRequest request, String url)
+            throws Exception {
+        val response = getHttpResponse(request, url);
+        return JsonUtil.readValue(response.getBody(), EnvelopeResponse.class);
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public void downloadFromRemoteHost(final HttpServletRequest request, String url,
+            HttpServletResponse servletResponse) throws Exception {
+        val response = getHttpResponse(request, url);
+        EnvelopeResponse exception = null;
+        try {
+            exception = JsonUtil.readValue(response.getBody(), EnvelopeResponse.class);
+        } catch (IOException e) {
+        }
+        if (exception != null && StringUtils.isNotEmpty(exception.getMsg())) {
+            throw new RuntimeException(exception.getMsg());
+        }
+        InputStream in = new ByteArrayInputStream(response.getBody());
+        OutputStream out = null;
+        try {
+            servletResponse.reset();
+            servletResponse.setContentLength(response.getBody().length);
+            servletResponse.setContentType("application/octet-stream");
+            servletResponse.setHeader("Content-Disposition", response.getHeaders().get("Content-Disposition").get(0));
+            out = servletResponse.getOutputStream();
+            IOUtils.copy(in, out);
+            out.flush();
+        } finally {
+            IOUtils.closeQuietly(in);
+            IOUtils.closeQuietly(out);
         }
     }
 

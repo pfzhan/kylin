@@ -23,19 +23,22 @@
  */
 package io.kyligence.kap.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.collections.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.rest.cluster.ClusterConstant;
 import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.val;
 
 @ConditionalOnZookeeperEnabled
@@ -51,13 +54,6 @@ public class ZookeeperClusterManager implements ClusterManager {
         return instance.getHost() + ":" + instance.getPort();
     }
 
-    @Override
-    public List<String> getQueryServers() {
-        val list = Lists.newArrayList(getQueryServers("query"));
-        list.addAll(getQueryServers("all"));
-        return list;
-    }
-
     private List<String> getQueryServers(String serviceId) {
         checkServiceId(serviceId);
         val list = discoveryClient.getInstances(serviceId);
@@ -69,7 +65,21 @@ public class ZookeeperClusterManager implements ClusterManager {
     }
 
     private void checkServiceId(String serviceId) {
-        Preconditions.checkArgument(serviceId.trim().equals("query") || serviceId.trim().equals("all")
-            || serviceId.trim().equals("job"));
+        Preconditions.checkArgument(serviceId.trim().equals(ClusterConstant.QUERY)
+                || serviceId.trim().equals(ClusterConstant.ALL) || serviceId.trim().equals(ClusterConstant.JOB));
+    }
+
+    @Override
+    public List<ServerInfoResponse> getQueryServers() {
+        List<ServerInfoResponse> servers = new ArrayList<>();
+        for (val nodeType : Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.QUERY)) {
+            for (val host : getQueryServers(nodeType)) {
+                ServerInfoResponse server = new ServerInfoResponse();
+                server.setHost(host);
+                server.setMode(nodeType);
+                servers.add(server);
+            }
+        }
+        return servers;
     }
 }

@@ -46,6 +46,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
+import io.kyligence.kap.rest.handler.KapNoOpResponseErrorHandler;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +102,9 @@ public class AppConfig extends WebMvcConfigurerAdapter {
 
     @Bean(name = "normalRestTemplate")
     public RestTemplate restTemplate() {
-        return new RestTemplate();
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.setErrorHandler(new KapNoOpResponseErrorHandler());
+        return restTemplate;
     }
 
     @Override

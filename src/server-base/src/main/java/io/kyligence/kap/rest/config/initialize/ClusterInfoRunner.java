@@ -25,7 +25,9 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -61,10 +63,10 @@ public class ClusterInfoRunner implements Runnable {
 
     @Override
     public void run() {
-        updateHostUnavailableDuration(NMetricsName.QUERY_UNAVAILABLE_DURATION,
-                clusterContext.getQueryInfo(), this::isQueryAvailable);
-        updateHostUnavailableDuration(NMetricsName.BUILD_UNAVAILABLE_DURATION,
-                clusterContext.getAllInfo(), this::isBuildAvailable);
+        updateHostUnavailableDuration(NMetricsName.QUERY_UNAVAILABLE_DURATION, clusterContext.getQueryInfo(),
+                this::isQueryAvailable);
+        updateHostUnavailableDuration(NMetricsName.BUILD_UNAVAILABLE_DURATION, clusterContext.getAllInfo(),
+                this::isBuildAvailable);
     }
 
     private boolean isBuildAvailable() {
@@ -81,18 +83,19 @@ public class ClusterInfoRunner implements Runnable {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val projectManager = NProjectManager.getInstance(config);
         for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
-            List<AbstractExecutable> executables = NExecutableManager.getInstance(config, projectInstance.getName()).getAllExecutables();
+            List<AbstractExecutable> executables = NExecutableManager.getInstance(config, projectInstance.getName())
+                    .getAllExecutables();
             jobCount += executables.size();
-            errJobCount += executables.stream()
-                    .filter(executable -> executable.getStatus() == ExecutableState.ERROR)
+            errJobCount += executables.stream().filter(executable -> executable.getStatus() == ExecutableState.ERROR)
                     .count();
         }
         return errJobCount <= jobCount * 0.7d;
     }
 
     private boolean isQueryAvailable() {
-        List<String> queryServers = clusterManager.getQueryServers();
-        for (String queryServer: queryServers) {
+        List<String> queryServers = clusterManager.getQueryServers().stream().map(ServerInfoResponse::getHost)
+                .collect(Collectors.toList());
+        for (String queryServer : queryServers) {
             String url = String.format(HEALTH_URL_TEMPLATE, queryServer);
             if (checkHealth(url)) {
                 return true;
@@ -100,7 +103,6 @@ public class ClusterInfoRunner implements Runnable {
         }
         return false;
     }
-
 
     private boolean checkHealth(String url) {
         val restTemplate = new RestTemplate();
