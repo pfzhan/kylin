@@ -29,11 +29,14 @@ import java.util.Map;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.engine.QueryExec;
 import lombok.val;
 import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
@@ -55,6 +58,13 @@ import io.kyligence.kap.query.util.QueryPatternUtil;
 public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     private final String QUERY_ID = "3395dd9a-a8fb-47c0-b586-363271ca52e2";
+
+    private String massageSql(final SQLRequest request) {
+
+        String defaultSchema = new QueryExec(request.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
+        return QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(),
+                defaultSchema, false);
+    }
 
     @Rule
     public ExpectedException exceptionRule = ExpectedException.none();
@@ -380,6 +390,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             response.setSuite("suite_1");
             response.setEngineType("HIVE");
 
+            queryContext.setCorrectedSql(massageSql(request));
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
@@ -412,6 +423,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             response.setSuite("suite_1");
             response.setEngineType("HIVE");
 
+            queryContext.setCorrectedSql(massageSql(request));
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
@@ -453,6 +465,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             response.setSuite("suite_1");
             response.setEngineType("HIVE");
 
+            queryContext.setCorrectedSql(massageSql(request));
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();

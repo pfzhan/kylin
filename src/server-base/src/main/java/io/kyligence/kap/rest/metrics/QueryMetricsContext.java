@@ -41,7 +41,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
-import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.slf4j.Logger;
@@ -53,7 +52,6 @@ import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -154,18 +152,10 @@ public class QueryMetricsContext {
     }
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
-        String defaultSchema = "DEFAULT";
-        try {
-            defaultSchema = new QueryExec(request.getProject(), KylinConfig.getInstanceFromEnv()).getSchema();
-        } catch (Exception e) {
-            logger.warn("Failed to get connection, project: {}", request.getProject(), e);
-        }
+        Preconditions.checkArgument(StringUtils.isNotEmpty(context.getCorrectedSql()));
 
-        this.sql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(),
-                defaultSchema, false);
-
+        this.sql = context.getCorrectedSql();
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
-
         this.queryTime = QueryContext.current().getQueryStartMillis();
 
         // for query stats
@@ -196,11 +186,8 @@ public class QueryMetricsContext {
         if (response.getResults() != null)
             this.resultRowCount = response.getResults().size();
 
-        if (response.isException() || response.isQueryPushDown() || response.getEngineType().equals("CONSTANTS")) {
-            this.isIndexHit = false;
-        } else {
-            this.isIndexHit = true;
-        }
+        this.isIndexHit =
+                !response.isException() && !response.isQueryPushDown() && !response.getEngineType().equals("CONSTANTS");
 
         collectErrorType(context);
         collectRealizationMetrics(response);
