@@ -27,6 +27,7 @@ package org.apache.kylin.job.execution;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
+import io.kyligence.kap.common.obf.IKeepNames;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
@@ -47,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class ExecutableHandler {
+public abstract class ExecutableHandler implements IKeepNames {
 
     protected static final String SUBJECT_NOT_EXIST_COMMENT = "subject does not exist or is broken, roll back to to-be-accelerated status";
     protected static final String MERGE_SEGMENT_EVENT_CLASS = "io.kyligence.kap.event.model.MergeSegmentEvent";
