@@ -98,9 +98,14 @@ public class HDFSMetadataStore extends MetadataStore {
                     fs.mkdirs(rootPath);
                 }
             } else {
-                fs = HadoopUtil.getWorkingFileSystem();
                 Path tempPath = new Path(path);
-                rootPath = tempPath.toUri().getScheme() != null ? tempPath : fs.makeQualified(tempPath);
+                if (tempPath.toUri().getScheme() != null) {
+                    fs = HadoopUtil.getWorkingFileSystem(tempPath);
+                    rootPath = tempPath;
+                } else {
+                    fs = HadoopUtil.getWorkingFileSystem();
+                    rootPath = fs.makeQualified(tempPath);
+                }
             }
 
             if (!fs.exists(rootPath)) {

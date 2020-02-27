@@ -119,6 +119,10 @@ public class HadoopUtil {
         return getFileSystem(workingPath, conf);
     }
 
+    public static FileSystem getWorkingFileSystem(Path path) {
+        return getFileSystem(path);
+    }
+
     //package-private spark
     private static FileSystem getFileSystem(String path) {
         return getFileSystem(new Path(makeURI(path)));
