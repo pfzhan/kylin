@@ -1806,7 +1806,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getStorageQuotaSize() {
-        return Long.parseLong(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024 * 1024;
+        return ((Double)(Double.parseDouble(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024 * 1024)).longValue();
     }
 
     public long getCuboidLayoutSurvivalTimeThreshold() {

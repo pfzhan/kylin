@@ -275,8 +275,8 @@ public class ProjectService extends BasicService {
                             + "to 'storage_quota_size', unit byte.");
         }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
-        long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
-        overrideKylinProps.put("kylin.storage.quota-in-giga-bytes", String.valueOf(storageQuotaSizeGB));
+        double storageQuotaSizeGB = 1.0 * storageQuotaSize / (1024 * 1024 * 1024);
+        overrideKylinProps.put("kylin.storage.quota-in-giga-bytes", Double.toString(storageQuotaSizeGB));
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
