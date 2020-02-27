@@ -23,7 +23,11 @@
  */
 package io.kyligence.kap.rest.cluster;
 
-public class ClusterConstant {
+import java.io.Serializable;
+
+import io.kyligence.kap.common.obf.IKeep;
+
+public class ClusterConstant implements Serializable, IKeep {
     private ClusterConstant() {
     }
 

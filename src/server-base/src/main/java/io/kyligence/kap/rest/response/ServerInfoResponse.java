@@ -23,10 +23,13 @@
  */
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
+
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.Data;
 
 @Data
-public class ServerInfoResponse {
+public class ServerInfoResponse implements Serializable, IKeep {
     private String host;
     private String mode;
 }
