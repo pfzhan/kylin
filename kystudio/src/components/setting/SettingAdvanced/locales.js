@@ -26,8 +26,8 @@ export default {
     yarnFormat: 'Incorrect format',
     computedColumns: 'Computed Columns',
     exposingCC: 'Exposing Computed Columns',
-    exposingCCDesc: 'After turning on this option, when the system is connected to Kyligence Enterprise, the system will expose computed columns to it.',
-    confirmCloseExposeCC: 'If you turn off this option, when the system is connected to Kyligence Enterprise, Kyligence Enterprise will not expose the computed columns defined in Kyligence Enterprise to it. This operation may make the system connected to Kyligence Enterprise unusable.'
+    exposingCCDesc: 'After turning on this option, when the BI or others system are connected to Kyligence Enterprise, the system will expose computed columns to it.',
+    confirmCloseExposeCC: 'If you turn off this option, when the BI or others system are connected to Kyligence Enterprise, Kyligence Enterprise will not expose the computed columns defined in Kyligence Enterprise to it. This operation may make the system connected to Kyligence Enterprise unusable.'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -56,7 +56,7 @@ export default {
     yarnFormat: '格式错误',
     computedColumns: '可计算列',
     exposingCC: '暴露可计算列',
-    exposingCCDesc: '开启该选项后，当系统对接 Kyligence Enterprise 时，系统会向其暴露可计算列。',
-    confirmCloseExposeCC: '若关闭该选项，当系统对接 Kyligence Enterprise 时，Kyligence Enterprise 将不会向其暴露定义在 Kyligence Enterprise 中的可计算列。该操作可能会导致此前对接 Kyligence Enterprise 的系统无法使用。'
+    exposingCCDesc: '开启该选项后，当BI或其他系统对接 Kyligence Enterprise 时，系统会向其暴露可计算列。',
+    confirmCloseExposeCC: '若关闭该选项，当BI或其他系统对接 Kyligence Enterprise 时，Kyligence Enterprise 将不会向其暴露定义在 Kyligence Enterprise 中的可计算列。该操作可能会导致此前对接 Kyligence Enterprise 的系统无法使用。'
   }
 }
