@@ -55,6 +55,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -89,6 +90,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
     private static final String KYLIN_ROOT = "/kylin";
+    private static final String diagDirectory = "diag_dump/";
 
     public static final long REJECT_SIMILARITY_THRESHOLD = 100_000_000L;
     public static final double SIMILARITY_THRESHOLD = 0.9;
@@ -1958,6 +1960,19 @@ public abstract class KylinConfigBase implements Serializable {
     public boolean isAllowedProjectAdminGrantAcl() {
         String option = getOptional("kylin.security.allow-project-admin-grant-acl", "true");
         return !FALSE.equals(option);
+    }
+
+    public static File getRandomDiagFile() {
+        String uuid = UUID.randomUUID().toString();
+        String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
+        String diagPath = diagDirectory + uuid;
+        File file;
+        if (StringUtils.isNotEmpty(workDir)) {
+            file = new File(workDir, diagPath);
+        } else {
+            file = new File(diagPath);
+        }
+        return file;
     }
 
 }

@@ -42,12 +42,16 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.ByteArrayInputStream;
+import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
+import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DISPOSITION;
+
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,9 +62,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -81,22 +87,24 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.RequestCallback;
+import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import lombok.val;
-
-import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DISPOSITION;
 
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
@@ -295,7 +303,7 @@ public class NBasicController {
         Collections.list(request.getHeaderNames())
                 .forEach(k -> headers.put(k, Collections.list(request.getHeaders(k))));
         //remove gzip
-        headers.remove("accept-encoding");
+        headers.remove(ACCEPT_ENCODING);
         return restTemplate.exchange(url, HttpMethod.valueOf(request.getMethod()), new HttpEntity<>(body, headers),
                 byte[].class);
     }
@@ -309,28 +317,59 @@ public class NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void downloadFromRemoteHost(final HttpServletRequest request, String url,
             HttpServletResponse servletResponse) throws Exception {
-        val response = getHttpResponse(request, url);
-        EnvelopeResponse exception = null;
-        try {
-            exception = JsonUtil.readValue(response.getBody(), EnvelopeResponse.class);
-        } catch (IOException e) {
+        File temporaryZipFile = KylinConfigBase.getRandomDiagFile();
+        temporaryZipFile.getParentFile().mkdirs();
+        if (!temporaryZipFile.createNewFile()) {
+            throw new RuntimeException("create temporary zip file failed");
         }
-        if (exception != null && StringUtils.isNotEmpty(exception.getMsg())) {
-            throw new RuntimeException(exception.getMsg());
+        RequestCallback requestCallback = x -> {
+            Collections.list(request.getHeaderNames())
+                    .forEach(k -> x.getHeaders().put(k, Collections.list(request.getHeaders(k))));
+            x.getHeaders().setAccept(Arrays.asList(MediaType.APPLICATION_OCTET_STREAM, MediaType.ALL));
+            x.getHeaders().remove(ACCEPT_ENCODING);
+        };
+        ResponseExtractor<String> responseExtractor = x -> {
+            FileOutputStream fout = null;
+            try {
+                fout = new FileOutputStream(temporaryZipFile);
+                StreamUtils.copy(x.getBody(), fout);
+            } finally {
+                IOUtils.closeQuietly(fout);
+            }
+            val name = x.getHeaders().get(CONTENT_DISPOSITION);
+            return name == null ? "error" : name.get(0);
+        };
+
+        String fileName = restTemplate.execute(url, HttpMethod.GET, requestCallback, responseExtractor);
+
+        if (temporaryZipFile.length() < 1048576) {
+            String content = FileUtils.readFileToString(temporaryZipFile);
+            EnvelopeResponse exception = null;
+            try {
+                exception = JsonUtil.readValue(content.getBytes(), EnvelopeResponse.class);
+            } catch (IOException e) {
+            }
+            if (exception != null && StringUtils.isNotEmpty(exception.getMsg())) {
+                FileUtils.deleteQuietly(temporaryZipFile);
+                throw new RuntimeException(exception.getMsg());
+            }
         }
-        InputStream in = new ByteArrayInputStream(response.getBody());
+
+        InputStream in = null;
         OutputStream out = null;
         try {
             servletResponse.reset();
-            servletResponse.setContentLength(response.getBody().length);
-            servletResponse.setContentType("application/octet-stream");
-            servletResponse.setHeader(CONTENT_DISPOSITION, response.getHeaders().get(CONTENT_DISPOSITION).get(0));
+            servletResponse.setContentLengthLong(temporaryZipFile.length());
+            servletResponse.setContentType(MediaType.APPLICATION_OCTET_STREAM.toString());
+            servletResponse.setHeader(CONTENT_DISPOSITION, fileName);
+            in = new FileInputStream(temporaryZipFile);
             out = servletResponse.getOutputStream();
             IOUtils.copy(in, out);
             out.flush();
         } finally {
             IOUtils.closeQuietly(in);
             IOUtils.closeQuietly(out);
+            FileUtils.deleteQuietly(temporaryZipFile);
         }
     }
 

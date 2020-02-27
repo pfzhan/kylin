@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.service;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +60,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SystemService extends BasicService {
 
-    private static String diagDirectory = "diag_dump/";
     private Cache<String, AbstractInfoExtractorTool> extractorMap = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.DAYS).build();
     private Cache<String, File> exportPathMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build();
@@ -91,15 +89,8 @@ public class SystemService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) throws IOException {
-        String uuid = UUID.randomUUID().toString();
-        String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
-        String diagPath = diagDirectory + uuid;
-        File exportFile;
-        if (StringUtils.isNotEmpty(workDir)) {
-            exportFile = new File(workDir, diagPath);
-        } else {
-            exportFile = new File(diagPath);
-        }
+        File exportFile = KylinConfigBase.getRandomDiagFile();
+        String uuid = exportFile.getName();
         FileUtils.deleteQuietly(exportFile);
         exportFile.mkdirs();
         exportPathMap.put(uuid, exportFile);
