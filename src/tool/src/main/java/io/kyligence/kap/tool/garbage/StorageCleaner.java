@@ -285,12 +285,14 @@ public class StorageCleaner {
             val config = KylinConfig.getInstanceFromEnv();
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             val activeIndexDataPath = Sets.<String> newHashSet();
+            val activeFastBitmapIndexDataPath = Sets.<String> newHashSet();
             val dataflows = NDataflowManager.getInstance(config, project).listAllDataflows().stream()
                     .map(RootPersistentEntity::getId).collect(Collectors.toSet());
             dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
-                    .map(StorageCleaner.this::getDataLayoutDir).forEach(activeIndexDataPath::add));
-
+                    .map(StorageCleaner.this::getDataLayoutDir)
+                    .forEach(activeIndexDataPath::add));
+            activeIndexDataPath.forEach(path -> activeFastBitmapIndexDataPath.add(path + HadoopUtil.FAST_BITMAP_SUFFIX));
             val activeSegmentPath = activeIndexDataPath.stream().map(s -> new File(s).getParent())
                     .collect(Collectors.toSet());
             for (StorageCleaner.StorageItem item : allFileSystems) {
@@ -298,7 +300,8 @@ public class StorageCleaner {
                 item.getProject(project).getSegments()
                         .removeIf(node -> activeSegmentPath.contains(node.getRelativePath()));
                 item.getProject(project).getLayouts()
-                        .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath()));
+                        .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath()) ||
+                                activeFastBitmapIndexDataPath.contains(node.getRelativePath()));
             }
         }
 
@@ -416,6 +419,7 @@ public class StorageCleaner {
          *    |  +--/${dataflow_id}
          *    |     +--/${segment_id}
          *    |        +--/${layout_id}
+         *    |        +--/${layout_id}_fast_bitmap  if enabled
          *    |--/job_tmp
          *    |  +--/${job_id}
          *    |--/table_exd

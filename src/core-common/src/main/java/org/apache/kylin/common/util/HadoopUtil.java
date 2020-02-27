@@ -69,6 +69,7 @@ public class HadoopUtil {
     public static final String DICT_STORAGE_ROOT = "/dict";
     public static final String GLOBAL_DICT_STORAGE_ROOT = DICT_STORAGE_ROOT + "/global_dict";
     public static final String SNAPSHOT_STORAGE_ROOT = "/table_snapshot";
+    public static final String FAST_BITMAP_SUFFIX = "_fast_bitmap";
     public static final String TABLE_EXD_STORAGE_ROOT = ResourceStore.TABLE_EXD_RESOURCE_ROOT;
 
     @SuppressWarnings("unused")

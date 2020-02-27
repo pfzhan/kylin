@@ -95,7 +95,7 @@ public class NSparkCubingStep extends NSparkExecutable {
                 result.add(path);
                 if (dataflow.getIndexPlan().isFastBitmapEnabled()) {
                     if (!layout.listBitmapMeasure().isEmpty()) {
-                        result.add(path + "_fast_bitmap");
+                        result.add(path + HadoopUtil.FAST_BITMAP_SUFFIX);
                     }
                 }
                 result.add(path + "_temp1");

@@ -146,7 +146,7 @@ class StorageStoreV1 extends StorageStore {
       return
     }
     logInfo(s"Begin write fast bitmap cuboid. layout id is ${layoutEntity.getId}")
-    val outputPath = new Path(layoutPath.toString + "_fast_bitmap")
+    val outputPath = new Path(layoutPath.toString + HadoopUtil.FAST_BITMAP_SUFFIX)
 
     def replaceCountDistinctEvalColumn(list: java.util.List[String], dataFrame: DataFrame): DataFrame = {
       val columns = dataFrame.schema.names.map(name =>

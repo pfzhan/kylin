@@ -26,7 +26,7 @@ import java.sql.{Date, Timestamp}
 
 import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.{FileStatus, Path}
-import org.apache.kylin.common.util.DateFormat
+import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.kylin.metadata.model.PartitionDesc
 import org.apache.spark.internal.Logging
@@ -100,7 +100,7 @@ class FilePruner(val session: SparkSession,
 
   def toPath(segmentId: String): String = {
     if (isFastBitmapEnabled) {
-      s"$workingDir${dataflow.getUuid}/${segmentId}/${layout.getId}_fast_bitmap"
+      s"$workingDir${dataflow.getUuid}/${segmentId}/${layout.getId}${HadoopUtil.FAST_BITMAP_SUFFIX}"
     } else {
       s"$workingDir${dataflow.getUuid}/${segmentId}/${layout.getId}"
     }
