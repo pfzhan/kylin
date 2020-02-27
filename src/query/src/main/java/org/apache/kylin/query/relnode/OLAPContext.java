@@ -247,9 +247,9 @@ public class OLAPContext {
     @Setter
     private boolean hasAdminPermission = false;
 
-    public boolean isExactlyAggregate = false;
+    protected boolean isExactlyAggregate = false;
 
-    public boolean hasBitmapMeasure = false;
+    protected boolean hasBitmapMeasure = false;
 
     public boolean isExactlyAggregate() {
         return isExactlyAggregate;

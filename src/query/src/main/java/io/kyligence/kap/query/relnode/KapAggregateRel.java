@@ -311,7 +311,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
     }
 
-    public static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT");
+    protected static final List<String> supportedFunction = Lists.newArrayList("SUM", "MIN", "MAX", "COUNT_DISTINCT");
 
     private Boolean isExactlyMatched() {
         if (!KapConfig.getInstanceFromEnv().needReplaceAggWhenExactlyMatched()) {
