@@ -22,7 +22,7 @@
       <p v-if="showDetail && detailMsg" class="ksd-mt-15 detailMsg" :class="{'en-lang': $store.state.system.lang === 'en'}" v-html="filterInjectScript(detailMsg).replace(/\n/g, '<br/>')"></p>
       <div v-if="showDetailDirect || showDetail" style="padding-top:10px;">
         <template v-if="theme === 'plain-mult'">
-          <div v-for="item in details">
+          <div v-for="(item, index) in details" :key="index">
             <p class="mult-title">{{item.title}}</p>
             <div class="dialog-detail">
               <div v-scroll class="dialog-detail-scroll">
@@ -30,8 +30,11 @@
                   <li v-for="(p, index) in item.list" :key="index">{{p}}</li>
                 </ul>
               </div>
+              <transition name="fade">
+                <p :class="['copy-text', {'error-text': !copySuccess}]" v-if="showCopyBtn && showCopyTextLeftBtn && showCopyText && copyBtnClickIndex === index"><i :class="[copySuccess ? 'el-icon-circle-check' : 'el-icon-circle-close', 'ksd-mr-5']"></i>{{$t(`${copySuccess ? 'copySuccess' : 'copyFail'}`)}}</p>
+              </transition>
               <el-button class="copyBtn" v-if="showCopyBtn" size="mini" v-clipboard:copy="item.list.join('\r\n')"
-          v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+          v-clipboard:success="() => {copyBtnClickIndex = index, onCopy()}" v-clipboard:error="() => {copyBtnClickIndex = index, onError()}">{{$t('kylinLang.common.copy')}}</el-button>
             </div>
           </div>
         </template>
@@ -42,6 +45,9 @@
                 <li v-for="(p, index) in details" :key="index">{{p}}</li>
               </ul>
             </div>
+            <transition name="fade">
+              <p :class="['copy-text', {'error-text': !copySuccess}]" v-if="showCopyBtn && showCopyTextLeftBtn && showCopyText"><i :class="[copySuccess ? 'el-icon-circle-check' : 'el-icon-circle-close', 'ksd-mr-5']"></i>{{$t(`${copySuccess ? 'copySuccess' : 'copyFail'}`)}}</p>
+            </transition>
             <el-button class="copyBtn" v-if="showCopyBtn" size="mini" v-clipboard:copy="details.join('\r\n')"
           v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
           </div>
@@ -87,6 +93,7 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       showIcon: state => state.showIcon,
       showDetailDirect: state => state.showDetailDirect, // 默认展示详情信息
       customClass: state => state.customClass,
+      showCopyTextLeftBtn: state => state.showCopyTextLeftBtn,
       showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
       showCopyBtn: state => state.showCopyBtn,
       needCallbackWhenClose: state => state.needCallbackWhenClose, // 数据源处的特殊需求，关闭时执行回调
@@ -101,12 +108,25 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       initForm: types.INIT_FORM,
       resetModal: types.RESET_MODAL
     })
+  },
+  locales: {
+    'en': {
+      copySuccess: 'Successed to copy.',
+      copyFail: 'Failed to copy.'
+    },
+    'zh-cn': {
+      copySuccess: '复制成功',
+      copyFail: '复制失败'
+    }
   }
 })
 export default class DetailDialogModal extends Vue {
   filterInjectScript = filterInjectScript
   loading = false
   showDetail = false
+  copySuccess = false
+  showCopyText = false
+  copyBtnClickIndex = 0
   handleClose () {
     if (this.needCallbackWhenClose) {
       this.callback && this.callback()
@@ -127,16 +147,34 @@ export default class DetailDialogModal extends Vue {
     this.showDetail = !this.showDetail
   }
   onCopy () {
+    if (this.showCopyTextLeftBtn) {
+      this.showCopyText = true
+      this.copySuccess = true
+      this.hideCopyText()
+      return
+    }
     this.$message({
       type: 'success',
       message: this.$t('kylinLang.common.copySuccess')
     })
   }
   onError () {
+    if (this.showCopyTextLeftBtn) {
+      this.showCopyText = true
+      this.copySuccess = false
+      this.hideCopyText()
+      return
+    }
     this.$message({
       type: 'error',
       message: this.$t('kylinLang.common.copyfail')
     })
+  }
+  hideCopyText () {
+    let timer = setTimeout(() => {
+      this.showCopyText = false
+      clearTimeout(timer)
+    }, 2000)
   }
 }
 </script>
@@ -178,6 +216,16 @@ export default class DetailDialogModal extends Vue {
       position: absolute;
       right:5px;
       top:5px;
+    }
+    .copy-text {
+      position: absolute;
+      right: 56px;
+      top: 7px;
+      font-size: 12px;
+      color: @normal-color-1;
+      &.error-text {
+        color: @error-color-1;
+      }
     }
   }
   .el-alert__content {

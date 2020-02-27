@@ -176,16 +176,16 @@
               </common-tip>
             </template>
             <template v-else>
-              <common-tip :content="$t('kylinLang.common.edit')" v-if="datasourceActions.includes('modelActions')">
-                <i class="el-icon-ksd-table_edit ksd-fs-14" v-if="scope.row.status !== 'BROKEN'" @click="handleEditModel(scope.row.alias)"></i>
+              <common-tip :content="$t('kylinLang.common.edit')" v-if="scope.row.status !== 'BROKEN' && datasourceActions.includes('modelActions')">
+                <i class="el-icon-ksd-table_edit ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i>
               </common-tip>
-              <common-tip :content="$t('kylinLang.common.repair')" v-if="datasourceActions.includes('modelActions')">
-                <i class="el-icon-ksd-fix_tool ksd-fs-14" v-if="scope.row.broken_reason === 'SCHEMA'" @click="handleEditModel(scope.row.alias)"></i>
+              <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
+                <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i>
               </common-tip>
-              <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')" class="ksd-ml-10">
+              <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')">
                 <i class="el-icon-ksd-data_range ksd-fs-14" v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
-              <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="datasourceActions.includes('modelActions')">
+              <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions')">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-14"></i>
@@ -723,7 +723,8 @@ export default class ModelList extends Vue {
       details,
       showDetailBtn: false,
       dialogType: 'error',
-      customClass: 'no-acl-model'
+      customClass: 'no-acl-model',
+      showCopyTextLeftBtn: true
     })
   }
 }
@@ -825,6 +826,19 @@ export default class ModelList extends Vue {
       .el-icon-ksd-filter {
         color: @base-color;
       }
+    }
+    .ky-hover-icon {
+      .cell {
+        .tip_box {
+          margin-left: 10px;
+          &:first-child {
+            margin-left: 0;
+          }
+        }
+      }
+    }
+    .el-icon-ksd-lock {
+      color: @text-title-color;
     }
   }
   margin-left: 20px;

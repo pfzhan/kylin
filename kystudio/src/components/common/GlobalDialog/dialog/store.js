@@ -19,7 +19,8 @@ const initialState = JSON.stringify({
   needCallbackWhenClose: false, // 数据源处的特殊需求，关闭时执行回调
   showDetailDirect: false,
   showIcon: true,
-  customClass: ''
+  customClass: '',
+  showCopyTextLeftBtn: false
 })
 
 export default {
@@ -50,9 +51,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, details = [], theme = 'plain', showDetailBtn = true, showIcon = true, showDetailDirect = false, customClass = '', showCopyBtn = false, needCallbackWhenClose = false }) {
+    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, details = [], theme = 'plain', showDetailBtn = true, showIcon = true, showDetailDirect = false, customClass = '', showCopyTextLeftBtn = false, showCopyBtn = false, needCallbackWhenClose = false }) {
       return new Promise(async (resolve, reject) => {
-        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, details, theme, showDetailBtn, showIcon, showDetailDirect, customClass, showCopyBtn, needCallbackWhenClose, callback: resolve })
+        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, details, theme, showDetailBtn, showIcon, showDetailDirect, customClass, showCopyTextLeftBtn, showCopyBtn, needCallbackWhenClose, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

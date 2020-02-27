@@ -741,7 +741,8 @@ export default class QueryHistoryTable extends Vue {
       details,
       showDetailBtn: false,
       dialogType: 'error',
-      customClass: 'no-acl-model'
+      customClass: 'no-acl-model',
+      showCopyTextLeftBtn: true
     })
   }
 }
@@ -849,9 +850,12 @@ export default class QueryHistoryTable extends Vue {
           overflow: hidden;
           text-overflow: ellipsis;
           &.disabled {
-            border: solid 1px #b2b2b2;
-            background-color: #f4f4f4;
-            color: #7f7f7f;
+            border: solid 1px @text-placeholder-color;
+            background-color: @background-disabled-color;
+            color: @text-disabled-color;
+            .el-icon-ksd-lock {
+              margin-right: 3px;
+            }
           }
         }
         .showMore{
@@ -902,10 +906,13 @@ export default class QueryHistoryTable extends Vue {
           margin-right:10px;
         }
         .no-authority-model {
-          color: #7f7f7f;
+          color: @text-disabled-color;
           cursor: pointer;
           &:hover {
-            color: #0988de;
+            color: @base-color;
+          }
+          .el-icon-ksd-lock {
+            margin-right: 3px;
           }
         }
       }
