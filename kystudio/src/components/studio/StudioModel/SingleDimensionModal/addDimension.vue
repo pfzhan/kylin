@@ -12,20 +12,24 @@
           <el-input v-model="dimensionInfo.name" ></el-input>
         </el-form-item>
         <el-form-item :label="$t('dimensionCandidate')" prop="column">
-          <el-select filterable style="width:388px" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="showCC" v-model="dimensionInfo.column">
-            <el-option-group
-              v-for="(columns, key) in allColumnsGroup"
-              :key="key"
-              :label="$t(key)">
-              <el-option v-for="(item, index) in columns" 
-              :key="index"
-              :value="item.table_alias + '.' + item.name">
-                <span>{{item.table_alias + '.' + item.name}}</span>
-                <span class="ky-option-sub-info">{{item.datatype}}</span>
-              </el-option>
-            </el-option-group>
-          </el-select>
-          <common-tip :content="$t('addCCTip')" ><el-button size="medium" @click="showCCForm" :disabled="showCC" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button></common-tip>
+          <div class="measure-flex-row">
+            <div class="flex-item">
+              <el-select filterable style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="showCC" v-model="dimensionInfo.column">
+                <el-option-group
+                  v-for="(columns, key) in allColumnsGroup"
+                  :key="key"
+                  :label="$t(key)">
+                  <el-option v-for="(item, index) in columns" 
+                  :key="index"
+                  :value="item.table_alias + '.' + item.name">
+                    <span>{{item.table_alias + '.' + item.name}}</span>
+                    <span class="ky-option-sub-info">{{item.datatype}}</span>
+                  </el-option>
+                </el-option-group>
+              </el-select>
+            </div>
+            <common-tip :content="$t('addCCTip')" ><el-button size="medium" @click="showCCForm" :disabled="showCC" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button></common-tip>
+          </div>
           <CCEditForm v-if="showCC" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccDesc" :modelInstance="modelInstance"></CCEditForm>
         </el-form-item>
         <el-form-item :label="$t('dimensionComment')" prop="comment">
@@ -251,6 +255,14 @@ export default class SingleDimensionModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .add-dimension-dialog{
+  .measure-flex-row {
+    display: flex;
+    align-items: center;
+    .flex-item {
+      flex-shrink: 1;
+      width: 100%;
+    }
+  }
   .cc-area{
     background-color: @table-stripe-color;
     border:solid 1px @line-split-color;
