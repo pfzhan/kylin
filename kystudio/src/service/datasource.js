@@ -88,8 +88,8 @@ export default {
   getHistoryList: (para) => {
     return Vue.resource(apiUrl + 'query/history_queries{?realization}{&query_status}').get(para)
   },
-  loadOnlineQueryNodes: () => {
-    return Vue.resource(apiUrl + 'query/servers').get()
+  loadOnlineQueryNodes: (para) => {
+    return Vue.resource(apiUrl + 'query/servers').get(para)
   },
   getWaitingAcceSize: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/size').get(para)

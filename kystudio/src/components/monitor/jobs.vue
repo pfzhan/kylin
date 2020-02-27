@@ -129,6 +129,9 @@
             v-if="monitorActions.includes('jobActions')"
             width="83">
             <template slot-scope="scope">
+              <common-tip :content="$t('diagnosis')" v-if="monitorActions.includes('diagnostic')">
+                <i class="el-icon-ksd-ostin_diagnose ksd-fs-14" @click.stop="showDiagnosisDetail(scope.row.id)"></i>
+              </common-tip>
               <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
                 <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project)"></i>
               </common-tip>
@@ -295,6 +298,7 @@
         <el-button plain size="medium" @click="dialogVisible = false">{{$t('kylinLang.common.close')}}</el-button>
       </span>
     </el-dialog>
+    <diagnostic v-if="showDiagnostic" @close="showDiagnostic = false" :jobId="diagnosticId"/>
   </div>
   </div>
 </template>
@@ -309,6 +313,7 @@ import $ from 'jquery'
 import { pageCount } from '../../config'
 import { transToGmtTime, handleError, handleSuccess } from 'util/business'
 import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/index'
+import Diagnostic from 'components/admin/Diagnostic/index'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -339,7 +344,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
     ])
   },
   components: {
-    'job_dialog': jobDialog
+    'job_dialog': jobDialog,
+    Diagnostic
   },
   locales: {
     'en': {
@@ -414,7 +420,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       clearAll: 'Clear All',
       filter: 'Filter',
       refreshList: 'Refresh List',
-      pleaseSearch: 'Search Target Subject or Job ID'
+      pleaseSearch: 'Search Target Subject or Job ID',
+      diagnosis: 'Diagnosis'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -488,7 +495,8 @@ import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/inde
       clearAll: '清除所有',
       filter: '筛选',
       refreshList: '刷新列表',
-      pleaseSearch: '搜索任务对象或任务 ID'
+      pleaseSearch: '搜索任务对象或任务 ID',
+      diagnosis: '诊断包'
     }
   }
 })
@@ -543,6 +551,8 @@ export default class JobsList extends Vue {
   waittingJobModels = {size: 0, data: null}
   stepId = ''
   filterTags = []
+  showDiagnostic = false
+  diagnosticId = ''
 
   get emptyText () {
     return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
@@ -1230,6 +1240,10 @@ export default class JobsList extends Vue {
     this.filterTags = this.filterTags.filter(item => item.key !== tag.key || item.key === tag.key && tag.label !== item.label)
     this.filter.page_offset = 0
     this.manualRefreshJobs()
+  }
+  showDiagnosisDetail (id) {
+    this.diagnosticId = id
+    this.showDiagnostic = true
   }
 }
 </script>

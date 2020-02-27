@@ -46,6 +46,10 @@
               </el-submenu>
             </template>
           </el-menu>
+          <div :class="['diagnostic-model', {'is-hold-menu': briefMenuGet}]" v-if="showMenuByRole('diagnostic')" @click="showDiagnosticDialog">
+            <i class="el-icon-ksd-ostin_diagnose"/>
+            <span class="text" v-if="!briefMenuGet">{{$t('diagnosis')}}</span>
+          </div>
         </aside>
         <div class="topbar">
           <div class="nav-icon">
@@ -156,6 +160,7 @@
 
     <!-- 全局弹窗 带detail -->
     <kap-detail-dialog-modal></kap-detail-dialog-modal>
+    <diagnostic v-if="showDiagnostic" @close="showDiagnostic = false"/>
   </div>
 </template>
 
@@ -171,6 +176,7 @@ import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
 import help from '../common/help'
 import KapDetailDialogModal from '../common/GlobalDialog/dialog/detail_dialog'
+import Diagnostic from '../admin/Diagnostic/index'
 import $ from 'jquery'
 import ElementUI from 'kyligence-ui'
 let MessageBox = ElementUI.MessageBox
@@ -210,7 +216,8 @@ let MessageBox = ElementUI.MessageBox
     'project_select': projectSelect,
     'change_lang': changeLang,
     help,
-    KapDetailDialogModal
+    KapDetailDialogModal,
+    Diagnostic
   },
   computed: {
     ...mapState({
@@ -268,7 +275,8 @@ let MessageBox = ElementUI.MessageBox
       indexs: 'index group(s)',
       models: 'model(s)',
       holdNaviBar: 'Fold Navigation Bar',
-      unholdNaviBar: 'Unfold Navigation Bar'
+      unholdNaviBar: 'Unfold Navigation Bar',
+      diagnosis: 'Diagnosis'
     },
     'zh-cn': {
       resetPassword: '重置密码',
@@ -289,7 +297,8 @@ let MessageBox = ElementUI.MessageBox
       indexs: '索引组',
       models: '模型',
       holdNaviBar: '收起导航栏',
-      unholdNaviBar: '展开导航栏'
+      unholdNaviBar: '展开导航栏',
+      diagnosis: '诊断'
     }
   }
 })
@@ -324,6 +333,7 @@ export default class LayoutLeftRightTop extends Vue {
   rotateVisibel = false
   isAnimation = false
   isGlobalMaskShow = false
+  showDiagnostic = false
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -770,6 +780,9 @@ export default class LayoutLeftRightTop extends Vue {
   onCurrentPathNameGetChange (val) {
     this.defaultActive = val
   }
+  showDiagnosticDialog () {
+    this.showDiagnostic = true
+  }
 }
 </script>
 
@@ -1101,6 +1114,25 @@ export default class LayoutLeftRightTop extends Vue {
     }
     .el-menu-item:hover {
       background-color: @menu-active-bgcolor;
+    }
+  }
+  .diagnostic-model {
+    width: calc(~'100% - 44px');
+    height: 24px;
+    border-radius: 12px;
+    border: solid 1px #ffffff;
+    margin-left: 22px;
+    box-sizing: border-box;
+    position: absolute;
+    bottom: 40px;
+    color: #ffffff;
+    font-size: 12px;
+    text-align: center;
+    line-height: 22px;
+    cursor: pointer;
+    &.is-hold-menu {
+      width: calc(~'100% - 31px');
+      margin-left: 15px;
     }
   }
 </style>

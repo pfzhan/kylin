@@ -23,7 +23,8 @@ export default {
       { "id": "user", "value": "user", "title": "User" },
       { "id": "group", "value": "group", "title": "Group" },
       { "id": "groupDetail", "value": "groupdetail", "title": "GroupDetail" },
-      { "id": "projectAuthority", "value": "projectauthority", "title": "Project Authority" }
+      { "id": "projectAuthority", "value": "projectauthority", "title": "Project Authority" },
+      { "id": "diagnostic", "value": "diagnostic", "title": "" }
     ],
     "datasource": [
       { "id": "hive", "value": 9, "title": "HIVE" },
@@ -72,7 +73,8 @@ export default {
       { "id": "viewDataSource" }
     ],
     "monitorActions": [
-      { "id": "jobActions" }
+      { "id": "jobActions" },
+      { "id": "diagnostic" }
     ],
     "userActions": [
       { "id": "addUser" },
@@ -108,7 +110,7 @@ export default {
     "menu": {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
-        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority]", "value": "admin,project,user,group,groupDetail" },
+        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic]", "value": "admin,project,user,group,groupDetail,diagnostic" },
         { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
         { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin" },
         { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
@@ -151,7 +153,7 @@ export default {
     "monitorActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "jobActions" },
+        { "key": "systemAdmin-*", "value": "jobActions,diagnostic" },
         { "key": "systemUser-[admin,management,operation]", "value": "jobActions" },
         { "key": "systemUser-read", "value": "none" }
       ]

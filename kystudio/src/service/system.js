@@ -53,5 +53,14 @@ export default {
   },
   getCanaryReport: (para) => {
     return Vue.resource(apiUrl + 'canary/report').get(para)
+  },
+  // 生成诊断包相关api接口
+  getDumpRemote: (para) => {
+    const { host, start, end, job_id } = para
+    return Vue.http.post(apiUrl + `system/diag?host=${host}`, { start, end, job_id })
+  },
+  // 获取诊断包生成进度
+  getStatusRemote: (para) => {
+    return Vue.resource(apiUrl + 'system/diag/status').get(para)
   }
 }
