@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +71,15 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
     private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
     private static final Pattern VAR_SUBSTRING_PATTERN = Pattern
             .compile("\\bsubstring\\s*\\(\\s*(.*?)\\s+from\\s+(.*?)\\s+for\\s+(.*?)\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern FLOOR_TO_PATTERN = Pattern
+            .compile("\\b(floor)\\s*\\(\\s*([_a-z0-9A-Z]+\\(.+\\)|[^()]+)(\\s+to\\s+)([a-zA-Z]+)\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CEIL_TO_PATTERN = Pattern
+            .compile("\\b(ceil)\\s*\\(\\s*([_a-z0-9A-Z]+\\(.+\\)|[^()]+)(\\s+to\\s+)([a-zA-Z]+)\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern OVERLAY_PLACING_FROM_PATTERN = Pattern
+            .compile("\\b(overlay)\\s*\\(\\s*([^,]+)(\\s+placing\\s+)([^,]+)(\\s+from\\s+)([^,]+)\\s*\\)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern OVERLAY_PLACING_FROM_FOR_PATTERN = Pattern.compile(
+            "\\b(overlay)\\s*\\(\\s*([^,]+)(\\s+placing\\s+)([^,]+)(\\s+from\\s+)([^,]+)(\\s+for\\s+)([^,]+)\\s*\\)",
+            Pattern.CASE_INSENSITIVE);
 
     public static String replaceString(String originString, String fromString, String toString) {
         return originString.replace(fromString, toString);
@@ -125,6 +135,80 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
         return replacedString;
     }
 
+    /***
+     * convert for floor(timestamp TO timeUnit)
+     * @param originString
+     * @return
+     */
+    public static String floorReplace(String originString) {
+        Matcher floorMatcher = FLOOR_TO_PATTERN.matcher(originString);
+        String result = originString;
+
+        while (floorMatcher.find()) {
+            String timestamp = floorMatcher.group(2);
+            String timeUnit = floorMatcher.group(4);
+
+            String tmpString = "date_trunc('" + timeUnit + "'," + timestamp + ")";
+            result = StringUtils.replaceOnce(result, floorMatcher.group(), tmpString);
+            floorMatcher = FLOOR_TO_PATTERN.matcher(result);
+        }
+        return result;
+    }
+
+    /***
+     * convert for ceil(timestamp TO timeUnit)
+     * @param originString
+     * @return
+     */
+    public static String ceilReplace(String originString) {
+        Matcher floorMatcher = CEIL_TO_PATTERN.matcher(originString);
+        String result = originString;
+
+        while (floorMatcher.find()) {
+            String timestamp = floorMatcher.group(2);
+            String timeUnit = floorMatcher.group(4);
+            String tmpString = "timestampAdd('" + timeUnit + "',1," + "date_trunc('" + timeUnit + "'," + timestamp + ")"
+                    + ")";
+
+            result = StringUtils.replaceOnce(result, floorMatcher.group(), tmpString);
+            floorMatcher = CEIL_TO_PATTERN.matcher(result);
+        }
+        return result;
+    }
+
+    /***
+     * convert for overlay(string1 PLACING string2 FROM integer [ FOR integer2 ])
+     * @param originString
+     * @return
+     */
+    public static String overlayReplace(String originString) {
+        Matcher overlayMatcher = OVERLAY_PLACING_FROM_PATTERN.matcher(originString);
+        Matcher overlayForMatcher = OVERLAY_PLACING_FROM_FOR_PATTERN.matcher(originString);
+        String result = originString;
+
+        while (overlayMatcher.find()) {
+            String string1 = overlayMatcher.group(2);
+            String string2 = overlayMatcher.group(4);
+            String integer = overlayMatcher.group(6);
+
+            String tmpString = "concat(substring(" + string1 + ",0," + integer + "-1)," + string2 + ",substring("
+                    + string1 + "," + integer + "+" + "char_length("+string2+")))";
+            if (overlayForMatcher.find()) {
+                integer = overlayForMatcher.group(6);
+                String integer2 = overlayForMatcher.group(8);
+                tmpString = "concat(substring(" + string1 + ",0," + integer + "-1)," + string2 + ",substring(" + string1
+                        + "," + integer + "+" + integer2 + "))";
+                result = replaceString(result, overlayForMatcher.group(), tmpString);
+            } else {
+                result = replaceString(result, overlayMatcher.group(), tmpString);
+            }
+            overlayMatcher = OVERLAY_PLACING_FROM_PATTERN.matcher(result);
+            overlayForMatcher = OVERLAY_PLACING_FROM_FOR_PATTERN.matcher(result);
+        }
+        return result;
+    }
+
+
     public static String addLimit(String originString) {
         Matcher selectMatcher = SELECT_PATTERN.matcher(originString);
         Matcher limitMatcher = LIMIT_PATTERN.matcher(originString);
@@ -171,6 +255,15 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
 
         // Add quote for interval in timestampadd
         convertedSql = timestampAddDiffReplace(convertedSql);
+
+        // convert for floor(timestamp TO timeUnit)
+        convertedSql = floorReplace(convertedSql);
+
+        // convert for ceil(timestamp TO timeUnit)
+        convertedSql = ceilReplace(convertedSql);
+
+        // convert for overlay(string1 PLACING string2 FROM integer [ FOR integer2 ])
+        convertedSql = overlayReplace(convertedSql);
 
         // Replace integer with int
         convertedSql = replaceString(convertedSql, "INTEGER", "INT");

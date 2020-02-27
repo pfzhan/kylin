@@ -348,14 +348,39 @@ object ExpressionConverter {
             k_lit(children.head).rlike(children.apply(1).toString)
           case "if" =>
             new Column(new If(k_lit(children.head).expr, k_lit(children.apply(1)).expr, k_lit(children.apply(2)).expr))
+          case "overlay" =>
+            if (children.length == 3) {
+              concat(substring(k_lit(children.head),0, children.apply(2).asInstanceOf[Int]-1), k_lit(children.apply(1)),
+                substring(k_lit(children.head), children.apply(2).asInstanceOf[Int] + children.apply(1).toString.length, Integer.MAX_VALUE))
+            } else if (children.length == 4) {
+              concat(substring(k_lit(children.head),0, children.apply(2).asInstanceOf[Int]-1), k_lit(children.apply(1)),
+                substring(k_lit(children.head), (children.apply(2).asInstanceOf[Int] + children.apply(3).asInstanceOf[Int]) , Integer.MAX_VALUE))
+            } else {
+              throw new UnsupportedOperationException(
+                s"ceil must provide three or four parameters under sparder")
+            }
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
         }
       case CEIL =>
-        ceil(k_lit(children.head))
+        if (children.length == 1) {
+          ceil(k_lit(children.head))
+        } else if (children.length == 2) {
+          callUDF("TIMESTAMPADD", k_lit(children.apply(1)), k_lit(1), date_trunc(children.apply(1).toString, k_lit(children.head)))
+        } else {
+          throw new UnsupportedOperationException(
+            s"ceil must provide one or two parameters under sparder")
+        }
       case FLOOR =>
-        floor(k_lit(children.head))
+        if (children.length == 1) {
+          floor(k_lit(children.head))
+        } else if (children.length == 2) {
+          date_trunc(children.apply(1).toString , k_lit(children.head))
+        } else {
+          throw new UnsupportedOperationException(
+            s"floor must provide one or two parameters under sparder")
+        }
       case ARRAY_VALUE_CONSTRUCTOR =>
         array(children.map(child => k_lit(child.toString)): _*)
       case unsupportedFunc =>
