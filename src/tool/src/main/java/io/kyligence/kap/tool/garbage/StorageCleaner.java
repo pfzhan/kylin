@@ -498,17 +498,13 @@ public class StorageCleaner {
 
     public static class Stats {
 
-        final public Set<StorageItem> allItems = Collections.synchronizedSet(new HashSet<>());
-        final public Set<StorageItem> startItem = Collections.synchronizedSet(new HashSet<>());
-        final public Set<StorageItem> successItems = Collections.synchronizedSet(new HashSet<>());
-        final public Set<StorageItem> errorItems = Collections.synchronizedSet(new HashSet<>());
+        public final  Set<StorageItem> allItems = Collections.synchronizedSet(new HashSet<>());
+        public final  Set<StorageItem> startItem = Collections.synchronizedSet(new HashSet<>());
+        public final  Set<StorageItem> successItems = Collections.synchronizedSet(new HashSet<>());
+        public final  Set<StorageItem> errorItems = Collections.synchronizedSet(new HashSet<>());
 
-        public long createTime = System.nanoTime();
-        public long startTime;
-        public long endTime;
 
         private void reset() {
-            startTime = endTime = 0;
             allItems.clear();
             startItem.clear();
             successItems.clear();
@@ -521,10 +517,6 @@ public class StorageCleaner {
 
             log.debug("{} items to cleanup", outDatedItems.size());
             allItems.addAll(outDatedItems);
-        }
-
-        void onAllDone() {
-            endTime = System.nanoTime();
         }
 
         void onItemStart(StorageItem item) {

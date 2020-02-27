@@ -96,6 +96,8 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import lombok.val;
 
+import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DISPOSITION;
+
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
 
@@ -175,7 +177,7 @@ public class NBasicController {
             response.reset();
             response.setContentType("application/octet-stream");
             response.setContentLength((int) (file.length()));
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+            response.setHeader(CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
             IOUtils.copyLarge(fileInputStream, output);
             output.flush();
         } catch (IOException e) {
@@ -322,7 +324,7 @@ public class NBasicController {
             servletResponse.reset();
             servletResponse.setContentLength(response.getBody().length);
             servletResponse.setContentType("application/octet-stream");
-            servletResponse.setHeader("Content-Disposition", response.getHeaders().get("Content-Disposition").get(0));
+            servletResponse.setHeader(CONTENT_DISPOSITION, response.getHeaders().get(CONTENT_DISPOSITION).get(0));
             out = servletResponse.getOutputStream();
             IOUtils.copy(in, out);
             out.flush();
