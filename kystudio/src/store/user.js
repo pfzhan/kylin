@@ -1,7 +1,7 @@
 import api from './../service/api'
 import * as types from './types'
 import { permissions } from '../config'
-import { cacheLocalStorage } from 'util/index'
+import { cacheLocalStorage, indexOfObjWithSomeKey } from 'util/index'
 import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
@@ -10,7 +10,7 @@ export default {
     usersGroupList: [],
     usersGroupSize: 0,
     currentUser: null,
-    currentUserAccess: null,
+    currentUserAccess: 'DEFAULT',
     userDetail: null,
     isShowAdminTips: !cacheLocalStorage('isHideAdminTips')
   },
@@ -114,6 +114,9 @@ export default {
   getters: {
     userAuthorities (state) {
       const { authorities = [] } = state.currentUser || {}
+      if (indexOfObjWithSomeKey(authorities, 'authority', 'ALL_USERS') === -1) {
+        authorities.push({authority: 'ALL_USERS'})
+      }
       return authorities.map(authority => authority.authority)
     },
     userActions (state, getters, rootState, rootGetters) {

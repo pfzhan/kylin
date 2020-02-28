@@ -46,7 +46,8 @@ export default {
       { "id": "management", "value": "MANAGEMENT", "title": "Admin" },
       { "id": "operation", "value": "OPERATION", "title": "Admin" },
       { "id": "read", "value": "READ", "title": "Admin" },
-      { "id": "admin", "value": 16, "title": "Admin" }
+      { "id": "admin", "value": 16, "title": "Admin" },
+      { "id": "default", "value": "DEFAULT", "title": "Admin" }
     ],
     // 系统组权限
     "groupRole": [
@@ -116,7 +117,8 @@ export default {
         { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
         { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,monitor,job" },
         { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,source,model,index,modelEdit,monitor,job" },
-        { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit" }
+        { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit" },
+        { "key": "systemUser-default-*", "value": "dashboard" }
       ]
     },
     // 仪表盘
