@@ -41,7 +41,7 @@
       </template>
       <div :class="['server', $route.name !== 'Job' && 'ksd-mt-15']">
         <p class="title">{{$t('server')}}</p>
-        <el-select :class="{'no-selected': !servers.length}" v-model="servers" multiple :placeholder="$t('selectServerPlaceHolder')" :disabled="isRunning">
+        <el-select :class="{'no-selected': isServerChange && !servers.length}" v-model="servers" multiple :placeholder="$t('selectServerPlaceHolder')" :disabled="isRunning" @change="isServerChange = true">
           <el-option
             v-for="item in serverOptions"
             :key="item.value"
@@ -49,7 +49,7 @@
             :value="item.value">
           </el-option>
         </el-select>
-        <p class="error-text" v-if="!servers.length">{{$t('selectServerTip')}}</p>
+        <p class="error-text" v-if="isServerChange && !servers.length">{{$t('selectServerTip')}}</p>
       </div>
       <div class="download-layout" v-if="isShowDiagnosticProcess">
         <p>{{$t('downloadTip')}}</p>
@@ -64,8 +64,8 @@
                 <p class="error-text">{{$t('requireOverTime1', {server: item.host})}}<a :href="$route.name !== 'Job' ? 'https://sso.kyligence.com/uaa/login.html?lang=en&source=docs' : ($lang === 'en' ? 'https://docs.kyligence.io/books/v4.0/en/monitor/job_diagnosis.en.html' : 'https://docs.kyligence.io/books/v4.0/zh-cn/monitor/job_diagnosis.cn.html')" target="_blank">{{$t('manual')}}</a>{{$t('requireOverTime2')}}</p>
               </template>
               <template v-if="['002', '999'].includes(item.status)">
-                <span class="error-text">{{item.status === '002' ? $t('noAuthorityTip', {server: item.host}) : $t('otherErrorMsg', {server: item.host})}}</span><span class="detail-text" @click="showDetails = !showDetails">{{$t('details')}}<i :class="showDetails ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
-                <div class="dialog-detail" v-if="showDetails">
+                <span class="error-text">{{item.status === '002' ? $t('noAuthorityTip', {server: item.host}) : $t('otherErrorMsg', {server: item.host})}}</span><span class="detail-text" @click="item.showErrorDetail = !item.showErrorDetail">{{$t('details')}}<i :class="item.showErrorDetail ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
+                <div class="dialog-detail" v-if="item.showErrorDetail">
                   <el-input class="details-content" type="textarea" v-model.trim="item.error" :rows="4" readonly></el-input>
                   <el-button class="copyBtn" size="mini" v-clipboard:copy="item.error" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
                 </div>
@@ -83,7 +83,7 @@
       </div>
     </div>
     <div slot="footer">
-      <span class="manual-download" v-if="showManualDownloadLayout"><span :class="['manual', {'is-disable': isManualDownload}]" @click="isManualDownload = true">{{$t('manualDownload')}}</span><el-tooltip :content="$t('manualDownloadTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></span>
+      <span class="manual-download"><span :class="['manual', {'is-disable': !showManualDownloadLayout || isManualDownload}]" @click="isManualDownload = true">{{$t('manualDownload')}}</span><el-tooltip :content="$t('manualDownloadTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></span>
       <el-popover
         ref="closePopover"
         placement="top"
@@ -144,7 +144,6 @@ vuex.registerModule(['diagnosticModel'], store)
 export default class Diagnostic extends Vue {
   isShow = true
   isRunning = false
-  showDetails = false
   isManualDownload = false
   checkAll = false
   indeterminate = false
@@ -153,6 +152,7 @@ export default class Diagnostic extends Vue {
   showPopoverTip = false
   closeFromHeader = false
   validDateTime = false
+  isServerChange = false
   timeRange = [
     {text: this.$t('lastHour'), label: 'lastHour'},
     {text: this.$t('lastDay'), label: 'lastDay'},
@@ -335,6 +335,7 @@ export default class Diagnostic extends Vue {
   cancelManualDownload () {
     this.isManualDownload = false
     this.checkAll = false
+    this.indeterminate = false
     this.updateCheckType(false)
   }
   onCopy () {
@@ -365,8 +366,9 @@ export default class Diagnostic extends Vue {
 <style lang="less">
   @import '../../../assets/styles/variables.less';
   .diagnostic-dialog {
-    max-width: none !important;
-    max-height: 600px;
+    .el-dialog__body {
+      max-height: 464px !important;
+    }
     .body {
       color: @text-title-color;
       .time-range {
@@ -402,6 +404,7 @@ export default class Diagnostic extends Vue {
             border: none;
             padding-right: 0;
             color: @text-normal-color;
+            border-color: @line-border-color;
           }
         }
         .el-date-editor.is-error {
@@ -424,6 +427,7 @@ export default class Diagnostic extends Vue {
       .error-text {
         font-size: 12px;
         color: @error-color-1;
+        max-width: 650px;
       }
       .download-layout {
         margin-top: 15px;
@@ -432,10 +436,10 @@ export default class Diagnostic extends Vue {
           // margin-top: 10px;
           .progress-item {
             position: relative;
-            margin-top: 3px;
+            margin-top: 0;
             .el-checkbox {
               float: left;
-              margin-top: 25px;
+              margin-top: 24px;
               margin-right: 10px;
             }
             .download-details {
@@ -443,7 +447,7 @@ export default class Diagnostic extends Vue {
             }
             .title {
               font-size: 12px;
-              margin-top: 7px;
+              margin-top: 8px;
             }
             .progress {
               width: 450px;
@@ -451,7 +455,7 @@ export default class Diagnostic extends Vue {
             .retry-btn {
               position: absolute;
               left: 440px;
-              top: 24px;
+              top: 23px;
               color: @base-color;
               cursor: pointer;
             }
@@ -463,8 +467,8 @@ export default class Diagnostic extends Vue {
             .dialog-detail{
               // border:solid 1px @line-border-color;
               // background:@background-disabled-color;
-              margin-bottom:10px;
               position: relative;
+              margin-top: 10px;
               .details-content {
                 border: solid 1px @line-border-color;
                 border-radius: 2px;

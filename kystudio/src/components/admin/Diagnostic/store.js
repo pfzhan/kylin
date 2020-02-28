@@ -39,6 +39,7 @@ export default {
             stage: '',
             progress: 0,
             error: '',
+            showErrorDetail: false,
             isCheck: false,
             running: true
           }}
