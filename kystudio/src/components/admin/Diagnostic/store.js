@@ -87,8 +87,10 @@ export default {
       state.diagDumpIds = {...list}
     },
     // 重置生成数据
-    [types.RESET_DUMP_DATA] (state) {
-      state.diagDumpIds = {}
+    [types.RESET_DUMP_DATA] (state, type) {
+      if (type) {
+        state.diagDumpIds = {}
+      }
       Object.keys(timer).forEach(item => {
         clearInterval(timer[item])
       })

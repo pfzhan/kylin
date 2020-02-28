@@ -10,7 +10,7 @@
   >
     <div class="body">
       <template v-if="$route.name !== 'Job'">
-        <div class="time-range">{{$t('timeRange')}}<el-tooltip :content="$t('timeRangeTip')" effect="dark" placement="top"><i class="el-icon-ksd-alert_1"></i></el-tooltip>：</div>
+        <div class="time-range">{{$t('timeRange')}}<el-tooltip :content="$t('timeRangeTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip>：</div>
         <el-radio-group v-model="timeRangeValue" class="time-range-radio" @change="changeTimeRange" :disabled="isRunning">
           <el-radio :label="item.label" v-for="(item, index) in timeRange" :key="index">{{item.text}}</el-radio>
         </el-radio-group>
@@ -26,7 +26,7 @@
             :clearable="timeRangeValue === 'custom'"
             @blur="onBlur"
           />
-          <span>-</span>
+          <span>&#8211;</span>
           <el-date-picker
             :class="{'is-disabled': timeRangeValue !== 'custom', 'is-error': validDateTime && getDateTimeValid}"
             v-model="dateTime.next"
@@ -54,10 +54,10 @@
       <div class="download-layout" v-if="isShowDiagnosticProcess">
         <p>{{$t('downloadTip')}}</p>
         <div class="download-progress">
-          <div class="progress-item" v-for="item in diagDumpIds" :key="item.id">
+          <div class="progress-item clearfix" v-for="item in diagDumpIds" :key="item.id">
             <el-checkbox v-model="item.isCheck" :disabled="item.stage !== 'DONE'" v-if="showManualDownloadLayout && isManualDownload" @change="changeCheckItems"></el-checkbox>
             <div class="download-details">
-              <p class="title">{{item.host}}</p>
+              <p class="title">{{ getTitle(item) }}</p>
               <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" ></el-progress>
               <template v-if="item.status === '001'">
                 <span :class="['retry-btn', {'ksd-ml-20': isManualDownload}]" @click="retryJob(item)">{{$t('retry')}}</span>
@@ -83,7 +83,7 @@
       </div>
     </div>
     <div slot="footer">
-      <span class="manual-download" v-if="showManualDownloadLayout">{{$t('manualDownloadTip')}}<span :class="['manual', {'is-disable': isManualDownload}]" @click="isManualDownload = true">{{$t('manualDownload')}}</span>{{$lang === 'en' ? $t('manualDownloadTip2') : ''}}</span>
+      <span class="manual-download" v-if="showManualDownloadLayout"><span :class="['manual', {'is-disable': isManualDownload}]" @click="isManualDownload = true">{{$t('manualDownload')}}</span><el-tooltip :content="$t('manualDownloadTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></span>
       <el-popover
         ref="closePopover"
         placement="top"
@@ -97,7 +97,7 @@
         </div>
       </el-popover>
       <el-button v-popover="'closePopover'" plain size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
-      <el-button size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length">{{$t('generateBtn')}}</el-button>
+      <el-button size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length || isManualDownload">{{$t('generateBtn')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -106,7 +106,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import locales from './locales'
-import { toDoubleNumber } from '../../../util/business'
+import { getPrevTimeValue } from '../../../util/business'
 // import { handleSuccess } from 'util/business'
 import vuex from '../../../store'
 import store, { types } from './store'
@@ -184,11 +184,16 @@ export default class Diagnostic extends Vue {
   }
   // 日期在5分钟～1个月内
   get getDateTimeValid () {
-    return !this.dateTime.prev || !this.dateTime.next || this.getTimes(this.dateTime.prev) > this.getTimes(this.dateTime.next) || (this.getTimes(this.dateTime.next) - this.getTimes(this.dateTime.prev)) < 300000 || (this.getTimes(this.getFormatDate(new Date(this.dateTime.next), 1)) - this.getTimes(this.dateTime.prev)) > 0
+    return !this.dateTime.prev || !this.dateTime.next || this.getTimes(this.dateTime.prev) > this.getTimes(this.dateTime.next) || (this.getTimes(this.dateTime.next) - this.getTimes(this.dateTime.prev)) < 300000 || (this.getTimes(getPrevTimeValue({ date: this.dateTime.next, m: 1 })) - this.getTimes(this.dateTime.prev)) > 0
   }
   // 是否展示手动下载提示
   get showManualDownloadLayout () {
     return Object.keys(this.diagDumpIds).filter(it => this.diagDumpIds[it].stage === 'DONE').length > 0
+  }
+  // 进度条title
+  getTitle (item) {
+    let [{label}] = this.serverOptions.filter(it => it.value === item.host.replace(/http:\/\//, ''))
+    return `http://${label}`
   }
   getTimes (date) {
     return new Date(date).getTime()
@@ -219,7 +224,7 @@ export default class Diagnostic extends Vue {
     this.getServers(this).then((data) => {
       if (data) {
         data.forEach(item => {
-          typeof item === 'object' && this.serverOptions.push({label: `${item.host}(${item.mode && item.mode.toLocaleUpperCase()})`, value: item.host})
+          Object.prototype.toString.call(item) === '[object Object]' && this.serverOptions.push({label: `${item.host}(${item.mode && item.mode.toLocaleUpperCase()})`, value: item.host})
         })
         this.servers = this.serverOptions.length ? [this.serverOptions[0].value] : []
       }
@@ -227,16 +232,6 @@ export default class Diagnostic extends Vue {
   }
   onBlur () {
     this.validDateTime = true
-  }
-  getFormatDate (date, m) {
-    const year = date.getUTCFullYear()
-    const month = date.getUTCMonth() + 1 - (m || 0)
-    const day = date.getUTCDate()
-    const hour = date.getUTCHours()
-    const minutes = date.getUTCMinutes()
-    const seconds = date.getUTCSeconds()
-
-    return `${year}-${toDoubleNumber(month)}-${toDoubleNumber(day)} ${toDoubleNumber(hour)}:${toDoubleNumber(minutes)}:${toDoubleNumber(seconds)}`
   }
   // 更改时间选择操作
   changeTimeRange (val) {
@@ -262,7 +257,7 @@ export default class Diagnostic extends Vue {
         this.dateTime.next = date
         break
       case 'lastMonth':
-        this.dateTime.prev = new Date(this.getFormatDate(date, 1))
+        this.dateTime.prev = new Date(getPrevTimeValue({ date, m: 1 }))
         this.dateTime.next = date
         break
       case 'custom':
@@ -286,7 +281,7 @@ export default class Diagnostic extends Vue {
   // 关闭弹窗
   closeDialog () {
     this.$refs['closePopover'] && this.$refs['closePopover'].doClose()
-    this.resetDumpData()
+    this.resetDumpData(true)
     this.$emit('close')
   }
   // 生成诊断包
@@ -296,7 +291,7 @@ export default class Diagnostic extends Vue {
       console.error('no job_id')
       return
     }
-    this.resetDumpData()
+    this.resetDumpData(false)
     this.isRunning = true
     this.isShowDiagnosticProcess = true
     let apiErrorNum = 0
@@ -370,12 +365,13 @@ export default class Diagnostic extends Vue {
 <style lang="less">
   @import '../../../assets/styles/variables.less';
   .diagnostic-dialog {
-    // max-height: 600px;
+    max-width: none !important;
+    max-height: 600px;
     .body {
       color: @text-title-color;
       .time-range {
         margin-bottom: 14px;
-        .el-icon-ksd-alert_1 {
+        .el-icon-ksd-what {
           margin-left: 5px;
         }
       }
@@ -383,7 +379,7 @@ export default class Diagnostic extends Vue {
         .el-radio {
           height: 30px;
           line-height: 30px;
-          padding: 0 10px;
+          padding: 0 8px;
           box-sizing: border-box;
           &.is-checked {
             background: @background-disabled-color;
@@ -398,12 +394,14 @@ export default class Diagnostic extends Vue {
         .custom-time-tip {
           font-size: 12px;
           margin-bottom: 5px;
+          color: @text-normal-color;
         }
         .el-date-editor.is-disabled {
           width: 175px;
           input {
             border: none;
             padding-right: 0;
+            color: @text-normal-color;
           }
         }
         .el-date-editor.is-error {
@@ -431,10 +429,10 @@ export default class Diagnostic extends Vue {
         margin-top: 15px;
         font-size: 14px;
         .download-progress {
-          margin-top: 10px;
+          // margin-top: 10px;
           .progress-item {
             position: relative;
-            margin-top: 1px;
+            margin-top: 3px;
             .el-checkbox {
               float: left;
               margin-top: 25px;
@@ -445,7 +443,7 @@ export default class Diagnostic extends Vue {
             }
             .title {
               font-size: 12px;
-              margin-top: 10px;
+              margin-top: 7px;
             }
             .progress {
               width: 450px;
@@ -510,19 +508,26 @@ export default class Diagnostic extends Vue {
       font-size: 12px;
       position: absolute;
       left: 20px;
+      line-height: 30px;
       .manual {
-        color: @base-color;
+        color: @text-normal-color;
         cursor: pointer;
         &.is-disable {
           color: @text-disabled-color;
           pointer-events: none;
         }
+        &:hover {
+          color: @base-color;
+        }
+      }
+      .el-icon-ksd-what {
+        margin-left: 5px;
       }
     }
   }
   .el-popover.popover-running {
     top: 179px !important;
-    left: 566px !important;
+    left: 50% !important;
     .popper__arrow {
       display: none;
     }

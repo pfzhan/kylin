@@ -47,8 +47,12 @@
             </template>
           </el-menu>
           <div :class="['diagnostic-model', {'is-hold-menu': briefMenuGet}]" v-if="showMenuByRole('diagnostic')" @click="showDiagnosticDialog">
-            <i class="el-icon-ksd-ostin_diagnose"/>
-            <span class="text" v-if="!briefMenuGet">{{$t('diagnosis')}}</span>
+            <el-tooltip :content="$t('diagnosis')" effect="dark" placement="top">
+              <span>
+                <i class="el-icon-ksd-ostin_diagnose"/>
+                <span class="text" v-if="!briefMenuGet">{{$t('diagnosis')}}</span>
+              </span>
+            </el-tooltip>
           </div>
         </aside>
         <div class="topbar">
@@ -1120,12 +1124,12 @@ export default class LayoutLeftRightTop extends Vue {
     width: calc(~'100% - 44px');
     height: 24px;
     border-radius: 12px;
-    border: solid 1px #ffffff;
+    border: solid 1px @line-border-color;
     margin-left: 22px;
     box-sizing: border-box;
     position: absolute;
     bottom: 40px;
-    color: #ffffff;
+    color: @line-border-color;
     font-size: 12px;
     text-align: center;
     line-height: 22px;
@@ -1133,6 +1137,10 @@ export default class LayoutLeftRightTop extends Vue {
     &.is-hold-menu {
       width: calc(~'100% - 31px');
       margin-left: 15px;
+    }
+    &:hover {
+      color: @base-color;
+      border: solid 1px @base-color;
     }
   }
 </style>

@@ -381,3 +381,32 @@ export function getStringLength (value) {
   })
   return len
 }
+
+/**
+ * 获取当前时间过去某个时间段的时间（此方法方便做时间范围的判断）
+ * @param {dateTime} date 时间点
+ * @param {number} m 相差的月份
+ * @example 当前时间2020-2-28 00:00:00，往前推m = 1个月，得到2020-1-28 00:00:00
+ */
+export function getPrevTimeValue ({ date, m = 0 }) {
+  let dt = new Date(date)
+  let year = dt.getFullYear()
+  let month = dt.getMonth() + 1
+  const day = dt.getDate()
+  const hour = dt.getHours()
+  const minutes = dt.getMinutes()
+  const seconds = dt.getSeconds()
+
+  // 判断是否大于12，大于则减去相应的年份
+  if (typeof m !== 'undefined' && m !== 0) {
+    if (month - m <= 0) {
+      let y = Math.ceil(m / 12)
+      month = m > 12 ? month + (12 * y - m) : 12 - Math.abs(month - m)
+      year -= y
+    } else {
+      month -= m
+    }
+  }
+
+  return `${year}-${toDoubleNumber(month)}-${toDoubleNumber(day)} ${toDoubleNumber(hour)}:${toDoubleNumber(minutes)}:${toDoubleNumber(seconds)}`
+}
