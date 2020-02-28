@@ -30,6 +30,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.validation.constraints.NotNull;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfigBase;
@@ -121,7 +123,7 @@ public class SystemService extends BasicService {
         return uuid;
     }
 
-    private void handleDiagException(String uuid, Exception ex) {
+    private void handleDiagException(String uuid, @NotNull Exception ex) {
         log.warn("Diagnostic kit error", ex);
         Throwable cause = ex;
         while (cause != null && cause.getCause() != null) {
