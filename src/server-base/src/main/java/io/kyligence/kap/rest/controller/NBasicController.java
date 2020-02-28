@@ -342,19 +342,6 @@ public class NBasicController {
 
         String fileName = restTemplate.execute(url, HttpMethod.GET, requestCallback, responseExtractor);
 
-        if (temporaryZipFile.length() < 1048576) {
-            String content = FileUtils.readFileToString(temporaryZipFile);
-            EnvelopeResponse exception = null;
-            try {
-                exception = JsonUtil.readValue(content.getBytes(), EnvelopeResponse.class);
-            } catch (IOException e) {
-            }
-            if (exception != null && StringUtils.isNotEmpty(exception.getMsg())) {
-                FileUtils.deleteQuietly(temporaryZipFile);
-                throw new RuntimeException(exception.getMsg());
-            }
-        }
-
         InputStream in = null;
         OutputStream out = null;
         try {
