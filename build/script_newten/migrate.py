@@ -158,6 +158,8 @@ def migrate_role_permission():
 
 def prepare_project():
     ret = []
+    if not os.path.exists(INPUT_ROOT + '/table'):
+        return ret
     project_table_dict = {}
     for table_name in os.listdir(INPUT_ROOT + '/table'):
         plain_table_name, table_project = table_name.split(
@@ -173,6 +175,8 @@ def prepare_project():
             table_json = json.load(table_file)
             table_json['columns'] = [col for col in table_json['columns'] if 'cc_expr' not in col]
             table_content_dict[(plain_table_name, table_project)] = table_json
+    if not os.path.exists(INPUT_ROOT + '/project'):
+        return ret
     for project_name in os.listdir(INPUT_ROOT + '/project'):
         if not os.path.exists(OUTPUT_ROOT + '/_global/project'):
             os.makedirs(OUTPUT_ROOT + '/_global/project')
@@ -285,10 +289,14 @@ def prepare_project():
 
 
 def prepare_cube_model():
+    if not os.path.exists(INPUT_ROOT + '/cube_desc'):
+        return
     for cube_name in os.listdir(INPUT_ROOT + '/cube_desc'):
         with open(INPUT_ROOT + '/cube_desc/' + cube_name) as cube_file:
             cube_json = json.load(cube_file)
             cube_model_dict[cube_json['name']] = cube_json['model_name']
+    if not os.path.exists(INPUT_ROOT + '/raw_table_desc'):
+        return
     for raw_table_name in os.listdir(INPUT_ROOT + '/raw_table_desc'):
         with open(INPUT_ROOT + '/raw_table_desc/' + raw_table_name) as raw_table_file:
             raw_table_json = json.load(raw_table_file)
