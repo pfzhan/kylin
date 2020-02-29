@@ -61,10 +61,10 @@
               <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" ></el-progress>
               <template v-if="item.status === '001'">
                 <span :class="['retry-btn', {'ksd-ml-20': isManualDownload}]" @click="retryJob(item)">{{$t('retry')}}</span>
-                <p class="error-text">{{$t('requireOverTime1', {server: item.host})}}<a :href="$route.name !== 'Job' ? 'https://sso.kyligence.com/uaa/login.html?lang=en&source=docs' : ($lang === 'en' ? 'https://docs.kyligence.io/books/v4.0/en/monitor/job_diagnosis.en.html' : 'https://docs.kyligence.io/books/v4.0/zh-cn/monitor/job_diagnosis.cn.html')" target="_blank">{{$t('manual')}}</a>{{$t('requireOverTime2')}}</p>
+                <p class="error-text">{{$t('requireOverTime1')}}<a class="user-manual" :href="$route.name !== 'Job' ? 'https://sso.kyligence.com/uaa/login.html?lang=en&source=docs' : ($lang === 'en' ? 'https://docs.kyligence.io/books/v4.0/en/monitor/job_diagnosis.en.html' : 'https://docs.kyligence.io/books/v4.0/zh-cn/monitor/job_diagnosis.cn.html')" target="_blank">{{$t('manual')}}</a>{{$t('requireOverTime2')}}</p>
               </template>
               <template v-if="['002', '999'].includes(item.status)">
-                <span class="error-text">{{item.status === '002' ? $t('noAuthorityTip', {server: item.host}) : $t('otherErrorMsg', {server: item.host})}}</span><span class="detail-text" @click="item.showErrorDetail = !item.showErrorDetail">{{$t('details')}}<i :class="item.showErrorDetail ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
+                <span class="error-text">{{item.status === '002' ? $t('noAuthorityTip') : $t('otherErrorMsg')}}</span><span class="detail-text" @click="item.showErrorDetail = !item.showErrorDetail">{{$t('details')}}<i :class="item.showErrorDetail ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i></span>
                 <div class="dialog-detail" v-if="item.showErrorDetail">
                   <el-input class="details-content" type="textarea" v-model.trim="item.error" :rows="4" readonly></el-input>
                   <el-button class="copyBtn" size="mini" v-clipboard:copy="item.error" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
@@ -428,6 +428,9 @@ export default class Diagnostic extends Vue {
         font-size: 12px;
         color: @error-color-1;
         max-width: 650px;
+        .user-manual {
+          text-decoration: underline;
+        }
       }
       .download-layout {
         margin-top: 15px;
@@ -454,10 +457,11 @@ export default class Diagnostic extends Vue {
             }
             .retry-btn {
               position: absolute;
-              left: 440px;
-              top: 23px;
+              left: 430px;
+              top: 25px;
               color: @base-color;
               cursor: pointer;
+              font-size: 12px;
             }
             .detail-text {
               font-size: 12px;
