@@ -30,13 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.BadModelException;
-import io.kyligence.kap.metadata.model.alias.AliasDeduce;
-import io.kyligence.kap.metadata.model.alias.AliasMapping;
-import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -52,12 +45,19 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.alias.AliasDeduce;
+import io.kyligence.kap.metadata.model.alias.AliasMapping;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
 public class ComputedColumnUtil {
     public static class ExprIdentifierFinder extends SqlBasicVisitor<SqlNode> {
@@ -108,8 +108,8 @@ public class ComputedColumnUtil {
         return usedCols;
     }
 
-    public static Map<String, Set<String>> getCCUsedColsMapWithModel(NDataModel model, ColumnDesc columnDesc) {
-        return getCCUsedColsMap(model, columnDesc.getName(), columnDesc.getComputedColumnExpr());
+    static Map<String, Set<String>> getCCUsedColsMapWithModel(NDataModel model, ColumnDesc columnDesc) {
+        return getCCUsedColsMap(model, columnDesc.getName());
     }
 
     public static Set<String> getCCUsedColsWithModel(NDataModel model, ColumnDesc columnDesc) {
@@ -143,11 +143,19 @@ public class ComputedColumnUtil {
                 }).toArray(ColumnDesc[]::new);
     }
 
-    private static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName, String ccExpr) {
+    private static Map<String, Set<String>> getCCUsedColsMap(NDataModel model, String colName) {
         Map<String, Set<String>> usedCols = Maps.newHashMap();
         Map<String, String> aliasTableMap = getAliasTableMap(model);
         Preconditions.checkState(aliasTableMap.size() > 0, "can not find cc:" + colName + "'s table alias");
-        List<Pair<String, String>> colsWithAlias = ExprIdentifierFinder.getExprIdentifiers(ccExpr);
+
+        ComputedColumnDesc targetCC = model.getComputedColumnDescs().stream()
+                .filter(cc -> cc.getColumnName().equalsIgnoreCase(colName)) //
+                .findFirst().orElse(null);
+        if (targetCC == null) {
+            throw new RuntimeException("ComputedColumn(name: " + colName + ") is not on model: " + model.getUuid());
+        }
+
+        List<Pair<String, String>> colsWithAlias = ExprIdentifierFinder.getExprIdentifiers(targetCC.getExpression());
         for (Pair<String, String> cols : colsWithAlias) {
             String tableIdentifier = aliasTableMap.get(cols.getFirst());
             if (!usedCols.containsKey(tableIdentifier)) {
@@ -194,7 +202,7 @@ public class ComputedColumnUtil {
     }
 
     public static void singleCCConflictCheck(NDataModel existingModel, NDataModel newModel,
-                                             ComputedColumnDesc existingCC, ComputedColumnDesc newCC, CCConflictHandler handler) {
+            ComputedColumnDesc existingCC, ComputedColumnDesc newCC, CCConflictHandler handler) {
         AliasMapping aliasMapping = getCCAliasMapping(existingModel, newModel, existingCC, newCC);
         boolean sameName = StringUtils.equalsIgnoreCase(
                 existingCC.getTableIdentity() + "." + existingCC.getColumnName(),
@@ -235,7 +243,7 @@ public class ComputedColumnUtil {
     }
 
     private static AliasMapping getCCAliasMapping(NDataModel existingModel, NDataModel newModel,
-                                                  ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
+            ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
         JoinsGraph newCCGraph = getCCExprRelatedSubgraph(newCC, newModel);
         JoinsGraph existCCGraph = getCCExprRelatedSubgraph(existingCC, existingModel);
         return getAliasMappingFromJoinsGraph(newCCGraph, existCCGraph);
@@ -291,7 +299,7 @@ public class ComputedColumnUtil {
     }
 
     private static boolean isSameCCExpr(ComputedColumnDesc existingCC, ComputedColumnDesc newCC,
-                                        AliasMapping aliasMapping) {
+            AliasMapping aliasMapping) {
         if (existingCC.getExpression() == null) {
             return newCC.getExpression() == null;
         } else if (newCC.getExpression() == null) {
@@ -303,7 +311,7 @@ public class ComputedColumnUtil {
     }
 
     private static boolean isSameAliasTable(ComputedColumnDesc existingCC, ComputedColumnDesc newCC,
-                                            AliasMapping adviceAliasMapping) {
+            AliasMapping adviceAliasMapping) {
         if (adviceAliasMapping == null) {
             return false;
         }
@@ -314,23 +322,23 @@ public class ComputedColumnUtil {
 
     public interface CCConflictHandler {
         void handleOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                       ComputedColumnDesc newCC, AliasMapping positionAliasMapping);
+                ComputedColumnDesc newCC, AliasMapping positionAliasMapping);
 
         void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel, ComputedColumnDesc existingCC,
-                                      ComputedColumnDesc newCC);
+                ComputedColumnDesc newCC);
 
         void handleOnWrongPositionExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                       ComputedColumnDesc newCC, AliasMapping positionAliasMapping);
+                ComputedColumnDesc newCC, AliasMapping positionAliasMapping);
 
         void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                      ComputedColumnDesc newCC);
+                ComputedColumnDesc newCC);
     }
 
     public static class DefaultCCConflictHandler implements CCConflictHandler {
 
         @Override
         public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,
-                                             ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
+                ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
             JoinsGraph ccJoinsGraph = getCCExprRelatedSubgraph(existingCC, existingModel);
             AliasMapping aliasMapping = getAliasMappingFromJoinsGraph(ccJoinsGraph, newModel.getJoinsGraph());
             String advisedExpr = aliasMapping == null ? null
@@ -346,7 +354,7 @@ public class ComputedColumnUtil {
 
         @Override
         public void handleOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                              ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
+                ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
             String advice = positionAliasMapping == null ? null
                     : positionAliasMapping.getAliasMapping().get(existingCC.getTableAlias());
 
@@ -368,7 +376,7 @@ public class ComputedColumnUtil {
 
         @Override
         public void handleOnWrongPositionExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                              ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
+                ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
             String advice = positionAliasMapping == null ? null
                     : positionAliasMapping.getAliasMapping().get(existingCC.getTableAlias());
 
@@ -390,7 +398,7 @@ public class ComputedColumnUtil {
 
         @Override
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
-                                             ComputedColumnDesc newCC) {
+                ComputedColumnDesc newCC) {
             String adviseName = existingCC.getColumnName();
             String msg = String.format(
                     "Expression %s in computed column %s is already defined by computed column %s from model %s, you should use the same column name: ' %s ' .",
@@ -401,7 +409,8 @@ public class ComputedColumnUtil {
         }
     }
 
-    public static List<Pair<ComputedColumnDesc, NDataModel>> getExistingCCs(String modelId, List<NDataModel> otherModels) {
+    public static List<Pair<ComputedColumnDesc, NDataModel>> getExistingCCs(String modelId,
+            List<NDataModel> otherModels) {
         List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = Lists.newArrayList();
         for (NDataModel otherModel : otherModels) {
             if (!StringUtils.equals(otherModel.getUuid(), modelId)) {

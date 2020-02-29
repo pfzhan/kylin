@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.model.util;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -33,6 +34,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -88,6 +91,39 @@ public class ComputedColumnUtilTest extends NLocalFileMetadataTestCase {
                 Assert.assertTrue(ccUsedColsInModel.size() == 1);
                 Assert.assertTrue(ccUsedColsInModel.contains("DEFAULT.TEST_KYLIN_FACT.CAL_DT"));
             }
+        }
+    }
+
+    @Test
+    public void testGetCCUsedColWithDoubleQuoteInModel() {
+        NDataModel model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
+        modelManager.updateDataModel(model.getUuid(), copyForWrite -> {
+            final List<ComputedColumnDesc> ccList = copyForWrite.getComputedColumnDescs();
+            final ComputedColumnDesc cc0 = ccList.get(0);
+            cc0.setExpression("\"TEST_KYLIN_FACT\".\"PRICE\" * \"TEST_KYLIN_FACT\".\"ITEM_COUNT\"");
+            copyForWrite.setComputedColumnDescs(ccList);
+        });
+
+        NDataModel modelNew = modelManager.getDataModelDesc(model.getUuid());
+        ColumnDesc column = new ColumnDesc();
+        column.setName("DEAL_AMOUNT");
+        column.setComputedColumn("`TEST_KYLIN_FACT`.`PRICE` * `TEST_KYLIN_FACT`.`ITEM_COUNT`");
+        Map<String, Set<String>> colsMapWithModel = ComputedColumnUtil.getCCUsedColsMapWithModel(modelNew, column);
+        Assert.assertEquals(1, colsMapWithModel.size());
+        Assert.assertTrue(colsMapWithModel.containsKey("DEFAULT.TEST_KYLIN_FACT"));
+        Set<String> columns = colsMapWithModel.get("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(Sets.newHashSet("PRICE", "ITEM_COUNT"), columns);
+
+        ColumnDesc notExistColumn = new ColumnDesc();
+        notExistColumn.setName("CC_NOT_EXIST");
+        notExistColumn.setComputedColumn("`TEST_KYLIN_FACT`.`PRICE` * 0.95");
+        try {
+            ComputedColumnUtil.getCCUsedColsMapWithModel(modelNew, notExistColumn);
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals(
+                    "ComputedColumn(name: CC_NOT_EXIST) is not on model: 741ca86a-1f13-46da-a59f-95fb68615e3a",
+                    e.getMessage());
         }
     }
 
