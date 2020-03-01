@@ -170,22 +170,24 @@
             <version>${mockito.version}</version>
         </dependency>
 
-
-
+<!--        hadoop-mini-clusters-hdfs dependency-->
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-server</artifactId>
             <version>1.17.1</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-core</artifactId>
             <version>1.17.1</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-servlet</artifactId>
             <version>1.17.1</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
