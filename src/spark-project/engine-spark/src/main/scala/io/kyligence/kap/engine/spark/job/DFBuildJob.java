@@ -39,6 +39,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -147,7 +148,7 @@ public class DFBuildJob extends SparkApplication {
             Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(shareDir);
             updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
         } finally {
-            val fs = HadoopUtil.getWorkingFileSystem();
+            val fs = FileSystem.get(new Configuration());
             for (String viewPath : persistedViewFactTable) {
                 fs.delete(new Path(viewPath), true);
                 logger.info("Delete persisted view fact table: {}.", viewPath);
