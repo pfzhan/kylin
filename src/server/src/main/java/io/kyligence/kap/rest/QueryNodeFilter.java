@@ -83,6 +83,9 @@ public class QueryNodeFilter implements Filter {
         // license
         notRoutePostApiSet.add("/kylin/api/system/license/content");
         notRoutePostApiSet.add("/kylin/api/system/license/file");
+
+        //diag
+        notRoutePostApiSet.add("/kylin/api/system/diag");
     }
 
     @Autowired

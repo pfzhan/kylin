@@ -47,7 +47,9 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1962,10 +1964,11 @@ public abstract class KylinConfigBase implements Serializable {
         return !FALSE.equals(option);
     }
 
-    public static File getRandomDiagFile() {
-        String uuid = UUID.randomUUID().toString();
+    public static File getDiagFileName() {
+        String uuid = UUID.randomUUID().toString().toUpperCase().substring(0, 6);
+        String packageName = "front_" + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()) + "_" + uuid;
         String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
-        String diagPath = diagDirectory + uuid;
+        String diagPath = diagDirectory + packageName;
         File file;
         if (StringUtils.isNotEmpty(workDir)) {
             file = new File(workDir, diagPath);

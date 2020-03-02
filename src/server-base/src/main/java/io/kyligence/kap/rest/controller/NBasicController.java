@@ -317,7 +317,7 @@ public class NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void downloadFromRemoteHost(final HttpServletRequest request, String url,
             HttpServletResponse servletResponse) throws Exception {
-        File temporaryZipFile = KylinConfigBase.getRandomDiagFile();
+        File temporaryZipFile = KylinConfigBase.getDiagFileName();
         temporaryZipFile.getParentFile().mkdirs();
         if (!temporaryZipFile.createNewFile()) {
             throw new RuntimeException("create temporary zip file failed");

@@ -91,7 +91,7 @@ public class SystemService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) throws IOException {
-        File exportFile = KylinConfigBase.getRandomDiagFile();
+        File exportFile = KylinConfigBase.getDiagFileName();
         String uuid = exportFile.getName();
         FileUtils.deleteQuietly(exportFile);
         exportFile.mkdirs();
