@@ -49,6 +49,19 @@ function isHDP_3_1() {
     return 0
 }
 
+function isHDP_2_6() {
+    hadoop_common_file="`find ${hdp_hadoop_path}/ -maxdepth 1 -name hadoop-common-*.jar -not -name *test* | tail -1`"
+    hdp_version=${hadoop_common_file##*/}
+
+    if [[ "${hdp_version}" == hadoop-common-2*2.6.* ]]; then
+        echo 1
+        return 1
+    fi
+
+    echo 0
+    return 0
+}
+
 function isFI_C90() {
     ## FusionInsight platform C70/C90.
     if [[ -n "$BIGDATA_CLIENT_HOME" ]]; then

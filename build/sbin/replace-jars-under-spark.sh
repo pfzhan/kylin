@@ -95,8 +95,11 @@ jar_list="${common_jars} ${hdfs_jars} ${mr_jars} ${yarn_jars} ${other_jars} ${cd
 
 echo "Find platform specific jars:${jar_list}, will replace with these jars under ${SPARK_HOME}/jars."
 
-find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
-find ${SPARK_HOME}/jars -name "hadoop-*2.6.*.jar" -exec rm -f {} \;
+# not in hdp 2.6
+if [[  $(isHDP_2_6) == 0 ]]; then
+    find ${SPARK_HOME}/jars -name "htrace-core-*" -exec rm -rf {} \;
+    find ${SPARK_HOME}/jars -name "hadoop-*2.6.*.jar" -exec rm -f {} \;
+fi
 
 if [[ $(isCDH_6_1) == 1 ]]; then
     find ${SPARK_HOME}/jars -name "hadoop-hdfs-*.jar" -exec rm -f {} \;
