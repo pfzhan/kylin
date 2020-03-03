@@ -16,13 +16,15 @@ export const types = {
   RESET_DUMP_DATA: 'RESET_DUMP_DATA',
   DEL_DUMP_ID_LIST: 'DEL_DUMP_ID_LIST',
   POLLING_STATUS_MSG: 'POLLING_STATUS_MSG',
-  DOWNLOAD_DUMP_DIAG: 'DOWNLOAD_DUMP_DIAG'
+  DOWNLOAD_DUMP_DIAG: 'DOWNLOAD_DUMP_DIAG',
+  STOP_INTERFACE_CALL: 'STOP_INTERFACE_CALL'
 }
 
 export default {
   state: {
     diagDumpIds: {},
-    servers: []
+    servers: [],
+    isReset: false
   },
   mutations: {
     [types.UPDATE_DUMP_IDS] (state, { host, start, end, id }) {
@@ -57,6 +59,7 @@ export default {
     // 更改当前诊断包生成的进度
     [types.SET_DUMP_PROGRESS] (state, data) {
       const { status, id } = data
+      if (!(id in state.diagDumpIds)) return
       if (status === '000') {
         const { stage, progress } = data
         // state.diagDumpIds[id] = {...state.diagDumpIds[id], ...{status, stage, progress}}
@@ -93,19 +96,23 @@ export default {
         state.diagDumpIds = {}
       }
       Object.keys(timer).forEach(item => {
-        clearInterval(timer[item])
+        clearTimeout(timer[item])
       })
       timer = {}
+    },
+    [types.STOP_INTERFACE_CALL] (state, value) {
+      state.isReset = value
     }
   },
   actions: {
     // 生成诊断包
-    [types.GET_DUMP_REMOTE] ({ commit, dispatch }, { host = '', start = '', end = '', job_id = '' }) {
+    [types.GET_DUMP_REMOTE] ({ state, commit, dispatch }, { host = '', start = '', end = '', job_id = '' }) {
       if (!host) return
       return new Promise((resolve, reject) => {
-        api.system.getDumpRemote({ host, start, end, job_id }).then((res) => {
+        api.system.getDumpRemote({ host, start, end, job_id }).then(async (res) => {
+          if (state.isReset) return
           const { data } = res.data
-          commit(types.UPDATE_DUMP_IDS, { host, start, end, id: data })
+          await commit(types.UPDATE_DUMP_IDS, { host, start, end, id: data })
           dispatch(types.POLLING_STATUS_MSG, { host, id: data })
           resolve(data)
         }).catch((err) => {
@@ -142,7 +149,8 @@ export default {
       })
     },
     // 轮询接口获取信息
-    [types.POLLING_STATUS_MSG] ({ commit, dispatch }, { host, id }) {
+    [types.POLLING_STATUS_MSG] ({ state, commit, dispatch }, { host, id }) {
+      if (state.isReset) return
       dispatch(types.GET_STATUS_REMOTE, { host, id }).then((res) => {
         timer[id] = setTimeout(() => {
           dispatch(types.POLLING_STATUS_MSG, { host, id })
@@ -151,6 +159,8 @@ export default {
         if (data.status === '000' && data.stage === 'DONE') {
           clearTimeout(timer[id])
           dispatch(types.DOWNLOAD_DUMP_DIAG, {host, id})
+        } else if (['001', '002', '999'].includes(data.status)) {
+          clearTimeout(timer[id])
         }
       }).catch((err) => {
         handleError(err)

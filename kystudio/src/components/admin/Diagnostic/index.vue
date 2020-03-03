@@ -135,7 +135,8 @@ vuex.registerModule(['diagnosticModel'], store)
     ...mapMutations('diagnosticModel', {
       updateCheckType: types.UPDATE_CHECK_TYPE,
       delDumpid: types.DEL_DUMP_ID_LIST,
-      resetDumpData: types.RESET_DUMP_DATA
+      resetDumpData: types.RESET_DUMP_DATA,
+      stopInterfaceCall: types.STOP_INTERFACE_CALL
     })
   },
   locales
@@ -282,6 +283,7 @@ export default class Diagnostic extends Vue {
   closeDialog () {
     this.$refs['closePopover'] && this.$refs['closePopover'].doClose()
     this.resetDumpData(true)
+    this.stopInterfaceCall(true)
     this.$emit('close')
   }
   // 生成诊断包
@@ -311,7 +313,7 @@ export default class Diagnostic extends Vue {
         host: `http://${host.trim()}`,
         ...data
       }).then(() => {
-        apiErrorNum += 1
+        // apiErrorNum += 1
       }).catch(() => {
         apiErrorNum += 1
         if (apiErrorNum === this.servers.length) {
@@ -359,6 +361,7 @@ export default class Diagnostic extends Vue {
   }
   mounted () {
     this.changeTimeRange('lastDay')
+    this.stopInterfaceCall(false)
   }
 }
 </script>

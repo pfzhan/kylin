@@ -127,7 +127,8 @@
           <el-table-column
             :label="$t('Actions')"
             v-if="monitorActions.includes('jobActions')"
-            width="83">
+            class-name="job-fc-icon"
+            width="96">
             <template slot-scope="scope">
               <common-tip :content="$t('diagnosis')" v-if="monitorActions.includes('diagnostic')">
                 <i class="el-icon-ksd-ostin_diagnose ksd-fs-14" @click.stop="showDiagnosisDetail(scope.row.id)"></i>
@@ -1553,6 +1554,14 @@ export default class JobsList extends Vue {
       }
       tr .el-icon-arrow-down{
         color:@base-color;
+      }
+      .job-fc-icon {
+        .tip_box {
+          margin-left: 10px;
+          &:first-child {
+            margin-left: 0;
+          }
+        }
       }
     }
   }

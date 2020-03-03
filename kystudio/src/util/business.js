@@ -408,5 +408,5 @@ export function getPrevTimeValue ({ date, m = 0 }) {
     }
   }
 
-  return `${year}-${toDoubleNumber(month)}-${toDoubleNumber(day)} ${toDoubleNumber(hour)}:${toDoubleNumber(minutes)}:${toDoubleNumber(seconds)}`
+  return `${year}/${toDoubleNumber(month)}/${toDoubleNumber(day)} ${toDoubleNumber(hour)}:${toDoubleNumber(minutes)}:${toDoubleNumber(seconds)}`
 }
