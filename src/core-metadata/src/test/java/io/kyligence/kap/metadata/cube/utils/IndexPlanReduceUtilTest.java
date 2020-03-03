@@ -314,6 +314,37 @@ public class IndexPlanReduceUtilTest {
         Assert.assertTrue(map2.containsKey(layoutArray[1]));
         Assert.assertEquals("[1, 2, 3, 4]", map2.get(layoutArray[1]).getColOrder().toString());
     }
+    
+    @Test
+    public void testCollectIncludedLayoutsWhenAggIndexWithEmptyDim() {
+        // table index [dim:5]
+        LayoutEntity layout1 = new LayoutEntity();
+        layout1.setId(IndexEntity.TABLE_INDEX_START_ID + 1);
+        layout1.setColOrder(Lists.newArrayList(5));
+        layout1.setAuto(true);
+        layout1.setInProposing(true);
+        IndexEntity index1 = new IndexEntity();
+        index1.setLayouts(Lists.newArrayList(layout1));
+        index1.setDimensions(Lists.newArrayList(5));
+        index1.setId(calIndexId(index1));
+        layout1.setIndex(index1);
+
+        // agg index [dim: measure:100000,100001]
+        LayoutEntity layout2 = new LayoutEntity();
+        layout2.setId(1);
+        layout2.setColOrder(Lists.newArrayList(100000, 100001));
+        layout2.setAuto(true);
+        layout2.setInProposing(true);
+        IndexEntity index2 = new IndexEntity();
+        index2.setLayouts(Lists.newArrayList(layout2));
+        index2.setId(calIndexId(index2));
+        index2.setMeasures(Lists.newArrayList(100000, 100001));
+        layout2.setIndex(index2);
+
+        List<LayoutEntity> inputLayouts = collectLayouts(index1, index2);
+        Map<LayoutEntity, LayoutEntity> map = IndexPlanReduceUtil.collectIncludedLayouts(inputLayouts, false);
+        Assert.assertTrue(map.isEmpty());
+    }
 
     private void initTableIndex() {
         /*

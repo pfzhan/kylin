@@ -46,20 +46,26 @@ public class IndexPlanReduceUtil {
     public static Map<LayoutEntity, LayoutEntity> collectIncludedLayouts(List<LayoutEntity> inputLayouts,
             boolean isGarbageCleaning) {
         Map<LayoutEntity, LayoutEntity> redundantMap = Maps.newHashMap();
-        Map<List<Integer>, Set<LayoutEntity>> layoutGroupedByDims = Maps.newHashMap();
+        Set<LayoutEntity> tableIndexGroup = Sets.newHashSet();
+        Map<List<Integer>, Set<LayoutEntity>> aggIndexDimGroup = Maps.newHashMap();
         inputLayouts.forEach(layout -> {
             // layout.getOrderedDimensions() maybe more better, but difficult to cover with simple UT
-            List<Integer> dimGroup = layout.getId() > IndexEntity.TABLE_INDEX_START_ID //
-                    ? Lists.newArrayList() // all table index add to one group
-                    : layout.getColOrder().stream().filter(idx -> idx < NDataModel.MEASURE_ID_BASE)
-                            .collect(Collectors.toList());
-            layoutGroupedByDims.putIfAbsent(dimGroup, Sets.newHashSet());
-            layoutGroupedByDims.get(dimGroup).add(layout);
+            if (layout.getId() > IndexEntity.TABLE_INDEX_START_ID) {
+                tableIndexGroup.add(layout);
+            } else {
+                List<Integer> aggIndexDims = layout.getColOrder().stream().filter(idx -> idx < NDataModel.MEASURE_ID_BASE)
+                        .collect(Collectors.toList());
+                aggIndexDimGroup.putIfAbsent(aggIndexDims, Sets.newHashSet());
+                aggIndexDimGroup.get(aggIndexDims).add(layout);
+            }
         });
 
-        layoutGroupedByDims.forEach((dims, layouts) -> {
-            List<LayoutEntity> layoutsShareSameDims = descSortByColOrderSize(Lists.newArrayList(layouts));
-            redundantMap.putAll(findIncludedLayoutMap(layoutsShareSameDims, isGarbageCleaning));
+        List<LayoutEntity> tableIndexsShareSameDims = descSortByColOrderSize(Lists.newArrayList(tableIndexGroup));
+        redundantMap.putAll(findIncludedLayoutMap(tableIndexsShareSameDims, isGarbageCleaning));
+
+        aggIndexDimGroup.forEach((dims, layouts) -> {
+            List<LayoutEntity> aggIndexsShareSameDims = descSortByColOrderSize(Lists.newArrayList(layouts));
+            redundantMap.putAll(findIncludedLayoutMap(aggIndexsShareSameDims, isGarbageCleaning));
         });
 
         return redundantMap;
