@@ -1482,9 +1482,10 @@ export default class ModelEdit extends Vue {
   }
   // 判断是否添加分区列方法
   addPartitionFunc (data) {
+    data.available_indexes_count = this.modelData.available_indexes_count
     if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
       this.showPartitionDialog({
-        modelDesc: {...data, available_indexes_count: this.modelData.available_indexes_count},
+        modelDesc: data,
         modelInstance: this.modelInstance,
         mode: 'saveModel'
       }).then((res) => {
