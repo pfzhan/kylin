@@ -488,7 +488,11 @@ export default class LayoutLeftRightTop extends Vue {
     })
   }
   showMenuByRole (menuName) {
-    return this.availableMenus.includes(menuName.toLowerCase())
+    let isSemiAutoModeShowAcce = true
+    if (menuName === 'acceleration') {
+      isSemiAutoModeShowAcce = this.$store.state.project.isSemiAutomatic
+    }
+    return this.availableMenus.includes(menuName.toLowerCase()) && isSemiAutoModeShowAcce
   }
   getLicense () {
     location.href = 'mailto:g-ent-lic@kyligence.io'

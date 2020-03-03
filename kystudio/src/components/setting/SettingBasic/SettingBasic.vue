@@ -190,7 +190,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleError, handleSuccessAsync } from '../../../util'
+import { handleError, handleSuccessAsync, kapConfirm } from '../../../util'
 import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
@@ -299,7 +299,12 @@ export default class SettingBasic extends Vue {
       switch (type) {
         case 'basic-info': {
           const submitData = _getProjectGeneralInfo(this.form)
-          await this.updateProjectGeneralInfo(submitData); break
+          if (!submitData.semi_automatic_mode) {
+            await kapConfirm(this.$t('turnOffTips'), {confirmButtonText: this.$t('confirmClose'), type: '', dangerouslyUseHTMLString: true})
+            await this.updateProjectGeneralInfo(submitData); break
+          } else {
+            await this.updateProjectGeneralInfo(submitData); break
+          }
         }
         case 'segment-settings': {
           if (await this.$refs['segment-setting-form'].validate()) {

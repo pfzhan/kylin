@@ -45,7 +45,9 @@ export default {
     storageGarbageDesc3: ' times, then the storage of accelerated queries and indexes would be regarded as low usage storage.',
     storageGarbageDesc3ForSemiAutomatic: ' times, then the storage of indexes would be regarded as low usage storage.',
     enableSemiAutomatic: 'Recommendation Mode:',
-    enableSemiAutomaticDesc: 'After enabling this mode, the system will provide some recommendations for existing models by analyzing the query history and model usage.'
+    enableSemiAutomaticDesc: 'After enabling this mode, the system will provide some recommendations for existing models by analyzing the query history and model usage.',
+    confirmClose: 'Turn Off',
+    turnOffTips: 'After disabling this mode, the following changes will happen:<br/>* This project will not be able to <b>recommend and optimize indexes</b> and <b>create model by SQL</b>. <br/>* The existing recommendations will be <b>temporarily hidden</b> and those indexes which are <b>built successfully</b> can still serve the query.<br/>* For the recommendations, if the model definition changes, such as <b>join relationship</b> and <b>partition column</b>, all the recommendations will be <b>cleared</b> to ensure the accuracy.'
   },
   'zh-cn': {
     basicInfo: '通用信息',
@@ -93,6 +95,8 @@ export default {
     storageGarbageDesc3: '次的加速查询和对应的存储即为低效存储。',
     storageGarbageDesc3ForSemiAutomatic: '次的索引组为低效存储',
     enableSemiAutomatic: '智能推荐模式：',
-    enableSemiAutomaticDesc: '开启智能推荐模式后，系统将根据您的查询历史及使用情况对已有模型进行优化建议。'
+    enableSemiAutomaticDesc: '开启智能推荐模式后，系统将根据您的查询历史及使用情况对已有模型进行优化建议。',
+    confirmClose: '确认关闭',
+    turnOffTips: '关闭智能推荐后:<br/>* 当前项目将不具备<b>任何索引推荐和优化能力</b>，以及<b>SQL建模</b>等。<br/>* 当前已存在的建议将<b>暂时隐藏</b>，已<b>构建完成</b>的索引仍可以服务于查询。<br/>* 对于优化建议，当模型的定义如<b>关联关系</b>，<b>分区列</b>等发生变化时，为了保证优化建议的准确性此时会<b>清空</b>掉所有的优化建议。'
   }
 }
