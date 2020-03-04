@@ -250,9 +250,11 @@
             <scr:intercept-url pattern="/api/**" access="isAuthenticated()"/>
 
             <scr:logout invalidate-session="true" delete-cookies="JSESSIONID" logout-url="/api/j_spring_security_logout"
-                        logout-success-url="/."/>
+                        success-handler-ref="logoutSuccessHandler"/>
             <scr:session-management session-fixation-protection="newSession"/>
         </scr:http>
+        <!-- this config only for custom now -->
+        <bean id="logoutSuccessHandler" class="${kylin.security.custom.logout-success-handler}"/>
     </beans>
 
     <beans profile="saml">
