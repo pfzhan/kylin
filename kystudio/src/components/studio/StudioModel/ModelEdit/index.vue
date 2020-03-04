@@ -534,7 +534,8 @@ import { NamedRegex } from '../../../../config'
       getModelByModelName: 'LOAD_MODEL_INFO',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
       saveModel: 'SAVE_MODEL',
-      updataModel: 'UPDATE_MODEL'
+      updataModel: 'UPDATE_MODEL',
+      getAboutKap: 'GET_ABOUTKAP'
     }),
     ...mapActions('DimensionsModal', {
       showDimensionDialog: 'CALL_MODAL'
@@ -601,6 +602,7 @@ export default class ModelEdit extends Vue {
   allColumns = []
   // baseIndex = modelRenderConfig.baseIndex
   autoSetting = true
+  stCycle = null
   measureObj = {
     name: '',
     expression: 'SUM(column)',
@@ -1656,7 +1658,25 @@ export default class ModelEdit extends Vue {
       handleError(res)
     })
   }
+  autoFilter () {
+    clearTimeout(this.stCycle)
+    this.stCycle = setTimeout(() => {
+      this.getAboutKap().then((res) => {
+        handleSuccess(res, (data) => {
+          if (this._isDestroyed) {
+            return
+          }
+          this.autoFilter()
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    }, 1500000)
+  }
   created () {
+    // 心跳请求，保持用户 active
+    this.getAboutKap()
+    this.autoFilter()
   }
   beforeDestroy () {
     this.toggleFullScreen(false)

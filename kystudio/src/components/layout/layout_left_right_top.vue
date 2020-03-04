@@ -489,7 +489,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   showMenuByRole (menuName) {
     let isSemiAutoModeShowAcce = true
-    if (menuName === 'acceleration') {
+    if (menuName === 'acceleration' && !this.isAutoProject) {
       isSemiAutoModeShowAcce = this.$store.state.project.isSemiAutomatic
     }
     return this.availableMenus.includes(menuName.toLowerCase()) && isSemiAutoModeShowAcce
