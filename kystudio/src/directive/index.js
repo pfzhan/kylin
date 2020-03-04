@@ -48,6 +48,18 @@ Vue.directive('number', {
     }
   }
 })
+Vue.directive('number2', {
+  update: function (el, binding, vnode) {
+    if (binding.value !== binding.oldValue) {
+      setTimeout(() => {
+        if (binding.value) {
+          let newVal = ('' + binding.value).replace(/[^\d]/g, '')
+          el.__vue__.$emit('input', +newVal || '')
+        }
+      }, 0)
+    }
+  }
+})
 Vue.directive('clickoutside', {
   bind (el, binding, vnode) {
     nodeList.push(el)

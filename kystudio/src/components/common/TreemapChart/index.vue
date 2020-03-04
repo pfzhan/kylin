@@ -102,7 +102,7 @@ export default class TreemapChart extends Vue {
     var result = {
       type: 'treemap',
       data: [{
-        name: this.$t('aggregateIndexTree'),
+        // name: this.$t('aggregateIndexTree'),
         value: totalValue,
         size: totalValue,
         children: [...data]

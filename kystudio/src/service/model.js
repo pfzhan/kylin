@@ -153,11 +153,11 @@ export default {
   fetchAggregateGroups: (project, model) => {
     return Vue.resource(apiUrl + 'index_plans/rule').get({ project, model })
   },
-  updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp) => {
-    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
+  updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap) => {
+    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap })
   },
-  getCalcCuboids: (project, modelId, dimensions, aggregationGroups) => {
-    return Vue.resource(apiUrl + 'index_plans/agg_index_count').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups })
+  getCalcCuboids: (project, modelId, dimensions, aggregationGroups, globalDimCap) => {
+    return Vue.resource(apiUrl + 'index_plans/agg_index_count').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, global_dim_cap: globalDimCap })
   },
   fetchRelatedModelStatus: (project, uuids) => {
     const body = { project, uuids }
@@ -230,7 +230,7 @@ export default {
   checkFilterConditon: (para) => {
     return Vue.resource(apiUrl + 'models/filter_condition/check').save(para)
   },
-  getIndexDiff: (project, modelId, dimensions, aggregationGroups, isCatchUp) => {
-    return Vue.resource(apiUrl + 'index_plans/rule_based_index_diff').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
+  getIndexDiff: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap) => {
+    return Vue.resource(apiUrl + 'index_plans/rule_based_index_diff').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap })
   }
 }

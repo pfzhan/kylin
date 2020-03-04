@@ -1,4 +1,5 @@
 <template>
+<div>
   <el-dialog class="aggregate-modal" limited-area width="960px"
     :visible="isShow"
     top="5vh"
@@ -59,8 +60,22 @@
               </h1>
               <div class="actions">
                 <!-- <el-button type="mini" @click="() => openAggregateItem(aggregateIdx)">{{ aggregate.open ? $t('retract') : $t('open') }}</el-button> -->
-                <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
-                <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
+                <common-tip :content="$t('kylinLang.common.copy')"><i class="el-icon-ksd-copy" @click="() => handleCopyAggregate(aggregateIdx)"></i></common-tip>
+                <common-tip :content="$t('kylinLang.common.delete')"><i class="el-icon-ksd-table_delete" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)"></i></common-tip>
+              </div>
+              <div class="ksd-fright dimCap-block">
+                <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+                </span>
+                <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&!form.globalDimCap" class="nolimit-dim">{{$t('noLimitation')}}</span>
+                <span v-if="!aggregate.isEditDim&&aggregate.dimCap">{{aggregate.dimCap}}</span>
+                <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&form.globalDimCap" class="global-dim">{{form.globalDimCap}}</span>
+                <el-input class="dim-input" v-if="aggregate.isEditDim" size="mini" :clearable="false" v-model="aggregate.dimCap" v-number2="aggregate.dimCap" @input="value => handleSetDim(aggregateIdx, value)"></el-input>
+                <span v-if="!aggregate.isEditDim">
+                  <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit" @click="editDimCan(aggregateIdx, true)"></i></common-tip>
+                </span>
+                <span v-else>
+                  <i class="el-icon-ksd-right" @click="saveDimCan(aggregateIdx)"></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click="editDimCan(aggregateIdx, false)"></i>
+                </span>
               </div>
             </div>
             <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
@@ -223,15 +238,63 @@
     </template>
     <div slot="footer" class="dialog-footer clearfix">
       <div class="left">
-        <el-checkbox v-guide.aggCatchUp :value="form.isCatchUp" @input="value => handleInput('isCatchUp', value)">{{$t('kylinLang.common.catchUp')}}</el-checkbox>
+        <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+        </span>
+        <span v-if="!isEditGlobalDim&&!form.globalDimCap">{{$t('noLimitation')}}</span>
+        <span v-if="!isEditGlobalDim&&form.globalDimCap">{{form.globalDimCap}}</span>
+        <el-input class="dim-input" v-if="isEditGlobalDim" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
+        <span v-if="!isEditGlobalDim">
+          <common-tip :content="$t('kylinLang.common.edit')" v-show="isShowTooltips"><i
+            class="dim-btn el-icon-ksd-table_edit" @click="editGlobalDim"></i>
+          </common-tip><common-tip
+            v-show="isShowTooltips"
+            :content="clearTips">
+            <i class="dim-btn el-icon-ksd-clear ksd-ml-5" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
+          </common-tip>
+        </span>
+        <span v-else>
+          <el-popover
+            ref="popover"
+            placement="top"
+            width="160"
+            trigger="hover"
+            v-model="popoverVisible">
+            <p>{{$t('dimConfirm')}}</p>
+            <div style="text-align: right; margin: 0">
+              <el-button size="mini" type="info" text @click="popoverVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+              <el-button type="primary" size="mini" @click="saveGlobalDim">{{$t('kylinLang.common.ok')}}</el-button>
+            </div>
+          </el-popover>
+          <i class="el-icon-ksd-right" v-popover:popover></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click="isEditGlobalDim = false"></i>
+        </span>
       </div>
       <div class="right">
         <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" @click="checkCuboids()" :loading="calcLoading">{{$t('checkIndexAmount')}}<el-tooltip placement="top" :content="$t('checkIndexAmountBtnTips')"><i class="plainWhat el-icon-ksd-what ksd-ml-5"></i></el-tooltip></el-button>
+        <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" @click="checkCuboids(true)" :loading="calcLoading">{{$t('checkIndexAmount')}}<el-tooltip placement="top" :content="$t('checkIndexAmountBtnTips')"><i class="plainWhat el-icon-ksd-what ksd-ml-5"></i></el-tooltip></el-button>
         <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
   </el-dialog>
+  <el-dialog class="confirm-dialog" width="480px"
+    :title="$t('kylinLang.common.tip')"
+    :visible="isShowConfirm"
+    :append-to-body="true"
+    @close="handleCloseConfirm"
+    :close-on-press-escape="false"
+    :close-on-click-modal="false">
+    <div class="el-message-box__content">
+      <div class="el-message-box__status el-icon-warning"></div>
+      <div class="el-message-box__message">
+        <p>{{confirmMsg}}</p>
+      </div>
+    </div>
+    <div slot="footer" class="dialog-footer clearfix">
+      <el-button plain size="medium" @click="handleCloseConfirm">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" v-guide.setAggIndexConfitmBtn v-if="isShowBuildAndConfirm" @click="confirmSubmit(true)">{{$t('bulidAndSubmit')}}</el-button>
+      <el-button size="medium" @click="confirmSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
+    </div>
+  </el-dialog>
+</div>
 </template>
 
 <script>
@@ -299,7 +362,29 @@ export default class AggregateModal extends Vue {
     {name: 'measures', key: 'measure', size: 0, total: 0, target: 'measures'}
   ]
   aggregateStyle = []
+  isShowConfirm = false
+  isShowBuildAndConfirm = false
+  confirmMsg = ''
+  isEditGlobalDim = false
+  popoverVisible = false
+  globalDim = null
+  groupsDim = {}
+  isShowTooltips = false
 
+  mounted () {
+    this.$nextTick(() => {
+      this.$el.querySelector('.dialog-footer .left').onmouseover = (e) => {
+        this.isShowTooltips = true
+      }
+      this.$el.querySelector('.dialog-footer .left').onmouseout = (e) => {
+        this.isShowTooltips = false
+      }
+    })
+  }
+
+  get clearTips () {
+    return this.form.isDimClearable ? this.$t('clearDimTips') : this.$t('disableClear')
+  }
   get modalTitle () {
     return titleMaps[this.editType]
   }
@@ -349,7 +434,7 @@ export default class AggregateModal extends Vue {
     }
   }
   calcLoading = false
-  calcCuboids () {
+  calcCuboids (isShowCheckSuccess) {
     // 防重复提交
     if (this.calcLoading) {
       return false
@@ -390,11 +475,11 @@ export default class AggregateModal extends Vue {
             this.$message.error(this.$t('maxCombinationTip'))
             // 操作滚动
             this.dealScrollToFirstError()
-          } else {
+          } else if (!/^\d+$/.test(data.total_count.result)) {
             // 单个没超过，总量超了，显示总量的报错，也不往下执行了
-            if (!/^\d+$/.test(data.total_count.result)) {
-              this.$message.error(this.$t('maxTotalCombinationTip'))
-            }
+            this.$message.error(this.$t('maxTotalCombinationTip'))
+          } else {
+            isShowCheckSuccess && this.$message.success(this.$t('calcSuccess'))
           }
         }
         this.calcLoading = false
@@ -410,7 +495,8 @@ export default class AggregateModal extends Vue {
       this.resetCuboidInfo()
       this.calcLoading = false
       // this.hideLoading()
-      handleError(res)
+      // handleError(res)
+      this.$message.error(this.$t('calcError'))
     })
   }
   get isDisabledSaveBtn () {
@@ -490,6 +576,21 @@ export default class AggregateModal extends Vue {
     this.aggregateStyle = []
     // this.calcCuboids()
   }
+  editDimCan (aggregateIdx, isEdit) {
+    const aggregateArray = get(this.form, 'aggregateArray')
+    aggregateArray[aggregateIdx].isEditDim = isEdit
+    this.setModalForm({ aggregateArray })
+  }
+  handleSetDim (aggregateIdx, value) {
+    this.groupsDim[aggregateIdx] = value
+  }
+  saveDimCan (aggregateIdx) {
+    const aggregateArray = get(this.form, 'aggregateArray')
+    aggregateArray[aggregateIdx].dimCap = this.groupsDim[aggregateIdx]
+    aggregateArray[aggregateIdx].isEditDim = false
+    this.setModalForm({ aggregateArray })
+    this.setModalForm({isDimClearable: set(this.form, 'isDimClearable', false)['isDimClearable']})
+  }
   handleCopyAggregate (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
     const copyedAggregate = {
@@ -537,6 +638,7 @@ export default class AggregateModal extends Vue {
   }
   handleClose (isSubmit) {
     this.hideModal()
+    this.isEditGlobalDim = false
     setTimeout(() => {
       this.resetModalForm()
       this.callback && this.callback(isSubmit)
@@ -609,11 +711,11 @@ export default class AggregateModal extends Vue {
       this.$message({message: tipMsg, type: 'success'})
     }
   }
-  checkCuboids () {
+  checkCuboids (isShowCheckSuccess) {
     if (this.checkFormVaild()) {
       // 每次检测前，reset cuboid的信息
       this.resetCuboidInfo()
-      this.calcCuboids()
+      this.calcCuboids(isShowCheckSuccess)
     }
   }
   dealScrollToFirstError () {
@@ -666,26 +768,27 @@ export default class AggregateModal extends Vue {
             // 操作滚动
             this.dealScrollToFirstError()
             return false
-          } else {
+          } else if (!/^\d+$/.test(cuboidsResult.total_count.result)) {
             // 单个没超过，总量超了，显示总量的报错，也不往下执行了
-            if (!/^\d+$/.test(cuboidsResult.total_count.result)) {
-              this.$message.error(this.$t('maxTotalCombinationTip'))
-              this.calcLoading = false
-              this.isSubmit = false
-              // this.hideLoading()
-              return false
-            }
+            this.$message.error(this.$t('maxTotalCombinationTip'))
+            this.calcLoading = false
+            this.isSubmit = false
+            // this.hideLoading()
+            return false
           }
         }
         let diffRes = await this.getIndexDiff(data)
         let diffResult = await handleSuccessAsync(diffRes)
-        await this.confirmSubmit(diffResult)
         // 获取数字正常的情况下，才进行 submit
-        let res = await this.submit(data)
-        let result = await handleSuccessAsync(res)
-        this.handleBuildIndexTip(result)
-        this.isSubmit = false
-        this.handleClose(true)
+        if (!diffResult.decrease_layouts && !diffResult.increase_layouts) {
+          let res = await this.submit(data)
+          let result = await handleSuccessAsync(res)
+          this.handleBuildIndexTip(result)
+          this.isSubmit = false
+          this.handleClose(true)
+        } else {
+          this.confirmSubmitTips(diffResult)
+        }
       } else {
         this.isSubmit = false
         // this.hideLoading()
@@ -700,17 +803,71 @@ export default class AggregateModal extends Vue {
       // this.hideLoading()
     }
   }
-  async confirmSubmit (diffResult) {
+  editGlobalDim () {
+    this.globalDim = this.form.globalDimCap
+    this.isEditGlobalDim = true
+  }
+  saveGlobalDim () {
+    this.setModalForm({globalDimCap: set(this.form, 'globalDimCap', this.globalDim)['globalDimCap']})
+    this.setModalForm({isDimClearable: set(this.form, 'isDimClearable', !!this.globalDim)['isDimClearable']})
+    this.popoverVisible = false
+    this.isEditGlobalDim = false
+  }
+  handleCloseConfirm () {
+    this.isShowConfirm = false
+    this.isShowBuildAndConfirm = false
+    this.confirmMsg = ''
+    this.isSubmit = false
+  }
+  async clearDims () {
+    if (!this.form.isDimClearable) {
+      return
+    }
+    await kapConfirm(this.$t('clearConfirm'), {type: 'warning', confirmButtonText: this.$t('clearbtn')})
+    this.clearAllDim()
+  }
+  clearAllDim () {
+    this.setModalForm({globalDimCap: set(this.form, 'globalDimCap', null)['globalDimCap']})
+    this.setModalForm({isDimClearable: set(this.form, 'isDimClearable', false)['isDimClearable']})
+    const aggregateArray = get(this.form, 'aggregateArray')
+    aggregateArray.forEach((agg) => {
+      agg.dimCap = null
+    })
+    this.setModalForm({ aggregateArray })
+    this.$message.success(this.$t('clearSuccess'))
+  }
+  async confirmSubmit (isCatchUp) {
+    this.setModalForm({isCatchUp: set(this.form, 'isCatchUp', isCatchUp)['isCatchUp']})
+    const data = this.getSubmitData()
+    delete data.dimensions // 后台处理规整顺序
+    this.isShowConfirm = false
+    try {
+      let res = await this.submit(data)
+      let result = await handleSuccessAsync(res)
+      this.handleBuildIndexTip(result)
+      this.isSubmit = false
+      this.handleClose(true)
+    } catch (e) {
+      this.calcLoading = false
+      for (let prop in this.isWaitingCheckCuboids) {
+        this.isWaitingCheckCuboids[prop] = false
+      }
+      e && handleError(e)
+      this.isSubmit = false
+    }
+  }
+  confirmSubmitTips (diffResult) {
     if (diffResult.decrease_layouts === 0 && diffResult.increase_layouts > 0) {
-      return kapConfirm(this.$t('increaseTips', {increaseNum: diffResult.increase_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), confirmButtonClass: 'guideTipSetAggIndexConfitmBtn', type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
+      this.confirmMsg = this.$t('increaseTips', {increaseNum: diffResult.increase_layouts, model_name: this.model.name})
+      this.isShowBuildAndConfirm = true
+      this.isShowConfirm = true
     } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts === 0) {
-      return kapConfirm(this.$t('decreaseTips', {decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), confirmButtonClass: 'guideTipSetAggIndexConfitmBtn', type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
+      this.confirmMsg = this.$t('decreaseTips', {decreaseNum: diffResult.decrease_layouts, model_name: this.model.name})
+      this.isShowConfirm = true
     } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts > 0) {
-      return kapConfirm(this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), confirmButtonClass: 'guideTipSetAggIndexConfitmBtn', type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
-    } else {
-      return new Promise((resolve) => {
-        resolve()
-      })
+      this.confirmMsg = this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts, model_name: this.model.name})
+      this.isShowBuildAndConfirm = true
+      this.isShowConfirm = true
     }
   }
   checkFormVaild () {
@@ -731,11 +888,12 @@ export default class AggregateModal extends Vue {
 
     switch (editType) {
       case EDIT: {
-        const { aggregateArray, isCatchUp } = form
+        const { aggregateArray, isCatchUp, globalDimCap } = form
         return {
           projectName,
           modelId: model.uuid,
           isCatchUp,
+          globalDimCap,
           dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
           aggregationGroups: aggregateArray.map(aggregate => ({
             includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
@@ -747,7 +905,8 @@ export default class AggregateModal extends Vue {
               }).filter(hierarchys => hierarchys.length),
               joint_dims: aggregate.jointArray.map(joints => {
                 return joints.items.map(jointItem => dimensionIdMapping[jointItem])
-              }).filter(joints => joints.length)
+              }).filter(joints => joints.length),
+              dim_cap: aggregate.dimCap
             }
           })).reverse()
         }
@@ -840,15 +999,37 @@ export default class AggregateModal extends Vue {
 @import '../../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
+  .el-icon-ksd-right {
+    color: @base-color;
+  }
   .dialog-footer{
+    .dim-btn {
+      cursor: pointer;
+      display: none;
+      &.el-icon-ksd-clear:hover {
+        color: @base-color;
+      }
+      &.disable-clear,
+      &.disable-clear:hover {
+        color: @color-text-disabled;
+      }
+    }
+    .left {
+      width: 230px;
+      text-align: left;
+      .dim-input{
+        display: inline-block;
+        width: 58px;
+      }
+      &:hover {
+        .dim-btn {
+          display: inline-block;
+        }
+      }
+    }
     .el-button{
       .plainWhat{
         color:@base-color;
-      }
-      &:hover{
-        .plainWhat{
-          color:@fff;
-        }
       }
       &.is-disabled{
         .plainWhat{
@@ -937,6 +1118,37 @@ export default class AggregateModal extends Vue {
       box-sizing: border-box;
       border-radius: 2px 2px 0 0;
       border: 1px solid @line-border-color;
+      overflow: hidden;
+      .title {
+        float: left;
+        margin: 0;
+      }
+      .dimCap-block {
+        padding: 0 5px;
+        width: 222px;
+        i {
+          cursor: pointer;
+        }
+        .nolimit-dim {
+          color: @text-disabled-color;
+        }
+        .global-dim {
+          font-style: oblique;
+          color: @text-disabled-color;
+        }
+        .dim-btn {
+          display: none;
+        }
+        .dim-input{
+          display: inline-block;
+          width: 58px;
+        }
+        &:hover {
+          .dim-btn {
+            display: inline-block;
+          }
+        }
+      }
     }
     .body {
       border: 1px solid @line-border-color;
@@ -983,18 +1195,13 @@ export default class AggregateModal extends Vue {
           margin-left: 5px;
           color: @color-primary;
         }
-        &:hover {
-          .el-icon-ksd-what {
-            color: @fff;
-          }
-        }
       }
     }
     .actions {
-      position: absolute;
-      top: -3px;
-      right: 10px;
-      font-size: 16px;
+      font-size: 14px;
+      float: right;
+      padding: 0 2px 0 12px;
+      border-left: 1px solid @line-border-color;
       .el-button+.el-button {
         margin-left: 5px;
       }
@@ -1088,6 +1295,15 @@ export default class AggregateModal extends Vue {
     right: 0;
     bottom: 0;
     left: 0;
+  }
+}
+.confirm-dialog {
+  .el-message-box__content {
+    padding: 0;
+  }
+  .el-dialog__footer {
+    padding: 5px 20px 15px 20px;
+    border-top: none;
   }
 }
 </style>

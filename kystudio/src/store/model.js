@@ -207,7 +207,7 @@ export default {
       return api.model.refreshSegments(params.modelId, params.projectName, params.segmentIds)
     },
     [types.GET_AGG_CUBOIDS] ({ commit }, params) {
-      return api.model.getCalcCuboids(params.projectName, params.modelId, params.dimensions, params.aggregationGroups)
+      return api.model.getCalcCuboids(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.globalDimCap)
     },
     [types.DELETE_SEGMENTS] ({ commit }, params) {
       return api.model.deleteSegments(params.modelId, params.projectName, params.segmentIds)
@@ -225,7 +225,7 @@ export default {
       return api.model.fetchAggregateGroups(params.projectName, params.modelId)
     },
     [types.UPDATE_AGGREGATE_GROUPS] ({ commit }, params) {
-      return api.model.updateAggregateGroups(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp)
+      return api.model.updateAggregateGroups(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp, params.globalDimCap)
     },
     [types.FETCH_RELATED_MODEL_STATUS] ({ commit }, params) {
       return api.model.fetchRelatedModelStatus(params.projectName, params.uuids)
@@ -297,7 +297,7 @@ export default {
       return api.model.checkFilterConditon(paras)
     },
     [types.GET_INDEX_DIFF] ({ commit }, params) {
-      return api.model.getIndexDiff(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp)
+      return api.model.getIndexDiff(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp, params.globalDimCap)
     }
   },
   getters: {

@@ -55,6 +55,11 @@ export function addIndexDrama () {
       target: 'setbuildModelRange'
     },
     {
+      eventID: 62,
+      done: false,
+      target: 'scrollModelTable'
+    },
+    {
       eventID: 1,
       done: false,
       target: 'addAggBtn' // 点击保存模型
@@ -107,18 +112,18 @@ export function addIndexDrama () {
       target: 'joint', // 输入Joint
       val: ['P_LINEORDER.LO_ORDERDATE', 'P_LINEORDER.LO_SUPPKEY']
     },
-    {
-      eventID: 1,
-      done: false,
-      target: 'aggCatchUp', // 点击选择输入范围
-      val: true
-    },
-    {
-      eventID: 31,
-      done: false,
-      target: 'aggCatchUp', // 点击选择输入范围
-      val: true
-    },
+    // {
+    //   eventID: 1,
+    //   done: false,
+    //   target: 'aggCatchUp', // 点击选择输入范围
+    //   val: true
+    // },
+    // {
+    //   eventID: 31,
+    //   done: false,
+    //   target: 'aggCatchUp', // 点击选择输入范围
+    //   val: true
+    // },
     {
       eventID: 1,
       done: false,
@@ -132,12 +137,12 @@ export function addIndexDrama () {
     {
       eventID: 1,
       done: false,
-      search: '.guideTipSetAggIndexConfitmBtn' // 移动到保存Agg的按钮
+      target: 'setAggIndexConfitmBtn' // 移动到保存Agg的按钮
     },
     {
       eventID: 2,
       done: false,
-      search: '.guideTipSetAggIndexConfitmBtn' // 点击保存Agg的按钮
+      target: 'setAggIndexConfitmBtn' // 点击保存Agg的按钮
     },
     {
       eventID: 5,

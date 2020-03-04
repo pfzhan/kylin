@@ -26,7 +26,9 @@ export const initialAggregateData = JSON.stringify({
     items: []
   }],
   activeTab: 'dimension',
-  open: true
+  open: true,
+  dimCap: null,
+  isEditDim: false
 })
 const initialState = JSON.stringify({
   isShow: false,
@@ -37,7 +39,9 @@ const initialState = JSON.stringify({
   projectName: null,
   formDataLoaded: false,
   form: {
-    isCatchUp: true,
+    isCatchUp: false,
+    globalDimCap: null,
+    isDimClearable: false,
     aggregateArray: [
       JSON.parse(initialAggregateData)
     ]
@@ -93,6 +97,8 @@ export default {
         const measuresList = getMeasures(state.model)
         const nameMapping = getMapping(dimensions)
         const measuresMapping = getMapping(measuresList)
+        state.form.globalDimCap = payload.global_dim_cap
+        state.form.isDimClearable = !!payload.global_dim_cap
         state.form.aggregateArray = payload.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
           const id = payload.aggregation_groups.length - aggregateIdx
           const includes = aggregationGroup.includes.map(include => nameMapping[include])
@@ -109,6 +115,10 @@ export default {
           })
           const activeTab = 'dimension'
           const open = true
+          const dimCap = selectRules.dim_cap
+          if (dimCap) {
+            state.form.isDimClearable = true
+          }
           if (!hierarchyArray.length) {
             hierarchyArray.push({ id: 0, items: [] })
           }
@@ -116,7 +126,7 @@ export default {
             jointArray.push({ id: 0, items: [] })
           }
           measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
-          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open }
+          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap }
         }).reverse()
       }
     }

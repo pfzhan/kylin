@@ -32,6 +32,7 @@ class Guide {
       {id: 51, info: '检查dom存在', action: 'check'},
       {id: 6, info: '元素进入可视区域', action: 'inView'},
       {id: 61, info: '元素滑动到右边进入可视区域', action: 'inView2'},
+      {id: 62, info: '元素滑动回到原处', action: 'inView3'},
       {id: 8, info: '跳转路由', action: 'go'}
     ]
     this.drama = {
@@ -256,6 +257,17 @@ class Guide {
     }, 100)
     this.STs.push(st)
   }
+  _inView3 (dom, stepInfo, resolve) {
+    if (dom) {
+      dom = dom.$el ? dom.$el : dom
+    }
+    const scrollBodyDom = dom.querySelector('.el-table__body-wrapper')
+    let st = setTimeout(() => {
+      scrollBodyDom.scrollLeft = 0
+      resolve()
+    }, 100)
+    this.STs.push(st)
+  }
   renderFuc (_event, stepInfo) {
     return new Promise((resolve, reject) => {
       this.waitCount = 0
@@ -298,6 +310,10 @@ class Guide {
           })
         } else if (_event.action === 'inView2') {
           this._inView2(dom, stepInfo, () => {
+            resolve(stepInfo)
+          })
+        } else if (_event.action === 'inView3') {
+          this._inView3(dom, stepInfo, () => {
             resolve(stepInfo)
           })
         } else {
