@@ -82,6 +82,7 @@
 
     <el-dialog :title="authorTitle" width="960px" class="author_dialog" :close-on-press-escape="false" :close-on-click-modal="false" :visible.sync="authorizationVisible" @close="initAccessData">
       <div class="author-tips">
+        <div class="item-point">{{$t('authorTips')}}</div>
         <div class="item-point">{{$t('authorTips1')}}</div>
         <div class="item-point" v-html="$t('authorTips2')"></div>
       </div>
@@ -210,6 +211,7 @@ import tableAccess from './table_access'
       deleteAccessTip: 'Please confirm whethter to delete the authorization of {userName} in this project?',
       access: 'Role',
       deleteAccessTitle: 'Delete Access',
+      authorTips: 'System management has all permissions for all projects, so the system administrator is not included in the added user list.',
       authorTips1: 'By default, a user/user group will be automatically granted all access permissions on all tables in this project after added into this project.',
       authorTips2: `What role does Kyligence Enterprise provide?<br>
       The relationship of each role is as below: Admin > Management > Operation > Query. For example, Admin includes all the permissions of the other three roles and Management includes all the permissions of Operation and Query.<br>
@@ -243,6 +245,7 @@ import tableAccess from './table_access'
       deleteAccessTip: '请确认是否删除 {userName} 在当前项目的所有访问权限？',
       access: '权限',
       deleteAccessTitle: '删除权限',
+      authorTips: '系统管理拥有所有项目的所有权限，故在添加的用户列表中不包含系统管理员。',
       authorTips1: '默认情况下，用户/用户组被添加至项目后，将自动授予该项目下的所有表及行列的访问权限。',
       authorTips2: `Kyligence Enterprise 提供什么样的角色权限？<br>
       权限包含关系如下： Admin > Management > Operation > Query，即 Admin 包含了其他三种权限，Management 包含了 Operation 和 Query 权限， Operation 包含了 Query 权限。<br>
