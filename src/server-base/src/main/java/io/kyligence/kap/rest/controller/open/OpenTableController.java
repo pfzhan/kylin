@@ -31,9 +31,11 @@ import java.util.List;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -67,6 +69,9 @@ public class OpenTableController extends NBasicController {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
     private static final Integer MAX_SAMPLING_ROWS = 20_000_000;
     private static final Integer MIN_SAMPLING_ROWS = 10_000;
@@ -103,13 +108,17 @@ public class OpenTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
             throws Exception {
+        checkProjectName(tableLoadRequest.getProject());
+        if (!aclEvaluate.hasProjectWritePermission(getProject(tableLoadRequest.getProject()))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
-        if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
-            if (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS) {
-                tableLoadRequest.setSamplingRows(MAX_SAMPLING_ROWS);
-            } else if (tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS) {
-                tableLoadRequest.setSamplingRows(MIN_SAMPLING_ROWS);
-            }
+        if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
+                && (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS
+                        || tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS)) {
+            throw new BadRequestException(
+                    "Invalid parameters, please check whether the number of sampling rows is between 10000 and 20000000.");
         }
 
         // default set data_source_type = 9

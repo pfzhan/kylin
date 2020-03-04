@@ -25,11 +25,16 @@ package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +64,15 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
     @Mock
     private NTableController nTableController;
 
+    @Mock
+    private AclEvaluate aclEvaluate;
+
+    @Mock
+    private AclUtil aclUtil;
+
+    @Mock
+    private ProjectService projectService;
+
     @InjectMocks
     private OpenTableController openTableController = Mockito.spy(new OpenTableController());
 
@@ -72,6 +86,12 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName("default");
+        Mockito.doReturn(Lists.newArrayList(projectInstance)).when(projectService).getReadableProjects(projectInstance.getName(), true);
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectWritePermission(Mockito.any());
+
         createTestMetadata();
     }
 
@@ -142,6 +162,24 @@ public class OpenTableControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).loadTables(tableLoadRequest);
+
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(10_000);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(openTableController).loadTables(tableLoadRequest);
+
+        tableLoadRequest.setNeedSampling(true);
+        tableLoadRequest.setSamplingRows(1_000);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables") //
+                .contentType(MediaType.APPLICATION_JSON) //
+                .content(JsonUtil.writeValueAsString(tableLoadRequest)) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON))) //
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(openTableController).loadTables(tableLoadRequest);
     }
 

@@ -37,6 +37,13 @@ public class BuildIndexResponse {
     @JsonProperty("type")
     private BuildIndexType type = BuildIndexType.NORM_BUILD;
 
+    @JsonProperty("job_id")
+    private String jobId;
+
+    public BuildIndexResponse(BuildIndexType type) {
+        this.type = type;
+    }
+
     public enum BuildIndexType {
         NORM_BUILD, NO_LAYOUT, NO_SEGMENT
     }

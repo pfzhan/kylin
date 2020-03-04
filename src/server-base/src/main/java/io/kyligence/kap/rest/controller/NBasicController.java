@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -115,6 +116,20 @@ public class NBasicController {
     @Autowired
     @Qualifier("normalRestTemplate")
     private RestTemplate restTemplate;
+
+    @Autowired
+    private ProjectService projectService;
+
+    public ProjectInstance getProject(String project) {
+        if (null != project) {
+            List<ProjectInstance> projectInstanceList = projectService.getReadableProjects(project, true);
+            if (CollectionUtils.isNotEmpty(projectInstanceList)) {
+                return projectInstanceList.get(0);
+            }
+        }
+
+        throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+    }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)

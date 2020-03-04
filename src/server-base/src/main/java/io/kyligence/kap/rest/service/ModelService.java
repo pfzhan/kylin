@@ -1117,6 +1117,23 @@ public class ModelService extends BasicService {
         return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest), project);
     }
 
+    public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
+        Map<String, List<NDataModel>> result = Maps.newHashMap();
+        if (CollectionUtils.isEmpty(sqls)) {
+            return result;
+        }
+
+        for (String sql : sqls) {
+            if (result.containsKey(sql)) {
+                result.get(sql).addAll(couldAnsweredByExistedModels(project, Lists.newArrayList(sql)));
+            } else {
+                result.put(sql, couldAnsweredByExistedModels(project, Lists.newArrayList(sql)));
+            }
+        }
+
+        return result;
+    }
+
     public List<NDataModel> couldAnsweredByExistedModels(String project, List<String> sqls) {
         if (CollectionUtils.isEmpty(sqls)) {
             return Lists.newArrayList();
@@ -2220,9 +2237,9 @@ public class ModelService extends BasicService {
         }
 
         val eventManager = getEventManager(project);
-        eventManager.postAddCuboidEvents(modelId, getUsername());
+        String jobId = eventManager.postAddCuboidEvents(modelId, getUsername());
 
-        return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD);
+        return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NORM_BUILD, jobId);
     }
 
     public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {

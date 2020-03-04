@@ -26,15 +26,25 @@ package io.kyligence.kap.rest.controller.open;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -60,16 +70,19 @@ import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
+import io.kyligence.kap.rest.response.OpenModelValidationResponse;
+import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
+import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
-import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
-import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.service.FavoriteRuleService;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -80,6 +93,12 @@ public class OpenModelController extends NBasicController {
 
     @Autowired
     private ModelService modelService;
+
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
+    @Autowired
+    private FavoriteRuleService favoriteRuleService;
 
     @GetMapping(value = "")
     @ResponseBody
@@ -103,7 +122,7 @@ public class OpenModelController extends NBasicController {
         List<NDataModelResponse> responses = modelService.getModels(modelAlias, project, true, null, null,
                 "last_modify", true);
         if (CollectionUtils.isEmpty(responses)) {
-            throw new BadRequestException(String.format("Can not find the Segments with model_name %s!", modelAlias));
+            throw new BadRequestException(String.format("Can not find the model_name '%s'!", modelAlias));
         }
         return responses.get(0);
     }
@@ -194,11 +213,58 @@ public class OpenModelController extends NBasicController {
                 models.stream().map(NDataModel::getAlias).collect(Collectors.toList()), "");
     }
 
+    @VisibleForTesting
+    public Pair<Set<String>, Set<String>> batchSqlValidate(String project, List<String> sqls) {
+        Set<String> normalSqls = Sets.newHashSet();
+        Set<String> errorSqls = Sets.newHashSet();
+
+        val validatedSqls = favoriteRuleService.batchSqlValidate(sqls, project);
+        for (val entry : validatedSqls.entrySet()) {
+            if (entry.getValue().isCapable()) {
+                normalSqls.add(entry.getKey());
+            } else {
+                errorSqls.add(entry.getKey());
+            }
+        }
+        return new Pair<>(normalSqls, errorSqls);
+    }
+
+    @PostMapping(value = "/model_validation")
+    @ResponseBody
+    public EnvelopeResponse<OpenModelValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
+        checkProjectName(request.getProject());
+        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
+        Map<String, List<String>> validSqls = Maps.newHashMap();
+        List<String> errorSqls = Lists.newArrayList();
+        if (CollectionUtils.isNotEmpty(request.getSqls())) {
+            Pair<Set<String>, Set<String>> validatedSqls = batchSqlValidate(request.getProject(), request.getSqls());
+            errorSqls.addAll(validatedSqls.getSecond());
+
+            Map<String, List<NDataModel>> answeredModels = modelService.answeredByExistedModels(request.getProject(),
+                    validatedSqls.getFirst());
+
+            for (String sql : answeredModels.keySet()) {
+                validSqls.put(sql,
+                        answeredModels.get(sql).stream().map(NDataModel::getAlias).collect(Collectors.toList()));
+            }
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, new OpenModelValidationResponse(validSqls, errorSqls),
+                "");
+    }
+
     @PostMapping(value = "/{model_name:.+}/indexes")
     @ResponseBody
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildIndexRequest request) {
         checkProjectName(request.getProject());
+        if (!aclEvaluate.hasProjectOperationPermission(getProject(request.getProject()))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.buildIndicesManually(modelId, request);
     }
@@ -253,11 +319,73 @@ public class OpenModelController extends NBasicController {
                 OpenNRecommendationListResponse.convert(nRecomendationListResponse), "");
     }
 
+    private OpenModelSuggestionResponse suggestOROptimizeModels(OpenSqlAccerelateRequest request) {
+        NRecomendationListResponse nRecomendationListResponse = modelService.suggestModel(request.getProject(),
+                request.getSqls(), !request.getForce2CreateNewModel());
+
+        OpenModelSuggestionResponse result;
+        if (request.getForce2CreateNewModel()) {
+            List<ModelRequest> modelRequests = nRecomendationListResponse.getNewModels().stream().map(model -> {
+                ModelRequest modelRequest = new ModelRequest(model);
+                modelRequest.setIndexPlan(model.getIndices());
+                return modelRequest;
+            }).collect(Collectors.toList());
+            if (CollectionUtils.isNotEmpty(modelRequests)) {
+                modelService.batchCreateModel(request.getProject(), modelRequests);
+            }
+
+            result = OpenModelSuggestionResponse.convert(nRecomendationListResponse.getNewModels());
+        } else {
+            result = OpenModelSuggestionResponse.convert(nRecomendationListResponse.getOriginModels());
+        }
+
+        Set<String> availableSqls = result.getModels().stream()
+                .map(OpenModelSuggestionResponse.RecommendationsResponse::getSqls).flatMap(List::stream)
+                .collect(Collectors.toSet());
+
+        result.setErrorSqls(Lists.newArrayList());
+        for (String sql : request.getSqls()) {
+            if (!availableSqls.contains(sql)) {
+                result.getErrorSqls().add(sql);
+            }
+        }
+
+        return result;
+    }
+
+    @PostMapping(value = "/model_suggestion")
+    @ResponseBody
+    public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccerelateRequest request) {
+        checkProjectName(request.getProject());
+        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
+        request.setForce2CreateNewModel(true);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOROptimizeModels(request), "");
+    }
+
+    @PostMapping(value = "/model_optimization")
+    @ResponseBody
+    public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccerelateRequest request) {
+        checkProjectName(request.getProject());
+        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
+        request.setForce2CreateNewModel(false);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOROptimizeModels(request), "");
+    }
+
     @GetMapping(value = "/recommendations")
     @ResponseBody
     public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
             @RequestParam("project") String project) {
         checkProjectName(project);
+        if (!aclEvaluate.hasProjectWritePermission(getProject(project))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
         return modelController.getRecommendationsByProject(project);
     }
 
@@ -266,9 +394,17 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> batchApplyRecommendations(
             @RequestBody OpenBatchApplyRecommendationsRequest request) {
         checkProjectName(request.getProject());
-        if (request.isFilterByModelNames()) {
+        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
+        boolean filterByModels = request.isFilterByModelNames() && request.isFilterByModes();
+        if (filterByModels) {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
                 throw new BadRequestException("Model names should not be empty when filter by model names!");
+            }
+            for (String modelName : request.getModelNames()) {
+                getModel(modelName, request.getProject());
             }
         } else {
             request.setModelNames(null);

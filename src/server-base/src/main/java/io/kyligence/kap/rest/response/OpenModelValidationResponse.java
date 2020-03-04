@@ -21,28 +21,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class OpenModelValidationResponse implements Serializable {
+    @JsonProperty("valid_sqls")
+    private Map<String, List<String>> validSqls;
+    @JsonProperty("error_sqls")
+    private List<String> errorSqls;
 
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class OpenBatchApplyRecommendationsRequest implements Serializable, ProjectInsensitiveRequest {
-
-    private String project;
-    @JsonProperty("filter_by_model_names")
-    private boolean filterByModelNames = true;
-
-    @JsonProperty("filter_by_models")
-    private boolean filterByModes = true;
-
-    @JsonProperty("model_names")
-    private List<String> modelNames;
 }
