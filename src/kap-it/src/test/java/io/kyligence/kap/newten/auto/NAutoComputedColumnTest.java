@@ -84,13 +84,15 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(2, targetModel.getComputedColumnDescs().size());
         Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(0).getInnerExpression());
         Assert.assertEquals("CC_AUTO_1", targetModel.getComputedColumnDescs().get(0).getColumnName());
-        Assert.assertEquals("(TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE) * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(1).getInnerExpression());
+        Assert.assertEquals("TEST_KYLIN_FACT.ITEM_COUNT * TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.PRICE", targetModel.getComputedColumnDescs().get(1).getInnerExpression());
         Assert.assertEquals("CC_AUTO_2", targetModel.getComputedColumnDescs().get(1).getColumnName());
 
         IndexEntity tableIndex = targetIndex.getAllIndexes().stream().filter(IndexEntity::isTableIndex).findFirst().orElse(null);
         Assert.assertEquals(1, tableIndex.getLayouts().size());
-        Assert.assertEquals(2, tableIndex.getLayouts().get(0).getColumns().size());
-        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()).contains("CC_AUTO_2"));
+        Assert.assertEquals(3, tableIndex.getLayouts().get(0).getColumns().size());
+        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()).contains("LSTG_FORMAT_NAME"));
+        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()).contains("PRICE"));
+        Assert.assertTrue(tableIndex.getLayouts().get(0).getColumns().stream().map(TblColRef::getName).collect(Collectors.toSet()).contains("ITEM_COUNT"));
     }
 
     @Test
@@ -404,8 +406,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
             Assert.assertEquals(2, model.getComputedColumnDescs().size());
             ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(1);
             Assert.assertEquals("CC_AUTO_2", computedColumnDesc.getColumnName());
-            Assert.assertEquals("TEST_KYLIN_FACT.CC_AUTO_1 + 10", computedColumnDesc.getExpression());
-            Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) + 10",
+            Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 10", computedColumnDesc.getExpression());
+            Assert.assertEquals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 10",
                     computedColumnDesc.getInnerExpression());
 
             String convertedQuery = convertCC(query);

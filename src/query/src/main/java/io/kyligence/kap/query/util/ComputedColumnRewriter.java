@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.val;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
@@ -90,8 +91,10 @@ public class ComputedColumnRewriter {
                             new AliasDeduceImpl(matchInfo))) {
                         var ccCols = ComputedColumnUtil.createComputedColumns(Lists.newArrayList(cc),
                                 model.getRootFactTable().getTableDesc());
-                        parameters.add(ParameterDesc.newInstance(new TblColRef(model.getRootFactTable(), ccCols[0])));
+                        val tblCol = new TblColRef(model.getRootFactTable(), ccCols[0]);
+                        parameters.add(ParameterDesc.newInstance(tblCol));
                         logger.info("Replacing CC expr [{},{}] in Agg {}", cc.getColumnName(), cc.getExpression(), agg.getFullExpression());
+                        context.allColumns.add(tblCol);
                     }
                 }
             }

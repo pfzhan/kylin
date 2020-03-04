@@ -1,4 +1,4 @@
-
+--https://olapio.atlassian.net/browse/KE-12641
 
 select count(distinct TO_TIMESTAMP("UPD_DATE")) "NoFmt",
        count(distinct To_Timestamp(UPD_DATE,'yyyy-MM-dd HH:mm:ss')) "yyyy-MM-dd HH:mm:ss",

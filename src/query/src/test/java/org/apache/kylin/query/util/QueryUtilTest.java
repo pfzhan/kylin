@@ -45,17 +45,30 @@ package org.apache.kylin.query.util;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 
-public class QueryUtilTest {
+public class QueryUtilTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() throws Exception {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() throws Exception {
+        this.cleanupTestMetadata();
+    }
 
     @Test
     public void testMassageSql() {
@@ -70,6 +83,31 @@ public class QueryUtilTest {
             String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
             String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "", true);
             Assert.assertEquals("SELECT SUM({fn convert(0, INT)}) from TABLE", newSql2);
+        }
+    }
+
+    @Test
+    public void testMassageWithoutConvertToComputedColumn() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
+            // enable ConvertToComputedColumn
+            config.setProperty("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
+            String newSql1 = QueryUtil.massageSql(config, "SELECT price * item_count FROM test_kylin_fact", "default",
+                    0, 0, "DEFAULT", true);
+            Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT FROM test_kylin_fact", newSql1);
+            newSql1 = QueryUtil.massageSql(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
+                    "default", 0, 0, "DEFAULT", true);
+            Assert.assertEquals("SELECT TEST_KYLIN_FACT.DEAL_AMOUNT,DEAL_AMOUNT FROM test_kylin_fact", newSql1);
+
+            // disable ConvertToComputedColumn
+            config.setProperty("kylin.query.transformers", "");
+            String newSql2 = QueryUtil.massageSql(config, "SELECT price * item_count FROM test_kylin_fact", "default",
+                    0, 0, "DEFAULT", true);
+            Assert.assertEquals("SELECT price * item_count FROM test_kylin_fact", newSql2);
+            newSql2 = QueryUtil.massageSql(config, "SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact",
+                    "default", 0, 0, "DEFAULT", false);
+            Assert.assertEquals("SELECT price * item_count,DEAL_AMOUNT FROM test_kylin_fact", newSql2);
         }
     }
 

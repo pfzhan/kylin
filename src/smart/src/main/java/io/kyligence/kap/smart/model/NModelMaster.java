@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.model;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -39,13 +38,11 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
-import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
 import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartContext;
@@ -107,9 +104,7 @@ public class NModelMaster {
     public NDataModel proposeComputedColumn(NDataModel dataModel) {
         log.info("Start proposing computed columns.");
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        Set<String> transformers = Sets.newHashSet(kylinConfig.getQueryTransformers());
-        boolean isComputedColumnEnabled = transformers.contains(ConvertToComputedColumn.class.getCanonicalName())
-                && kapConfig.isImplicitComputedColumnConvertEnabled();
+        boolean isComputedColumnEnabled = kapConfig.isImplicitComputedColumnConvertEnabled();
         if (!isComputedColumnEnabled) {
             log.warn("The feature of proposing computed column in Kyligence Enterprise has been turned off.");
             return dataModel;

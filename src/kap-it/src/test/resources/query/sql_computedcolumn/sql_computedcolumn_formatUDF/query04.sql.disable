@@ -1,4 +1,4 @@
-
+--https://olapio.atlassian.net/browse/KE-12641
 
 SELECT count(distinct to_date(UPD_DATE,'yyyy-MM-dd')),
 	   count(distinct to_date(UPD_DATE,'yyyy-MM')),

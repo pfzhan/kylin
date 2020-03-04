@@ -1,4 +1,4 @@
---https://github.com/Kyligence/KAP/issues/14305
+--https://olapio.atlassian.net/browse/KE-12641
 
 select count(distinct split_part(LSTG_FORMAT_NAME,'I',1))
 from test_kylin_fact
