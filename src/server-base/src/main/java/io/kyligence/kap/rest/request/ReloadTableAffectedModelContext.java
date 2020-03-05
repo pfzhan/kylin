@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.rest.request;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import lombok.Data;
-
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import lombok.Data;
 
 @Data
 public class ReloadTableAffectedModelContext {

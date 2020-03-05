@@ -59,6 +59,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -212,6 +213,37 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(4,
                 dfManager.listAllDataflows(true).stream().filter(NDataflow::checkBrokenWithRelatedInfo).count());
+    }
+
+    @Test
+    public void testReloadLookup_RemoveFact() throws Exception {
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
+        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
+        projectInstanceUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectInstanceUpdate);
+        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
+            if (!id.equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa")) {
+                modelService.dropModel(id, PROJECT);
+            }
+        });
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        Assert.assertEquals(1, modelManager.listAllModels().size());
+
+        removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
+        val mockTableService = Mockito.mock(TableService.class);
+        val mockModerService = Mockito.spy(ModelService.class);
+        ReflectionTestUtils.setField(mockTableService, "modelService", mockModerService);
+        AtomicBoolean modifiedModel = new AtomicBoolean(false);
+
+        Mockito.doAnswer(invocation -> {
+            modifiedModel.set(true);
+            return null;
+        }).when(mockModerService).updateDataModelSemantic(Mockito.anyString(), Mockito.any());
+
+        mockTableService.innerReloadTable(PROJECT, "DEFAULT.TEST_CATEGORY_GROUPINGS");
+
+        Assert.assertFalse(modifiedModel.get());
     }
 
     private void prepareReload() {
@@ -656,9 +688,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 return null;
             }).when(manager).cleanAll(Mockito.anyString());
 
-            NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc("DEFAULT.TEST_COUNTRY");
-            prepareTableExt("DEFAULT.TEST_COUNTRY");
-            addColumn("DEFAULT.TEST_COUNTRY", true, new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
+            removeColumn("DEFAULT.TEST_COUNTRY", "NAME");
             tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_COUNTRY");
 
             Assert.assertTrue(clean.get());

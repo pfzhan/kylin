@@ -1159,6 +1159,11 @@ public class TableService extends BasicService {
             return;
         }
 
+        if (context.getAddColumns().isEmpty() && context.getRemoveColumns().isEmpty()
+                && context.getChangeTypeColumns().isEmpty()) {
+            return;
+        }
+
         val eventDao = getEventDao(projectName);
         val events = eventDao.getEventsByModel(model.getId());
 
@@ -1458,7 +1463,6 @@ public class TableService extends BasicService {
                 .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
                         || !Sets.intersection(index.getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
                 .flatMap(index -> index.getLayouts().stream()).map(LayoutEntity::getId).collect(Collectors.toSet());
-
         affectedModel.setLayouts(affectedLayouts);
 
         return affectedModel;
