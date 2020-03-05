@@ -93,7 +93,7 @@ public class NProjectController extends NBasicController {
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ProjectInstance>>> getProjects(
-            @RequestParam(value = "project", required = false) String projectName,
+            @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer size,
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
@@ -101,7 +101,7 @@ public class NProjectController extends NBasicController {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
             throw new BadRequestException("Operation failed, unknown permission:" + permission);
         }
-        List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, permission);
+        List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch, permission);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
     }
 

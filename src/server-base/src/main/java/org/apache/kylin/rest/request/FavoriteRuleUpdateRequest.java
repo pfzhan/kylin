@@ -24,18 +24,20 @@
 
 package org.apache.kylin.rest.request;
 
+import java.io.Serializable;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.io.Serializable;
-import java.util.List;
-
 @Getter
 @Setter
 @NoArgsConstructor
-public class FavoriteRuleUpdateRequest implements Serializable {
+public class FavoriteRuleUpdateRequest implements Serializable, ProjectInsensitiveRequest {
 
     private String project;
 

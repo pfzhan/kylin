@@ -24,14 +24,16 @@
 
 package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-import lombok.Data;
-
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.Data;
+
 @Data
-public class AggShardByColumnsRequest {
+public class AggShardByColumnsRequest implements ProjectInsensitiveRequest {
 
     private String project;
 

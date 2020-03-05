@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -31,7 +32,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class DateRangeRequest {
+public class DateRangeRequest implements ProjectInsensitiveRequest {
     private String start;
 
     private String end;

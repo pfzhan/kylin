@@ -106,6 +106,11 @@ public class NKylinUserManager {
         return crud.get(name);
     }
 
+    public ManagedUser getIgnoreCase(String name) {
+        return crud.listAll().stream().filter(managedUser -> managedUser.getUsername().equalsIgnoreCase(name)).findAny()
+                .orElse(null);
+    }
+
     public List<ManagedUser> list() {
         List<ManagedUser> users = new ArrayList<>(crud.listAll());
         users.sort((o1, o2) -> o1.getUsername().compareToIgnoreCase(o2.getUsername()));

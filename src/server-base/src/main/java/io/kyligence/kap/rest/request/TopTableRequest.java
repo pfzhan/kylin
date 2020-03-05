@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.rest.request;
 
-public class TopTableRequest {
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+
+public class TopTableRequest implements ProjectInsensitiveRequest {
     private String table;
     private String project;
     private boolean top;

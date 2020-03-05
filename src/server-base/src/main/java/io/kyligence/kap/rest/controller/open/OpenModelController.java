@@ -99,11 +99,11 @@ public class OpenModelController extends NBasicController {
     }
 
     @VisibleForTesting
-    public NDataModelResponse getModel(String modelName, String project) {
-        List<NDataModelResponse> responses = modelService.getModels(modelName, project, true, null, null, "last_modify",
-                true);
+    public NDataModelResponse getModel(String modelAlias, String project) {
+        List<NDataModelResponse> responses = modelService.getModels(modelAlias, project, true, null, null,
+                "last_modify", true);
         if (CollectionUtils.isEmpty(responses)) {
-            throw new BadRequestException(String.format("Can not find the Segments with model_name %s!", modelName));
+            throw new BadRequestException(String.format("Can not find the Segments with model_name %s!", modelAlias));
         }
         return responses.get(0);
     }
@@ -111,7 +111,7 @@ public class OpenModelController extends NBasicController {
     @GetMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<NDataSegmentResponse>>> getSegments(
-            @PathVariable(value = "model_name") String modelName, //
+            @PathVariable(value = "model_name") String modelAlias, //
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "status", required = false) String status, //
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
@@ -121,31 +121,31 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
-        String modelId = getModel(modelName, project).getId();
+        String modelId = getModel(modelAlias, project).getId();
         return modelController.getSegments(modelId, project, status, offset, limit, start, end, sortBy, reverse);
     }
 
     @PostMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelName,
+    public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        NDataModel nDataModel = getModel(modelName, buildSegmentsRequest.getProject());
+        NDataModel nDataModel = getModel(modelAlias, buildSegmentsRequest.getProject());
         return modelController.buildSegmentsManually(nDataModel.getId(), buildSegmentsRequest);
     }
 
     @PutMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model_name") String modelName,
+    public EnvelopeResponse<String> refreshOrMergeSegmentsByIds(@PathVariable("model_name") String modelAlias,
             @RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
-        String modelId = getModel(modelName, request.getProject()).getId();
+        String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.refreshOrMergeSegmentsByIds(modelId, request);
     }
 
     @DeleteMapping(value = "/{model_name:.+}/segments")
     @ResponseBody
-    public EnvelopeResponse<String> deleteSegments(@PathVariable("model_name") String modelName,
+    public EnvelopeResponse<String> deleteSegments(@PathVariable("model_name") String modelAlias,
             @RequestParam("project") String project, // 
             @RequestParam("purge") Boolean purge, //
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force, //
@@ -154,7 +154,7 @@ public class OpenModelController extends NBasicController {
         if (purge) {
             ids = new String[0];
         }
-        String modelId = getModel(modelName, project).getId();
+        String modelId = getModel(modelAlias, project).getId();
         return modelController.deleteSegments(modelId, project, purge, force, ids);
     }
 

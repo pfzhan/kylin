@@ -24,9 +24,10 @@
 
 package io.kyligence.kap.rest.request;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class UnlinkModelRequest {
+public class UnlinkModelRequest implements ProjectInsensitiveRequest {
     private String project;
 }

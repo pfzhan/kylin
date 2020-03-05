@@ -23,20 +23,22 @@
  */
 package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.io.Serializable;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.Getter;
+import lombok.Setter;
+
 @Getter
 @Setter
-public class OpenBatchApplyRecommendationsRequest implements Serializable {
+public class OpenBatchApplyRecommendationsRequest implements Serializable, ProjectInsensitiveRequest {
 
     private String project;
     @JsonProperty("filter_by_model_names")
-    private boolean filterByModelNames=true;
+    private boolean filterByModelNames = true;
     @JsonProperty("model_names")
     private List<String> modelNames;
 }

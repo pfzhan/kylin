@@ -30,38 +30,61 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
-
-package org.apache.kylin.rest.request;
-
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
-
-/**
  */
-public class MetaRequest implements ProjectInsensitiveRequest {
+package io.kyligence.kap.metadata.insensitive;
 
-    private String project;
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.List;
 
-    public MetaRequest() {
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
+
+public interface ProjectInsensitiveRequest extends InsensitiveRequest {
+
+    default List<String> inSensitiveFields() {
+        return Collections.singletonList("project");
     }
 
-    public MetaRequest(String project) {
-        this.project = project;
+    @Slf4j
+    final class LogHolder {
     }
 
-    public String getProject() {
-        return project;
-    }
+    @Override
+    default void updateField() {
+        for (String fieldName : inSensitiveFields()) {
+            Field field = this.getDeclaredField(this.getClass(), fieldName);
+            if (field == null) {
+                continue;
+            }
+            field.setAccessible(true);
+            try {
+                String projectName = (String) field.get(this);
+                if (StringUtils.isEmpty(projectName)) {
+                    return;
+                }
 
-    public void setProject(String project) {
-        this.project = project;
+                NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(projectName);
+                if (projectInstance == null) {
+                    return;
+                }
+                field.set(this, projectInstance.getName());
+            } catch (IllegalAccessException e) {
+                LogHolder.log.warn("update project name failed ", e);
+            }
+        }
     }
 }

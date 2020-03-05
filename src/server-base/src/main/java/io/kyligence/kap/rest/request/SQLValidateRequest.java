@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.request;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,7 +34,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SQLValidateRequest {
+public class SQLValidateRequest implements ProjectInsensitiveRequest {
     private String project;
     private String sql;
 }

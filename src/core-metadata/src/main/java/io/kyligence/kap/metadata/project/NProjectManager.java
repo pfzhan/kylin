@@ -96,6 +96,12 @@ public class NProjectManager {
         return crud.get(projectName);
     }
 
+    public ProjectInstance getProjectIgnoreCase(String projectName) {
+        return crud.listAll().stream()
+                .filter(projectInstance -> projectInstance.getName().equalsIgnoreCase(projectName)).findAny()
+                .orElse(null);
+    }
+
     public ProjectInstance createProject(String projectName, String owner, String description,
             LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) {
         logger.info("Creating project " + projectName);

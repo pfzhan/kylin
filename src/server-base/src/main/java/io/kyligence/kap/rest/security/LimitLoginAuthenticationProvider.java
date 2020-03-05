@@ -29,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
@@ -101,6 +102,14 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                     userName = (String) authentication.getPrincipal();
 
                 if (userName != null) {
+                    NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
+                    if (userManager != null) {
+                        managedUser = userManager.getIgnoreCase(userName);
+                        if (managedUser != null) {
+                            userName = managedUser.getUsername();
+                            authentication = new UsernamePasswordAuthenticationToken(userName, authentication.getCredentials());
+                        }
+                    }
                     managedUser = (ManagedUser) userService.loadUserByUsername(userName);
                     Preconditions.checkNotNull(managedUser);
                 }

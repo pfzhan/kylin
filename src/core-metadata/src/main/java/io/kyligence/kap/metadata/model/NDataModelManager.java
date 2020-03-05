@@ -195,6 +195,11 @@ public class NDataModelManager {
                 .orElse(null);
     }
 
+    public NDataModel getDataModelDescByAliasIgnoreCase(String alias) {
+        return crud.listAll().stream().filter(model -> model.getAlias().equalsIgnoreCase(alias)).findFirst()
+                .orElse(null);
+    }
+
     public NDataModel dropModel(NDataModel desc) {
         crud.delete(desc);
         return desc;

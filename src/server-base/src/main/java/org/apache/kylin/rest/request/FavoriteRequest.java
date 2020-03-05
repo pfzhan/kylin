@@ -24,19 +24,20 @@
 
 package org.apache.kylin.rest.request;
 
+import java.io.Serializable;
+import java.util.List;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.io.Serializable;
-import java.util.List;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class FavoriteRequest implements Serializable {
+public class FavoriteRequest implements Serializable, ProjectInsensitiveRequest {
     private String project;
     private List<String> sqls;
 }

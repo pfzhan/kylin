@@ -270,7 +270,8 @@ public class OptimizeRecommendationService extends BasicService {
                 .filter(df -> df.getStatus() == RealizationStatusEnum.ONLINE && !df.getModel().isBroken())
                 .map(NDataflow::getModel);
         models.forEach(model -> {
-            if (CollectionUtils.isEmpty(modelAlias) || modelAlias.contains(model.getAlias())) {
+            if (CollectionUtils.isEmpty(modelAlias) || modelAlias.stream().map(String::toLowerCase)
+                    .collect(Collectors.toList()).contains(model.getAlias().toLowerCase())) {
                 shiftLayoutHitCount(project, model.getUuid());
                 val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
                         model.getId());

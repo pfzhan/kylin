@@ -24,23 +24,26 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.validation.constraints.AssertTrue;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.springframework.validation.FieldError;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.Data;
 import lombok.val;
 
 @Data
-public class ProjectRequest implements Validation {
+public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     @JsonProperty("name")
     private String name;
     @JsonProperty("description")
@@ -69,5 +72,10 @@ public class ProjectRequest implements Validation {
             }
         }
         return "";
+    }
+
+    @Override
+    public List<String> inSensitiveFields() {
+        return Arrays.asList("name");
     }
 }

@@ -31,6 +31,7 @@ import org.apache.kylin.metadata.model.IStorageAware;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,7 +41,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CreateTableIndexRequest {
+public class CreateTableIndexRequest implements ProjectInsensitiveRequest {
 
     private Long id;
 

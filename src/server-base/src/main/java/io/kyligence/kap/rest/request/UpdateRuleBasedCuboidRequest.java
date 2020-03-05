@@ -37,6 +37,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -47,7 +48,7 @@ import lombok.val;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class UpdateRuleBasedCuboidRequest {
+public class UpdateRuleBasedCuboidRequest implements ProjectInsensitiveRequest {
 
     private String project;
 

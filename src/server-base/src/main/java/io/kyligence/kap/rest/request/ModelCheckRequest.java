@@ -26,10 +26,11 @@ package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class ModelCheckRequest {
+public class ModelCheckRequest implements ProjectInsensitiveRequest {
 
     private String project;
 

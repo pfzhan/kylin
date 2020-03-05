@@ -818,6 +818,11 @@ public class TableService extends BasicService {
     }
 
     public void batchLoadDataRange(String project, List<DateRangeRequest> requests) throws Exception {
+        NProjectManager projectManager = getProjectManager();
+        ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(project);
+        if (projectInstance != null) {
+            project = projectInstance.getName();
+        }
         aclEvaluate.checkProjectOperationPermission(project);
         for (DateRangeRequest request : requests) {
             setDataRange(project, request);

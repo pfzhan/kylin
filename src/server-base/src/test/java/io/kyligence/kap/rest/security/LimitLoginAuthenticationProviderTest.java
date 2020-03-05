@@ -103,11 +103,9 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
     }
 
     @Test
-    public void testAuthenticate_UserNotFound_SensitiveCase() {
+    public void testAuthenticate_InSensitiveCase() {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("admin", "KYLIN",
                 userAdmin.getAuthorities());
-        thrown.expect(UsernameNotFoundException.class);
-        thrown.expectMessage("User 'admin' not found.");
         limitLoginAuthenticationProvider.authenticate(token);
     }
 

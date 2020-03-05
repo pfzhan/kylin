@@ -69,6 +69,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.insensitive.UserInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -76,7 +77,7 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 @Getter
 @Setter
-public class ManagedUser extends RootPersistentEntity implements UserDetails {
+public class ManagedUser extends RootPersistentEntity implements UserDetails, UserInsensitiveRequest {
 
     @JsonProperty
     private String username;
@@ -163,7 +164,6 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
     public String resourceName() {
         return username;
     }
-
 
     private void caterLegacy() {
         Iterator<SimpleGrantedAuthority> iterator = authorities.iterator();

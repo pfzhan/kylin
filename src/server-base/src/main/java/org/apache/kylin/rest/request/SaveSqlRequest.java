@@ -42,6 +42,7 @@
 
 package org.apache.kylin.rest.request;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 /**
@@ -49,7 +50,7 @@ import lombok.Data;
  * 
  */
 @Data
-public class SaveSqlRequest {
+public class SaveSqlRequest implements ProjectInsensitiveRequest {
     private String name;
     private String sql;
     private String project;

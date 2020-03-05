@@ -573,6 +573,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<ComputedColumnDesc> checkComputedColumns(
             @RequestBody ComputedColumnCheckRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
+        modelRequest.getModelDesc().setProject(modelRequest.getProject());
         NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
         modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
         modelService.primaryCheck(modelDesc);
@@ -605,12 +606,12 @@ public class NModelController extends NBasicController {
     @GetMapping(value = "/config")
     @ResponseBody
     public EnvelopeResponse<DataResult<List<ModelConfigResponse>>> getModelConfig(
-            @RequestParam(value = "model_name", required = false) String modelName,
+            @RequestParam(value = "model_name", required = false) String modelAlias,
             @RequestParam(value = "project") String project,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        val modelConfigs = modelService.getModelConfig(project, modelName);
+        val modelConfigs = modelService.getModelConfig(project, modelAlias);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(modelConfigs, offset, limit), "");
     }
 

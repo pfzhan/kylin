@@ -30,13 +30,14 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import lombok.Data;
 
 @Data
-public class ModelConfigRequest {
+public class ModelConfigRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("project")
     private String project;

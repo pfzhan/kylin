@@ -27,6 +27,8 @@ package org.apache.kylin.rest.request;
 import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,7 +38,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SamplingRequest implements Serializable {
+public class SamplingRequest implements Serializable, ProjectInsensitiveRequest {
     private String project;
     @JsonProperty("qualified_table_name")
     private String qualifiedTableName;

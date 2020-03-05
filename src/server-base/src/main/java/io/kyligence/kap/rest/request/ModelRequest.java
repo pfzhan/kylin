@@ -36,6 +36,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.insensitive.ModelInsensitiveRequest;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -44,7 +45,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ModelRequest extends NDataModel {
+public class ModelRequest extends NDataModel implements ModelInsensitiveRequest {
 
     @JsonProperty("project")
     private String project;

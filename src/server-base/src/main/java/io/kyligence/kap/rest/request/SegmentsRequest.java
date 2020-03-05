@@ -24,10 +24,11 @@
 
 package io.kyligence.kap.rest.request;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class SegmentsRequest {
+public class SegmentsRequest implements ProjectInsensitiveRequest {
 
     private String[] ids;
     private String project;

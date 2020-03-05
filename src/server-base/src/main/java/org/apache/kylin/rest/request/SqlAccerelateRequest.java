@@ -46,6 +46,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -55,7 +56,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SqlAccerelateRequest implements Serializable {
+public class SqlAccerelateRequest implements Serializable, ProjectInsensitiveRequest {
     @JsonProperty("project")
     private String project;
     @JsonProperty("sqls")

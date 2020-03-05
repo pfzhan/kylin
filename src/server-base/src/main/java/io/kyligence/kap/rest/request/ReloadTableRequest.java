@@ -25,12 +25,14 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class ReloadTableRequest {
+public class ReloadTableRequest implements ProjectInsensitiveRequest {
     @JsonProperty("project")
     private String project;
     @JsonProperty("table")

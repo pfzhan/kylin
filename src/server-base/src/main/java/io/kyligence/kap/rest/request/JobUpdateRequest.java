@@ -24,16 +24,18 @@
 
 package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.Getter;
+import lombok.Setter;
+
 @Getter
 @Setter
-public class JobUpdateRequest {
+public class JobUpdateRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("job_ids")
     private List<String> jobIds = new ArrayList<>();

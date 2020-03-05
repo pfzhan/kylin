@@ -25,10 +25,12 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class PartitionKeyRequest {
+public class PartitionKeyRequest implements ProjectInsensitiveRequest {
     private String table;
     private String project;
     private String column;

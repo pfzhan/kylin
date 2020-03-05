@@ -82,23 +82,23 @@ public class NAccessControllerV2 extends NBasicController {
     /**
      * Get user's all granted projects and tables
      *
-     * @param userName
+     * @param userame
      * @return
      * @throws IOException
      */
     @GetMapping(value = "/{userName:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String userName) {
-        checkUserName(userName);
+    public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String userame) {
+        checkUserName(userame);
 
         List<Object> dataList = new ArrayList<>();
-        List<String> projectList = accessService.getGrantedProjectsOfUser(userName);
+        List<String> projectList = accessService.getGrantedProjectsOfUser(userame);
 
         for (String project : projectList) {
             Map<String, Object> data = new HashMap<>();
             data.put(PROJECT_NAME, project);
-            List<String> tableList = aclTCRService.getAuthorizedTables(project, userName).stream()
+            List<String> tableList = aclTCRService.getAuthorizedTables(project, userame).stream()
                     .map(TableDesc::getIdentity).collect(Collectors.toList());
             data.put(TABLE_NAME, tableList);
             dataList.add(data);

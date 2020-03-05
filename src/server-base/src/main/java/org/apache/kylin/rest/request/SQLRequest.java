@@ -46,6 +46,8 @@ import java.io.Serializable;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -56,7 +58,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SQLRequest implements Serializable {
+public class SQLRequest implements Serializable, ProjectInsensitiveRequest {
     protected static final long serialVersionUID = 1L;
 
     private String sql;

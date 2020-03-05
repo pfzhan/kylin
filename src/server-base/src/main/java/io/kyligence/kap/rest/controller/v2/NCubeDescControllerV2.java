@@ -51,9 +51,9 @@ public class NCubeDescControllerV2 extends NBasicController {
     @GetMapping(value = "/{projectName}/{cubeName}")
     @ResponseBody
     public EnvelopeResponse getCube(@PathVariable("projectName") String project,
-            @PathVariable("cubeName") String model) {
+            @PathVariable("cubeName") String modelAlias) {
         checkProjectName(project);
-        NCubeDescResponse cubeDesc = modelService.getCubeWithExactModelName(model, project);
+        NCubeDescResponse cubeDesc = modelService.getCubeWithExactModelName(modelAlias, project);
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, new NCubeResponse(cubeDesc), "");
     }

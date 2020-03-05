@@ -25,10 +25,12 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.UserInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class PasswordChangeRequest {
+public class PasswordChangeRequest implements UserInsensitiveRequest {
     @JsonProperty(value = "username")
     private String username;
     @JsonProperty(value = "password")

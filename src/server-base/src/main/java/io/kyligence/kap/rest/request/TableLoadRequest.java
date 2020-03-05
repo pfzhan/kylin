@@ -26,12 +26,13 @@ package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class TableLoadRequest {
+public class TableLoadRequest implements ProjectInsensitiveRequest {
     @JsonProperty("data_source_type")
-    private int dataSourceType=9;
+    private int dataSourceType = 9;
     private String project;
     private String[] tables;
     private String[] databases;

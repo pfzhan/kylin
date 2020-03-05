@@ -29,6 +29,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
@@ -37,7 +38,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ApplyRecommendationsRequest {
+public class ApplyRecommendationsRequest implements ProjectInsensitiveRequest {
     @JsonProperty("project")
     private String project;
 
