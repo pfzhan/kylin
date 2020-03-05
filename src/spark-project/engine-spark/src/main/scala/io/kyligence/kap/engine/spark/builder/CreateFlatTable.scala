@@ -43,14 +43,17 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
-
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.types.TimestampType
 import java.sql.Timestamp
 
+import io.kyligence.kap.engine.spark.job.TableMetaManager
 import org.apache.spark.storage.StorageLevel
+
+import scala.collection.parallel.ForkJoinTaskSupport
+import scala.concurrent.forkjoin.ForkJoinPool
 
 
 class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
@@ -153,6 +156,9 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
         val encodedLookupMap = generateLookupTableDataset(model, ccCols.toSeq, ss)
           .map(lp => (lp._1, encodeWithCols(lp._2, ccCols, dictCols, encodeCols)))
 
+        if (encodedLookupMap.nonEmpty) {
+          generateDimesionTableMeta(encodedLookupMap)
+        }
         val allTableDataset = Seq(rootFactDataset) ++ encodedLookupMap.values
 
         rootFactDataset = joinFactTableWithLookupTables(rootFactDataset, encodedLookupMap, model, ss)
@@ -243,7 +249,6 @@ object CreateFlatTable extends Logging {
       } else {
         ss.table(tableRef.getTableDesc).alias(alias)
       }
-
     val suitableCols = chooseSuitableCols(dataset, cols)
     dataset = changeSchemaToAliasDotName(dataset, alias)
     val selectedCols = dataset.schema.fields.map(tp => col(tp.name)) ++ suitableCols
@@ -251,6 +256,18 @@ object CreateFlatTable extends Logging {
     dataset.select(selectedCols: _*)
   }
 
+  private def generateDimesionTableMeta(lookupTables: mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]]): Unit = {
+    val lookupTablePar = lookupTables.par
+    lookupTablePar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(lookupTablePar.size))
+    lookupTablePar.foreach { case (joinTableDesc, dataset) =>
+      logInfo(s"Begin count  ${joinTableDesc.getAlias}")
+      val start = System.currentTimeMillis()
+      val rowCount = dataset.count()
+      TableMetaManager.putTableMeta(joinTableDesc.getAlias, 0L, rowCount)
+      logInfo(s"end count ${joinTableDesc.getAlias}  cost ${System.currentTimeMillis() - start}")
+      logInfo(s"put meta  table:  ${joinTableDesc.getAlias} , count: ${rowCount}")
+    }
+  }
   private def generateLookupTableDataset(model: NDataModel,
                                          cols: Seq[TblColRef],
                                          ss: SparkSession): mutable.LinkedHashMap[JoinTableDesc, Dataset[Row]] = {

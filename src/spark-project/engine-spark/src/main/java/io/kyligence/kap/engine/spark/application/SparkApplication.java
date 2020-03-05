@@ -60,9 +60,12 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.SparkSessionExtensions;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.apache.spark.sql.catalyst.rules.Rule;
 import org.apache.spark.sql.execution.JoinMemoryManager;
 import org.apache.spark.sql.execution.KylinJoinSelection;
 import org.apache.spark.sql.execution.SparkStrategy;
+import org.apache.spark.sql.execution.datasource.AlignmentTableStats;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.apache.spark.util.Utils;
 import org.apache.spark.utils.ResourceUtils;
@@ -283,16 +286,22 @@ public abstract class SparkApplication implements Application, IKeep {
                             return new KylinJoinSelection(session);
                         }
                     });
+                    v1.injectPostHocResolutionRule(
+                        new AbstractFunction1<SparkSession, Rule<LogicalPlan>>() {
+                            @Override
+                            public Rule<LogicalPlan> apply(SparkSession session) {
+                                return new AlignmentTableStats(session);
+                            }
+                        });
                     return BoxedUnit.UNIT;
                 }
             }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-                    .getOrCreate();
-
+                .getOrCreate();
+            
             if (isJobOnCluster(sparkConf)) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
                         getTrackingInfo(buildEnv.clusterManager(), config.isTrackingUrlIpAddressEnabled()));
             }
-
             JoinMemoryManager.releaseAllMemory();
             // for spark metrics
             JobMetricsUtils.registerListener(ss);
