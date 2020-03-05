@@ -26,14 +26,12 @@ package io.kyligence.kap.metadata.cube.cuboid;
 
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -127,10 +125,6 @@ public class NKECuboidScheduler extends NCuboidScheduler {
      * Build tree steps:
      * 1. Build tree from bottom up considering dim capping
      * 2. Kick out blacked-out cuboids from the tree
-     * 3. Make sure all the cuboids have proper "parent", if not add it to the tree.
-     * Direct parent is not necessary, can jump *forward* steps to find in-direct parent.
-     * For example, forward = 1, grandparent can also be the parent. Only if both parent
-     * and grandparent are missing, add grandparent to the tree.
      *
      * @return Cuboid collection
      */
@@ -158,35 +152,7 @@ public class NKECuboidScheduler extends NCuboidScheduler {
             cuboidHolder.add(new CuboidBigInteger(ruleBasedAggIndex.getFullMask()));
         }
 
-        // fill padding cuboids
-        Queue<CuboidBigInteger> cuboidScan = new ArrayDeque<>();
-        cuboidScan.addAll(cuboidHolder);
-        while (!cuboidScan.isEmpty()) {
-            CuboidBigInteger current = cuboidScan.poll();
-            CuboidBigInteger parent = getParentOnPromise(current, cuboidHolder, forward);
-
-            if (parent.dimMeas.compareTo(BigInteger.ZERO) > 0) {
-                if (!cuboidHolder.contains(parent)) {
-                    cuboidScan.add(parent);
-                    cuboidHolder.add(parent);
-                }
-            }
-        }
-
         return cuboidHolder;
-    }
-
-    private CuboidBigInteger getParentOnPromise(CuboidBigInteger child, Set<CuboidBigInteger> coll, int forward) {
-        CuboidBigInteger parent = getOnTreeParent(child);
-        if (parent.dimMeas.compareTo(BigInteger.ZERO) < 0) {
-            return new CuboidBigInteger(BigInteger.valueOf(-1));
-        }
-
-        if (coll.contains(parent) || forward == 0) {
-            return parent;
-        }
-
-        return getParentOnPromise(parent, coll, forward - 1);
     }
 
     /**

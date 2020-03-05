@@ -844,7 +844,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         var response = indexPlanService.getIndexes(getProject(), modelId, "PRICE", Lists.newArrayList(), "data_size",
                 false, null);
         var ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
-        Assert.assertEquals(20, response.size());
+        Assert.assertEquals(18, response.size());
         Assert.assertTrue(ids.contains(20000020001L));
         Assert.assertTrue(ids.contains(10001L));
 
@@ -860,7 +860,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         response = indexPlanService.getIndexes(getProject(), modelId, "NEST4", Lists.newArrayList(), "data_size", false,
                 null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
-        Assert.assertEquals(14, response.size());
+        Assert.assertEquals(12, response.size());
         for (IndexResponse res : response) {
             Assert.assertTrue(res.getColOrder().stream().map(IndexResponse.ColOrderPair::getKey)
                     .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));
@@ -869,7 +869,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         response = indexPlanService.getIndexes(getProject(), modelId, "nest4", Lists.newArrayList(), "data_size", false,
                 null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());
-        Assert.assertEquals(14, response.size());
+        Assert.assertEquals(12, response.size());
         for (IndexResponse res : response) {
             Assert.assertTrue(res.getColOrder().stream().map(IndexResponse.ColOrderPair::getKey)
                     .anyMatch(col -> col.equals("TEST_KYLIN_FACT.NEST4") || col.equals("SUM_NEST4")));

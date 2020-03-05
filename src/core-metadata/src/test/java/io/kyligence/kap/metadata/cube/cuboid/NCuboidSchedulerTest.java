@@ -129,7 +129,7 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         {
             val set = cube.getRuleBasedIndex().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
-            Assert.assertEquals(13, set.size());
+            Assert.assertEquals(11, set.size());
         }
     }
 
