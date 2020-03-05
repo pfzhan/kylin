@@ -238,7 +238,7 @@ public class PushDownUtil {
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 
         // pushdown
-        IPushDownRunner runner = (IPushDownRunner) ClassUtil.newInstance(kylinConfig.getPushDownRunnerClassName());
+        IPushDownRunner runner = (IPushDownRunner) ClassUtil.newInstance(kylinConfig.getPushDownRunnerClassNameWithDefaultValue());
         runner.init(kylinConfig);
         runner.executeQuery(sql, returnRows, returnColumnMeta, project);
 

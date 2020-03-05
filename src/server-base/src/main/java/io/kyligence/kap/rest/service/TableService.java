@@ -649,8 +649,7 @@ public class TableService extends BasicService {
         var start = dateRangeRequest.getStart();
         var end = dateRangeRequest.getEnd();
 
-        if (getProjectManager().getProject(project).getConfig().isPushDownEnabled()
-                && PushDownUtil.needPushdown(start, end)) {
+        if (PushDownUtil.needPushdown(start, end)) {
             val pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
             start = PushDownUtil.calcStart(pushdownResult.getFirst(), allRange);
             end = pushdownResult.getSecond();

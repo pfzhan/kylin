@@ -1437,6 +1437,14 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.query.pushdown.runner-class-name", "");
     }
 
+    public String getPushDownRunnerClassNameWithDefaultValue() {
+        String pushdownRunner = getPushDownRunnerClassName();
+        if (StringUtils.isEmpty(pushdownRunner)) {
+            pushdownRunner = "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl";
+        }
+        return pushdownRunner;
+    }
+
     public String[] getPushDownConverterClassNames() {
         return getOptionalStringArray("kylin.query.pushdown.converter-class-names",
                 new String[] { "org.apache.kylin.source.adhocquery.HivePushDownConverter" });

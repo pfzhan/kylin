@@ -55,6 +55,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
@@ -492,9 +493,10 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         pushDownConfigRequest.setPushDownEnabled(true);
-        thrown.expectMessage(
-                "There is no default PushDownRunner, please check kylin.query.pushdown.runner-class-name in kylin.properties.");
         projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        val projectConfig = projectManager.getProject(project).getConfig();
+        Assert.assertTrue(projectConfig.isPushDownEnabled());
+        Assert.assertEquals(PushDownRunnerSparkImpl.class.getName(), projectConfig.getPushDownRunnerClassName());
     }
 
     @Test

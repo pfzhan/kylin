@@ -405,10 +405,7 @@ public class ProjectService extends BasicService {
         getProjectManager().updateProject(project, copyForWrite -> {
             val config = getConfig();
             if (Boolean.TRUE.equals(pushDownConfigRequest.getPushDownEnabled())) {
-                val pushDownRunner = config.getPushDownRunnerClassName();
-                Preconditions.checkState(StringUtils.isNotBlank(pushDownRunner),
-                        "There is no default PushDownRunner, please check "
-                                + "kylin.query.pushdown.runner-class-name in kylin.properties.");
+                val pushDownRunner = config.getPushDownRunnerClassNameWithDefaultValue();
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", pushDownRunner);
             } else {
                 copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", "");

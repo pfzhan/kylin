@@ -60,6 +60,32 @@ import lombok.val;
 public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
 
     @Test
+    public void testDoProposeWhenPushDownIsDisabled() {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), proj);
+        // the project does not contain any realization
+        Assert.assertEquals(0, modelManager.listAllModels().size());
+        NDataModel model1, model2;
+        {
+            String[] sqlStatements = new String[] {
+                    "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
+            model1 = proposeModel(sqlStatements);
+        }
+        Assert.assertEquals(1, modelManager.listAllModels().size());
+        Assert.assertNotNull(modelManager.getDataModelDesc(model1.getId()));
+
+        {
+            String[] sqlStatements = new String[] { "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
+                    + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
+                    + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
+                    + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
+            model2 = proposeModel(sqlStatements);
+        }
+        Assert.assertEquals(3, modelManager.listAllModels().size());
+        Assert.assertNotNull(modelManager.getDataModelDesc(model2.getId()));
+    }
+
+    @Test
     public void testRenameModel() {
         NDataModel model1, model2, model3;
         {

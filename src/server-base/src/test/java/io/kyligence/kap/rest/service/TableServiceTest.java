@@ -560,6 +560,17 @@ public class TableServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(t2, dataLoadingRange.getCoveredRange().getEnd());
     }
 
+    @Test
+    public void testSetPartitionKeyAndSetDataRangeWhenPushdownIsOff() {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        try {
+            tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
+            tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
+        } catch (Exception ex) {
+            Assert.assertFalse(ex.getCause() instanceof ClassNotFoundException);
+        }
+    }
+
     //test toggle partition Key,A to null, null to A ,A to B with model:with lag behind, without lag behind
     @Test
     public void testTogglePartitionKey_NullToNotNull() throws Exception {
