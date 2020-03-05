@@ -36,7 +36,7 @@ public class KapNoOpResponseErrorHandler extends DefaultResponseErrorHandler {
 
     @Override
     public void handleError(ClientHttpResponse response) throws IOException {
-
+        // do not handle error
     }
 
 }

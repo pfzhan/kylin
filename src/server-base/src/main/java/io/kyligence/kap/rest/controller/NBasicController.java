@@ -329,12 +329,8 @@ public class NBasicController {
             x.getHeaders().remove(ACCEPT_ENCODING);
         };
         ResponseExtractor<String> responseExtractor = x -> {
-            FileOutputStream fout = null;
-            try {
-                fout = new FileOutputStream(temporaryZipFile);
+            try (FileOutputStream fout = new FileOutputStream(temporaryZipFile)) {
                 StreamUtils.copy(x.getBody(), fout);
-            } finally {
-                IOUtils.closeQuietly(fout);
             }
             val name = x.getHeaders().get(CONTENT_DISPOSITION);
             return name == null ? "error" : name.get(0);
@@ -342,20 +338,15 @@ public class NBasicController {
 
         String fileName = restTemplate.execute(url, HttpMethod.GET, requestCallback, responseExtractor);
 
-        InputStream in = null;
-        OutputStream out = null;
-        try {
+        try (InputStream in = new FileInputStream(temporaryZipFile);
+                OutputStream out = servletResponse.getOutputStream()) {
             servletResponse.reset();
             servletResponse.setContentLengthLong(temporaryZipFile.length());
             servletResponse.setContentType(MediaType.APPLICATION_OCTET_STREAM.toString());
             servletResponse.setHeader(CONTENT_DISPOSITION, fileName);
-            in = new FileInputStream(temporaryZipFile);
-            out = servletResponse.getOutputStream();
             IOUtils.copy(in, out);
             out.flush();
         } finally {
-            IOUtils.closeQuietly(in);
-            IOUtils.closeQuietly(out);
             FileUtils.deleteQuietly(temporaryZipFile);
         }
     }

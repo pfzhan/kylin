@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.metadata.acl;
 
+import java.io.Serializable;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,7 +32,7 @@ import com.google.common.collect.Sets;
 import lombok.Data;
 
 @Data
-public class NDataModelAclParams {
+public class NDataModelAclParams implements Serializable {
     @JsonProperty("unauthorized_tables")
     private Set<String> unauthorizedTables = Sets.newHashSet();
 

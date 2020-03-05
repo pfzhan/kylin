@@ -92,7 +92,6 @@ public abstract class KylinConfigBase implements Serializable {
 
     private static final String WORKING_DIR_PROP = "kylin.env.hdfs-working-dir";
     private static final String KYLIN_ROOT = "/kylin";
-    private static final String diagDirectory = "diag_dump/";
 
     public static final long REJECT_SIMILARITY_THRESHOLD = 100_000_000L;
     public static final double SIMILARITY_THRESHOLD = 0.9;
@@ -1968,7 +1967,7 @@ public abstract class KylinConfigBase implements Serializable {
         String uuid = UUID.randomUUID().toString().toUpperCase().substring(0, 6);
         String packageName = "front_" + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()) + "_" + uuid;
         String workDir = KylinConfigBase.getKylinHomeWithoutWarn();
-        String diagPath = diagDirectory + packageName;
+        String diagPath = "diag_dump/" + packageName;
         File file;
         if (StringUtils.isNotEmpty(workDir)) {
             file = new File(workDir, diagPath);
