@@ -61,7 +61,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.jetty.http.HttpHeader;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -129,7 +128,7 @@ public class SparderUIUtil {
         try (ClientHttpResponse response = execute(
                 UriComponentsBuilder.fromHttpUrl(ui.webUrl()).path(SQL_EXECUTION_PAGE).query("id=1").build().toUri(),
                 HttpMethod.GET)) {
-            if (HttpStatus.FOUND.equals(response.getStatusCode())) {
+            if (response.getStatusCode().is3xxRedirection()) {
                 URI uri = response.getHeaders().getLocation();
                 amSQLBase = uri.getPath();
                 webUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
@@ -171,7 +170,7 @@ public class SparderUIUtil {
             return;
         }
 
-        if (HttpStatus.FOUND.equals(response.getStatusCode())) {
+        if (response.getStatusCode().is3xxRedirection()) {
             try (ClientHttpResponse r = execute(response.getHeaders().getLocation(), originMethod)) {
                 rewrite(r, servletResponse, originMethod, originUrl, depth - 1);
             }
