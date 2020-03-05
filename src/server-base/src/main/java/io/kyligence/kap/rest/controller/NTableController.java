@@ -526,7 +526,7 @@ public class NTableController extends NBasicController {
         }
         try {
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
-                    request.getMaxRows());
+                    request.getMaxRows(), request.isNeedBuild());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (Exception e) {
             throw new BadRequestException("reload table error", ResponseCode.CODE_UNDEFINED, e);

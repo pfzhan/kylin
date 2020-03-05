@@ -50,7 +50,13 @@ public class PreReloadTableResponse {
     @JsonProperty("remove_dimensions_count")
     private long removeDimCount;
 
-    @JsonProperty("remove_indexes_count")
-    private long removeIndexesCount;
+    @JsonProperty("remove_layouts_count")
+    private long removeLayoutsCount;
+
+    @JsonProperty("add_layouts_count")
+    private long addLayoutsCount;
+
+    @JsonProperty("refresh_layouts_count")
+    private long refreshLayoutsCount;
 
 }

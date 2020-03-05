@@ -30,9 +30,12 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import lombok.Data;
+import org.apache.commons.collections.CollectionUtils;
 
 @Data
 public class ReloadTableAffectedModelContext {
+
+    private String modelId = null;
 
     private boolean isBroken = false;
 
@@ -46,9 +49,22 @@ public class ReloadTableAffectedModelContext {
 
     private Set<Integer> measures = Sets.newHashSet();
 
-    private Set<Long> layouts = Sets.newHashSet();
+    private Set<Long> removedLayouts = Sets.newHashSet();
+
+    private Set<Long> addLayouts = Sets.newHashSet();
+
+    public ReloadTableAffectedModelContext(String modelId) {
+        this.modelId = modelId;
+    }
 
     public Set<Long> getIndexes() {
+        return layoutsToIndexes(removedLayouts);
+    }
+
+    public static Set<Long> layoutsToIndexes(Set<Long> layouts) {
+        if (CollectionUtils.isEmpty(layouts)) {
+            return Sets.newHashSet();
+        }
         return layouts.stream().map(id -> id / IndexEntity.INDEX_ID_STEP * IndexEntity.INDEX_ID_STEP)
                 .collect(Collectors.toSet());
     }

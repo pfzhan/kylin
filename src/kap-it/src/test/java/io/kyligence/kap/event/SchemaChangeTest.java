@@ -211,14 +211,14 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testAddColumn() throws Exception {
         addColumn(TABLE_IDENTITY, new ColumnDesc("", "tmp1", "bigint", "", "", "", null));
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1);
+        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
     @Test
     public void testRemoveColumn() throws Exception {
         removeColumn(TABLE_IDENTITY, "SRC_ID");
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1);
+        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
@@ -227,7 +227,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
         changeColumns(TABLE_IDENTITY, Sets.newHashSet("SRC_ID"), columnDesc -> {
             columnDesc.setDatatype("string");
         });
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1);
+        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 
@@ -240,7 +240,7 @@ public class SchemaChangeTest extends AbstractMVCIntegrationTestCase {
                 columnDesc.setId("35");
             }
         });
-        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1);
+        tableService.reloadTable(PROJECT, TABLE_IDENTITY, false, -1, true);
         assertSqls();
     }
 

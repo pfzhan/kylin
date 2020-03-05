@@ -39,4 +39,6 @@ public class ReloadTableRequest {
     private boolean needSample;
     @JsonProperty("max_rows")
     private int maxRows;
+    @JsonProperty("need_build")
+    private boolean needBuild;
 }

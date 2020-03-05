@@ -1064,16 +1064,25 @@ public class TableService extends BasicService {
         }
         result.setRemoveMeasureCount(context.getRemoveAffectedModels().values().stream()
                 .map(ReloadTableAffectedModelContext::getMeasures).mapToLong(Set::size).sum());
-        result.setRemoveIndexesCount(
-                context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getIndexes().size()).sum());
-
+        result.setRemoveLayoutsCount(
+                context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getRemovedLayouts().size()).sum());
+        result.setAddLayoutsCount(
+                context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getAddLayouts().size()).sum());
+        result.setRefreshLayoutsCount(context.getChangeTypeAffectedModels().values().stream()
+                .mapToLong(m -> Sets.difference(m.getRemovedLayouts(),
+                        context.getRemoveAffectedModels()
+                                .getOrDefault(m.getModelId(), new ReloadTableAffectedModelContext(m.getModelId()))
+                                .getRemovedLayouts())
+                        .size())
+                .sum());
         return result;
     }
 
-    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows) {
+    public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows,
+            boolean needBuild) {
         aclEvaluate.checkProjectWritePermission(projectName);
         UnitOfWork.doInTransactionWithRetry(() -> {
-            innerReloadTable(projectName, tableIdentity);
+            innerReloadTable(projectName, tableIdentity, needBuild);
             if (needSample && maxRows > 0) {
                 tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows);
             }
@@ -1083,7 +1092,7 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0)
-    void innerReloadTable(String projectName, String tableIdentity) throws Exception {
+    void innerReloadTable(String projectName, String tableIdentity, boolean needBuild) throws Exception {
         val dataflowManager = getDataflowManager(projectName);
         val tableManager = getTableManager(projectName);
         val originTable = tableManager.getTableDesc(tableIdentity);
@@ -1092,11 +1101,11 @@ public class TableService extends BasicService {
         val project = getProjectManager().getProject(projectName);
         val context = calcReloadContext(projectName, tableIdentity);
         for (val model : dataflowManager.listUnderliningDataModels()) {
-            updateBrokenModel(project, model, context);
+            updateBrokenModel(project, model, context, needBuild);
         }
         mergeTable(projectName, context, true);
         for (val model : dataflowManager.listUnderliningDataModels()) {
-            updateModelByReloadTable(project, model, context);
+            updateModelByReloadTable(project, model, context, needBuild);
         }
 
         val fqManager = getFavoriteQueryManager(projectName);
@@ -1114,14 +1123,15 @@ public class TableService extends BasicService {
         mergeTable(projectName, context, false);
     }
 
-    void updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context) throws Exception {
+    void updateBrokenModel(ProjectInstance project, NDataModel model, ReloadTableContext context, boolean needBuild)
+            throws Exception {
         if (!context.getRemoveAffectedModels().containsKey(model.getId())
                 && !context.getChangeTypeAffectedModels().containsKey(model.getId())) {
             return;
         }
 
         val removeAffectedModel = context.getRemoveAffectedModels().getOrDefault(model.getId(),
-                new ReloadTableAffectedModelContext());
+                new ReloadTableAffectedModelContext(model.getId()));
 
         if (!removeAffectedModel.isBroken()) {
             return;
@@ -1131,7 +1141,7 @@ public class TableService extends BasicService {
             return;
         }
 
-        cleanIndexPlan(projectName, model, removeAffectedModel);
+        cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         cleanRecommendation(projectName, model);
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);
@@ -1142,8 +1152,8 @@ public class TableService extends BasicService {
         getOptimizeRecommendationManager(project).cleanAll(model.getId());
     }
 
-    void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context)
-            throws Exception {
+    void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
+            boolean needBuild) throws Exception {
         val dataflowManager = getDataflowManager(project.getName());
         val projectName = project.getName();
 
@@ -1152,9 +1162,9 @@ public class TableService extends BasicService {
             return;
         }
         val removeAffectedModel = context.getRemoveAffectedModels().getOrDefault(model.getId(),
-                new ReloadTableAffectedModelContext());
+                new ReloadTableAffectedModelContext(model.getId()));
         val changeTypeAffectedModel = context.getChangeTypeAffectedModels().getOrDefault(model.getId(),
-                new ReloadTableAffectedModelContext());
+                new ReloadTableAffectedModelContext(model.getId()));
         if (removeAffectedModel.isBroken()) {
             return;
         }
@@ -1167,7 +1177,7 @@ public class TableService extends BasicService {
         val eventDao = getEventDao(projectName);
         val events = eventDao.getEventsByModel(model.getId());
 
-        cleanIndexPlan(projectName, model, removeAffectedModel);
+        cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
         cleanRecommendation(projectName, model);
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
@@ -1179,10 +1189,12 @@ public class TableService extends BasicService {
         modelService.updateDataModelSemantic(projectName, request);
 
         val df = dataflowManager.getDataflow(model.getId());
-        if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getLayouts())) {
+        if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getRemovedLayouts())) {
             val eventManager = getEventManager(projectName);
-            dataflowManager.removeLayouts(df, changeTypeAffectedModel.getLayouts());
-            eventManager.postAddCuboidEvents(model.getId(), getUsername());
+            dataflowManager.removeLayouts(df, changeTypeAffectedModel.getRemovedLayouts());
+            if (needBuild) {
+                eventManager.postAddCuboidEvents(model.getId(), getUsername());
+            }
         }
 
         cleanRedundantEvents(projectName, model, events);
@@ -1202,7 +1214,8 @@ public class TableService extends BasicService {
         request.setProject(projectName);
     }
 
-    void cleanIndexPlan(String projectName, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel) {
+    void cleanIndexPlan(String projectName, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel,
+            boolean needBuild) {
         val indexManager = getIndexPlanManager(projectName);
         val removeDims = removeAffectedModel.getDimensions();
         val removeColumnIds = removeAffectedModel.getColumnIds();
@@ -1255,7 +1268,7 @@ public class TableService extends BasicService {
                     .anyMatch(id -> removeDims.contains(id) || removeColumnIds.contains(id)) ? Lists.newArrayList()
                             : copyForWrite.getAggShardByColumns());
         });
-        if (indexPlan.getRuleBasedIndex() != null) {
+        if (needBuild && indexPlan.getRuleBasedIndex() != null) {
             semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
                     newIndexPlan.getRuleBasedIndex(), false);
         }
@@ -1397,9 +1410,11 @@ public class TableService extends BasicService {
             context.getChangeTypeAffectedModels().put(model.getId(), affectedModel);
         }
         val fqManager = getFavoriteQueryManager(project);
-        context.setFavoriteQueries(fqManager.getAll().stream().filter(fq -> fq.getRealizations().stream()
-                .anyMatch(fqr -> context.getRemoveAffectedModels().containsKey(fqr.getModelId()) && context
-                        .getRemoveAffectedModels().get(fqr.getModelId()).getLayouts().contains(fqr.getLayoutId())))
+        context.setFavoriteQueries(fqManager.getAll().stream()
+                .filter(fq -> fq.getRealizations().stream()
+                        .anyMatch(fqr -> context.getRemoveAffectedModels().containsKey(fqr.getModelId())
+                                && context.getRemoveAffectedModels().get(fqr.getModelId()).getRemovedLayouts()
+                                        .contains(fqr.getLayoutId())))
                 .map(FavoriteQuery::getId).collect(Collectors.toSet()));
 
         return context;
@@ -1449,7 +1464,7 @@ public class TableService extends BasicService {
                 .filter(m -> m.getFunction().getColRefs().stream()
                         .anyMatch(colRef -> modelAffectedColumns.contains(colRef.getIdentity())))
                 .map(NDataModel.Measure::getId).collect(Collectors.toSet());
-        val affectedModel = new ReloadTableAffectedModelContext();
+        val affectedModel = new ReloadTableAffectedModelContext(model.getId());
 
         affectedModel.setColumnIds(affectedColIds);
         affectedModel.setColumns(modelAffectedColumns);
@@ -1463,7 +1478,12 @@ public class TableService extends BasicService {
                 .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
                         || !Sets.intersection(index.getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
                 .flatMap(index -> index.getLayouts().stream()).map(LayoutEntity::getId).collect(Collectors.toSet());
-        affectedModel.setLayouts(affectedLayouts);
+        val affectedAddLayouts = indexPlan.getRuleBaseLayouts().stream().filter(layout -> Sets
+                .intersection(layout.getIndex().getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
+                && !Sets.intersection(layout.getIndex().getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
+                .map(LayoutEntity::getId).collect(Collectors.toSet());
+        affectedModel.setRemovedLayouts(affectedLayouts);
+        affectedModel.setAddLayouts(affectedAddLayouts);
 
         return affectedModel;
     }
