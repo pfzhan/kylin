@@ -63,7 +63,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.Getter;

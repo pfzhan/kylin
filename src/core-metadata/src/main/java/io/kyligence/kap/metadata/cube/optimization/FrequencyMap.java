@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 import java.io.Serializable;
 import java.util.Map;

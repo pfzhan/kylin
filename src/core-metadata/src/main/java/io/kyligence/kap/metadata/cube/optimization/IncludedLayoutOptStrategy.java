@@ -22,14 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
+
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
@@ -41,21 +44,31 @@ import lombok.extern.slf4j.Slf4j;
  * `kylin.garbage.remove-included-table-index` is true, it will also search garbage tableIndex-layouts.
  */
 @Slf4j
-public class IncludedLayoutGcStrategy extends AbstractGcStrategy {
+public class IncludedLayoutOptStrategy extends AbstractOptStrategy {
 
-    public IncludedLayoutGcStrategy() {
+    public IncludedLayoutOptStrategy() {
         this.setType(GarbageLayoutType.INCLUDED);
     }
 
     @Override
-    public Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow) {
+    public Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow, boolean needLog) {
         Set<Long> garbageLayouts = Sets.newHashSet();
         val fromGarbageToAliveMap = IndexPlanReduceUtil.collectIncludedLayouts(inputLayouts, true);
         fromGarbageToAliveMap.forEach((redundant, reserved) -> garbageLayouts.add(redundant.getId()));
         shiftLayoutHitCount(fromGarbageToAliveMap, dataflow);
-        log.info("In dataflow({}), IncludedLayoutGcStrategy found garbage laoyouts: {}", dataflow.getId(),
-                fromGarbageToAliveMap);
+        if (needLog) {
+            log.info("In dataflow({}), IncludedLayoutGcStrategy found garbage laoyouts: {}", dataflow.getId(),
+                    fromGarbageToAliveMap);
+        }
         return garbageLayouts;
+    }
+
+    @Override
+    protected void skipOptimizeTableIndex(List<LayoutEntity> inputLayouts) {
+        final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!kylinConfig.isIncludedStrategyConsiderTableIndex()) {
+            inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
+        }
     }
 
     /**

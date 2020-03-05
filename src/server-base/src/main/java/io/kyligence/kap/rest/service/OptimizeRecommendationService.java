@@ -39,11 +39,10 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.garbage.CustomizedGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
@@ -298,9 +297,7 @@ public class OptimizeRecommendationService extends BasicService {
         NDataflowManager dfManager = NDataflowManager.getInstance(config, project);
         NDataflow originDf = dfManager.getDataflow(modelUuid);
         NDataflow copiedDf = originDf.copy();
-        val ignored = config.isCustomizedGcStrategyEnabled()
-                ? CustomizedGarbageCleaner.findGarbageLayouts(copiedDf).keySet()
-                : DefaultGarbageCleaner.findGarbageLayouts(copiedDf).keySet();
+        Set<Long> ignored = IndexOptimizerFactory.getOptimizer(copiedDf, true).getGarbageLayoutMap(copiedDf).keySet();
         Map<Long, FrequencyMap> layoutHitCount = copiedDf.getLayoutHitCount();
         layoutHitCount.forEach((id, freqMap) -> {
             if (!toBeDeletedLayouts.contains(id)) {

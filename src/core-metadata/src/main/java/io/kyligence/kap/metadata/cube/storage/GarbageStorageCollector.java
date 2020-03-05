@@ -34,15 +34,17 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.garbage.CustomizedGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.optimization.IndexOptimizer;
+import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class GarbageStorageCollector implements StorageInfoCollector {
 
     @Override
@@ -53,9 +55,8 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         for (val model : getModels(project)) {
             val dataflow = getDataflow(model).copy();
 
-            val garbageLayouts = config.isCustomizedGcStrategyEnabled()
-                    ? CustomizedGarbageCleaner.findGarbageLayouts(dataflow).keySet()
-                    : DefaultGarbageCleaner.findGarbageLayouts(dataflow).keySet();
+            final IndexOptimizer indexOptimizer = IndexOptimizerFactory.getOptimizer(dataflow, false);
+            val garbageLayouts = indexOptimizer.getGarbageLayoutMap(dataflow).keySet();
             if (CollectionUtils.isNotEmpty(garbageLayouts)) {
                 storageSize += calculateLayoutSize(garbageLayouts, dataflow);
                 garbageIndexMap.put(model.getId(), garbageLayouts);

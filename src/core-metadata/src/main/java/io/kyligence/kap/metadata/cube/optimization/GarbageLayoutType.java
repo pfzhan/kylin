@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 public enum GarbageLayoutType {
     LOW_FREQUENCY, INCLUDED, SIMILAR

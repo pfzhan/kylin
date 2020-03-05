@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 import java.util.List;
 import java.util.Map;
@@ -32,35 +32,55 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.Getter;
 
-public class DefaultGarbageCleaner {
+public class IndexOptimizer {
 
-    private static final AbstractGcStrategy[] GC_STRATEGIES = { new IncludedLayoutGcStrategy(),
-            new LowFreqLayoutGcStrategy() };
+    // if true, every strategy will print log in details
+    private boolean needLog;
 
-    private DefaultGarbageCleaner() {
+    @Getter
+    private final List<AbstractOptStrategy> strategiesForAuto = Lists.newArrayList();
+
+    @Getter
+    private final List<AbstractOptStrategy> strategiesForManual = Lists.newArrayList();
+
+    public IndexOptimizer(boolean needLog) {
+        this.needLog = needLog;
     }
 
-    public static Map<Long, GarbageLayoutType> findGarbageLayouts(NDataflow dataflow) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        Map<Long, GarbageLayoutType> garbageLayoutTypeMap = Maps.newHashMap();
-        List<LayoutEntity> readyLayouts = dataflow.extractReadyLayouts();
-        if (kylinConfig.isOnlyTailorAggIndex()) {
-            readyLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
-        }
-
-        // only optimize auto layouts in default index optimizer
-        List<LayoutEntity> autoLayouts = readyLayouts.stream() //
+    protected List<LayoutEntity> filterAutoLayouts(NDataflow dataflow) {
+        return dataflow.extractReadyLayouts().stream() //
                 .filter(layout -> !layout.isManual() && layout.isAuto()) //
                 .collect(Collectors.toList());
+    }
 
-        for (AbstractGcStrategy strategy : GC_STRATEGIES) {
-            strategy.collectGarbageLayouts(autoLayouts, dataflow)
+    protected List<LayoutEntity> filterManualLayouts(NDataflow dataflow) {
+        return dataflow.extractReadyLayouts().stream() //
+                .filter(LayoutEntity::isManual) //
+                .collect(Collectors.toList());
+    }
+
+    public Map<Long, GarbageLayoutType> getGarbageLayoutMap(NDataflow dataflow) {
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()) //
+                .getProject(dataflow.getProject()).isExpertMode()) {
+            return Maps.newHashMap();
+        }
+
+        Map<Long, GarbageLayoutType> garbageLayoutTypeMap = Maps.newHashMap();
+        for (AbstractOptStrategy strategy : getStrategiesForAuto()) {
+            strategy.collectGarbageLayouts(filterAutoLayouts(dataflow), dataflow, needLog)
+                    .forEach(id -> garbageLayoutTypeMap.put(id, strategy.getType()));
+        }
+
+        for (AbstractOptStrategy strategy : getStrategiesForManual()) {
+            strategy.collectGarbageLayouts(filterManualLayouts(dataflow), dataflow, needLog)
                     .forEach(id -> garbageLayoutTypeMap.put(id, strategy.getType()));
         }
 
@@ -68,8 +88,8 @@ public class DefaultGarbageCleaner {
     }
 
     @VisibleForTesting
-    public static Set<Long> findGarbageLayouts(NDataflow dataflow, AbstractGcStrategy strategy) {
+    public static Set<Long> findGarbageLayouts(NDataflow dataflow, AbstractOptStrategy strategy) {
         List<LayoutEntity> allLayouts = dataflow.getIndexPlan().getAllLayouts();
-        return strategy.collectGarbageLayouts(allLayouts, dataflow);
+        return strategy.collectGarbageLayouts(allLayouts, dataflow, false);
     }
 }

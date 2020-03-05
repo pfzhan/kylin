@@ -37,9 +37,9 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
@@ -139,13 +139,9 @@ public class UpdateUsageStatisticsRunner implements Runnable {
     private void updateLastQueryTime(Map<String, Long> modelsLastQueryTime) {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         List<NDataflow> dataflows = dfManager.listAllDataflows();
-        dataflows.stream()
-                .filter(dataflow -> modelsLastQueryTime.containsKey(dataflow.getId()))
-                .forEach(dataflow ->
-                    dfManager.updateDataflow(dataflow.getId(), copyForWrite ->
-                        copyForWrite.setLastQueryTime(modelsLastQueryTime.get(dataflow.getId()))
-                    )
-                );
+        dataflows.stream().filter(dataflow -> modelsLastQueryTime.containsKey(dataflow.getId()))
+                .forEach(dataflow -> dfManager.updateDataflow(dataflow.getId(),
+                        copyForWrite -> copyForWrite.setLastQueryTime(modelsLastQueryTime.get(dataflow.getId()))));
     }
 
     private void setLastQueryTime(QueryHistory queryHistory, Map<String, Long> modelsLastQueryTime) {

@@ -1456,8 +1456,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isAutoSetPushDownPartitions() {
-        return Boolean
-                .parseBoolean(this.getOptional("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", TRUE));
+        return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", TRUE));
     }
 
     public int getBaseShufflePartitionSize() {
@@ -1766,8 +1765,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Boolean isCalciteConvertMultipleColumnsIntoOrEnabled() {
-        return Boolean
-                .parseBoolean(getOptional("kylin.query.calcite-convert-multiple-columns-in-to-or-enabled", TRUE));
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite-convert-multiple-columns-in-to-or-enabled", TRUE));
     }
 
     public Boolean isEnumerableRulesEnabled() {
@@ -1782,36 +1780,24 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "60"));
     }
 
-    public boolean isCustomizedGcStrategyEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.garbage.customized-strategy-enabled", FALSE));
+    public int getIndexOptimizationLevel() {
+        return Integer.parseInt(getOptional("kylin.index.optimization-level", "2"));
     }
 
     public double getLayoutSimilarityThreshold() {
-        return safeParseDouble(getOptional("kylin.garbage.layout-relative-similarity-threshold"), SIMILARITY_THRESHOLD);
+        return safeParseDouble(getOptional("kylin.index.similarity-ratio-threshold"), SIMILARITY_THRESHOLD);
     }
 
     public long getSimilarityStrategyRejectThreshold() {
-        return safeParseLong(getOptional("kylin.garbage.reject-similarity-threshold"), REJECT_SIMILARITY_THRESHOLD);
+        return safeParseLong(getOptional("kylin.index.beyond-similarity-bias-threshold"), REJECT_SIMILARITY_THRESHOLD);
     }
 
-    public String getLowFreqGarbageStrategyTarget() {
-        return getOptional("kylin.garbage.low-freq-strategy-target", "");
+    public boolean isIncludedStrategyConsiderTableIndex() {
+        return Boolean.parseBoolean(getOptional("kylin.index.include-strategy.consider-table-index", TRUE));
     }
 
-    public String getIncludedGarbageStrategyTarget() {
-        return getOptional("kylin.garbage.included-strategy-target", "");
-    }
-
-    public String getSimilarGarbageStrategyTarget() {
-        return getOptional("kylin.garbage.similar-strategy-target", "");
-    }
-
-    public boolean isOnlyTailorAggIndex() {
-        return Boolean.parseBoolean(getOptional("kylin.garbage.only-tailor-agg-index", FALSE));
-    }
-
-    public boolean isRemoveIncludedTableIndexEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.garbage.remove-included-table-index", FALSE));
+    public boolean isLowFreqStrategyConsiderTableIndex() {
+        return Boolean.parseBoolean(getOptional("kylin.index.frequency-strategy.consider-table-index", TRUE));
     }
 
     public long getExecutableSurvivalTimeThreshold() {

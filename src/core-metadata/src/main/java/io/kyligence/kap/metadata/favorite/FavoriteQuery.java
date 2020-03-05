@@ -34,7 +34,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

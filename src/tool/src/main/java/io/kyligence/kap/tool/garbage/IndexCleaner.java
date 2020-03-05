@@ -30,12 +30,11 @@ import java.util.Set;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.metadata.cube.garbage.CustomizedGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.GarbageLayoutType;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
+import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import lombok.val;
@@ -51,15 +50,8 @@ public class IndexCleaner implements MetadataCleaner {
 
         for (val model : dataflowManager.listUnderliningDataModels()) {
             val dataflow = dataflowManager.getDataflow(model.getId()).copy();
-
-            Map<Long, GarbageLayoutType> garbageLayouts;
-            if (config.isCustomizedGcStrategyEnabled()) {
-                log.info("Routing to CustomizedGarbageCleaner to collect garbage layouts.");
-                garbageLayouts = CustomizedGarbageCleaner.findGarbageLayouts(dataflow);
-            } else {
-                log.info("Routing to DefaultGarbageCleaner to collect garbage layouts.");
-                garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow);
-            }
+            Map<Long, GarbageLayoutType> garbageLayouts = IndexOptimizerFactory.getOptimizer(dataflow, true)
+                    .getGarbageLayoutMap(dataflow);
 
             if (MapUtils.isEmpty(garbageLayouts)) {
                 continue;
@@ -71,6 +63,7 @@ public class IndexCleaner implements MetadataCleaner {
                 // refer to LayoutRecommendationItem.apply()
                 transferToRecommendation(model.getUuid(), project, garbageLayouts);
             }
+
             if (projectInstance.isSmartMode() || projectInstance.isExpertMode()) {
                 // update layout hit count
                 dataflowManager.updateDataflow(dataflow.getUuid(),

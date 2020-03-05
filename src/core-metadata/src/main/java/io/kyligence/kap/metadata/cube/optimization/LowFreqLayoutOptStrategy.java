@@ -22,17 +22,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -42,14 +44,14 @@ import lombok.extern.slf4j.Slf4j;
  * LowFreqLayoutGcStrategy will search all garbage layout in inputLayouts.
  */
 @Slf4j
-public class LowFreqLayoutGcStrategy extends AbstractGcStrategy {
+public class LowFreqLayoutOptStrategy extends AbstractOptStrategy {
 
-    public LowFreqLayoutGcStrategy() {
+    public LowFreqLayoutOptStrategy() {
         this.setType(GarbageLayoutType.LOW_FREQUENCY);
     }
 
     @Override
-    public Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow) {
+    public Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow, boolean needLog) {
         ProjectInstance projectInstance = NProjectManager.getInstance(dataflow.getConfig())
                 .getProject(dataflow.getProject());
         Map<Long, FrequencyMap> hitFrequencyMap = dataflow.getLayoutHitCount();
@@ -67,12 +69,19 @@ public class LowFreqLayoutGcStrategy extends AbstractGcStrategy {
                 }
             }
         });
-        log.info("In dataflow({}), LowFreqLayoutGcStrategy found garbageLayouts: {}", dataflow.getId(), garbageLayouts);
+
+        if (needLog) {
+            log.info("In dataflow({}), LowFreqLayoutGcStrategy found garbageLayouts: {}", dataflow.getId(),
+                    garbageLayouts);
+        }
         return garbageLayouts;
     }
 
     @Override
-    protected void skipGcTableIndex(List<LayoutEntity> inputLayouts) {
-        // no need to skip table index
+    protected void skipOptimizeTableIndex(List<LayoutEntity> inputLayouts) {
+        final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        if (!kylinConfig.isLowFreqStrategyConsiderTableIndex()) {
+            inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
+        }
     }
 }

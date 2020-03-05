@@ -22,23 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.common.KylinConfig;
-
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-public abstract class AbstractGcStrategy {
+public abstract class AbstractOptStrategy {
 
     @Getter
     @Setter(AccessLevel.PROTECTED)
@@ -47,27 +44,22 @@ public abstract class AbstractGcStrategy {
     /**
      * Every subclass of AbstractStrategy should override this method.
      */
-    protected abstract Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow);
+    protected abstract Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow, boolean needLog);
 
-    public final Set<Long> collectGarbageLayouts(List<LayoutEntity> inputLayouts, NDataflow dataflow) {
+    public final Set<Long> collectGarbageLayouts(List<LayoutEntity> inputLayouts, NDataflow dataflow, boolean needLog) {
         List<LayoutEntity> toHandleLayouts = beforeCollect(inputLayouts);
-        Set<Long> garbages = doCollect(toHandleLayouts, dataflow);
-        afterCollect(inputLayouts, garbages);
-        return garbages;
+        Set<Long> garbageSet = doCollect(toHandleLayouts, dataflow, needLog);
+        afterCollect(inputLayouts, garbageSet);
+        return garbageSet;
     }
 
     private List<LayoutEntity> beforeCollect(List<LayoutEntity> inputLayouts) {
         List<LayoutEntity> layoutsToHandle = Lists.newArrayList(inputLayouts);
-        skipGcTableIndex(layoutsToHandle);
+        skipOptimizeTableIndex(layoutsToHandle);
         return layoutsToHandle;
     }
 
-    protected void skipGcTableIndex(List<LayoutEntity> inputLayouts) {
-        // if no need to tailor TableIndex 
-        if (!KylinConfig.getInstanceFromEnv().isRemoveIncludedTableIndexEnabled()) {
-            inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
-        }
-    }
+    protected abstract void skipOptimizeTableIndex(List<LayoutEntity> inputLayouts);
 
     private void afterCollect(List<LayoutEntity> inputLayouts, Set<Long> garbages) {
         inputLayouts.removeIf(layout -> garbages.contains(layout.getId()));

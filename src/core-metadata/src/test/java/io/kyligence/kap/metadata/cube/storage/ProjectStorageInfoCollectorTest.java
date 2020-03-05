@@ -45,11 +45,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.garbage.DefaultGarbageCleaner;
-import io.kyligence.kap.metadata.cube.garbage.FrequencyMap;
-import io.kyligence.kap.metadata.cube.garbage.IncludedLayoutGcStrategy;
-import io.kyligence.kap.metadata.cube.garbage.LowFreqLayoutGcStrategy;
-import io.kyligence.kap.metadata.cube.garbage.SimilarLayoutGcStrategy;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
@@ -59,6 +54,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
+import io.kyligence.kap.metadata.cube.optimization.IncludedLayoutOptStrategy;
+import io.kyligence.kap.metadata.cube.optimization.IndexOptimizer;
+import io.kyligence.kap.metadata.cube.optimization.LowFreqLayoutOptStrategy;
+import io.kyligence.kap.metadata.cube.optimization.SimilarLayoutOptStrategy;
 import lombok.val;
 
 public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase {
@@ -73,7 +73,6 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        overwriteSystemProp("kylin.garbage.customized-strategy-enabled", "false");
     }
 
     @After
@@ -88,28 +87,29 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
                 StorageInfoEnum.TOTAL_STORAGE);
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
-        val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
+        val volumeInfo = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
 
-        Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfo.getStorageQuotaSize());
-        Assert.assertEquals(3156067L, storageVolumeInfo.getGarbageStorageSize());
-        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).size());
+        Assert.assertEquals(10240L * 1024 * 1024 * 1024, volumeInfo.getStorageQuotaSize());
+        Assert.assertEquals(3417187L, volumeInfo.getGarbageStorageSize());
+        Assert.assertEquals(4, volumeInfo.getGarbageModelIndexMap().size());
+        Assert.assertEquals(5, volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).size());
 
-        //  layout 1L and 20_000_040_001L with low frequency => garbage
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(1L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20001L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(30001L));
-        Assert.assertTrue(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(1000001L));
+        //  layout 1L with low frequency, other without layoutHitCount => garbage
+        Assert.assertTrue(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(1L));
+        Assert.assertTrue(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20001L));
+        Assert.assertTrue(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(30001L));
+        Assert.assertTrue(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(1000001L));
+        Assert.assertTrue(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_010_001L));
 
         // layout 10_001L, 10002L, 40_001L, 40_002L and 20_000_010_001L were not considered as garbage
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(10001L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(10002L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(40001L));
-        Assert.assertFalse(storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(40002L));
-        Assert.assertFalse(
-                storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_000_001L));
-        Assert.assertFalse(
-                storageVolumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_010_001L));
+        Assert.assertFalse(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(10001L));
+        Assert.assertFalse(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(10002L));
+        Assert.assertFalse(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(40001L));
+        Assert.assertFalse(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(40002L));
+        Assert.assertFalse(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_000_001L));
+
+        // layout 20_000_040_001L is both auto and manual, consider as manual
+        Assert.assertFalse(volumeInfo.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID).contains(20_000_040_001L));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         getTestConfig().setProperty("kylin.cube.low-frequency-threshold", "0");
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val df = dfManager.getDataflow(DEFAULT_MODEL_BASIC_ID);
-        val garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(df, new LowFreqLayoutGcStrategy());
+        val garbageLayouts = IndexOptimizer.findGarbageLayouts(df, new LowFreqLayoutOptStrategy());
 
         Assert.assertTrue(garbageLayouts.isEmpty());
     }
@@ -127,14 +127,16 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         initTestData();
         NDataflowManager instance = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataflow dataflow = instance.getDataflow(DEFAULT_MODEL_BASIC_ID);
-        Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new LowFreqLayoutGcStrategy());
+
+        //consider TableIndex
+        getTestConfig().setProperty("kylin.index.frequency-strategy.consider-table-index", "true");
+        Set<Long> garbageLayouts = IndexOptimizer.findGarbageLayouts(dataflow, new LowFreqLayoutOptStrategy());
 
         //  layout 1L and 20_000_040_001L with low frequency => garbage
-        Assert.assertTrue(garbageLayouts.contains(1L));
-        Assert.assertTrue(garbageLayouts.contains(20_000_040_001L));
+        Assert.assertTrue(garbageLayouts.containsAll(Sets.newHashSet(1L, 20_000_040_001L)));
 
         // without frequency hit layout => garbage
-        Assert.assertTrue(garbageLayouts.contains(20_000_020_001L));
+        Assert.assertTrue(garbageLayouts.containsAll(Sets.newHashSet(20001L, 30001L, 1000001L, 20_000_020_001L)));
 
         // layout 10_001L, 10002L, 40_001L, 40_002L, 20_000_000_001L and 20_000_010_001L were not considered as garbage
         Assert.assertFalse(garbageLayouts.contains(10001L));
@@ -143,6 +145,30 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertFalse(garbageLayouts.contains(40002L));
         Assert.assertFalse(garbageLayouts.contains(20_000_000_001L));
         Assert.assertFalse(garbageLayouts.contains(20_000_010_001L));
+
+        getTestConfig().setProperty("kylin.index.frequency-strategy.consider-table-index", "false");
+        Set<Long> garbageLayouts2 = IndexOptimizer.findGarbageLayouts(dataflow, new LowFreqLayoutOptStrategy());
+        Assert.assertEquals(Sets.newHashSet(1L, 20001L, 30001L, 1000001L), garbageLayouts2);
+    }
+
+    @Test
+    public void testLowFreqStrategyOfFreqTimeWindow() {
+        initTestData();
+        val collector = new ProjectStorageInfoCollector(Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
+        getTestConfig().setProperty("kylin.cube.frequency-time-window", "90");
+        val volumeInfo2 = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
+        final Set<Long> garbageSet2 = volumeInfo2.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID);
+        Assert.assertEquals(Sets.newHashSet(20001L, 30001L, 20000010001L, 1000001L), garbageSet2);
+    }
+
+    @Test
+    public void testLowFreqStrategyOfLowFreqStrategyThreshold() {
+        initTestData();
+        val collector = new ProjectStorageInfoCollector(Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE));
+        getTestConfig().setProperty("kylin.cube.low-frequency-threshold", "2");
+        val volumeInfo3 = collector.getStorageVolumeInfo(getTestConfig(), DEFAULT_PROJECT);
+        final Set<Long> garbageSet3 = volumeInfo3.getGarbageModelIndexMap().get(DEFAULT_MODEL_BASIC_ID);
+        Assert.assertEquals(Sets.newHashSet(1L, 20001L, 30001L, 20000010001L, 1000001L), garbageSet3);
     }
 
     @Test
@@ -186,12 +212,12 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         dataflowManager.updateDataflow(update);
 
         dataflow = dataflowManager.getDataflow(DEFAULT_MODEL_BASIC_ID);
-        getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "false");
-        Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new IncludedLayoutGcStrategy());
+        getTestConfig().setProperty("kylin.index.include-strategy.consider-table-index", "false");
+        Set<Long> garbageLayouts = IndexOptimizer.findGarbageLayouts(dataflow, new IncludedLayoutOptStrategy());
         Assert.assertTrue(garbageLayouts.isEmpty());
 
-        getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "true");
-        Set<Long> garbageLayouts2 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new IncludedLayoutGcStrategy());
+        getTestConfig().setProperty("kylin.index.include-strategy.consider-table-index", "true");
+        Set<Long> garbageLayouts2 = IndexOptimizer.findGarbageLayouts(dataflow, new IncludedLayoutOptStrategy());
         Map<Long, FrequencyMap> layoutHitCount = dataflowManager.getDataflow(DEFAULT_MODEL_BASIC_ID)
                 .getLayoutHitCount();
         Assert.assertEquals(1, garbageLayouts2.size());
@@ -245,17 +271,17 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         IndexPlan oriIndexPlan = indexPlanManager.getIndexPlan(GC_MODEL_ID);
         updateLayoutHitCount(dataflowManager, oriIndexPlan, currentDate, GC_MODEL_ID, 3);
         NDataflow dataflow = dataflowManager.getDataflow(GC_MODEL_ID);
-        Set<Long> garbageLayouts = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new SimilarLayoutGcStrategy());
+        Set<Long> garbageLayouts = IndexOptimizer.findGarbageLayouts(dataflow, new SimilarLayoutOptStrategy());
         Assert.assertEquals(Sets.newHashSet(30001L, 40001L, 50001L, 70001L), garbageLayouts);
         NavigableMap<Long, Integer> dateFrequency = dataflow.getLayoutHitCount().get(60001L).getDateFrequency();
         Assert.assertEquals(15, dateFrequency.get(currentDate - 3 * DAY_IN_MILLIS).intValue());
 
         // set kylin.garbage.reject-similarity-threshold to 1_000_000
-        getTestConfig().setProperty("kylin.garbage.reject-similarity-threshold", "1000000");
+        getTestConfig().setProperty("kylin.index.beyond-similarity-bias-threshold", "1000000");
         oriIndexPlan = indexPlanManager.getIndexPlan(GC_MODEL_ID);
         updateLayoutHitCount(dataflowManager, oriIndexPlan, currentDate, GC_MODEL_ID, 3);
         dataflow = dataflowManager.getDataflow(GC_MODEL_ID);
-        Set<Long> garbageLayouts2 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new SimilarLayoutGcStrategy());
+        Set<Long> garbageLayouts2 = IndexOptimizer.findGarbageLayouts(dataflow, new SimilarLayoutOptStrategy());
         val dateFrequency60001 = dataflow.getLayoutHitCount().get(60001L).getDateFrequency();
         val dateFrequency40001 = dataflow.getLayoutHitCount().get(40001L).getDateFrequency();
         Assert.assertEquals(Sets.newHashSet(30001L, 50001L), garbageLayouts2);
@@ -267,9 +293,8 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertEquals(6, dateFrequency40001.get(currentDate - DAY_IN_MILLIS).intValue());
 
         // test TableIndex
-        getTestConfig().setProperty("kylin.garbage.remove-included-table-index", "true");
-        Set<Long> garbageLayouts3 = DefaultGarbageCleaner.findGarbageLayouts(dataflow, new SimilarLayoutGcStrategy());
-        Assert.assertEquals(Sets.newHashSet(30001L, 50001L, 20000010001L, 20000020001L), garbageLayouts3);
+        Set<Long> garbageLayouts3 = IndexOptimizer.findGarbageLayouts(dataflow, new SimilarLayoutOptStrategy());
+        Assert.assertEquals(Sets.newHashSet(30001L, 50001L), garbageLayouts3);
     }
 
     private void updateLayoutHitCount(NDataflowManager dataflowManager, IndexPlan indexPlan, long currentDate,

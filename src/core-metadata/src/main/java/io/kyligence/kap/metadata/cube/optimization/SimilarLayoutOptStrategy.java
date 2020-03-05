@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.cube.garbage;
+package io.kyligence.kap.metadata.cube.optimization;
 
 import java.util.List;
 import java.util.Map;
@@ -48,14 +48,14 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SimilarLayoutGcStrategy extends AbstractGcStrategy {
+public class SimilarLayoutOptStrategy extends AbstractOptStrategy {
 
-    public SimilarLayoutGcStrategy() {
+    public SimilarLayoutOptStrategy() {
         this.setType(GarbageLayoutType.SIMILAR);
     }
 
     @Override
-    protected Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow) {
+    protected Set<Long> doCollect(List<LayoutEntity> inputLayouts, NDataflow dataflow, boolean needLog) {
         NDataSegment latestReadySegment = dataflow.getLatestReadySegment();
         if (latestReadySegment == null) {
             return Sets.newHashSet();
@@ -67,8 +67,16 @@ public class SimilarLayoutGcStrategy extends AbstractGcStrategy {
         List<Pair<LayoutEntity, LayoutEntity>> similarList = retainSimilarLineage(sonToFatherLineageMap, dataLayoutMap);
         similarList.forEach(pair -> garbageLayouts.add(pair.getFirst().getId()));
         shiftLayoutHitCount(similarList, dataflow);
-        log.info("In dataflow({}), SimilarLayoutGcStrategy found garbage laoyouts: {}", dataflow.getId(), similarList);
+        if (needLog) {
+            log.info("In dataflow({}), SimilarLayoutGcStrategy found garbage laoyouts: {}", dataflow.getId(),
+                    similarList);
+        }
         return garbageLayouts;
+    }
+
+    @Override
+    protected void skipOptimizeTableIndex(List<LayoutEntity> inputLayouts) {
+        inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
     }
 
     private void shiftLayoutHitCount(List<Pair<LayoutEntity, LayoutEntity>> pairs, NDataflow dataflow) {
