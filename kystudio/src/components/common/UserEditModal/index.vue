@@ -75,9 +75,9 @@
           </el-transfer>
       </el-form-item>
     </el-form>
-    <div slot="footer" class="dialog-footer">
-      <el-button plain size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button><el-button
-      size="medium" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
+    <div slot="footer" class="dialog-footer ky-no-br-space">
+      <el-button plain size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
+      <el-button size="medium" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -175,10 +175,18 @@ export default class UserEditModal extends Vue {
     if (newVal) {
       this.isFormShow = true
       this.editType === 'group' && this.fetchUserGroups()
+      document.addEventListener('keyup', this.handlerKeyEvent)
     } else {
+      document.removeEventListener('keyup', this.handlerKeyEvent)
       setTimeout(() => {
         this.isFormShow = false
       }, 300)
+    }
+  }
+
+  handlerKeyEvent (e) {
+    if (e.keyCode === 13) {
+      this.submit()
     }
   }
 

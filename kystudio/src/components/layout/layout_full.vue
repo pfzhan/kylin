@@ -11,7 +11,7 @@
       :title="$t('kylinLang.common.notice')"
       :close-on-click-modal="false"
       :append-to-body="true"
-      :visible.sync="$store.state.config.errorMsgBox.isShow"
+      :visible.sync="showErrorMsgBox"
       :close-on-press-escape="false">
       <el-alert
         type="error"
@@ -82,8 +82,8 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
-import { mapActions, mapMutations } from 'vuex'
+import { Component, Watch } from 'vue-property-decorator'
+import { mapActions, mapMutations, mapState } from 'vuex'
 import GuidType from '../common/Guide/GuideType'
 import Modal from '../common/Modal/Modal'
 import GuidePanel from '../common/Guide/GuidePanel'
@@ -98,6 +98,9 @@ import { filterInjectScript } from 'util'
     })
   },
   computed: {
+    ...mapState({
+      showErrorMsgBox: state => state.config.errorMsgBox.isShow
+    }),
     licenseDialogShow () {
       return this.$store.state.system.showLisenceSuccessDialog
     },
@@ -144,6 +147,11 @@ export default class LayoutFull extends Vue {
   showDetail = false
   showCopyStatus = false
   filterInjectScript = filterInjectScript
+  @Watch('showErrorMsgBox')
+  changeShowType (newVal) {
+    // 解决enter提交表单，input框仍可以操作并且成功之后错误弹窗不消失
+    document.activeElement.blur()
+  }
   toggleDetail () {
     this.showDetail = !this.showDetail
   }

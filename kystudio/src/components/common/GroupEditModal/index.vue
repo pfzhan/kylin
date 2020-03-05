@@ -9,7 +9,7 @@
     <el-form :model="form" @submit.native.prevent :rules="rules" ref="form" v-if="isFormShow">
       <!-- 表单：组名 -->
       <el-form-item :label="$t('kylinLang.common.groupName')" prop="group_name" v-if="isFieldShow('group_name')">
-        <el-input auto-complete="off" @input="value => inputHandler('group_name', value.trim())" :value="form.group_name"></el-input>
+        <el-input auto-complete="off" @input="value => inputHandler('group_name', value.trim())" :value="form.group_name" @keyup.enter.native="submit"></el-input>
       </el-form-item>
       <!-- 表单：分配用户 -->
       <el-form-item v-if="isFieldShow('users')">
