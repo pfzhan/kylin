@@ -44,22 +44,19 @@ package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
-import io.kyligence.kap.cluster.YarnClusterManager;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,7 +98,6 @@ import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
-import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -141,10 +137,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
+import com.google.gson.Gson;
 
+import io.kyligence.kap.cluster.YarnClusterManager;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -156,7 +155,9 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.StructField;
 import io.kyligence.kap.query.engine.QueryExec;
+import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.query.engine.data.TableSchema;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
@@ -691,12 +692,6 @@ public class QueryService extends BasicService {
         OLAPContext.clearThreadLocalContexts();
     }
 
-    @Deprecated
-    // use newQueryExec instead
-    public Connection getConnection(String project) throws SQLException {
-        return QueryConnection.getConnection(project);
-    }
-
     public QueryExec newQueryExec(String project) {
         return new QueryExec(project, KylinConfig.getInstanceFromEnv());
     }
@@ -712,95 +707,61 @@ public class QueryService extends BasicService {
                 sqlRequest.getOffset(), defaultSchema, sqlException, isPrepare);
     }
 
-    // TODO: refactor the getMetatdata method and get table meta from ProjectManager directly
-    public List<TableMeta> getMetadata(String project) throws SQLException {
+    public List<TableMeta> getMetadata(String project) {
 
-        Connection conn = null;
-        ResultSet columnMeta = null;
-        List<TableMeta> tableMetas = null;
         if (StringUtils.isBlank(project)) {
             return Collections.emptyList();
         }
-        ResultSet JDBCTableMeta = null;
-        try {
-            conn = getConnection(project);
-            DatabaseMetaData metaData = conn.getMetaData();
 
-            JDBCTableMeta = metaData.getTables(null, null, null, null);
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
+        SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
 
-            tableMetas = new LinkedList<TableMeta>();
-            Map<String, TableMeta> tableMap = new HashMap<String, TableMeta>();
-            while (JDBCTableMeta.next()) {
-                String catalogName = JDBCTableMeta.getString(1);
-                String schemaName = JDBCTableMeta.getString(2);
+        List<TableMeta> tableMetas = new LinkedList<>();
+        for (TableSchema tableSchema : schemaMetaData.getTables()) {
+            TableMeta tblMeta = new TableMeta(
+                    tableSchema.getCatalog(),
+                    tableSchema.getSchema(),
+                    tableSchema.getTable(),
+                    tableSchema.getType(),
+                    tableSchema.getRemarks(),
+                    null, null, null, null, null);
 
-                // Not every JDBC data provider offers full 10 columns, e.g., PostgreSQL has only 5
-                TableMeta tblMeta = new TableMeta(catalogName == null ? Constant.FakeCatalogName : catalogName,
-                        schemaName == null ? Constant.FakeSchemaName : schemaName, JDBCTableMeta.getString(3),
-                        JDBCTableMeta.getString(4), JDBCTableMeta.getString(5), null, null, null, null, null);
-
-                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
-                    tableMetas.add(tblMeta);
-                    tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
-                }
+            if (JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
+                continue;
             }
 
-            columnMeta = metaData.getColumns(null, null, null, null);
-            ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getProject(project);
-            while (columnMeta.next()) {
-                String catalogName = columnMeta.getString(1);
-                String schemaName = columnMeta.getString(2);
+            tableMetas.add(tblMeta);
 
-                // kylin(optiq) is not strictly following JDBC specification
-                ColumnMeta colmnMeta = new ColumnMeta(catalogName == null ? Constant.FakeCatalogName : catalogName,
-                        schemaName == null ? Constant.FakeSchemaName : schemaName, columnMeta.getString(3),
-                        columnMeta.getString(4), columnMeta.getInt(5), columnMeta.getString(6), columnMeta.getInt(7),
-                        getInt(columnMeta.getString(8)), columnMeta.getInt(9), columnMeta.getInt(10),
-                        columnMeta.getInt(11), columnMeta.getString(12), columnMeta.getString(13),
-                        getInt(columnMeta.getString(14)), getInt(columnMeta.getString(15)), columnMeta.getInt(16),
-                        columnMeta.getInt(17), columnMeta.getString(18), columnMeta.getString(19),
-                        columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
-                        columnMeta.getString(23));
+            int columnOrdinal = 1;
+            for (StructField field: tableSchema.getFields()) {
+                ColumnMeta colmnMeta = constructColumnMeta(tableSchema, field, columnOrdinal);
+                columnOrdinal++;
 
                 if (!shouldExposeColumn(projectInstance, colmnMeta)) {
                     continue;
                 }
 
-                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
-                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
-                    tableMap.get(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME()).addColumn(colmnMeta);
+                if (!colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
+                    tblMeta.addColumn(colmnMeta);
                 }
             }
-        } finally {
-            close(columnMeta, null, conn);
-            if (JDBCTableMeta != null) {
-                JDBCTableMeta.close();
-            }
+
         }
 
         return filterAuthorized(project, tableMetas, TableMeta.class);
     }
 
-    // TODO: refactor the getMetatdata method and get table meta from ProjectManager directly
     @SuppressWarnings("checkstyle:methodlength")
-    public List<TableMetaWithType> getMetadataV2(String project) throws SQLException {
+    public List<TableMetaWithType> getMetadataV2(String project) {
 
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
-        Map<String, TableMetaWithType> tableMap = null;
-        Map<String, ColumnMetaWithType> columnMap = null;
-        Connection conn = null;
-        try {
-            conn = getConnection(project);
-            DatabaseMetaData metaData = conn.getMetaData();
-            tableMap = constructTableMeta(metaData);
-            columnMap = constructTblColMeta(metaData, project);
-            addColsToTblMeta(tableMap, columnMap);
-        } finally {
-            close(null, null, conn);
-        }
+        SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
+        Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData);
+        Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project);
+        addColsToTblMeta(tableMap, columnMap);
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         for (String modelId : projectInstance.getModels()) {
@@ -841,64 +802,86 @@ public class QueryService extends BasicService {
         return String.format("%s.%s", database, tableMeta.getTABLE_NAME()).toUpperCase();
     }
 
-    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(DatabaseMetaData metaData) throws SQLException {
+    private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData) {
         LinkedHashMap<String, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
-        try (ResultSet jdbcTableMeta = metaData.getTables(null, null, null, null)) {
+        for (TableSchema tableSchema : schemaMetaData.getTables()) {
+            TableMetaWithType tblMeta = new TableMetaWithType(
+                    tableSchema.getCatalog(),
+                    tableSchema.getSchema(),
+                    tableSchema.getTable(),
+                    tableSchema.getType(),
+                    tableSchema.getRemarks(),
+                    null, null, null, null, null);
 
-            while (jdbcTableMeta.next()) {
-                String catalogName = jdbcTableMeta.getString(1);
-                String schemaName = jdbcTableMeta.getString(2);
-                // Not every JDBC data provider offers full 10 columns, e.g., PostgreSQL has only 5
-                TableMetaWithType tblMeta = new TableMetaWithType(
-                        catalogName == null ? Constant.FakeCatalogName : catalogName,
-                        schemaName == null ? Constant.FakeSchemaName : schemaName, jdbcTableMeta.getString(3),
-                        jdbcTableMeta.getString(4), jdbcTableMeta.getString(5), null, null, null, null, null);
-
-                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
-                    tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
-                }
+            if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
+                tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
             }
-
-            return tableMap;
         }
+
+        return tableMap;
     }
 
-    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(DatabaseMetaData metaData, String project)
-            throws SQLException {
+    private LinkedHashMap<String, ColumnMetaWithType> constructTblColMeta(SchemaMetaData schemaMetaData,
+            String project) {
 
         LinkedHashMap<String, ColumnMetaWithType> columnMap = Maps.newLinkedHashMap();
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
-        try (ResultSet columnMeta = metaData.getColumns(null, null, null, null)) {
-            while (columnMeta.next()) {
-                String catalogName = columnMeta.getString(1);
-                String schemaName = columnMeta.getString(2);
 
-                // kylin(optiq) is not strictly following JDBC specification
-                ColumnMetaWithType colmnMeta = new ColumnMetaWithType(
-                        catalogName == null ? Constant.FakeCatalogName : catalogName,
-                        schemaName == null ? Constant.FakeSchemaName : schemaName, columnMeta.getString(3),
-                        columnMeta.getString(4), columnMeta.getInt(5), columnMeta.getString(6), columnMeta.getInt(7),
-                        getInt(columnMeta.getString(8)), columnMeta.getInt(9), columnMeta.getInt(10),
-                        columnMeta.getInt(11), columnMeta.getString(12), columnMeta.getString(13),
-                        getInt(columnMeta.getString(14)), getInt(columnMeta.getString(15)), columnMeta.getInt(16),
-                        columnMeta.getInt(17), columnMeta.getString(18), columnMeta.getString(19),
-                        columnMeta.getString(20), columnMeta.getString(21), getShort(columnMeta.getString(22)),
-                        columnMeta.getString(23));
+        for (TableSchema tableSchema: schemaMetaData.getTables()) {
+            int columnOrdinal = 1;
+            for (StructField field : tableSchema.getFields()) {
+                ColumnMetaWithType columnMeta =
+                        ColumnMetaWithType.ofColumnMeta(constructColumnMeta(tableSchema, field, columnOrdinal));
+                columnOrdinal++;
 
-                if (!shouldExposeColumn(projectInstance, colmnMeta)) {
+                if (!shouldExposeColumn(projectInstance, columnMeta)) {
                     continue;
                 }
 
-                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(colmnMeta.getTABLE_SCHEM())
-                        && !colmnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
-                    columnMap.put(colmnMeta.getTABLE_SCHEM() + "#" + colmnMeta.getTABLE_NAME() + "#"
-                            + colmnMeta.getCOLUMN_NAME(), colmnMeta);
+                if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(columnMeta.getTABLE_SCHEM())
+                        && !columnMeta.getCOLUMN_NAME().toUpperCase().startsWith("_KY_")) {
+                    columnMap.put(columnMeta.getTABLE_SCHEM() + "#" + columnMeta.getTABLE_NAME() + "#"
+                            + columnMeta.getCOLUMN_NAME(), columnMeta);
                 }
             }
-
-            return columnMap;
         }
+        return columnMap;
+    }
+
+    private ColumnMeta constructColumnMeta(TableSchema tableSchema, StructField field, int columnOrdinal) {
+        final int NUM_PREC_RADIX = 10;
+        int columnSize = -1;
+        if (field.getDataType() == Types.TIMESTAMP ||
+                field.getDataType() == Types.DECIMAL ||
+                field.getDataType() == Types.VARCHAR ||
+                field.getDataType() == Types.CHAR) {
+            columnSize = field.getPrecision();
+        }
+        final int charOctetLength = columnSize;
+        final int decimalDigit = field.getDataType() == Types.DECIMAL ? field.getScale() : 0;
+        final int nullable = field.isNullable() ? 1 : 0;
+        final String isNullable = field.isNullable() ? "YES" : "NO";
+        final short sourceDataType = -1;
+
+        return new ColumnMeta(
+                tableSchema.getCatalog(),
+                tableSchema.getSchema(),
+                tableSchema.getTable(),
+                field.getName(),
+                field.getDataType(),
+                field.getDataTypeName(),
+                columnSize, // COLUMN_SIZE
+                -1, // BUFFER_LENGTH
+                decimalDigit, // DECIMAL_DIGIT
+                NUM_PREC_RADIX, // NUM_PREC_RADIX
+                nullable ,
+                null, null, -1, -1, // REMAKRS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB
+                charOctetLength, // CHAR_OCTET_LENGTH
+                columnOrdinal,
+                isNullable,
+                null, null, null, sourceDataType, ""
+        );
     }
 
     private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta) {

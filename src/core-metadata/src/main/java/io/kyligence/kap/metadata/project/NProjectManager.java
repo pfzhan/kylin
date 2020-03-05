@@ -206,6 +206,14 @@ public class NProjectManager {
         return projectLoader.listExposedTables(project);
     }
 
+    public Collection<TableDesc> listExposedTables(String project) {
+        return listExposedTables(project, config.isPushDownEnabled());
+    }
+
+    public List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
+        return listExposedColumns(project, tableDesc, config.isPushDownEnabled());
+    }
+
     public Collection<TableDesc> listExposedTables(String project, boolean exposeMore) {
         if (exposeMore) {
             return listDefinedTables(project);

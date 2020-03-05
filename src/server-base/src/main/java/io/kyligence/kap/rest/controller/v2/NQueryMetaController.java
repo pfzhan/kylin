@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.rest.controller.v2;
 
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.service.KapQueryService;
+import java.util.List;
+
 import org.apache.kylin.metadata.querymeta.TableMeta;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,8 +35,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.sql.SQLException;
-import java.util.List;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.service.KapQueryService;
 
 /**
  * Backward capable API for KyligenceODBC: /kylin/api/tables_and_columns
@@ -62,10 +61,6 @@ public class NQueryMetaController extends NBasicController {
     @ResponseBody
     @Deprecated
     public List<TableMeta> getMetadataForDriver(MetaRequest metaRequest) {
-        try {
-            return queryService.getMetadata(metaRequest.getProject());
-        } catch (SQLException e) {
-            throw new InternalErrorException(e.getLocalizedMessage(), e);
-        }
+        return queryService.getMetadata(metaRequest.getProject());
     }
 }

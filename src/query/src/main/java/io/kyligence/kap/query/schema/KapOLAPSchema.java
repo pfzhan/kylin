@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.query.schema;
 
-import static org.apache.kylin.query.schema.OLAPSchemaFactory.exposeMore;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,8 +61,7 @@ public class KapOLAPSchema extends OLAPSchema {
     private Map<String, Table> createTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 
-        Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName,
-                exposeMore());
+        Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName, exposeMore);
 
         for (TableDesc tableDesc : projectTables) {
             if (tableDesc.getDatabase().equals(schemaName)) {

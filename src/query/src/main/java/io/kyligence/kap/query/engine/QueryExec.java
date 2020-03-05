@@ -60,7 +60,7 @@ public class QueryExec {
     private final KylinConfig kylinConfig;
     private final CalciteConnectionConfig config;
     private final RelOptPlanner planner;
-    private final KapProjectSchemaFactory schemaFactory;
+    private final ProjectSchemaFactory schemaFactory;
     private final Prepare.CatalogReader catalogReader;
     private final SQLConverter sqlConverter;
     private final QueryOptimizer queryOptimizer;
@@ -69,7 +69,7 @@ public class QueryExec {
     public QueryExec(String project, KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
         config = KECalciteConfig.fromKapConfig(kylinConfig);
-        schemaFactory = new KapProjectSchemaFactory(project, kylinConfig);
+        schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
         catalogReader = createCatalogReader(config, schemaFactory);
         planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
         sqlConverter = new SQLConverter(config, planner, catalogReader);
@@ -114,7 +114,7 @@ public class QueryExec {
 
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
 
-            return new MetaDataExtractor().getColumnMetadata(relRoot.rel);
+            return RelColumnMetaDataExtractor.getColumnMetadata(relRoot.rel);
         } catch (Exception e) {
             throw new SQLException(e);
         } finally {
@@ -157,11 +157,10 @@ public class QueryExec {
         } else {
             planExec = new SparderQueryPlanExec();
         }
-        return new QueryResult(planExec.execute(rel, dataContext),
-                new MetaDataExtractor().getColumnMetadata(rel));
+        return new QueryResult(planExec.execute(rel, dataContext), RelColumnMetaDataExtractor.getColumnMetadata(rel));
     }
 
-    private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig, KapProjectSchemaFactory schemaFactory) {
+    private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig, ProjectSchemaFactory schemaFactory) {
         RelDataTypeSystem relTypeSystem = new KylinRelDataTypeSystem();
         JavaTypeFactory javaTypeFactory = new JavaTypeFactoryImpl(relTypeSystem);
         return new CalciteCatalogReader(schemaFactory.createProjectRootSchema(), Collections.singletonList(schemaFactory.getDefaultSchema()),

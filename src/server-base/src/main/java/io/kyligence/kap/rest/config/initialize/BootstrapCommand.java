@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -41,7 +42,6 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -122,7 +122,7 @@ public class BootstrapCommand implements Runnable {
                 NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
                 Collection<TableDesc> tables = npr.listDefinedTables(project.getName());
                 HashMap<String, Integer> schemaCounts = DatabaseDesc.extractDatabaseOccurenceCounts(tables);
-                String defaultDatabase = OLAPSchemaFactory.getDatabaseByMaxTables(schemaCounts);
+                String defaultDatabase = ProjectSchemaFactory.getDatabaseByMaxTables(schemaCounts);
                 project.setDefaultDatabase(defaultDatabase.toUpperCase());
                 npr.updateProject(project);
             }

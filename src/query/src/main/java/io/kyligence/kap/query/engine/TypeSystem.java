@@ -22,21 +22,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.schema;
+package io.kyligence.kap.query.engine;
 
-import java.util.Map;
+import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.kylin.query.calcite.KylinRelDataTypeSystem;
 
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaFactory;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.kylin.common.KylinConfig;
+public class TypeSystem {
 
-public class KapSchemaFactory implements SchemaFactory {
-    private final static String SCHEMA_PROJECT = "project";
-
-    @Override
-    public Schema create(SchemaPlus parentSchema, String schemaName, Map<String, Object> operand) {
-        String project = (String) operand.get(SCHEMA_PROJECT);
-        return new KapOLAPSchema(project, schemaName, KylinConfig.getInstanceFromEnv().isPushDownEnabled());
+    public RelDataTypeSystem relDataTypeSystem() {
+        return new KylinRelDataTypeSystem();
     }
+
+    public JavaTypeFactory javaTypeFactory() {
+        return new JavaTypeFactoryImpl(relDataTypeSystem());
+    }
+
 }

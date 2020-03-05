@@ -22,33 +22,58 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine;
+package io.kyligence.kap.query.engine.data;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.type.RelDataType;
 
 import io.kyligence.kap.metadata.query.StructField;
 
-/**
- * extract table and column metadata from context
- */
-public class MetaDataExtractor {
+public class TableSchema {
 
-    public List<StructField> getColumnMetadata(RelNode rel) {
-        return rel.getRowType().getFieldList().stream()
-                .map(type -> relDataTypeToStructField(type.getKey(), type.getValue())).collect(Collectors.toList());
+    private final String catalog;
+
+    private final String schema;
+
+    private final String table;
+
+    private final String type;
+
+    private final String remarks;
+
+    private final List<StructField> fields;
+
+    public TableSchema(String catalog, String schema, String table, String type, String remarks, List<StructField> fields) {
+        this.catalog = catalog;
+        this.schema = schema;
+        this.table = table;
+        this.type = type;
+        this.remarks = remarks;
+        this.fields = fields;
     }
 
-    private static StructField relDataTypeToStructField(String fieldName, RelDataType relDataType) {
-        return new StructField(
-                fieldName,
-                relDataType.getSqlTypeName().getJdbcOrdinal(),
-                relDataType.getSqlTypeName().getName(),
-                relDataType.getPrecision(),
-                relDataType.getScale(),
-                relDataType.isNullable());
+    public String getCatalog() {
+        return catalog;
     }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public String getTable() {
+        return table;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public List<StructField> getFields() {
+        return Collections.unmodifiableList(fields);
+    }
+
 }

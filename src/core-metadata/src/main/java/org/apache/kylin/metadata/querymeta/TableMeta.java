@@ -44,6 +44,7 @@ package org.apache.kylin.metadata.querymeta;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -172,5 +173,24 @@ public class TableMeta implements Serializable {
 
     public void addColumn(ColumnMeta column) {
         this.columns.add(column);
+    }
+
+    @Override
+    public String toString() {
+        List<ColumnMeta> columnMetas = new ArrayList<>(columns);
+        columnMetas.sort(Comparator.comparingInt(ColumnMeta::getORDINAL_POSITION));
+        return "TableMeta{" +
+                "TABLE_CAT='" + TABLE_CAT + '\n' +
+                ", TABLE_SCHEM='" + TABLE_SCHEM + '\n' +
+                ", TABLE_NAME='" + TABLE_NAME + '\n' +
+                ", TABLE_TYPE='" + TABLE_TYPE + '\n' +
+                ", REMARKS='" + REMARKS + '\n' +
+                ", TYPE_CAT='" + TYPE_CAT + '\n' +
+                ", TYPE_SCHEM='" + TYPE_SCHEM + '\n' +
+                ", TYPE_NAME='" + TYPE_NAME + '\n' +
+                ", SELF_REFERENCING_COL_NAME='" + SELF_REFERENCING_COL_NAME + '\n' +
+                ", REF_GENERATION='" + REF_GENERATION + '\n' +
+                ", columns=" + columnMetas.stream().map(ColumnMeta::toString).reduce("", (r, s) -> r + s + '\n') +
+                '}';
     }
 }

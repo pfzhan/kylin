@@ -58,6 +58,16 @@ public class ColumnMetaWithType extends ColumnMeta {
     }
 
     private HashSet<columnTypeEnum> TYPE;
+    
+    public static ColumnMetaWithType ofColumnMeta(ColumnMeta columnMeta) {
+        return new ColumnMetaWithType(columnMeta.TABLE_CAT, columnMeta.TABLE_SCHEM, columnMeta.TABLE_NAME,
+                columnMeta.COLUMN_NAME, columnMeta.DATA_TYPE, columnMeta.TYPE_NAME, columnMeta.COLUMN_SIZE,
+                columnMeta.BUFFER_LENGTH, columnMeta.DECIMAL_DIGITS, columnMeta.NUM_PREC_RADIX, columnMeta.NULLABLE,
+                columnMeta.REMARKS, columnMeta.COLUMN_DEF, columnMeta.SQL_DATA_TYPE, columnMeta.SQL_DATETIME_SUB,
+                columnMeta.CHAR_OCTET_LENGTH, columnMeta.ORDINAL_POSITION, columnMeta.IS_NULLABLE,
+                columnMeta.SCOPE_CATLOG, columnMeta.SCOPE_SCHEMA, columnMeta.SCOPE_TABLE, columnMeta.SOURCE_DATA_TYPE,
+                columnMeta.IS_AUTOINCREMENT);
+    }
 
     public ColumnMetaWithType(String tABLE_CAT, String tABLE_SCHEM, String tABLE_NAME, String cOLUMN_NAME, int dATA_TYPE, String tYPE_NAME, int cOLUMN_SIZE, int bUFFER_LENGTH, int dECIMAL_DIGITS, int nUM_PREC_RADIX, int nULLABLE, String rEMARKS, String cOLUMN_DEF, int sQL_DATA_TYPE, int sQL_DATETIME_SUB, int cHAR_OCTET_LENGTH, int oRDINAL_POSITION, String iS_NULLABLE, String sCOPE_CATLOG, String sCOPE_SCHEMA, String sCOPE_TABLE, short sOURCE_DATA_TYPE, String iS_AUTOINCREMENT) {
         TABLE_CAT = tABLE_CAT;

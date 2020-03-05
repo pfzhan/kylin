@@ -286,4 +286,33 @@ public class ColumnMeta implements Serializable {
     public void setIS_AUTOINCREMENT(String iS_AUTOINCREMENT) {
         this.IS_AUTOINCREMENT = iS_AUTOINCREMENT;
     }
+
+    @Override
+    public String toString() {
+        return "ColumnMeta{" +
+                "TABLE_CAT='" + TABLE_CAT + '\n' +
+                ", TABLE_SCHEM='" + TABLE_SCHEM + '\n' +
+                ", TABLE_NAME='" + TABLE_NAME + '\n' +
+                ", COLUMN_NAME='" + COLUMN_NAME + '\n' +
+                ", DATA_TYPE=" + DATA_TYPE +
+                ", TYPE_NAME='" + TYPE_NAME + '\n' +
+                ", COLUMN_SIZE=" + COLUMN_SIZE +
+                ", BUFFER_LENGTH=" + BUFFER_LENGTH +
+                ", DECIMAL_DIGITS=" + DECIMAL_DIGITS +
+                ", NUM_PREC_RADIX=" + NUM_PREC_RADIX +
+                ", NULLABLE=" + NULLABLE +
+                ", REMARKS='" + REMARKS + '\n' +
+                ", COLUMN_DEF='" + COLUMN_DEF + '\n' +
+                ", SQL_DATA_TYPE=" + SQL_DATA_TYPE +
+                ", SQL_DATETIME_SUB=" + SQL_DATETIME_SUB +
+                ", CHAR_OCTET_LENGTH=" + CHAR_OCTET_LENGTH +
+                ", ORDINAL_POSITION=" + ORDINAL_POSITION +
+                ", IS_NULLABLE='" + IS_NULLABLE + '\n' +
+                ", SCOPE_CATLOG='" + SCOPE_CATLOG + '\n' +
+                ", SCOPE_SCHEMA='" + SCOPE_SCHEMA + '\n' +
+                ", SCOPE_TABLE='" + SCOPE_TABLE + '\n' +
+                ", SOURCE_DATA_TYPE=" + SOURCE_DATA_TYPE +
+                ", IS_AUTOINCREMENT='" + IS_AUTOINCREMENT + '\n' +
+                '}';
+    }
 }

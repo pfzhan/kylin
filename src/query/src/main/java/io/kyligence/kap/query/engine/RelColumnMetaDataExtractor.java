@@ -22,21 +22,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.schema;
+package io.kyligence.kap.query.engine;
 
-import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.calcite.schema.Schema;
-import org.apache.calcite.schema.SchemaFactory;
-import org.apache.calcite.schema.SchemaPlus;
-import org.apache.kylin.common.KylinConfig;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
 
-public class KapSchemaFactory implements SchemaFactory {
-    private final static String SCHEMA_PROJECT = "project";
+import io.kyligence.kap.metadata.query.StructField;
 
-    @Override
-    public Schema create(SchemaPlus parentSchema, String schemaName, Map<String, Object> operand) {
-        String project = (String) operand.get(SCHEMA_PROJECT);
-        return new KapOLAPSchema(project, schemaName, KylinConfig.getInstanceFromEnv().isPushDownEnabled());
+/**
+ * extract table and column metadata from context
+ */
+public class RelColumnMetaDataExtractor {
+
+    public static List<StructField> getColumnMetadata(RelDataType rowType) {
+        return rowType.getFieldList().stream()
+                .map(type -> relDataTypeToStructField(type.getKey(), type.getValue())).collect(Collectors.toList());
     }
+
+    public static List<StructField> getColumnMetadata(RelNode rel) {
+        return getColumnMetadata(rel.getRowType());
+    }
+
+    private static StructField relDataTypeToStructField(String fieldName, RelDataType relDataType) {
+        return new StructField(
+                fieldName,
+                relDataType.getSqlTypeName().getJdbcOrdinal(),
+                relDataType.getFullTypeString(),
+                relDataType.getPrecision(),
+                relDataType.getScale(),
+                relDataType.isNullable());
+    }
+
 }

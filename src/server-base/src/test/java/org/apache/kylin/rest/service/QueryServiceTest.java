@@ -46,6 +46,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -58,7 +59,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -75,6 +76,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -118,6 +120,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.data.QueryResult;
@@ -1003,5 +1006,37 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(matcher.find());
 
         Assert.assertNotEquals(curOld.getQueryId(), curNew.getQueryId());
+    }
+
+    @Test
+    public void testMetaData() throws IOException {
+        final List<TableMeta> tableMetas = queryService.getMetadata("default");
+        // TEST_MEASURE table has basically all possible column types
+        String metaString = tableMetas.stream()
+                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE"))
+                .findFirst()
+                .get()
+                .toString();
+
+        File expectedMetaFile = new File("src/test/resources/ut_table_meta/defaultTableMetas");
+        String expectedMetaString = FileUtils.readFileToString(expectedMetaFile);
+        Assert.assertEquals(expectedMetaString, metaString);
+    }
+
+    @Test
+    public void testMetaDataV2() throws IOException {
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        // TEST_MEASURE table has basically all possible column types
+        String metaString = tableMetas.stream()
+                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE"))
+                .findFirst()
+                .get()
+                .toString();
+
+        File expectedMetaFile = new File("src/test/resources/ut_table_meta/defaultTableMetasV2");
+        String expectedMetaString = FileUtils.readFileToString(expectedMetaFile);
+        Assert.assertEquals(expectedMetaString, metaString);
     }
 }

@@ -43,14 +43,14 @@ import io.kyligence.kap.query.schema.KapOLAPSchema;
 /**
  * factory that create and construct schemas within a project
  */
-public class KapProjectSchemaFactory {
+public class ProjectSchemaFactory {
 
     private final String projectName;
     private final KylinConfig kylinConfig;
     private HashMap<String, Integer> schemaCounts;
     private String defaultSchemaName;
 
-    public KapProjectSchemaFactory(String projectName, KylinConfig kylinConfig) {
+    public ProjectSchemaFactory(String projectName, KylinConfig kylinConfig) {
         this.projectName = projectName;
         this.kylinConfig = kylinConfig;
 
@@ -100,7 +100,7 @@ public class KapProjectSchemaFactory {
         }
     }
 
-    private static String getDatabaseByMaxTables(Map<String, Integer> schemaCounts) {
+    public static String getDatabaseByMaxTables(Map<String, Integer> schemaCounts) {
         String majoritySchemaName = ProjectInstance.DEFAULT_DATABASE;
         int majoritySchemaCount = 0;
         for (Map.Entry<String, Integer> e : schemaCounts.entrySet()) {

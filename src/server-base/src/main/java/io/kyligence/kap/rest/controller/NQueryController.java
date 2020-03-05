@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -271,8 +270,7 @@ public class NQueryController extends NBasicController {
     @ApiOperation(value = "getMetadata (update)", notes = "Update Param: project")
     @GetMapping(value = "/tables_and_columns")
     @ResponseBody
-    public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project)
-            throws SQLException {
+    public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project) {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.getMetadataV2(project), "");
     }

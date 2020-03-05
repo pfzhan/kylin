@@ -43,7 +43,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
@@ -160,7 +159,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
 
     static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
         List<ColumnDesc> columns = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listExposedColumns(project, tableDesc, OLAPSchemaFactory.exposeMore());
+                .listExposedColumns(project, tableDesc);
 
         Collections.sort(columns, Comparator.comparing(ColumnDesc::getZeroBasedIndex));
         return columns;
