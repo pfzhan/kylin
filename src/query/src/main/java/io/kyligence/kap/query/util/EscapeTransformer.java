@@ -52,9 +52,12 @@ public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
             // remove the comment
             CommentParser commentParser = new CommentParser(sql);
             sql = commentParser.Input();
+            logger.debug("CommentParser done parsing");
 
             EscapeParser parser = new EscapeParser(dialect, sql);
-            return parser.Input();
+            String result = parser.Input();
+            logger.debug("EscapeParser done parsing");
+            return result;
         } catch (Throwable ex) {
             logger.error("Something unexpected while EscapeTransformer transforming the query, return original query",
                     ex);

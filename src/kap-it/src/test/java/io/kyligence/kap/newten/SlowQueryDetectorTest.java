@@ -42,9 +42,11 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.query.pushdown.SparkSqlClient;
+import java.io.File;
 import java.util.UUID;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -52,6 +54,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.query.SlowQueryDetector;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.InfoHelper;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
@@ -62,6 +65,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.query.pushdown.SparkSqlClient;
 
 public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
     private SlowQueryDetector slowQueryDetector = null;
@@ -173,5 +179,28 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         } finally {
             config.setProperty("kylin.query.pushdown.auto-set-shuffle-partitions-enabled", "true");
         }
+    }
+
+    @Test
+    public void testSQLMassageTimeoutCancelJob() throws Exception {
+        slowQueryDetector.queryStart();
+        try {
+            SparderEnv.cleanCompute();
+            long t = System.currentTimeMillis();
+            String sql = FileUtils
+                    .readFileToString(new File("src/test/resources/query/sql_timeout/query03.sql"), "UTF-8").trim();
+            QueryUtil.massageSql(sql, getProject(), 0, 0, "DEFAULT", true);
+            String error = "TestSQLMassageTimeoutCancelJob fail, query cost:" + (System.currentTimeMillis() - t)
+                    + " ms, need compute:" + SparderEnv.needCompute();
+            logger.error(error);
+            Assert.fail(error);
+        } catch (Exception e) {
+            Assert.assertTrue(QueryContext.current().isTimeout());
+            Assert.assertTrue(e instanceof KylinTimeoutException);
+            Assert.assertTrue(ExceptionUtils.getStackTrace(e).contains("QueryUtil"));
+            // reset query thread's interrupt state.
+            Thread.interrupted();
+        }
+        slowQueryDetector.queryEnd();
     }
 }

@@ -51,6 +51,7 @@ import java.util.regex.Pattern;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.security.AccessDeniedException;
@@ -99,6 +100,11 @@ public class QueryUtil {
         // customizable SQL transformation
         initQueryTransformersIfNeeded(kylinConfig, isCCNeeded);
         for (IQueryTransformer t : queryTransformers) {
+            if (Thread.currentThread().isInterrupted()) {
+                logger.error("SQL transformation is timeout and interrupted before {}", t.getClass());
+                QueryContext.current().setTimeout(true);
+                throw new KylinTimeoutException("SQL transformation is timeout");
+            }
             sql = t.transform(sql, project, defaultSchema);
         }
         return sql;
@@ -170,6 +176,11 @@ public class QueryUtil {
             boolean isPrepare) {
         initPushDownConvertersIfNeeded(kylinConfig);
         for (IPushDownConverter converter : pushDownConverters) {
+            if (Thread.currentThread().isInterrupted()) {
+                logger.error("Push-down SQL conver transformation is timeout and interrupted before {}", converter.getClass());
+                QueryContext.current().setTimeout(true);
+                throw new KylinTimeoutException("Push-down SQL convert is timeout");
+            }
             sql = converter.convert(sql, project, defaultSchema, isPrepare);
         }
         return sql;

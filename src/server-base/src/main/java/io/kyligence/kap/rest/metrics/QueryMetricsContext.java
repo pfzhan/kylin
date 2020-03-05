@@ -154,7 +154,7 @@ public class QueryMetricsContext {
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(context.getCorrectedSql()));
 
-        this.sql = context.getCorrectedSql();
+        this.sql = context.getCorrectedSql() != null ? context.getCorrectedSql() : request.getSql();
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
         this.queryTime = QueryContext.current().getQueryStartMillis();
 

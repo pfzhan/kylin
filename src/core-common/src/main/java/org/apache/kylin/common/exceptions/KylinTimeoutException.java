@@ -43,9 +43,16 @@
 
 package org.apache.kylin.common.exceptions;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 public class KylinTimeoutException extends RuntimeException {
 
     public KylinTimeoutException(String message) {
         super(message);
+    }
+
+    public static boolean causedByTimeout(Throwable e) {
+        return e instanceof KylinTimeoutException ||
+                ExceptionUtils.getRootCause(e) instanceof KylinTimeoutException;
     }
 }

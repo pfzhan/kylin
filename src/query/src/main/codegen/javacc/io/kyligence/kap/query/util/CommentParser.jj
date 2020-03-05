@@ -101,6 +101,11 @@ String Expression() :
     String nextString = "";
 }
 {
+    {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new ParseException("CommentParser is interrupted");
+        }
+    }
     (
      innerString = QuotedString()
     | innerString = DoubleQuoteString()

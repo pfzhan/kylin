@@ -110,6 +110,11 @@ String Expression() :
     String innerString = "";
 }
 {
+    {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new ParseException("EscapeParser is interrupted");
+        }
+    }
     (
         innerString = EscapeExpress()
     | innerString = ParenExpress()

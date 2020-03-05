@@ -540,7 +540,7 @@ public class QueryService extends BasicService {
             QueryContext queryContext = QueryContext.current();
             queryContext.setFinalCause(e);
 
-            if (e.getCause() != null && ExceptionUtils.getRootCause(e) instanceof KylinTimeoutException) {
+            if (e.getCause() != null && KylinTimeoutException.causedByTimeout(e)) {
                 queryContext.setTimeout(true);
             }
 
