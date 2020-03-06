@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
@@ -91,10 +92,17 @@ public class NUserGroupController extends NBasicController {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<DataResult<List<ManagedUser>>> getUsersByGroup(
             @PathVariable(value = "group_name") String groupName,
+            @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
         List<ManagedUser> members = userGroupService.getGroupMembersByName(groupName);
+
+        if (StringUtils.isNotBlank(name)) {
+            members = members.stream()
+                    .filter(user -> StringUtils.containsIgnoreCase(user.getUsername(), name)).collect(Collectors.toList());
+        }
+
         val subList = PagingUtil.cutPage(members, pageOffset, pageSize);
         //LDAP users dose not have authorities
         for (ManagedUser user : subList) {

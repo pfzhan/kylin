@@ -117,11 +117,12 @@ public class NUserGroupControllerTest {
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
         Mockito.doNothing().when(aclTCRService).revokeAclTCR(Mockito.anyString(), Mockito.anyBoolean());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/group_members/{group_name:.+}", "g1@.h")
-                .contentType(MediaType.APPLICATION_JSON).param("page_offset", "0").param("page_size", "10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("name", "").param("page_offset", "0").param("page_size", "10")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserGroupController).getUsersByGroup("g1@.h", 0, 10);
+        Mockito.verify(nUserGroupController).getUsersByGroup("g1@.h", "", 0, 10);
     }
 
     @Test
