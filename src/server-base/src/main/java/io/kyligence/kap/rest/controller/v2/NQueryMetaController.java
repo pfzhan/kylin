@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.controller.v2;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 import java.util.List;
 
 import org.apache.kylin.metadata.querymeta.TableMeta;
@@ -57,7 +59,7 @@ public class NQueryMetaController extends NBasicController {
     @Qualifier("kapQueryService")
     private KapQueryService queryService;
 
-    @GetMapping(value = "/tables_and_columns", produces = { "application/json" })
+    @GetMapping(value = "/tables_and_columns", produces = { "application/json", HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     @Deprecated
     public List<TableMeta> getMetadataForDriver(MetaRequest metaRequest) {
