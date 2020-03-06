@@ -181,7 +181,6 @@ public class IndexPlanService extends BasicService {
         if (Objects.equals(newLayout.getId(), request.getId())) {
             newLayout.setId(newLayout.getId() + IndexEntity.INDEX_ID_STEP);
         }
-        newLayout.setName(request.getName());
         newLayout.setColOrder(convertColumn(request.getColOrder(), model));
         newLayout.setStorageType(request.getStorageType());
         newLayout.setShardByColumns(convertColumn(request.getShardByColumns(), model));
@@ -218,7 +217,6 @@ public class IndexPlanService extends BasicService {
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
                 val oldLayout = copyForWrite.getWhitelistLayouts().get(layoutIndex);
                 oldLayout.setManual(true);
-                oldLayout.setName(request.getName());
                 oldLayout.setOwner(getUsername());
                 oldLayout.setUpdateTime(System.currentTimeMillis());
             });

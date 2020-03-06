@@ -223,10 +223,6 @@ public class Message {
         return "Duplicate dimension name '%s'.";
     }
 
-    public String getDUPLICATE_TABLE_INDEX_NAME() {
-        return "Duplicate table index name '%s'.";
-    }
-
     public String getDUPLICATE_MEASURE_NAME() {
         return "Duplicate measure name '%s'.";
     }

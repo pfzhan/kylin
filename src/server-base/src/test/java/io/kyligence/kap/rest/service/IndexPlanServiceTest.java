@@ -545,7 +545,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         val originSize = indexPlanService.getTableIndexs("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa").size();
         indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .name("ti1")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
@@ -574,7 +573,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")));
         Assert.assertEquals(20000040001L, first.getId().longValue());
         Assert.assertEquals("default", first.getProject());
-        Assert.assertEquals("ti1", first.getName());
         Assert.assertEquals("ADMIN", first.getOwner());
         Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", first.getModel());
         Assert.assertEquals(TableIndexResponse.Status.EMPTY, first.getStatus());

@@ -40,8 +40,6 @@ public class TableIndexResponse {
 
     private String model;
 
-    private String name;
-
     private String owner;
 
     private Status status;

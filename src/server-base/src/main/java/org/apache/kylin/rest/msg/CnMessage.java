@@ -259,10 +259,6 @@ public class CnMessage extends Message {
         return "维度名称 '%s' 已存在，不能被创建";
     }
 
-    public String getDUPLICATE_TABLE_INDEX_NAME() {
-        return "明细索引名称 '%s' 已存在，不能被创建";
-    }
-
     public String getDUPLICATE_MEASURE_NAME() {
         return "度量名称 '%s' 已存在，不能被创建";
     }
