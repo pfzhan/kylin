@@ -29,6 +29,9 @@ import static io.kyligence.kap.engine.spark.utils.SparkConfHelper.COUNT_DISTICT;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -198,12 +201,23 @@ public abstract class SparkApplication implements Application, IKeep {
         return Boolean.FALSE;
     }
 
-    private Map<String, String> getTrackingInfo(IClusterManager cm) {
+    private String replaceHostAddress(String url) throws UnknownHostException {
+        URI uri = URI.create(url);
+        final String originHost = uri.getHost();
+        String hostAddress = InetAddress.getByName(originHost).getHostAddress();
+        return url.replace(originHost, hostAddress);
+    }
+
+    private Map<String, String> getTrackingInfo(IClusterManager cm, boolean ipAddressPreferred) {
         String applicationId = ss.sparkContext().applicationId();
         Map<String, String> extraInfo = new HashMap<>();
         extraInfo.put("yarn_app_id", applicationId);
         try {
-            extraInfo.put("yarn_app_url", getTrackingUrl(cm, applicationId));
+            String trackingUrl = getTrackingUrl(cm, applicationId);
+            if (ipAddressPreferred) {
+                trackingUrl = replaceHostAddress(trackingUrl);
+            }
+            extraInfo.put("yarn_app_url", trackingUrl);
         } catch (Exception e) {
             logger.error("get tracking url failed!", e);
         }
@@ -276,7 +290,7 @@ public abstract class SparkApplication implements Application, IKeep {
 
             if (isJobOnCluster(sparkConf)) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
-                        getTrackingInfo(buildEnv.clusterManager()));
+                        getTrackingInfo(buildEnv.clusterManager(), config.isTrackingUrlIpAddressEnabled()));
             }
 
             JoinMemoryManager.releaseAllMemory();
