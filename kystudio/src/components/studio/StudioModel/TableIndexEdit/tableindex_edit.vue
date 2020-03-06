@@ -1,12 +1,12 @@
 <template>
   <!-- tableindex的添加和编辑 -->
   <el-dialog :title="tableIndexModalTitle" append-to-body limited-area top="5vh" class="table-edit-dialog" width="880px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
-      <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top">
+      <!-- <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top">
         <el-form-item :label="$t('tableIndexName')" prop="name">
           <el-input v-focus="isShow" v-model="tableIndexMeta.name" auto-complete="off" placeholder="" size="medium" style="width:500px"></el-input>
         </el-form-item>
-      </el-form>
-      <div class="ky-line ksd-mtb-10"></div>
+      </el-form> -->
+      <!-- <div class="ky-line ksd-mtb-10"></div> -->
       <div>
         <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
         <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
@@ -93,7 +93,6 @@
     pager = 0
     tableIndexMetaStr = JSON.stringify({
       id: '',
-      name: '',
       col_order: [],
       sort_by_columns: [],
       shard_by_columns: [],
@@ -281,9 +280,9 @@
     closeModal (isSubmit) {
       this.hideModal()
       this.btnLoading = false
-      this.tableIndexMeta.name = ''
+      // this.tableIndexMeta.name = ''
       this.searchColumn = ''
-      this.$refs.tableIndexForm.resetFields()
+      // this.$refs.tableIndexForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback({
           isSubmit: isSubmit
@@ -343,6 +342,7 @@
       })
       this.tableIndexMeta.project = this.currentSelectedProject
       this.tableIndexMeta.model_id = this.modelInstance.uuid
+      'name' in this.tableIndexMeta && delete this.tableIndexMeta.name
       if (this.tableIndexMeta.id) {
         this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
       } else {
@@ -350,16 +350,13 @@
       }
     }
     async submit () {
-      this.$refs.tableIndexForm.validate((valid) => {
-        if (!valid) { return }
-        if (this.tableIndexDesc && this.tableIndexDesc.status && this.tableIndexDesc.status !== 'EMPTY') {
-          kapConfirm(this.$t('cofirmEditTableIndex'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
-            this.confirmSubmit()
-          })
-        } else {
+      if (this.tableIndexDesc && this.tableIndexDesc.status && this.tableIndexDesc.status !== 'EMPTY') {
+        kapConfirm(this.$t('cofirmEditTableIndex'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
           this.confirmSubmit()
-        }
-      })
+        })
+      } else {
+        this.confirmSubmit()
+      }
     }
   }
 </script>
