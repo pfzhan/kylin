@@ -176,7 +176,7 @@ export default class SecurityUser extends Vue {
   handleCurrentChange (pager, pageSize) {
     this.pagination.page_offset = pager
     this.pagination.page_size = pageSize
-    this.loadUsers(this.currentGroup)
+    this.loadUsers(this.filterName)
   }
 
   async loadUsers (name) {
@@ -184,7 +184,7 @@ export default class SecurityUser extends Vue {
       const parameter = {
         ...this.pagination,
         project: this.currentSelectedProject,
-        name,
+        name: name || '',
         group_name: this.currentGroup
       }
       const res = !this.currentGroup
@@ -237,7 +237,7 @@ export default class SecurityUser extends Vue {
   }
 
   mounted () {
-    this.loadUsers(this.currentGroup)
+    this.loadUsers()
   }
 }
 </script>
