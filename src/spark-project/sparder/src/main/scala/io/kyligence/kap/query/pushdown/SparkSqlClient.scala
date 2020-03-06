@@ -33,10 +33,8 @@ import org.apache.kylin.common.util.{HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
-import org.apache.spark.sql.functions._
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
-import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.slf4j.{Logger, LoggerFactory}
@@ -88,15 +86,14 @@ object SparkSqlClient {
     val jobGroup = Thread.currentThread.getName
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
-      val temporarySchema = df.schema.fields.zipWithIndex.map {
-        case (_, index) => s"temporary_$index"
-      }
-      val tempDF = df.toDF(temporarySchema: _*)
-      val columns = tempDF.schema.map(tp => col(s"`${tp.name}`").cast(StringType))
-      val frame = tempDF.select(columns: _*)
-      val rowList = frame.collect().map(_.toSeq.map(_.asInstanceOf[String]).asJava).toSeq.asJava
+      val rowList = df.collect().map(_.toSeq.map {
+        case null =>
+          null
+        case cell =>
+          cell.toString
+      }.asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
-      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(frame.queryExecution.executedPlan)
+      val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
       QueryContext.current().setScanRows(scanRows)
       QueryContext.current().setScanBytes(scanBytes)
       Pair.newPair(rowList, fieldList)
