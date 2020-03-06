@@ -1,0 +1,1 @@
+select (select '2012-01-02') as data,ACCOUNT_ID from "DEFAULT".TEST_ACCOUNT

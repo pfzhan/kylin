@@ -1,0 +1,3 @@
+
+select * from "DEFAULT".TEST_ACCOUNT where ACCOUNT_ID=
+(select ACCOUNT_ID from  "DEFAULT".TEST_ACCOUNT where ACCOUNT_COUNTRY='RU2')

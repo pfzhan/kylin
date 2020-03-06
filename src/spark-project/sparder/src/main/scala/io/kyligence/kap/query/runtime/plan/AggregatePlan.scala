@@ -36,6 +36,7 @@ import org.apache.spark.sql.catalyst.plans.logical.Project
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, StructType}
+import org.apache.spark.sql.udaf.SingleValueAgg
 import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
@@ -170,7 +171,7 @@ object AggregatePlan extends LogEx {
               .alias(aggName)
           // Issue 4337: Supported select (select '2012-01-02') as data, xxx from table group by xxx
           case SqlKind.SINGLE_VALUE.sql =>
-            first(argNames.head).alias(aggName)
+            SingleValueAgg(schema.head).apply(col(argNames.head)).alias(aggName)
           case FunctionDesc.FUNC_GROUPING =>
             if (!rel.isSimpleGroupType) {
               grouping(argNames.head).alias(aggName)

@@ -31,9 +31,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Throwables;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -303,5 +305,27 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         });
 
         return result;
+    }
+
+
+    @Test
+    //reference KE-11887
+    public void testQuerySingleValue() throws Exception {
+        final String TEST_FOLDER = "query/sql_single_value";
+        try {
+            //query00 subquery return multi null row
+            //query01 should throw RuntimeException
+            new TestScenario(CompareLevel.NONE, TEST_FOLDER, 0, 2).execute();
+            assert false;
+        } catch (Throwable e) {
+            String rootCauseMsg = Throwables.getRootCause(e).getMessage();
+            Assert.assertEquals(rootCauseMsg, "more than 1 row returned in a single value aggregation");
+        }
+
+        //query02 support SINGLE_VALUE
+        //query03 support :Issue 4337 , select (select '2012-01-02') as data, xxx from table group by xxx
+        //query04 support :Subquery is null
+        new TestScenario(CompareLevel.SAME, TEST_FOLDER, 2, 5).execute();
+
     }
 }
