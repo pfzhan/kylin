@@ -181,7 +181,8 @@ exports.default = {
     comma: '，',
     dot: '。',
     sqlLimitTip: '当前默认仅展示前100行 SQL 语句，请点击复制按钮获取完整的查询语句',
-    sqlPartLimitTip: '当前默认仅展示部分 SQL 语句，请点击复制按钮获取完整的查询语句'
+    sqlPartLimitTip: '当前默认仅展示部分 SQL 语句，请点击复制按钮获取完整的查询语句',
+    overLengthTip: '不得超过50字符'
   },
   model: {
     generateModel: 'SQL 建模',

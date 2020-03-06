@@ -1070,6 +1070,8 @@ export default class LayoutLeftRightTop extends Vue {
     line-height: 1;
     border-bottom: 1px solid @line-split-color;
     box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .round-icon (@width, @height) {
     width:@width;

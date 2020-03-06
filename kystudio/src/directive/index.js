@@ -3,6 +3,7 @@ import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
 import store from '../store'
 import { stopPropagation, on } from 'util/event'
+import commonTip from 'components/common/common_tip'
 const nodeList = []
 const ctx = '@@clickoutsideContext'
 
@@ -639,3 +640,83 @@ Vue.directive('scroll-shadow', {
   }
 })
 
+// 自定义增加tooltip指令，判断宽度（加偏移量）是否超过父盒子从而插入或移出tooltip
+let parentList = {}
+Vue.directive('custom-tooltip', {
+  bind: (el) => {
+    el.className += ' custom-tooltip-text'
+    el.style.cssText = 'white-space: nowrap;'
+  },
+  inserted: (el, binding) => {
+    if (!el) return
+    const parent = el.parentElement
+    this.parent = parent
+    this.binding = binding
+    let id = 'tooltip' + new Date().getTime().toString(32)
+    const nextElement = el.nextSibling
+    const currentElWidth = el.offsetWidth
+    const parentWidth = el.parentNode && el.parentNode.offsetWidth
+    parentList[id] = { parent, nextElement, binding }
+    el.dataset.id = id
+    appendTipDom(el, currentElWidth, parentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+    setTimeout(() => {
+      window.addEventListener('resize', () => {
+        if (!parent.querySelector('.custom-tooltip-text')) return
+        let textNode = parent.querySelector('.custom-tooltip-text')
+        let cw = textNode.offsetWidth
+        let pw = parent && parent.offsetWidth
+        appendTipDom(textNode, cw, pw, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+      })
+    }, 500)
+  },
+  update: (el, binding, oldVnode) => {
+    if (binding.value.text === binding.oldValue.text && binding.value.w === binding.oldValue.w) return
+    let parent = parentList[el.dataset.id].parent
+    let textNode = parent.querySelector('.custom-tooltip-text')
+    parentList[el.dataset.id].binding = binding
+    el.innerText = binding.value.text
+    textNode.innerText = binding.value.text
+    appendTipDom(textNode, textNode.offsetWidth, parent.offsetWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0, el.dataset.id)
+  },
+  unbind: (el) => {
+    el.dataset.id && delete parentList[el.dataset.id]
+    window.onresize = null
+  }
+})
+
+// 自定义创建common-tip组件并挂载
+function createToolTipDom (el, binding) {
+  const renderer = Vue.compile(el.outerHTML)
+  let createCommonTip = (propsData) => {
+    let Dom = Vue.extend(commonTip)
+    return new Dom({
+      propsData
+    })
+  }
+  let t = createCommonTip({placement: 'top', effect: 'dark', value: true, content: binding.value.text})
+  t.$slots.default = [t.$createElement(renderer)]
+  t.$mount()
+  t.$el.className = `${t.$el.className} custom-tooltip-layout ${binding.value.className || ''}`
+  return t
+}
+
+// 窗口resize以及更新数据时重新插入tooltip或去除tooltip
+function appendTipDom (el, currentW, parentW, w) {
+  const { parent, nextElement, binding } = parentList[el.dataset.id]
+  let comp = createToolTipDom(el, binding)
+  // 当前el超过父节点的宽度时插入tooltip否者移出
+  if (currentW + w >= parentW) {
+    if (!parent.querySelector('.tip_box')) {
+      nextElement ? parent.insertBefore(comp.$el, nextElement) : parent.appendChild(comp.$el)
+      parent.removeChild(el)
+    } else {
+      nextElement ? parent.insertBefore(comp.$el, nextElement) : parent.appendChild(comp.$el)
+      parent.removeChild(parent.querySelector('.tip_box'))
+    }
+  } else {
+    if (parent.querySelector('.tip_box')) {
+      nextElement ? parent.insertBefore(el, nextElement) : parent.appendChild(el)
+      parent.removeChild(parent.querySelector('.tip_box'))
+    }
+  }
+}

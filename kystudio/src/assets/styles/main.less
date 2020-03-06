@@ -823,6 +823,17 @@ i[class^=el-icon-]{
   }
 }
 
+.custom-tooltip-layout {
+  display: inline-block;
+  overflow: hidden;
+  .el-tooltip {
+    width: 100%;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .scroll-shadow-layout {
   &.scrolling-x {
     &::after {
@@ -942,4 +953,8 @@ i[class^=el-icon-]{
       }
     }
   }
+}
+
+.el-select-dropdown, .el-dropdown-menu {
+  max-width: 50vw;
 }

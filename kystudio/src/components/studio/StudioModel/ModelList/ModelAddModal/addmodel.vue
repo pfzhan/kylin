@@ -73,6 +73,8 @@ export default class ModelAddModal extends Vue {
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    } else if (value.length > 50) {
+      callback(new Error(this.$t('kylinLang.common.overLengthTip')))
     } else {
       this.getModelByModelName({model_name: value, project: this.currentSelectedProject}).then((response) => {
         handleSuccess(response, (data) => {

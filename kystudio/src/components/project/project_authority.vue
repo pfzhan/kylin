@@ -587,6 +587,7 @@ export default class ProjectAuthority extends Vue {
     }
   }
   .author-select {
+    width: 570px;
     .el-select-dropdown__item {
       white-space: pre-wrap;
     }
@@ -625,6 +626,12 @@ export default class ProjectAuthority extends Vue {
       .name-select {
         width: 570px;
         margin-left: 5px;
+        .el-select__tags-text {
+          max-width: 480px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          float: left;
+        }
       }
       .type-select {
         width: 150px;

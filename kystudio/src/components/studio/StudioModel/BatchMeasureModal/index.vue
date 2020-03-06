@@ -20,13 +20,13 @@
       <div v-if="!searchChar">
         <!-- 事实表 -->
         <div v-for="(table, index) in factTable" class="ksd-mb-10 scroll-table-item" :key="index">
-          <div @click="toggleTableShow(table)" class="table-header">
+          <div @click="toggleTableShow(table)" class="table-header clearfix">
             <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
             <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-            <span class="ksd-ml-2">
+            <span class="ksd-ml-2 table-icon">
               <i class="el-icon-ksd-fact_table"></i>
             </span>
-            <span class="table-title">{{table.alias}} <span>({{table.meaColNum}}/{{table.columns.length}})</span></span>
+            <div class="table-title"><span class="measure-header-tip-layout">{{table.alias}}</span> <span>({{table.meaColNum}}/{{table.columns.length}})</span></div>
           </div>
           <el-table
             v-if="table.show || isGuideMode"
@@ -59,13 +59,13 @@
         </div>
         <!-- 维度表 -->
         <div v-for="(table, index) in lookupTable" class="ksd-mb-10 scroll-table-item" :key="index">
-          <div @click="toggleTableShow(table)" class="table-header">
+          <div @click="toggleTableShow(table)" class="table-header clearfix">
             <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
             <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-            <span class="ksd-ml-2">
+            <span class="ksd-ml-2 table-icon">
               <i class="el-icon-ksd-lookup_table"></i>
             </span>
-            <span class="table-title">{{table.alias}} <span>({{table.meaColNum}}/{{table.columns.length}})</span></span>
+            <div class="table-title"><span class="measure-header-tip-layout">{{table.alias}}</span> <span>({{table.meaColNum}}/{{table.columns.length}})</span></div>
           </div>
           <el-table
             v-if="table.show || isGuideMode"
@@ -648,6 +648,18 @@ export default class BatchMeasureModal extends Vue {
       .right-icon{
         margin-right:20px;
       }
+    }
+    .table-icon {
+      float: left;
+    }
+    .measure-header-tip-layout {
+      max-width: calc(~'100% - 140px');
+      display: inline-block;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      float: left;
+      margin-left: 10px;
+      margin-right: 5px;
     }
   }
 </style>

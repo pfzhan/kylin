@@ -21,14 +21,14 @@
             <!-- 事实表 -->
             <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
               <div :class="{'error-content-tip': filterErrorContent(table)}">
-                <div @click="toggleTableShow(table)" class="table-header">
+                <div @click="toggleTableShow(table)" class="table-header clearfix">
                   <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
                   <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                  <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
-                  <span class="ksd-ml-2">
+                  <el-checkbox class="checkbox-all" v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+                  <span class="ksd-ml-6 table-icon">
                     <i class="el-icon-ksd-fact_table"></i>
                   </span>
-                  <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
+                  <div class="table-title"><span class="dimension-header-tip-layout">{{table.alias}}</span> <span> ({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></div>
                 </div>
                 <el-table
                   v-if="table.show || isGuideMode"
@@ -84,14 +84,14 @@
             <!-- 维度表 -->
             <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
               <div :class="{'error-content-tip': filterErrorContent(table)}">
-                <div @click="toggleTableShow(table)" class="table-header">
+                <div @click="toggleTableShow(table)" class="table-header clearfix">
                   <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
                   <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-                  <el-checkbox v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
-                  <span class="ksd-ml-2">
+                  <el-checkbox class="checkbox-all" v-model="table.checkedAll" :indeterminate="table.isIndeterminate" @click.native.stop  @change="(isAll) => {selectAllChange(isAll, table.guid)}"></el-checkbox>
+                  <span class="ksd-ml-6 table-icon">
                     <i class="el-icon-ksd-lookup_table"></i>
                   </span>
-                  <span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></span>
+                  <div class="table-title"><span class="dimension-header-tip-layout">{{table.alias}}</span> <span> ({{countTableSelectColumns(table)}}/{{table.columns.length}})</span></div>
                 </div>
                 <el-table
                   v-if="table.show || isGuideMode"
@@ -693,6 +693,21 @@ export default class DimensionsModal extends Vue {
     cursor:pointer;
     .right-icon{
       margin-right:20px;
+    }
+    .checkbox-all {
+      float: left;
+    }
+    .table-icon {
+      float: left;
+    }
+    .dimension-header-tip-layout {
+      max-width: calc(~'100% - 140px');
+      display: inline-block;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      float: left;
+      margin-left: 10px;
+      margin-right: 5px;
     }
   }
   .same-name-tip {

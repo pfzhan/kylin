@@ -39,7 +39,7 @@
 
     <el-table :data="usersList" :empty-text="emptyText" class="user-table" border v-scroll-shadow>
       <!-- 表：username列 -->
-      <el-table-column :label="$t('userName')" prop="username" :width="220" show-overflow-tooltip>
+      <el-table-column :label="$t('user')" prop="username" :width="220" show-overflow-tooltip>
         <template slot-scope="scope">
           <i class="el-icon-ksd-table_admin ksd-fs-14" style="cursor: default;"></i>
           <span class="user-name-col">{{scope.row.username}}</span>
