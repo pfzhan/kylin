@@ -103,6 +103,9 @@ export default {
       { "id": "viewSetting" },
       { "id": "viewAcceleration" }
     ],
+    "userGuideActions": [
+      { "id": "userGuide"}
+    ]
   },
   "disableOptionMaps": {
   },
@@ -119,6 +122,14 @@ export default {
         { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,source,model,index,modelEdit,monitor,job" },
         { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit" },
         { "key": "systemUser-default-*", "value": "dashboard" }
+      ]
+    },
+    // 新手引导
+    "userGuideActions": {
+      "keyPattern": "groupRole",
+      "entries": [
+        { "key": "systemAdmin", "value": "userGuide" },
+        { "key": "systemUser", "value": "none" }
       ]
     },
     // 仪表盘
