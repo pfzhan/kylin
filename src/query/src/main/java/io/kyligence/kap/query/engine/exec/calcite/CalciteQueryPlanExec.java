@@ -56,26 +56,8 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
         KapRel.OLAPContextImplementor contextImplementor = new KapRel.OLAPContextImplementor();
         contextImplementor.allocateContext((KapRel) rel.getInput(0), rel);
 
-        Bindable bindable = EnumerableInterpretable.toBindable(new HashMap<>(), new CalcitePrepare.SparkHandler() {
-            public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel, boolean restructure) {
-                return rootRel;
-            }
-
-            public void registerRules(RuleSetBuilder builder) {
-            }
-
-            public boolean enabled() {
-                return false;
-            }
-
-            public ArrayBindable compile(ClassDeclaration expr, String s) {
-                throw new UnsupportedOperationException();
-            }
-
-            public Object sparkContext() {
-                throw new UnsupportedOperationException();
-            }
-        }, (EnumerableRel) rel, EnumerableRel.Prefer.ARRAY);
+        Bindable bindable = EnumerableInterpretable.toBindable(new HashMap<>(), new TrivialSparkHandler(),
+                (EnumerableRel) rel, EnumerableRel.Prefer.ARRAY);
 
         Enumerable<Object> rawResult = bindable.bind(dataContext);
         List<List<String>> result = new LinkedList<>();
@@ -105,6 +87,28 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
                 return DateFormat.formatToTimeStr(Long.parseLong(value));
             default:
                 return value;
+        }
+    }
+
+    private static class TrivialSparkHandler implements CalcitePrepare.SparkHandler {
+        public RelNode flattenTypes(RelOptPlanner planner, RelNode rootRel, boolean restructure) {
+            return rootRel;
+        }
+
+        public void registerRules(RuleSetBuilder builder) {
+            // This is a trivial implementation. This method might be called but it is not supposed to do anything
+        }
+
+        public boolean enabled() {
+            return false;
+        }
+
+        public ArrayBindable compile(ClassDeclaration expr, String s) {
+            throw new UnsupportedOperationException();
+        }
+
+        public Object sparkContext() {
+            throw new UnsupportedOperationException();
         }
     }
 }
