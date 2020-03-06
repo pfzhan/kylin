@@ -27,6 +27,7 @@ import java.util
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
+import io.kyligence.kap.engine.spark.utils.LogEx
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
@@ -60,7 +61,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
                       var seg: NDataSegment,
                       val toBuildTree: NSpanningTree,
                       val ss: SparkSession,
-                      val sourceInfo: NBuildSourceInfo) extends Logging {
+                      val sourceInfo: NBuildSourceInfo) extends LogEx {
 
   import io.kyligence.kap.engine.spark.builder.CreateFlatTable._
 
@@ -224,7 +225,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   }
 }
 
-object CreateFlatTable extends Logging {
+object CreateFlatTable extends LogEx {
   type GlobalDictType = (Set[TblColRef], Set[TblColRef])
 
   @throws(classOf[ParseException])
@@ -260,12 +261,11 @@ object CreateFlatTable extends Logging {
     val lookupTablePar = lookupTables.par
     lookupTablePar.tasksupport = new ForkJoinTaskSupport(new ForkJoinPool(lookupTablePar.size))
     lookupTablePar.foreach { case (joinTableDesc, dataset) =>
-      logInfo(s"Begin count  ${joinTableDesc.getAlias}")
-      val start = System.currentTimeMillis()
-      val rowCount = dataset.count()
-      TableMetaManager.putTableMeta(joinTableDesc.getAlias, 0L, rowCount)
-      logInfo(s"end count ${joinTableDesc.getAlias}  cost ${System.currentTimeMillis() - start}")
-      logInfo(s"put meta  table:  ${joinTableDesc.getAlias} , count: ${rowCount}")
+      logTime (s"count ${joinTableDesc.getAlias}") {
+        val rowCount = dataset.count()
+        TableMetaManager.putTableMeta(joinTableDesc.getAlias, 0L, rowCount)
+        logInfo(s"put meta  table:  ${joinTableDesc.getAlias} , count: ${rowCount}")
+      }
     }
   }
   private def generateLookupTableDataset(model: NDataModel,
