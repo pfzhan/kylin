@@ -88,9 +88,16 @@ public class NHiveTableName implements Runnable {
                         List<String> dbs = explr.listDatabases().stream().map(String::toUpperCase)
                                 .collect(Collectors.toList());
                         for (String db : dbs) {
-                            List<String> tbs = explr.listTables(db).stream().map(String::toUpperCase)
-                                    .collect(Collectors.toList());
-                            newTables.put(db, tbs);
+                            if (explr.checkDatabaseAccess(db)) {
+                                List<String> tbs = explr.listTables(db).stream().map(String::toUpperCase)
+                                        .collect(Collectors.toList());
+                                newTables.put(db, tbs);
+
+                                int currDBSize = newTables.keySet().size();
+                                if (currDBSize % 20 == 0) {
+                                    logger.info("Foreach database curr pos {}, total num {}", currDBSize, dbs.size());
+                                }
+                            }
                         }
                         setAllTables(newTables);
                         lastLoadTime = System.currentTimeMillis();

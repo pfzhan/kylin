@@ -58,4 +58,6 @@ public interface ISourceMetadataExplorer {
     Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj) throws Exception;
     
     List<String> getRelatedKylinResources(TableDesc table);
+
+    boolean checkDatabaseAccess(String database) throws Exception;
 }

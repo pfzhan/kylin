@@ -56,6 +56,10 @@ function checkSparkDir() {
     source ${KYLIN_HOME}/sbin/check-1600-spark-dir.sh
 }
 
+function checkHiveDirAcl() {
+  source ${KYLIN_HOME}/sbin/check-2100-hive-acl.sh
+}
+
 function checkIfStopUserSameAsStartUser() {
     startUser=`ps -p $1 -o user=`
     currentUser=`whoami`
@@ -201,6 +205,8 @@ function startKE(){
     fi
 
     checkSparkDir
+
+    checkHiveDirAcl
 
     ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 

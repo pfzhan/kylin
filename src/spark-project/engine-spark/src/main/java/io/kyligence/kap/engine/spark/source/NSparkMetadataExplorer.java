@@ -28,9 +28,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-
 import java.util.stream.Collectors;
+
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -39,13 +41,19 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.catalog.Database;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleDataDeployer, Serializable {
+
+    private static final Logger logger = LoggerFactory.getLogger(NSparkMetadataExplorer.class);
 
     public NSparkTableMetaExplorer getTableMetaExplorer() {
         return new NSparkTableMetaExplorer();
@@ -54,7 +62,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     @Override
     public List<String> listDatabases() throws Exception {
         Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases").select("databaseName");
-        return dataset.collectAsList().stream().map(row-> row.getString(0)).collect(Collectors.toList());
+        return dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
     }
 
     @Override
@@ -64,7 +72,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             sql = String.format(sql + " in %s", database);
         }
         Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
-        return dataset.collectAsList().stream().map(row-> row.getString(0)).collect(Collectors.toList());
+        return dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
     }
 
     @Override
@@ -138,6 +146,24 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     @Override
     public List<String> getRelatedKylinResources(TableDesc table) {
         return Collections.emptyList();
+    }
+
+    @Override
+    public boolean checkDatabaseAccess(String database) throws Exception {
+        boolean hiveDBAccessFilterEnable = KapConfig.getInstanceFromEnv().getDBAccessFilterEnable();
+        if (hiveDBAccessFilterEnable) {
+            logger.info("Check database {} access start.", database);
+            try {
+                Database db = SparderEnv.getSparkSession().catalog().getDatabase(database);
+            } catch (AnalysisException e) {
+                UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+                logger.info("The current user: {} does not have permission to access database {}", ugi.getUserName(),
+                        database);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override

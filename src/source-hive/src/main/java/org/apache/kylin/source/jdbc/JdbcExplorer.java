@@ -330,4 +330,9 @@ public class JdbcExplorer implements ISourceMetadataExplorer, ISampleDataDeploye
         return Collections.emptyList();
     }
 
+    @Override
+    public boolean checkDatabaseAccess(String database) throws Exception {
+        return true;
+    }
+
 }

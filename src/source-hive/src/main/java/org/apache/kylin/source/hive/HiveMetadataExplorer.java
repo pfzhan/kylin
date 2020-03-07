@@ -150,6 +150,11 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
     }
 
     @Override
+    public boolean checkDatabaseAccess(String database) throws Exception {
+        return true;
+    }
+
+    @Override
     public void createSampleDatabase(String database) throws Exception {
         hiveClient.executeHQL(generateCreateSchemaSql(database));
     }

@@ -28,11 +28,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import io.kyligence.kap.common.util.EncryptUtil;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import io.kyligence.kap.common.util.FileUtils;
 
 public class KapConfig {
@@ -328,6 +328,10 @@ public class KapConfig {
      */
     public long getJointDataSkewThreshold() {
         return Long.parseLong(config.getOptional("kap.source.hive.modelstats.joint-data-skew-threshold", "50000000"));
+    }
+
+    public boolean getDBAccessFilterEnable() {
+        return Boolean.parseBoolean(config.getOptional("kap.source.hive.database-access-filter-enabled", "true"));
     }
 
     /**
@@ -712,7 +716,8 @@ public class KapConfig {
     }
 
     public boolean enablePushdownPrepareStatementWithParams() {
-        return Boolean.valueOf(config.getOptional("kap.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
+        return Boolean
+                .valueOf(config.getOptional("kap.query.engine.push-down.enable-prepare-statement-with-params", FALSE));
     }
 
     public boolean runConstantQueryLocally() {

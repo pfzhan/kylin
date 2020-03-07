@@ -120,6 +120,11 @@ public class CsvSource implements ISource {
             public List<String> getRelatedKylinResources(TableDesc table) {
                 return Collections.emptyList();
             }
+
+            @Override
+            public boolean checkDatabaseAccess(String database) throws Exception {
+                return true;
+            }
         };
     }
 
