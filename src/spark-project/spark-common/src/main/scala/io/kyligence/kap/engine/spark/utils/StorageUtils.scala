@@ -29,7 +29,7 @@ import java.util.UUID
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
 import io.kyligence.kap.metadata.model.NDataModel
-import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.hadoop.fs.{FileSystem, Path, PathFilter}
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.kylin.common.KapConfig
 import org.apache.kylin.common.util.{HadoopUtil, JsonUtil}
@@ -52,6 +52,26 @@ object StorageUtils extends Logging {
       logInfo(s"Rename src path ($src) to dst path ($dst) successfully.")
     } else {
       throw new RuntimeException(s"Rename src path ($src) to dst path ($dst) failed.")
+    }
+  }
+
+  // clean intermediate temp path after job or recover from an error job, usually with postfix '_temp'
+  def cleanTempPath(fs: FileSystem, path: Path, cleanSelf: Boolean): Unit = {
+    if (fs.exists(path)  && cleanSelf) {
+      fs.delete(path, true)
+      logInfo(s"Delete dir $path")
+    }
+    if (fs.exists(path.getParent)) {
+      fs.listStatus(path.getParent, new PathFilter {
+        override def accept(child: Path): Boolean = {
+          child.toString.startsWith(path.toString + "_temp")
+        }
+      }).map(_.getPath).foreach { path =>
+        if (fs.exists(path)) {
+          fs.delete(path, true)
+          logInfo(s"Delete temp dir $path")
+        }
+      }
     }
   }
 

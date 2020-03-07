@@ -23,12 +23,13 @@
 package org.apache.spark.sql.datasource.storage
 
 import java.util
+import java.util.concurrent.Executors
 import java.util.{List => JList}
 
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
 import io.kyligence.kap.engine.spark.utils.StorageUtils.findCountDistinctMeasure
 import io.kyligence.kap.engine.spark.utils.{JobMetrics, Metrics, Repartitioner, StorageUtils}
-import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KapConfig
@@ -45,10 +46,12 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.exchange.DetectDataSkewException
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
+import org.apache.spark.util.ThreadUtils
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
+import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
 
 case class WriteTaskStats(
                            numPartitions: Int,
@@ -68,12 +71,12 @@ abstract class StorageStore extends Logging {
             dataFrame: DataFrame): WriteTaskStats
 
   def read(
-    dataflow: NDataflow, layout: LayoutEntity, sparkSession: SparkSession,
-    extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame
+            dataflow: NDataflow, layout: LayoutEntity, sparkSession: SparkSession,
+            extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame
 
   def readSpecialSegment(
-    segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
-    extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame
+                          segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
+                          extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame
 
   def collectFileCountAndSizeAfterSave(outputPath: Path, conf: Configuration): (Long, Long) = {
     val fs = outputPath.getFileSystem(conf)
@@ -82,22 +85,6 @@ abstract class StorageStore extends Logging {
       (cs.getFileCount, cs.getLength)
     } else {
       (0L, 0L)
-    }
-  }
-
-  def deleteTempPathsWithInfo(conf: Configuration, tempPaths: String*): Unit = {
-    if (tempPaths.nonEmpty) {
-      val paths = tempPaths.map(path => new Path(path))
-      val fs = paths.head.getFileSystem(conf)
-      paths.foreach { path =>
-        if (fs.exists(path)) {
-          if (fs.delete(path, true)) {
-            logInfo(s"Delete temp layout path successful. Temp path: $path.")
-          } else {
-            logError(s"Delete temp layout path wrong, leave garbage. Temp path: $path.")
-          }
-        }
-      }
     }
   }
 }
@@ -181,8 +168,8 @@ class StorageStoreV1 extends StorageStore {
   }
 
   override def readSpecialSegment(
-    segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
-    extraOptions: Map[String, String]): DataFrame = {
+                                   segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
+                                   extraOptions: Map[String, String]): DataFrame = {
     val layoutId = layout.getId
     val path = NSparkCubingUtil.getStoragePath(segment, layoutId)
     sparkSession.read.parquet(path)
@@ -194,9 +181,11 @@ class StorageStoreV2 extends StorageStore with Logging {
 
   override def save(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame): WriteTaskStats = {
     val outputPathStr = outputPath.toString
-    val tempPath1 = outputPathStr + "_temp1"
-    val tempPath2 = outputPathStr + "_temp2"
     val sparkSession = dataFrame.sparkSession
+    val hadoopConf = sparkSession.sparkContext.hadoopConfiguration
+    val fs = outputPath.getFileSystem(hadoopConf)
+    StorageUtils.cleanTempPath(fs, outputPath, cleanSelf = true)
+    val tempPath1 = outputPathStr + "_temp1"
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath1)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
     val bucket = StorageUtils.calculateBucketNum(tempPath1, layout, rowCount, kapConfig)
@@ -208,59 +197,22 @@ class StorageStoreV2 extends StorageStore with Logging {
       layout.getIndex.getIndexPlan.getLayoutBucketNumMapping.get(layout.getId).toInt
     }
     val table = layout.toCatalogTable()
-    val hadoopConf = sparkSession.sparkContext.hadoopConfiguration
-    val fs = outputPath.getFileSystem(hadoopConf)
+
     val tmpDF = sparkSession.read.parquet(tempPath1)
+    val (normalCase, skewCase) = StorageStoreUtils.extractRepartitionColumns(table, layout)
 
-    val partitionValues = if (table.bucketSpec.isDefined || table.partitionColumnNames.nonEmpty) {
-      // write temp data to tempPath2 with bucketBy column and partitionBy column
-      val repartitionColumns = {
-        if (table.bucketSpec.isDefined) {
-          table.partitionColumnNames ++ table.bucketSpec.get.bucketColumnNames
-        } else {
-          table.partitionColumnNames
-        }
-        }.map(col)
-
-      require(repartitionColumns.nonEmpty, "Repartition columns should not be empty. Check your partition column and bucket column.")
-      val afterRepartition = tmpDF.repartition(bucketNum, repartitionColumns: _*)
+    val partitionValues = if (normalCase.nonEmpty) {
+      val afterRepartition = tmpDF.repartition(bucketNum, normalCase: _*)
       val partitionDirs = {
         try {
-          writeBucketAndPartitionFile(afterRepartition, table, hadoopConf, outputPath)
+          StorageStoreUtils.writeBucketAndPartitionFile(afterRepartition, table, hadoopConf, outputPath)
         } catch {
           case e: SparkException =>
             e.getCause.getCause match {
               case exception: DetectDataSkewException =>
-                logWarning("Case DetectDataSkewException, switch to build skew data and no skew data separately")
-                val bucketIds = exception.getBucketIds
-                val skewData = tmpDF
-                  .filter(Column(HashPartitioning(repartitionColumns.map(_.expr), bucketNum).partitionIdExpression).isin(bucketIds: _*))
-
-                val noSkewData = tmpDF
-                  .filter(not(
-                    Column(HashPartitioning(repartitionColumns.map(_.expr), bucketNum).partitionIdExpression).isin(bucketIds: _*)
-                  )).repartition(bucketNum, repartitionColumns: _*)
-
-                // write skew data to temp path2
-                val skewPartitions = writeBucketAndPartitionFile(skewData, table, hadoopConf, new Path(tempPath2))
-                // write no skew data to output path
-                val noSkewPartitions = writeBucketAndPartitionFile(noSkewData, table, hadoopConf, outputPath)
-                val partitions = skewPartitions ++ noSkewPartitions
-
-                // move skew data to output path
-                if (skewPartitions.isEmpty) {
-                  fs.listStatus(new Path(tempPath2)).foreach { file =>
-                    StorageUtils.overwriteWithMessage(fs, file.getPath, new Path(s"$outputPath/${file.getPath.getName}"))
-                  }
-                } else {
-                  skewPartitions.foreach { partition =>
-                    fs.listStatus(new Path(s"$tempPath2/$partition")).foreach { file =>
-                      StorageUtils.overwriteWithMessage(fs, file.getPath, new Path(s"$outputPath/$partition/${file.getPath.getName}"))
-                    }
-                  }
-                }
-                partitions
-              case e => throw e
+                logWarning("Case DetectDataSkewException, switch to resolve data skew.")
+                StorageStoreUtils.writeSkewData(exception.getBucketIds, tmpDF, outputPath, table, normalCase, skewCase, bucketNum)
+              case _ => throw e
             }
         }
       }
@@ -269,52 +221,33 @@ class StorageStoreV2 extends StorageStore with Logging {
       tmpDF.repartition(bucketNum)
         .sortWithinPartitions(layout.getColOrder.asScala.map(id => col(id.toString)): _*)
         .write
-        .mode("overwrite")
+        .mode(SaveMode.Overwrite)
         .parquet(outputPathStr)
       Nil
     }
 
     val (fileCount, byteSize) = collectFileCountAndSizeAfterSave(outputPath, hadoopConf)
-    deleteTempPathsWithInfo(hadoopConf, tempPath1, tempPath2)
+    StorageUtils.cleanTempPath(fs, outputPath, cleanSelf = false)
     WriteTaskStats(partitionValues.size, fileCount, byteSize, rowCount,
       metrics.getMetrics(Metrics.SOURCE_ROWS_CNT), bucketNum, partitionValues.toList.asJava)
   }
 
-  private def writeBucketAndPartitionFile(
-                                           dataFrame: DataFrame, table: CatalogTable, hadoopConf: Configuration,
-                                           qualifiedOutputPath: Path): Set[String] = {
-    val fs = qualifiedOutputPath.getFileSystem(hadoopConf)
-    if (fs.exists(qualifiedOutputPath)) {
-      logInfo(s"Path $qualifiedOutputPath is exists, delete it.")
-      fs.delete(qualifiedOutputPath, true)
-    }
-
-    qualifiedOutputPath.getFileSystem(hadoopConf).deleteOnExit(qualifiedOutputPath)
-    dataFrame.sparkSession.sessionState.conf.setLocalProperty("spark.sql.adaptive.enabled.when.repartition", "true")
-    val partitionDirs = mutable.Set.empty[String]
-    runCommand(dataFrame.sparkSession, "UnsafelySave") {
-      UnsafelyInsertIntoHadoopFsRelationCommand(qualifiedOutputPath, dataFrame.logicalPlan, table, partitionDirs)
-    }
-    dataFrame.sparkSession.sessionState.conf.setLocalProperty("spark.sql.adaptive.enabled.when.repartition", null)
-    partitionDirs.toSet
-  }
-
   override def read(
-    dataflow: NDataflow, layout: LayoutEntity, sparkSession: SparkSession,
-    extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame = {
+                     dataflow: NDataflow, layout: LayoutEntity, sparkSession: SparkSession,
+                     extraOptions: Map[String, String] = Map.empty[String, String]): DataFrame = {
     read(dataflow.getQueryableSegments.asScala, layout, sparkSession, extraOptions)
 
   }
 
   override def readSpecialSegment(
-    segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
-    extraOptions: Map[String, String]): DataFrame = {
+                                   segment: NDataSegment, layout: LayoutEntity, sparkSession: SparkSession,
+                                   extraOptions: Map[String, String]): DataFrame = {
     sparkSession.read.schema(layout.toCatalogTable().schema).parquet(NSparkCubingUtil.getStoragePath(segment, layout.getId))
   }
 
   def read(
-    segments: Seq[NDataSegment], layout: LayoutEntity, sparkSession: SparkSession,
-    extraOptions: Map[String, String]): DataFrame = {
+            segments: Seq[NDataSegment], layout: LayoutEntity, sparkSession: SparkSession,
+            extraOptions: Map[String, String]): DataFrame = {
     val table = layout.toCatalogTable()
     sparkSession.baseRelationToDataFrame(HadoopFsRelation(
       new LayoutFileIndex(sparkSession, table, 0L, segments),
@@ -324,6 +257,117 @@ class StorageStoreV2 extends StorageStore with Logging {
       new ParquetFileFormat,
       extraOptions)(sparkSession))
       .select(layout.toSchema().map(tp => col(tp.name)): _*)
+  }
+}
+
+object StorageStoreUtils extends Logging{
+  def writeSkewData(bucketIds: Seq[Int], dataFrame: DataFrame, outputPath: Path, table: CatalogTable,
+                      normalCase: Seq[Column], skewCase: Seq[Column], bucketNum: Int
+                     ): Set[String] = {
+    withNoSkewDetectScope(dataFrame.sparkSession) {
+      val hadoopConf = dataFrame.sparkSession.sparkContext.hadoopConfiguration
+      val fs = outputPath.getFileSystem(hadoopConf)
+      val outputPathStr = outputPath.toString
+
+      // filter out skew data, then write it separately
+      val service = Executors.newCachedThreadPool()
+      implicit val executorContext = ExecutionContext.fromExecutorService(service)
+      val futures = {
+        bucketIds.map { bucketId =>
+          (dataFrame
+            .filter(Column(HashPartitioning(normalCase.map(_.expr), bucketNum).partitionIdExpression) === bucketId)
+            .repartition(bucketNum, skewCase: _*), new Path(outputPathStr + s"_temp_$bucketId"))
+        } :+ {
+          (dataFrame
+            .filter(not(
+              Column(HashPartitioning(normalCase.map(_.expr), bucketNum).partitionIdExpression).isin(bucketIds: _*)
+            )).repartition(bucketNum, normalCase: _*), outputPath)
+        }
+        }.map { case (df, path) =>
+        Future[(Path, Set[String])] {
+          try {
+            val partitionDirs =
+              StorageStoreUtils.writeBucketAndPartitionFile(df, table, hadoopConf, path)
+            (path, partitionDirs)
+          } catch {
+            case t: Throwable =>
+              logError(s"Error for write skew data concurrently.", t)
+              throw t
+          }
+        }
+      }
+
+      val results = try {
+        val eventualFuture = Future.sequence(futures.toList)
+        ThreadUtils.awaitResult(eventualFuture, Duration.Inf)
+      } catch {
+        case t: Throwable =>
+          ThreadUtils.shutdown(service)
+          throw t
+      }
+
+      // move skew data to final output path
+      if (table.partitionColumnNames.isEmpty) {
+        results.map(_._1).filter(!_.toString.equals(outputPathStr)).foreach { path =>
+          fs.listStatus(path).foreach { file =>
+            StorageUtils.overwriteWithMessage(fs, file.getPath, new Path(s"$outputPath/${file.getPath.getName}"))
+          }
+        }
+      } else {
+        logInfo(s"with partition column, results $results")
+        results.filter(!_._1.toString.equals(outputPathStr))
+          .foreach { case (path: Path, partitions: Set[String]) =>
+            partitions.foreach { partition =>
+              if (!fs.exists(new Path(s"$outputPath/$partition"))) {
+                fs.mkdirs(new Path(s"$outputPath/$partition"))
+              }
+              fs.listStatus(new Path(s"$path/$partition")).foreach { file =>
+                StorageUtils.overwriteWithMessage(fs, file.getPath, new Path(s"$outputPath/$partition/${file.getPath.getName}"))
+              }
+            }
+          case _ => throw new RuntimeException
+          }
+      }
+      results.flatMap(_._2).toSet
+    }
+  }
+
+  def extractRepartitionColumns(table: CatalogTable, layout: LayoutEntity): (Seq[Column], Seq[Column]) = {
+    (table.bucketSpec.isDefined, table.partitionColumnNames.nonEmpty) match {
+      case (true, true) => (table.bucketSpec.get.bucketColumnNames.map(col), table.partitionColumnNames.map(col))
+      case (false, true) => (table.partitionColumnNames.map(col), layout.getColOrder.asScala.map(id => col(id.toString)))
+      case (true, false) => (table.bucketSpec.get.bucketColumnNames.map(col), layout.getColOrder.asScala.map(id => col(id.toString)))
+      case (false, false) => (Seq.empty[Column], Seq.empty[Column])
+    }
+  }
+
+  private def withNoSkewDetectScope[U](ss: SparkSession) (body: => U): U = {
+    try {
+      ss.sessionState.conf.setLocalProperty("spark.sql.adaptive.shuffle.maxTargetPostShuffleInputSize", "-1")
+      body
+    } catch {
+      case e: Throwable => throw e
+    }
+    finally {
+      ss.sessionState.conf.setLocalProperty("spark.sql.adaptive.shuffle.maxTargetPostShuffleInputSize", null)
+    }
+  }
+
+  def toDF(segment: NDataSegment, layoutEntity: LayoutEntity, sparkSession: SparkSession): DataFrame = {
+    StorageStoreFactory.create(layoutEntity.getModel.getStorageType).readSpecialSegment(segment, layoutEntity, sparkSession)
+  }
+
+  def writeBucketAndPartitionFile(
+                                   dataFrame: DataFrame, table: CatalogTable, hadoopConf: Configuration,
+                                   qualifiedOutputPath: Path): Set[String] = {
+    dataFrame.sparkSession.sessionState.conf.setLocalProperty("spark.sql.adaptive.enabled.when.repartition", "true")
+    var partitionDirs = Set.empty[String]
+    runCommand(dataFrame.sparkSession, "UnsafelySave") {
+      UnsafelyInsertIntoHadoopFsRelationCommand(qualifiedOutputPath, dataFrame.logicalPlan, table,
+        set => partitionDirs = partitionDirs ++ set)
+    }
+    dataFrame.sparkSession.sessionState.conf.setLocalProperty("spark.sql.adaptive.enabled.when.repartition", null)
+    partitionDirs
   }
 
   private def runCommand(session: SparkSession, name: String)(command: LogicalPlan): Unit = {
@@ -340,14 +384,6 @@ class StorageStoreV2 extends StorageStore with Logging {
         throw e
     }
   }
-}
-object StorageStoreUtils {
-
-  def toDF(segment: NDataSegment, layoutEntity: LayoutEntity, sparkSession: SparkSession): DataFrame = {
-    StorageStoreFactory.create(layoutEntity.getModel.getStorageType)
-      .readSpecialSegment(segment, layoutEntity, sparkSession);
-  }
-
 }
 
 

@@ -32,19 +32,18 @@ import org.apache.spark.sql.execution.datasources.FileFormatWriter.OutputSpec
 import org.apache.spark.sql.execution.datasources.{DataSource, FileFormat, FileFormatWriter}
 import org.apache.spark.sql.{Row, SparkSession}
 
-import scala.collection.mutable
-
 case class UnsafelyInsertIntoHadoopFsRelationCommand(
                                                       qualifiedOutputPath: Path,
                                                       query: LogicalPlan,
                                                       table: CatalogTable,
-                                                      callBack: mutable.Set[String]
+                                                      extractPartitionDirs: Set[String] => Unit
                                                     ) extends DataWritingCommand {
 
   override def run(sparkSession: SparkSession, child: SparkPlan): Seq[Row] = {
     val hadoopConf = sparkSession.sparkContext.hadoopConfiguration
     val outAttributes = query.output
-    val partionDirs = FileFormatWriter.write(
+    logInfo(s"Write data to $qualifiedOutputPath.")
+    val partitionDirs = FileFormatWriter.write(
       sparkSession,
       child,
       DataSource.lookupDataSource("parquet", sparkSession.sessionState.conf).newInstance().asInstanceOf[FileFormat],
@@ -60,7 +59,7 @@ case class UnsafelyInsertIntoHadoopFsRelationCommand(
       Seq(basicWriteJobStatsTracker(hadoopConf)),
       Map.empty
     )
-    partionDirs.foreach(callBack.add)
+    extractPartitionDirs(partitionDirs)
     Seq.empty
   }
 

@@ -755,11 +755,6 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     private void checkLayoutEntityPartitionCoulumns(NIndexPlanManager instance, IndexPlan indexPlan) {
         ArrayList<Integer> partitionColumns = new ArrayList<>(indexPlan.getExtendPartitionColumns());
-        if (indexPlan.getModel().getPartitionDesc().getPartitionDateColumnRef() != null) {
-            Integer colId = indexPlan.getModel()
-                    .getColId(indexPlan.getModel().getPartitionDesc().getPartitionDateColumnRef());
-            partitionColumns.add(colId);
-        }
         instance.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").getAllIndexes().stream()
                 .flatMap(indexEntity -> indexEntity.getLayouts().stream()).filter(LayoutEntity::isManual)
                 .filter(layoutEntity -> !layoutEntity.isAuto()).forEach(layoutEntity -> {

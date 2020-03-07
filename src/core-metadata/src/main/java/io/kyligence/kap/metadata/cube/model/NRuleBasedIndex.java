@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.cube.model;
 
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -302,11 +301,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         long proposalId = indexStartId + 1;
         BitSet dimBitSet = new BitSet(1024);
         BitSet meaBitSet = new BitSet(1024);
-        ArrayList<Integer> partitionColumns = new ArrayList<>(indexPlan.getExtendPartitionColumns());
-        if (needAddModelPartitionColumn()) {
-            Integer colId = getModel().getColId(getModel().getPartitionDesc().getPartitionDateColumnRef());
-            partitionColumns.add(colId);
-        }
         //convert all legacy cuboids generated from rules to LayoutEntity
         for (int i = 0; i < allCuboidIds.size(); i++) {
             BigInteger cuboidId = allCuboidIds.get(i);
@@ -324,8 +318,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
             if (colOrder.containsAll(indexPlan.getAggShardByColumns())) {
                 layout.setShardByColumns(indexPlan.getAggShardByColumns());
             }
-            if (colOrder.containsAll(partitionColumns)) {
-                layout.setPartitionByColumns(partitionColumns);
+            if (colOrder.containsAll(indexPlan.getExtendPartitionColumns()) && getModel().getStorageType() == 2) {
+                layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
             }
             layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
@@ -375,11 +369,6 @@ public class NRuleBasedIndex implements Serializable, IKeep {
 
         // remove layout in blacklist
         result.removeIf(layout -> layoutBlackList.contains(layout.getId()));
-    }
-
-    private boolean needAddModelPartitionColumn() {
-        return getModel().getStorageType() == 2 && getModel().getPartitionDesc() != null &&
-                getModel().getPartitionDesc().getPartitionDateColumnRef() != null;
     }
 
     private Pair<List<Integer>, List<Integer>> extractDimAndMeaFromCuboidId(List<Integer> allDims, List<Integer> allMeas, BigInteger cuboidId) {

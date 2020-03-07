@@ -23,36 +23,18 @@ package org.apache.spark.sql
 
 import io.kyligence.kap.metadata.cube.model.LayoutEntity
 import org.apache.kylin.metadata.model.FunctionDesc
-import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogStorageFormat, CatalogTable, CatalogTableType}
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, DoubleType, LongType, StructField, StructType}
+import org.apache.spark.sql.catalyst.catalog.{BucketSpec, CatalogStorageFormat, CatalogTable, CatalogTableType}
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
 
 
 object LayoutEntityConverter {
-  def genPartitionColumn(layoutEntity: LayoutEntity): Seq[String] = {
-    if (layoutEntity.isManual) {
-
-    }
-    
-    if (layoutEntity.getModel.getPartitionDesc == null) {
-      return Seq.empty[String]
-    }
-    val ref = layoutEntity.getModel.getPartitionDesc.getPartitionDateColumnRef
-    if (layoutEntity.getColumns.contains(ref) && !ref.getDatatype.equalsIgnoreCase("timestamp")) {
-      Seq(layoutEntity.getOrderedDimensions.inverse().get(ref).toString)
-    } else {
-      Seq.empty[String]
-    }
-  }
-
   implicit class LayoutEntityConverter(layoutEntity: LayoutEntity) {
-
-
     def toCatalogTable(): CatalogTable = {
-      val partitionColumn = genPartitionColumn(layoutEntity)
+      val partitionColumn = layoutEntity.getPartitionByColumns.asScala.map(_.toString)
       val bucketSp = {
         if (!layoutEntity.getShardByColumns.isEmpty) {
           BucketSpec(layoutEntity.getBucketNum,
@@ -80,7 +62,8 @@ object LayoutEntityConverter {
   }
 
   def genCuboidSchemaFromNCuboidLayoutWithPartitionColumn(cuboid: LayoutEntity, partitionColumn: Seq[String]): StructType = {
-    StructType(cuboid.getOrderedDimensions.asScala.filter(tp => !partitionColumn.contains(tp._1.toString)).map { i =>
+    val dimensions = cuboid.getOrderedDimensions
+    StructType(dimensions.asScala.filter(tp => !partitionColumn.contains(tp._1.toString)).map { i =>
       StructField(
         i._1.toString,
         SparderTypeUtil.toSparkType(i._2.getType),
@@ -94,7 +77,7 @@ object LayoutEntityConverter {
             generateFunctionReturnDataType(i._2.getFunction),
             nullable = true)
       }.toSeq ++
-      cuboid.getOrderedDimensions.asScala.filter(tp => partitionColumn.contains(tp._1.toString)).map { i =>
+      partitionColumn.map(pt => (pt, dimensions.get(pt.toInt))).map { i =>
         StructField(
           i._1.toString,
           SparderTypeUtil.toSparkType(i._2.getType),

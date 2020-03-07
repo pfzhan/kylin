@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -92,14 +93,7 @@ public class NSparkCubingStep extends NSparkExecutable {
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
                 String path = "/" + NSparkCubingUtil.getStoragePathWithoutPrefix(project,
                         dataflowId, segId, layout.getId());
-                result.add(path);
-                if (dataflow.getIndexPlan().isFastBitmapEnabled()) {
-                    if (!layout.listBitmapMeasure().isEmpty()) {
-                        result.add(path + HadoopUtil.FAST_BITMAP_SUFFIX);
-                    }
-                }
-                result.add(path + "_temp1");
-                result.add(path + "_temp2");
+                result.add(new Path(path).getParent().toString());
             }
         }
 

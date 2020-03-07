@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.slf4j.Logger;
@@ -102,9 +103,7 @@ public class NSparkMergingStep extends NSparkExecutable {
             for (LayoutEntity layout : indexPlan.getAllLayouts()) {
                 String path = "/" +  NSparkCubingUtil.getStoragePathWithoutPrefix(project,
                         dataflowId, seg.getId(), layout.getId());
-                result.add(path);
-                result.add(path + "_temp1");
-                result.add(path + "_temp2");
+                result.add(new Path(path).getParent().toString());
             }
         }
 

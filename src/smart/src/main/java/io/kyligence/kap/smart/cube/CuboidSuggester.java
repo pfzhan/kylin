@@ -157,14 +157,6 @@ class CuboidSuggester {
         return shardBy;
     }
 
-    private List<Integer> suggestPartitionBy(NDataModel nDataModel, IndexPlan indexPlan) {
-        Integer colId = nDataModel.getColId(nDataModel.getPartitionDesc().getPartitionDateColumnRef());
-        ArrayList<Integer> partitionColumns = new ArrayList<>();
-        partitionColumns.add(colId);
-        partitionColumns.addAll(indexPlan.getExtendPartitionColumns());
-        return partitionColumns;
-    }
-
     private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
 
         List<Integer> dimIds;
@@ -195,11 +187,9 @@ class CuboidSuggester {
         layout.setUpdateTime(System.currentTimeMillis());
         layout.setDraftVersion(smartContext.getDraftVersion());
         layout.setInProposing(true);
-        List<Integer> partitionColumns = Lists.newArrayList();
-        if (isQualifiedSuggestPartitionBy(ctx, model, dimIds)) {
-            partitionColumns = suggestPartitionBy(model, indexPlan);
+        if (model.getStorageType() == 2 && dimIds.containsAll(indexPlan.getExtendPartitionColumns())) {
+            layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
         }
-        layout.setPartitionByColumns(partitionColumns);
         if (!indexEntity.isTableIndex() && CollectionUtils.isNotEmpty(indexPlan.getAggShardByColumns())
                 && layout.getColOrder().containsAll(indexPlan.getAggShardByColumns())) {
             layout.setShardByColumns(indexPlan.getAggShardByColumns());
@@ -225,14 +215,6 @@ class CuboidSuggester {
             if (TblColRef.FilterColEnum.EQUAL_FILTER == colRef.getFilterLevel()) {
                 return true;
             }
-        }
-        return false;
-    }
-
-    private boolean isQualifiedSuggestPartitionBy(OLAPContext context, NDataModel nDataModel, List<Integer> dimIds) {
-        if (nDataModel.getStorageType() == 2 && (nDataModel.getPartitionDesc().getPartitionDateColumnRef() != null)) {
-            Integer colId = nDataModel.getColId(nDataModel.getPartitionDesc().getPartitionDateColumnRef());
-            return dimIds.contains(colId);
         }
         return false;
     }

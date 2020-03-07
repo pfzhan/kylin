@@ -23,6 +23,7 @@
             6,
             100000
           ],
+          "partition_by_columns": [ 5 ],
           "storage_type": 20
         }
       ]

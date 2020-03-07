@@ -81,6 +81,7 @@ public class NFilePruningV2Test extends NLocalWithSparkSessionTest {
         sparkConf.set("spark.sql.crossJoin.enabled", "true");
         sparkConf.set("spark.sql.adaptive.enabled", "true");
         sparkConf.set("spark.sql.sources.bucketing.enabled", "false");
+        sparkConf.set("spark.sql.adaptive.shuffle.maxTargetPostShuffleInputSize", "1");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);
 
