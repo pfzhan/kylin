@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
@@ -129,7 +130,7 @@ public class NUserController extends NBasicController {
         List<ManagedUser> all = userService.listUsers();
         logger.info("All {} users", all.size());
         if (all.isEmpty() && env.acceptsProfiles(PROFILE_DEFAULT)) {
-            createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
+            createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, ROLE_ADMIN, Constant.GROUP_ALL_USERS));
             createAdminUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
             createAdminUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
         }
@@ -169,7 +170,7 @@ public class NUserController extends NBasicController {
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public EnvelopeResponse<String> updateUser(@RequestBody ManagedUser user) {
+    public EnvelopeResponse<String> updateUser(@RequestBody ManagedUser user) throws IOException {
         val msg = MsgPicker.getMsg();
         checkProfile();
 
@@ -188,17 +189,18 @@ public class NUserController extends NBasicController {
             user.setPassword(existing.getPassword());
         if (user.getAuthorities() == null || user.getAuthorities().isEmpty())
             user.setGrantedAuthorities(existing.getAuthorities());
-
         if (!user.isDefaultPassword()) {
             checkPasswordLength(user.getPassword());
             checkPasswordCharacter(user.getPassword());
         }
 
         user.setPassword(pwdEncode(user.getPassword()));
+        completeAuthorities(user);
+
+        boolean noAdminRight = user.getAuthorities().contains(new SimpleGrantedAuthority(ROLE_ADMIN));
+        accessService.checkDefaultAdmin(user.getUsername(), noAdminRight);
 
         logger.info("Saving user {}", user);
-
-        completeAuthorities(user);
         userService.updateUser(user);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -214,6 +216,7 @@ public class NUserController extends NBasicController {
         if (StringUtils.equals(getPrincipal(), username)) {
             throw new ForbiddenException(msg.getSELF_DELETE_FORBIDDEN());
         }
+        accessService.checkDefaultAdmin(username, false);
         //delete user's project ACL
         accessService.revokeProjectPermission(username, MetadataConstants.TYPE_USER);
         aclTCRService.revokeAclTCR(username, true);
@@ -257,7 +260,7 @@ public class NUserController extends NBasicController {
         if (!isAdmin() && !StringUtils.equals(getPrincipal(), username)) {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
-
+        accessService.checkDefaultAdmin(username, true);
         val oldPassword = user.getPassword();
         val newPassword = user.getNewPassword();
 

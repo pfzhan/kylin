@@ -42,11 +42,14 @@
 
 package org.apache.kylin.rest.service;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.persistence.AclEntity;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.AclPermissionFactory;
@@ -56,6 +59,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;
@@ -189,4 +193,31 @@ public class AccessServiceTest extends ServiceTestBase {
             accessService.grant(ae, AclPermission.OPERATION, sid);
         }
     }
+
+    @Test(expected = BadRequestException.class)
+    public void testCheckGlobalAdminException() throws IOException {
+        accessService.checkGlobalAdmin("ADMIN");
+    }
+
+    @Test
+    public void testCheckGlobalAdmin() throws IOException {
+        accessService.checkGlobalAdmin("ANALYSIS");
+        accessService.checkGlobalAdmin(Arrays.asList("ANALYSIS", "MODEL", "AAA"));
+    }
+
+    @Test
+    public void testGenerateAceResponsesByFuzzMatching() throws Exception {
+        AclEntity ae = new AclServiceTest.MockAclEntity("test");
+        final Map<Sid, Permission> sidToPerm = new HashMap<>();
+        sidToPerm.put(new GrantedAuthoritySid("ADMIN"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new GrantedAuthoritySid("admin"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new GrantedAuthoritySid("ANALYST"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new PrincipalSid("ROLE_ADMIN"), AclPermission.ADMINISTRATION);
+        sidToPerm.put(new PrincipalSid("role_ADMIN"), AclPermission.ADMINISTRATION);
+        accessService.batchGrant(ae, sidToPerm);
+        List<AccessEntryResponse> result = accessService.generateAceResponsesByFuzzMatching(ae, "", false);
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals("ANALYST", ((GrantedAuthoritySid) result.get(0).getSid()).getGrantedAuthority());
+    }
+
 }

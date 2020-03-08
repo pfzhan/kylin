@@ -42,14 +42,19 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+
+import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
@@ -70,6 +75,7 @@ import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,6 +101,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.val;
 
 @Component("accessService")
 public class AccessService extends BasicService {
@@ -104,6 +111,10 @@ public class AccessService extends BasicService {
     @Autowired
     @Qualifier("aclService")
     private AclService aclService;
+
+    @Autowired
+    @Qualifier("userService")
+    protected UserService userService;
 
     // ~ Methods to manage acl life circle of domain objects ~
 
@@ -341,8 +352,24 @@ public class AccessService extends BasicService {
     }
 
     public List<AccessEntryResponse> generateAceResponsesByFuzzMatching(AclEntity ae, String nameSeg,
-            boolean isCaseSensitive) {
-        return generateAceResponsesByFuzzMatching(getAcl(ae), nameSeg, isCaseSensitive);
+            boolean isCaseSensitive) throws IOException {
+        List<AccessEntryResponse> resultsAfterFuzzyMatching = generateAceResponsesByFuzzMatching(getAcl(ae), nameSeg,
+                isCaseSensitive);
+        Set<String> adminUsers = userService.getGlobalAdmin();
+        List<AccessEntryResponse> result = new ArrayList<>();
+        for (val user : resultsAfterFuzzyMatching) {
+            Sid sid = user.getSid();
+            boolean isNormalUser = false;
+            if (sid instanceof GrantedAuthoritySid) {
+                isNormalUser = !adminUsers.contains(((GrantedAuthoritySid) sid).getGrantedAuthority());
+            } else if (sid instanceof PrincipalSid) {
+                isNormalUser = !StringUtils.equalsIgnoreCase(((PrincipalSid) sid).getPrincipal(), ROLE_ADMIN);
+            }
+            if (isNormalUser) {
+                result.add(user);
+            }
+        }
+        return result;
     }
 
     private List<AccessEntryResponse> generateAceResponsesByFuzzMatching(Acl acl, String nameSeg,
@@ -353,7 +380,7 @@ public class AccessService extends BasicService {
 
         List<AccessEntryResponse> result = new ArrayList<AccessEntryResponse>();
         for (AccessControlEntry ace : acl.getEntries()) {
-            if (nameSeg != null && !needAdd(nameSeg, isCaseSensitive, getName(ace.getSid()))) {
+            if (StringUtils.isNotEmpty(nameSeg) && !needAdd(nameSeg, isCaseSensitive, getName(ace.getSid()))) {
                 continue;
             }
             result.add(new AccessEntryResponse(ace.getId(), ace.getSid(), ace.getPermission(), ace.isGranting()));
@@ -418,7 +445,7 @@ public class AccessService extends BasicService {
     public String getUserPermissionInPrj(String project) {
         String grantedPermission;
         List<String> groups = getGroupsFromCurrentUser();
-        if (groups.contains(Constant.ROLE_ADMIN)) {
+        if (groups.contains(ROLE_ADMIN)) {
             return "GLOBAL_ADMIN";
         }
 
@@ -528,4 +555,27 @@ public class AccessService extends BasicService {
         }
         return null;
     }
+
+    public void checkGlobalAdmin(String username) throws IOException {
+        checkGlobalAdmin(Arrays.asList(username));
+    }
+
+    public void checkGlobalAdmin(List<String> usernames) throws IOException {
+        Set<String> adminUsers = userService.getGlobalAdmin();
+        for (String name : usernames) {
+            if (adminUsers.contains(name)) {
+                throw new BadRequestException(MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
+            }
+        }
+    }
+
+    public void checkDefaultAdmin(String username, boolean isDefaultAdminHasRight) {
+        if (StringUtils.equalsIgnoreCase(username, KylinUserService.SUPER_ADMIN)) {
+            String currentUser = AclPermissionUtil.getCurrentUsername();
+            if (!isDefaultAdminHasRight || !StringUtils.equalsIgnoreCase(KylinUserService.SUPER_ADMIN, currentUser)) {
+                throw new BadRequestException(MsgPicker.getMsg().getCHANGE_DEGAULTADMIN());
+            }
+        }
+    }
+
 }

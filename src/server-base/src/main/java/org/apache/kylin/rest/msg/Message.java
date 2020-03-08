@@ -737,4 +737,13 @@ public class Message {
     public String getDIAG_PACKAGE_TIMEOUT() {
         return "Package generating timeout, please contact Kyligence Support for help.";
     }
+
+    public String getCHANGE_GLOBALADMIN() {
+        return "You cannot add,modify or remove the system administrator’s rights";
+    }
+
+    public String getCHANGE_DEGAULTADMIN() {
+        return "Since the user ADMIN is the default built-in administrator, you cannot remove the role admin permission, delete or disable the user admin, And only user ADMIN can change the password and user group of user ADMIN";
+    }
+
 }

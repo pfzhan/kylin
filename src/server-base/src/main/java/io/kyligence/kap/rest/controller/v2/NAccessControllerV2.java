@@ -23,8 +23,15 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import io.kyligence.kap.rest.controller.NBasicController;
-import io.kyligence.kap.rest.service.AclTCRService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -45,14 +52,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.rest.controller.NBasicController;
+import io.kyligence.kap.rest.service.AclTCRService;
 
 @Controller
 @RequestMapping(value = "/api/access", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
@@ -113,7 +114,7 @@ public class NAccessControllerV2 extends NBasicController {
             @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,

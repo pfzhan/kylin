@@ -44,9 +44,11 @@ package org.apache.kylin.rest.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.CaseInsensitiveStringSet;
 import org.springframework.security.provisioning.UserDetailsManager;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -78,4 +80,11 @@ public interface UserService extends UserDetailsManager {
             }
         }).collect(Collectors.toList());
     }
+
+    default Set<String> getGlobalAdmin() throws IOException {
+        Set<String> adminUsers = new CaseInsensitiveStringSet();
+        adminUsers.addAll(listAdminUsers());
+        return adminUsers;
+    }
+
 }

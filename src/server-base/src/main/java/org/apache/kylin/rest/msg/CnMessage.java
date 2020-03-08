@@ -672,4 +672,12 @@ public class CnMessage extends Message {
     public String getPUSHDOWN_DATARANGE_TIMEOUT() {
         return "获取超时，请手动选择数据范围";
     }
+
+    public String getCHANGE_GLOBALADMIN() {
+        return "您不可以添加，修改，删除系统管理员的权限。";
+    }
+
+    public String getCHANGE_DEGAULTADMIN() {
+        return "由于用户ADMIN是系统默认内置管理员，所以不可以移除ROLE_ADMIN权限，删除，禁用用户ADMIN，并且仅用户ADMIN才可以更改用户ADMIN的密码和用户组";
+    }
 }

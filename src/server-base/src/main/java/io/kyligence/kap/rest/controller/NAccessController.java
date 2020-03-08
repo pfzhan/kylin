@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 
 import java.io.IOException;
 import java.util.List;
@@ -129,10 +130,12 @@ public class NAccessController extends NBasicController {
             whole.addAll(getAllUserNames());
             List<String> users = accessService.getAllAclSids(acl, MetadataConstants.TYPE_USER);
             whole.removeAll(users);
+            whole.removeAll(userService.listAdminUsers());
         } else {
             whole.addAll(getAllUserGroups());
             List<String> groups = accessService.getAllAclSids(acl, MetadataConstants.TYPE_GROUP);
             whole.removeAll(groups);
+            whole.remove(ROLE_ADMIN);
         }
 
         List<String> matchedSids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, whole);
@@ -147,7 +150,8 @@ public class NAccessController extends NBasicController {
             @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) {
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
         accessService.checkAuthorized(ae);
@@ -167,6 +171,9 @@ public class NAccessController extends NBasicController {
     public EnvelopeResponse<String> grant(@PathVariable("entity_type") String entityType,
             @PathVariable("uuid") String uuid, @RequestBody AccessRequest accessRequest) throws IOException {
         checkSid(accessRequest);
+        if (accessRequest.isPrincipal()) {
+            accessService.checkGlobalAdmin(accessRequest.getSid());
+        }
         accessService.grant(entityType, uuid, accessRequest.getSid(), accessRequest.isPrincipal(),
                 accessRequest.getPermission());
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
@@ -183,6 +190,9 @@ public class NAccessController extends NBasicController {
             throws IOException {
         List<AccessRequest> requests = transform(batchAccessRequests);
         checkSid(requests);
+        List<String> users = requests.stream().filter(AccessRequest::isPrincipal).map(AccessRequest::getSid)
+                .collect(Collectors.toList());
+        accessService.checkGlobalAdmin(users);
         accessService.batchGrant(requests, entityType, uuid);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             aclTCRService.updateAclTCR(uuid, requests);
@@ -206,6 +216,9 @@ public class NAccessController extends NBasicController {
         if (Objects.isNull(permission)) {
             throw new BadRequestException("Operation failed, unknown permission:" + accessRequest.getPermission());
         }
+        if (accessRequest.isPrincipal()) {
+            accessService.checkGlobalAdmin(accessRequest.getSid());
+        }
         accessService.update(ae, accessRequest.getAccessEntryId(), permission);
         boolean hasAdminProject = CollectionUtils.isNotEmpty(projectService.getAdminProjects());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hasAdminProject, "");
@@ -218,8 +231,11 @@ public class NAccessController extends NBasicController {
             @PathVariable("uuid") String uuid, //
             @RequestParam("access_entry_id") Integer accessEntryId, //
             @RequestParam("sid") String sid, //
-            @RequestParam("principal") Boolean principal) throws IOException {
+            @RequestParam("principal") boolean principal) throws IOException {
         checkSid(sid, principal);
+        if (principal) {
+            accessService.checkGlobalAdmin(sid);
+        }
         AclEntity ae = accessService.getAclEntity(entityType, uuid);
         accessService.revoke(ae, accessEntryId);
         if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
