@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
 import org.apache.kylin.rest.service.QueryService;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,16 +80,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 /**
  * @author xduo
  */
-public class NQueryControllerTest {
+public class NQueryControllerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
 
     private MockMvc mockMvc;
@@ -111,6 +113,12 @@ public class NQueryControllerTest {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
+    }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
     }
 
     private PrepareSqlRequest mockPrepareSqlRequest() {
@@ -240,11 +248,11 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetMetadata() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "project")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").param("project", "default")
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).getMetadata("project");
+        Mockito.verify(nQueryController).getMetadata("default");
     }
 
     @Test

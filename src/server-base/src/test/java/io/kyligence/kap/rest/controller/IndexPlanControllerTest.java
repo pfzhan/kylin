@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -45,15 +47,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import lombok.val;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-
-public class IndexPlanControllerTest {
+public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -73,10 +74,12 @@ public class IndexPlanControllerTest {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test

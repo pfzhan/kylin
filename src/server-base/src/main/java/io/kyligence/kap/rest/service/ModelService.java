@@ -346,9 +346,6 @@ public class ModelService extends BasicService {
     }
 
     public NCubeDescResponse getCubeWithExactModelName(String modelAlias, String projectName) {
-        if (getProjectManager().getProject(projectName) == null) {
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), projectName));
-        }
         NDataModel dataModel = getDataModelManager(projectName).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
             throw new BadRequestException(String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));

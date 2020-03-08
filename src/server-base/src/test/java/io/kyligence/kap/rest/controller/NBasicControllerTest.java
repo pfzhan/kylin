@@ -29,6 +29,7 @@ import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,9 +41,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.controller.fixture.FixtureController;
 
-public class NBasicControllerTest {
+public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -62,6 +64,12 @@ public class NBasicControllerTest {
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
                 new NotFoundException(StringUtils.EMPTY), new BadRequestException(StringUtils.EMPTY),
                 new UnauthorizedException());
+        createTestMetadata();
+    }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
     }
 
     @Test

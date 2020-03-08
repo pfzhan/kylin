@@ -80,12 +80,12 @@ public class NCubeDescControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCube() throws Exception {
-        Mockito.doAnswer(x -> null).when(modelService).getCubeWithExactModelName("model1", "default");
-        mockMvc.perform(
-                MockMvcRequestBuilders.get("/api/cube_desc/model1/default").contentType(MediaType.APPLICATION_JSON) //
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+        Mockito.doAnswer(x -> null).when(modelService).getCubeWithExactModelName("nmodel_basic", "default");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/cube_desc/default/nmodel_basic")
+                .contentType(MediaType.APPLICATION_JSON) //
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nCubesControllerV2).getCube("model1", "default");
+        Mockito.verify(nCubesControllerV2).getCube("default", "nmodel_basic");
     }
 
 }

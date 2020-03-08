@@ -33,6 +33,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,10 +53,11 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.AclTCRRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 
-public class AclTCRControllerTest {
+public class AclTCRControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -84,6 +86,12 @@ public class AclTCRControllerTest {
 
         final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
+    }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
     }
 
     @Test

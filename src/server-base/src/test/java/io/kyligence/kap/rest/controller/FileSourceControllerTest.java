@@ -23,10 +23,11 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.request.CSVRequest;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.service.FileSourceService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.mockito.Mockito.mock;
+
+import java.util.List;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -45,12 +46,14 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.mockito.Mockito.mock;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.request.CSVRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.service.FileSourceService;
 
-public class FileSourceControllerTest {
+public class FileSourceControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -66,14 +69,16 @@ public class FileSourceControllerTest {
     public void setup() {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(fileSourceController)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(fileSourceController).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     private CSVRequest mockCsvRequest() {

@@ -56,11 +56,12 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.ProjectService;
 
-public class NAccessControllerTest {
+public class NAccessControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -97,10 +98,12 @@ public class NAccessControllerTest {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
@@ -171,11 +174,8 @@ public class NAccessControllerTest {
         Mockito.doReturn(true).when(userService).userExists(sid);
         Mockito.doNothing().when(aclTCRService).revokeAclTCR(uuid, true);
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/access/{type}/{uuid}", type, uuid)
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("access_entry_id", "1")
-                .param("sid", sid)
-                .param("principal", "true")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).param("access_entry_id", "1").param("sid", sid)
+                .param("principal", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nAccessController).revokeAcl(type, uuid, 1, sid, true);
     }

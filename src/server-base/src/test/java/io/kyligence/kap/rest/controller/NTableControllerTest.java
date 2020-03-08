@@ -318,7 +318,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
         String errorMsg = "Start or end of range must be greater than 0!";
         DateRangeRequest request = new DateRangeRequest();
-        request.setProject("project");
+        request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         request.setStart("-1");
         request.setEnd("-1");
@@ -338,7 +338,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
     public void batchLoadTables_DateRange_EndLessThanStart_Exception() throws Exception {
         String errorMsg = "End of range must be greater than start!";
         DateRangeRequest request = new DateRangeRequest();
-        request.setProject("project");
+        request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         request.setStart("100");
         request.setEnd("1");

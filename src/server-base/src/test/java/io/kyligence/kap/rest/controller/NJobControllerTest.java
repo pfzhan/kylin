@@ -68,6 +68,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.request.SparkJobTimeRequest;
@@ -77,7 +78,7 @@ import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 import lombok.val;
 
-public class NJobControllerTest {
+public class NJobControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -96,10 +97,12 @@ public class NJobControllerTest {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
@@ -289,7 +292,7 @@ public class NJobControllerTest {
     @Test
     public void testUpdateSparkJobInfo() throws Exception {
         SparkJobUpdateRequest request = new SparkJobUpdateRequest();
-        request.setProject("a");
+        request.setProject("default");
         request.setJobId("b");
         request.setTaskId("c");
         request.setYarnAppUrl("url");
@@ -307,7 +310,7 @@ public class NJobControllerTest {
     @Test
     public void testUpdateSparkJobTime() throws Exception {
         SparkJobTimeRequest request = new SparkJobTimeRequest();
-        request.setProject("a");
+        request.setProject("default");
         request.setJobId("b");
         request.setTaskId("c");
         request.setYarnJobWaitTime("2");
