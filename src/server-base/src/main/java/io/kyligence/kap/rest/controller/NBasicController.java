@@ -66,9 +66,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -102,6 +104,7 @@ import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
 import lombok.val;
@@ -223,6 +226,30 @@ public class NBasicController {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
             throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+        }
+
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        if (projectManager == null) {
+            throw new BadRequestException("Cannot get ProjectManager for project: " + project);
+        }
+
+        ProjectInstance prjInstance = projectManager.getProject(project);
+        if (prjInstance == null) {
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        }
+    }
+
+    // Invoke this method after checkProjectName(), otherwise NPE will happen
+    public void checkProjectNotSemiAuto(String project) {
+        if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
+            throw new BadRequestException(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+        }
+    }
+
+    // Invoke this method after checkProjectName(), otherwise NPE will happen
+    public void checkProjectUnmodifiable(String project) {
+        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
+            throw new BadRequestException(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 

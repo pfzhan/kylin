@@ -23,15 +23,16 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.rest.request.SQLValidateRequest;
-import io.kyligence.kap.rest.service.FavoriteQueryService;
-import io.kyligence.kap.rest.service.FavoriteRuleService;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.List;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -45,13 +46,17 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.util.List;
+import com.google.common.collect.Lists;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.rest.request.SQLValidateRequest;
+import io.kyligence.kap.rest.service.FavoriteQueryService;
+import io.kyligence.kap.rest.service.FavoriteRuleService;
+import io.kyligence.kap.rest.service.ProjectService;
 
-public class FavoriteQueryControllerTest {
+public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
 
     private final String PROJECT = "default";
 
@@ -64,11 +69,20 @@ public class FavoriteQueryControllerTest {
     @InjectMocks
     private FavoriteQueryController favoriteQueryController = Mockito.spy(new FavoriteQueryController());
 
+    @Mock
+    private ProjectService projectService;
+
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(favoriteQueryController)
                 .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        createTestMetadata();
+    }
+
+    @After
+    public void teardown() {
+        cleanupTestMetadata();
     }
 
     @Test

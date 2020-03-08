@@ -32,7 +32,6 @@ import java.util.Objects;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -57,6 +56,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
@@ -275,6 +275,9 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateProjectGeneralInfo(@PathVariable("project") String project,
             @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
+        if (projectService.isProjectWriteLocked(project)) {
+            throw new IllegalStateException(MsgPicker.getMsg().getPROJECT_MODE_CHANGE_ERROR());
+        }
         projectService.updateProjectGeneralInfo(project, projectGeneralInfoRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

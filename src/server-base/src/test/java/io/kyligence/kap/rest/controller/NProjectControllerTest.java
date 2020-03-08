@@ -42,6 +42,9 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.mockito.ArgumentMatchers.eq;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -73,6 +76,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.RetentionRange;
@@ -94,10 +98,7 @@ import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
-import static org.mockito.ArgumentMatchers.eq;
-
-public class NProjectControllerTest {
+public class NProjectControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -114,6 +115,7 @@ public class NProjectControllerTest {
 
     @Before
     public void setup() {
+        createTestMetadata();
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(nProjectController).defaultRequest(MockMvcRequestBuilders.get("/"))
@@ -124,6 +126,8 @@ public class NProjectControllerTest {
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
+        restoreAllSystemProp();
     }
 
     private ProjectRequest mockProjectRequest() {

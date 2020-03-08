@@ -186,6 +186,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> batchSaveModels(@RequestParam("project") String project,
             @RequestBody List<ModelRequest> modelRequests) throws Exception {
         checkProjectName(project);
+        checkProjectNotSemiAuto(project);
         try {
             modelService.batchCreateModel(project, modelRequests);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -199,6 +200,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<NRecomendationListResponse> suggestModel(@RequestBody SqlAccerelateRequest request) {
         checkProjectName(request.getProject());
+        checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 modelService.suggestModel(request.getProject(), request.getSqls(), request.getReuseExistedModel()), "");
     }
@@ -215,9 +217,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Boolean> validateModelAlias(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
-        if (StringUtils.isEmpty(modelRequest.getUuid()))
-            throw new BadRequestException(MsgPicker.getMsg().getMODEL_ID_NOT_FOUND());
-
+        checkRequiredArg(MODEL_ID, modelRequest.getUuid());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, !modelService
                 .checkModelAliasUniqueness(modelRequest.getUuid(), modelRequest.getAlias(), modelRequest.getProject()),
                 "");
@@ -226,10 +226,9 @@ public class NModelController extends NBasicController {
     @ApiOperation(value = "checkIfCanAnsweredByExistedModel (check)", notes = "")
     @PostMapping(value = "/can_answered_by_existed_model")
     @ResponseBody
-    public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request)
-            throws Exception {
+    public EnvelopeResponse<Boolean> couldAnsweredByExistedModel(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
-
+        checkProjectNotSemiAuto(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 modelService.couldAnsweredByExistedModel(request.getProject(), request.getSqls()), "");
     }
@@ -573,6 +572,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<ComputedColumnDesc> checkComputedColumns(
             @RequestBody ComputedColumnCheckRequest modelRequest) {
+        checkProjectName(modelRequest.getProject());
         NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
         modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
         modelService.primaryCheck(modelDesc);
@@ -595,7 +595,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateModelDataCheckDesc(@PathVariable("model") String modelId,
             @RequestBody ModelCheckRequest request) {
-        request.checkSelf();
+        checkProjectName(request.getProject());
         modelService.updateModelDataCheckDesc(request.getProject(), modelId, request.getCheckOptions(),
                 request.getFaultThreshold(), request.getFaultActions());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -642,6 +642,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> applyOptimizeRecommendations(@PathVariable("model") String modelId,
             @RequestBody ApplyRecommendationsRequest request) {
         checkProjectName(request.getProject());
+        checkProjectNotSemiAuto(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
         request.setModelId(modelId);
         optimizeRecommendationService.applyRecommendations(request, request.getProject());
@@ -658,6 +659,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "measure_recommendations", required = false) List<Long> measureItemIds,
             @RequestParam(value = "index_recommendations", required = false) List<Long> indexItemIds) {
         checkProjectName(project);
+        checkProjectNotSemiAuto(project);
         checkRequiredArg(MODEL_ID, modelId);
         val request = new RemoveRecommendationsRequest();
         request.setModelId(modelId);
@@ -691,21 +693,13 @@ public class NModelController extends NBasicController {
                 .getLayoutRecommendationContent(project, modelId, content, itemId, offset, limit), "");
     }
 
-    public static final String ILLEGAL_INPUT_MSG = "Request failed. {project/model name} not found.";
-    public static final String ILLEGAL_MODE_MSG = "Request failed. Please check whether the recommendation mode is enabled in expert mode.";
-
     @ApiOperation(value = "getRecommendationsByProject (update){Red}", notes = "Del URL: project")
     @GetMapping(value = "/recommendations")
     @ResponseBody
     public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
             @RequestParam("project") String project) {
         checkProjectName(project);
-        if (StringUtils.isEmpty(project) || !projectService.isExistProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, ILLEGAL_INPUT_MSG);
-        }
-        if (!projectService.isSemiAutoProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, ILLEGAL_MODE_MSG);
-        }
+        checkProjectNotSemiAuto(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 optimizeRecommendationService.getRecommendationsStatsByProject(project), "");
     }
@@ -715,12 +709,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> batchApplyRecommendations(@RequestParam(value = "project") String project,
             @RequestParam(value = "model_names", required = false) List<String> modelAlias) {
         checkProjectName(project);
-        if (StringUtils.isEmpty(project) || !projectService.isExistProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT, null, ILLEGAL_INPUT_MSG);
-        }
-        if (!projectService.isSemiAutoProject(project)) {
-            return new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH, null, ILLEGAL_MODE_MSG);
-        }
+        checkProjectNotSemiAuto(project);
         optimizeRecommendationService.batchApplyRecommendations(project, modelAlias);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -736,6 +725,7 @@ public class NModelController extends NBasicController {
     @PostMapping(value = "/filter_condition/check")
     @ResponseBody
     public EnvelopeResponse<String> checkFilterCondition(@RequestBody ModelRequest modelRequest) {
+        checkProjectName(modelRequest.getProject());
         modelService.checkFilterCondition(modelRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }

@@ -56,11 +56,13 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccerelateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -77,6 +79,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -136,7 +139,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Before
-    public void setupResource() throws Exception {
+    public void setupResource() {
         System.setProperty("HADOOP_USER_NAME", "root");
         createTestMetadata();
     }
@@ -631,20 +634,20 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testOfflineAllModelsInProject() throws Exception {
-        Mockito.doNothing().when(modelService).offlineAllModelsInProject("project");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/disable_all_models").param("project", "project")
+        Mockito.doNothing().when(modelService).offlineAllModelsInProject("default");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/disable_all_models").param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).offlineAllModelsInProject("project");
+        Mockito.verify(nModelController).offlineAllModelsInProject("default");
     }
 
     @Test
     public void testOnlineAllModelsInProject() throws Exception {
-        Mockito.doNothing().when(modelService).onlineAllModelsInProject("project");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/enable_all_models").param("project", "project")
+        Mockito.doNothing().when(modelService).onlineAllModelsInProject("default");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/enable_all_models").param("project", "default")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).onlineAllModelsInProject("project");
+        Mockito.verify(nModelController).onlineAllModelsInProject("default");
     }
 
     @Test
@@ -690,45 +693,61 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).getOptimizeRecommendations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
                 Lists.newArrayList());
+    }
 
+    @Test
+    public void testGetRecommendationsWithEmptyProject() throws Exception {
         // project argument is empty
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders
+                        .get("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .contentType(MediaType.APPLICATION_JSON).param("project", "")
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nModelController).getOptimizeRecommendations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "",
                 Lists.newArrayList());
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getEMPTY_PROJECT_NAME(), jsonNode.get("msg").textValue());
     }
 
     @Test
     public void testApplyRecommendation() throws Exception {
         val request = new ApplyRecommendationsRequest();
-        request.setProject("default");
-        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Mockito.doNothing().when(optimizeRecommendationService).applyRecommendations(request, "default");
+        request.setProject("gc_test");
+        request.setModelId("e0e90065-e7c3-49a0-a801-20465ca64799");
+        Mockito.doNothing().when(optimizeRecommendationService).applyRecommendations(request, "gc_test");
         mockMvc.perform(MockMvcRequestBuilders
-                .put("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .put("/api/models/{model}/recommendations", "e0e90065-e7c3-49a0-a801-20465ca64799")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).applyOptimizeRecommendations(eq("e0e90065-e7c3-49a0-a801-20465ca64799"),
+                Mockito.any(ApplyRecommendationsRequest.class));
+    }
+
+    @Test
+    public void testApplyRecommendationWithEmptyProject() throws Exception {
+        val request = new ApplyRecommendationsRequest();
+        request.setProject("");
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders
+                        .put("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nModelController).applyOptimizeRecommendations(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(ApplyRecommendationsRequest.class));
-
-        // project is empty
-        request.setProject("");
-        mockMvc.perform(MockMvcRequestBuilders
-                .put("/api/models/{model}/recommendations", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getEMPTY_PROJECT_NAME(), jsonNode.get("msg").textValue());
     }
 
     @Test
     public void testRemoveRecommendations() throws Exception {
         val request = new RemoveRecommendationsRequest();
-        request.setProject("default");
-        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        request.setProject("gc_test");
+        request.setModelId("e0e90065-e7c3-49a0-a801-20465ca64799");
         Mockito.doNothing().when(optimizeRecommendationService)
                 .removeRecommendations(Mockito.any(RemoveRecommendationsRequest.class), Mockito.anyString());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{model}/recommendations", request.getModelId())
@@ -739,124 +758,136 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 null, null, null);
 
         // project is empty
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/recommendations")
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/recommendations")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "").param("model", request.getModelId())
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getEMPTY_PROJECT_NAME(), jsonNode.get("msg").textValue());
     }
 
     @Test
     public void testGetRecommendationsByProject_CodeSuccess() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("default");
-        Mockito.doReturn(true).when(projectService).isSemiAutoProject("default");
-        Mockito.doReturn(true).when(projectService).isExistProject("default");
+        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("gc_test");
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "default")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "gc_test")
                 .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.content().string(
                         JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, ""))));
-        Mockito.verify(nModelController).getRecommendationsByProject("default");
+        Mockito.verify(nModelController).getRecommendationsByProject("gc_test");
 
     }
 
     @Test
     public void testGetRecommendationsByProject_CodeIllegalInput() throws Exception {
-        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("default");
+        Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("other");
         // model and project is empty
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "other")
-                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT,
-                                null, NModelController.ILLEGAL_INPUT_MSG))));
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "other")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nModelController).getRecommendationsByProject("other");
-
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other"),
+                jsonNode.get("msg").textValue());
     }
 
     @Test
-    public void testGetRecommendationsByProject_CodeNotSemiAutoModel() throws Exception {
+    public void testGetRecommendationsByProject_NotSemiAutoModel() throws Exception {
         Mockito.doReturn(null).when(optimizeRecommendationService).getRecommendationsStatsByProject("default");
-        Mockito.doReturn(true).when(projectService).isExistProject("default");
-        Mockito.doReturn(false).when(projectService).isSemiAutoProject("default");
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "default")
-                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH,
-                                null, NModelController.ILLEGAL_MODE_MSG))));
+        final MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/models/recommendations").param("project", "default")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nModelController).getRecommendationsByProject("default");
+
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
     }
 
     @Test
     public void testBatchApplyRecommendations_CodeSuccess() throws Exception {
-        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
+        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("gc_test"),
                 Mockito.anyList());
-        Mockito.doReturn(true).when(projectService).isSemiAutoProject("default");
-        Mockito.doReturn(true).when(projectService).isExistProject("default");
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
-                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "gc_test")
                 .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andExpect(MockMvcResultMatchers.content().string(
                         JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", ""))));
-        Mockito.verify(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
+        Mockito.verify(nModelController).batchApplyRecommendations(eq("gc_test"), Mockito.anyList());
     }
 
     @Test
-    public void testBatchApplyRecommendations_CodeIllegalInput() throws Exception {
+    public void testBatchApplyRecommendations_NonexistentProject() throws Exception {
         Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
                 Mockito.anyList());
-
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "other")
                 .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_ILLEGAL_INPUT,
-                                null, NModelController.ILLEGAL_INPUT_MSG))));
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nModelController).batchApplyRecommendations(eq("other"), Mockito.anyList());
+        final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other"),
+                jsonNode.get("msg").textValue());
+    }
 
+    @Test
+    public void testBatchApplyRecommendations_WithExpertMode() throws Exception {
+        Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
+                Mockito.anyList());
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
+
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
     }
 
     @Test
     public void testBatchApplyRecommendations_CodeNotSemiAutoModel() throws Exception {
         Mockito.doNothing().when(optimizeRecommendationService).batchApplyRecommendations(eq("default"),
                 Mockito.anyList());
-        Mockito.doReturn(false).when(projectService).isSemiAutoProject("default");
-        Mockito.doReturn(true).when(projectService).isExistProject("default");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
+        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/models/recommendations/batch")
                 .contentType(MediaType.APPLICATION_JSON).param("project", "default")
                 .param("model_names", "model1, model2").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content()
-                        .string(JsonUtil.writeValueAsString(new EnvelopeResponse<>(ResponseCode.CODE_MODE_NOT_MATCH,
-                                null, NModelController.ILLEGAL_MODE_MSG))));
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nModelController).batchApplyRecommendations(eq("default"), Mockito.anyList());
 
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
     }
 
     @Test
     public void testBatchSaveModels() throws Exception {
         ModelRequest request = new ModelRequest();
-        Mockito.doNothing().when(modelService).batchCreateModel("default", Mockito.spy(Lists.newArrayList(request)));
+        Mockito.doNothing().when(modelService).batchCreateModel("gc_test", Mockito.spy(Lists.newArrayList(request)));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/batch_save_models").param("project", "default")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/batch_save_models").param("project", "gc_test")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(Lists.newArrayList(request)))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).batchSaveModels(eq("default"), Mockito.anyList());
+        Mockito.verify(nModelController).batchSaveModels(eq("gc_test"), Mockito.anyList());
     }
 
     @Test
     public void testSuggestModelWithReuseExistedModel() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        SqlAccerelateRequest favoriteRequest = new SqlAccerelateRequest("default", sqls, true);
+        SqlAccerelateRequest favoriteRequest = new SqlAccerelateRequest("gc_test", sqls, true);
         // reuse existed model
         Mockito.doReturn(null).when(modelService).suggestModel(favoriteRequest.getProject(), Mockito.spy(sqls), true);
-        Mockito.doReturn(false).when(projectService).isSemiAutoProject(favoriteRequest.getProject());
-        Mockito.doReturn(true).when(projectService).isExistProject(favoriteRequest.getProject());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -867,12 +898,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSuggestModelWithoutReuseExistedModel() throws Exception {
         // don't reuse existed model
-        List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        SqlAccerelateRequest accerelateRequest = new SqlAccerelateRequest("default", sqls, false);
+        String sql = "SELECT lstg_format_name, test_cal_dt.week_beg_dt, sum(price)\n" + "FROM test_kylin_fact\n"
+                + "INNER JOIN edw.test_cal_dt AS test_cal_dt ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt\n"
+                + "GROUP BY lstg_format_name, test_cal_dt.week_beg_dt";
+        List<String> sqls = Lists.newArrayList(sql);
+        SqlAccerelateRequest accerelateRequest = new SqlAccerelateRequest("gc_test", sqls, false);
         Mockito.doReturn(null).when(modelService).suggestModel(accerelateRequest.getProject(), Mockito.spy(sqls),
                 false);
-        Mockito.doReturn(false).when(projectService).isSemiAutoProject(accerelateRequest.getProject());
-        Mockito.doReturn(true).when(projectService).isExistProject(accerelateRequest.getProject());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/suggest_model").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(accerelateRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -883,7 +915,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void test_api_can_answered_by_existed_model() throws Exception {
         List<String> sqls = Lists.newArrayList("select price, count(*) from test_kylin_fact limit 1");
-        FavoriteRequest favoriteRequest = new FavoriteRequest("default", sqls);
+        FavoriteRequest favoriteRequest = new FavoriteRequest("gc_test", sqls);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/can_answered_by_existed_model")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(favoriteRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -956,6 +988,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCheckFilterCondition() {
         ModelRequest modelRequest = new ModelRequest();
+        modelRequest.setProject("default");
         Mockito.doNothing().when(modelService).checkFilterCondition(Mockito.any());
         nModelController.checkFilterCondition(modelRequest);
         Mockito.verify(nModelController).checkFilterCondition(modelRequest);

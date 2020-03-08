@@ -35,7 +35,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -63,6 +62,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
+import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -102,7 +103,7 @@ public class ProjectService extends BasicService {
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    @Transaction
+    @Transaction(project = 0)
     public ProjectInstance createProject(String projectName, ProjectInstance newProject) {
         Message msg = MsgPicker.getMsg();
         String description = newProject.getDescription();
@@ -139,27 +140,28 @@ public class ProjectService extends BasicService {
         return getProjectsFilterByExactMatchAndPermission(projectName, exactMatch, AclPermissionType.READ);
     }
 
-    public List<ProjectInstance> getProjectsFilterByExactMatchAndPermission(final String projectName, boolean exactMatch,
-                                                                            String permission) {
+    public List<ProjectInstance> getProjectsFilterByExactMatchAndPermission(final String projectName,
+            boolean exactMatch, String permission) {
         Predicate<ProjectInstance> filter;
         switch (permission) {
-            case AclPermissionType.READ:
-                filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
-                break;
-            case AclPermissionType.OPERATION:
-                filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
-                break;
-            case AclPermissionType.MANAGEMENT:
-                filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
-                break;
-            case AclPermissionType.ADMINISTRATION:
-                filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
-                break;
-            default:
-                throw new BadRequestException("Operation failed, unknown permission:" + permission);
+        case AclPermissionType.READ:
+            filter = projectInstance -> aclEvaluate.hasProjectReadPermission(projectInstance);
+            break;
+        case AclPermissionType.OPERATION:
+            filter = projectInstance -> aclEvaluate.hasProjectOperationPermission(projectInstance);
+            break;
+        case AclPermissionType.MANAGEMENT:
+            filter = projectInstance -> aclEvaluate.hasProjectWritePermission(projectInstance);
+            break;
+        case AclPermissionType.ADMINISTRATION:
+            filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
+            break;
+        default:
+            throw new BadRequestException("Operation failed, unknown permission:" + permission);
         }
         if (StringUtils.isNotBlank(projectName)) {
-            Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch && projectInstance.getName().equals(projectName))
+            Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch
+                    && projectInstance.getName().equals(projectName))
                     || (!exactMatch && projectInstance.getName().toUpperCase().contains(projectName.toUpperCase()));
             filter = filter.and(exactMatchFilter);
         }
@@ -167,7 +169,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean tipsEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         if (threshold != null) {
@@ -267,7 +269,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
         if (storageQuotaSize < 0) {
             throw new BadRequestException(
@@ -292,7 +294,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateFileSourceCredential(String project, CredentialOperator credentialOperator) {
         Map<String, String> overrideKylinProps = Maps.newLinkedHashMap();
         overrideKylinProps.put("kylin.source.credential.type", credentialOperator.getCredential().getType());
@@ -302,7 +304,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateJobNotificationConfig(String project, JobNotificationConfigRequest jobNotificationConfigRequest) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.job.notification-on-empty-data-load",
@@ -381,7 +383,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateShardNumConfig(String project, ShardNumConfigRequest req) {
         getProjectManager().updateProject(project, copyForWrite -> {
             try {
@@ -400,7 +402,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             val config = getConfig();
@@ -414,7 +416,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateComputedColumnConfig(String project, ComputedColumnConfigRequest computedColumnConfigRequest) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF,
@@ -422,9 +424,8 @@ public class ProjectService extends BasicService {
         });
     }
 
-
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateSegmentConfig(String project, SegmentConfigRequest segmentConfigRequest) {
         //api send volatileRangeEnabled = false but finally it is reset to true
         segmentConfigRequest.getVolatileRange().setVolatileRangeEnabled(true);
@@ -453,7 +454,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
         if (getProjectManager().getProject(project).isSmartMode()) {
             projectGeneralInfoRequest.setSemiAutoMode(false);
@@ -509,7 +510,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);
@@ -534,7 +535,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    @Transaction
+    @Transaction(project = 0)
     public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
         if ("job_notification_config".equals(resetItem)) {
             resetJobNotificationConfig(project);
@@ -552,16 +553,8 @@ public class ProjectService extends BasicService {
         return getProjectConfig(project);
     }
 
-    public boolean isSemiAutoProject(String project) {
-        val prjManager = getProjectManager();
-        val prj = prjManager.getProject(project);
-        return prj != null && prj.isSemiAutoMode();
-    }
-
-    public boolean isExistProject(String project) {
-        val prjManager = getProjectManager();
-        val prj = prjManager.getProject(project);
-        return prj != null;
+    public boolean isProjectWriteLocked(String project) {
+        return TransactionLock.isWriteLocked(project);
     }
 
     private void resetJobNotificationConfig(String project) {

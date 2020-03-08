@@ -28,8 +28,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
-import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.request.FavoriteRequest;
@@ -52,23 +50,25 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
-import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
-import io.kyligence.kap.rest.response.BuildIndexResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
-import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
+import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
+import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.service.ModelService;
 
 @Controller
@@ -93,16 +93,13 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-
+        checkProjectName(project);
         return modelController.getModels(modelAlias, exactMatch, project, owner, status, table, offset, limit, sortBy,
                 reverse);
     }
 
     @VisibleForTesting
     public NDataModelResponse getModel(String modelName, String project) {
-        if (modelService.getProjectManager().getProject(project) == null) {
-            throw new BadRequestException(String.format("Can not find the project : %s!", project));
-        }
         List<NDataModelResponse> responses = modelService.getModels(modelName, project, true, null, null, "last_modify",
                 true);
         if (CollectionUtils.isEmpty(responses)) {
@@ -175,6 +172,7 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> updateParatitionDesc(@PathVariable("project") String project,
             @PathVariable("model") String modelAlias,
             @RequestBody ModelParatitionDescRequest modelParatitionDescRequest) {
+        checkProjectName(project);
         if (modelParatitionDescRequest.getPartitionDesc() != null) {
             checkRequiredArg("partition_date_column",
                     modelParatitionDescRequest.getPartitionDesc().getPartitionDateColumn());

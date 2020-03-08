@@ -396,6 +396,14 @@ public class Message {
         return "Cannot find project '%s'.";
     }
 
+    public String getPROJECT_UNMODIFIABLE_REASON() {
+        return "Model recommendation is not supported in current project, please enable recommendation mode and try again.";
+    }
+
+    public String getPROJECT_MODE_CHANGE_ERROR() {
+        return "Recommendation conversion is in progress. This process may take few minutes, please turn off recommendations mode later.";
+    }
+
     public String getDELETE_PROJECT_NOT_EMPTY() {
         return "Cannot modify non-empty project";
     }

@@ -641,7 +641,10 @@ public class FavoriteQueryService extends BasicService {
         try {
             Thread.currentThread().setName("FavoriteQueryAdjustWorker");
 
-            for (ProjectInstance project : getProjectManager().listAllProjects()) {
+            List<ProjectInstance> nonExpertProjects = getProjectManager().listAllProjects().stream()
+                    .filter(projectInstance -> !projectInstance.isExpertMode()) //
+                    .collect(Collectors.toList());
+            for (ProjectInstance project : nonExpertProjects) {
                 try {
                     adjustFQForProject(project.getName());
                 } catch (Exception e) {

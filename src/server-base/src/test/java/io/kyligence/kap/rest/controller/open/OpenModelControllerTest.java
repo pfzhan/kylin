@@ -31,12 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.request.BuildIndexRequest;
-import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
-import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
-import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
@@ -61,16 +55,24 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NModelController;
+import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
+import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
+import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import lombok.val;
 
-public class OpenModelControllerTest {
+public class OpenModelControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -97,12 +99,14 @@ public class OpenModelControllerTest {
 
     @Before
     public void setupResource() throws Exception {
-        System.setProperty("HADOOP_USER_NAME", "root");
-
+        overwriteSystemProp("HADOOP_USER_NAME", "root");
+        createTestMetadata();
     }
 
     @After
     public void tearDown() {
+        cleanupTestMetadata();
+        restoreAllSystemProp();
     }
 
     private List<NDataModel> mockModels() {

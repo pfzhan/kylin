@@ -30,7 +30,6 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
@@ -45,11 +44,15 @@ public class GarbageCleaner {
      */
     public static void cleanupMetadataManually(String project) {
         UnitOfWork.doInTransactionWithRetry(() -> {
-            if (isProjectAutoMain(project))
+            val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+            if (instance.isSmartMode()) {
                 new BrokenModelCleaner().cleanup(project);
+            }
 
-            new FavoriteQueryCleaner().cleanup(project);
-            new IndexCleaner().cleanup(project);
+            if (!instance.isExpertMode()) {
+                new FavoriteQueryCleaner().cleanup(project);
+                new IndexCleaner().cleanup(project);
+            }
             new ExecutableCleaner().cleanup(project);
             return 0;
         }, project);
@@ -63,20 +66,18 @@ public class GarbageCleaner {
      */
     public static void cleanupMetadataAtScheduledTime(String project) {
         UnitOfWork.doInTransactionWithRetry(() -> {
-            if (isProjectAutoMain(project))
+            val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+            if (instance.isSmartMode()) {
                 new BrokenModelCleaner().cleanup(project);
+            }
 
-            new IndexCleaner().cleanup(project);
+            if (!instance.isExpertMode()) {
+                new IndexCleaner().cleanup(project);
+            }
+
             new ExecutableCleaner().cleanup(project);
             return 0;
         }, project);
         NMetricsGroup.counterInc(NMetricsName.METADATA_CLEAN, NMetricsCategory.PROJECT, project);
-    }
-
-    private static boolean isProjectAutoMain(String project) {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        val projectInstance = NProjectManager.getInstance(config).getProject(project);
-
-        return MaintainModelType.AUTO_MAINTAIN.equals(projectInstance.getMaintainModelType());
     }
 }

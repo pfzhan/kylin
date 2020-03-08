@@ -79,6 +79,7 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, Integer>> createFavoriteQuery(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
+        checkProjectUnmodifiable(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 favoriteQueryService.createFavoriteQuery(request.getProject(), request), "");
     }
@@ -115,6 +116,7 @@ public class FavoriteQueryController extends NBasicController {
             @RequestParam(value = "uuids") List<String> uuids,
             @RequestParam(value = "block", required = false, defaultValue = "false") boolean block) {
         checkProjectName(project);
+        checkProjectUnmodifiable(project);
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(uuids), "Ids should not be empty");
         uuids.forEach(uuid -> checkId(uuid));
         favoriteRuleService.batchDeleteFQs(project, uuids, block);
@@ -125,6 +127,7 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getAccelerateTips(@RequestParam(value = "project") String project) {
         checkProjectName(project);
+        checkProjectUnmodifiable(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, favoriteQueryService.getAccelerateTips(project), "");
     }
 
@@ -132,6 +135,7 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, List<String>>> acceptAccelerate(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
+        checkProjectUnmodifiable(request.getProject());
         Preconditions.checkNotNull(request.getSqls());
         Map<String, List<String>> result = favoriteQueryService.acceptAccelerate(request.getProject(),
                 request.getSqls());
@@ -146,6 +150,7 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse<String> acceptAccelerate(@RequestParam(value = "project") String project,
             @RequestParam(value = "accelerate_size") int accelerateSize) {
         checkProjectName(project);
+        checkProjectUnmodifiable(project);
         favoriteQueryService.acceptAccelerate(project, accelerateSize);
 
         NMetricsGroup.counterInc(NMetricsName.FQ_FE_INVOKED, NMetricsCategory.PROJECT, project);
@@ -158,6 +163,7 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse<String> ignoreAccelerate(@RequestParam(value = "project") String project,
             @RequestParam(value = "ignore_size") int ignoreSize) {
         checkProjectName(project);
+        checkProjectUnmodifiable(project);
         favoriteQueryService.ignoreAccelerate(project, ignoreSize);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -175,6 +181,7 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateFavoriteRules(@RequestBody FavoriteRuleUpdateRequest request) {
         checkProjectName(request.getProject());
+        checkProjectUnmodifiable(request.getProject());
         checkUpdateFavoriteRuleArgs(request);
         favoriteRuleService.updateRegularRule(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -209,6 +216,7 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse<String> removeBlacklistSql(@PathVariable("id") String id,
             @RequestParam("project") String project) {
         checkProjectName(project);
+        checkProjectUnmodifiable(project);
         favoriteRuleService.removeBlacklistSql(id, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -218,6 +226,8 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> importSqls(@RequestParam("project") String project,
             @RequestParam("files") MultipartFile[] files) {
+        checkProjectName(project);
+        checkProjectUnmodifiable(project);
         Map<String, Object> data = favoriteRuleService.importSqls(files, project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, (String) data.get("msg"));
     }
@@ -227,6 +237,7 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<SQLValidateResponse> sqlValidate(@RequestBody SQLValidateRequest request) {
         checkProjectName(request.getProject());
+        checkProjectUnmodifiable(request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 favoriteRuleService.sqlValidate(request.getProject(), request.getSql()), "");
     }
@@ -234,6 +245,7 @@ public class FavoriteQueryController extends NBasicController {
     @GetMapping(value = "/accelerate_ratio")
     @ResponseBody
     public EnvelopeResponse<Double> getAccelerateRatio(@RequestParam("project") String project) {
+        checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, favoriteRuleService.getAccelerateRatio(project), "");
     }
 }

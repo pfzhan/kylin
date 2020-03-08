@@ -25,11 +25,8 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Data;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 
 @Data
 public class ModelCheckRequest {
@@ -44,12 +41,5 @@ public class ModelCheckRequest {
 
     @JsonProperty("fault_actions")
     private long faultActions;
-
-    public void checkSelf() {
-        final Message msg = MsgPicker.getMsg();
-        if (StringUtils.isBlank(project)) {
-            throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
-        }
-    }
 
 }

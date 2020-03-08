@@ -243,6 +243,14 @@ public class CnMessage extends Message {
         return "没有项目信息。请指定一个项目";
     }
 
+    public String getPROJECT_UNMODIFIABLE_REASON() {
+        return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
+    }
+
+    public String getPROJECT_MODE_CHANGE_ERROR() {
+        return "当前正在进行优化建议转化，该过程可能持续数分钟，请稍后再关闭智能推荐";
+    }
+
     public String getEMPTY_NEW_MODEL_NAME() {
         return "新模型名称不可为空";
     }

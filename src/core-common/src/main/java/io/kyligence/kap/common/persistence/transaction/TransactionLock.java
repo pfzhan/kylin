@@ -53,6 +53,11 @@ public class TransactionLock {
         return new TransactionLock(lock, readonly ? lock.readLock() : lock.writeLock());
     }
 
+    public static boolean isWriteLocked(String project) {
+        ReentrantReadWriteLock lock = projectLocks.get(project);
+        return lock != null && lock.isWriteLocked();
+    }
+
     private ReentrantReadWriteLock rootLock;
 
     @Delegate
