@@ -27,7 +27,7 @@ import java.util
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
-import io.kyligence.kap.engine.spark.utils.LogEx
+import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
@@ -35,7 +35,6 @@ import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.{AnalysisException, DataFrame, Dataset, Row, SparkSession}
@@ -145,8 +144,13 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
 
     val ccCols = model.getRootFactTable.getColumns.asScala.filter(_.getColumnDesc.isComputedColumn).toSet
     var rootFactDataset = generateTableDataset(model.getRootFactTable, ccCols.toSeq, model.getRootFactTable.getAlias, ss, sourceInfo)
-
-    logInfo(s"Create flattable need join lookup tables ${needJoin}, need encode cols ${needEncode}")
+    lazy val flatTableInfo = Map(
+      "segment" -> seg,
+      "table"   -> model.getRootFactTable.getTableIdentity,
+      "join_lookup"-> needJoin,
+      "build_global_dictionary" -> needEncode
+    )
+    logInfo(s"Create a flat table: ${LogUtils.jsonMap(flatTableInfo)}")
 
     rootFactDataset = applyPartitionDesc(flatTable, rootFactDataset)
 
@@ -218,7 +222,7 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
   private def encodeColumn(ds: Dataset[Row], encodeCols: Set[TblColRef]): Dataset[Row] = {
     val matchedCols = filterCols(ds, encodeCols)
     var encodeDs = ds
-    if (!matchedCols.isEmpty) {
+    if (matchedCols.nonEmpty) {
       encodeDs = DFTableEncoder.encodeTable(ds, seg, matchedCols.asJava)
     }
     encodeDs
@@ -253,7 +257,7 @@ object CreateFlatTable extends LogEx {
     val suitableCols = chooseSuitableCols(dataset, cols)
     dataset = changeSchemaToAliasDotName(dataset, alias)
     val selectedCols = dataset.schema.fields.map(tp => col(tp.name)) ++ suitableCols
-    logInfo(s"Table ${tableRef.getAlias} schema ${dataset.schema.treeString}")
+    logDebug(s"Table ${tableRef.getAlias} schema ${dataset.schema.treeString}")
     dataset.select(selectedCols: _*)
   }
 
@@ -420,7 +424,7 @@ object CreateFlatTable extends LogEx {
       .map(field => convertFromDot(alias + "." + field.name))
       .toSeq
     val newdf = original.toDF(newSchema: _*)
-    logInfo(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")
+    logDebug(s"After change alias from ${original.schema.treeString} to ${newdf.schema.treeString}")
     newdf
   }
 

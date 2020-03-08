@@ -31,8 +31,8 @@ import java.util.concurrent.Executors
 import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
-import io.kyligence.kap.engine.spark.utils.FileNames
-import io.kyligence.kap.metadata.cube.model.{NDataflowManager, NDataflowUpdate, NDataSegment}
+import io.kyligence.kap.engine.spark.utils.{FileNames, LogUtils}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
@@ -99,7 +99,7 @@ class DFSnapshotBuilder extends Logging {
               }
               try {
                 KylinConfig.setAndUnsetThreadLocalConfig(kylinConf)
-                buildSnapshotWithoutMd5(tableDesc, baseDir)
+                buildSingleSnapshotWithoutMd5(tableDesc, baseDir)
               } catch {
                 case exception: Exception =>
                   logError(s"Error for build snapshot table with $tableDesc", exception)
@@ -216,29 +216,33 @@ class DFSnapshotBuilder extends Logging {
     (tableDesc.getIdentity, snapshotTablePath)
   }
 
-  def buildSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String): (String, String) = {
+  def buildSingleSnapshotWithoutMd5(tableDesc: TableDesc, baseDir: String): (String, String) = {
     val sourceData = getSourceData(tableDesc)
     val tablePath = FileNames.snapshotFile(tableDesc)
     val snapshotTablePath = tablePath + "/" + UUID.randomUUID
     val resourcePath = baseDir + "/" + snapshotTablePath
-    val repartitionNum = try {
+    val (repartitionNum, sizeMB) = try {
       val sizeInMB = ResourceDetectUtils.getPaths(sourceData.queryExecution.sparkPlan)
         .map(path => HadoopUtil.getContentSummary(path.getFileSystem(HadoopUtil.getCurrentConfiguration), path).getLength)
         .sum * 1.0 / MB
       val num = Math.ceil(sizeInMB / KylinBuildEnv.get().kylinConfig.getSnapshotShardSizeMB).intValue()
-      logInfo(s"Table size is $sizeInMB MB, repartition num is set to $num.")
-      num
+      (num,sizeInMB)
     } catch {
       case t: Throwable =>
         logWarning("Error occurred when estimate repartition number.", t)
-        0
+        (0,0)
     }
     ss.sparkContext.setJobDescription(s"Build table snapshot ${tableDesc.getIdentity}.")
+    lazy val snapshotInfo = Map(
+      "source" -> tableDesc.getIdentity,
+      "snapshot"   -> snapshotTablePath,
+      "sizeMB"-> sizeMB,
+      "partition" -> repartitionNum
+    )
+    logInfo(s"Building snapshot: ${LogUtils.jsonMap(snapshotInfo)}")
     if (repartitionNum == 0) {
-      logInfo(s"Error may occurred or table size is 0, skip repartition.")
       sourceData.write.parquet(resourcePath)
     } else {
-      logInfo(s"Repartition snapshot to $repartitionNum partition.")
       sourceData.repartition(repartitionNum).write.parquet(resourcePath)
     }
     (tableDesc.getIdentity, snapshotTablePath)

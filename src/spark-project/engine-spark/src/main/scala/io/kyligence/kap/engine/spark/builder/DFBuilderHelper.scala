@@ -63,13 +63,4 @@ object DFBuilderHelper extends Logging {
       .map(ref => expr(convertFromDot(ref.getExpressionInSourceDB)).alias(convertFromDot(ref.getIdentity)))
       .toSeq
   }
-
-  def time[R](msg: String, block: => R): R = {
-    val t0 = System.currentTimeMillis()
-    val result = block
-    val t1 = System.currentTimeMillis()
-    logInfo(s"$msg. Elapsed time: ${t1 - t0} ms")
-    result
-  }
-
 }

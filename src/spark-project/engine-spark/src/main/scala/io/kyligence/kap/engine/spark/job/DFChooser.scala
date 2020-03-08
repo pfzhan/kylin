@@ -164,8 +164,6 @@ class DFChooser(toBuildTree: NSpanningTree,
     val flatTable = new CreateFlatTable(flatTableDesc, seg, toBuildTree, ss, sourceInfo)
     val afterJoin: Dataset[Row] = flatTable.generateDataset(needEncoding, needJoin)
     sourceInfo.setFlattableDS(afterJoin)
-
-    logInfo("No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo
   }
 }

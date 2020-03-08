@@ -134,7 +134,8 @@ public class Repartitioner {
         FileSystem readFileSystem = HadoopUtil.getWorkingFileSystem();
         if (needRepartition()) {
             // repartition and write to target path
-            logger.info("Start repartition and rewrite");
+            logger.info("Repartition {} to {}, [repartition number: {}, use shard column: {}]",
+                    inputPath, outputPath, repartitionNum, needRepartitionForShardByColumns());
             long start = System.currentTimeMillis();
             Dataset<Row> data;
 
@@ -145,7 +146,6 @@ public class Repartitioner {
                         .sortWithinPartitions(convertIntegerToColumns(sortByColumns));
             } else {
                 // repartition for single file size is too small
-                logger.info("repartition to {}", repartitionNum);
                 data = ss.read().parquet(inputPath).repartition(repartitionNum)
                         .sortWithinPartitions(convertIntegerToColumns(sortByColumns));
             }

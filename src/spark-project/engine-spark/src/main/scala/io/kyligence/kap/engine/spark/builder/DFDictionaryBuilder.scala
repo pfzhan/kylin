@@ -33,7 +33,6 @@ import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.TaskContext
 import org.apache.spark.dict.NGlobalDictionaryV2
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.functions.{col, expr}
 import org.apache.spark.sql.types.StringType
@@ -41,8 +40,7 @@ import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
-import io.kyligence.kap.engine.spark.builder.DFBuilderHelper._
-import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, Metrics, QueryExecutionCache}
+import io.kyligence.kap.engine.spark.utils.{JobMetricsUtils, LogEx, Metrics, QueryExecutionCache}
 import org.apache.spark.sql.catalyst.catalog.HiveTableRelation
 import org.apache.spark.sql.execution.{FileSourceScanExec, FilterExec}
 
@@ -50,16 +48,14 @@ class DFDictionaryBuilder(
   val dataset: Dataset[Row],
   @transient val seg: NDataSegment,
   val ss: SparkSession,
-  val colRefSet: util.Set[TblColRef]) extends Logging with Serializable {
+  val colRefSet: util.Set[TblColRef]) extends LogEx with Serializable {
 
   @transient
   val lock: DistributedLock = KylinConfig.getInstanceFromEnv.getDistributedLockFactory.lockForCurrentThread
 
   @throws[IOException]
   def buildDictSet(): Unit = {
-    logInfo(s"Building global dictionaries V2 for seg $seg")
-    val m = s"Build global dictionaries V2 for seg $seg succeeded"
-    time(m, colRefSet.asScala.foreach(col => safeBuild(col)))
+    colRefSet.asScala.foreach(col => safeBuild(col))
   }
 
   @throws[IOException]
@@ -70,17 +66,18 @@ class DFDictionaryBuilder(
       if (lock.lock(getLockPath(sourceColumn))) {
         val dictColDistinct = dataset.select(wrapCol(ref)).distinct
         ss.sparkContext.setJobDescription("Calculate bucket size " + ref.getIdentity)
-        val bucketPartitionSize = DictionaryBuilderHelper.calculateBucketSize(seg, ref, dictColDistinct)
-        val m = s"Building global dictionaries V2 for $sourceColumn"
-        time(m, build(ref, bucketPartitionSize, dictColDistinct))
+        val bucketPartitionSize = logTime(s"calculating bucket size for $sourceColumn") {
+            DictionaryBuilderHelper.calculateBucketSize(seg, ref, dictColDistinct)
+          }
+        build(ref, bucketPartitionSize, dictColDistinct)
       }
     finally lock.unlock(getLockPath(sourceColumn))
   }
                             
   @throws[IOException]
-  private[builder] def build(ref: TblColRef, bucketPartitionSize: Int, afterDistinct: Dataset[Row]): Unit = {
-    logInfo(s"Start building global dict V2 for column ${ref.getIdentity}.")
-
+  private[builder]
+  def build(ref: TblColRef, bucketPartitionSize: Int,
+            afterDistinct: Dataset[Row]): Unit = logTime(s"building global dictionaries V2 for ${ref.getIdentity}") {
     val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
     globalDict.prepareWrite()
     val broadcastDict = ss.sparkContext.broadcast(globalDict)
@@ -115,19 +112,19 @@ class DFDictionaryBuilder(
         val filtered = if (filterMetrics.isDefined) {
           filterMetrics.get.value
         } else {
-          logInfo(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
+          logDebug(s"Can not get numOutputRows, print spark plan  ${filterExec.toString}")
           0
         }
         val tableScanMetrics = JobMetricsUtils.collectOutputRows(filterExec.get)
         val fileOut = tableScanMetrics.getMetrics(Metrics.SOURCE_ROWS_CNT)
-        logInfo(s"Null value number is ${fileOut - filtered}")
+        logDebug(s"Null value number is ${fileOut - filtered}")
         if (!KylinBuildEnv.get().encodingDataSkew) {
           KylinBuildEnv.get().encodingDataSkew = (fileOut - filtered) > seg.getConfig.getNullEncodingOptimizeThreshold
-          logInfo(s"Encoding data skew is ${KylinBuildEnv.get().encodingDataSkew} because the " +
+          logDebug(s"Encoding data skew is ${KylinBuildEnv.get().encodingDataSkew} because the " +
             s"difference values is ${fileOut - filtered} > ${seg.getConfig.getNullEncodingOptimizeThreshold}")
         }
       } else {
-        logInfo(s"Can not find FilterExec whit plan ${execution.executedPlan.toString()}")
+        logDebug(s"Can not find FilterExec whit plan ${execution.executedPlan.toString()}")
       }
     }
     ss.sparkContext.setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY, null)

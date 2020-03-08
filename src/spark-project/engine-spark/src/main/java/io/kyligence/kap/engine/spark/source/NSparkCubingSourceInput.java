@@ -61,8 +61,8 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         String sql = String.format("select %s from %s", colString, table.getIdentity());
         Dataset<Row> df = ss.sql(sql);
         StructType sparkSchema = df.schema();
-        logger.info("Source data sql is: " + sql);
-        logger.info("Kylin schema " + kylinSchema.treeString());
+        logger.debug("Source data sql is: {}", sql);
+        logger.debug("Kylin schema: {}", kylinSchema.treeString());
         return df.select(SparderTypeUtil.alignDataType(sparkSchema, kylinSchema));
     }
 }

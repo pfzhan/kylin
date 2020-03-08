@@ -90,8 +90,6 @@ public class DFBuildJob extends SparkApplication {
 
     @Override
     protected void doExecute() throws Exception {
-        long start = System.currentTimeMillis();
-        logger.info("Start Build");
         buildLayoutWithUpdate = new BuildLayoutWithUpdate();
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
@@ -110,15 +108,15 @@ public class DFBuildJob extends SparkApplication {
             for (String segId : segmentIds) {
                 NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
                 NDataSegment seg = getSegment(segId);
-                if (seg.isEncodingDataSkew()) {
-                    logger.info("Encoding data skew , set it to true");
-                    KylinBuildEnv.get().setEncodingDataSkew(true);
-                }
                 if (seg == null || seg.getSegRange() == null || seg.getModel() == null || seg.getIndexPlan() == null) {  // vivo
                     logger.info("Skip segment {}", segId);
                     if (seg != null)
                         logger.info("Args is {} {} {}", seg.getSegRange(), seg.getModel(), seg.getIndexPlan());
                     continue;
+                }
+                if (seg.isEncodingDataSkew()) {
+                    logger.debug("Encoding data skew , set it to true");
+                    KylinBuildEnv.get().setEncodingDataSkew(true);
                 }
 
                 // choose source
@@ -151,13 +149,12 @@ public class DFBuildJob extends SparkApplication {
             val fs = FileSystem.get(new Configuration());
             for (String viewPath : persistedViewFactTable) {
                 fs.delete(new Path(viewPath), true);
-                logger.info("Delete persisted view fact table: {}.", viewPath);
+                logger.debug("Delete persisted view fact table: {}.", viewPath);
             }
             for (String path : persistedFlatTable) {
                 fs.delete(new Path(path), true);
-                logger.info("Delete persisted flat table: {}.", path);
+                logger.debug("Delete persisted flat table: {}.", path);
             }
-            logger.info("Building job takes {} ms", (System.currentTimeMillis() - start));
         }
     }
 
@@ -354,7 +351,7 @@ public class DFBuildJob extends SparkApplication {
         if (rowCount == -1) {
             KylinBuildEnv.get().buildJobInfos().recordAbnormalLayouts(layout.getId(),
                     "Job metrics seems null, use count() to collect cuboid rows.");
-            logger.info("Can not get cuboid row cnt.");
+            logger.warn("Can not get cuboid={} row cnt.", layout.getId());
         }
         dataLayout.setRows(rowCount);
         dataLayout.setSourceRows(taskStats.sourceRows());
@@ -394,6 +391,7 @@ public class DFBuildJob extends SparkApplication {
 
         String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn,
                 modelDesc.getRootFactTableName(), partitionColumn);
+        logger.debug("Check date format with sql: {}", sql);
         val res = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID());
         if (CollectionUtils.isEmpty(res.getFirst())) {
             return;

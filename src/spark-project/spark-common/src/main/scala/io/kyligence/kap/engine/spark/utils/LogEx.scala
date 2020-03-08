@@ -38,6 +38,11 @@ object LogUtils {
         seq.map(f).mkString("[", ",", "]")
     }
   }
+  def jsonMap[A, B](map: Map[A, B]) : String = {
+    map.map { kv =>
+      s""""${kv._1}":"${kv._2}""""
+    }.mkString("{", ",", "}")
+  }
 }
 
 trait LogEx extends  Logging {
