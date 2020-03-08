@@ -1,4 +1,3 @@
-package io.kyligence.kap.rest.controller;
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
@@ -22,6 +21,8 @@ package io.kyligence.kap.rest.controller;
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+package io.kyligence.kap.rest.controller;
 
 import java.util.Objects;
 
