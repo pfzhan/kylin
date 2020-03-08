@@ -121,7 +121,7 @@
           <div class="dash-card" :class="{'isActive': showLatencyChart}" @click="loadLatencyChart">
             <div class="inner-card">
               <div class="cart-title">
-                <span v-custom-tooltip="{text: $t('avgQueryLatency'), w: 90, className: 'cart-title-layout'}">{{$t('avgQueryLatency')}}</span>
+                <span v-custom-tooltip="{text: $t('avgQueryLatency'), w: 95}">{{$t('avgQueryLatency')}}</span>
                 <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
               </div>
               <div class="content">
@@ -148,7 +148,7 @@
           <div class="dash-card" :class="{'isActive': showBulidChart}" @click="loadBulidChart">
             <div class="inner-card">
               <div class="cart-title" ref="avgBulidTime">
-                <span v-custom-tooltip="{text: $t('avgBulidTime'), w: 90, className: 'cart-title-layout'}">{{$t('avgBulidTime')}}</span>
+                <span v-custom-tooltip="{text: $t('avgBulidTime'), w: dashboardActions.includes('viewJobList') ? 95 : 30}">{{$t('avgBulidTime')}}</span>
                 <a class="ky-a-like ksd-fright ksd-fs-12" v-if="dashboardActions.includes('viewJobList')" @click.stop="gotoJoblist">{{$t('viewDetail')}}</a>
               </div>
               <div class="content" v-if="noEnoughData">
@@ -704,9 +704,6 @@ export default class Dashboard extends Vue {
         line-height: 36px;
         padding: 0 15px;
         background-color: @regular-background-color;
-        .cart-title-layout {
-          width: calc(~'100% - 78px');
-        }
       }
       .content {
         margin: 15px;

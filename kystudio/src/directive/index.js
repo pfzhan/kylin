@@ -648,29 +648,33 @@ Vue.directive('custom-tooltip', {
     el.style.cssText = 'white-space: nowrap;'
   },
   inserted: (el, binding) => {
-    if (!el) return
+    if (!el || !el.parentElement) return
     const parent = el.parentElement
-    this.parent = parent
-    this.binding = binding
-    let id = 'tooltip' + new Date().getTime().toString(32)
+    let id = 'tooltip-' + new Date().getTime().toString(32)
     const nextElement = el.nextSibling
     const currentElWidth = el.offsetWidth
     const parentWidth = el.parentNode && el.parentNode.offsetWidth
-    parentList[id] = { parent, nextElement, binding }
-    el.dataset.id = id
-    appendTipDom(el, currentElWidth, parentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
-    setTimeout(() => {
-      window.addEventListener('resize', () => {
-        if (!parent.querySelector('.custom-tooltip-text')) return
+    parentList[id] = {
+      parent,
+      nextElement,
+      binding,
+      [`resizeFn-${id}`]: () => {
+        if (!parent && !parent.querySelector('.custom-tooltip-text')) return
         let textNode = parent.querySelector('.custom-tooltip-text')
         let cw = textNode.offsetWidth
         let pw = parent && parent.offsetWidth
         appendTipDom(textNode, cw, pw, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
-      })
+      }
+    }
+    el.dataset.id = id
+    appendTipDom(el, currentElWidth, parentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+    setTimeout(() => {
+      window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
     }, 500)
   },
   update: (el, binding, oldVnode) => {
     if (binding.value.text === binding.oldValue.text && binding.value.w === binding.oldValue.w) return
+    if (!el.dataset.id || !(el.dataset.id in parentList)) return
     let parent = parentList[el.dataset.id].parent
     let textNode = parent.querySelector('.custom-tooltip-text')
     parentList[el.dataset.id].binding = binding
@@ -679,13 +683,15 @@ Vue.directive('custom-tooltip', {
     appendTipDom(textNode, textNode.offsetWidth, parent.offsetWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0, el.dataset.id)
   },
   unbind: (el) => {
-    el.dataset.id && delete parentList[el.dataset.id]
-    window.onresize = null
+    if (!el.dataset.id) return
+    let id = el.dataset.id
+    window.removeEventListener('resize', parentList[id][`resizeFn-${id}`])
+    delete parentList[el.dataset.id]
   }
 })
 
 // 自定义创建common-tip组件并挂载
-function createToolTipDom (el, binding) {
+function createToolTipDom (el, binding, parentWidth) {
   const renderer = Vue.compile(el.outerHTML)
   let createCommonTip = (propsData) => {
     let Dom = Vue.extend(commonTip)
@@ -697,13 +703,15 @@ function createToolTipDom (el, binding) {
   t.$slots.default = [t.$createElement(renderer)]
   t.$mount()
   t.$el.className = `${t.$el.className} custom-tooltip-layout ${binding.value.className || ''}`
+  parentWidth && (t.$el.style.cssText = `width: ${parentWidth - binding.value.w || 0}px;`)
   return t
 }
 
 // 窗口resize以及更新数据时重新插入tooltip或去除tooltip
 function appendTipDom (el, currentW, parentW, w) {
+  if (!el.dataset.id || !(el.dataset.id in parentList)) return
   const { parent, nextElement, binding } = parentList[el.dataset.id]
-  let comp = createToolTipDom(el, binding)
+  let comp = createToolTipDom(el, binding, parentW)
   // 当前el超过父节点的宽度时插入tooltip否者移出
   if (currentW + w >= parentW) {
     if (!parent.querySelector('.tip_box')) {
