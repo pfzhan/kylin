@@ -5,7 +5,7 @@
         <el-button type="primary" plain size="small" v-guide.addAggBtn icon="el-icon-ksd-add_2" @click="handleAggregateGroup" v-if="isShowEditAgg">
           {{$t('aggregateGroup')}}
         </el-button>
-        <el-button v-if="!isAutoProject" type="primary" plain size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
+        <el-button v-if="isShowEditAgg" type="primary" plain size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
       </el-button-group><el-button
         type="primary" plain size="small" class="ksd-ml-10" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex()">{{$t('tableIndex')}}
       </el-button><el-button
