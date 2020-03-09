@@ -31,7 +31,9 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.apache.log4j.spi.LoggingEvent;
 
-public class SensitivePatternLayout extends PatternLayout {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class SensitivePatternLayout extends PatternLayout implements IKeep {
     private static final String PREFIX_GROUP_NAME = "prefix";
     private static final String SENSITIVE_GROUP_NAME = "sensitive";
     private static final String MASK = "******";
