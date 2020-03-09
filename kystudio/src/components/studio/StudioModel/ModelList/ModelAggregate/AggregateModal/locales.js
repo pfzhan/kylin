@@ -53,7 +53,8 @@ export default {
     disableClear: 'There is no MDC restriction in the current aggregated group(s) and no clearing is required.',
     clearConfirm: 'After confirmation, all MDCs will be cleared, and there will be no MDC restriction in all aggregate groups. Please confirm whether  to clear all MDCs?',
     clearbtn: 'Confirm to Clear',
-    clearSuccess: 'Succeeded to clear all MDCs. '
+    clearSuccess: 'Succeeded to clear all MDCs. ',
+    needCheck: 'Pending'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',
@@ -109,6 +110,7 @@ export default {
     disableClear: '当前聚合组内无最大维度组合数限制，无需清空。',
     clearConfirm: '确认后将清空全部最大维度组合数，所有的聚合组将失去已设最大维度组合数限制，请确认是否要清空？',
     clearbtn: '确认清空',
-    clearSuccess: '清空全部最大维度组合数成功。'
+    clearSuccess: '清空全部最大维度组合数成功。',
+    needCheck: '待检测'
   }
 }

@@ -11,7 +11,7 @@
       <!-- 超出上限的情况 -->
       <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10 + 1})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
       <!-- 数字的情况 -->
-      <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.total_count.result})}})</span></span>
+      <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.total_count.result})}})</span></span>
       <!-- 正在检测的情况 -->
       <i v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
     </span>
@@ -54,7 +54,7 @@
                 <!-- 超出上限的情况 -->
                 <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
                 <!-- 数字的情况 -->
-                <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
+                <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
                 <!-- 正在检测的情况 -->
                 <i v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'" class="el-icon-loading"></i>
               </h1>
@@ -69,7 +69,15 @@
                 <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&!form.globalDimCap" class="nolimit-dim">{{$t('noLimitation')}}</span>
                 <span v-if="!aggregate.isEditDim&&aggregate.dimCap">{{aggregate.dimCap}}</span>
                 <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&form.globalDimCap" class="global-dim">{{form.globalDimCap}}</span>
-                <el-input class="dim-input" v-if="aggregate.isEditDim" size="mini" :clearable="false" v-model="aggregate.dimCap" v-number2="aggregate.dimCap" @input="value => handleSetDim(aggregateIdx, value)"></el-input>
+                <el-input
+                  class="dim-input"
+                  v-if="aggregate.isEditDim"
+                  size="mini"
+                  :clearable="false"
+                  v-model="groupsDim[aggregateIdx]"
+                  v-number2="groupsDim[aggregateIdx]"
+                  :placeholder="!groupsDim[aggregateIdx]?(form.globalDimCap?form.globalDimCap+'':$t('noLimitation')) : ''"
+                ></el-input>
                 <span v-if="!aggregate.isEditDim">
                   <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit" @click="editDimCan(aggregateIdx, true)"></i></common-tip>
                 </span>
@@ -242,7 +250,7 @@
         </span>
         <span v-if="!isEditGlobalDim&&!form.globalDimCap">{{$t('noLimitation')}}</span>
         <span v-if="!isEditGlobalDim&&form.globalDimCap">{{form.globalDimCap}}</span>
-        <el-input class="dim-input" v-if="isEditGlobalDim" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
+        <el-input class="dim-input" v-if="isEditGlobalDim" :placeholder="form.globalDimCap?'':$t('noLimitation')" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
         <span v-if="!isEditGlobalDim">
           <common-tip :content="$t('kylinLang.common.edit')" v-show="isShowTooltips"><i
             class="dim-btn el-icon-ksd-table_edit" @click="editGlobalDim"></i>
@@ -288,7 +296,7 @@
         <p>{{confirmMsg}}</p>
       </div>
     </div>
-    <div slot="footer" class="dialog-footer clearfix">
+    <div slot="footer" class="dialog-footer ky-no-br-space clearfix">
       <el-button plain size="medium" @click="handleCloseConfirm">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" v-guide.setAggIndexConfitmBtn v-if="isShowBuildAndConfirm" @click="confirmSubmit(true)">{{$t('bulidAndSubmit')}}</el-button>
       <el-button size="medium" @click="confirmSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
@@ -368,16 +376,28 @@ export default class AggregateModal extends Vue {
   isEditGlobalDim = false
   popoverVisible = false
   globalDim = null
-  groupsDim = {}
+  groupsDim = []
   isShowTooltips = false
+  isNeedCheck = false
 
   mounted () {
     this.$nextTick(() => {
-      this.$el.querySelector('.dialog-footer .left').onmouseover = (e) => {
+      this.$el.querySelector('.dialog-footer .left').onmouseover = () => {
         this.isShowTooltips = true
       }
-      this.$el.querySelector('.dialog-footer .left').onmouseout = (e) => {
+      this.$el.querySelector('.dialog-footer .left').onmouseout = () => {
         this.isShowTooltips = false
+      }
+      this.$el.querySelector('.aggregate-modal').onclick = (e) => {
+        if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1) {
+          this.isEditGlobalDim = false
+          const aggregateArray = get(this.form, 'aggregateArray')
+          aggregateArray.forEach((agg) => {
+            agg.isEditDim = false
+          })
+          this.groupsDim = aggregateArray.map((agg) => { return agg.dimCap })
+          this.setModalForm({ aggregateArray })
+        }
       }
     })
   }
@@ -483,6 +503,7 @@ export default class AggregateModal extends Vue {
           }
         }
         this.calcLoading = false
+        this.isNeedCheck = false
         // this.hideLoading()
       })
     }, (res) => {
@@ -541,11 +562,15 @@ export default class AggregateModal extends Vue {
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
+      this.groupsDim = this.form.aggregateArray.map((agg) => {
+        return agg.dimCap
+      })
       this.isFormShow = true
       this.resetCuboidInfo()
     } else {
       setTimeout(() => {
         this.isFormShow = false
+        this.groupsDim = []
       }, 300)
     }
   }
@@ -580,16 +605,17 @@ export default class AggregateModal extends Vue {
     const aggregateArray = get(this.form, 'aggregateArray')
     aggregateArray[aggregateIdx].isEditDim = isEdit
     this.setModalForm({ aggregateArray })
-  }
-  handleSetDim (aggregateIdx, value) {
-    this.groupsDim[aggregateIdx] = value
+    if (!isEdit) {
+      this.groupsDim[aggregateIdx] = aggregateArray[aggregateIdx].dimCap
+    }
   }
   saveDimCan (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
     aggregateArray[aggregateIdx].dimCap = this.groupsDim[aggregateIdx]
     aggregateArray[aggregateIdx].isEditDim = false
     this.setModalForm({ aggregateArray })
-    this.setModalForm({isDimClearable: set(this.form, 'isDimClearable', false)['isDimClearable']})
+    this.setModalForm({isDimClearable: set(this.form, 'isDimClearable', !!this.groupsDim[aggregateIdx])['isDimClearable']})
+    this.isNeedCheck = true
   }
   handleCopyAggregate (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
@@ -599,6 +625,9 @@ export default class AggregateModal extends Vue {
       id: sampleGuid()
     }
     this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
+    this.groupsDim = [copyedAggregate, ...aggregateArray].map((agg) => {
+      return agg.dimCap
+    })
     this.isWaitingCheckCuboids[copyedAggregate.id] = true
     this.isWaitingCheckAllCuboids = true
     this.aggregateStyle = []
@@ -742,6 +771,7 @@ export default class AggregateModal extends Vue {
         // 发一个获取数据的接口
         let cuboidsRes = await this.getCalcCuboids(data)
         let cuboidsResult = await handleSuccessAsync(cuboidsRes)
+        this.isNeedCheck = false
         for (let prop in this.isWaitingCheckCuboids) {
           this.isWaitingCheckCuboids[prop] = false
         }
@@ -812,6 +842,7 @@ export default class AggregateModal extends Vue {
     this.setModalForm({isDimClearable: set(this.form, 'isDimClearable', !!this.globalDim)['isDimClearable']})
     this.popoverVisible = false
     this.isEditGlobalDim = false
+    this.isNeedCheck = true
   }
   handleCloseConfirm () {
     this.isShowConfirm = false
@@ -832,6 +863,10 @@ export default class AggregateModal extends Vue {
     const aggregateArray = get(this.form, 'aggregateArray')
     aggregateArray.forEach((agg) => {
       agg.dimCap = null
+    })
+    this.globalDim = null
+    this.groupsDim.forEach((dim) => {
+      dim = null
     })
     this.setModalForm({ aggregateArray })
     this.$message.success(this.$t('clearSuccess'))
@@ -1015,11 +1050,14 @@ export default class AggregateModal extends Vue {
       }
     }
     .left {
-      width: 230px;
+      min-width: 230px;
       text-align: left;
       .dim-input{
         display: inline-block;
         width: 58px;
+        .el-input__inner {
+          padding-right: 5px;
+        }
       }
       &:hover {
         .dim-btn {
@@ -1125,7 +1163,7 @@ export default class AggregateModal extends Vue {
       }
       .dimCap-block {
         padding: 0 5px;
-        width: 222px;
+        min-width: 222px;
         i {
           cursor: pointer;
         }
@@ -1142,6 +1180,9 @@ export default class AggregateModal extends Vue {
         .dim-input{
           display: inline-block;
           width: 58px;
+          .el-input__inner {
+            padding-right: 5px;
+          }
         }
         &:hover {
           .dim-btn {
