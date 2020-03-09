@@ -187,12 +187,12 @@ public class DFBuildJob extends SparkApplication {
         if (config.getSparkEngineTaskImpactInstanceEnabled()) {
             Path shareDir = config.getJobTmpShareDir(project, jobId);
             String maxLeafTasksNums = maxLeafTasksNums(shareDir);
-            logger.info("The maximum number of tasks required to run the job is {}", maxLeafTasksNums);
             val config = KylinConfig.getInstanceFromEnv();
             val factor = config.getSparkEngineTaskCoreFactor();
-            int i = Double.valueOf(maxLeafTasksNums).intValue() / factor;
-            logger.info("require cores: " + i);
-            return String.valueOf(i);
+            int requiredCore = Double.valueOf(maxLeafTasksNums).intValue() / factor;
+            logger.info("The maximum number of tasks required to run the job is {}, require cores: {}",
+                    maxLeafTasksNums, requiredCore);
+            return String.valueOf(requiredCore);
         } else {
             return SparkJobConstants.DEFAULT_REQUIRED_CORES;
         }

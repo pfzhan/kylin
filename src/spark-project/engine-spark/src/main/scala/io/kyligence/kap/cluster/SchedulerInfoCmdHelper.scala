@@ -126,26 +126,36 @@ object SchedulerInfoCmdHelper extends Logging {
       val builder = new ProcessBuilder(cmd: _*)
       builder.environment().putAll(System.getenv())
       val proc = builder.start
-      val result = new StringBuilder
+      val resultStdout = new StringBuilder
       val inReader = new BufferedReader(new InputStreamReader(proc.getInputStream))
+      val newLine = System.getProperty("line.separator")
       var line: String = inReader.readLine()
       while (line != null) {
-        result.append(line).append('\n')
-        logInfo(s"stdout\t$line")
+        resultStdout.append(line).append(newLine)
         line = inReader.readLine()
       }
 
+      val stderr = new StringBuilder
       val errorReader = new BufferedReader(new InputStreamReader(proc.getErrorStream))
       line = errorReader.readLine()
       while (line != null) {
-        logInfo(s"stderr\t$line")
+        stderr.append(line).append(newLine)
         line = errorReader.readLine()
       }
 
       try {
-        logInfo(s"Thread wait for executing command $command")
         val exitCode = proc.waitFor
-        (exitCode, result.toString)
+        if (exitCode != 0 ) {
+          logError(s"executing command $command; exit code: $exitCode")
+          logError(s"==========================[stderr]===============================")
+          logError(stderr.toString)
+          logError(s"==========================[stderr]===============================")
+
+          logError(s"==========================[stdout]===============================")
+          logError(resultStdout.toString)
+          logError(s"==========================[stdout]===============================")
+        }
+        (exitCode, resultStdout.toString)
       } catch {
         case e: InterruptedException =>
           Thread.currentThread.interrupt()

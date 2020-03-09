@@ -35,7 +35,7 @@ class FairSchedulerParser extends SchedulerParser {
     val cluster = clusterAvailableResource()
     val queue = queueAvailableResource(queueName)
     val resource = AvailableResource(cluster.available.reduceMin(queue.available), queue.max)
-    logInfo(s"Current actual available resource: $resource.")
+    logDebug(s"Current actual available resource: $resource.")
     resource
   }
 
@@ -44,7 +44,7 @@ class FairSchedulerParser extends SchedulerParser {
     val nodes = queues.asScala.filter(queue => parseValue(queue.get("queueName")).equals(queueName))
     require(nodes.size == 1)
     val resource = calAvailableResource(nodes.head)
-    logInfo(s"Queue available resource: $resource.")
+    logDebug(s"Queue available resource: $resource.")
     resource
   }
 
@@ -52,7 +52,7 @@ class FairSchedulerParser extends SchedulerParser {
     val node = root.findValue("rootQueue")
     require(node != null)
     val resource = calAvailableResource(node)
-    logInfo(s"Cluster available resource: $resource.")
+    logDebug(s"Cluster available resource: $resource.")
     resource
   }
 

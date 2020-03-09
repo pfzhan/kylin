@@ -138,4 +138,30 @@ public class SparkApplicationTest extends NSparkBasicTest {
 
         Mockito.verify(application, Mockito.times(3)).updateSparkJobInfo("/kylin/api/jobs/spark", payloadJson);
     }
+
+    @Test
+    public void testEmptyArgs() throws IOException {
+        SparkApplication application = new SparkApplication() {
+            @Override
+            protected void doExecute() throws Exception {
+                System.out.println("empty");
+            }
+        };
+
+        File empty = new File(tempDir, "empty.json");
+        FileOutputStream emptyOut = new FileOutputStream(empty);
+        String newLine = System.getProperty("line.separator");
+        emptyOut.write(newLine.getBytes());
+        emptyOut.close();
+        String[] args = { empty.getAbsolutePath() };
+
+        try {
+            application.execute(args);
+        } catch (RuntimeException e) {
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof RuntimeException);
+            Assert.assertTrue(cause.getMessage().contains("is empty"));
+            Assert.assertTrue(cause.getMessage().contains(empty.getAbsolutePath()));
+        }
+    }
 }

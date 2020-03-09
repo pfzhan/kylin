@@ -60,7 +60,7 @@ object ExceptionTerminator extends Logging {
 
   private def resolveOutOfMemoryError(env: KylinBuildEnv, throwable: Throwable): ResolverResult = {
     if (throwable.getMessage.contains(SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key)) {
-      logInfo("Resolve out of memory error with broadcast.")
+      logInfo(s"Retry with increasing broadcast memory, set ${SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key} = -1.")
       overrideSparkConf(env.sparkConf, SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key, "-1")
       val overrideConf = Maps.newHashMap[String, String]()
       overrideConf.put(SQLConf.AUTO_BROADCASTJOIN_THRESHOLD.key, "-1")
@@ -83,12 +83,12 @@ object ExceptionTerminator extends Logging {
     val overheadMem = Utils.byteStringAsMb(conf.get(EXECUTOR_OVERHEAD))
     val maxMemory = maxResourceMemory - overheadMem
     val maxOverheadMem = (maxMemory * overheadGradient).toInt
+    val overrideConf = Maps.newHashMap[String, String]()
     if (prevMemory == maxMemory) {
       val retryCore = conf.get(EXECUTOR_CORES).toInt - 1
       if (retryCore > 0) {
         conf.set(EXECUTOR_CORES, retryCore.toString)
-        logInfo(s"Reset $EXECUTOR_CORES=$retryCore when retry.")
-        val overrideConf = Maps.newHashMap[String, String]()
+        logInfo(s"Retry with decreasing cores, set $EXECUTOR_CORES=$retryCore.")
         overrideConf.put(EXECUTOR_CORES, retryCore.toString)
         Success(overrideConf)
       } else {
@@ -98,18 +98,16 @@ object ExceptionTerminator extends Logging {
     } else if (retryMemory > maxMemory) {
       conf.set(EXECUTOR_MEMORY, maxMemory + "MB")
       conf.set(EXECUTOR_OVERHEAD, maxOverheadMem + "MB")
-      logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
-      logInfo(s"Reset $EXECUTOR_OVERHEAD=${conf.get(EXECUTOR_OVERHEAD)} when retry.")
-      val overrideConf = Maps.newHashMap[String, String]()
+      logInfo(s"Retry with maximum memory, set $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)}, " +
+        s"$EXECUTOR_OVERHEAD=${conf.get(EXECUTOR_OVERHEAD)}.")
       overrideConf.put(EXECUTOR_MEMORY, maxMemory + "MB")
       overrideConf.put(EXECUTOR_OVERHEAD, maxOverheadMem + "MB")
       Success(overrideConf)
     } else {
       conf.set(EXECUTOR_MEMORY, retryMemory + "MB")
       conf.set(EXECUTOR_OVERHEAD, retryOverhead + "MB")
-      logInfo(s"Reset $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)} when retry.")
-      logInfo(s"Reset $EXECUTOR_OVERHEAD=${conf.get(EXECUTOR_OVERHEAD)} when retry.")
-      val overrideConf = Maps.newHashMap[String, String]()
+      logInfo(s"Retry with increasing memory, set $EXECUTOR_MEMORY=${conf.get(EXECUTOR_MEMORY)}, " +
+        s"$EXECUTOR_OVERHEAD=${conf.get(EXECUTOR_OVERHEAD)}.")
       overrideConf.put(EXECUTOR_MEMORY, retryMemory + "MB")
       overrideConf.put(EXECUTOR_OVERHEAD, retryOverhead + "MB")
       Success(overrideConf)
@@ -117,7 +115,6 @@ object ExceptionTerminator extends Logging {
   }
 
   def overrideSparkConf(sparkConf: SparkConf, key: String, value: String): Unit = {
-    logInfo(s"Override spark conf $key to $value")
     sparkConf.set(key, value)
   }
 }

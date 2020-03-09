@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorCoreRule;
 import org.apache.spark.conf.rule.ExecutorInstancesRule;
@@ -102,11 +104,11 @@ public class SparkConfHelper {
         this.clusterManager = clusterManager;
     }
 
-    public void applySparkConf(SparkConf sparkConf) {
+    public void applySparkConf(SparkConf sparkConf) throws JsonProcessingException {
         KylinBuildEnv.get().buildJobInfos().recordAutoSparkConfs(confs);
+        logger.info("Auto set spark conf: {}", JsonUtil.writeValueAsString(confs));
         for (Map.Entry<String, String> entry : confs.entrySet()) {
             sparkConf.set(entry.getKey(), entry.getValue());
-            logger.info("Auto set spark conf: {} = {}.", entry.getKey(), entry.getValue());
         }
     }
 

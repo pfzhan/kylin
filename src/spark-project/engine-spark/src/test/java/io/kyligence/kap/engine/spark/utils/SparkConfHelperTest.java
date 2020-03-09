@@ -29,6 +29,7 @@ import static org.mockito.Mockito.mock;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.SparkConf;
 import org.apache.spark.conf.rule.ExecutorInstancesRule;
@@ -63,7 +64,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testOneGradeWhenLessTHan1GB() {
+    public void testOneGradeWhenLessTHan1GB() throws JsonProcessingException {
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, "1b");
@@ -90,7 +91,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testTwoGradeWhenLessTHan10GB() {
+    public void testTwoGradeWhenLessTHan10GB() throws JsonProcessingException {
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 8L * 1024 * 1024 * 1024 + "b");
@@ -115,7 +116,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testThreeGradeWhenLessHan100GB() {
+    public void testThreeGradeWhenLessHan100GB() throws JsonProcessingException {
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 50L * 1024 * 1024 * 1024 + "b");
@@ -140,7 +141,7 @@ public class SparkConfHelperTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testFourGradeWhenGreaterThanOrEqual100GB() {
+    public void testFourGradeWhenGreaterThanOrEqual100GB() throws JsonProcessingException {
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(clusterManager);
         helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, 100L * 1024 * 1024 * 1024 + "b");

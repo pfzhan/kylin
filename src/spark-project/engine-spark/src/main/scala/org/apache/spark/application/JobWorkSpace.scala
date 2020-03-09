@@ -48,7 +48,6 @@ object JobWorkSpace extends Logging {
   }
 
   def resolveArgs(args: Array[String]): (SparkApplication, Array[String]) = {
-    logInfo("JobWorkSpace args:" + args.mkString(" "))
     if (args.length < 2 || args(0) != "-className") throw new IllegalArgumentException("className is required")
     val className = args(1)
     // scalastyle:off

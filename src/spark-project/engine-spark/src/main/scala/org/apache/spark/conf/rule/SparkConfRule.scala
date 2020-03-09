@@ -23,7 +23,7 @@
 package org.apache.spark.conf.rule
 
 
-import io.kyligence.kap.engine.spark.utils.{SparkConfHelper, SparkConfRuleConstants}
+import io.kyligence.kap.engine.spark.utils.{LogUtils, SparkConfHelper, SparkConfRuleConstants}
 import org.apache.kylin.common.KylinConfig
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.Utils
@@ -105,13 +105,13 @@ class ExecutorInstancesRule extends SparkConfRule {
     val queue = helper.getConf(SparkConfHelper.DEFAULT_QUEUE)
     val layoutSize = helper.getOption(SparkConfHelper.LAYOUT_SIZE)
     val requiredCores = helper.getOption(SparkConfHelper.REQUIRED_CORES)
-    logInfo(s"RequiredCores is $requiredCores")
+
     val baseExecutorInstances = KylinConfig.getInstanceFromEnv.getSparkEngineBaseExuctorInstances
     val calculateExecutorInsByLayoutSize = calculateExecutorInstanceSizeByLayoutSize(Integer.parseInt(layoutSize))
 
-
-    val availableMem = helper.getClusterManager.fetchQueueAvailableResource(queue).available.memory
-    val availableCore = helper.getClusterManager.fetchQueueAvailableResource(queue).available.vCores
+    val availableResource = helper.getClusterManager.fetchQueueAvailableResource(queue).available
+    val availableMem = availableResource.memory
+    val availableCore = availableResource.vCores
     val executorMem = Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_MEMORY))
     +Utils.byteStringAsMb(helper.getConf(SparkConfHelper.EXECUTOR_OVERHEAD))
 
@@ -120,14 +120,21 @@ class ExecutorInstancesRule extends SparkConfRule {
       case None => SparkConfRuleConstants.DEFUALT_EXECUTOR_CORE.toInt
     }
 
-    logInfo(s"Current availableMem is $availableMem, availableCore is $availableCore")
     val queueAvailableInstance = Math.min(availableMem / executorMem, availableCore / executorCore)
-    logInfo(s"Maximum instance that the current queue can set: $queueAvailableInstance")
-
     val needInstance = Math.max(calculateExecutorInsByLayoutSize.toLong, requiredCores.toInt / executorCore)
     val instance = Math.min(needInstance, queueAvailableInstance)
     val executorInstance = Math.max(instance.toLong, baseExecutorInstances.toLong).toString
-    logInfo(s"queueAvailableInstance is $queueAvailableInstance , needInstance is $needInstance , instance is $instance")
+
+    lazy val executorInstanceInfo = Map(
+      "available memory" -> availableMem,
+      "available core" ->availableCore,
+      "available instance"-> queueAvailableInstance,
+      "required core" -> requiredCores,
+      "required instance"-> needInstance,
+      "config executor instance" -> baseExecutorInstances
+    )
+    logDebug(s"set ${SparkConfHelper.EXECUTOR_INSTANCES} = ${executorInstance}, " +
+      s"with current cluster resource and requirement: ${LogUtils.jsonMap(executorInstanceInfo)}")
     helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, executorInstance)
   }
 
@@ -137,7 +144,6 @@ class ExecutorInstancesRule extends SparkConfRule {
 
 
   def calculateExecutorInstanceSizeByLayoutSize(layoutSize: Int): Int = {
-    logInfo(s"Calculate the number of executor instance size based on the number of layouts: $layoutSize")
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val baseInstances: Integer = config.getSparkEngineBaseExuctorInstances
     var instanceMultiple = 1
@@ -158,7 +164,8 @@ class ExecutorInstancesRule extends SparkConfRule {
         instanceMultiple = choosen.last._2.toInt
       }
     }
-    logInfo(s"The instanceMultiple is $instanceMultiple")
+    logDebug(s"Calculate the number of executor instance size based on the number of layouts: $layoutSize, " +
+      s"the instanceMultiple is $instanceMultiple")
     baseInstances * instanceMultiple
   }
 }

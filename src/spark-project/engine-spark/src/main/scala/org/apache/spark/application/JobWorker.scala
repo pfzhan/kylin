@@ -55,7 +55,6 @@ class JobWorker(application: SparkApplication, args: Array[String], eventLoop: K
     pool.execute(new Runnable {
       override def run(): Unit = {
         try {
-          logInfo("Start running job.")
           application.execute(args)
           eventLoop.post(JobSucceeded())
         } catch {

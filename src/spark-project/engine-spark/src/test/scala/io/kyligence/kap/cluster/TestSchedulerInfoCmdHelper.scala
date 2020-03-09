@@ -47,4 +47,13 @@ class TestSchedulerInfoCmdHelper extends SparderBaseFunSuite {
     assert(tuple._1 == 0)
     assert(tuple._2 == stdOut + "\n")
   }
+
+  test("exec command return non zero ") {
+    val stdErr = "2"
+    val stdOut = "1"
+    val (exitCode, exe_stdout) = SchedulerInfoCmdHelper.execute(s"(>&2 echo $stdErr;echo $stdOut; exit 1)")
+
+    assertResult(1)(exitCode)
+    assertResult(stdOut + "\n")(exe_stdout)
+  }
 }

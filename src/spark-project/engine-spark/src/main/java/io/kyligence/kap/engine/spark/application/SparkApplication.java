@@ -104,14 +104,13 @@ public abstract class SparkApplication implements Application, IKeep {
         try {
             String argsLine = Files.readAllLines(Paths.get(args[0])).get(0);
             if (argsLine.isEmpty()) {
-                throw new RuntimeException("Args file is empty");
+                throw new RuntimeException(String.format("Args file %s is empty", args[0]));
             }
             params = JsonUtil.readValueAsMap(argsLine);
             checkArgs();
-            logger.info("Executor task " + this.getClass().getName() + " with args : " + argsLine);
+            logger.info("Execute {} with args : {}", this.getClass().getName(), argsLine);
             execute();
         } catch (Exception e) {
-            logger.error("The spark job execute failed!", e);
             throw new RuntimeException("Error execute " + this.getClass().getName(), e);
         }
     }
@@ -251,6 +250,7 @@ public abstract class SparkApplication implements Application, IKeep {
             HadoopUtil.setCurrentConfiguration(new Configuration());
             SparkConf sparkConf = buildEnv.sparkConf();
             if (config.isAutoSetSparkConf() && isJobOnCluster(sparkConf)) {
+                logger.info("Set spark conf automatically.");
                 try {
                     autoSetSparkConf(sparkConf);
                 } catch (Exception e) {
@@ -258,33 +258,35 @@ public abstract class SparkApplication implements Application, IKeep {
                 }
                 if (config.getSparkConfigOverride().size() > 0) {
                     for (Map.Entry<String, String> entry : config.getSparkConfigOverride().entrySet()) {
-                        logger.info("Override user-defined spark conf, set {}={}.", entry.getKey(), entry.getValue());
                         sparkConf.set(entry.getKey(), entry.getValue());
                     }
+                    logger.info("Override user-defined spark conf: {}",
+                            JsonUtil.writeValueAsString(config.getSparkConfigOverride()));
                 }
             }
-
             // for wrapping credential
             CredentialUtils.wrap(sparkConf, project);
 
             TimeZoneUtils.setDefaultTimeZone(config);
 
             if (isJobOnCluster(sparkConf)) {
-                logger.info("Sleep for random seconds to avoid submitting too many spark job at the same time.");
-                Thread.sleep((long) (Math.random() * 60 * 1000));
+                long sleepSeconds = (long) (Math.random() * 60L);
+                logger.info("Sleep {} seconds to avoid submitting too many spark job at the same time.", sleepSeconds);
+                infos.startWait();
+                Thread.sleep(sleepSeconds * 1000);
                 try {
                     while (!ResourceUtils.checkResource(sparkConf, buildEnv.clusterManager())) {
-                        long waitTime = (long) (Math.random() * 10 * 60 * 1000L);
-                        logger.info("Current available resource in cluster is not sufficient, wait for a period: {}.",
-                                waitTime);
-                        Thread.sleep(waitTime);
+                        long waitTime = (long) (Math.random() * 10 * 60);
+                        logger.info("Current available resource in cluster is not sufficient, wait {} seconds.", waitTime);
+                        Thread.sleep(waitTime* 1000L);
                     }
                 } catch (Throwable throwable) {
                     logger.warn("Error occurred when check resource. Ignore it and try to submit this job. ",
                             throwable);
                 }
+                infos.endWait();
             }
-
+            logger.info("Prepare job environment");
             ss = SparkSession.builder().withExtensions(new AbstractFunction1<SparkSessionExtensions, BoxedUnit>() {
                 @Override
                 public BoxedUnit apply(SparkSessionExtensions v1) {
@@ -321,6 +323,7 @@ public abstract class SparkApplication implements Application, IKeep {
             if (!config.isUTEnv()) {
                 System.setProperty("kylin.env", config.getDeployEnv());
             }
+            logger.info("Start job");
             infos.startJob();
             doExecute();
             // Output metadata to another folder
@@ -350,7 +353,6 @@ public abstract class SparkApplication implements Application, IKeep {
     }
 
     private void autoSetSparkConf(SparkConf sparkConf) throws Exception {
-        logger.info("Start set spark conf automatically.");
         SparkConfHelper helper = new SparkConfHelper();
         helper.setClusterManager(KylinBuildEnv.get().clusterManager());
         Path shareDir = config.getJobTmpShareDir(project, jobId);
@@ -381,9 +383,9 @@ public abstract class SparkApplication implements Application, IKeep {
             exist = ResourceDetectUtils.readResourcePathsAs(countDistinct);
         } else {
             exist = false;
-            logger.info("File count_distinct.json doesn't exist, set hasCountDistinct to false.");
+            logger.debug("File count_distinct.json doesn't exist, set hasCountDistinct to false.");
         }
-        logger.info("Exist count distinct measure: {}", exist);
+        logger.debug("Exist count distinct measure: {}", exist);
         return exist;
     }
 
