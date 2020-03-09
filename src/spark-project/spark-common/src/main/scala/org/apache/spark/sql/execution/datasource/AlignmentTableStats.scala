@@ -47,15 +47,19 @@ case class AlignmentTableStats(session: SparkSession) extends Rule[LogicalPlan] 
     case logicalRelation@LogicalRelation(relation: HadoopFsRelation, _, Some(catalogTable), _) =>
       val rowCount = TableMetaManager.getTableMeta(catalogTable.identifier.table)
 
-      val originSizeInBytes = catalogTable.stats match {
-        case Some(stats) =>
-          stats.sizeInBytes
-        case None => BigInt(9223372036854775807L)
+      if (rowCount.isDefined) {
+        val originSizeInBytes = catalogTable.stats match {
+          case Some(stats) =>
+            stats.sizeInBytes
+          case None => BigInt(9223372036854775807L)
+        }
+
+        val withStats = logicalRelation.catalogTable.map(_.copy(
+          stats = Some(CatalogStatistics(sizeInBytes = originSizeInBytes, rowCount = rowCount.get.rowCount))))
+
+        logicalRelation.copy(catalogTable = withStats)
+      } else {
+        logicalRelation
       }
-
-      val withStats = logicalRelation.catalogTable.map(_.copy(
-        stats = Some(CatalogStatistics(sizeInBytes = originSizeInBytes, rowCount = rowCount.get.rowCount))))
-
-      logicalRelation.copy(catalogTable = withStats)
   }
 }

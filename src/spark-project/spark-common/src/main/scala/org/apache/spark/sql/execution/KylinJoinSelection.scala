@@ -111,6 +111,7 @@ case class KylinJoinSelection(session: SparkSession) extends Strategy with Predi
    */
   private def canBroadcast(plan: LogicalPlan): Boolean = {
     val sizeInBytes = plan.stats.sizeInBytes
+    logInfo(s" sizeInBytes is ${sizeInBytes} autoBroadcastJoinThreshold is ${conf.autoBroadcastJoinThreshold} ")
     sizeInBytes >= 0 && sizeInBytes <= conf.autoBroadcastJoinThreshold && JoinMemoryManager.acquireMemory(sizeInBytes.toLong)
   }
 
