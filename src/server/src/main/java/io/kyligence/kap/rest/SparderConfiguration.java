@@ -33,10 +33,10 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.scheduler.SparkInfoCollector;
 import org.apache.spark.sql.SparderEnv;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
-import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -44,8 +44,8 @@ import lombok.extern.slf4j.Slf4j;
 @AutoConfigureOrder
 public class SparderConfiguration {
 
-    @EventListener(AppInitializedEvent.class)
-    public void init(AppInitializedEvent event) {
+    @EventListener(ApplicationReadyEvent.class)
+    public void init(ApplicationReadyEvent event) {
         SparderEnv.init();
         SparkInfoCollector.collectSparkInfo();
         if (System.getProperty("spark.local", "false").equals("true")) {
