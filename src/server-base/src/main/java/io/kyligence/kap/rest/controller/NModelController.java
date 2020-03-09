@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -166,7 +167,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "")
+    @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
@@ -394,7 +395,7 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
 
-    @GetMapping(value = "/affected_models")
+    @GetMapping(value = "/affected_models", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<AffectedModelsResponse> getAffectedModelsBySourceTableAction(
             @RequestParam(value = "table") String tableName, //

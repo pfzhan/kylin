@@ -28,7 +28,6 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -53,6 +52,7 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.service.ProjectService;
 import io.kyligence.kap.rest.service.TableService;
 
 @Controller
@@ -90,10 +90,12 @@ public class OpenTableController extends NBasicController {
     public EnvelopeResponse<DataResult<List<TableDesc>>> getTableDesc(@RequestParam(value = "project") String project,
             @RequestParam(value = "table", required = false) String table,
             @RequestParam(value = "database", required = false) String database,
+            @RequestParam(value = "is_fuzzy", required = false, defaultValue = "false") boolean isFuzzy,
+            @RequestParam(value = "ext", required = false, defaultValue = "true") boolean withExt,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit)
             throws IOException {
-        List<TableDesc> result = tableService.getTableDesc(project, true, table, database, false);
+        List<TableDesc> result = tableService.getTableDesc(project, withExt, table, database, isFuzzy);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(result, offset, limit), "");
     }
 

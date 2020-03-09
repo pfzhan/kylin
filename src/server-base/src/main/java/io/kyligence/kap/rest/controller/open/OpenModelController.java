@@ -276,4 +276,12 @@ public class OpenModelController extends NBasicController {
 
         return modelController.batchApplyRecommendations(request.getProject(), request.getModelNames());
     }
+
+    @DeleteMapping(value = "/{model_name:.+}")
+    @ResponseBody
+    public EnvelopeResponse<String> deleteModel(@PathVariable("model_name") String modelAlias, @RequestParam("project") String project) {
+        checkProjectName(project);
+        String modelId = getModel(modelAlias, project).getId();
+        return modelController.deleteModel(modelId, project);
+    }
 }
