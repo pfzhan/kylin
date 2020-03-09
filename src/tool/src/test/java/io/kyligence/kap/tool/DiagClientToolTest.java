@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -33,8 +35,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class DiagClientToolTest extends NLocalFileMetadataTestCase {
 
@@ -61,15 +62,34 @@ public class DiagClientToolTest extends NLocalFileMetadataTestCase {
 
         DiagClientTool diagClientTool = new DiagClientTool();
 
-        diagClientTool.execute(new String[] {"-destDir", mainDir.getAbsolutePath()});
+        diagClientTool.execute(new String[] { "-destDir", mainDir.getAbsolutePath() });
 
         for (File file1 : mainDir.listFiles()) {
             for (File file2 : file1.listFiles()) {
-                if(!file2.getName().contains("_full_") || !file2.getName().endsWith(".zip")) {
+                if (!file2.getName().contains("_full_") || !file2.getName().endsWith(".zip")) {
                     Assert.fail();
                 }
             }
         }
+    }
+
+    @Test
+    public void testDestDirNotExist() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        File existDir = new File(mainDir, "existDir");
+        FileUtils.forceMkdir(existDir);
+        File notExistDir = new File(mainDir, "notExistDir");
+
+        DiagClientTool diagClientTool = new DiagClientTool();
+        diagClientTool.execute(new String[] { "-destDir", existDir.getAbsolutePath() });
+        diagClientTool.execute(new String[] { "-destDir", notExistDir.getAbsolutePath() });
+
+        String existDirFileName = existDir.listFiles()[0].listFiles()[0].getName();
+        String notExistDirFileName = notExistDir.listFiles()[0].listFiles()[0].getName();
+        Assert.assertTrue(existDirFileName.endsWith(".zip"));
+        Assert.assertTrue(notExistDirFileName.endsWith(".zip"));
     }
 
 }

@@ -182,7 +182,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         // create new folder to contain the output
         String packageName = packageType.toLowerCase() + "_"
                 + new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
-        if (!submodule && new File(exportDest).exists()) {
+        if (!submodule) {
             exportDest = exportDest + packageName + SLASH;
         }
 
