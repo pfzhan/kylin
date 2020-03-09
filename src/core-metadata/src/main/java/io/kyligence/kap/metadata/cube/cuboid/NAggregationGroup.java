@@ -48,6 +48,7 @@ import com.google.common.math.LongMath;
 import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.kylin.cube.model.TooManyCuboidException;
 
 /**
  * to compatible with legacy aggregation group in pre-newten
@@ -283,8 +284,13 @@ public class NAggregationGroup implements Serializable {
         long combination = 1;
         try {
             if (this.getDimCap() > 0 || ruleBasedAggIndex.getGlobalDimCap() > 0) {
-                NCuboidScheduler cuboidScheduler = ruleBasedAggIndex.getInitialCuboidScheduler();
-                combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
+                try {
+                    NCuboidScheduler cuboidScheduler = new NKECuboidScheduler(ruleBasedAggIndex.getIndexPlan(),
+                            ruleBasedAggIndex);
+                    combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
+                } catch (TooManyCuboidException oe) {
+                    return Long.MAX_VALUE;
+                }
             } else {
                 Set<Integer> includeDims = new TreeSet<>(Arrays.asList(includes));
                 Set<Integer> mandatoryDims = new TreeSet<>(Arrays.asList(selectRule.mandatoryDims));

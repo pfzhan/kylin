@@ -991,4 +991,36 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("[5, 10000, 10001]", ruleBaseLayouts.get(5).getColOrder().toString());
         Assert.assertEquals("[1, 2, 3, 4, 5, 6, 7, 10000, 10001]", ruleBaseLayouts.get(6).getColOrder().toString());
     }
+
+    @Test
+    public void testCalculateAggIndexCountWhenOutOfMaxComb() throws Exception {
+        // agg group1 over 4096
+        NAggregationGroup aggregationGroup1 = new NAggregationGroup();
+        aggregationGroup1.setIncludes(new Integer[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+        aggregationGroup1.setMeasures(new Integer[] { 10000 });
+        SelectRule selectRule1 = new SelectRule();
+        selectRule1.setMandatoryDims(new Integer[] {});
+        selectRule1.setDimCap(100);
+        aggregationGroup1.setSelectRule(selectRule1);
+
+        // agg group2 is normal
+        NAggregationGroup aggregationGroup2 = new NAggregationGroup();
+        aggregationGroup2.setIncludes(new Integer[] { 5, 6, 7 });
+        aggregationGroup2.setMeasures(new Integer[] { 10000, 10001 });
+        SelectRule selectRule2 = new SelectRule();
+        selectRule2.setMandatoryDims(new Integer[] {});
+        aggregationGroup2.setSelectRule(selectRule2);
+
+        UpdateRuleBasedCuboidRequest request = UpdateRuleBasedCuboidRequest.builder().project("default")
+                .modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .aggregationGroups(Lists.<NAggregationGroup> newArrayList(aggregationGroup1, aggregationGroup2))
+                .build();
+        request.setGlobalDimCap(2);
+
+        AggIndexResponse aggIndexResponse = indexPlanService.calculateAggIndexCount(request);
+        List<AggIndexCombResult> aggIndexCounts = aggIndexResponse.getAggIndexCounts();
+        Assert.assertEquals("FAIL", aggIndexCounts.get(0).getStatus());
+        Assert.assertEquals("SUCCESS", aggIndexCounts.get(1).getStatus());
+        Assert.assertEquals("FAIL", aggIndexResponse.getTotalCount().getStatus());
+    }
 }

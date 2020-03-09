@@ -368,8 +368,12 @@ public class IndexPlanService extends BasicService {
         if (invalid) {
             totalResult = AggIndexCombResult.errorResult();
         } else {
-            long totalCount = indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount();
-            totalResult = AggIndexCombResult.successResult(totalCount);
+            try {
+                totalResult = AggIndexCombResult
+                        .successResult(indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount());
+            } catch (OutOfMaxCombinationException outOfMaxCombinationException) {
+                totalResult = AggIndexCombResult.errorResult();
+            }
         }
         return new AggIndexResponse(aggIndexCounts, totalResult, getConfig().getCubeAggrGroupMaxCombination());
     }
