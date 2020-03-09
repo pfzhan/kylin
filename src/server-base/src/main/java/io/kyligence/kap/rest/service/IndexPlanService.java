@@ -369,8 +369,8 @@ public class IndexPlanService extends BasicService {
             totalResult = AggIndexCombResult.errorResult();
         } else {
             try {
-                totalResult = AggIndexCombResult
-                        .successResult(indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount());
+                long cuboidCount = indexPlan.getRuleBasedIndex().getInitialCuboidScheduler().getCuboidCount();
+                totalResult = AggIndexCombResult.successResult(cuboidCount);
             } catch (OutOfMaxCombinationException outOfMaxCombinationException) {
                 totalResult = AggIndexCombResult.errorResult();
             }
