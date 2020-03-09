@@ -241,8 +241,8 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
         newFq.setCreateTime(System.currentTimeMillis() - 31 * 24 * 60 * 60 * 1000L);
         newFq.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
             {
-                put(currentDate - 7 * 24 * 60 * 60 * 1000L, 10);
-                put(currentDate - 30 * 24 * 60 * 60 * 1000L, 10);
+                put(TimeUtil.minusDays(currentDate, 7), 10);
+                put(TimeUtil.minusDays(currentDate, 30), 10);
             }
         }));
 
