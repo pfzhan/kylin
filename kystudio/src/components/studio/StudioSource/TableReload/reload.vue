@@ -20,6 +20,7 @@
       <div v-if="showDetail" class="detail-box">
         <p>{{detailMsg1}}</p>
         <p>{{detailMsg2}}</p>
+        <p>{{detailMsg3}}</p>
       </div>
     </el-alert> 
     <div class="samping-box">
@@ -40,7 +41,8 @@
     </div> 
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" :loading="reloadLoading" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" :loading="reloadLoading" @click="submit">{{$t('reloadBtn')}}</el-button>
+      <el-button v-if="checkData && (('add_layouts_count' in checkData && checkData.add_layouts_count) || ('refresh_layouts_count' in checkData && checkData.refresh_layouts_count))" size="medium" :loading="reloadLoading1" @click="submit('refreshIndex')">{{$t('reloadAndRefresh')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -88,6 +90,7 @@ export default class ReloadTableModal extends Vue {
   isFormShow = false
   openSample = true
   reloadLoading = false
+  reloadLoading1 = false
   maxSampleCount = 20000000
   minSampleCount = 10000
   sampleOption = {sampleCount: this.maxSampleCount}
@@ -147,7 +150,7 @@ export default class ReloadTableModal extends Vue {
     if (this.isShow) {
       let delMeasureCount = this.checkData.remove_measures_count
       let delDimensionCount = this.checkData.remove_dimensions_count
-      let delIndexCount = this.checkData.remove_indexes_count
+      let delIndexCount = this.checkData.remove_layouts_count
       let brokenModelCount = this.isAutoProject ? 0 : this.checkData.broken_model_count
       return delMeasureCount + delDimensionCount + delIndexCount + brokenModelCount > 0
     }
@@ -168,14 +171,21 @@ export default class ReloadTableModal extends Vue {
         if (this.checkData.data_type_change_column_count) {
           tipList.push(this.$t('changedColumnsTip', { changedColumnsCount: this.checkData.data_type_change_column_count }))
         }
-        return this.$t('reloadEffectTip', {tableName: this.tableName, changeChar: tipList.join(this.$t('kylinLang.common.comma')) + this.$t('kylinLang.common.dot')})
+        let tipList1 = [`${tipList.join(this.$t('kylinLang.common.comma'))}${this.$t('kylinLang.common.dot')}${this.$t('reloadEffectTip1')}`]
+        if (this.checkData.remove_layouts_count) {
+          tipList1.push(this.$t('removeIndexTip'))
+        }
+        if (this.checkData.refresh_layouts_count) {
+          tipList1.push(this.$t('refreshIndexTip'))
+        }
+        return this.$t('reloadEffectTip', {tableName: this.tableName, changeChar: tipList1.join(this.$t('kylinLang.common.comma')) + this.$t('kylinLang.common.dot')})
       }
       return this.$t('reloadNoEffectTip', { tableName: this.tableName })
     }
   }
   get tipMsg2 () {
-    let modelMode = this.isAutoProject ? 'kylinLang.model.indexGroup' : 'kylinLang.common.model'
-    return this.hasDetailInfluence ? this.$t('reloadEffectTip1', {modelMode: this.$t(modelMode)}) : ''
+    // let modelMode = this.isAutoProject ? 'kylinLang.model.indexGroup' : 'kylinLang.common.model'
+    return this.hasDetailInfluence ? this.$t('reloadEffectTip2') : ''
   }
   get detailMsg1 () {
     if (!this.isAutoProject) {
@@ -185,13 +195,18 @@ export default class ReloadTableModal extends Vue {
     return ''
   }
   get detailMsg2 () {
+    let refreshIndexCount = this.checkData && this.checkData.refresh_layouts_count || 0
+    return refreshIndexCount ? this.$t('indexCountChangeTip', { indexCount: refreshIndexCount }) : ''
+  }
+  get detailMsg3 () {
     if (this.isShow) {
       if (this.hasColumnInfluence) {
         let tipList = []
         let delMeasureCount = this.checkData.remove_measures_count
         let delDimensionCount = this.checkData.remove_dimensions_count
-        let delIndexCount = this.checkData.remove_indexes_count
-        if (delMeasureCount + delDimensionCount + delIndexCount === 0) {
+        let delIndexCount = this.checkData.remove_layouts_count
+        let addIndexCount = this.checkData.add_layouts_count
+        if (delMeasureCount + delDimensionCount + delIndexCount + addIndexCount === 0) {
           return ''
         }
         if (delDimensionCount) {
@@ -203,7 +218,7 @@ export default class ReloadTableModal extends Vue {
         if (delIndexCount) {
           tipList.push(this.$t('indexChangeTip', { indexCount: delIndexCount }))
         }
-        return this.$t('dimAndMeasureAndIndexChangeTip', {changeChar: tipList.join(this.$t('kylinLang.common.comma'))})
+        return `${this.$t('dimAndMeasureAndIndexChangeTip', {changeChar: tipList.join(this.$t('kylinLang.common.comma'))})}${addIndexCount ? this.$t('kylinLang.common.comma') + this.$t('addIndexTip', { addIndexCount: addIndexCount }) + ';' : ';'}`
       }
     }
   }
@@ -214,24 +229,32 @@ export default class ReloadTableModal extends Vue {
       this.resetModalForm()
     }, 200)
   }
-  async submit () {
+  async submit (type) {
     try {
       await this.$refs['sample-form'].validate()
-      this.reloadLoading = true
+      let message = ''
+      type && type === 'refreshIndex' ? this.reloadLoading1 = true : this.reloadLoading = true
       await this.reloadModel({
         project: this.currentSelectedProject,
         table: this.tableName,
         need_sample: this.openSample,
-        max_rows: this.openSample ? +this.sampleOption.sampleCount : 0
+        max_rows: this.openSample ? +this.sampleOption.sampleCount : 0,
+        need_build: type && type === 'refreshIndex'
       })
-      this.reloadLoading = false
+      if (type && type === 'refreshIndex') {
+        this.reloadLoading1 = false
+        message = `${this.openSample ? this.$t('reloadSuccess', {tableName: this.tableName}) + this.$t('sampleSuccess') + (this.$lang === 'zh-cn' ? this.$t('and') : '') + this.$t('structureSuccess') + this.$t('concludingRemarks') : this.$t('reloadSuccess', {tableName: this.tableName}) + this.$t('structureSuccess') + this.$t('concludingRemarks')}`
+      } else {
+        this.reloadLoading = false
+        message = this.$t('reloadSuccess', {tableName: this.tableName}) + (this.openSample ? this.$t('sampleSuccess') + this.$t('concludingRemarks') : '')
+      }
       this.$message({
-        message: this.$t('reloadSuccess', {tableName: this.tableName}) + (this.openSample ? this.$t('sampleSuccess') : ''),
+        message,
         type: 'success'
       })
       this.closeHandler(true)
     } catch (e) {
-      this.reloadLoading = false
+      type && type === 'refreshIndex' ? this.reloadLoading1 = false : this.reloadLoading = false
       // 异常处理
       e && handleError(e)
     }
