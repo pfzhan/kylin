@@ -98,7 +98,6 @@ public class NSystemController extends NBasicController {
     @PostMapping(value = "/backup")
     @ResponseBody
     public EnvelopeResponse<String> remoteBackupProject(@RequestBody BackupRequest backupRequest) throws Exception {
-        checkRequiredArg("backupPath", backupRequest.getBackupPath());
         systemService.backup(backupRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }

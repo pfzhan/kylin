@@ -48,6 +48,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -95,7 +96,7 @@ public class MetadataTool extends ExecutableApplication {
             .withDescription("Restore metadata from local path or HDFS path").isRequired(false).create("restore");
 
     private static final Option OPTION_DIR = OptionBuilder.hasArg().withArgName("DIRECTORY_PATH")
-            .withDescription("Specify the target directory for backup and restore").isRequired(true).create("dir");
+            .withDescription("Specify the target directory for backup and restore").isRequired(false).create("dir");
 
     private static final Option OPTION_PROJECT = OptionBuilder.hasArg().withArgName("PROJECT_NAME")
             .withDescription("Specify project level backup and restore (optional)").isRequired(false).create("project");
@@ -237,9 +238,12 @@ public class MetadataTool extends ExecutableApplication {
 
     private void backup(OptionsHelper optionsHelper) throws Exception {
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
-        val path = optionsHelper.getOptionValue(OPTION_DIR);
+        var path = optionsHelper.getOptionValue(OPTION_DIR);
         var folder = optionsHelper.getOptionValue(FOLDER_NAME);
         var compress = optionsHelper.hasOption(OPERATE_COMPRESS);
+        if (StringUtils.isBlank(path)) {
+            path = KylinConfigBase.getKylinHome() + File.separator + "meta_backups";
+        }
         if (StringUtils.isEmpty(folder)) {
             folder = LocalDateTime.now().format(DATE_TIME_FORMATTER) + "_backup";
         }

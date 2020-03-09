@@ -21,6 +21,10 @@ function printBackupResult() {
     local=`isBackupInLocal`
 
     if [[ $error == 0 ]]; then
+        if [[ -z "${path}" ]]; then
+            path="\${KYLIN_HOME}/meta_backups"
+        fi
+
         if [[ $local == 0 ]]; then
             echo -e "${YELLOW}Backup at local disk succeed. The backup path is ${path}.${RESTORE}"
         else
@@ -43,21 +47,21 @@ function printRestoreResult() {
 }
 
 function isBackupInLocal() {
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 2>/dev/null
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.CuratorOperator $1 >/dev/null 2>&1
     echo $?
 }
 
 if [ "$1" == "backup" ]
 then
-    if [ $# -eq 1 ]; then
-        path="${KYLIN_HOME}/meta_backups"
-    elif [ $# -eq 2 ]; then
+    BACKUP_OPTS="-backup"
+    if [ $# -eq 2 ]; then
         path=`cd $2 && pwd -P`
-    else
+        BACKUP_OPTS="${BACKUP_OPTS} -dir ${path}"
+    elif [ $# -ne 1 ]; then
         help
     fi
 
-    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir ${path}
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool ${BACKUP_OPTS}
     printBackupResult $?
 
 elif [ "$1" == "restore" ]
@@ -72,16 +76,17 @@ then
 
 elif [ "$1" == "backup-project" ]
 then
-    if [ $# -eq 2 ]; then
-        path="${KYLIN_HOME}/meta_backups"
-    elif [ $# -eq 3 ]; then
+    BACKUP_OPTS="-backup"
+    if [ $# -eq 3 ]; then
         path=`cd $3 && pwd -P`
-    else
+        BACKUP_OPTS="${BACKUP_OPTS} -dir ${path}"
+    elif [ $# -ne 2 ]; then
         help
     fi
+    BACKUP_OPTS="${BACKUP_OPTS} -project $2"
 
-     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool -backup -dir ${path} -project $2
-     printBackupResult $?
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.MetadataTool ${BACKUP_OPTS}
+    printBackupResult $?
 
 elif [ "$1" == "restore-project" ]
 then

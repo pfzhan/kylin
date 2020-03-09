@@ -76,9 +76,13 @@ public class SystemService extends BasicService {
     }
 
     private String[] createBackupArgs(BackupRequest backupRequest) {
-        List<String> args = Lists.newArrayList("-backup", "-dir", backupRequest.getBackupPath());
+        List<String> args = Lists.newArrayList("-backup");
         if (backupRequest.isCompress()) {
             args.add("-compress");
+        }
+        if (StringUtils.isNotBlank(backupRequest.getBackupPath())) {
+            args.add("-dir");
+            args.add(backupRequest.getBackupPath());
         }
         if (StringUtils.isNotBlank(backupRequest.getProject())) {
             args.add("-project");
