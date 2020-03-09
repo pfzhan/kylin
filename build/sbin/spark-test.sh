@@ -224,7 +224,10 @@ then
             quit "ERROR:Test of spark-sql failed,$kylin_hadoop_conf_dir is not valid hadoop dir conf because hive-site.xml is missing!"
         fi
     fi
-    HIVE_TEST_DB="kylin_db_for_checkenv"
+    HIVE_TEST_DB=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.database-for-flat-table`
+    if [[ -z "${HIVE_TEST_DB}" ]]; then
+        HIVE_TEST_DB=default
+    fi
     CHECK_TMP_DIR=${WORKING_DIR}/tmp
     CHECK_TABLE_NAME="kylin_table_for_sparktest"
     HIVE_TEST_TABLE=${HIVE_TEST_DB}.${CHECK_TABLE_NAME}
@@ -232,10 +235,6 @@ then
     SPARK_HQL_TMP_FILE=spark_hql_tmp__${RANDOM}
     spark_sql="${SPARK_HOME}/bin/spark-sql"
     spark_sql_command="export HADOOP_CONF_DIR=${kylin_hadoop_conf_dir} && ${spark_sql} ${engineConfStr} -f ${SPARK_HQL_TMP_FILE}"
-    echo "create database if not exists ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
-    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Test of spark-sql failed"; }
-
     echo "use ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
     eval $spark_sql_command
     [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Test of spark-sql failed"; }
@@ -270,9 +269,6 @@ then
     echo "drop table if exists ${HIVE_TEST_TABLE}2" > ${SPARK_HQL_TMP_FILE}
     eval $spark_sql_command
 
-    # drop test db
-    echo "drop database if exists ${HIVE_TEST_DB};" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
     rm -f ${SPARK_HQL_TMP_FILE}
     hadoop fs -rm -R -skipTrash "${WORKING_DIR}/_check_env_tmp/"
     exit 0

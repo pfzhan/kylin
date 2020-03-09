@@ -105,6 +105,6 @@ else
     echo "${CHECKENV_REPORT_PFX}The current executor instances is `setColor 36 ${spark_executor_instance}`"
 fi
 
-echo "Testing spark task..."
-${KYLIN_HOME}/sbin/spark-test.sh test
-[[ $? == 0 ]] || quit "Test of spark failed, please check the logs/check-env.out for the details."
+# echo "Testing spark task..."
+# ${KYLIN_HOME}/sbin/spark-test.sh test
+# [[ $? == 0 ]] || quit "Test of spark failed, please check the logs/check-env.out for the details."
