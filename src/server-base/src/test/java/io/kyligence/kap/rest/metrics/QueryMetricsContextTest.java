@@ -356,6 +356,35 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testWhenHitStorageCache() {
+        //this is for  https://olapio.atlassian.net/browse/KE-12573
+        final String origSql = "select * from test_parse_sql_pattern_error;";
+        final String massagedSql = "select * from test_parse_sql_pattern_error";
+        final String sqlPattern = "SELECT *\n" + "FROM \"TEST_PARSE_SQL_PATTERN_ERROR\"";
+        final QueryContext queryContext = QueryContext.current();
+        QueryMetricsContext.start(queryContext.getQueryId(), "localhost:7070");
+        Assert.assertTrue(QueryMetricsContext.isStarted());
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql(origSql);
+        request.setUsername("ADMIN");
+
+        final SQLResponse response = new SQLResponse();
+        response.setHitExceptionCache(true);
+        response.setServer("localhost:7070");
+        response.setSuite("suite_1");
+        response.setEngineType("HIVE");
+        response.setStorageCacheUsed(true);
+
+        final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+        final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+        Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+        Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
+    }
+
+    @Test
     public void testMassagedSqlIsNull() {
         final String origSql = "select * from test_massage_sql_is_null";
         final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
@@ -375,7 +404,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setSuite("suite_1");
         response.setEngineType("HIVE");
 
-        queryContext.setCorrectedSql(massageSql(request));
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
@@ -414,7 +442,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setSuite("suite_1");
         response.setEngineType("HIVE");
 
-        queryContext.setCorrectedSql(massageSql(request));
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
         final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
