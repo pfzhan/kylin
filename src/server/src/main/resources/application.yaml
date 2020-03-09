@@ -24,7 +24,6 @@ spring:
     chain:
       gzipped: true
     cache-period: 86400
-    add-mappings: false
   cloud:
     zookeeper:
       connect-string: ${kylin.env.zookeeper-connect-string}
@@ -34,9 +33,6 @@ spring:
     store-type: HASH_MAP
     jdbc:
       table-name: ${kylin.metadata.url.identifier}_session
-
-  mvc:
-    throw-exception-if-no-handler-found: true
 
 ---
 spring:
