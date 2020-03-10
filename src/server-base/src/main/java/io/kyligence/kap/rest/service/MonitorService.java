@@ -248,7 +248,7 @@ public class MonitorService extends BasicService {
         } else if (dP > 0) {
             if (dNF >= dNFMax) {
                 return NodeState.CRASH;
-            } else {
+            } else if (dNF > 0) {
                 return NodeState.WARNING;
             }
         } else {

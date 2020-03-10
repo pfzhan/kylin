@@ -52,7 +52,7 @@ public class OpenModelSuggestionResponse implements Serializable {
 
     @Getter
     @Setter
-    public static class RecommendationsResponse {
+    public static class RecommendationsResponse implements Serializable {
         @JsonProperty("uuid")
         private String uuid;
         @JsonProperty("alias")

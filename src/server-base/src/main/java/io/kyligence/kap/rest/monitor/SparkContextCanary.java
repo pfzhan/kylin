@@ -84,7 +84,7 @@ public class SparkContextCanary {
                 errorAccumulated = Math.max(errorAccumulated + 1, THRESHOLD_TO_RESTART_SPARK);
             } else {
                 try {
-                    val jsc = new JavaSparkContext(SparderEnv.getSparkSession().sparkContext());
+                    val jsc = JavaSparkContext.fromSparkContext(SparderEnv.getSparkSession().sparkContext());
                     jsc.setLocalProperty("spark.scheduler.pool", "vip_tasks");
 
                     long t = System.currentTimeMillis();
