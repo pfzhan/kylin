@@ -29,7 +29,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.metadata.user.NKylinUserManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
@@ -51,6 +50,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -96,43 +96,41 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         if (null != auth) {
             SecurityContextHolder.getContext().setAuthentication(auth);
             return auth;
-        } else {
-            try {
-                if (authentication instanceof UsernamePasswordAuthenticationToken)
-                    userName = (String) authentication.getPrincipal();
+        }
+        try {
+            if (authentication instanceof UsernamePasswordAuthenticationToken)
+                userName = (String) authentication.getPrincipal();
 
-                if (userName != null) {
-                    NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
-                    if (userManager != null) {
-                        managedUser = userManager.getIgnoreCase(userName);
-                        if (managedUser != null) {
-                            userName = managedUser.getUsername();
-                            authentication = new UsernamePasswordAuthenticationToken(userName, authentication.getCredentials());
-                        }
-                    }
-                    managedUser = (ManagedUser) userService.loadUserByUsername(userName);
-                    Preconditions.checkNotNull(managedUser);
-                }
-                updateUserLockStatus(managedUser, userName);
-                auth = super.authenticate(authentication);
-
-                if (managedUser != null)
-                    managedUser.clearAuthenticateFailedRecord();
-
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-                userCache.put(userKey, auth);
-
-                return auth;
-            } catch (BadCredentialsException e) {
-                authenticateFail(managedUser, userName);
-                if (managedUser != null && managedUser.isLocked()) {
-                    limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
-                    throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
+            if (userName != null) {
+                NKylinUserManager userManager = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv());
+                managedUser = userManager.getIgnoreCase(userName);
+                if (managedUser != null) {
+                    userName = managedUser.getUsername();
+                    authentication = new UsernamePasswordAuthenticationToken(userName, authentication.getCredentials());
                 } else {
-                    limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
-                    throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
+                    managedUser = (ManagedUser) userService.loadUserByUsername(userName);
                 }
+                Preconditions.checkNotNull(managedUser);
+            }
+            updateUserLockStatus(managedUser, userName);
+            auth = super.authenticate(authentication);
+
+            if (managedUser != null)
+                managedUser.clearAuthenticateFailedRecord();
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            userCache.put(userKey, auth);
+
+            return auth;
+        } catch (BadCredentialsException e) {
+            authenticateFail(managedUser, userName);
+            if (managedUser != null && managedUser.isLocked()) {
+                limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
+                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
+            } else {
+                limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
+                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
             }
         }
     }
