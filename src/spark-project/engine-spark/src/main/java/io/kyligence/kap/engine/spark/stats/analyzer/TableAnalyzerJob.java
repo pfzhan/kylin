@@ -63,7 +63,6 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
         String prjName = getParam(NBatchConstants.P_PROJECT_NAME);
         TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        logger.info("Start analyse table {} ", tableName);
         analyzeTable(tableDesc, prjName, rowCount.intValue(), config, ss);
     }
 

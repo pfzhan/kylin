@@ -134,7 +134,6 @@ public abstract class KylinConfigBase implements Serializable {
     public static String getSparkHome() {
         String sparkHome = System.getenv("SPARK_HOME");
         if (StringUtils.isNotEmpty(sparkHome)) {
-            logger.info("SPARK_HOME was set to {}", sparkHome);
             return sparkHome;
         }
 

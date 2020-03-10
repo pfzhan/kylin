@@ -173,7 +173,6 @@ public class NSparkExecutable extends AbstractExecutable {
             throw new RuntimeException("Missing kylin job jar");
         }
         String hadoopConf = System.getProperty("kylin.hadoop.conf.dir");
-        logger.info("write hadoop conf is {} ", config.getBuildConf());
         if (!config.getBuildConf().isEmpty()) {
             logger.info("write hadoop conf is {} ", config.getBuildConf());
             hadoopConf = config.getBuildConf();

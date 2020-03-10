@@ -28,7 +28,6 @@ import scala.collection.JavaConversions;
 public class ResourceDetectBeforeSampling extends SparkApplication {
     @Override
     protected void doExecute() {
-        log.info("Start detect resource before table sampling.");
         String tableName = getParam(NBatchConstants.P_TABLE_NAME);
         final TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
         final Dataset<Row> dataset = SourceFactory

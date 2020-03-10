@@ -51,7 +51,6 @@ public class ResourceDetectBeforeMergingJob extends SparkApplication {
 
     @Override
     protected void doExecute() throws Exception {
-        logger.info("Start detect resource before merge.");
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
 
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
