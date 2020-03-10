@@ -408,7 +408,7 @@ public class IndexPlanService extends BasicService {
 
     @Transaction(project = 0)
     public void updateShardByColumns(String project, AggShardByColumnsRequest request) {
-        aclEvaluate.checkProjectReadPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
 
         val modelId = request.getModelId();
         val indexPlanManager = getIndexPlanManager(project);
@@ -433,6 +433,7 @@ public class IndexPlanService extends BasicService {
     }
 
     public AggShardByColumnsResponse getShardByColumns(String project, String modelId) {
+        aclEvaluate.checkProjectWritePermission(project);
         val indexPlanManager = getIndexPlanManager(project);
         val indexPlan = indexPlanManager.getIndexPlan(modelId);
         val model = indexPlan.getModel();
