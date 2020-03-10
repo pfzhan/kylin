@@ -133,7 +133,7 @@ public class TblColRef implements Serializable {
         colRef.markInnerColumn(dataType);
         colRef.parserDescription = parserDescription;
         colRef.setOperator(operator);
-        colRef.setOpreand(opreands);
+        colRef.setOperands(opreands);
         return colRef;
     }
 
@@ -201,7 +201,7 @@ public class TblColRef implements Serializable {
     private transient SqlOperator operator;//only used for InnerCol, other case it should be null
     @Setter
     @Getter
-    private List<TblColRef> opreand;//only used for InnerCol
+    private List<TblColRef> operands;//only used for InnerCol
 
     TblColRef(ColumnDesc column) {
         this.column = column;
@@ -371,10 +371,10 @@ public class TblColRef implements Serializable {
             collector.add(colRef);
             return;
         }
-        if (colRef.getOpreand() == null) {
+        if (colRef.getOperands() == null) {
             return;
         }
-        for (TblColRef child : colRef.getOpreand()) {
+        for (TblColRef child : colRef.getOperands()) {
             collectSourceColumns(child, collector);
         }
     }

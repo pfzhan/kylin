@@ -236,15 +236,20 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         for (int i = 0; i < this.aggregations.size(); i++) {
             FunctionDesc aggFunc = this.aggregations.get(i);
             String aggOutName;
+            List<TblColRef> operands = Lists.newArrayList();
             if (aggFunc != null) {
+                operands.addAll(aggFunc.getColRefs());
                 aggOutName = aggFunc.getRewriteFieldName();
             } else {
                 AggregateCall aggCall = this.rewriteAggCalls.get(i);
                 int index = aggCall.getArgList().get(0);
                 aggOutName = getSqlFuncName(aggCall) + "_"
                         + inputColumnRowType.getColumnByIndex(index).getIdentity().replace('.', '_') + "_";
+                aggCall.getArgList().forEach(argIndex -> operands.add(inputColumnRowType.getColumnByIndex(argIndex)));
             }
             TblColRef aggOutCol = TblColRef.newInnerColumn(aggOutName, TblColRef.InnerDataTypeEnum.LITERAL);
+            aggOutCol.setOperator(this.rewriteAggCalls.get(i).getAggregation());
+            aggOutCol.setOperands(operands);
             aggOutCol.getColumnDesc().setId("" + (i + 1)); // mark the index of aggregation
             columns.add(aggOutCol);
         }
@@ -311,7 +316,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         // remove the cast by rewriting input project, such that the sum can hit cube
         TblColRef column = inputColumnRowType.getColumnByIndex(index);
         if (getInput() instanceof OLAPProjectRel && SqlTypeUtil.isBigint(aggCall.type) && column.isCastInnerColumn()) {
-            TblColRef innerColumn = column.getOpreand().get(0);
+            TblColRef innerColumn = column.getOperands().get(0);
             if (!innerColumn.isInnerColumn() && innerColumn.getType().isIntegerFamily()) {
                 inputColumnRowType.getAllColumns().set(index, innerColumn);
                 column = inputColumnRowType.getColumnByIndex(index);

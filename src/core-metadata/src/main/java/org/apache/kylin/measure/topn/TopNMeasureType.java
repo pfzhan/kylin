@@ -341,6 +341,12 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
             if (sortCol.getName().equals(agg.getRewriteFieldName())) {
                 return true;
             }
+
+            if (sortCol.isInnerColumn() && sortCol.getOperator() != null
+                    && sortCol.getOperator().getName().equals(agg.getExpression())
+                    && sortCol.getOperands().equals(agg.getColRefs())) {
+                return true;
+            }
         }
         return false;
     }

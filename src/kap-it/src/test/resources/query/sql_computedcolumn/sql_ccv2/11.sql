@@ -1,0 +1,1 @@
+select TEST_MEASURE.NAME3 ,sum(TEST_MEASURE.PRICE5 + 5) as sum_price from TEST_MEASURE group by TEST_MEASURE.NAME3 order by sum_price desc limit 15

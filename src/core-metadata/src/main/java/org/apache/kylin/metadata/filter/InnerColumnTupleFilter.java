@@ -67,7 +67,7 @@ public class InnerColumnTupleFilter extends TupleFilter {
         if (this.columnRef == null) {
             return;
         }
-        List<TblColRef> children = columnRef.getOpreand();
+        List<TblColRef> children = columnRef.getOperands();
         if (children == null) {
             return;
         }

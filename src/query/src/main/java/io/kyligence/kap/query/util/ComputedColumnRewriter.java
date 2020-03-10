@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.query.util;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.CollectionUtil;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import io.kyligence.kap.query.relnode.KapAggregateRel;
 import lombok.val;
+import lombok.var;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
@@ -40,15 +44,9 @@ import org.apache.kylin.query.relnode.TableColRefWithRel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.common.util.CollectionUtil;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
-import io.kyligence.kap.query.relnode.KapAggregateRel;
-import lombok.var;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ComputedColumnRewriter {
 
@@ -59,6 +57,7 @@ public class ComputedColumnRewriter {
 
     public static void rewriteCcInnerCol(OLAPContext context, NDataModel model, QueryAliasMatchInfo matchInfo) {
         rewriteAggInnerCol(context, model, matchInfo);
+        rewriteTopNInnerCol(context, model, matchInfo);
         rewriteGroupByInnerCol(context, model, matchInfo);
         rewriteFilterInnerCol(context, model, matchInfo);
     }
@@ -69,7 +68,7 @@ public class ComputedColumnRewriter {
             return;
         }
 
-        context.aggregations.stream().filter(agg -> agg.getParameters().size() != 0).forEach(agg -> {
+        context.aggregations.stream().filter(agg -> CollectionUtils.isNotEmpty(agg.getParameters())).forEach(agg -> {
             List<ParameterDesc> parameters = Lists.newArrayList();
             for (ParameterDesc parameter : agg.getParameters()) {
                 if (!parameter.getColRef().isInnerColumn()) {
@@ -77,31 +76,62 @@ public class ComputedColumnRewriter {
                     continue;
                 }
 
-                SqlNode innerColExpr;
-                try {
-                    innerColExpr = CalciteParser.getExpNode(parameter.getColRef().getParserDescription());
-                } catch (IllegalStateException e) {
-                    logger.warn("Failed to resolve CC expr for {}", parameter.getColRef().getParserDescription(), e);
-                    continue;
-                }
-
-                for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
-                    SqlNode ccExpressionNode = CalciteParser.getExpNode(cc.getExpression());
-                    if (ExpressionComparator.isNodeEqual(innerColExpr, ccExpressionNode, matchInfo,
-                            new AliasDeduceImpl(matchInfo))) {
-                        var ccCols = ComputedColumnUtil.createComputedColumns(Lists.newArrayList(cc),
-                                model.getRootFactTable().getTableDesc());
-                        val tblCol = new TblColRef(model.getRootFactTable(), ccCols[0]);
-                        parameters.add(ParameterDesc.newInstance(tblCol));
-                        logger.info("Replacing CC expr [{},{}] in Agg {}", cc.getColumnName(), cc.getExpression(), agg.getFullExpression());
-                        context.allColumns.add(tblCol);
-                    }
+                TblColRef translatedInnerCol = rewriteInnerColumnToTblColRef(parameter.getColRef().getParserDescription(), model, matchInfo);
+                if (translatedInnerCol != null) {
+                    parameters.add(ParameterDesc.newInstance(translatedInnerCol));
+                    context.allColumns.add(translatedInnerCol);
                 }
             }
 
             if (!parameters.isEmpty()) {
                 agg.setParameters(parameters);
             }
+        });
+    }
+
+    private static TblColRef rewriteInnerColumnToTblColRef(String innerExpression, NDataModel model, QueryAliasMatchInfo matchInfo) {
+        SqlNode innerColExpr;
+        try {
+            innerColExpr = CalciteParser.getExpNode(innerExpression);
+        } catch (IllegalStateException e) {
+            logger.warn("Failed to resolve CC expr for {}", innerExpression, e);
+            return null;
+        }
+
+        for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+            SqlNode ccExpressionNode = CalciteParser.getExpNode(cc.getExpression());
+            if (ExpressionComparator.isNodeEqual(innerColExpr, ccExpressionNode, matchInfo,
+                    new AliasDeduceImpl(matchInfo))) {
+                var ccCols = ComputedColumnUtil.createComputedColumns(Lists.newArrayList(cc),
+                        model.getRootFactTable().getTableDesc());
+                logger.info("Replacing CC expr [{},{}]", cc.getColumnName(), cc.getExpression());
+                return new TblColRef(model.getRootFactTable(), ccCols[0]);
+            }
+        }
+
+        return null;
+    }
+
+    private static void rewriteTopNInnerCol(OLAPContext context, NDataModel model, QueryAliasMatchInfo matchInfo) {
+        if (CollectionUtils.isEmpty(model.getComputedColumnDescs()))
+            return;
+
+        context.getSortColumns().stream().filter(TblColRef::isInnerColumn).forEach(column -> {
+            if (CollectionUtils.isEmpty(column.getOperands()))
+                return;
+
+            val translatedOperands = Lists.<TblColRef> newArrayList();
+            for (TblColRef tblColRef : column.getOperands()) {
+                val innerExpression = tblColRef.getParserDescription();
+                if (innerExpression == null)
+                    continue;
+
+                val translatedInnerCol = rewriteInnerColumnToTblColRef(innerExpression, model, matchInfo);
+                if (translatedInnerCol != null)
+                    translatedOperands.add(translatedInnerCol);
+            }
+
+            column.setOperands(translatedOperands);
         });
     }
 
@@ -151,9 +181,8 @@ public class ComputedColumnRewriter {
     }
 
     private static void rewriteFilterInnerCol(OLAPContext ctx, NDataModel model, QueryAliasMatchInfo matchInfo) {
-        if (CollectionUtils.isEmpty(model.getComputedColumnDescs())) {
+        if (CollectionUtils.isEmpty(model.getComputedColumnDescs()))
             return;
-        }
         //todo
     }
 }
