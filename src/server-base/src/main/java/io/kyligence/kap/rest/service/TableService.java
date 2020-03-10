@@ -1222,62 +1222,66 @@ public class TableService extends BasicService {
     void cleanIndexPlan(String projectName, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel,
             boolean needBuild) {
         val indexManager = getIndexPlanManager(projectName);
-        val removeDims = removeAffectedModel.getDimensions();
-        val removeColumnIds = removeAffectedModel.getColumnIds();
-
-        UnaryOperator<Integer[]> dimFilter = input -> Stream.of(input).filter(i -> !removeDims.contains(i))
-                .toArray(Integer[]::new);
-        UnaryOperator<Integer[]> meaFilter = input -> Stream.of(input)
-                .filter(i -> !removeAffectedModel.getMeasures().contains(i)).toArray(Integer[]::new);
         val indexPlan = indexManager.getIndexPlan(model.getId());
-        val removeIndexes = removeAffectedModel.getIndexes();
-        val newIndexPlan = indexManager.updateIndexPlan(model.getId(), copyForWrite -> {
-            copyForWrite.setIndexes(copyForWrite.getIndexes().stream()
-                    .filter(index -> !removeIndexes.contains(index.getId())).collect(Collectors.toList()));
 
-            val layouts = copyForWrite.getToBeDeletedIndexes().stream()
-                    .filter(index -> removeIndexes.contains(index.getId())).map(IndexEntity::getLayouts)
-                    .flatMap(List::stream).map(LayoutEntity::getId).collect(Collectors.toSet());
-            copyForWrite.removeLayoutsFromToBeDeletedList(layouts, LayoutEntity::equals, true, true);
-
-            val overrideIndexes = Maps.newHashMap(copyForWrite.getIndexPlanOverrideIndexes());
-            removeColumnIds.forEach(overrideIndexes::remove);
-            copyForWrite.setIndexPlanOverrideIndexes(overrideIndexes);
-
-            if (copyForWrite.getDictionaries() != null) {
-                copyForWrite.setDictionaries(copyForWrite.getDictionaries().stream()
-                        .filter(d -> !removeColumnIds.contains(d.getId())).collect(Collectors.toList()));
-            }
-
-            if (copyForWrite.getRuleBasedIndex() == null) {
-                return;
-            }
-            val rule = JsonUtil.deepCopyQuietly(copyForWrite.getRuleBasedIndex(), NRuleBasedIndex.class);
-            rule.setLayoutIdMapping(Lists.newArrayList());
-            rule.setDimensions(
-                    rule.getDimensions().stream().filter(d -> !removeDims.contains(d)).collect(Collectors.toList()));
-            rule.setMeasures(rule.getMeasures().stream().filter(m -> !removeAffectedModel.getMeasures().contains(m))
-                    .collect(Collectors.toList()));
-            val newAggGroups = rule.getAggregationGroups().stream().peek(group -> {
-                group.setIncludes(dimFilter.apply(group.getIncludes()));
-                group.setMeasures(meaFilter.apply(group.getMeasures()));
-                group.getSelectRule().mandatoryDims = dimFilter.apply(group.getSelectRule().mandatoryDims);
-                group.getSelectRule().hierarchyDims = Stream.of(group.getSelectRule().hierarchyDims).map(dimFilter)
-                        .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
-                group.getSelectRule().jointDims = Stream.of(group.getSelectRule().jointDims).map(dimFilter)
-                        .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
-            }).filter(group -> ArrayUtils.isNotEmpty(group.getIncludes())).collect(Collectors.toList());
-            rule.setAggregationGroups(newAggGroups);
-            copyForWrite.setRuleBasedIndex(rule);
-            copyForWrite.setAggShardByColumns(copyForWrite.getAggShardByColumns().stream()
-                    .anyMatch(id -> removeDims.contains(id) || removeColumnIds.contains(id)) ? Lists.newArrayList()
-                            : copyForWrite.getAggShardByColumns());
-        });
+        val newIndexPlan = indexManager.updateIndexPlan(model.getId(),
+                copyForWrite -> updateCleanIndexPlan(copyForWrite, removeAffectedModel));
         if (needBuild && indexPlan.getRuleBasedIndex() != null) {
             semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
                     newIndexPlan.getRuleBasedIndex(), false);
         }
 
+    }
+
+    private void updateCleanIndexPlan(IndexPlan indexPlan, ReloadTableAffectedModelContext removeAffectedModel) {
+        val removeDims = removeAffectedModel.getDimensions();
+        val removeColumnIds = removeAffectedModel.getColumnIds();
+        val removeIndexes = removeAffectedModel.getIndexes();
+        UnaryOperator<Integer[]> dimFilter = input -> Stream.of(input).filter(i -> !removeDims.contains(i))
+                .toArray(Integer[]::new);
+        UnaryOperator<Integer[]> meaFilter = input -> Stream.of(input)
+                .filter(i -> !removeAffectedModel.getMeasures().contains(i)).toArray(Integer[]::new);
+        indexPlan.setIndexes(indexPlan.getIndexes().stream().filter(index -> !removeIndexes.contains(index.getId()))
+                .collect(Collectors.toList()));
+
+        val layouts = indexPlan.getToBeDeletedIndexes().stream().filter(index -> removeIndexes.contains(index.getId()))
+                .map(IndexEntity::getLayouts).flatMap(List::stream).map(LayoutEntity::getId)
+                .collect(Collectors.toSet());
+        indexPlan.removeLayoutsFromToBeDeletedList(layouts, LayoutEntity::equals, true, true);
+
+        val overrideIndexes = Maps.newHashMap(indexPlan.getIndexPlanOverrideIndexes());
+        removeColumnIds.forEach(overrideIndexes::remove);
+        indexPlan.setIndexPlanOverrideIndexes(overrideIndexes);
+
+        if (indexPlan.getDictionaries() != null) {
+            indexPlan.setDictionaries(indexPlan.getDictionaries().stream()
+                    .filter(d -> !removeColumnIds.contains(d.getId())).collect(Collectors.toList()));
+        }
+
+        if (indexPlan.getRuleBasedIndex() == null) {
+            return;
+        }
+        val rule = JsonUtil.deepCopyQuietly(indexPlan.getRuleBasedIndex(), NRuleBasedIndex.class);
+        rule.setLayoutIdMapping(Lists.newArrayList());
+        rule.setDimensions(
+                rule.getDimensions().stream().filter(d -> !removeDims.contains(d)).collect(Collectors.toList()));
+        rule.setMeasures(rule.getMeasures().stream().filter(m -> !removeAffectedModel.getMeasures().contains(m))
+                .collect(Collectors.toList()));
+        val newAggGroups = rule.getAggregationGroups().stream().peek(group -> {
+            group.setIncludes(dimFilter.apply(group.getIncludes()));
+            group.setMeasures(meaFilter.apply(group.getMeasures()));
+            group.getSelectRule().mandatoryDims = dimFilter.apply(group.getSelectRule().mandatoryDims);
+            group.getSelectRule().hierarchyDims = Stream.of(group.getSelectRule().hierarchyDims).map(dimFilter)
+                    .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
+            group.getSelectRule().jointDims = Stream.of(group.getSelectRule().jointDims).map(dimFilter)
+                    .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
+        }).filter(group -> ArrayUtils.isNotEmpty(group.getIncludes())).collect(Collectors.toList());
+        rule.setAggregationGroups(newAggGroups);
+        indexPlan.setRuleBasedIndex(rule);
+        indexPlan.setAggShardByColumns(indexPlan.getAggShardByColumns().stream()
+                .anyMatch(id -> removeDims.contains(id) || removeColumnIds.contains(id)) ? Lists.newArrayList()
+                        : indexPlan.getAggShardByColumns());
+        return;
     }
 
     void cleanRedundantEvents(String projectName, NDataModel model, List<Event> existEvents) {
@@ -1483,10 +1487,13 @@ public class TableService extends BasicService {
                 .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
                         || !Sets.intersection(index.getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
                 .flatMap(index -> index.getLayouts().stream()).map(LayoutEntity::getId).collect(Collectors.toSet());
-        val affectedAddLayouts = indexPlan.getRuleBaseLayouts().stream().filter(layout -> Sets
-                .intersection(layout.getIndex().getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
-                && !Sets.intersection(layout.getIndex().getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
-                .map(LayoutEntity::getId).collect(Collectors.toSet());
+
+        val copyIndexPlan = indexManager.copy(indexPlan);
+        updateCleanIndexPlan(copyIndexPlan, affectedModel);
+
+        val affectedAddLayouts = Sets.difference(
+                copyIndexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()),
+                indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()));
         affectedModel.setRemovedLayouts(affectedLayouts);
         affectedModel.setAddLayouts(affectedAddLayouts);
 

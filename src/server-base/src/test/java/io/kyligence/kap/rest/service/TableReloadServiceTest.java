@@ -220,6 +220,89 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testReload_AddIndexCountHierarchy() throws Exception {
+
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [[14,15,16]],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        newRule.setMeasures(Lists.newArrayList(100000, 100008));
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
+            if (!id.equals(originIndexPlan.getId())) {
+                modelService.dropModel(id, PROJECT, true);
+            }
+        });
+        removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
+        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
+        Assert.assertEquals(4, response.getRemoveLayoutsCount());
+        Assert.assertEquals(1, response.getAddLayoutsCount());
+
+    }
+
+    @Test
+    public void testReload_AddIndexCountMandatory() throws Exception {
+
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16,17,18,19],\n"
+                + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [[14,15,16]],\n"
+                + "          \"mandatory_dims\": [17,18],\n" + "          \"joint_dims\": []\n" + "        }\n" + "}",
+                NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        newRule.setMeasures(Lists.newArrayList(100000, 100008));
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
+            if (!id.equals(originIndexPlan.getId())) {
+                modelService.dropModel(id, PROJECT, true);
+            }
+        });
+        removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
+        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
+        Assert.assertEquals(10, response.getRemoveLayoutsCount());
+        Assert.assertEquals(8, response.getAddLayoutsCount());
+
+    }
+
+    @Test
+    public void testReload_AddIndexCountJoint() throws Exception {
+
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16,17,18,19],\n"
+                        + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [[14,15,16]],\n"
+                        + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [[17,18,19]]\n" + "        }\n" + "}",
+                NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        newRule.setMeasures(Lists.newArrayList(100000, 100008));
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
+            if (!id.equals(originIndexPlan.getId())) {
+                modelService.dropModel(id, PROJECT, true);
+            }
+        });
+        removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
+        val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
+        Assert.assertEquals(6, response.getRemoveLayoutsCount());
+        Assert.assertEquals(4, response.getAddLayoutsCount());
+
+    }
+
+    @Test
     public void testReload_BrokenModelInAutoProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
         System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
