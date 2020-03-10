@@ -3,8 +3,8 @@ export default {
     dialogTitle: 'Reload Table Metadata',
     reloadNoEffectTip: 'The source table {tableName} has no change on metadata. ',
     reloadEffectTip: 'The source table {tableName} has {changeChar}',
-    reloadEffectTip1: ' The system will remove the columns',
-    reloadEffectTip2: 'details as below. ',
+    reloadEffectTip1: ' The system will remove the columns and update the index list',
+    reloadEffectTip2: ' Details as below. ',
     addColumnsTip: ' {addedColumnsCount} column(s) added',
     reducedColumnsTip: ' {reducedColumnsCount} column(s) reduced',
     changedColumnsTip: 'the data type of {changedColumnsCount} column(s) changed',
@@ -29,14 +29,13 @@ export default {
     dimAndMeasureAndIndexChangeTip: '{changeChar} would be deleted',
     reloadBtn: 'Reload',
     reloadAndRefresh: 'Reload and Build',
-    removeIndexTip: ' and update the index list',
     refreshIndexTip: ' and clear the data under the affected index'
   },
   'zh-cn': {
     dialogTitle: '重载表',
     reloadNoEffectTip: '源表 {tableName} 元数据无变化。',
     reloadEffectTip: '重载的表 {tableName} {changeChar}',
-    reloadEffectTip1: '系统将自动地从模型（索引组）删除缺失列',
+    reloadEffectTip1: '系统将自动地从 {modelMode} 删除缺失列，更新索引列表',
     reloadEffectTip2: '影响范围的细节如下：',
     addColumnsTip: '增加了 {addedColumnsCount} 列',
     reducedColumnsTip: '减少了 {reducedColumnsCount} 列',
@@ -63,7 +62,6 @@ export default {
     dimAndMeasureAndIndexChangeTip: '共有 {changeChar} 被删除',
     reloadAndRefresh: '重载并构建索引',
     reloadBtn: '重载',
-    removeIndexTip: ' 更新索引列表',
     refreshIndexTip: '并清空受影响索引下的构建数据'
   }
 }

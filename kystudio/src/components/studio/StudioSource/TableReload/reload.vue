@@ -162,6 +162,7 @@ export default class ReloadTableModal extends Vue {
     if (this.isShow) {
       if (this.hasColumnInfluence) {
         let tipList = []
+        let modelMode = this.isAutoProject ? 'kylinLang.model.indexGroup' : 'kylinLang.common.model'
         if (this.checkData.add_column_count) {
           tipList.push(this.$t('addColumnsTip', { addedColumnsCount: this.checkData.add_column_count }))
         }
@@ -171,10 +172,7 @@ export default class ReloadTableModal extends Vue {
         if (this.checkData.data_type_change_column_count) {
           tipList.push(this.$t('changedColumnsTip', { changedColumnsCount: this.checkData.data_type_change_column_count }))
         }
-        let tipList1 = [`${tipList.join(this.$t('kylinLang.common.comma'))}${this.$t('kylinLang.common.dot')}${this.$t('reloadEffectTip1')}`]
-        if (this.checkData.remove_layouts_count) {
-          tipList1.push(this.$t('removeIndexTip'))
-        }
+        let tipList1 = [`${tipList.join(this.$t('kylinLang.common.comma'))}${this.hasDetailInfluence ? this.$t('kylinLang.common.dot') + this.$t('reloadEffectTip1', {modelMode: this.$t(modelMode)}) : ''}`]
         if (this.checkData.refresh_layouts_count) {
           tipList1.push(this.$t('refreshIndexTip'))
         }
