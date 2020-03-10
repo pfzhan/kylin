@@ -23,20 +23,22 @@
  */
 package io.kyligence.kap.rest.request;
 
+import java.io.Serializable;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.Serializable;
-import java.util.List;
-
 @Getter
 @Setter
-public class OpenApplyRecommendationsRequest implements Serializable {
+public class OpenApplyRecommendationsRequest implements Serializable, ProjectInsensitiveRequest {
 
     @JsonProperty("project")
     private String project;

@@ -58,7 +58,7 @@ public class NModelControllerV2 extends NBasicController {
     public EnvelopeResponse<Map<String, Object>> getModels(
             @RequestParam(value = "model", required = false) String modelAlias,
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
-            @RequestParam(value = "projectName", required = false) String projectName,
+            @RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "owner", required = false) String owner,
             @RequestParam(value = "status", required = false) List<String> status,
             @RequestParam(value = "table", required = false) String table,
@@ -66,12 +66,12 @@ public class NModelControllerV2 extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkProjectName(projectName);
+        checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
-            models.addAll(modelService.getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse));
+            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse));
         } else {
-            models.addAll(modelService.getRelateModels(projectName, table, modelAlias));
+            models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }
 
         models = modelService.addOldParams(models);

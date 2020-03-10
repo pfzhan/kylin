@@ -76,14 +76,14 @@ public class NJobControllerV2 extends NBasicController {
             @RequestParam(value = "timeFilter") Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
             @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
-            @RequestParam(value = "project") String projectName,
+            @RequestParam(value = "project") String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkJobStatus(status);
         List<String> statuses = StringUtils.isEmpty(status) ? Lists.newArrayList() : Lists.newArrayList(status);
-        JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, subjectAlias, projectName, sortBy,
+        JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
                 reverse);
         List<ExecutableResponse> executables;
         executables = jobService.listJobs(jobFilter);

@@ -49,18 +49,20 @@ public class InsensitiveNameAspect {
 
     @Around("@within(org.springframework.stereotype.Controller) || @within(org.springframework.web.bind.annotation.RestController)")
     public Object around(ProceedingJoinPoint pjp) throws Throwable {
-        log.debug("update insensitive field start");
         Object[] args = pjp.getArgs();
-        MethodSignature signature = (MethodSignature) pjp.getSignature();
-        String[] parameterNames = signature.getParameterNames();
-        Class[] parameterTypes = signature.getParameterTypes();
-        for (int i = 0; i < parameterNames.length; i++) {
-            if (args[i] == null) {
-                continue;
+        try {
+            MethodSignature signature = (MethodSignature) pjp.getSignature();
+            String[] parameterNames = signature.getParameterNames();
+            Class[] parameterTypes = signature.getParameterTypes();
+            for (int i = 0; i < parameterNames.length; i++) {
+                if (args[i] == null) {
+                    continue;
+                }
+                updateInsensitiveField(args, parameterNames, parameterTypes, i);
             }
-            updateInsensitiveField(args, parameterNames, parameterTypes, i);
+        } catch (Exception e) {
+            log.warn("update insensitive field failed ", e);
         }
-        log.debug("update insensitive field end");
         return pjp.proceed(args);
     }
 

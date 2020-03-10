@@ -138,7 +138,7 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", false))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                .param("offset", "0").param("projectName", "default").param("model", "model1").param("limit", "10")
+                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
                 .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "NEW")
                 .param("sortBy", "last_modify").param("reverse", "true")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
@@ -153,7 +153,7 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
         Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1"))
                 .thenReturn(mockRelatedModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                .param("offset", "0").param("projectName", "default").param("model", "model1").param("limit", "10")
+                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
                 .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
                 .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
@@ -168,7 +168,7 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 .thenReturn(mockModels());
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                        .param("offset", "0").param("projectName", "default").param("model", "").param("limit", "10")
+                        .param("offset", "0").param("project", "default").param("model", "").param("limit", "10")
                         .param("exact", "true").param("owner", "ADMIN").param("status", "NEW")
                         .param("sortBy", "last_modify").param("reverse", "true").param("table", "TEST_KYLIN_FACT")
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))

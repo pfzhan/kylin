@@ -24,16 +24,23 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import io.kyligence.kap.metadata.insensitive.ModelInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class ModelCloneRequest implements ProjectInsensitiveRequest {
+public class ModelCloneRequest implements ModelInsensitiveRequest {
 
     @JsonProperty("new_model_name")
     private String newModelName;
     private String project;
 
+    @Override
+    public List<String> inSensitiveFields() {
+        return Collections.singletonList("newModelName");
+    }
 }

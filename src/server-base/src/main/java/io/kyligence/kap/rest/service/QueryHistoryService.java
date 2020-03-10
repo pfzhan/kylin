@@ -239,13 +239,13 @@ public class QueryHistoryService extends BasicService {
     }
 
     public Map<String, String> getQueryHistoryTableMap(List<String> projects) {
-        if (projects == null) {
-            projects = getProjectManager().listAllProjects().stream().map(ProjectInstance::getName)
-                    .collect(Collectors.toList());
-        }
+        List<String> filterProjects = getProjectManager().listAllProjects().stream()
+                .filter(projectInstance -> projects == null || projects.stream().map(String::toLowerCase)
+                        .collect(Collectors.toList()).contains(projectInstance.getName().toLowerCase()))
+                .map(ProjectInstance::getName).collect(Collectors.toList());
 
         Map<String, String> result = Maps.newHashMap();
-        for (String project : projects) {
+        for (String project : filterProjects) {
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
             ProjectInstance projectInstance = getProjectManager().getProject(project);
             if (projectInstance == null)

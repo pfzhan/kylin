@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -742,7 +743,7 @@ public class ModelService extends BasicService {
         List<NDataModel> models = getDataflowManager(project).listUnderliningDataModels();
         for (NDataModel model : models) {
             if ((StringUtils.isNotEmpty(modelId) || !model.getUuid().equals(modelId))
-                    && model.getAlias().equals(newAlias)) {
+                    && model.getAlias().equalsIgnoreCase(newAlias)) {
                 return false;
             }
         }
@@ -1081,7 +1082,7 @@ public class ModelService extends BasicService {
 
     public void batchCreateModel(String project, List<ModelRequest> modelRequests) {
         aclEvaluate.checkProjectWritePermission(project);
-
+        checkDuplicateAliasInModelRequests(modelRequests);
         for (ModelRequest modelRequest : modelRequests) {
             validatePartitionDateColumn(modelRequest);
 
@@ -2431,5 +2432,17 @@ public class ModelService extends BasicService {
     public NDataModel updateReponseAcl(NDataModel model, String project) {
         List<NDataModel> models = updateReponseAcl(Arrays.asList(model), project);
         return models.get(0);
+    }
+
+    public void checkDuplicateAliasInModelRequests(Collection<ModelRequest> modelRequests) {
+        Map<String, List<ModelRequest>> aliasModelRequestMap = modelRequests.stream()
+                .collect(groupingBy(modelRequest -> modelRequest.getAlias().toLowerCase(), Collectors.toList()));
+        aliasModelRequestMap.forEach((alias, requests) -> {
+            if (requests.size() > 1) {
+                throw new BadRequestException(
+                        "Model alias " + requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))
+                                + " are duplicated!");
+            }
+        });
     }
 }

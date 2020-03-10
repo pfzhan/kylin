@@ -31,8 +31,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
@@ -50,6 +55,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.jayway.jsonpath.JsonPath;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import lombok.val;
 
@@ -62,32 +68,33 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         sqlRequest.setSql("SELECT * FROM TEST_KYLIN_FACT");
         System.setProperty("kylin.query.pushdown.runner-class-name", "");
 
-        final MvcResult result = mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/query")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(sqlRequest))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andReturn();
+        final MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(sqlRequest))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        final boolean isException = JsonPath.compile("$.data.isException").read(result.getResponse().getContentAsString());
+        final boolean isException = JsonPath.compile("$.data.isException")
+                .read(result.getResponse().getContentAsString());
         Assert.assertTrue(isException);
 
-        final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage").read(result.getResponse().getContentAsString());
+        final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage")
+                .read(result.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
         System.clearProperty("kylin.query.pushdown.runner-class-name");
     }
 
     @Test
     public void testPushDownQuery() throws Exception {
-        System.setProperty("kylin.query.pushdown.runner-class-name", "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
-        System.setProperty("kylin.query.pushdown.converter-class-names", "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        System.setProperty("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
+        System.setProperty("kylin.query.pushdown.converter-class-names",
+                "org.apache.kylin.source.adhocquery.HivePushDownConverter");
         System.setProperty("kylin.query.pushdown.cache-enabled", "true");
         System.setProperty("kylin.query.cache-threshold-duration", "0");
 
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
-                "");
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
@@ -108,22 +115,17 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         Statement statement = h2Connection.createStatement();
         ResultSet resultSet = statement.executeQuery(sql);
 
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/query")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
                         .value(resultSet.getMetaData().getColumnCount()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
+                .andDo(MockMvcResultHandlers.print()).andReturn();
 
         // push down can not hit cache because the cache is expired by default
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/query")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -132,8 +134,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.engineType").value(QueryContext.PUSHDOWN_RDBMS))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.storageCacheUsed").value(false))
-                .andDo(MockMvcResultHandlers.print())
-                .andReturn();
+                .andDo(MockMvcResultHandlers.print()).andReturn();
 
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.runner-class-name");
@@ -151,13 +152,10 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         sqlRequest.setProject("Default");
         sqlRequest.setSql("SELECT * FROM test_country");
 
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/query/prestate")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/prestate").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andDo(MockMvcResultHandlers.print());
+                .andExpect(MockMvcResultMatchers.status().isOk()).andDo(MockMvcResultHandlers.print());
 
     }
 
@@ -170,5 +168,33 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         final JsonNode data = jsonNode.get("data");
         Assert.assertFalse(data.toString().contains(ComputedColumnDesc.getComputedColumnInternalNamePrefix()));
+    }
+
+    @Test
+    public void testGetQueryHistoryTableNames() throws Exception {
+        List<String> projects = Arrays.asList("DEfault", "SSb");
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/query/history_queries/table_names")
+                        .param("projects", StringUtils.join(projects, ","))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Map data = JsonUtil.readValue(jsonNode.get("data").toString(), Map.class);
+        Set<String> actualProjects = data.keySet();
+        Assert.assertEquals(2, actualProjects.size());
+        Assert.assertTrue(actualProjects.contains("default"));
+        Assert.assertTrue(actualProjects.contains("ssb"));
+
+        mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/query/history_queries/table_names")
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        data = JsonUtil.readValue(jsonNode.get("data").toString(), Map.class);
+        actualProjects = data.keySet();
+
+        int allProjectsSize = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listAllProjects().size();
+        Assert.assertEquals(allProjectsSize, actualProjects.size());
     }
 }

@@ -332,7 +332,14 @@ public class NBasicController {
     }
 
     public void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (DateRangeRequest request : requests) {
+            if (projectManager != null) {
+                ProjectInstance projectInstance = projectManager.getProjectIgnoreCase(request.getProject());
+                if (projectInstance != null) {
+                    request.setProject(projectInstance.getName());
+                }
+            }
             checkProjectName(request.getProject());
             checkRequiredArg("table", request.getTable());
             validateRange(request.getStart(), request.getEnd());

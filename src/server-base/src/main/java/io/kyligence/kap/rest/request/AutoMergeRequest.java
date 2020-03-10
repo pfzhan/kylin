@@ -25,12 +25,14 @@
 package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
-public class AutoMergeRequest {
+public class AutoMergeRequest implements ProjectInsensitiveRequest {
     @JsonProperty("auto_merge_enabled")
     private boolean autoMergeEnabled = true;
 
