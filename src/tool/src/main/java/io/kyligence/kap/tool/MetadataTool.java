@@ -104,6 +104,10 @@ public class MetadataTool extends ExecutableApplication {
     private static final Option FOLDER_NAME = OptionBuilder.hasArg().withArgName("FOLDER_NAME")
             .withDescription("Specify the folder name for backup").isRequired(false).create("folder");
 
+    private static final Option OPTION_EXCLUDE_TABLE_EXD = OptionBuilder
+            .withDescription("Exclude metadata {project}/table_exd directory").isRequired(false)
+            .create("excludeTableExd");
+
     private final Options options;
 
     private final KylinConfig kylinConfig;
@@ -133,6 +137,7 @@ public class MetadataTool extends ExecutableApplication {
         options.addOption(OPTION_PROJECT);
         options.addOption(FOLDER_NAME);
         options.addOption(OPERATE_COMPRESS);
+        options.addOption(OPTION_EXCLUDE_TABLE_EXD);
     }
 
     public static void backup(KylinConfig kylinConfig) throws IOException {
@@ -241,6 +246,7 @@ public class MetadataTool extends ExecutableApplication {
         var path = optionsHelper.getOptionValue(OPTION_DIR);
         var folder = optionsHelper.getOptionValue(FOLDER_NAME);
         var compress = optionsHelper.hasOption(OPERATE_COMPRESS);
+        val excludeTableExd = optionsHelper.hasOption(OPTION_EXCLUDE_TABLE_EXD);
         if (StringUtils.isBlank(path)) {
             path = KylinConfigBase.getKylinHome() + File.separator + "meta_backups";
         }
@@ -270,7 +276,7 @@ public class MetadataTool extends ExecutableApplication {
                         continue;
                     }
                     // The "_global" directory is already included in the full backup
-                    copyResourceStore(projectPath, resourceStore, backupResourceStore, false);
+                    copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
                 }
                 val auditLogStore = resourceStore.getAuditLogStore();
                 val offset = auditLogStore.getMaxId();
@@ -288,7 +294,7 @@ public class MetadataTool extends ExecutableApplication {
             log.info("start to copy project {} from ResourceStore.", project);
             UnitOfWork.doInTransactionWithRetry(
                     UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
-                        copyResourceStore("/" + project, resourceStore, backupResourceStore, true);
+                        copyResourceStore("/" + project, resourceStore, backupResourceStore, true, excludeTableExd);
                         val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
                         backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
                                 uuid.getTimestamp(), -1);
@@ -321,8 +327,19 @@ public class MetadataTool extends ExecutableApplication {
     }
 
     private void copyResourceStore(String projectPath, ResourceStore srcResourceStore, ResourceStore destResourceStore,
-            boolean isProjectLevel) {
-        srcResourceStore.copy(projectPath, destResourceStore);
+            boolean isProjectLevel, boolean excludeTableExd) {
+        if (excludeTableExd) {
+            String tableExdPath = projectPath + ResourceStore.TABLE_EXD_RESOURCE_ROOT;
+            var projectItems = srcResourceStore.listResources(projectPath);
+            for (String item : projectItems) {
+                if (item.equals(tableExdPath)) {
+                    continue;
+                }
+                srcResourceStore.copy(item, destResourceStore);
+            }
+        } else {
+            srcResourceStore.copy(projectPath, destResourceStore);
+        }
         if (isProjectLevel) {
             // The project-level backup needs to contain "/_global/project/*.json"
             val projectName = Paths.get(projectPath).getFileName().toString();
@@ -375,7 +392,8 @@ public class MetadataTool extends ExecutableApplication {
             Set<String> globalDestResources = null;
             if (Objects.nonNull(destGlobalProjectResources)) {
                 globalDestResources = destGlobalProjectResources.stream()
-                        .filter(x -> Paths.get(x).getFileName().toString().startsWith(project)).collect(Collectors.toSet());
+                        .filter(x -> Paths.get(x).getFileName().toString().startsWith(project))
+                        .collect(Collectors.toSet());
             }
 
             val globalSrcResources = restoreMetadataStore.list(ResourceStore.PROJECT_ROOT).stream()

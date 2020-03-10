@@ -113,7 +113,8 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
                 File metaDir = new File(exportDir, "metadata");
                 FileUtils.forceMkdir(metaDir);
 
-                String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project };
+                String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
+                        "-excludeTableExd" };
                 new MetadataTool().execute(metaToolArgs);
             } catch (Exception e) {
                 logger.warn("Failed to extract job metadata.", e);

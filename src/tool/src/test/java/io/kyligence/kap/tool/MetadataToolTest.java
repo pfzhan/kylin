@@ -79,6 +79,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import lombok.var;
 
 public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
@@ -515,5 +516,24 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         val props = datasourceParameters(url);
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         return new JdbcTemplate(dataSource);
+    }
+
+    @Test
+    public void testNotIncludeTableExdDirectory() throws Exception {
+        File junitFolder = temporaryFolder.getRoot();
+        File test1 = new File(junitFolder, "include");
+        File test2 = new File(junitFolder, "exclude");
+        FileUtils.forceMkdir(test1);
+        FileUtils.forceMkdir(test2);
+        val tool = new MetadataTool();
+        tool.execute(new String[] { "-backup", "-project", "newten", "-dir", test1.getAbsolutePath() });
+        var archiveFolder = test1.listFiles()[0];
+        var projectFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("newten"));
+        Assertions.assertThat(projectFolder.list()).contains("table_exd");
+        tool.execute(
+                new String[] { "-backup", "-project", "newten", "-dir", test2.getAbsolutePath(), "-excludeTableExd" });
+        archiveFolder = test2.listFiles()[0];
+        projectFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("newten"));
+        Assertions.assertThat(projectFolder.list()).doesNotContain("table_exd");
     }
 }
