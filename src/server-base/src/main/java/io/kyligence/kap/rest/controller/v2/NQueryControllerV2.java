@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.Map;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
@@ -54,20 +55,20 @@ public class NQueryControllerV2 extends NBasicController {
     @Deprecated
     @PostMapping(value = "", produces = { "application/json" })
     @ResponseBody
-    public SQLResponse query4JDBC(@RequestBody PrepareSqlRequest sqlRequest) {
+    public SQLResponse query4JDBC(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         return queryService.doQueryWithCache(sqlRequest, false);
     }
 
     @PostMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
-    public EnvelopeResponse<SQLResponse> query(@RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
     @PostMapping(value = "/prestate", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
-    public EnvelopeResponse<SQLResponse> prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse<SQLResponse> prepareQuery(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         Map<String, String> newToggles = Maps.newHashMap();
         if (sqlRequest.getBackdoorToggles() != null)
             newToggles.putAll(sqlRequest.getBackdoorToggles());

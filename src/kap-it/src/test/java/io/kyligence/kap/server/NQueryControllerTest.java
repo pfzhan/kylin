@@ -51,6 +51,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import lombok.val;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
@@ -58,7 +59,8 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
     public void testQuery() throws Exception {
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("default");
-        sqlRequest.setSql("SELECT * FROM TEST_KYLIN_FACT");
+        sqlRequest.setSql("-- This is comment" + '\n' + "SELECT * FROM TEST_KYLIN_FACT");
+        sqlRequest.setUser_defined_tag("user_tag");
         System.setProperty("kylin.query.pushdown.runner-class-name", "");
 
         final MvcResult result = mockMvc.perform(MockMvcRequestBuilders
@@ -75,6 +77,26 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage").read(result.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
         System.clearProperty("kylin.query.pushdown.runner-class-name");
+    }
+
+    @Test
+    public void testUserTagExceedLimitation() throws Exception {
+        final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
+        sqlRequest.setProject("default");
+        sqlRequest.setSql("-- This is comment" + '\n' + "SELECT * FROM TEST_KYLIN_FACT");
+        StringBuilder builder = new StringBuilder();
+        for (int i =0; i<=256; i++) {
+            builder.append('a');
+        }
+        sqlRequest.setUser_defined_tag(builder.toString());
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/query")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(sqlRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("999"))
+                .andExpect(jsonPath("$.msg").value("user_defined_tag must be not greater than 256."));
     }
 
     @Test

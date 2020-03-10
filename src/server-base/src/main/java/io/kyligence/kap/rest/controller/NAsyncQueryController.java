@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -83,7 +84,7 @@ public class NAsyncQueryController extends NBasicController {
     @ApiOperation(value = "query (update)", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key; Update Response: query_id")
     @PostMapping(value = "/async_query")
     @ResponseBody
-    public EnvelopeResponse<AsyncQueryResponse> query(@RequestBody final AsyncQuerySQLRequest sqlRequest)
+    public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException {
         if (!KylinConfig.getInstanceFromEnv().getSchemaFactory()
                 .equalsIgnoreCase("io.kyligence.kap.query.schema.KapSchemaFactory")) {

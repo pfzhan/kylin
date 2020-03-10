@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 
 import javax.validation.constraints.AssertTrue;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.springframework.validation.FieldError;
@@ -54,6 +55,7 @@ public class ProjectRequest implements Validation, ProjectInsensitiveRequest {
     private MaintainModelType maintainModelType;
 
     @AssertTrue
+    @JsonIgnore
     public boolean isNameValid() {
         val pattern = Pattern.compile("^(?![_])\\w+$");
         try {

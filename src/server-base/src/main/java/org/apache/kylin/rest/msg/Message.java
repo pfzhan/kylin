@@ -746,4 +746,8 @@ public class Message {
         return "Since the user ADMIN is the default built-in administrator, you cannot remove the role admin permission, delete or disable the user admin, And only user ADMIN can change the password and user group of user ADMIN";
     }
 
+    //Query
+    public String getINVALID_USER_TAG(){
+        return "user_defined_tag must be not greater than 256.";
+    }
 }

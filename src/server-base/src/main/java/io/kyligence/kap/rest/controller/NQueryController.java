@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -119,7 +120,7 @@ public class NQueryController extends NBasicController {
     @ApiOperation(value = "query (update)", notes = "Update Param: query_id, accept_partial, backdoor_toggles, cache_key")
     @PostMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse<SQLResponse> query(@RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse<SQLResponse> query(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
@@ -128,7 +129,7 @@ public class NQueryController extends NBasicController {
 
     @PostMapping(value = "/prestate")
     @ResponseBody
-    public EnvelopeResponse<SQLResponse> prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse<SQLResponse> prepareQuery(@Valid @RequestBody PrepareSqlRequest sqlRequest) {
         Map<String, String> newToggles = Maps.newHashMap();
         if (sqlRequest.getBackdoorToggles() != null)
             newToggles.putAll(sqlRequest.getBackdoorToggles());

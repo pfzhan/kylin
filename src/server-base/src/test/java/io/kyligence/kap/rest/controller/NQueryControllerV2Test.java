@@ -98,4 +98,36 @@ public class NQueryControllerV2Test {
         Mockito.verify(nQueryControllerV2).query(Mockito.any());
     }
 
+    private PrepareSqlRequest mockInvalidateTagSqlRequest() {
+        final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
+        sqlRequest.setSql("SELECT * FROM empty_table");
+        StringBuilder builder = new StringBuilder();
+        for (int i =0; i<=256; i++) {
+            builder.append('a');
+        }
+        sqlRequest.setUser_defined_tag(builder.toString());
+        return sqlRequest;
+    }
+
+    @Test
+    public void testQueryUserTagExceedLimitation() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockInvalidateTagSqlRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("999"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.msg").value("user_defined_tag must be not greater than 256."));
+
+        Mockito.verify(nQueryControllerV2, Mockito.times(0)).query(Mockito.any());
+    }
+
+    @Test
+    public void testPrepareQueryUserTagExceedLimitation() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/prestate").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockInvalidateTagSqlRequest()))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+
+        Mockito.verify(nQueryControllerV2, Mockito.times(0)).prepareQuery(Mockito.any());
+    }
 }

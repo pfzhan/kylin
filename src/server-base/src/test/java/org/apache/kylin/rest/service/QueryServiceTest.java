@@ -938,16 +938,21 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
     @Test
     public  void testQueryLogMatch() {
-        final String sql = "select * from test";
+        final String sql = "-- This is comment" + '\n' + "select * from test";
         final String project = "default";
+        final String tag = "tagss";
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
+        request.setUser_defined_tag(tag);
 
         final SQLResponse response = queryService.doQueryWithCache(request, false);
+
+        // Current QueryContext will be reset in doQueryWithCache
+        QueryContext.current().setUserSQL(sql);
         String log = queryService.logQuery(request, response);
         //
-        final  int groupCnt = 26;
+        final  int groupCnt = 27;
         String matchNewLine = "\\n";
         String s =
                 "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine +
@@ -976,6 +981,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                         "Time Line Schema:\\s(.*?)" + matchNewLine +
                         "Time Line:\\s(.*?)" + matchNewLine +
                         "Message:\\s(.*?)" + matchNewLine +
+                        "User Defined Tag:\\s(.*?)" + matchNewLine +
                         "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);
@@ -990,6 +996,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(project, matcher.group(6));
         Assert.assertFalse(Boolean.parseBoolean(matcher.group(4)));
         Assert.assertEquals("null", matcher.group(23)); //Trace URL
+        Assert.assertEquals(tag, matcher.group(27));
     }
 
     @Test

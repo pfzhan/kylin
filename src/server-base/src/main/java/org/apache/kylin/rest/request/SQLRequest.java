@@ -43,14 +43,23 @@
 package org.apache.kylin.rest.request;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import io.kyligence.kap.rest.request.Validation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.springframework.validation.FieldError;
+
+import javax.validation.constraints.Size;
 
 /**
  * if you're adding/removing fields from SQLRequest, take a look at getCacheKey
@@ -58,12 +67,11 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SQLRequest implements Serializable, ProjectInsensitiveRequest {
+public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Validation {
     protected static final long serialVersionUID = 1L;
 
     private String sql;
     private String queryId;
-
     private String project;
     private String username = "";
     private Integer offset = 0;
@@ -71,6 +79,9 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest {
     private boolean acceptPartial = false;
 
     private Map<String, String> backdoorToggles;
+
+    @Size(max = 256)
+    private String user_defined_tag;
 
     protected volatile Object cacheKey = null;
 
@@ -99,15 +110,17 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest {
 
         if (acceptPartial != that.acceptPartial)
             return false;
-        if (sql != null ? !sql.equals(that.sql) : that.sql != null)
+        if (!Objects.equals(sql, that.sql))
             return false;
-        if (project != null ? !project.equals(that.project) : that.project != null)
+        if (!Objects.equals(project, that.project))
             return false;
-        if (offset != null ? !offset.equals(that.offset) : that.offset != null)
+        if (!Objects.equals(offset, that.offset))
             return false;
-        if (limit != null ? !limit.equals(that.limit) : that.limit != null)
+        if (!Objects.equals(limit, that.limit))
             return false;
-        return backdoorToggles != null ? backdoorToggles.equals(that.backdoorToggles) : that.backdoorToggles == null;
+        if(!Objects.equals(user_defined_tag, that.user_defined_tag))
+            return false;
+        return Objects.equals(backdoorToggles, that.backdoorToggles);
 
     }
 
@@ -119,6 +132,18 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest {
         result = 31 * result + (limit != null ? limit.hashCode() : 0);
         result = 31 * result + (acceptPartial ? 1 : 0);
         result = 31 * result + (backdoorToggles != null ? backdoorToggles.hashCode() : 0);
+        result = 31 * result + (user_defined_tag != null ? user_defined_tag.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String getErrorMessage(List<FieldError> errors) {
+        val message = MsgPicker.getMsg();
+        if (!CollectionUtils.isEmpty(errors) && errors.size() > 0) {
+            if (errors.get(0).getField().equalsIgnoreCase("user_defined_tag")) {
+                return message.getINVALID_USER_TAG();
+            }
+        }
+        return "";
     }
 }

@@ -75,7 +75,7 @@ object ResultPlan extends LogEx {
     df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
     sparkContext.setJobGroup(jobGroup,
-      QueryContext.current().getSql,
+      QueryContext.current().getCorrectedSql,
       interruptOnCancel = true)
     try {
       val autoBroadcastJoinThreshold = SparderEnv.getSparkSession.sessionState.conf.autoBroadcastJoinThreshold

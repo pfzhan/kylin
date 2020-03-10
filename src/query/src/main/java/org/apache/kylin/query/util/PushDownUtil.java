@@ -287,7 +287,8 @@ public class PushDownUtil {
 
             if (QueryContext.current().isWithoutSyntaxError()) {
                 logger.warn(
-                        "route to push down for met error when running the query: " + QueryContext.current().getSql(),
+                        "route to push down for met error when running the query: {}",
+                        QueryContext.current().getCorrectedSql(),
                         sqlException);
                 return true;
             }

@@ -80,7 +80,7 @@ public class QueryContext {
     private Set<String> groups;
     private AtomicLong sourceScanBytes = new AtomicLong();
     private AtomicLong sourceScanRows = new AtomicLong();
-    private String sql;
+    private String userSQL;
     private boolean isTimeout;
     private String project;
     private Object calcitePlan;
@@ -214,12 +214,12 @@ public class QueryContext {
         return sourceScanRows.addAndGet(rows);
     }
 
-    public String getSql() {
-        return sql;
+    public String getUserSQL() {
+        return userSQL;
     }
 
-    public void setSql(String sql) {
-        this.sql = sql;
+    public void setUserSQL(String sql) {
+        this.userSQL = sql;
     }
 
     public boolean isTimeout() {

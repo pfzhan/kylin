@@ -318,10 +318,14 @@ public class QueryService extends BasicService {
         if (!response.isException() && response.getResults() != null) {
             resultRowCount = response.getResults().size();
         }
+        String sql = QueryContext.current().getUserSQL();
+        if (StringUtils.isEmpty(sql))
+            sql = request.getSql();
+
         LogReport report = new LogReport()
-                .put(LogReport.QUERY_ID           , QueryContext.current().getQueryId())
-                .put(LogReport.SQL                , request.getSql())
-                .put(LogReport.USER               , user)
+                .put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
+                .put(LogReport.SQL, sql)
+                .put(LogReport.USER, user)
                 .put(LogReport.SUCCESS, null == response.getExceptionMessage())
                 .put(LogReport.DURATION, duration)
                 .put(LogReport.PROJECT, request.getProject())
@@ -344,7 +348,8 @@ public class QueryService extends BasicService {
                 .put(LogReport.TRACE_URL, response.getTraceUrl())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
-                .put(LogReport.ERROR_MSG, response.getExceptionMessage());
+                .put(LogReport.ERROR_MSG, response.getExceptionMessage())
+                .put(LogReport.USER_TAG, request.getUser_defined_tag());
         String log = report.oldStyleLog();
         logger.info(log);
         logger.info(report.jsonStyleLog());
@@ -416,12 +421,13 @@ public class QueryService extends BasicService {
             long startTime = System.currentTimeMillis();
 
             SQLResponse sqlResponse = null;
-            String sql = sqlRequest.getSql();
+            String userSQL = sqlRequest.getSql();
             String project = sqlRequest.getProject();
             boolean isQueryCacheEnabled = isQueryCacheEnabled(kylinConfig);
             logger.info("Using project: {}", project);
 
-            sql = QueryUtil.removeCommentInSql(sql);
+            String sql = QueryUtil.removeCommentInSql(userSQL);
+            QueryContext.current().setUserSQL(userSQL);
 
             Pair<Boolean, String> result = TempStatementUtil.handleTempStatement(sql, kylinConfig);
             boolean isCreateTempStatement = result.getFirst();
@@ -631,7 +637,7 @@ public class QueryService extends BasicService {
 
                 SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
                 if (null != fakeResponse) {
-                    logger.debug("Return fake response, is exception? " + fakeResponse.isException());
+                    logger.debug("Return fake response, is exception? {}", fakeResponse.isException());
                     return fakeResponse;
                 }
 
@@ -1290,6 +1296,7 @@ public class QueryService extends BasicService {
         static final String TIMELINE_SCHEMA = "timeline_schema";
         static final String TIMELINE = "timeline";
         static final String ERROR_MSG = "error_msg";
+        static final String USER_TAG = "user_defined_tag";
 
         static final ImmutableMap<String, String> O2N =
                 new ImmutableMap.Builder<String, String>()
@@ -1319,6 +1326,7 @@ public class QueryService extends BasicService {
                         .put(TIMELINE_SCHEMA, "Time Line Schema: ")
                         .put(TIMELINE, "Time Line: ")
                         .put(ERROR_MSG, "Message: ")
+                        .put(USER_TAG,  "User Defined Tag: ")
                         .build();
 
         private Map<String, Object> logs = new HashMap<>(100);
@@ -1370,6 +1378,7 @@ public class QueryService extends BasicService {
                 O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA) + newLine +
                 O2N.get(TIMELINE) + get(TIMELINE) + newLine +
                 O2N.get(ERROR_MSG) + get(ERROR_MSG) + newLine +
+                O2N.get(USER_TAG) + get(USER_TAG) + newLine +
                 "==========================[QUERY]===============================" + newLine;
         }
 
