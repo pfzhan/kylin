@@ -84,21 +84,9 @@ public class NHiveTableName implements Runnable {
                     isRunning = true;
                     long now = System.currentTimeMillis();
                     try {
-                        Map<String, List<String>> newTables = new HashMap<>();
                         List<String> dbs = explr.listDatabases().stream().map(String::toUpperCase)
                                 .collect(Collectors.toList());
-                        for (String db : dbs) {
-                            if (explr.checkDatabaseAccess(db)) {
-                                List<String> tbs = explr.listTables(db).stream().map(String::toUpperCase)
-                                        .collect(Collectors.toList());
-                                newTables.put(db, tbs);
-
-                                int currDBSize = newTables.keySet().size();
-                                if (currDBSize % 20 == 0) {
-                                    logger.info("Foreach database curr pos {}, total num {}", currDBSize, dbs.size());
-                                }
-                            }
-                        }
+                        Map<String, List<String>> newTables = listTables(dbs);
                         setAllTables(newTables);
                         lastLoadTime = System.currentTimeMillis();
                     } catch (Exception e) {
@@ -121,6 +109,23 @@ public class NHiveTableName implements Runnable {
         response.setIsRunning(isRunning);
         response.setTime(System.currentTimeMillis() - lastLoadTime);
         return response;
+    }
+
+    private Map<String, List<String>> listTables(List<String> dbs) throws Exception {
+        Map<String, List<String>> newTables = new HashMap<>();
+        for (String db : dbs) {
+            if (explr.checkDatabaseAccess(db)) {
+                List<String> tbs = explr.listTables(db).stream().map(String::toUpperCase).collect(Collectors.toList());
+                newTables.put(db, tbs);
+
+                int currDBSize = newTables.keySet().size();
+                if (currDBSize % 20 == 0) {
+                    logger.info("Foreach database curr pos {}, total num {}", currDBSize, dbs.size());
+                }
+            }
+        }
+
+        return newTables;
     }
 
     public synchronized List<String> getTables(String db) {
