@@ -29,6 +29,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBIOException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -98,17 +99,33 @@ public class NMonitorController extends NBasicController {
     @GetMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<ClusterStatusResponse> getClusterCurrentStatus() {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, monitorService.currentClusterStatus(), "");
+        ClusterStatusResponse result;
+        try {
+            result = monitorService.currentClusterStatus();
+        } catch (InfluxDBIOException ie) {
+            throw new RuntimeException("Failed to connect InfluxDB service. Please check its status and the network.");
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @GetMapping(value = "/status/statistics")
     @ResponseBody
     public EnvelopeResponse<ClusterStatisticStatusResponse> getClusterStatisticStatus(
             @RequestParam(value = "start") long start, @RequestParam(value = "end") long end) {
+        long now = System.currentTimeMillis();
+        end = end > now ? now : end;
         if (start > end) {
             throw new BadRequestException(String.format("start: %s > end: %s", start, end));
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, monitorService.statisticCluster(start, end), "");
+        ClusterStatisticStatusResponse result;
+        try {
+            result = monitorService.statisticClusterByFloorTime(start, end);
+        } catch (InfluxDBIOException ie) {
+            throw new RuntimeException("Failed to connect InfluxDB service. Please check its status and the network.");
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 }

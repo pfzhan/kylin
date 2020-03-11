@@ -142,15 +142,24 @@ public class MonitorService extends BasicService {
         return metric;
     }
 
+    private long floorTime(long time) {
+        return floorTime(time, KapConfig.wrap(getConfig()).getMonitorInterval());
+    }
+
+    private static long floorTime(long time, long interval) {
+        // interval need to <= 60 * 60 * 1000
+        return time - time % interval;
+    }
+
     public ClusterStatusResponse currentClusterStatus() {
-        return timeClusterStatus(System.currentTimeMillis());
+        return timeClusterStatus(floorTime(System.currentTimeMillis()));
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + //
             " or hasPermission(#project, 'ADMINISTRATION')" + //
             " or hasPermission(#project, 'MANAGEMENT')" + //
             " or hasPermission(#project, 'OPERATION')")
-    public ClusterStatusResponse timeClusterStatus(long time) {
+    public ClusterStatusResponse timeClusterStatus(final long time) {
         val queryServers = clusterManager.getQueryServers().stream().map(ServerInfoResponse::getHost)
                 .collect(Collectors.toList());
         val jobServers = clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost)
@@ -314,12 +323,16 @@ public class MonitorService extends BasicService {
         }
     }
 
+    public ClusterStatisticStatusResponse statisticClusterByFloorTime(final long start, final long end) {
+        return statisticCluster(floorTime(start), floorTime(end));
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + //
             " or hasPermission(#project, 'ADMINISTRATION')" + //
             " or hasPermission(#project, 'MANAGEMENT')" + //
             " or hasPermission(#project, 'OPERATION')")
     // /monitor/status/statistic
-    public ClusterStatisticStatusResponse statisticCluster(long start, long end) {
+    public ClusterStatisticStatusResponse statisticCluster(final long start, final long end) {
         val jobs = clusterManager.getJobServers().stream().map(ServerInfoResponse::getHost)
                 .collect(Collectors.toList());
         val queries = clusterManager.getQueryServers().stream().map(ServerInfoResponse::getHost)
@@ -413,7 +426,7 @@ public class MonitorService extends BasicService {
             this.name = name;
             this.metrics = metrics;
             this.interval = interval;
-            this.size = (int) ((floorTime(end) - floorTime(start)) / interval);
+            this.size = (int) ((floorTime(end, interval) - floorTime(start, interval)) / interval);
             this.start = start;
             this.end = end;
             this.realStart = realStart;
@@ -424,11 +437,6 @@ public class MonitorService extends BasicService {
 
         protected abstract NodeState[] calculate(T[] ts);
 
-        private long floorTime(long time) {
-            // interval need to <= 60 * 60 * 1000
-            return time - time % interval;
-        }
-
         protected List<Pair<Long, NodeState>> statistic() {
             // to do config, 90d monitor data, OOM warning
             long range = 90L * 24 * 60 * 60 * 1000 / interval;
@@ -438,9 +446,9 @@ public class MonitorService extends BasicService {
 
             T[] fullMetrics = createMetricArray();
 
-            long firstTime = floorTime(start);
+            long firstTime = floorTime(start, interval);
             for (T metric : metrics) {
-                int length = (int) ((floorTime(metric.getCreateTime()) - firstTime) / interval);
+                int length = (int) ((floorTime(metric.getCreateTime(), interval) - firstTime) / interval);
                 if (length >= fullMetrics.length || null != fullMetrics[length]) {
                     if (length >= fullMetrics.length) {
                         logger.warn("Monitor metric create_time error, time: {}, end: {}", metric.getCreateTime(), end);
