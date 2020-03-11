@@ -262,7 +262,7 @@ public class TableService extends BasicService {
         // de-dup
         SetMultimap<String, String> databaseTables = LinkedHashMultimap.create();
         for (String fullTableName : tables) {
-            String[] parts = HadoopUtil.parseHiveTableName(fullTableName);
+            String[] parts = HadoopUtil.parseHiveTableName(fullTableName.toUpperCase());
             databaseTables.put(parts[0], parts[1]);
         }
         // load all tables first  Pair<TableDesc, TableExtDesc>
