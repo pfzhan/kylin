@@ -254,6 +254,10 @@ public class NFavoriteScheduler {
 
         @Override
         public void run() {
+            if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
+                return;
+            }
+
             long startTime = System.currentTimeMillis();
             copiedFrequencyStatues = deepCopyFrequencyStatues();
             copiedOverallStatus = copyFrequencyStatus(overAllStatus);

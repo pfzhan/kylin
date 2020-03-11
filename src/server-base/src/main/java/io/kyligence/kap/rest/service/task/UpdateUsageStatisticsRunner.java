@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -44,6 +45,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Data;
@@ -108,10 +110,12 @@ public class UpdateUsageStatisticsRunner implements Runnable {
     private void updateRelatedMetadata(List<QueryHistory> queryHistories, long scannedOffset) {
         Map<String, FavoriteQuery> favoritesAboutToUpdate = Maps.newHashMap();
         Map<String, Long> modelsLastQueryTime = Maps.newHashMap();
-
+        ProjectInstance instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
         val dfHitCountMap = collectDataflowHitCount(queryHistories);
         for (QueryHistory queryHistory : queryHistories) {
-            updateFavoriteQuery(queryHistory, favoritesAboutToUpdate);
+            if (!instance.isExpertMode()) {
+                updateFavoriteQuery(queryHistory, favoritesAboutToUpdate);
+            }
             setLastQueryTime(queryHistory, modelsLastQueryTime);
         }
 
