@@ -205,9 +205,11 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     }
 
     protected void onExecuteDiscardHook(String jobId) {
+        // Hook method, default action is doing nothing
     }
 
     protected void onExecuteSuicidalHook(String jobId) {
+        // Hook method, default action is doing nothing
     }
 
     private void updateToFinalState(ExecutableState finalState, Consumer<String> hook) {

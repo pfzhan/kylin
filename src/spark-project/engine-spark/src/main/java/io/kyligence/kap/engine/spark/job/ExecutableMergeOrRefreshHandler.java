@@ -54,6 +54,6 @@ public class ExecutableMergeOrRefreshHandler extends ExecutableHandler {
 
     @Override
     public void handleDiscardOrSuicidal() {
-
+        // Do nothing
     }
 }
