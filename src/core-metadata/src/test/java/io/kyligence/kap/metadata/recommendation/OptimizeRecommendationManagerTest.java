@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -237,6 +238,14 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         var removeLayoutsId = Maps.<Long, GarbageLayoutType> newHashMap();
         for (Long layoutId : ids) {
             removeLayoutsId.put(layoutId, GarbageLayoutType.LOW_FREQUENCY);
+        }
+        return removeLayoutsId;
+    }
+
+    private Map<Long, GarbageLayoutType> createRemoveLayoutsOfSimilar(Long... ids) {
+        Map<Long, GarbageLayoutType> removeLayoutsId = Maps.newHashMap();
+        for (Long layoutId : ids) {
+            removeLayoutsId.put(layoutId, GarbageLayoutType.SIMILAR);
         }
         return removeLayoutsId;
     }
@@ -1095,11 +1104,19 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     @Test
     public void testCleanRemoveManual() throws IOException {
         prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile);
-        recommendationManager.removeLayouts(id, createRemoveLayoutIds(150001L));
-        var recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
-                .anyMatch(item -> !item.isAdd() && item.getLayout().isAuto()
-                        && compareList(item.getLayout().getColOrder(), Arrays.asList(0, 12, 100000, 100001))));
+        recommendationManager.removeLayouts(id, createRemoveLayoutsOfSimilar(150001L));
+        recommendationManager.removeLayouts(id, createRemoveLayoutIds(150002L));
+        OptimizeRecommendation recommendation = recommendationManager.getOptimizeRecommendation(id);
+        //
+        List<LayoutRecommendationItem> removalItems = recommendation.getLayoutRecommendations().stream()
+                .filter(item -> !item.isAdd()) //
+                .sorted(Comparator.comparingLong(item -> item.getLayout().getId())) //
+                .collect(Collectors.toList());
+        Assert.assertEquals(2, removalItems.size());
+        Assert.assertEquals(Lists.newArrayList(0, 12, 100000, 100001), removalItems.get(0).getLayout().getColOrder());
+        Assert.assertEquals(Lists.newArrayList(12, 0, 100000, 100001), removalItems.get(1).getLayout().getColOrder());
+
+        // clean ineffective will not add to blacklist
         indexPlanManager.updateIndexPlan(id, copyForWrite -> {
             val rule = new NRuleBasedIndex();
             rule.setDimensions(Lists.newArrayList(0, 12));
@@ -1116,9 +1133,41 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         });
         recommendationManager.cleanInEffective(id);
         recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertTrue(recommendation.getLayoutRecommendations().stream()
-                .noneMatch(item -> !item.isAdd() && item.getLayout().isAuto()
-                        && compareList(item.getLayout().getColOrder(), Arrays.asList(0, 12, 100000, 100001))));
+        List<LayoutRecommendationItem> afterCleanIneffective = recommendation.getLayoutRecommendations().stream()
+                .filter(item -> !item.isAdd()) //
+                .collect(Collectors.toList());
+        Assert.assertEquals(2, afterCleanIneffective.size());
+        Assert.assertEquals(Lists.newArrayList(0, 12, 100000, 100001),
+                afterCleanIneffective.get(0).getLayout().getColOrder());
+        Assert.assertEquals(Lists.newArrayList(12, 0, 100000, 100001),
+                afterCleanIneffective.get(1).getLayout().getColOrder());
+        Assert.assertTrue(indexPlanManager.getIndexPlan(id).getRuleBasedIndex().getLayoutBlackList().isEmpty());
+
+        // after apply recommendations, removal item from similar strategy will add to black list
+        Set<Long> passCCs = recommendation.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
+                .collect(Collectors.toSet());
+        Set<Long> failCCs = Sets.newHashSet();
+        Set<Long> passDimensions = recommendation.getDimensionRecommendations().stream()
+                .map(DimensionRecommendationItem::getItemId).collect(Collectors.toSet());
+        Set<Long> failDimensions = Sets.newHashSet();
+        Set<Long> passMeasures = recommendation.getMeasureRecommendations().stream()
+                .map(MeasureRecommendationItem::getItemId).collect(Collectors.toSet());
+        Set<Long> failMeasures = Sets.newHashSet();
+
+        Set<Long> passIndexes = recommendation.getLayoutRecommendations().stream()
+                .map(LayoutRecommendationItem::getItemId).collect(Collectors.toSet());
+        Set<Long> failIndexes = Sets.newHashSet();
+        val verifier = create(passCCs, failCCs, passDimensions, failDimensions, passMeasures, failMeasures, passIndexes,
+                failIndexes);
+        verifier.verify();
+
+        recommendation = recommendationManager.getOptimizeRecommendation(id);
+        List<LayoutRecommendationItem> removalItemsA = recommendation.getLayoutRecommendations().stream()
+                .filter(item -> !item.isAdd()) //
+                .collect(Collectors.toList());
+        Assert.assertEquals(0, removalItemsA.size());
+        Assert.assertEquals(Sets.newHashSet(150001L),
+                indexPlanManager.getIndexPlan(id).getRuleBasedIndex().getLayoutBlackList());
     }
 
     @Test

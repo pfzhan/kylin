@@ -242,6 +242,13 @@ public class IndexEntity implements Serializable, IKeep {
         return isCachedAndShared() ? ImmutableList.copyOf(layouts) : layouts;
     }
 
+    public LayoutEntity getLayout(long layoutId) {
+        if (layoutId < id || layoutId >= id + INDEX_ID_STEP) {
+            return null;
+        }
+        return getLayouts().stream().filter(l -> l.getId() == layoutId).findFirst().orElse(null);
+    }
+
     public void setLayouts(List<LayoutEntity> layouts) {
         checkIsNotCachedAndShared();
         this.layouts = layouts;

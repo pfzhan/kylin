@@ -81,6 +81,10 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private Map<String, String> extraInfo = Maps.newHashMap();
 
+    private boolean isSimilarRecommendation() {
+        return "SIMILAR".equalsIgnoreCase(getExtraInfo().get("remove_reason"));
+    }
+
     private void checkAddTableIndexDependencies(OptimizeContext context, boolean real) {
         var item = context.getLayoutRecommendationItem(itemId);
         for (int i = 0; i < item.getDimensions().size(); i++) {
@@ -230,7 +234,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         } else {
             val indexEntity = context.getWhiteListIndexesMap().get(identifier);
             if (indexEntity.getLayouts().contains(layout)) {
-                logger.warn("layout " + layout.getColOrder() + " already exists in index.");
+                logger.warn("layout {} already exists in index.", layout.getColOrder());
                 return;
             }
             layout.setId(indexEntity.getId() + indexEntity.getNextLayoutOffset());
@@ -241,35 +245,38 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
     }
 
     private void removeLayout(OptimizeContext context, boolean real) {
-        var item = context.getLayoutRecommendationItem(itemId);
-        val identifier = item.createIndexIdentifier();
+        LayoutRecommendationItem item = context.getLayoutRecommendationItem(itemId);
+        IndexEntity.IndexIdentifier identifier = item.createIndexIdentifier();
         if (context.getAllIndexesMap().containsKey(identifier)
                 && context.getAllIndexesMap().get(identifier).getLayouts().contains(item.getLayout())) {
-            val indexEntity = context.getAllIndexesMap().get(identifier);
-            LayoutEntity layout = item.getLayout();
-            val layoutInIndexPlan = indexEntity.getLayouts().stream().filter(l -> l.getId() == layout.getId())
-                    .findFirst().orElse(null);
+            IndexEntity indexEntity = context.getAllIndexesMap().get(identifier);
+            LayoutEntity layoutInIndexPlan = indexEntity.getLayout(layout.getId());
             if (layoutInIndexPlan == null) {
                 return;
             }
+
             if (layoutInIndexPlan.isManual()) {
+                if (item.isAggIndex() && item.isSimilarRecommendation()) {
+                    // For similar strategy only works on AggIndex, we need add this to black list.
+                    context.getIndexPlan().addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+                    return;
+                }
+
                 if (!real) {
                     context.deleteLayoutRecommendationItem(itemId);
                 }
                 return;
             }
-            indexEntity.getLayouts().remove(layout);
+            indexEntity.getLayouts().remove(layoutInIndexPlan);
             context.getIndexPlan().getIndexes().stream()
                     .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId()).findFirst()
-                    .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().remove(layout));
-
+                    .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().remove(layoutInIndexPlan));
         } else {
             logger.warn("remove layouts not exists in index plan.");
             if (!real) {
                 context.deleteLayoutRecommendationItem(itemId);
             }
         }
-
     }
 
     @Override
