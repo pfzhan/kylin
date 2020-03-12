@@ -357,7 +357,7 @@ object ExpressionConverter {
                 substring(k_lit(children.head), (children.apply(2).asInstanceOf[Int] + children.apply(3).asInstanceOf[Int]) , Integer.MAX_VALUE))
             } else {
               throw new UnsupportedOperationException(
-                s"ceil must provide three or four parameters under sparder")
+                s"overlay must provide three or four parameters under sparder")
             }
           case _ =>
             throw new UnsupportedOperationException(
