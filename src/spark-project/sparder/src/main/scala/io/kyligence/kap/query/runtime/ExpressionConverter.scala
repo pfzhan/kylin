@@ -367,7 +367,8 @@ object ExpressionConverter {
         if (children.length == 1) {
           ceil(k_lit(children.head))
         } else if (children.length == 2) {
-          callUDF("TIMESTAMPADD", k_lit(children.apply(1)), k_lit(1), date_trunc(children.apply(1).toString, k_lit(children.head)))
+          new Column(new If(callUDF("TIMESTAMPDIFF", k_lit(children.apply(1)), k_lit(children.head), date_trunc(children.apply(1).toString, k_lit(children.head))).equalTo(k_lit(0)).expr,
+            k_lit(children.head).expr, callUDF("TIMESTAMPADD", k_lit(children.apply(1)), k_lit(1), date_trunc(children.apply(1).toString, k_lit(children.head))).expr))
         } else {
           throw new UnsupportedOperationException(
             s"ceil must provide one or two parameters under sparder")

@@ -167,9 +167,9 @@ public class HivePushDownConverter implements IPushDownConverter, IKeep {
         while (floorMatcher.find()) {
             String timestamp = floorMatcher.group(2);
             String timeUnit = floorMatcher.group(4);
-            String tmpString = "timestampAdd('" + timeUnit + "',1," + "date_trunc('" + timeUnit + "'," + timestamp + ")"
-                    + ")";
-
+            String tmpString = "if(TIMESTAMPDIFF('" + timeUnit + "'," + timestamp + ",date_trunc('" + timeUnit + "',"
+                    + timestamp + "))==0," + timestamp + ",timestampAdd('" + timeUnit
+                    + "',1,date_trunc('" + timeUnit + "'," + timestamp + ")))";
             result = StringUtils.replaceOnce(result, floorMatcher.group(), tmpString);
             floorMatcher = CEIL_TO_PATTERN.matcher(result);
         }
