@@ -84,7 +84,7 @@ public class MonitorReporterTest extends NLocalFileMetadataTestCase {
 
         wait(3);
 
-        Assert.assertEquals(Integer.valueOf(2), monitorReporter.getQueueSize());
+        Assert.assertEquals(Integer.valueOf(1), monitorReporter.getQueueSize());
 
         wait(5);
 

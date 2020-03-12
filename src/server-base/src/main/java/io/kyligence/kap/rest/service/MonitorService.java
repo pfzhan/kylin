@@ -31,22 +31,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.cluster.ClusterManagerFactory;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.rest.monitor.AbstractMonitorCollectTask;
-import io.kyligence.kap.rest.monitor.MonitorReporter;
-import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
-import io.kyligence.kap.common.metrics.service.MonitorMetric;
-import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.response.ClusterStatisticStatusResponse;
-import io.kyligence.kap.rest.response.ClusterStatusResponse;
-import io.kyligence.kap.rest.response.ClusterStatusResponse.NodeState;
-import io.kyligence.kap.rest.response.ProjectConfigResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -57,18 +43,36 @@ import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cluster.ClusterManagerFactory;
+import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
+import io.kyligence.kap.common.metrics.service.MonitorMetric;
+import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.monitor.AbstractMonitorCollectTask;
+import io.kyligence.kap.rest.monitor.MonitorReporter;
+import io.kyligence.kap.rest.monitor.SparkContextCanary;
+import io.kyligence.kap.rest.response.ClusterStatisticStatusResponse;
+import io.kyligence.kap.rest.response.ClusterStatusResponse;
+import io.kyligence.kap.rest.response.ClusterStatusResponse.NodeState;
+import io.kyligence.kap.rest.response.ProjectConfigResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component("monitorService")
 public class MonitorService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(MonitorService.class);
@@ -92,8 +96,33 @@ public class MonitorService extends BasicService {
                 .map(ProjectConfigResponse::getYarnQueue).collect(Collectors.toSet());
     }
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(AfterMetadataReadyEvent.class)
     public void reportMonitor() {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+        if (kapConfig.isMonitorEnabled()) {
+            try {
+                MonitorReporter.getInstance(kapConfig).startReporter();
+            } catch (Exception e) {
+                log.error("Failed to start monitor reporter!", e);
+            }
+        }
+        MonitorReporter.getInstance().submit(new AbstractMonitorCollectTask(
+                Lists.newArrayList(Constant.SERVER_MODE_ALL, Constant.SERVER_MODE_QUERY)) {
+            @Override
+            protected MonitorMetric collect() {
+                QueryMonitorMetric queryMonitorMetric = MonitorReporter.getInstance().createQueryMonitorMetric();
+
+                queryMonitorMetric.setLastResponseTime(SparkContextCanary.getLastResponseTime());
+                queryMonitorMetric.setErrorAccumulated(SparkContextCanary.getErrorAccumulated());
+                queryMonitorMetric.setSparkRestarting(SparkContextCanary.isSparkRestarting());
+
+                return queryMonitorMetric;
+            }
+        });
+        if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_QUERY)) {
+            return;
+        }
         MonitorReporter.getInstance().submit(
                 new AbstractMonitorCollectTask(Lists.newArrayList(Constant.SERVER_MODE_ALL, Constant.SERVER_MODE_JOB)) {
                     @Override

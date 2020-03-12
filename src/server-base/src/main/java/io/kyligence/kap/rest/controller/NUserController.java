@@ -76,7 +76,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.swagger.annotations.ApiOperation;
@@ -121,10 +121,10 @@ public class NUserController extends NBasicController {
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
-    @EventListener(AppInitializedEvent.class)
+    @EventListener(AfterMetadataReadyEvent.class)
     public void init() throws IOException {
         val config = KylinConfig.getInstanceFromEnv();
-        if ("query".equals(config.getServerMode())) {
+        if (Constant.SERVER_MODE_QUERY.equals(config.getServerMode())) {
             return;
         }
         List<ManagedUser> all = userService.listUsers();

@@ -28,13 +28,11 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.List;
 
-import io.kyligence.kap.rest.monitor.MonitorReporter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -46,8 +44,6 @@ import org.springframework.scheduling.TaskScheduler;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 
-import io.kyligence.kap.common.cluster.LeaderInitiator;
-import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
@@ -62,9 +58,8 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.initialize.AclTCRListener;
-import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
-import io.kyligence.kap.rest.config.initialize.ClusterInfoRunner;
 import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
 import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
@@ -92,13 +87,7 @@ public class AppInitializer {
     ClusterManager clusterManager;
 
     @Autowired
-    LicenseInfoService licenseInfoService;
-
-    @Autowired
     CacheManager cacheManager;
-
-    @Autowired
-    ClusterInfoRunner clusterInfoRunner;
 
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
@@ -106,13 +95,7 @@ public class AppInitializer {
 
         NCircuitBreaker.start(KapConfig.wrap(kylinConfig));
 
-        boolean isLeader = false;
-        if (!kylinConfig.getServerMode().equals("query")) {
-            val candidate = new NodeCandidate(kylinConfig.getNodeId());
-            val leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
-            leaderInitiator.start(candidate);
-            isLeader = leaderInitiator.isLeader();
-        }
+        boolean isLeader = !kylinConfig.getServerMode().equals("query");
 
         if (isLeader) {
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
@@ -122,7 +105,6 @@ public class AppInitializer {
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 
             EventListenerRegistry.getInstance(kylinConfig).register(new FavoriteQueryUpdateListener(), "fq");
-            event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
 
             // register scheduler listener
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new EventSchedulerListener());
@@ -143,15 +125,7 @@ public class AppInitializer {
             resourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
             resourceStore.catchup();
         }
-
-        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        if (kapConfig.isMonitorEnabled()) {
-            try {
-                MonitorReporter.getInstance(kapConfig).startReporter();
-            } catch (Exception e) {
-                log.error("Failed to start monitor reporter!", e);
-            }
-        }
+        event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(cacheManager), "acl");

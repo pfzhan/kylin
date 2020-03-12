@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.config.initialize;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ApplicationContextEvent;
 
-public class AppInitializedEvent extends ApplicationContextEvent {
-    public AppInitializedEvent(ApplicationContext source) {
+public class AfterMetadataReadyEvent extends ApplicationContextEvent {
+    public AfterMetadataReadyEvent(ApplicationContext source) {
         super(source);
     }
 }

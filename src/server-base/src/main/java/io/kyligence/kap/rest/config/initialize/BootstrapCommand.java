@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -45,7 +44,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
@@ -62,6 +60,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import io.kyligence.kap.rest.service.ProjectService;
@@ -94,10 +93,6 @@ public class BootstrapCommand implements Runnable {
     }
 
     void initProject(KylinConfig config, final ProjectInstance project) {
-        val leaderInitiator = LeaderInitiator.getInstance(config);
-        if (!leaderInitiator.isLeader()) {
-            return;
-        }
         if (NFavoriteScheduler.getInstance(project.getName()).hasStarted()) {
             return;
         }

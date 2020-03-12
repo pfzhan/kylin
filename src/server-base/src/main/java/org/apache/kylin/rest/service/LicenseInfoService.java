@@ -65,7 +65,6 @@ import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -75,6 +74,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 import lombok.val;
@@ -134,7 +134,7 @@ public class LicenseInfoService extends BasicService {
     @Qualifier("normalRestTemplate")
     private RestTemplate restTemplate;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @EventListener(AfterMetadataReadyEvent.class)
     public void init() {
         init(code -> log.info("code {}", code));
     }

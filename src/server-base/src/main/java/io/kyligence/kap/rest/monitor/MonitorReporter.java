@@ -23,20 +23,6 @@
  */
 package io.kyligence.kap.rest.monitor;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
-import io.kyligence.kap.common.metrics.service.MonitorDao;
-import io.kyligence.kap.common.metrics.service.MonitorMetric;
-import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.rest.constant.Constant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.InetAddress;
@@ -45,6 +31,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.NamedThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.common.metrics.service.JobStatusMonitorMetric;
+import io.kyligence.kap.common.metrics.service.MonitorDao;
+import io.kyligence.kap.common.metrics.service.MonitorMetric;
+import io.kyligence.kap.common.metrics.service.QueryMonitorMetric;
 
 public class MonitorReporter {
     private static final Logger logger = LoggerFactory.getLogger(MonitorReporter.class);
@@ -152,22 +152,6 @@ public class MonitorReporter {
         return reportQueue.size();
     }
 
-    private void initTasks() {
-        submit(new AbstractMonitorCollectTask(
-                Lists.newArrayList(Constant.SERVER_MODE_ALL, Constant.SERVER_MODE_QUERY)) {
-            @Override
-            protected MonitorMetric collect() {
-                QueryMonitorMetric queryMonitorMetric = createQueryMonitorMetric();
-
-                queryMonitorMetric.setLastResponseTime(SparkContextCanary.getLastResponseTime());
-                queryMonitorMetric.setErrorAccumulated(SparkContextCanary.getErrorAccumulated());
-                queryMonitorMetric.setSparkRestarting(SparkContextCanary.isSparkRestarting());
-
-                return queryMonitorMetric;
-            }
-        });
-    }
-
     private void reportMonitorMetrics() {
         try {
             int queueSize = reportQueue.size();
@@ -193,7 +177,6 @@ public class MonitorReporter {
         Runtime.getRuntime().addShutdownHook(new Thread(this::stopReporter));
         started = true;
 
-        initTasks();
         logger.info("MonitorReporter started!");
     }
 

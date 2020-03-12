@@ -48,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
@@ -58,11 +58,12 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.acl.UserGroup;
 import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.rest.config.initialize.AppInitializedEvent;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.val;
 
 @Component("nUserGroupService")
-public class NUserGroupService implements ApplicationListener<AppInitializedEvent>, IUserGroupService {
+public class NUserGroupService implements IUserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
 
     private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
@@ -78,8 +79,12 @@ public class NUserGroupService implements ApplicationListener<AppInitializedEven
     @Qualifier("userService")
     UserService userService;
 
-    @Override
-    public void onApplicationEvent(AppInitializedEvent event) {
+    @EventListener(AfterMetadataReadyEvent.class)
+    public void init(AfterMetadataReadyEvent event) {
+        val config = KylinConfig.getInstanceFromEnv();
+        if (Constant.SERVER_MODE_QUERY.equals(config.getServerMode())) {
+            return;
+        }
         UserGroup userGroup = null;
         try {
             userGroup = getUserGroup();
