@@ -6,6 +6,7 @@
     :title="selected_project"
     :placeholder="$t('pleaseSearchOrSelectProject')"
     v-model="selected_project"
+    popper-class="project-select_dropdown"
     @change="changeProject">
     <el-option v-if="isAdmin && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
     <span slot="prefix" v-if="projectList.length" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
@@ -97,5 +98,8 @@ export default {
   .el-icon-ksd-expert_mode_small {
     color: @text-disabled-color;
   }
+}
+.el-select-dropdown.project-select_dropdown {
+  max-width: 440px;
 }
 </style>
