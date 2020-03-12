@@ -276,6 +276,10 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
         checkProjectName(project);
+        if (!aclEvaluate.hasProjectWritePermission(getProject(project))) {
+            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
+        }
+
         String modelId = getModel(modelAlias, project).getId();
 
         OptRecommendationResponse optRecommendationResponse = modelController
@@ -415,7 +419,8 @@ public class OpenModelController extends NBasicController {
 
     @DeleteMapping(value = "/{model_name:.+}")
     @ResponseBody
-    public EnvelopeResponse<String> deleteModel(@PathVariable("model_name") String modelAlias, @RequestParam("project") String project) {
+    public EnvelopeResponse<String> deleteModel(@PathVariable("model_name") String modelAlias,
+            @RequestParam("project") String project) {
         checkProjectName(project);
         String modelId = getModel(modelAlias, project).getId();
         return modelController.deleteModel(modelId, project);
