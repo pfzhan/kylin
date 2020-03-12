@@ -12,6 +12,8 @@
       <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10 + 1})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
       <!-- 数字的情况 -->
       <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.total_count.result})}})</span></span>
+      <!-- 待检测的情况 -->
+      <span v-if="isWaitingCheckAllCuboids&&isNeedCheck&&!isDisabledSaveBtn">({{$t('numTitle', {num: $t('needCheck')})}})</span>
       <!-- 正在检测的情况 -->
       <i v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
     </span>
@@ -55,6 +57,8 @@
                 <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
                 <!-- 数字的情况 -->
                 <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
+                <!-- 待检测的情况 -->
+                <span v-if="isWaitingCheckCuboids[aggregate.id]&&isNeedCheck&&!isDisabledSaveBtn">({{$t('numTitle', {num: $t('needCheck')})}})</span>
                 <!-- 正在检测的情况 -->
                 <i v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'" class="el-icon-loading"></i>
               </h1>
@@ -265,7 +269,7 @@
             ref="popover"
             placement="top"
             width="160"
-            trigger="hover"
+            trigger="click"
             v-model="popoverVisible">
             <p>{{$t('dimConfirm')}}</p>
             <div style="text-align: right; margin: 0">
@@ -389,7 +393,7 @@ export default class AggregateModal extends Vue {
         this.isShowTooltips = false
       }
       this.$el.querySelector('.aggregate-modal').onclick = (e) => {
-        if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1) {
+        if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1 && e.target.classList.value.indexOf('el-icon-ksd-right') === -1) {
           this.isEditGlobalDim = false
           const aggregateArray = get(this.form, 'aggregateArray')
           aggregateArray.forEach((agg) => {
@@ -397,6 +401,7 @@ export default class AggregateModal extends Vue {
           })
           this.groupsDim = aggregateArray.map((agg) => { return agg.dimCap })
           this.setModalForm({ aggregateArray })
+          this.popoverVisible = false
         }
       }
     })
@@ -681,6 +686,7 @@ export default class AggregateModal extends Vue {
     }
     const rootKey = key.split('.')[0]
     this.setModalForm({[rootKey]: set(this.form, key, value)[rootKey]})
+    this.isNeedCheck = true
   }
   handleRemoveIncludeRules (removedValue, aggregateIdx, id) {
     const { aggregateArray = [] } = this.form
@@ -870,6 +876,7 @@ export default class AggregateModal extends Vue {
     })
     this.setModalForm({ aggregateArray })
     this.$message.success(this.$t('clearSuccess'))
+    this.isNeedCheck = true
   }
   async confirmSubmit (isCatchUp) {
     this.setModalForm({isCatchUp: set(this.form, 'isCatchUp', isCatchUp)['isCatchUp']})
