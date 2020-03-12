@@ -204,11 +204,19 @@ public abstract class SparkApplication implements Application, IKeep {
         return Boolean.FALSE;
     }
 
-    private String replaceHostAddress(String url) throws UnknownHostException {
-        URI uri = URI.create(url);
-        final String originHost = uri.getHost();
-        String hostAddress = InetAddress.getByName(originHost).getHostAddress();
-        return url.replace(originHost, hostAddress);
+    private String tryReplaceHostAddress(String url) {
+        String originHost = null;
+        try {
+            URI uri = URI.create(url);
+            originHost = uri.getHost();
+            String hostAddress = InetAddress.getByName(originHost).getHostAddress();
+            return url.replace(originHost, hostAddress);
+        } catch (UnknownHostException uhe) {
+            logger.error(
+                    "failed to get the ip address of " + originHost + ", step back to use the origin tracking url.",
+                    uhe);
+            return url;
+        }
     }
 
     private Map<String, String> getTrackingInfo(IClusterManager cm, boolean ipAddressPreferred) {
@@ -218,7 +226,7 @@ public abstract class SparkApplication implements Application, IKeep {
         try {
             String trackingUrl = getTrackingUrl(cm, applicationId);
             if (ipAddressPreferred) {
-                trackingUrl = replaceHostAddress(trackingUrl);
+                trackingUrl = tryReplaceHostAddress(trackingUrl);
             }
             extraInfo.put("yarn_app_url", trackingUrl);
         } catch (Exception e) {
@@ -297,7 +305,7 @@ public abstract class SparkApplication implements Application, IKeep {
                 }
             }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
                 .getOrCreate();
-            
+
             if (isJobOnCluster(sparkConf)) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
                         getTrackingInfo(buildEnv.clusterManager(), config.isTrackingUrlIpAddressEnabled()));
