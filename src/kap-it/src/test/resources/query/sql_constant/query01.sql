@@ -1,1 +1,1 @@
-select cast('112.56' as tinyint), cast('112.56' as smallint), cast('112.56' as int), cast('112.56' as integer)
+select cast('112.56' as tinyint), cast('112.56' as smallint), cast('112.56' as int), cast('112.56' as integer), cast('112.56' as bigint)
