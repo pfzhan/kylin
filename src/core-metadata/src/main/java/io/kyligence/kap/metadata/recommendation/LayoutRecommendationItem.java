@@ -259,6 +259,13 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
                 if (item.isAggIndex() && item.isSimilarRecommendation()) {
                     // For similar strategy only works on AggIndex, we need add this to black list.
                     context.getIndexPlan().addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+                    if (layoutInIndexPlan.isAuto()) {
+                        indexEntity.getLayouts().remove(layoutInIndexPlan);
+                        context.getIndexPlan().getIndexes().stream()
+                                .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId())
+                                .findFirst().ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts()
+                                        .remove(layoutInIndexPlan));
+                    }
                     return;
                 }
 

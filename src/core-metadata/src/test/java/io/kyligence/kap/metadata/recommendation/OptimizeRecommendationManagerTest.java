@@ -278,6 +278,72 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
+    public void testRemoveIndexIsBothManualAndAuto() throws IOException {
+        prepare();
+
+        Map<Long, GarbageLayoutType> garbageLayouts = Maps.newHashMap();
+        garbageLayouts.put(70001L, GarbageLayoutType.SIMILAR); // auto and manual
+        garbageLayouts.put(80001L, GarbageLayoutType.SIMILAR); // manual
+        garbageLayouts.put(150001L, GarbageLayoutType.INCLUDED); // auto
+        garbageLayouts.put(20000000002L, GarbageLayoutType.LOW_FREQUENCY); // auto
+
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        indexPlanManager.updateIndexPlan(id, copyForWrite -> {
+            List<LayoutEntity> allLayouts = copyForWrite.getAllLayouts();
+            LayoutEntity layoutEntity = allLayouts.stream().filter(layout -> layout.getId() == 70001).findFirst()
+                    .orElse(null);
+            if (layoutEntity != null) {
+                layoutEntity.setAuto(true);
+                layoutEntity.setManual(true);
+                List<IndexEntity> whiteIndexes = copyForWrite.getIndexes();
+                whiteIndexes.add(layoutEntity.getIndex());
+                copyForWrite.setIndexes(whiteIndexes);
+            }
+        });
+
+        // assert update success
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(id);
+        List<IndexEntity> indexes = indexPlan.getIndexes();
+        IndexEntity entity = indexes.stream().filter(indexEntity -> indexEntity.getId() == 70000).findFirst().get();
+        Assert.assertNotNull(entity);
+
+        // assert origin layout recommendations
+        recommendationManager.updateOptimizeRecommendation(id, copyForWrite -> {
+            copyForWrite.getLayoutRecommendations().clear();
+        });
+        OptimizeRecommendation optimizeRecommendation = recommendationManager.getOptimizeRecommendation(id);
+        List<LayoutRecommendationItem> layoutRecommendations = optimizeRecommendation.getLayoutRecommendations();
+        Assert.assertTrue(layoutRecommendations.isEmpty());
+
+        // assert once remove result
+        recommendationManager.removeLayouts(id, garbageLayouts);
+        OptimizeRecommendation recommendationOnceRemove = recommendationManager.getOptimizeRecommendation(id);
+        val onceRemoveLayoutRecItems = recommendationOnceRemove.getLayoutRecommendations();
+        Assert.assertEquals(4, onceRemoveLayoutRecItems.size());
+        onceRemoveLayoutRecItems.forEach(item -> {
+            Assert.assertTrue(garbageLayouts.containsKey(item.getLayout().getId()));
+        });
+
+        // assert twice remove result
+        recommendationManager.removeLayouts(id, garbageLayouts);
+        OptimizeRecommendation recommendationSecondRemove = recommendationManager.getOptimizeRecommendation(id);
+        val twiceRemoveLayoutRecItems = recommendationSecondRemove.getLayoutRecommendations();
+        Assert.assertEquals(4, twiceRemoveLayoutRecItems.size());
+        twiceRemoveLayoutRecItems.forEach(item -> {
+            Assert.assertTrue(garbageLayouts.containsKey(item.getLayout().getId()));
+        });
+
+        // assert third remove result
+        recommendationManager.removeLayouts(id, garbageLayouts);
+        OptimizeRecommendation recommendationThirdRemove = recommendationManager.getOptimizeRecommendation(id);
+        val thirdRemoveLayoutRecItems = recommendationThirdRemove.getLayoutRecommendations();
+        Assert.assertEquals(4, thirdRemoveLayoutRecItems.size());
+        thirdRemoveLayoutRecItems.forEach(item -> {
+            Assert.assertTrue(garbageLayouts.containsKey(item.getLayout().getId()));
+        });
+    }
+
+    @Test
     public void testRemoveIndex_NullRule() throws IOException {
         prepare(baseModelFile, emptyRuleIndexPlanFile, optimizedModelFile, optimizedIndexPlanFile);
         val indexPlan = indexPlanManager.getIndexPlan(id);
