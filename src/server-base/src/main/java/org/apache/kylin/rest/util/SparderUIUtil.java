@@ -89,12 +89,20 @@ public class SparderUIUtil {
 
     private volatile String appId;
 
-    private volatile String eraseProxyUriBase;
+    private volatile String proxyBase;
+
 
     public void proxy(HttpServletRequest servletRequest, HttpServletResponse servletResponse) throws IOException {
 
-        URI target = UriComponentsBuilder.fromHttpUrl(getWebUrl())
-                .path(servletRequest.getRequestURI().substring(KYLIN_UI_BASE.length()))
+        final String currentWebUrl = getWebUrl();
+
+        String uriPath = servletRequest.getRequestURI().substring(KYLIN_UI_BASE.length());
+
+        if (!isProxyBaseEnabled()) {
+            uriPath = uriPath.replace(proxyBase, "");
+        }
+
+        URI target = UriComponentsBuilder.fromHttpUrl(currentWebUrl).path(uriPath)
                 .query(servletRequest.getQueryString()).build(true).toUri();
 
         final HttpMethod method = HttpMethod.resolve(servletRequest.getMethod());
@@ -106,7 +114,11 @@ public class SparderUIUtil {
 
     public String getSQLTrackingPath(String id) throws IOException {
         checkVersion();
-        return KYLIN_UI_BASE + (Objects.isNull(amSQLBase) ? SQL_EXECUTION_PAGE : amSQLBase) + "?id=" + id;
+        return KYLIN_UI_BASE + (isProxyBaseEnabled() ? amSQLBase : SQL_EXECUTION_PAGE) + "?id=" + id;
+    }
+
+    private boolean isProxyBaseEnabled() {
+        return Objects.nonNull(amSQLBase);
     }
 
     private String getWebUrl() throws IOException {
@@ -122,8 +134,11 @@ public class SparderUIUtil {
             return;
         }
 
+        // KE-12678
+        proxyBase = "/proxy/" + ui.appId();
+
         // reset
-        eraseProxyUriBase = null;
+        amSQLBase = null;
         // try to fetch amWebUrl if exists
         try (ClientHttpResponse response = execute(
                 UriComponentsBuilder.fromHttpUrl(ui.webUrl()).path(SQL_EXECUTION_PAGE).query("id=1").build().toUri(),
@@ -134,21 +149,6 @@ public class SparderUIUtil {
                 webUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
                 appId = ui.appId();
                 return;
-            }
-
-            // workaround:
-            // when driver and rm are at the same machine
-            // the AmIpFilter will doFilter incorrectly
-            // so we should erase the proxy_uri_base when rewriting the response data.
-            final String proxyUriBase = "/proxy/" + ui.appId();
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody()))) {
-                String line;
-                while (Objects.nonNull(line = br.readLine())) {
-                    if (line.contains(proxyUriBase)) {
-                        eraseProxyUriBase = proxyUriBase;
-                        break;
-                    }
-                }
             }
 
             webUrl = ui.webUrl();
@@ -188,14 +188,10 @@ public class SparderUIUtil {
         }
 
         final String fWebUrl = webUrl;
-        final String fProxyUriBase = eraseProxyUriBase;
         final PrintWriter writer = servletResponse.getWriter();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(response.getBody()))) {
             String line;
             while (Objects.nonNull(line = br.readLine())) {
-                if (Objects.nonNull(fProxyUriBase)) {
-                    line = line.replace(fProxyUriBase, "");
-                }
                 line = line.replace("href=\"/", "href=\"" + KYLIN_UI_BASE + "/");
                 line = line.replace("href='/", "href='" + KYLIN_UI_BASE + "/");
                 line = line.replace("src=\"/", "src=\"" + KYLIN_UI_BASE + "/");

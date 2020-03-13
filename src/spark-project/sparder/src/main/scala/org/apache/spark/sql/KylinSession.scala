@@ -142,6 +142,12 @@ object KylinSession extends Logging {
           val sc = SparkContext.getOrCreate(sparkConf)
           // maybe this is an existing SparkContext, update its SparkConf which maybe used
           // by SparkSession
+
+          // KE-12678
+          if(sc.master.startsWith("yarn")) {
+            System.setProperty("spark.ui.proxyBase", "/proxy/" + sc.applicationId)
+          }
+
           sc
         }
         session = new KylinSession(sparkContext)
