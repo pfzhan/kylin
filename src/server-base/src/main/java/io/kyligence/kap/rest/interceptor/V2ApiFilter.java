@@ -64,7 +64,7 @@ public class V2ApiFilter implements Filter {
             throws IOException, ServletException {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
-            if (servletRequest.getHeader("Accept").equalsIgnoreCase(HTTP_VND_APACHE_KYLIN_V2_JSON)) {
+            if (HTTP_VND_APACHE_KYLIN_V2_JSON.equalsIgnoreCase(servletRequest.getHeader("Accept"))) {
                 String uri = servletRequest.getRequestURI();
                 try {
                     HandlerMapping handlerMapping = this.getRequestMappingHandlerMapping(servletRequest);
