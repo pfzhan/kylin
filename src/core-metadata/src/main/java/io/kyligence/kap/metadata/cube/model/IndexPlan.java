@@ -163,7 +163,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     //TODO: should move allColumns and allColumnDescs to model? no need to exist in cubeplan
     private LinkedHashSet<TblColRef> allColumns = Sets.newLinkedHashSet();
     private LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
-    private Map<Integer, NEncodingDesc> dimEncodingMap = Maps.newHashMap();
 
     private List<LayoutEntity> ruleBasedLayouts = Lists.newArrayList();
 

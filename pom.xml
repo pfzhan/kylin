@@ -148,7 +148,7 @@
             **/io/kyligence/kap/tool/common/HadoopConfExtractor.java,
             **/io/kyligence/kap/tool/hadoop/CheckHadoopConfDir.java,
             **/io/kyligence/kap/tool/hadoop/KapGetPathWithoutSchemeAndAuthorityCLI.java,
-            **/io/kyligence/kap/tool/metadata/CheckMetadataAccessCLI.java
+            **/io/kyligence/kap/tool/metadata/CheckMetadataAccessCLI.java,
             **/io/kyligence/kap/spark/common/logging/HdfsAppender.java,
             **/io/kyligence/kap/common/logging/QueryLoggerAdapter.java,
             **/io/kyligence/kap/common/metrics/reporter/InfluxdbReporter.java,

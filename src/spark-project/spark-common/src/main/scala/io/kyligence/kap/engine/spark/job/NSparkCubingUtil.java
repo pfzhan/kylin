@@ -62,14 +62,6 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Set<Integer> str2Ints(String str) {
-        Set<Integer> r = new LinkedHashSet<>();
-        for (String id : str.split(",")) {
-            r.add(Integer.parseInt(id));
-        }
-        return r;
-    }
-
     static Set<String> toSegmentIds(Set<NDataSegment> segments) {
         Set<String> r = new LinkedHashSet<>();
         for (NDataSegment seg : segments) {
@@ -137,10 +129,6 @@ public class NSparkCubingUtil {
             index++;
         }
         return ret;
-    }
-
-    public static String formatSQL(String sql) {
-        return String.format("(%s) t", sql);
     }
 
     public static String getStoragePath(NDataSegment nDataSegment, Long layoutId) {
