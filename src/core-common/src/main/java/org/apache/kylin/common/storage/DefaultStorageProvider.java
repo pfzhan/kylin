@@ -23,9 +23,12 @@
  */
 package org.apache.kylin.common.storage;
 
+import lombok.Data;
 import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.AccessControlException;
 
 import java.io.IOException;
 
@@ -41,6 +44,34 @@ public class DefaultStorageProvider implements IStorageProvider {
      */
     @Override
     public ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException {
-        return fileSystem.getContentSummary(path);
+        try {
+            return fileSystem.getContentSummary(path);
+        } catch (AccessControlException ae) {
+            ContentSummaryBean bean = recursive(fileSystem, path);
+            ContentSummary.Builder builder = new ContentSummary.Builder();
+            return builder.fileCount(bean.getFileCount()).length(bean.getLength()).build();
+        }
+    }
+
+    @Data
+    class ContentSummaryBean {
+        long fileCount = 0;
+        long length = 0;
+    }
+
+    public ContentSummaryBean recursive(FileSystem fs, Path path) throws IOException {
+        ContentSummaryBean result = new ContentSummaryBean();
+        for (FileStatus fileStatus : fs.listStatus(path)) {
+            if (fileStatus.isDirectory()) {
+                ContentSummaryBean bean = recursive(fs, fileStatus.getPath());
+                result.setFileCount(result.getFileCount() + bean.getFileCount());
+                result.setLength(result.getLength() + bean.getLength());
+            } else {
+                result.setFileCount(result.getFileCount() + 1);
+                result.setLength(result.getLength() + fileStatus.getLen());
+            }
+        }
+
+        return result;
     }
 }
