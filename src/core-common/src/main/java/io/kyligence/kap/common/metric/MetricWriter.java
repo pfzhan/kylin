@@ -35,16 +35,18 @@ public interface MetricWriter {
     String getType();
 
     enum Type {
-        INFLUX, BLACK_HOLE, CONSOLE
+        INFLUX, BLACK_HOLE, CONSOLE, RDBMS,
     }
 
     class Factory {
-        public static MetricWriter getInstance(String type) {
+        public static MetricWriter getInstance(String type) throws Exception {
             if (StringUtils.isBlank(type)) {
                 type = Type.BLACK_HOLE.name();
             }
             if (type.equalsIgnoreCase(Type.INFLUX.name())) {
                 return InfluxDBWriter.getInstance();
+            } else if (type.equalsIgnoreCase(Type.RDBMS.name())) {
+                return RDBMSWriter.getInstance();
             } else if (type.equalsIgnoreCase(Type.CONSOLE.name())) {
                 return ConsoleWriter.INSTANCE;
             } else {

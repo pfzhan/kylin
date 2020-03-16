@@ -32,10 +32,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class QueryStatisticsResponse {
-    private int count;
+    private long count;
     private double mean;
 
-    public QueryStatisticsResponse(int count, double mean) {
+    public QueryStatisticsResponse(long count, double mean) {
         this.count = count;
         this.mean = mean;
     }

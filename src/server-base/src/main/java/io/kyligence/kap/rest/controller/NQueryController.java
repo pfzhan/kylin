@@ -86,7 +86,6 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.SQLFormatRequest;
-import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.service.KapQueryService;
@@ -274,15 +273,6 @@ public class NQueryController extends NBasicController {
     public EnvelopeResponse<List<TableMetaWithType>> getMetadata(@RequestParam("project") String project) {
         checkProjectName(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, queryService.getMetadataV2(project), "");
-    }
-
-    @GetMapping(value = "/overview", params = { "start_time", "end_time" })
-    public EnvelopeResponse<QueryEngineStatisticsResponse> queryStatisticsByEngine(
-            @RequestParam("project") String project, @RequestParam("start_time") long startTime,
-            @RequestParam("end_time") long endTime) {
-        checkProjectName(project);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                queryService.getQueryStatisticsByEngine(project, startTime, endTime), "");
     }
 
     @GetMapping(value = "/statistics")

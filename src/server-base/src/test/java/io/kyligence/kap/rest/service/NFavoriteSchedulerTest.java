@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -45,7 +46,6 @@ import org.mockito.Mockito;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -67,7 +67,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.rest.service.task.QueryHistoryAccessor;
@@ -174,10 +173,10 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testInitFrequencyStatus() {
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(queriesForTest()).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
-                Mockito.anyLong());
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(queriesForTest()).when(rdbmsQueryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
+                Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(rdbmsQueryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 
         favoriteScheduler.initFrequencyStatus();
         Assert.assertEquals(24 * 60, favoriteScheduler.getFrequencyStatuses().size());
@@ -211,7 +210,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         sqlPatternFreqMap.put("test_sql11", 10);
         sqlPatternFreqMap.put("test_sql12", 10);
          */
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         List<QueryHistory> queryHistories = Lists.newArrayList();
         for (int i = 1; i <= 12; i++) {
             int freq = i;
@@ -250,9 +249,9 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
             queryHistories.add(queryHistory);
         }
 
-        Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
-                Mockito.anyLong());
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.doReturn(queryHistories).when(rdbmsQueryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
+                Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(rdbmsQueryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
         QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(),
                 PROJECT);
         Mockito.doReturn(
@@ -336,11 +335,11 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         notSupportedQuery.setQueryTime(1001);
         notSupportedQuery.setQuerySubmitter("ADMIN");
 
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants,
-                syntaxValidQuery, updateQuery, notSupportedQuery)).when(queryHistoryDAO)
-                .getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+                syntaxValidQuery, updateQuery, notSupportedQuery)).when(rdbmsQueryHistoryDAO)
+                .getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(rdbmsQueryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 
         autoMarkRunner.run();
 
@@ -381,10 +380,10 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateFrequencyStatus() {
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList()).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
-                Mockito.anyLong());
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList()).when(rdbmsQueryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
+                Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(rdbmsQueryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
         Map<String, Integer> freqMap = Maps.newHashMap();
 
         freqMap.put("sql1", 1);
@@ -437,7 +436,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateFavoriteQueryStatistics() {
+    public void testUpdateFavoriteQueryStatistics() throws Exception {
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         // already loaded three favorite queries whose sql patterns are "sql1", "sql2", "sql3"
@@ -545,7 +544,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAutoMark() {
+    public void testAutoMark() throws Exception {
         /*
         There already have three favorite queries loaded in database, whose sql patterns are "sql1", "sql2", "sql3",
         so these three sql patterns will not be marked as favorite queries.
@@ -608,7 +607,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testExpertProjectWillNotAutoFavorite() {
+    public void testExpertProjectWillNotAutoFavorite() throws Exception {
 
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
@@ -644,7 +643,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testTimeOffsetIsOverMaxScanInterval() {
+    public void testTimeOffsetIsOverMaxScanInterval() throws Exception {
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
         Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
         // suppose current time is 2019-01-01
@@ -658,7 +657,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAutoFavoriteException() {
+    public void testAutoFavoriteException() throws Exception {
         MockedQueryHistoryDao queryHistoryDAO = Mockito.spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
         long mockedCurrentTime = queryHistoryDAO.getCurrentTime();
         long scanGapTime = getTestConfig().getQueryHistoryScanPeriod();
@@ -683,7 +682,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
                 .spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
         Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(queryHistoryAccessor).getSystemTime();
         Mockito.doThrow(RuntimeException.class).when(queryHistoryDaoWithException)
-                .getQueryHistoriesByTime(mockedCurrentTime + scanGapTime * 2, mockedCurrentTime + scanGapTime * 3);
+                .getQueryHistoriesByTime(mockedCurrentTime + scanGapTime * 2, mockedCurrentTime + scanGapTime * 3, "default");
         Mockito.doReturn(queryHistoryDaoWithException).when(favoriteScheduler).getQueryHistoryDao();
         autoMarkFavoriteRunner.run();
 
@@ -727,12 +726,12 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAccelerateRatio() {
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.when(queryHistoryDAO.getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong()))
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
+        Mockito.when(rdbmsQueryHistoryDAO.getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString()))
                 .thenReturn(queryHistories()).thenReturn(null);
 
-        Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
-        Mockito.when(favoriteScheduler.getQueryHistoryDao()).thenReturn(queryHistoryDAO);
+        Mockito.doReturn(rdbmsQueryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
+        Mockito.when(favoriteScheduler.getQueryHistoryDao()).thenReturn(rdbmsQueryHistoryDAO);
 
         NFavoriteScheduler.AutoFavoriteRunner autoMarkFavoriteRunner = favoriteScheduler.new AutoFavoriteRunner();
         autoMarkFavoriteRunner.run();
@@ -744,7 +743,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMergeLayoutFrequency() throws ParseException, JsonProcessingException {
+    public void testMergeLayoutFrequency() throws Exception {
         System.setProperty("kylin.favorite.query-history-scan-period.minutes", "240");
 
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);

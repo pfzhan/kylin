@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -126,6 +128,8 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(eventSchedulerListener);
         SchedulerEventBusFactory.restart();
 
+        EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).shutdownByProject(PROJECT_NEWTEN);
+        EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).shutdownByProject(PROJECT);
         favoriteSchedulerListener.setNotifiedCount(0);
         eventSchedulerListener.setEventCreatedNotified(false);
         eventSchedulerListener.setEventFinishedNotified(false);

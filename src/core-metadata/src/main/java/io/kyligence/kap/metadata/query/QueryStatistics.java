@@ -43,7 +43,7 @@ public class QueryStatistics implements IKeep {
 
     @JsonProperty("count")
     @Column(name = "count")
-    private int count;
+    private long count;
 
     @JsonProperty("ratio")
     private double ratio;

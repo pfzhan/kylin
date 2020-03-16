@@ -42,12 +42,11 @@
 
 package org.apache.kylin.rest.service;
 
-import java.io.IOException;
-import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -58,7 +57,6 @@ import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -69,34 +67,21 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Interceptor;
-import io.kyligence.kap.shaded.influxdb.okhttp3.MediaType;
-import io.kyligence.kap.shaded.influxdb.okhttp3.OkHttpClient;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Protocol;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Request;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Response;
-import io.kyligence.kap.shaded.influxdb.okhttp3.ResponseBody;
-import io.kyligence.kap.shaded.influxdb.okio.Buffer;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";
-    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_HISTORY\"]]}]}]}\n";
-
     private List<QueryHistory> queryHistories = new ArrayList<>();
     private CountDownLatch countDown;
 
@@ -133,8 +118,6 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
-
-        ReflectionTestUtils.setField(InfluxDBWriter.class, "influxDB", mockInfluxDB());
     }
 
     @After
@@ -146,80 +129,6 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
         final QueryExec queryExec = Mockito.mock(QueryExec.class);
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(throwable);
         Mockito.when(queryService.newQueryExec(PROJECT)).thenReturn(queryExec);
-    }
-
-    private InfluxDB mockInfluxDB() {
-        final OkHttpClient.Builder client = new OkHttpClient.Builder();
-        client.addInterceptor(new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                final Request request = chain.request();
-                final URL url = request.url().url();
-                if ("/ping".equals(url.getPath())) {
-                    return mockPingSuccess(request);
-                }
-
-                if (url.toString().contains("SHOW+DATABASES")) {
-                    return mockShowDatabases(request);
-                }
-
-                if ("/write".equals(url.getPath())) {
-                    Buffer buffer = new Buffer();
-                    if (request.body() != null) {
-                        request.body().writeTo(buffer);
-                    }
-                    byte[] bytes = buffer.readByteArray();
-                    String content = new String(bytes);
-                    log.info("content: {}", content);
-                    parseAndeRecord(content);
-                    countDown.countDown();
-                    return mockWriteSuccess(request);
-                }
-
-                return chain.proceed(request);
-            }
-        });
-
-        return InfluxDBFactory.connect("http://localhost:8086", "root", "root", client);
-    }
-
-    private Response mockPingSuccess(final Request request) {
-        return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                .addHeader("Content-Type", "application/json").message("ok").addHeader("X-Influxdb-Version", "mock")
-                .body(ResponseBody.create(MediaType.parse("application/json"), "")).build();
-    }
-
-    private Response mockShowDatabases(final Request request) {
-        return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                .addHeader("Content-Type", "application/json").message("ok").addHeader("X-Influxdb-Version", "mock")
-                .body(ResponseBody.create(MediaType.parse("application/json"), SHOW_DATABASES)).build();
-    }
-
-    private Response mockWriteSuccess(final Request request) {
-        return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                .addHeader("Content-Type", "application/json").message("ok").addHeader("X-Influxdb-Version", "mock")
-                .body(ResponseBody.create(MediaType.parse("application/json"), "")).build();
-    }
-
-    private void parseAndeRecord(String content) {
-        String[] props = content.split(",");
-        QueryHistory queryHistory = new QueryHistory();
-        for (String prop : props) {
-            if (prop.startsWith("error_type")) {
-                String errorType = prop.substring(prop.indexOf('=') + 1).replace("\\", "");
-                queryHistory.setErrorType(errorType);
-            }
-            if (prop.startsWith("query_status")) {
-                String queryStatus = prop.substring(prop.indexOf('=') + 2, prop.length() - 1);
-                queryHistory.setQueryStatus(queryStatus);
-            }
-            if (prop.startsWith("sql_text")) {
-                String sqlText = prop.substring(prop.indexOf('"') + 1, prop.length() - 1);
-                queryHistory.setSql(sqlText);
-                queryHistory.setSqlPattern(sqlText);
-            }
-        }
-        queryHistories.add(queryHistory);
     }
 
     @Test
@@ -234,7 +143,7 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
         request.setSql(sql1);
         queryService.doQueryWithCache(request, false);
 
-        countDown.await();
+        countDown.await(1000, TimeUnit.MILLISECONDS);
 
         countDown = new CountDownLatch(1);
         exception = new SQLException(new NoRealizationFoundException("time out", new RuntimeException()));
@@ -247,22 +156,14 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
                 .thenThrow(new KylinTimeoutException("time out"));
         queryService.doQueryWithCache(request, false);
 
-        countDown.await();
+        countDown.await(1000, TimeUnit.MILLISECONDS);
 
-        Assert.assertEquals(2, queryHistories.size());
-        Assert.assertEquals(QueryHistory.SYNTAX_ERROR, queryHistories.get(0).getErrorType());
-        Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, queryHistories.get(1).getErrorType());
 
         NFavoriteScheduler favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
-                Mockito.anyLong());
+                Mockito.anyLong(), Mockito.anyString());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
-
-        ReflectionTestUtils.invokeMethod(favoriteScheduler, "initFrequencyStatus");
-
-        Assert.assertEquals(1, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
-
     }
 
 }

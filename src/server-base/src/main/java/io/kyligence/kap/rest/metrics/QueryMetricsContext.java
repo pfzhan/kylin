@@ -40,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.util.QueryUtil;
@@ -74,6 +75,7 @@ public class QueryMetricsContext {
     // fields below are columns in InfluxDB table which records down query history
     private final String queryId;
     private long queryTime;
+    private String projectName;
 
     private String sql;
     private String sqlPattern;
@@ -96,6 +98,9 @@ public class QueryMetricsContext {
     private String queryStatus;
 
     private String month;
+    private long queryFirstDayOfMonth;
+    private long queryFirstDayOfWeek;
+    private long queryDay;
 
     private String realizations;
 
@@ -114,20 +119,11 @@ public class QueryMetricsContext {
     }
 
     public static void start(final String queryId, final String defaultServer) {
-        if (!isCollectEnabled()) {
-            logger.warn("Can't to start QueryMetricsContext, please set kap.metric.write-destination to 'INFLUX'");
-            return;
-        }
-
         if (isStarted()) {
             logger.warn("Query metric context already started in thread named {}", Thread.currentThread().getName());
             return;
         }
         contexts.set(new QueryMetricsContext(queryId, defaultServer));
-    }
-
-    private static boolean isCollectEnabled() {
-        return "INFLUX".equals(kapConfig.getMetricWriteDest());
     }
 
     public static boolean isStarted() {
@@ -178,6 +174,9 @@ public class QueryMetricsContext {
         LocalDate date = Instant.ofEpochMilli(this.queryTime).atZone(timeZone.toZoneId()).toLocalDate();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
         this.month = date.withDayOfMonth(1).format(formatter);
+        this.queryFirstDayOfMonth = TimeUtil.getMonthStart(this.queryTime);
+        this.queryDay = TimeUtil.getDayStart(this.queryTime);
+        this.queryFirstDayOfWeek = TimeUtil.getWeekStart(this.queryTime);
 
         this.submitter = request.getUsername();
 
@@ -203,6 +202,7 @@ public class QueryMetricsContext {
 
         this.isIndexHit =
                 !response.isException() && !response.isQueryPushDown() && !response.getEngineType().equals("CONSTANTS");
+        this.projectName = request.getProject();
 
         collectErrorType(context);
         collectRealizationMetrics(response);
@@ -258,6 +258,8 @@ public class QueryMetricsContext {
             realizationMetrics.setQueryId(queryId);
             realizationMetrics.setDuration(queryDuration);
             realizationMetrics.setSuite(suite);
+            realizationMetrics.setQueryTime(queryTime);
+            realizationMetrics.setProjectName(projectName);
             this.realizationMetrics.add(realizationMetrics);
             // example: modelId#layoutid#indexType
             realizationSb.append(realizationMetrics.getModelId() + "#" + realizationMetrics.getLayoutId() + "#"
@@ -280,7 +282,8 @@ public class QueryMetricsContext {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
                 .put(QueryHistory.SUITE, suite) //
-                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit)).put(QueryHistory.QUERY_MONTH, month)
+                .put(QueryHistory.IS_INDEX_HIT, String.valueOf(isIndexHit))
+                .put(QueryHistory.MONTH, month)
                 .put(QueryHistory.IS_TABLE_INDEX_USED, String.valueOf(tableIndexUsed))
                 .put(QueryHistory.IS_AGG_INDEX_USED, String.valueOf(aggIndexUsed))
                 .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, String.valueOf(tableSnapshotUsed));
@@ -292,10 +295,14 @@ public class QueryMetricsContext {
 
         if (StringUtils.isNotBlank(this.errorType)) {
             builder.put(QueryHistory.ERROR_TYPE, errorType);
+        } else {
+            builder.put(QueryHistory.ERROR_TYPE, "");
         }
 
         if (StringUtils.isNotBlank(this.engineType)) {
             builder.put(QueryHistory.ENGINE_TYPE, this.engineType);
+        } else {
+            builder.put(QueryHistory.ENGINE_TYPE, "");
         }
 
         return builder.build();
@@ -312,7 +319,33 @@ public class QueryMetricsContext {
 
         if (StringUtils.isNotEmpty(this.realizations)) {
             builder.put(QueryHistory.REALIZATIONS, this.realizations);
+        } else {
+            builder.put(QueryHistory.REALIZATIONS, "");
         }
+
+        return builder.build();
+    }
+
+    public Map<String, Object> getQueryMetricFields() {
+        final ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object> builder() //
+                .put(QueryHistory.SUBMITTER, submitter).put(QueryHistory.SUITE, suite)
+                .put(QueryHistory.IS_INDEX_HIT, isIndexHit)
+                .put(QueryHistory.MONTH, month)
+                .put(QueryHistory.QUERY_FIRST_DAY_OF_MONTH, queryFirstDayOfMonth)
+                .put(QueryHistory.QUERY_FIRST_DAY_OF_WEEK, queryFirstDayOfWeek)
+                .put(QueryHistory.QUERY_DAY, queryDay)
+                .put(QueryHistory.IS_TABLE_INDEX_USED, tableIndexUsed).put(QueryHistory.IS_AGG_INDEX_USED, aggIndexUsed)
+                .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, tableSnapshotUsed)
+                .put(QueryHistory.QUERY_SERVER, StringUtils.isBlank(server) ? defaultServer : server)
+                .put(QueryHistory.ERROR_TYPE, StringUtils.isNotBlank(this.errorType) ? errorType : "")
+                .put(QueryHistory.ENGINE_TYPE, StringUtils.isNotBlank(this.engineType) ? this.engineType : "")
+                .put(QueryHistory.SQL_TEXT, sql).put(QueryHistory.QUERY_ID, queryId)
+                .put(QueryHistory.QUERY_DURATION, queryDuration).put(QueryHistory.TOTAL_SCAN_BYTES, totalScanBytes)
+                .put(QueryHistory.TOTAL_SCAN_COUNT, totalScanCount).put(QueryHistory.RESULT_ROW_COUNT, resultRowCount)
+                .put(QueryHistory.IS_CACHE_HIT, isCacheHit).put(QueryHistory.QUERY_STATUS, queryStatus)
+                .put(QueryHistory.QUERY_TIME, queryTime).put(QueryHistory.SQL_PATTERN, sqlPattern)
+                .put(QueryHistory.REALIZATIONS, StringUtils.isNotEmpty(this.realizations) ? this.realizations : "")
+                .put(QueryHistory.PROJECT_NAME, projectName);
 
         return builder.build();
     }
@@ -334,6 +367,10 @@ public class QueryMetricsContext {
 
         private String modelId;
 
+        private long queryTime;
+
+        private String projectName;
+
         public RealizationMetrics(String layoutId, String indexType, String modelId) {
             this.layoutId = layoutId;
             this.indexType = indexType;
@@ -351,7 +388,16 @@ public class QueryMetricsContext {
 
         public Map<String, Object> getInfluxdbFields() {
             return ImmutableMap.<String, Object> builder().put(QueryHistory.QUERY_ID, queryId)
-                    .put(QueryHistory.QUERY_DURATION, duration).build();
+                    .put(QueryHistory.QUERY_DURATION, duration)
+                    .put(QueryHistory.QUERY_TIME, queryTime).build();
+        }
+
+        public Map<String, Object> getRealizationMetricFields() {
+            return ImmutableMap.<String, Object> builder().put(QueryHistory.SUITE, suite)
+                    .put(QueryHistory.MODEL, modelId).put(QueryHistory.LAYOUT_ID, layoutId)
+                    .put(QueryHistory.INDEX_TYPE, indexType).put(QueryHistory.QUERY_ID, queryId)
+                    .put(QueryHistory.QUERY_DURATION, duration).put(QueryHistory.QUERY_TIME, queryTime)
+                    .put(QueryHistory.PROJECT_NAME, projectName).build();
         }
     }
 }

@@ -68,7 +68,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.metric.MetricWriterStrategy;
@@ -77,7 +76,6 @@ import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import lombok.val;
 
 @Component("kapQueryService")
@@ -119,7 +117,7 @@ public class KapQueryService extends QueryService {
 
             MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME,
                     getQueryHistoryDao(sqlRequest.getProject()).getQueryMetricMeasurement(),
-                    queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getInfluxdbFields(),
+                    queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getQueryMetricFields(),
                     System.currentTimeMillis());
 
             for (final QueryMetricsContext.RealizationMetrics realizationMetrics : queryMetricsContext
@@ -127,7 +125,7 @@ public class KapQueryService extends QueryService {
 
                 MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME,
                         getQueryHistoryDao(sqlRequest.getProject()).getRealizationMetricMeasurement(),
-                        realizationMetrics.getInfluxdbTags(), realizationMetrics.getInfluxdbFields(),
+                        realizationMetrics.getInfluxdbTags(), realizationMetrics.getRealizationMetricFields(),
                         System.currentTimeMillis());
             }
         }
@@ -203,13 +201,6 @@ public class KapQueryService extends QueryService {
             NMetricsGroup.counterInc(NMetricsName.QUERY_SLOW, NMetricsCategory.PROJECT, project);
             NMetricsGroup.meterMark(NMetricsName.QUERY_SLOW_RATE, NMetricsCategory.PROJECT, project);
         }
-    }
-
-    public QueryEngineStatisticsResponse getQueryStatisticsByEngine(String project, long startTime, long endTime) {
-        Preconditions.checkArgument(project != null && !project.isEmpty());
-        aclEvaluate.checkProjectReadPermission(project);
-        return QueryEngineStatisticsResponse
-                .valueOf(getQueryHistoryDao(project).getQueryEngineStatistics(startTime, endTime));
     }
 
     public List<String> format(List<String> sqls) {

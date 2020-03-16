@@ -77,7 +77,6 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
-        getTestConfig().setProperty("kap.metric.write-destination", "INFLUX");
         getTestConfig().setProperty("kap.influxdb.address", "sandbox:8086");
 
         int projectSize = 20;
@@ -305,7 +304,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
                 .put(QueryHistory.SUITE, "Unknown") //
                 .put(QueryHistory.ENGINE_TYPE, "HIVE")
                 .put(QueryHistory.IS_INDEX_HIT, "false")
-                .put(QueryHistory.QUERY_MONTH, "2019-02").put(QueryHistory.QUERY_SERVER, "192.168.0.1");
+                .put(QueryHistory.MONTH, "2019-02").put(QueryHistory.QUERY_SERVER, "192.168.0.1");
 
         return tagBuilder.build();
     }

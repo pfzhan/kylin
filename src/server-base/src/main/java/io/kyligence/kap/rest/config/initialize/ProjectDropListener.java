@@ -34,7 +34,7 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +49,7 @@ public class ProjectDropListener {
 
         try {
             NExecutableManager.getInstance(kylinConfig, project).destoryAllProcess();
-            QueryHistoryDAO.getInstance(kylinConfig, project).dropProjectMeasurement();
+            RDBMSQueryHistoryDAO.getInstance(kylinConfig, project).dropProjectMeasurement(project);
             EventOrchestratorManager.getInstance(kylinConfig).shutdownByProject(project);
             NFavoriteScheduler.shutdownByProject(project);
             NDefaultScheduler.shutdownByProject(project);

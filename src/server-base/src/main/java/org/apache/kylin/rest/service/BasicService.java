@@ -45,6 +45,8 @@ package org.apache.kylin.rest.service;
 import java.util.Comparator;
 
 import io.kyligence.kap.common.metrics.service.MonitorDao;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
@@ -66,7 +68,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 
@@ -139,7 +140,7 @@ public abstract class BasicService {
     }
 
     public QueryHistoryDAO getQueryHistoryDao(String project) {
-        return QueryHistoryDAO.getInstance(getConfig(), project);
+        return RDBMSQueryHistoryDAO.getInstance(getConfig(), project);
     }
 
     public MonitorDao getMonitorDao() {

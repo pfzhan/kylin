@@ -72,7 +72,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         staticCreateTestMetadata();
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.write-destination", "INFLUX");
     }
 
     @After
@@ -84,17 +83,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void assertCannotStart() {
-        Assert.assertFalse(QueryMetricsContext.isStarted());
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.write-destination", "BLACK_HOLE");
-        QueryMetricsContext.start(QUERY_ID, "localhost:7070");
-        Assert.assertFalse(QueryMetricsContext.isStarted());
-    }
-
-    @Test
     public void assertStart() {
         Assert.assertFalse(QueryMetricsContext.isStarted());
-        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.write-destination", "INFLUX");
         QueryMetricsContext.start(QUERY_ID, "localhost:7070");
         Assert.assertTrue(QueryMetricsContext.isStarted());
     }
@@ -188,7 +178,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
         final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
-        Assert.assertFalse(influxdbTags.containsKey("error_type"));
+        Assert.assertTrue(influxdbTags.containsKey("error_type"));
 
         // assert month
         Assert.assertEquals("2018-01", influxdbTags.get("month"));

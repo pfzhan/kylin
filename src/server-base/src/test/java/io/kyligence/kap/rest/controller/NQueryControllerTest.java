@@ -296,16 +296,6 @@ public class NQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nQueryController).getAvgDuration("default", 0, 999999999999L, "model");
     }
 
-    @Test
-    public void testQueryStatisticsEngine() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/overview").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("start_time", "0").param("end_time", "999999999999")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        Mockito.verify(nQueryController).queryStatisticsByEngine("default", 0, 999999999999L);
-    }
-
     private List<QueryHistory> mockedQueryHistories() {
         final List<QueryHistory> queries = Lists.newArrayList();
         QueryHistory queryHistory1 = new QueryHistory("sql1");

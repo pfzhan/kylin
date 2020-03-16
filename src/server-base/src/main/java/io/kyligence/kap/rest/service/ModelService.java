@@ -134,7 +134,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
@@ -2269,44 +2268,6 @@ public class ModelService extends BasicService {
         if (!isSelectAll(model) && (CollectionUtils.isEmpty(projects) || projects.size() != 1)) {
             throw new KylinException("KE-1021", "Only one project name should be specified while model is specified!");
         }
-    }
-
-    public List<ModelInfoResponse> getModelInfo(String suite, String model, List<String> projects, long start,
-            long end) {
-        aclEvaluate.checkIsGlobalAdmin();
-        List<ModelInfoResponse> modelInfoList = Lists.newArrayList();
-        checkProjectWhenModelSelected(model, projects);
-
-        val projectManager = getProjectManager();
-        if (CollectionUtils.isEmpty(projects)) {
-            projects = projectManager.listAllProjects().stream().map(ProjectInstance::getName)
-                    .collect(Collectors.toList());
-        }
-        if (isSelectAll(model)) {
-            modelInfoList.addAll(getModelInfoByProject(projects));
-        } else {
-            modelInfoList.add(getModelInfoByModel(model, projects.get(0)));
-        }
-        Map<String, QueryTimesResponse> resultMap = Maps.newHashMap();
-        for (val project : projects) {
-            resultMap.putAll(getModelQueryTimesMap(suite, project, model, start, end));
-
-        }
-        for (val modelInfoResponse : modelInfoList) {
-            if (resultMap.containsKey(modelInfoResponse.getModel())) {
-                modelInfoResponse.setQueryTimes(resultMap.get(modelInfoResponse.getModel()).getQueryTimes());
-            }
-        }
-
-        return modelInfoList;
-    }
-
-    private Map<String, QueryTimesResponse> getModelQueryTimesMap(String suite, String project, String model,
-            long start, long end) {
-        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesByModel(suite, model, start, end,
-                QueryTimesResponse.class);
-        return result.stream()
-                .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
     }
 
     private List<ModelInfoResponse> getModelInfoByProject(List<String> projects) {

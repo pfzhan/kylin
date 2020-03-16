@@ -670,17 +670,6 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetModelInfo() throws Exception {
-        List<String> projects = Lists.newArrayList();
-        Mockito.doReturn(null).when(modelService).getModelInfo("*", "*", projects, 0, 0);
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/model_info").param("suite", "*").param("model", "*")
-                .param("project", "").param("start", "0").param("end", "0")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).getModelInfo("*", projects, "*", 0, 0);
-    }
-
-    @Test
     public void testGetModelConfig() throws Exception {
         Mockito.doReturn(new ArrayList<ModelConfigResponse>()).when(modelService).getModelConfig("default", null);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/config").param("project", "default")

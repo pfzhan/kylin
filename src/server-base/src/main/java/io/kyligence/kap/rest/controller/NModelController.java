@@ -87,7 +87,6 @@ import io.kyligence.kap.rest.response.IndicesResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
-import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
@@ -330,18 +329,6 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         val res = modelService.checkSegHoleIfSegDeleted(model, project, ids);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
-    }
-
-    @GetMapping(value = "/model_info")
-    @ResponseBody
-    public EnvelopeResponse<List<ModelInfoResponse>> getModelInfo(
-            @RequestParam(value = "model", required = false, defaultValue = "*") String model,
-            @RequestParam(value = "project", required = false) List<String> projects,
-            @RequestParam(value = "suite", required = false, defaultValue = "*") String suite,
-            @RequestParam(value = "start", required = false, defaultValue = "0") long start,
-            @RequestParam(value = "end", required = false, defaultValue = "0") long end) {
-        val result = modelService.getModelInfo(suite, model, projects, start, end);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @ApiOperation(value = "getAggIndices (update)", notes = "Update URL: model; Update Param: is_case_sensitive, page_offset, page_size, sort_by; Update Response: total_size")

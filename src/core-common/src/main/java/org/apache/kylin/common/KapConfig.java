@@ -537,9 +537,6 @@ public class KapConfig {
     /**
      * Diagnosis graph
      */
-    public String getMetricWriteDest() {
-        return config.getOptional("kap.metric.write-destination", "BLACK_HOLE");
-    }
 
     public String influxdbAddress() {
         return config.getOptional("kap.influxdb.address", "localhost:8086");

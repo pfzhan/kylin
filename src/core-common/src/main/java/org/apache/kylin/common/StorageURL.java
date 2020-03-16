@@ -156,6 +156,10 @@ public class StorageURL {
         return new StorageURL(identifier, scheme, params);
     }
 
+    public static String replaceUrl(StorageURL storageURL) {
+        return storageURL.getIdentifier().replaceAll("[^0-9|a-z|A-Z|_]{1,}", "_");
+    }
+
     @Override
     public String toString() {
         String str = identifier;

@@ -89,10 +89,10 @@ public class UpdateUsageStatisticsRunner implements Runnable {
         long maxTime = queryHistoryAccessor.getSystemTime() - backwardShiftTime;
 
         while (endTime <= maxTime) {
-            val queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
+            val queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime, project);
 
             if (CollectionUtils.isEmpty(queryHistories)) {
-                endTime = queryHistoryAccessor.skipEmptyIntervals(endTime, maxTime);
+                endTime = queryHistoryAccessor.skipEmptyIntervals(endTime, maxTime, project);
             }
 
             updateRelatedMetadata(queryHistories, endTime);
@@ -102,7 +102,7 @@ public class UpdateUsageStatisticsRunner implements Runnable {
         }
 
         if (startTime < maxTime) {
-            val queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime);
+            val queryHistories = queryHistoryAccessor.getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime, project);
             updateRelatedMetadata(queryHistories, maxTime);
         }
     }

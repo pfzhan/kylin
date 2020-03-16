@@ -25,21 +25,13 @@
 package io.kyligence.kap.common.metric;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.kylin.common.KapConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public enum MetricWriterStrategy {
     INSTANCE;
     public static final Logger logger = LoggerFactory.getLogger(MetricWriterStrategy.class);
-    private static AtomicInteger failoverFlag = new AtomicInteger(0);
-    public final static String CONFIG_KEY = "kap.metric.write-destination";
-
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) {
-        write(dbName, measurement, tags, metrics, System.currentTimeMillis());
-    }
 
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics,
             long timestamp) {
@@ -47,32 +39,12 @@ public enum MetricWriterStrategy {
             MetricWriter writer = MetricWriter.Factory.getInstance(getType());
             logger.trace("Use writer:" + writer.getType());
             writer.write(dbName, measurement, tags, metrics, timestamp);
-
-            // reset failvoer flag
-            failoverFlag.set(0);
-
         } catch (Throwable th) {
-            logger.error("Error when write metrics, increment failover flag, current value is {}",
-                    failoverFlag.incrementAndGet(), th);
-
-            if (failoverFlag.get() > 10) {
-                logger.error("Write failed more than 10 times, failover writer to 'BLACK_HOLE'");
-                failover();
-            }
-
+            logger.error("Error when write query history into table {} of {}", measurement, getType());
         }
-    }
-
-    private void failover() {
-        System.setProperty(CONFIG_KEY, MetricWriter.Type.BLACK_HOLE.name());
     }
 
     private String getType() {
-        try {
-            return KapConfig.getInstanceFromEnv().getMetricWriteDest();
-        } catch (Exception e) {
-            // In spark executor may can not get kylin config, use system property instead.
-            return System.getProperty(CONFIG_KEY);
-        }
+        return MetricWriter.Type.RDBMS.name();
     }
 }

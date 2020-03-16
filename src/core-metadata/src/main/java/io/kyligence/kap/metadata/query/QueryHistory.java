@@ -51,6 +51,7 @@ public class QueryHistory {
     public static final String QUERY_MEASUREMENT_SURFIX = "query_history";
     public static final String REALIZATION_MEASUREMENT_SURFIX = "query_history_realization";
 
+    public static final String PROJECT_NAME = "project_name";
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";
     public static final String SQL_PATTERN = "sql_pattern";
@@ -68,7 +69,10 @@ public class QueryHistory {
     public static final String QUERY_STATUS = "query_status";
     public static final String IS_INDEX_HIT = "index_hit";
     public static final String QUERY_TIME = "query_time";
-    public static final String QUERY_MONTH = "month";
+    public static final String MONTH = "month";
+    public static final String QUERY_FIRST_DAY_OF_MONTH = "query_first_day_of_month";
+    public static final String QUERY_FIRST_DAY_OF_WEEK = "query_first_day_of_week";
+    public static final String QUERY_DAY = "query_day";
     public static final String IS_TABLE_INDEX_USED = "is_table_index_used";
     public static final String IS_AGG_INDEX_USED = "is_agg_index_used";
     public static final String IS_TABLE_SNAPSHOT_USED = "is_table_snapshot_used";
@@ -144,6 +148,10 @@ public class QueryHistory {
     @JsonProperty(ENGINE_TYPE)
     @Column(name = ENGINE_TYPE)
     private String engineType;
+
+    @JsonProperty(PROJECT_NAME)
+    @Column(name = PROJECT_NAME)
+    private String projectName;
 
     @JsonProperty("realizations")
     private List<NativeQueryRealization> nativeQueryRealizations;

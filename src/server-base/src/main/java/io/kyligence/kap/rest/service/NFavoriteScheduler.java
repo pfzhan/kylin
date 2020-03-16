@@ -175,10 +175,10 @@ public class NFavoriteScheduler {
 
         // past 24hr
         while (endTime <= lastAutoMarkTime) {
-            List<QueryHistory> queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
+            List<QueryHistory> queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime, project);
 
             if (CollectionUtils.isEmpty(queryHistories)) {
-                long firstQHTime = queryHistoryAccessor.skipEmptyIntervals(endTime, lastAutoMarkTime);
+                long firstQHTime = queryHistoryAccessor.skipEmptyIntervals(endTime, lastAutoMarkTime, project);
                 startTime = firstQHTime - (firstQHTime - endTime) % fetchQueryHistoryGapTime;
                 endTime = startTime + fetchQueryHistoryGapTime;
                 continue;
@@ -338,10 +338,10 @@ public class NFavoriteScheduler {
             List<QueryHistory> queryHistories;
 
             while (endTime <= maxTime) {
-                queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
+                queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime, project);
 
                 if (CollectionUtils.isEmpty(queryHistories)) {
-                    long firstQHTime = queryHistoryAccessor.skipEmptyIntervals(endTime, maxTime);
+                    long firstQHTime = queryHistoryAccessor.skipEmptyIntervals(endTime, maxTime, project);
                     startTime = firstQHTime - (firstQHTime - endTime) % fetchQueryHistoryGapTime;
                     endTime = startTime + fetchQueryHistoryGapTime;
                     updateRelatedMetadata(Sets.newHashSet(), startTime, 0, 0);
@@ -355,7 +355,7 @@ public class NFavoriteScheduler {
             }
 
             if (startTime < maxTime) {
-                queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime);
+                queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, maxTime, project);
                 findAllCandidates(queryHistories, startTime, maxTime);
             }
         }

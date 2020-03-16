@@ -26,10 +26,16 @@ package io.kyligence.kap.rest.service;
 
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -58,9 +64,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
@@ -104,7 +110,7 @@ public class QueryHistoryService extends BasicService {
             return data;
         }
 
-        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream().forEach(query -> {
+        queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset, request.getProject()).stream().forEach(query -> {
             if (StringUtils.isEmpty(query.getQueryRealizations())) {
                 queryHistories.add(query);
                 return;
@@ -138,7 +144,7 @@ public class QueryHistoryService extends BasicService {
         });
 
         data.put("query_histories", queryHistories);
-        data.put("size", queryHistoryDAO.getQueryHistoriesSize(request));
+        data.put("size", queryHistoryDAO.getQueryHistoriesSize(request, request.getProject()));
 
         return data;
     }
@@ -158,7 +164,7 @@ public class QueryHistoryService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
 
-        QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(startTime, endTime);
+        QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(startTime, endTime, project);
         return new QueryStatisticsResponse(queryStatistics.getCount(), queryStatistics.getMeanDuration());
     }
 
@@ -169,11 +175,12 @@ public class QueryHistoryService extends BasicService {
         List<QueryStatistics> queryStatistics;
 
         if (dimension.equals("model")) {
-            queryStatistics = queryHistoryDAO.getQueryCountByModel(startTime, endTime);
+            queryStatistics = queryHistoryDAO.getQueryCountByModel(startTime, endTime, project);
             return transformQueryStatisticsByModel(project, queryStatistics, "count");
         }
 
-        queryStatistics = queryHistoryDAO.getQueryCountByTime(startTime, endTime, dimension);
+        queryStatistics = queryHistoryDAO.getQueryCountByTime(startTime, endTime, dimension, project);
+        fillZeroForQueryStatistics(queryStatistics, startTime, endTime, dimension);
         return transformQueryStatisticsByTime(queryStatistics, "count", dimension);
     }
 
@@ -184,12 +191,39 @@ public class QueryHistoryService extends BasicService {
         List<QueryStatistics> queryStatistics;
 
         if (dimension.equals("model")) {
-            queryStatistics = queryHistoryDAO.getAvgDurationByModel(startTime, endTime);
+            queryStatistics = queryHistoryDAO.getAvgDurationByModel(startTime, endTime, project);
             return transformQueryStatisticsByModel(project, queryStatistics, "meanDuration");
         }
 
-        queryStatistics = queryHistoryDAO.getAvgDurationByTime(startTime, endTime, dimension);
+        queryStatistics = queryHistoryDAO.getAvgDurationByTime(startTime, endTime, dimension, project);
+        fillZeroForQueryStatistics(queryStatistics, startTime, endTime, dimension);
         return transformQueryStatisticsByTime(queryStatistics, "meanDuration", dimension);
+    }
+    
+    private static void fillZeroForQueryStatistics(List<QueryStatistics> queryStatistics, long startTime, long endTime,
+            String dimension) {
+        if (!dimension.equals("day") && !dimension.equals("week")) {
+            return;
+        }
+        Set<Instant> instantSet = queryStatistics.stream().map(QueryStatistics::getTime).collect(Collectors.toSet());
+        int rawOffsetTime = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).getRawOffset();
+        long startOffSetTime = Instant.ofEpochMilli(startTime).plusMillis(rawOffsetTime).toEpochMilli();
+        Instant startInstant = Instant.ofEpochMilli(startOffSetTime - startOffSetTime % (1000 * 60 * 60 * 24));
+        long endOffSetTime = Instant.ofEpochMilli(endTime).plusMillis(rawOffsetTime).toEpochMilli();
+        Instant endInstant = Instant.ofEpochMilli(endOffSetTime - endOffSetTime % (1000 * 60 * 60 * 24));
+        while (!startInstant.isAfter(endInstant)) {
+            if (!instantSet.contains(startInstant)) {
+                QueryStatistics zeroStatistics = new QueryStatistics();
+                zeroStatistics.setCount(0);
+                zeroStatistics.setTime(startInstant);
+                queryStatistics.add(zeroStatistics);
+            }
+            if (dimension.equals("day")) {
+                startInstant = startInstant.plus(Duration.ofDays(1));
+            } else if (dimension.equals("week")) {
+                startInstant = startInstant.plus(Duration.ofDays(7));
+            }
+        }
     }
 
     private Map<String, Object> transformQueryStatisticsByModel(String project, List<QueryStatistics> statistics,
@@ -226,7 +260,10 @@ public class QueryHistoryService extends BasicService {
 
         statistics.forEach(singleStatistics -> {
             if (dimension.equals("month")) {
-                result.put(singleStatistics.getMonth(), getValueByField(singleStatistics, fieldName));
+                TimeZone timeZone = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone());
+                LocalDate date = singleStatistics.getTime().atZone(timeZone.toZoneId()).toLocalDate();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+                result.put(date.withDayOfMonth(1).format(formatter), getValueByField(singleStatistics, fieldName));
                 return;
             }
             long time = singleStatistics.getTime().toEpochMilli();

@@ -77,6 +77,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -168,7 +169,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
@@ -236,10 +236,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result1 = new QueryTimesResponse();
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
-        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
+        InfluxDBQueryHistoryDAO influxDBQueryHistoryDAO = Mockito.mock(InfluxDBQueryHistoryDAO.class);
+        Mockito.doReturn(influxDBQueryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
@@ -2927,89 +2925,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incremental loading, due to another incremental loading table existed in model 'nmodel_basic'!");
         modelService.checkSingleIncrementingLoadingTable("default", "DEFAULT.TEST_KYLIN_FACT");
-    }
-
-    @Test
-    public void testGetModelInfoByModel() throws IOException {
-        val projects = Lists.newArrayList("default");
-        val result1 = new QueryTimesResponse();
-        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        result1.setQueryTimes(10);
-        val result2 = new QueryTimesResponse();
-        result2.setModel("cb596712-3a09-46f8-aea1-988b43fe9b6c");
-        result2.setQueryTimes(10);
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1, result2)).when(queryHistoryDAO).getQueryTimesByModel(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
-        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
-        Assert.assertEquals(1, modelInfo.size());
-        Assert.assertEquals(10, modelInfo.get(0).getQueryTimes());
-        Assert.assertEquals(3380224, modelInfo.get(0).getModelStorageSize());
-        val modelInfo2 = modelService.getModelInfo("*", "cb596712-3a09-46f8-aea1-988b43fe9b6c", projects, 0, 0);
-        Assert.assertEquals(1, modelInfo2.size());
-        Assert.assertEquals(10, modelInfo2.get(0).getQueryTimes());
-        Assert.assertEquals(99, modelInfo2.get(0).getModelStorageSize());
-    }
-
-    @Test
-    public void testGetModelInfoByModel_ProjectNotSpecifiedOnly() throws IOException {
-        val projects = Lists.newArrayList("default", "demo");
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Only one project name should be specified while model is specified!");
-        modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
-    }
-
-    @Test
-    public void testGetModelInfoByProject() throws IOException {
-
-        List<String> projects = Lists.newArrayList("default");
-
-        val result1 = new QueryTimesResponse();
-        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        result1.setQueryTimes(10);
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
-        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "*", projects, 0, 0);
-        Assert.assertEquals(6, modelInfo.size());
-        Assert.assertEquals(10, modelInfo.get(2).getQueryTimes());
-        Assert.assertEquals(3380224, modelInfo.get(2).getModelStorageSize());
-    }
-
-    @Test
-    @Ignore
-    public void testGetAllModelInfo() throws IOException {
-        List<String> projects = Lists.newArrayList();
-
-        val result1 = new QueryTimesResponse();
-        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        result1.setQueryTimes(10);
-        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
-        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "*", projects, 0, 0);
-        Assert.assertEquals(8, modelInfo.size());
-    }
-
-    @Test
-    public void testGetModelInfo_ProjectEmpty_exception() throws IOException {
-        List<String> projects = Lists.newArrayList();
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Only one project name should be specified while model is specified!");
-        modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
-    }
-
-    @Test
-    public void testGetModelInfo_ModelNotExist_exception() throws IOException {
-        List<String> projects = Lists.newArrayList("default");
-
-        thrown.expect(KylinException.class);
-        thrown.expectMessage("Model 'nmodel_basic2222' does not exist!");
-        modelService.getModelInfo("*", "nmodel_basic2222", projects, 0, 0);
     }
 
     @Test

@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.service.task;
 
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -49,8 +49,8 @@ public class QueryHistoryAccessor {
         return scanGapTime;
     }
 
-    public long skipEmptyIntervals(long minTime, long maxTime) {
-        List<QueryStatistics> results = getQueryHistoryDao().getFirstQH(minTime, maxTime);
+    public long skipEmptyIntervals(long minTime, long maxTime, String project) {
+        List<QueryStatistics> results = getQueryHistoryDao().getFirstQH(minTime, maxTime, project);
         if (CollectionUtils.isEmpty(results)) {
             return maxTime;
         } else {
@@ -59,8 +59,8 @@ public class QueryHistoryAccessor {
         }
     }
 
-    public QueryHistoryDAO getQueryHistoryDao() {
-        return QueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv(), project);
+    public RDBMSQueryHistoryDAO getQueryHistoryDao() {
+        return RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
     public long getSystemTime() {

@@ -73,7 +73,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private String queryMeasurement;
     private String realizationMeasurement;
-    private QueryHistoryDAO queryHistoryDAO;
+    private InfluxDBQueryHistoryDAO queryHistoryDAO;
 
     final String mockedHostname = "192.168.1.1";
     final String mockedSubmitter = "ADMIN";
@@ -86,7 +86,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         this.createTestMetadata();
-        queryHistoryDAO = QueryHistoryDAO.getInstance(getTestConfig(), PROJECT);
+        queryHistoryDAO = InfluxDBQueryHistoryDAO.getInstance(getTestConfig(), PROJECT);
         queryMeasurement = queryHistoryDAO.getQueryMetricMeasurement();
         realizationMeasurement = queryHistoryDAO.getRealizationMetricMeasurement();
 
@@ -102,7 +102,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
-        QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
 
         final String testSql = String.format("select * from %s", queryMeasurement);
         List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class,
@@ -122,7 +122,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoriesByTime() {
-        QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
         long startTime = 0;
         long endTime = 1000;
 
@@ -131,7 +131,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(expectedSql, actualSql);
 
-        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByTime(startTime, endTime);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByTime(startTime, endTime, "default");
         Assert.assertEquals(2, queryHistories.size());
         QueryHistory queryHistory1 = queryHistories.get(0);
         QueryHistory queryHistory2 = queryHistories.get(1);
@@ -147,7 +147,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDatabaseNotExist() {
-        QueryHistoryDAO.influxDB = mockInfluxDB(SHOW_DATABASES_NOT_EXIST);
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(SHOW_DATABASES_NOT_EXIST);
         final String testSql = String.format("select * from %s", queryMeasurement);
         List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class,
                 queryMeasurement);
@@ -156,7 +156,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetFilteredQueryHistories() {
-        QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
 
         int limit = 2;
         int offset = 0;
@@ -170,11 +170,11 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         request.setLatencyFrom("0");
         request.setLatencyTo(String.valueOf(Integer.MAX_VALUE));
 
-        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset, "default");
         Assert.assertEquals(2, queryHistories.size());
 
-        QueryHistoryDAO.influxDB = mockInfluxDB(getMockedZeroSize());
-        int size = queryHistoryDAO.getQueryHistoriesSize(request);
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getMockedZeroSize());
+        long size = queryHistoryDAO.getQueryHistoriesSize(request, "default");
         Assert.assertEquals(0, size);
     }
 
@@ -305,7 +305,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryStatisticsByEngine() {
-        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryStatisticsByEngineResult());
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getQueryStatisticsByEngineResult());
         List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryEngineStatistics(0L, Long.MAX_VALUE);
         Assert.assertEquals(1, queryStatistics.size());
         Assert.assertEquals("RDBMS", queryStatistics.get(0).getEngineType());
@@ -315,16 +315,16 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryStatistics() {
-        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryStatisticsResult());
-        QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(0L, Long.MAX_VALUE);
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getQueryStatisticsResult());
+        QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(0L, Long.MAX_VALUE, "default");
 
         Assert.assertNotNull(queryStatistics);
         Assert.assertEquals(1000, queryStatistics.getCount());
         Assert.assertEquals(3000, queryStatistics.getMeanDuration(), 0.1);
 
         // case of no data
-        QueryHistoryDAO.influxDB = mockInfluxDB(getEmptyQueryStatistics());
-        queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(0L, Long.MAX_VALUE);
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getEmptyQueryStatistics());
+        queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(0L, Long.MAX_VALUE, "default");
         Assert.assertNotNull(queryStatistics);
         Assert.assertEquals(0, queryStatistics.getCount());
         Assert.assertEquals(0, queryStatistics.getMeanDuration(), 0.1);
@@ -333,15 +333,15 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetQueryCount() {
         // query count by model
-        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryCountByModelResult());
-        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryCountByModel(0, Long.MAX_VALUE);
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getQueryCountByModelResult());
+        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryCountByModel(0, Long.MAX_VALUE, "default");
         Assert.assertEquals(1, queryStatistics.size());
         Assert.assertEquals("model1", queryStatistics.get(0).getModel());
         Assert.assertEquals(1000, queryStatistics.get(0).getCount());
 
         // query count by day
-        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryCountByTimeResult());
-        queryStatistics = queryHistoryDAO.getQueryCountByTime(0, Long.MAX_VALUE, "day");
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getQueryCountByTimeResult());
+        queryStatistics = queryHistoryDAO.getQueryCountByTime(0, Long.MAX_VALUE, "day", "default");
         Assert.assertEquals(2, queryStatistics.size());
 
         Assert.assertEquals(2000, queryStatistics.get(0).getCount());
@@ -369,15 +369,15 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetAvgDuration() {
         // avg duration by model
-        QueryHistoryDAO.influxDB = mockInfluxDB(getAvgDurationByModelResult());
-        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryCountByModel(0, Long.MAX_VALUE);
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getAvgDurationByModelResult());
+        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryCountByModel(0, Long.MAX_VALUE, "default");
         Assert.assertEquals(1, queryStatistics.size());
         Assert.assertEquals("model1", queryStatistics.get(0).getModel());
         Assert.assertEquals(500, queryStatistics.get(0).getMeanDuration(), 0.1);
 
         // avg duration by time
-        QueryHistoryDAO.influxDB = mockInfluxDB(getAvgDurationByTimeResult());
-        queryStatistics = queryHistoryDAO.getQueryCountByTime(0, Long.MAX_VALUE, "day");
+        InfluxDBQueryHistoryDAO.influxDB = mockInfluxDB(getAvgDurationByTimeResult());
+        queryStatistics = queryHistoryDAO.getQueryCountByTime(0, Long.MAX_VALUE, "day", "default");
         Assert.assertEquals(2, queryStatistics.size());
 
         Assert.assertEquals(500, queryStatistics.get(0).getMeanDuration(), 0.1);

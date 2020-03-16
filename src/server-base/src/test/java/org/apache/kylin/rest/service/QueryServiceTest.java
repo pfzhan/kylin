@@ -869,7 +869,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryWithCacheSignatureExpired() throws Exception {
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
 
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val modelAlias = "nmodel_basic";
