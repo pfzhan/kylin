@@ -1501,18 +1501,18 @@
                     </executions>
                 </plugin>
                 <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>3.0.4</version>
-                    <configuration>
-                        <effort>Max</effort>
-                        <threshold>High</threshold>
-                        <excludeFilterFile>dev-support/findbugs-exclude-filter.xml</excludeFilterFile>
-                    </configuration>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>3.1.12.2</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.github.spotbugs</groupId>
+                            <artifactId>spotbugs</artifactId>
+                            <version>4.0.0</version>
+                        </dependency>
+                    </dependencies>
                     <executions>
                         <execution>
-                            <id>find-bugs</id>
-                            <phase>compile</phase>
                             <goals>
                                 <goal>check</goal>
                             </goals>
@@ -1612,9 +1612,14 @@
                 </reportSets>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>3.0.4</version>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>3.1.12.2</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <excludeFilterFile>dev-support/findbugs-exclude-filter.xml</excludeFilterFile>
+                </configuration>
             </plugin>
         </plugins>
     </reporting>
