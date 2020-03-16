@@ -48,6 +48,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 
+import io.kyligence.kap.common.util.EncryptUtil;
 import lombok.val;
 
 @ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
@@ -88,8 +89,12 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         protocol.setSSLEnabled(true);
         protocol.setKeystoreType(kylinConfig.getServerHttpsKeyType());
         protocol.setKeystoreFile(kylinConfig.getServerHttpsKeystore());
-        protocol.setKeystorePass(kylinConfig.getServerHttpsKeyPassword());
         protocol.setKeyAlias(kylinConfig.getServerHttpsKeyAlias());
+        String serverHttpsKeyPassword = kylinConfig.getServerHttpsKeyPassword();
+        if (EncryptUtil.isEncrypted(serverHttpsKeyPassword)) {
+            serverHttpsKeyPassword = EncryptUtil.decryptPassInKylin(serverHttpsKeyPassword);
+        }
+        protocol.setKeystorePass(serverHttpsKeyPassword);
         return connector;
     }
 

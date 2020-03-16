@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,11 +45,13 @@ package org.apache.kylin.common.util;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.HtmlEmail;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.util.EncryptUtil;
 
 /**
  * @author xduo
@@ -67,15 +68,20 @@ public class MailService {
     private String sender;
 
     public MailService(KylinConfig config) {
-        this(config.isMailEnabled(), config.isStarttlsEnabled(), config.getMailHost(), config.getSmtpPort(), config.getMailUsername(), config.getMailPassword(), config.getMailSender());
+        this(config.isMailEnabled(), config.isStarttlsEnabled(), config.getMailHost(), config.getSmtpPort(),
+                config.getMailUsername(), config.getMailPassword(), config.getMailSender());
     }
 
-    private MailService(boolean enabled, boolean starttlsEnabled, String host, String port, String username, String password, String sender) {
+    private MailService(boolean enabled, boolean starttlsEnabled, String host, String port, String username,
+            String password, String sender) {
         this.enabled = enabled;
         this.starttlsEnabled = starttlsEnabled;
         this.host = host;
         this.port = port;
         this.username = username;
+        if (EncryptUtil.isEncrypted(password)) {
+            password = EncryptUtil.decryptPassInKylin(password);
+        }
         this.password = password;
         this.sender = sender;
 
@@ -120,7 +126,7 @@ public class MailService {
         } else {
             email.setSmtpPort(Integer.valueOf(port));
         }
-        
+
         if (username != null && username.trim().length() > 0) {
             email.setAuthentication(username, password);
         }
