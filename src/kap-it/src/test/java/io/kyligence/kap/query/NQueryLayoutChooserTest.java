@@ -23,9 +23,13 @@
  */
 package io.kyligence.kap.query;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.auto.NSuggestTestBase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -34,12 +38,12 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
+import org.apache.spark.sql.SparderEnv;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.metadata.cube.cuboid.NQueryLayoutChooser;
@@ -58,7 +62,7 @@ import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
 
-public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
+public class NQueryLayoutChooserTest extends NSuggestTestBase {
 
     private static final String PROJECT = "default";
 
@@ -295,6 +299,93 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
         Assert.assertFalse(pair5.getFirst().getCuboidLayout().getIndex().isTableIndex());
     }
 
+    @Test
+    public void testDimensionAsMeasure_CountDistinctDerived_derivePkFromFk() throws Exception {
+        val sql1 = new String[]{"select cal_dt, seller_id, count(*) " +
+                "from test_kylin_fact left join test_account " +
+                "on test_kylin_fact.seller_id = test_account.account_id " +
+                "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id"};
+
+        val smartMaster = new NSmartMaster(getTestConfig(), "newten", sql1);
+        smartMaster.runAll();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
+        val model = modelManager.getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        val joinTables = model.getJoinTables();
+        joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
+        modelManager.updateDataModelDesc(model);
+
+        buildAllCubes(getTestConfig(), "newten");
+
+        val sql2 = "select cal_dt, count(distinct account_id) " +
+                "from test_kylin_fact left join test_account " +
+                "on test_kylin_fact.seller_id = test_account.account_id " +
+                "group by cal_dt";
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(new Pair<>("count_distinct_derived_pk_from_fk", sql2));
+        populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+
+    }
+
+    @Test
+    public void testDimensionAsMeasure_CountDistinctDerived_deriveFkFromPk() throws Exception {
+        val sql1 = new String[]{"select cal_dt, account_id, count(*) " +
+                "from test_kylin_fact left join test_account " +
+                "on test_kylin_fact.seller_id = test_account.account_id " +
+                "group by test_kylin_fact.cal_dt, test_account.account_id"};
+
+        val smartMaster = new NSmartMaster(getTestConfig(), "newten", sql1);
+        smartMaster.runAll();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
+        val model = modelManager.getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        val joinTables = model.getJoinTables();
+        joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
+        modelManager.updateDataModelDesc(model);
+
+        buildAllCubes(getTestConfig(), "newten");
+
+        val sql2 = "select cal_dt, count(distinct seller_id) " +
+                "from test_kylin_fact left join test_account " +
+                "on test_kylin_fact.seller_id = test_account.account_id " +
+                "group by cal_dt";
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
+        populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+
+    }
+
+    @Test
+    public void testDimensionAsMeasure_CountDistinctDerived_onLookup() throws Exception {
+        val sql1 = new String[]{"select cal_dt, seller_id, count(*) " +
+                "from test_kylin_fact left join test_account " +
+                "on test_kylin_fact.seller_id = test_account.account_id " +
+                "group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id"};
+
+        val smartMaster = new NSmartMaster(getTestConfig(), "newten", sql1);
+        smartMaster.runAll();
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "newten");
+        val model = modelManager.getDataModelDesc(smartMaster.getContext().getModelContexts().get(0).getTargetModel().getId());
+        val joinTables = model.getJoinTables();
+        joinTables.get(0).setKind(NDataModel.TableKind.LOOKUP);
+        modelManager.updateDataModelDesc(model);
+
+        buildAllCubes(getTestConfig(), "newten");
+
+        val sql2 = "select cal_dt, count(distinct ACCOUNT_COUNTRY) " +
+                "from test_kylin_fact left join test_account " +
+                "on test_kylin_fact.seller_id = test_account.account_id " +
+                "group by cal_dt";
+
+        List<Pair<String, String>> query = new ArrayList<>();
+        query.add(new Pair<>("count_distinct_derived_fk_from_pk", sql2));
+        populateSSWithCSVData(getTestConfig(), "newten", SparderEnv.getSparkSession());
+        NExecAndComp.execAndCompare(query, "newten", NExecAndComp.CompareLevel.SAME, "left");
+
+    }
+
     public boolean containMeasure(List<NDataModel.Measure> allMeasures, String expression, String parameter) {
         for (NDataModel.Measure measure : allMeasures) {
             if (measure.getFunction().getExpression().equals(expression)
@@ -468,7 +559,7 @@ public class NQueryLayoutChooserTest extends NLocalWithSparkSessionTest {
     }
 
     private void mockTableStats() {
-        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        val tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), PROJECT);
         TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         var tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
         tableExt = tableMetadataManager.copyForWrite(tableExt);

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -183,7 +184,7 @@ public class NQueryLayoutChooser {
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {
             applyAdvanceMeasureStrategy(cuboidLayout.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics, result);
-            applyDimAsMeasureStrategy(cuboidLayout.getIndex(), unmatchedMetrics, result);
+            applyDimAsMeasureStrategy(cuboidLayout.getIndex(), dataFlow, unmatchedMetrics, needDerive, result);
         }
 
         return unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
@@ -209,8 +210,8 @@ public class NQueryLayoutChooser {
                 .removeIf(functionDesc -> FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(functionDesc.getExpression()));
     }
 
-    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, Collection<FunctionDesc> unmatchedAggs,
-            CapabilityResult result) {
+    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, NDataflow dataflow, Collection<FunctionDesc> unmatchedAggs,
+                                                  Map<TblColRef, DeriveInfo> needDeriveCollector, CapabilityResult result) {
         Iterator<FunctionDesc> it = unmatchedAggs.iterator();
         while (it.hasNext()) {
             FunctionDesc functionDesc = it.next();
@@ -223,7 +224,12 @@ public class NQueryLayoutChooser {
             if (CollectionUtils.isEmpty(functionDesc.getParameters()))
                 continue;
             List<TblColRef> neededCols = functionDesc.getColRefs();
-            if (!indexEntity.getDimensionSet().containsAll(neededCols))
+            val leftUnmatchedCols = Sets.newHashSet(CollectionUtils.subtract(neededCols, indexEntity.getDimensionSet()));
+            if (CollectionUtils.isNotEmpty(leftUnmatchedCols)) {
+                goThruDerivedDims(indexEntity, dataflow, needDeriveCollector, leftUnmatchedCols, indexEntity.getModel());
+            }
+
+            if (CollectionUtils.isNotEmpty(leftUnmatchedCols))
                 continue;
 
             if (FunctionDesc.DIMENSION_AS_MEASURES.contains(functionDesc.getExpression())) {

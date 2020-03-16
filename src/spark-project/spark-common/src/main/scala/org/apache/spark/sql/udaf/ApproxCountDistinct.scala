@@ -86,7 +86,7 @@ abstract sealed class BasicApproxCountDistinct(
     try {
       val aggregator = new HLLCAggregator(precision)
       val counter = new HLLCounter(precision)
-      if (storageFormat.nonEmpty) {
+      if (storageFormat != null && storageFormat.nonEmpty) {
         val buffer = ByteBuffer.wrap(storageFormat)
         counter.readRegisters(buffer)
         aggregator.aggregate(counter)
@@ -95,9 +95,11 @@ abstract sealed class BasicApproxCountDistinct(
     } catch {
       case throwable: Throwable =>
         throwable.printStackTrace()
-        println("==============")
-        storageFormat.foreach(print)
-        println("==============")
+        if (storageFormat != null) {
+          println("==============")
+          storageFormat.foreach(print)
+          println("==============")
+        }
         throw throwable
       case other =>
         throw other
@@ -187,7 +189,10 @@ case class ApproxCountDistinct(
 
   override def update(buffer: HLLCCounter.State, input: InternalRow): HLLCCounter.State = {
     val colValue = child.eval(input)
-    buffer.hllc.aggregate(deserialize(colValue.asInstanceOf[Array[Byte]]).hllc.getState)
+    val state = deserialize(colValue.asInstanceOf[Array[Byte]]).hllc.getState
+    if (state != null) {
+      buffer.hllc.aggregate(state);
+    }
     buffer
   }
 
