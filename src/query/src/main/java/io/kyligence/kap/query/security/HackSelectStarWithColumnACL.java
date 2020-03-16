@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlNode;
@@ -120,13 +121,18 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
                                 + " to data source. If this table does exist, mention it as DATABASE.TABLE.");
             }
             List<ColumnDesc> columns = listExposedColumns(project, tableDesc);
+            String quotingChar = Quoting.valueOf(KylinConfig.getInstanceFromEnv().getCalciteQuoting()).string;
             for (ColumnDesc column : columns) {
                 if (column.isComputedColumn()) {
                     continue;
                 }
                 if (aclTCRs.stream()
                         .anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity(), column.getName()))) {
-                    cols.add(table.getAlias() + "." + column.getName());
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(quotingChar).append(table.getAlias()).append(quotingChar) //
+                            .append('.') //
+                            .append(quotingChar).append(column.getName()).append(quotingChar);
+                    cols.add(sb.toString());
                 }
             }
         }

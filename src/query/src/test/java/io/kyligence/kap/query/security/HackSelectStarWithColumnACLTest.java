@@ -24,23 +24,28 @@
 
 package io.kyligence.kap.query.security;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase {
     private final static String PROJECT = "default";
@@ -64,8 +69,80 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         String sql = transformer.convert(
                 "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA,
                 false);
-        String expectSQL = "select T1.PRICE, T1.ITEM_COUNT, T1.ORDER_ID, T2.ORDER_ID, T2.BUYER_ID, T2.TEST_DATE_ENC from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
+        String expectSQL = "select \"T1\".\"PRICE\", \"T1\".\"ITEM_COUNT\", \"T1\".\"ORDER_ID\", "
+                + "\"T2\".\"ORDER_ID\", \"T2\".\"BUYER_ID\", \"T2\".\"TEST_DATE_ENC\" "
+                + "from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
         assertRoughlyEquals(expectSQL, sql);
+    }
+
+    @Test
+    public void testTransformColumnStartWithNumberOrKeyword() {
+        getTestConfig().setProperty("kylin.query.calcite.extras-props.quoting", "DOUBLE_QUOTE");
+        prepareBasic();
+        prepareMore();
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        ColumnDesc[] columns = tableDesc.getColumns();
+
+        ColumnDesc colStartsWithNumber = new ColumnDesc(columns[0]);
+        colStartsWithNumber.setId("13");
+        colStartsWithNumber.setDatatype("date");
+        colStartsWithNumber.setName("2D");
+        ColumnDesc colWithKeyword = new ColumnDesc(columns[0]);
+        colWithKeyword.setId("14");
+        colWithKeyword.setDatatype("date");
+        colWithKeyword.setName("YEAR");
+
+        ArrayList<ColumnDesc> columnDescs = Lists.newArrayList(columns);
+        columnDescs.add(colStartsWithNumber);
+        columnDescs.add(colWithKeyword);
+
+        tableDesc.setColumns(columnDescs.toArray(new ColumnDesc[0]));
+        tableMetadataManager.updateTableDesc(tableDesc);
+        HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
+        String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA, false);
+        String expected = "select \"TEST_KYLIN_FACT\".\"ORDER_ID\", " //
+                + "\"TEST_KYLIN_FACT\".\"PRICE\", " //
+                + "\"TEST_KYLIN_FACT\".\"ITEM_COUNT\", " //
+                + "\"TEST_KYLIN_FACT\".\"2D\", " //
+                + "\"TEST_KYLIN_FACT\".\"YEAR\" " //
+                + "from TEST_KYLIN_FACT";
+        Assert.assertEquals(expected, transformed);
+    }
+
+    @Test
+    public void testTransformColumnStartWithNumberOrKeyword2() {
+        getTestConfig().setProperty("kylin.query.calcite.extras-props.quoting", "BACK_TICK");
+        prepareBasic();
+        prepareMore();
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), PROJECT);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        ColumnDesc[] columns = tableDesc.getColumns();
+
+        ColumnDesc colStartsWithNumber = new ColumnDesc(columns[0]);
+        colStartsWithNumber.setId("13");
+        colStartsWithNumber.setDatatype("date");
+        colStartsWithNumber.setName("2D");
+        ColumnDesc colWithKeyword = new ColumnDesc(columns[0]);
+        colWithKeyword.setId("14");
+        colWithKeyword.setDatatype("date");
+        colWithKeyword.setName("YEAR");
+
+        ArrayList<ColumnDesc> columnDescs = Lists.newArrayList(columns);
+        columnDescs.add(colStartsWithNumber);
+        columnDescs.add(colWithKeyword);
+
+        tableDesc.setColumns(columnDescs.toArray(new ColumnDesc[0]));
+        tableMetadataManager.updateTableDesc(tableDesc);
+        HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
+        String transformed = transformer.convert("select * from TEST_KYLIN_FACT", PROJECT, SCHEMA, false);
+        String expected = "select `TEST_KYLIN_FACT`.`ORDER_ID`, " //
+                + "`TEST_KYLIN_FACT`.`PRICE`, " //
+                + "`TEST_KYLIN_FACT`.`ITEM_COUNT`, " //
+                + "`TEST_KYLIN_FACT`.`2D`, " //
+                + "`TEST_KYLIN_FACT`.`YEAR` " //
+                + "from TEST_KYLIN_FACT";
+        Assert.assertEquals(expected, transformed);
     }
 
     @Test
@@ -81,7 +158,8 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         final String sql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID ";
         final SqlNode sqlNode = getSqlNode(sql);
         String newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sqlNode, PROJECT, SCHEMA);
-        String expect = "T1.PRICE, T1.ITEM_COUNT, T1.ORDER_ID, T2.ORDER_ID, T2.BUYER_ID, T2.TEST_DATE_ENC";
+        String expect = "\"T1\".\"PRICE\", \"T1\".\"ITEM_COUNT\", \"T1\".\"ORDER_ID\", "
+                + "\"T2\".\"ORDER_ID\", \"T2\".\"BUYER_ID\", \"T2\".\"TEST_DATE_ENC\"";
         assertRoughlyEquals(expect, newSelectClause);
 
         AclTCR empty = new AclTCR();
@@ -124,6 +202,19 @@ public class HackSelectStarWithColumnACLTest extends NLocalFileMetadataTestCase 
         Arrays.sort(actualSplit);
 
         Assert.assertArrayEquals(expectSplit, actualSplit);
+    }
+
+    private void prepareMore() {
+        AclTCRManager manager = AclTCRManager.getInstance(getTestConfig(), PROJECT);
+        AclTCR g1a1 = new AclTCR();
+        AclTCR.Table g1t1 = new AclTCR.Table();
+        AclTCR.ColumnRow g1cr1 = new AclTCR.ColumnRow();
+        AclTCR.Column g1c1 = new AclTCR.Column();
+        g1c1.addAll(Arrays.asList("ORDER_ID", "2D", "YEAR"));
+        g1cr1.setColumn(g1c1);
+        g1t1.put("DEFAULT.TEST_KYLIN_FACT", g1cr1);
+        g1a1.setTable(g1t1);
+        manager.updateAclTCR(g1a1, "g1", false);
     }
 
     private void prepareBasic() {

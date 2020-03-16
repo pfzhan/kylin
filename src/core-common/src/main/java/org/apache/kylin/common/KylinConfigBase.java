@@ -539,6 +539,10 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kap.query.metadata.expose-computed-column", FALSE));
     }
 
+    public String getCalciteQuoting() {
+        return getOptional("kylin.query.calcite.extras-props.quoting", "DOUBLE_QUOTE");
+    }
+
     // ============================================================================
     // DICTIONARY & SNAPSHOT
     // ============================================================================
@@ -1805,7 +1809,8 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getStorageQuotaSize() {
-        return ((Double)(Double.parseDouble(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024 * 1024)).longValue();
+        return ((Double) (Double.parseDouble(getOptional("kylin.storage.quota-in-giga-bytes", "10240")) * 1024 * 1024
+                * 1024)).longValue();
     }
 
     public long getCuboidLayoutSurvivalTimeThreshold() {
