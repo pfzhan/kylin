@@ -706,7 +706,7 @@ public class Message {
     }
 
     public String getTABLENOTFOUND() {
-        return "Failed to save model. Please ensure the columns used in model [%s] must be existed in source table [%s]";
+        return "Failed to save model [%s]. Please ensure the columns used in model [%s] must be existed in source table [%s]";
     }
 
     // Async push down get data range

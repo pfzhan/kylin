@@ -1062,11 +1062,11 @@ public class ModelService extends BasicService {
             if (matcher.find()) {
                 String column = matcher.group(1);
                 String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
-                String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), column, table);
+                String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(), column, table);
                 throw new RuntimeException(error);
             } else {
-                String errorMsg = String.format(AdviceMessage.getInstance().getDefaultReason(),
-                        null != e.getMessage() ? e.getMessage() : "null");
+                String errorMsg = String.format("model [%s], %s", dataModel.getAlias(), String.format(AdviceMessage.getInstance().getDefaultReason(),
+                        null != e.getMessage() ? e.getMessage() : "null"));
                 throw new RuntimeException(errorMsg);
             }
         }

@@ -661,7 +661,7 @@ public class CnMessage extends Message {
     }
 
     public String getTABLENOTFOUND() {
-        return "模型保存失败，请确保模型中使用的列 [%s] 在源表 [%s] 中存在";
+        return "模型 [%s] 保存失败，请确保模型中使用的列 [%s] 在源表 [%s] 中存在";
     }
 
     // Async push down get data range
