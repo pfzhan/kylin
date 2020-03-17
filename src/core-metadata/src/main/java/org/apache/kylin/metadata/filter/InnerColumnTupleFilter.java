@@ -64,7 +64,7 @@ public class InnerColumnTupleFilter extends TupleFilter {
     public InnerColumnTupleFilter(TblColRef column) {
         super(Lists.<TupleFilter> newArrayList(), FilterOperatorEnum.UNSUPPORTED);
         this.columnRef = column;
-        if (this.columnRef == null) {
+        if (this.columnRef == null || column.isAggregationColumn()) {
             return;
         }
         List<TblColRef> children = columnRef.getOperands();

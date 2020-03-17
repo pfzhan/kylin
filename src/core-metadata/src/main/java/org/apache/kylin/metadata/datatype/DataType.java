@@ -131,7 +131,7 @@ public class DataType implements Serializable {
                 INT4, LONG8, // for test only
                 FLOAT, REAL, DOUBLE, DECIMAL, NUMERIC, //
                 DATE, TIME, DATETIME, TIMESTAMP, ARRAY, //
-                InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType(), TblColRef.DYNAMIC_DATA_TYPE);
+                InnerDataTypeEnum.LITERAL.getDataType(), InnerDataTypeEnum.DERIVED.getDataType(), InnerDataTypeEnum.AGGREGATION_TYPE.getDataType(), TblColRef.DYNAMIC_DATA_TYPE);
 
         registerComplex("array\\<.*\\>");
     }

@@ -247,7 +247,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                         + inputColumnRowType.getColumnByIndex(index).getIdentity().replace('.', '_') + "_";
                 aggCall.getArgList().forEach(argIndex -> operands.add(inputColumnRowType.getColumnByIndex(argIndex)));
             }
-            TblColRef aggOutCol = TblColRef.newInnerColumn(aggOutName, TblColRef.InnerDataTypeEnum.LITERAL);
+            TblColRef aggOutCol = TblColRef.newInnerColumn(aggOutName, TblColRef.InnerDataTypeEnum.AGGREGATION_TYPE);
             aggOutCol.setOperator(this.rewriteAggCalls.get(i).getAggregation());
             aggOutCol.setOperands(operands);
             aggOutCol.getColumnDesc().setId("" + (i + 1)); // mark the index of aggregation

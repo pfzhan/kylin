@@ -69,7 +69,7 @@ public class TblColRef implements Serializable {
     // used by projection rewrite, see OLAPProjectRel
     public enum InnerDataTypeEnum {
 
-        LITERAL("_literal_type"), DERIVED("_derived_type");
+        LITERAL("_literal_type"), DERIVED("_derived_type"), AGGREGATION_TYPE("_aggregation_type");
 
         private final String dateType;
 
@@ -82,7 +82,11 @@ public class TblColRef implements Serializable {
         }
 
         public static boolean contains(String name) {
-            return LITERAL.getDataType().equals(name) || DERIVED.getDataType().equals(name);
+            return LITERAL.getDataType().equals(name) || DERIVED.getDataType().equals(name) || AGGREGATION_TYPE.getDataType().equals(name);
+        }
+
+        public static boolean isAggregationType(String name) {
+            return AGGREGATION_TYPE.getDataType().equals(name);
         }
     }
 
@@ -287,6 +291,10 @@ public class TblColRef implements Serializable {
 
     public boolean isInnerColumn() {
         return InnerDataTypeEnum.contains(getDatatype());
+    }
+
+    public boolean isAggregationColumn() {
+        return InnerDataTypeEnum.isAggregationType(getDatatype());
     }
 
     public int hashCode() {
