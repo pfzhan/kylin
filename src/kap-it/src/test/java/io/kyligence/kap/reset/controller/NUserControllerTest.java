@@ -43,41 +43,116 @@ package io.kyligence.kap.reset.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.apache.kylin.rest.constant.Constant.GROUP_ALL_USERS;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.util.Arrays;
 import java.util.Collections;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
+import io.kyligence.kap.metadata.user.NKylinUserManager;
+import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 
 public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
+
+    static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
+
+    ManagedUser request;
+    String username = "test_user";
+    String password = "1234567890Q!";
+
+    @Override
+    public void setUp() {
+        super.setUp();
+
+        try {
+            request = new ManagedUser();
+            request.setUsername(username);
+            request.setPassword(Base64.encodeBase64String(password.getBytes("utf-8")));
+            request.setDisabled(false);
+            request.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(GROUP_ALL_USERS)));
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
+                    .content(JsonUtil.writeValueAsString(request))
+                    .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                    .andExpect(MockMvcResultMatchers.status().isOk());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @Test
     public void testSaveUser() throws Exception {
-        ManagedUser request = new ManagedUser();
-        request.setUsername("test_user");
-        request.setPassword("1234567890Q!");
-        request.setDisabled(false);
-        request.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(GROUP_ALL_USERS)));
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-
-        request.setUsername("TEST_USER");
+        request.setUsername(username.toUpperCase());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andExpect(jsonPath("$.msg")
                         .value("User creating is not allowed when username:test_user already exists."));
+    }
+
+    @Test
+    public void testCreateUserWithBase64EncodePwd() {
+        ManagedUser user = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).get(username);
+
+        Assert.assertNotEquals(null, user);
+        Assert.assertTrue(pwdEncoder.matches(password, user.getPassword()));
+    }
+
+    @Test
+    public void testUpdateUserPasswordWithBase64EncodePwd() throws Exception {
+
+        String newPassword = "kylin@2020";
+
+        PasswordChangeRequest passwordChangeRequest = new PasswordChangeRequest();
+        passwordChangeRequest.setUsername(username);
+        passwordChangeRequest.setPassword(Base64.encodeBase64String(password.getBytes("utf-8")));
+        passwordChangeRequest.setNewPassword(Base64.encodeBase64String(newPassword.getBytes("utf-8")));
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user/password").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(passwordChangeRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        ManagedUser user = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).get(username);
+
+        Assert.assertNotEquals(null, user);
+        Assert.assertTrue(pwdEncoder.matches(newPassword, user.getPassword()));
+    }
+
+    @Test
+    public void testUpdateUserWithBase64EncodePwd() throws Exception {
+        String newPassword = "kylin@2022";
+        request = new ManagedUser();
+        request.setUsername(username);
+        request.setPassword(Base64.encodeBase64String(newPassword.getBytes("utf-8")));
+        request.setDisabled(false);
+        request.setAuthorities(
+                Arrays.asList(new SimpleGrantedAuthority(GROUP_ALL_USERS), new SimpleGrantedAuthority(ROLE_ADMIN)));
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        ManagedUser user = NKylinUserManager.getInstance(KylinConfig.getInstanceFromEnv()).get(username);
+
+        Assert.assertNotEquals(null, user);
+        Assert.assertTrue(pwdEncoder.matches(newPassword, user.getPassword()));
+        Assert.assertEquals(2, user.getAuthorities().size());
+        Assert.assertTrue(user.getAuthorities().contains(new SimpleGrantedAuthority(GROUP_ALL_USERS)));
+        Assert.assertTrue(user.getAuthorities().contains(new SimpleGrantedAuthority(ROLE_ADMIN)));
     }
 
     @Test

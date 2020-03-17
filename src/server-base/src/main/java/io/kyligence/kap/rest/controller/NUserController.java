@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -117,6 +118,9 @@ public class NUserController extends NBasicController {
     private static final Pattern passwordPattern = Pattern
             .compile("^(?=.*\\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:\"<>?\\[\\];',./`]).{8,}$");
     private static final Pattern bcryptPattern = Pattern.compile("\\A\\$2a?\\$\\d\\d\\$[./0-9A-Za-z]{53}");
+    private static final Pattern base64Pattern = Pattern
+            .compile("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$");
+
     private static BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
@@ -144,7 +148,8 @@ public class NUserController extends NBasicController {
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
     public EnvelopeResponse<String> createUser(@RequestBody ManagedUser user) {
         val username = user.getUsername();
-        val password = user.getPassword();
+        val password = pwdBase64Decode(user.getPassword());
+        user.setPassword(password);
 
         checkUsername(username);
         checkPasswordLength(password);
@@ -189,6 +194,9 @@ public class NUserController extends NBasicController {
             user.setPassword(existing.getPassword());
         if (user.getAuthorities() == null || user.getAuthorities().isEmpty())
             user.setGrantedAuthorities(existing.getAuthorities());
+
+        user.setPassword(pwdBase64Decode(user.getPassword()));
+
         if (!user.isDefaultPassword()) {
             checkPasswordLength(user.getPassword());
             checkPasswordCharacter(user.getPassword());
@@ -261,14 +269,14 @@ public class NUserController extends NBasicController {
             throw new ForbiddenException(msg.getPERMISSION_DENIED());
         }
         accessService.checkDefaultAdmin(username, true);
-        val oldPassword = user.getPassword();
-        val newPassword = user.getNewPassword();
+        val oldPassword = pwdBase64Decode(user.getPassword());
+        val newPassword = pwdBase64Decode(user.getNewPassword());
 
         checkUsername(username);
 
-        checkPasswordLength(user.getNewPassword());
+        checkPasswordLength(newPassword);
 
-        checkPasswordCharacter(user.getNewPassword());
+        checkPasswordCharacter(newPassword);
 
         ManagedUser existingUser = getManagedUser(username);
         if (existingUser == null) {
@@ -295,7 +303,7 @@ public class NUserController extends NBasicController {
         // update authentication
         if (StringUtils.equals(getPrincipal(), user.getUsername())) {
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(existingUser,
-                    user.getNewPassword(), existingUser.getAuthorities());
+                    newPassword, existingUser.getAuthorities());
             token.setDetails(SecurityContextHolder.getContext().getAuthentication().getDetails());
             SecurityContextHolder.getContext().setAuthentication(token);
         }
@@ -411,5 +419,18 @@ public class NUserController extends NBasicController {
             return pwd;
 
         return pwdEncoder.encode(pwd);
+    }
+
+    /**
+     * decode base64 password
+     * @param password
+     * @return base64 decode password if password is base64 encode else password
+     */
+    private String pwdBase64Decode(String password) {
+        boolean isMatch = base64Pattern.matcher(password).matches();
+        if (isMatch) {
+            return new String(Base64.decodeBase64(password));
+        }
+        return password;
     }
 }
