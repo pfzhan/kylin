@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -182,7 +183,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testPreProcess_RefreshCount() throws Exception {
-        removeColumn("DEFAULT.TEST_KYLIN_FACT", "PRICE");
         changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
             {
                 put("PRICE", "bigint");
@@ -191,6 +191,26 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(58, response.getRefreshLayoutsCount());
+    }
+
+    @Test
+    public void testPreProcess_ChangeCCType() throws Exception {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        var model = modelManager.getDataModelDescByAlias("nmodel_basic");
+        Assert.assertEquals("decimal(30,4)", model.getComputedColumnDescs().get(0).getDatatype());
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("PRICE", "bigint");
+            }
+        }, true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", false);
+        model = modelManager.getDataModelDescByAlias("nmodel_basic");
+        Assert.assertEquals("BIGINT", model.getComputedColumnDescs().get(0).getDatatype());
+    }
+
+    private void dropModelWhen(Predicate<String> predicate) {
+        modelService.listAllModelIdsInProject(PROJECT).stream().filter(predicate)
+                .forEach(id -> modelService.dropModel(id, PROJECT, true));
     }
 
     @Test
@@ -208,11 +228,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
             copyForWrite.setRuleBasedIndex(newRule);
         });
-        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
-            if (!id.equals(originIndexPlan.getId())) {
-                modelService.dropModel(id, PROJECT, true);
-            }
-        });
+        dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "LSTG_FORMAT_NAME");
         val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(11, response.getRemoveLayoutsCount());
@@ -234,11 +250,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
             copyForWrite.setRuleBasedIndex(newRule);
         });
-        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
-            if (!id.equals(originIndexPlan.getId())) {
-                modelService.dropModel(id, PROJECT, true);
-            }
-        });
+        dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "TEST_TIME_ENC");
         val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
         Assert.assertEquals(4, response.getRemoveLayoutsCount());
@@ -262,11 +274,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
             copyForWrite.setRuleBasedIndex(newRule);
         });
-        modelService.listAllModelIdsInProject(PROJECT).forEach(id -> {
-            if (!id.equals(originIndexPlan.getId())) {
-                modelService.dropModel(id, PROJECT, true);
-            }
-        });
+        dropModelWhen(id -> !id.equals(originIndexPlan.getId()));
         removeColumn("DEFAULT.TEST_ORDER", "BUYER_ID");
         val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_ORDER");
         Assert.assertEquals(10, response.getRemoveLayoutsCount());
@@ -279,10 +287,10 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
 
         val newRule = new NRuleBasedIndex();
         newRule.setDimensions(Arrays.asList(14, 15, 16, 17, 18, 19));
-        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16,17,18,19],\n"
-                        + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [[14,15,16]],\n"
-                        + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [[17,18,19]]\n" + "        }\n" + "}",
-                NAggregationGroup.class);
+        val group1 = JsonUtil
+                .readValue("{\n" + "        \"includes\": [14,15,16,17,18,19],\n" + "        \"select_rule\": {\n"
+                        + "          \"hierarchy_dims\": [[14,15,16]],\n" + "          \"mandatory_dims\": [],\n"
+                        + "          \"joint_dims\": [[17,18,19]]\n" + "        }\n" + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
         newRule.setMeasures(Lists.newArrayList(100000, 100008));
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
@@ -833,7 +841,8 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val originMaxId = model.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max().getAsInt();
 
         val layoutIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-
+        val nextAggIndexId = indexPlan.getNextAggregationIndexId();
+        val nextTableIndexId = indexPlan.getNextTableIndexId();
         val tableIdentity = "DEFAULT.TEST_COUNTRY";
         val originTable = NTableMetadataManager.getInstance(getTestConfig(), PROJECT).getTableDesc(tableIdentity);
         prepareTableExt(tableIdentity);
@@ -856,7 +865,16 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertNull(df2.getLastSegment().getLayout(1000001));
 
         val layoutIds2 = indexPlan2.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-        Assert.assertEquals(0, Sets.difference(layoutIds, layoutIds2).size());
+        val diff = Sets.difference(layoutIds, layoutIds2);
+        Assert.assertEquals(4, diff.size());
+        Assert.assertEquals(
+                nextAggIndexId + IndexEntity.INDEX_ID_STEP
+                        * diff.stream().filter(l -> l < IndexEntity.TABLE_INDEX_START_ID).count(),
+                indexPlan2.getNextAggregationIndexId());
+        Assert.assertEquals(
+                nextTableIndexId + IndexEntity.INDEX_ID_STEP
+                        * diff.stream().filter(l -> l >= IndexEntity.TABLE_INDEX_START_ID).count(),
+                indexPlan2.getNextTableIndexId());
 
         val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDao.getJobRelatedEventsByModel(model.getId());
@@ -914,6 +932,100 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDao.getJobRelatedEventsByModel(model.getId());
         Assert.assertEquals(1, events.size());
+    }
+
+    @Test
+    public void testReload_ChangeColumnInAggManual() throws Exception {
+        val newRule = new NRuleBasedIndex();
+        newRule.setDimensions(Arrays.asList(14, 15, 16));
+        val group1 = JsonUtil.readValue("{\n" + "        \"includes\": [14,15,16],\n" + "        \"select_rule\": {\n"
+                + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
+                + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
+        newRule.setAggregationGroups(Lists.newArrayList(group1));
+        group1.setMeasures(new Integer[]{100000, 100008});
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val modelId = originIndexPlan.getId();
+        indexManager.updateIndexPlan(originIndexPlan.getId(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(newRule);
+        });
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts1 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+        Assert.assertEquals(4, layouts1.size());
+        dropModelWhen(id -> !id.equals(modelId));
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("SLR_SEGMENT_CD", "bigint");
+            }
+        }, true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
+        val layouts2 = originIndexPlan.getAllLayouts().stream().filter(LayoutEntity::isManual)
+                .filter(l -> l.getId() < IndexEntity.TABLE_INDEX_START_ID).filter(l -> l.getColOrder().contains(16))
+                .collect(Collectors.toList());
+        Assert.assertEquals(layouts1.size(), layouts2.size());
+        Assert.assertTrue(layouts1.stream()
+                .allMatch(l -> layouts2.stream().anyMatch(l2 -> l2.equals(l) && l2.getId() > l.getId())));
+    }
+
+    @Test
+    public void testReload_ChangeColumnInAggManualAndAuto() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val index = new IndexEntity();
+        index.setDimensions(Arrays.asList(14, 15, 16));
+        index.setMeasures(Arrays.asList(100000, 100008));
+        val layout = new LayoutEntity();
+        layout.setColOrder(Arrays.asList(14, 15, 16, 100000, 100008));
+        layout.setAuto(true);
+        indexManager.updateIndexPlan(modelId, copyForWrite -> {
+            val indexCopy = JsonUtil.deepCopyQuietly(index, IndexEntity.class);
+            indexCopy.setId(copyForWrite.getNextAggregationIndexId());
+            val layoutCopy = JsonUtil.deepCopyQuietly(layout, LayoutEntity.class);
+            layoutCopy.setId(indexCopy.getId() + 1);
+            indexCopy.getLayouts().add(layoutCopy);
+            indexCopy.setNextLayoutOffset(2);
+            val indexes = copyForWrite.getIndexes();
+            indexes.add(indexCopy);
+            copyForWrite.setIndexes(indexes);
+        });
+        testReload_ChangeColumnInAggManual();
+        Assert.assertTrue(indexManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .anyMatch(l -> l.equals(layout) && l.isAuto() && l.isManual() && l.getId() > layout.getId()));
+    }
+
+    @Test
+    public void testReload_ChangeColumnInTableIndex() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        dropModelWhen(id -> !id.equals(modelId));
+        val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val index = new IndexEntity();
+        index.setDimensions(Arrays.asList(14, 15, 16));
+        val layout = new LayoutEntity();
+        layout.setColOrder(Arrays.asList(14, 15, 16));
+        layout.setAuto(true);
+        layout.setManual(true);
+        indexManager.updateIndexPlan(modelId, copyForWrite -> {
+            val indexCopy = JsonUtil.deepCopyQuietly(index, IndexEntity.class);
+            indexCopy.setId(copyForWrite.getNextTableIndexId());
+            val layoutCopy = JsonUtil.deepCopyQuietly(layout, LayoutEntity.class);
+            layoutCopy.setId(indexCopy.getId() + 1);
+            indexCopy.getLayouts().add(layoutCopy);
+            indexCopy.setNextLayoutOffset(2);
+            val indexes = copyForWrite.getIndexes();
+            indexes.add(indexCopy);
+            copyForWrite.setIndexes(indexes);
+        });
+        changeTypeColumn("DEFAULT.TEST_KYLIN_FACT", new HashMap<String, String>() {
+            {
+                put("SLR_SEGMENT_CD", "bigint");
+            }
+        }, true);
+        tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
+        Assert.assertTrue(indexManager.getIndexPlan(modelId).getAllLayouts().stream()
+                .anyMatch(l -> l.equals(layout) && l.isAuto() && l.getId() > layout.getId()));
     }
 
     @Test

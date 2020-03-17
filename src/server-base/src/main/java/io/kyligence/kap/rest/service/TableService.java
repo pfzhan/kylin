@@ -95,13 +95,16 @@ import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
@@ -1149,7 +1152,6 @@ public class TableService extends BasicService {
 
     void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
             boolean needBuild) throws Exception {
-        val dataflowManager = getDataflowManager(project.getName());
         val projectName = project.getName();
 
         val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
@@ -1177,16 +1179,58 @@ public class TableService extends BasicService {
 
         modelService.updateDataModelSemantic(projectName, request);
 
-        val df = dataflowManager.getDataflow(model.getId());
         if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getUpdatedLayouts())) {
             val eventManager = getEventManager(projectName);
-            dataflowManager.removeLayouts(df, changeTypeAffectedModel.getUpdatedLayouts());
+            reAddTypeChangedLayout(projectName, changeTypeAffectedModel.getModelId(),
+                    changeTypeAffectedModel.getUpdatedLayouts());
             if (needBuild) {
                 eventManager.postAddCuboidEvents(model.getId(), getUsername());
             }
         }
-
         cleanRedundantEvents(projectName, model, events);
+    }
+
+    private void reAddTypeChangedLayout(String project, String modelId, Set<Long> typeChangedLayouts) {
+        getIndexPlanManager(project).updateIndexPlan(modelId, copy -> {
+            val indexes = typeChangedLayouts.stream()
+                    .map(layout -> (layout / IndexEntity.INDEX_ID_STEP) * IndexEntity.INDEX_ID_STEP)
+                    .collect(Collectors.toSet());
+            val originAgg = JsonUtil.deepCopyQuietly(copy.getRuleBasedIndex(), NRuleBasedIndex.class);
+            copy.addRuleBasedBlackList(
+                    copy.getRuleBaseLayouts().stream().filter(l -> typeChangedLayouts.contains(l.getId()))
+                            .map(LayoutEntity::getId).collect(Collectors.toList()));
+            val changedIndexes = copy.getIndexes().stream().filter(i -> indexes.contains(i.getId()))
+                    .collect(Collectors.toList());
+            copy.setIndexes(
+                    copy.getIndexes().stream().filter(i -> !indexes.contains(i.getId())).collect(Collectors.toList()));
+            var nextAggIndexId = copy.getNextAggregationIndexId();
+            var nextTableIndexId = copy.getNextTableIndexId();
+            for (IndexEntity indexEntity : changedIndexes) {
+                var nextLayoutOffset = 1L;
+                var nextIndexId = indexEntity.isTableIndex() ? nextTableIndexId : nextAggIndexId;
+                indexEntity.setId(nextIndexId);
+                if (indexEntity.isTableIndex()) {
+                    nextTableIndexId = nextIndexId + IndexEntity.INDEX_ID_STEP;
+                } else {
+                    nextAggIndexId = nextIndexId + IndexEntity.INDEX_ID_STEP;
+                }
+                for (LayoutEntity layoutEntity : indexEntity.getLayouts()) {
+                    layoutEntity.setId(indexEntity.getId() + (nextLayoutOffset++));
+                }
+                indexEntity.setNextLayoutOffset(nextLayoutOffset);
+            }
+            val indexList = copy.getIndexes();
+            indexList.addAll(changedIndexes);
+            copy.setIndexes(indexList);
+            if (originAgg != null) {
+                val updatedAgg = new NRuleBasedIndex();
+                updatedAgg.setAggregationGroups(originAgg.getAggregationGroups());
+                updatedAgg.setGlobalDimCap(originAgg.getGlobalDimCap());
+                updatedAgg.setDimensions(originAgg.getDimensions());
+                updatedAgg.setLastModifiedTime(System.currentTimeMillis());
+                copy.setRuleBasedIndex(updatedAgg, false, false);
+            }
+        });
     }
 
     private void setRequest(ModelRequest request, NDataModel model, AffectedModelContext removeAffectedModel,
@@ -1263,6 +1307,9 @@ public class TableService extends BasicService {
                     .collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
             val newColMap = Stream.of(context.getTableDesc().getColumns())
                     .collect(Collectors.toMap(ColumnDesc::getName, Function.identity()));
+            for (String changedTypeColumn : context.getChangeTypeColumns()) {
+                originColMap.put(changedTypeColumn, newColMap.get(changedTypeColumn));
+            }
             for (String addColumn : context.getAddColumns()) {
                 originColMap.put(addColumn, newColMap.get(addColumn));
             }

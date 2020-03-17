@@ -88,6 +88,10 @@ public class ComputedColumnEvalUtil {
         evalDataTypeOfCCInManual(Collections.singletonList(computedColumn), nDataModel, 0, 1);
     }
 
+    public static void evaluateExprAndTypeBatchInManual(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
+        evalDataTypeOfCCInManual(computedColumns, nDataModel, 0, computedColumns.size());
+    }
+
     private static void evalDataTypeOfCCInAuto(List<ComputedColumnDesc> computedColumns, NDataModel nDataModel,
             int start, int end) {
         try {

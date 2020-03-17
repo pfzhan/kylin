@@ -1866,6 +1866,7 @@ public class ModelService extends BasicService {
             TblColRef tblColRef = model.findColumn(ccDesc.getTableAlias(), ccDesc.getColumnName());
             tblColRef.getColumnDesc().setComputedColumn(ccExpression);
         }
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatchInManual(model, model.getComputedColumnDescs());
     }
 
     @Transaction(project = 0)
