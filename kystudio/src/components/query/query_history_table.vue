@@ -752,6 +752,11 @@ export default class QueryHistoryTable extends Vue {
   @import '../../assets/styles/variables.less';
   #queryHistoryTable {
     margin-top: 20px;
+    table.ksd-table{
+      tr:nth-child(odd){
+        background: @background-disabled-color;
+      }
+    }
     .el-table__expanded-cell {
       padding: 15px;
       .copy-btn {
@@ -765,7 +770,7 @@ export default class QueryHistoryTable extends Vue {
         }
       }
       .detail-title {
-        border-bottom: 1px solid @line-border-color;
+        /* border-bottom: 1px solid @line-border-color; */
         overflow: hidden;
         padding-bottom: 10px;
         span:first-child {
@@ -822,6 +827,7 @@ export default class QueryHistoryTable extends Vue {
       }
       .ksd-table th {
         width: 140px;
+        color:@text-normal-color;
       }
       .tag-ellipsis {
         width: 100%;

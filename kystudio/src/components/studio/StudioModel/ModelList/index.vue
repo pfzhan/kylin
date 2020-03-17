@@ -806,6 +806,11 @@ export default class ModelList extends Vue {
         margin-left:10px;
         z-index: 10;
       }
+      .model-detail-tabs{
+        &.el-tabs--card>.el-tabs__header .el-tabs__item.is-active{
+          border-bottom-color: #fbfbfb;
+        }
+      }
     }
     .el-table__row.no-authority-model {
       background-color: #f5f5f5;

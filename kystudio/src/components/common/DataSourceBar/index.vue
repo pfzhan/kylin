@@ -603,7 +603,7 @@ export default class DataSourceBar extends Vue {
 @import '../../../assets/styles/variables.less';
 .ky-drag-layout-line {
   height: 100%;
-  border-left: 1px solid #cfd8dc;
+  border-left: 1px solid #ddd;
   cursor: col-resize;
   float: left;
   z-index: 8;
@@ -789,7 +789,7 @@ export default class DataSourceBar extends Vue {
       font-style: normal;
     }
     & > .el-tree-node {
-      border: 1px solid #CFD8DC;
+      border: 1px solid #ddd;
       min-height: calc(~"100vh - 263px");
       overflow: hidden;
       margin-bottom: 10px;

@@ -791,7 +791,7 @@ export default class Dashboard extends Vue {
           .info-title {
             color: @text-normal-color;
             font-size: 14px;
-            line-height: 14px;
+            line-height: 20px;
             font-weight: @font-medium;
             &:first-child {
               font-weight: @font-medium;
@@ -799,20 +799,20 @@ export default class Dashboard extends Vue {
           }
           .total-quota {
             font-weight: @font-medium;
-            height: 40px;
-            line-height: 40px;
+            height: 34px;
+            line-height: 34px;
             color: @text-title-color;
           }
           .useage {
             font-weight: @font-medium;
             font-size: 18px;
-            line-height: 28px;
+            line-height: 22px;
             color: #3bb477;
           }
           .trash {
             font-weight: @font-medium;
             font-size: 18px;
-            line-height: 28px;
+            line-height: 22px;
             color: @warning-color-1;
             .clear-btn {
               font-size: 16px;
@@ -905,7 +905,7 @@ export default class Dashboard extends Vue {
     }
     .divider {
       margin: 20px 0;
-      border-top: 1px solid @table-stripe-color;
+      border-top: 1px solid @line-border-color3;
     }
   }
   .quota-popover {

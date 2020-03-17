@@ -1355,6 +1355,7 @@ export default class JobsList extends Vue {
           td:first-child{
             width: 25%;
             font-weight: @font-medium;
+            color:@text-normal-color;
           }
         }
       }

@@ -3,8 +3,8 @@
     <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
       <el-col :span="24" class="panel-center">
         <aside class="left-menu">
-          <img v-show="!briefMenuGet" src="../../assets/img/logo/big_logo.png" class="logo" @click="goHome">
-          <img v-show="briefMenuGet" src="../../assets/img/logo/small_logo.png" class="logo" @click="goHome">
+          <img v-show="!briefMenuGet" src="../../assets/img/ky_logo.png" class="logo" @click="goHome">
+          <img v-show="briefMenuGet" src="../../assets/img/logo/logo_small_white.png" class="logo" @click="goHome">
           <div class="ky-line"></div>
           <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
@@ -870,9 +870,9 @@ export default class LayoutLeftRightTop extends Vue {
           }
         }
         .logo{
-          width: 30px;
-          height: 27px;
-          margin: 14px 12px 10px 12px;
+          width: 24px;
+          height: 22px;
+          margin: 17px 15px 12px 15px;
         }
       }
       .topbar .nav-icon {
@@ -909,7 +909,7 @@ export default class LayoutLeftRightTop extends Vue {
           height: 100%;
           position: relative;
           z-index: 999;
-          background-color: #102d41;
+          background-color: #004e91;
           // >ul {
           //   height: 100%;
           //   background-color: @text-title-color;
@@ -949,15 +949,15 @@ export default class LayoutLeftRightTop extends Vue {
           //   }
           // }
           .logo {
-            width:120px;
-            height: 28px;
+            width:110px;
+            height: 26px;
             vertical-align: middle;
             z-index:999;
-            margin: 12px 0px 11px 9px;
+            margin: 13px 14px 12px 14px;
             cursor: pointer;
           }
           .ky-line {
-            background: @text-normal-color;
+            background: #053C6C;
           }
         }
         .topbar{
@@ -1118,13 +1118,13 @@ export default class LayoutLeftRightTop extends Vue {
       //   margin-bottom: 1px;
       // }
     }
-    .el-menu-item.is-active {
+    /*.el-menu-item.is-active {
       color: @base-color-1;
       background-color: @menu-active-bgcolor;
     }
     .el-menu-item:hover {
       background-color: @menu-active-bgcolor;
-    }
+    }*/
   }
   .diagnostic-model {
     width: calc(~'100% - 44px');

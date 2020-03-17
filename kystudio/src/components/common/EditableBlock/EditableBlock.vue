@@ -7,7 +7,7 @@
         @click="handleEdit">
       </i>
     </div>
-    <div class="block-body">
+    <div class="block-body" :class="{'no-footer': !isEditing}">
       <slot></slot>
     </div>
     <div class="block-foot" v-if="isEditing">
@@ -95,6 +95,8 @@ export default class EditableBlock extends Vue {
     line-height: 18px;
     font-weight: @font-medium;
     padding: 8px 15px;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
     > * {
       vertical-align: middle;
     }
@@ -113,15 +115,21 @@ export default class EditableBlock extends Vue {
   }
   .block-body {
     border: 1px solid @line-border-color;
-    background: @table-stripe-color;
+    background: @fff;
+    &.no-footer{
+      border-bottom-left-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
   }
   .block-foot {
     border-bottom: 1px solid @line-border-color;
     border-right: 1px solid @line-border-color;
     border-left: 1px solid @line-border-color;
     padding: 10px 15px;
-    background: @table-stripe-color;
+    background: @fff;
     text-align: right;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
     .el-button+.el-button {
       margin-left: 10px;
     }
