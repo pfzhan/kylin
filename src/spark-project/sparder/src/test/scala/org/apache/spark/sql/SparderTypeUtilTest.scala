@@ -23,12 +23,14 @@
  */
 package org.apache.spark.sql
 
+import java.sql.Types
+
 import org.apache.calcite.rel.`type`.RelDataTypeSystem
 import org.apache.calcite.sql.`type`.SqlTypeFactoryImpl
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.kylin.query.schema.OLAPTable
 import org.apache.spark.sql.common.SparderBaseFunSuite
-import org.apache.spark.sql.types.DataTypes
+import org.apache.spark.sql.types.{DataTypes, StructField}
 import org.apache.spark.sql.util.SparderTypeUtil
 
 class SparderTypeUtilTest extends SparderBaseFunSuite {
@@ -79,6 +81,26 @@ class SparderTypeUtilTest extends SparderBaseFunSuite {
     dataTypes.map(dt => {
       val relDataType = OLAPTable.createSqlType(typeFactory, dt, true)
       SparderTypeUtil.convertSqlTypeToSparkType(relDataType)
+    })
+  }
+
+  test("test convertSparkFieldToJavaField") {
+    val typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT)
+    dataTypes.map(dt => {
+      val relDataType = OLAPTable.createSqlType(typeFactory, dt, true)
+      val structField = SparderTypeUtil.convertSparkFieldToJavaField(
+        StructField("foo", SparderTypeUtil.convertSqlTypeToSparkType(relDataType))
+      )
+
+      if (relDataType.getSqlTypeName.getJdbcOrdinal == Types.CHAR) {
+        assert(Types.VARCHAR == structField.getDataType)
+      } else if (relDataType.getSqlTypeName.getJdbcOrdinal == Types.DECIMAL) {
+        assert(Types.DECIMAL == structField.getDataType)
+        assert(relDataType.getPrecision == structField.getPrecision)
+        assert(relDataType.getScale == structField.getScale)
+      } else {
+        assert(relDataType.getSqlTypeName.getJdbcOrdinal == structField.getDataType)
+      }
     })
   }
 

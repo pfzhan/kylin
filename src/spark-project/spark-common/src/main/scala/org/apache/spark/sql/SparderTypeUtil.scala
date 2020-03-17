@@ -426,35 +426,51 @@ object SparderTypeUtil extends Logging {
   def convertSparkFieldToJavaField(field: org.apache.spark.sql.types.StructField): io.kyligence.kap.metadata.query.StructField = {
     val builder = new io.kyligence.kap.metadata.query.StructField.StructFieldBuilder
     builder.setName(field.name)
-    val typeName = if (field.dataType.sql.startsWith("DECIMAL")) {
-      "DECIMAL"
-    } else {
-      field.dataType.sql
-    }
-    val javaType = typeName match {
-      case "BINARY" => Types.BINARY
-      case "BOOLEAN" => Types.BOOLEAN
-      case "DATE" => Types.DATE
-      case "DOUBLE" => Types.DOUBLE
-      case "FLOAT" => Types.FLOAT
-      case "INT" => Types.INTEGER
-      case "BIGINT" => Types.BIGINT
-      case "NUMERIC" => Types.NUMERIC
-      case "SMALLINT" => Types.SMALLINT
-      case "TIMESTAMP" => Types.TIMESTAMP
-      case "STRING" => Types.VARCHAR
-      case "DECIMAL" =>
-        val precisionAndScalePair = getDecimalPrecisionAndScale(typeName)
-        if (precisionAndScalePair != null) {
-          builder.setPrecision(precisionAndScalePair._1)
-          builder.setScale(precisionAndScalePair._2)
-        }
-        Types.DECIMAL
-      case _ => Types.OTHER
+
+    field.dataType match {
+      case decimal: DecimalType =>
+        builder.setPrecision(decimal.precision)
+        builder.setScale(decimal.scale)
+        builder.setDataType(Types.DECIMAL)
+        builder.setDataTypeName(s"DECIMAL(${decimal.precision},${decimal.scale})")
+      case BinaryType =>
+        builder.setDataType(Types.BINARY)
+        builder.setDataTypeName("BINARY")
+      case BooleanType =>
+        builder.setDataType(Types.BOOLEAN)
+        builder.setDataTypeName("BOOLEAN")
+      case DoubleType =>
+        builder.setDataType(Types.DOUBLE)
+        builder.setDataTypeName("DOUBLE")
+      case FloatType =>
+        builder.setDataType(Types.FLOAT)
+        builder.setDataTypeName("FLOAT")
+      case IntegerType =>
+        builder.setDataType(Types.INTEGER)
+        builder.setDataTypeName("INTEGER")
+      case LongType =>
+        builder.setDataType(Types.BIGINT)
+        builder.setDataTypeName("BIGINT")
+      case ShortType =>
+        builder.setDataType(Types.SMALLINT)
+        builder.setDataTypeName("SMALLINT")
+      case ByteType =>
+        builder.setDataType(Types.TINYINT)
+        builder.setDataTypeName("TINYINT")
+      case DateType =>
+        builder.setDataType(Types.DATE)
+        builder.setDataTypeName("DATE")
+      case TimestampType =>
+        builder.setDataType(Types.TIMESTAMP)
+        builder.setDataTypeName("TIMESTAMP")
+      case StringType =>
+        builder.setDataType(Types.VARCHAR)
+        builder.setDataTypeName("VARCHAR")
+      case _ =>
+        builder.setDataType(Types.OTHER)
+        builder.setDataTypeName(field.dataType.sql)
     }
 
-    builder.setDataType(javaType)
-    builder.setDataTypeName(typeName)
     builder.setNullable(field.nullable)
     builder.createStructField()
   }
