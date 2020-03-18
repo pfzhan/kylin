@@ -30,11 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -58,6 +53,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NBasicController;
@@ -70,19 +68,20 @@ import io.kyligence.kap.rest.request.OpenApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.OpenBatchApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
-import io.kyligence.kap.rest.response.OpenModelValidationResponse;
-import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
-import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
-import io.kyligence.kap.rest.response.RecommendationStatsResponse;
-import io.kyligence.kap.rest.response.NRecomendationListResponse;
-import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
-import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NModelDescResponse;
-import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.rest.response.NRecomendationListResponse;
+import io.kyligence.kap.rest.response.OpenModelSuggestionResponse;
+import io.kyligence.kap.rest.response.OpenModelValidationResponse;
+import io.kyligence.kap.rest.response.OpenNRecommendationListResponse;
+import io.kyligence.kap.rest.response.OpenOptRecommendationResponse;
+import io.kyligence.kap.rest.response.OptRecommendationResponse;
+import io.kyligence.kap.rest.response.RecommendationStatsResponse;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
+import io.kyligence.kap.rest.service.ModelService;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/models", produces = { HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
@@ -111,10 +110,13 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse,
+            @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
+            @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
+            @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
         checkProjectName(project);
         return modelController.getModels(modelAlias, exactMatch, project, owner, status, table, offset, limit, sortBy,
-                reverse);
+                reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
     }
 
     @VisibleForTesting

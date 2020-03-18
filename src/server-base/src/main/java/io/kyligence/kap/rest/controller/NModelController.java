@@ -138,11 +138,14 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sort_by", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse,
+            @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
+            @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
+            @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
-            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse));
+            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo));
         } else {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }

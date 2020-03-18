@@ -82,6 +82,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("segment_holes")
     private List<SegmentRange> segmentHoles;
 
+    @JsonProperty("total_indexes")
+    private long totalIndexes;
+
     private long lastModify;
 
     public NDataModelResponse() {

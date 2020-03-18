@@ -427,6 +427,12 @@ public class ModelService extends BasicService {
 
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, List<String> status, String sortBy, boolean reverse) {
+        return getModels(modelAlias, projectName, exactMatch, owner, status, sortBy, reverse, null, null, null);
+    }
+
+    public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
+            String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
+            Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
         List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
         val dfManager = getDataflowManager(projectName);
@@ -439,6 +445,22 @@ public class ModelService extends BasicService {
             if (isBroken) {
                 modelDesc = getBrokenModel(projectName, modelDesc.getId());
             }
+
+            if (Objects.nonNull(lastModifyFrom) && lastModifyFrom > modelDesc.getLastModified()) {
+                continue;
+            }
+
+            if (Objects.nonNull(lastModifyTo) && lastModifyTo <= modelDesc.getLastModified()) {
+                continue;
+            }
+
+            boolean isConditionMatchModelName = isArgMatch(modelAliasOrOwner, exactMatch, modelDesc.getAlias());
+            boolean isConditionMatchModelOwner = isArgMatch(modelAliasOrOwner, exactMatch, modelDesc.getOwner());
+
+            if (!(isConditionMatchModelName || isConditionMatchModelOwner)) {
+                continue;
+            }
+
             boolean isModelNameMatch = isArgMatch(modelAlias, exactMatch, modelDesc.getAlias());
             boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
             if (isModelNameMatch && isModelOwnerMatch) {
@@ -459,6 +481,7 @@ public class ModelService extends BasicService {
                             .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
                     nDataModelResponse.setAvailableIndexesCount(modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
                             : getAvailableIndexesCount(projectName, modelDesc.getId()));
+                    nDataModelResponse.setTotalIndexes(isBroken ? 0 : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
                     filterModels.add(nDataModelResponse);
                 }
             }

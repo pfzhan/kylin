@@ -74,8 +74,11 @@ public class KICompatibleController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse,
-            @RequestParam(value = "project") String project) {
-        val result = modelController.getModels(null, true, project, null, null, null, offset, limit, sortBy, reverse);
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "model_alias_or_owner", required = false) String modelAliasOrOwner,
+            @RequestParam(value = "last_modify_from", required = false) Long lastModifyFrom,
+            @RequestParam(value = "last_modify_to", required = false) Long lastModifyTo) {
+        val result = modelController.getModels(null, true, project, null, null, null, offset, limit, sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo);
         Map<String, Object> response = Maps.newHashMap();
         response.put("models", result.getData().getValue());
         response.put("size", result.getData().getTotalSize());

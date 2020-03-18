@@ -273,6 +273,17 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 Arrays.asList("DISABLED"), "last_modify", true);
         Assert.assertEquals(0, model5.size());
 
+        List<NDataModelResponse> models6 = modelService.getModels("", "default", false, "", null, "last_modify", true,
+                "nmodel_full_measure_test", null, null);
+        Assert.assertEquals(1, models6.size());
+
+        List<NDataModelResponse> models7 = modelService.getModels("", "default", false, "", null, "last_modify", true,
+                "admin", null, null);
+        Assert.assertEquals(6, models7.size());
+
+        List<NDataModelResponse> models8 = modelService.getModels("nmodel_full_measure_test", "default", false, "", null, "last_modify", true,
+                "admin", 0L, 1L);
+        Assert.assertEquals(0, models8.size());
     }
 
     @Test
