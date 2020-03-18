@@ -48,7 +48,13 @@ export default {
   actions: {
     [types.LOAD_MODEL_LIST]: function ({ commit }, para) {
       return new Promise((resolve, reject) => {
-        api.model.getModelList(para).then((response) => {
+        const newParams = {
+          ...para,
+          last_modify_from: para.last_modify[0] && para.last_modify[0].getTime(),
+          last_modify_to: para.last_modify[1] && para.last_modify[1].getTime(),
+          last_modify: undefined
+        }
+        api.model.getModelList(newParams).then((response) => {
           commit(types.SAVE_MODEL_LIST, { list: response.data.data.value, total: response.data.data.total_size })
           resolve(response)
         }, (res) => {

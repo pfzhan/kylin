@@ -3,9 +3,17 @@
     <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
-      <div  class="ksd-mtb-10 ksd-fright">
-        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model_name" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
+      <div class="ksd-mtb-10 ksd-fright">
+        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
         </el-input>
+        <el-button
+          text
+          class="filter-button"
+          type="primary"
+          @click="handleToggleFilters">
+          {{$t('filterButton')}}
+          <i :class="['el-icon-arrow-up', isShowFilters && 'reverse']" />
+        </el-button>
       </div>
       <div class="ky-no-br-space model-list-header">
         <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
@@ -15,9 +23,37 @@
           <span>{{$t('kylinLang.model.generateModel')}}</span>
         </el-button>
       </div>
-      <div class="filter-tags" v-show="filterTags.length">
-        <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
-        <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
+      <div class="table-filters clearfix" v-show="isShowFilters">
+        <DropdownFilter
+          type="checkbox"
+          trigger="click"
+          :value="filterArgs.status"
+          :label="$t('status_c')"
+          @input="v => filterContent(v, 'status')"
+          :options="[
+            { renderLabel: renderStatusLabel, value: 'ONLINE' },
+            { renderLabel: renderStatusLabel, value: 'OFFLINE' },
+            { renderLabel: renderStatusLabel, value: 'BROKEN' },
+          ]">
+          <span>{{selectedStatus}}</span>
+        </DropdownFilter>
+        <DropdownFilter
+          type="datetimerange"
+          trigger="click"
+          :value="filterArgs.last_modify"
+          :label="$t('lastModifyTime_c')"
+          @input="v => filterContent(v, 'last_modify')">
+          <span>{{selectedRange}}</span>
+        </DropdownFilter>
+        <div class="actions">
+          <el-button
+            text
+            type="info"
+            icon="el-icon-ksd-loading"
+            @click="handleResetFilters">
+            {{$t('reset')}}
+          </el-button>
+        </div>
       </div>
       <el-table class="model_list_table"
         v-guide.scrollModelTable
@@ -30,7 +66,6 @@
         :row-key="renderRowKey"
         :row-class-name="setRowClass"
         @expand-change="expandRow"
-        :default-sort = "{prop: 'gmtTime', order: 'descending'}"
         @sort-change="onSortChange"
         :cell-class-name="renderColumnClass"
         ref="modelListTable"
@@ -74,29 +109,63 @@
           </template>
         </el-table-column>
         <el-table-column
-        min-width="209px"
-        show-overflow-tooltip
-        prop="alias"
+          min-width="209px"
+          show-overflow-tooltip
+          prop="alias"
           :label="modelTableTitle">
+          <template slot-scope="scope">
+            <div class="alias">
+              <i :class="['filter-status', scope.row.status]" />
+              <span>{{scope.row.alias}}</span>
+            </div>
+            <el-popover
+              popper-class="last-modified-tooltip"
+              placement="top-start"
+              trigger="hover"
+              :content="$t('dataLoadTime')">
+              <div class="last-modified" slot="reference">
+                <i class="el-icon-ksd-elapsed_time" />
+                <span>{{scope.row.gmtTime}}</span>
+              </div>
+            </el-popover>
+            <el-popover
+              popper-class="recommend-tooltip"
+              placement="top-start"
+              trigger="hover"
+              :disabled="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">
+              <div class="recommend" slot="reference">
+                <i class="el-icon-ksd-status" />
+                <span class="recommend-count">
+                  <b>{{scope.row.recommendations_count || 0}}</b>
+                </span>
+              </div>
+              <span>{{$t('recommendations_c')}}</span>
+              <span class="recommend-link" @click="openRecommendDialog(scope.row)">{{$t('clickToView')}}</span>
+            </el-popover>
+          </template>
         </el-table-column>
         <el-table-column
-          prop="fact_table"
+          prop="total_indexes"
+          header-align="right"
+          align="right"
           show-overflow-tooltip
-          min-width="129px"
-          :label="$t('kylinLang.common.fact')">
+          width="120px"
+          :label="$t('aggIndexCount')">
           <template slot-scope="scope">
-            <span :class="{'is-disabled': scope.row.root_fact_table_deleted}">{{scope.row.fact_table}}</span>
+            <span>{{scope.row.total_indexes || 0}}</span>
           </template>
         </el-table-column>
         <el-table-column
           header-align="right"
           align="right"
-          prop="usage"
-          sortable="custom"
+          prop="storage"
           show-overflow-tooltip
           width="120px"
-          :render-header="renderUsageHeader"
-          :label="$t('usage')">
+          sortable="custom"
+          :label="$t('storage')">
+          <template slot-scope="scope">
+            {{scope.row.storage|dataSize}}
+          </template>
         </el-table-column>
         <el-table-column
           header-align="right"
@@ -111,7 +180,17 @@
               <span v-else class="is-disabled">{{$t('tentative')}}</span>
           </template>
         </el-table-column>
-         <el-table-column
+        <el-table-column
+          header-align="right"
+          align="right"
+          prop="usage"
+          sortable="custom"
+          show-overflow-tooltip
+          width="120px"
+          :render-header="renderUsageHeader"
+          :label="$t('usage')">
+        </el-table-column>
+        <!-- <el-table-column
           header-align="right"
           align="right"
           prop="recommendations_count"
@@ -123,40 +202,7 @@
             <span v-if="scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible)" class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
             <span v-else>{{scope.row.recommendations_count}}</span>
           </template>
-         </el-table-column>
-         <el-table-column
-          header-align="right"
-          align="right"
-          prop="storage"
-          show-overflow-tooltip
-          width="120px"
-          sortable="custom"
-          :label="$t('storage')">
-          <template slot-scope="scope">
-            {{scope.row.storage|dataSize}}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="gmtTime"
-          show-overflow-tooltip
-          sortable="custom"
-          width="178px"
-          :label="$t('dataLoadTime')">
-        </el-table-column>
-        <el-table-column
-          prop="status"
-          show-overflow-tooltip
-          width="110"
-          :filters="statusList.map(item => ({text: item, value: item}))"
-          :filtered-value="filterArgs.status"
-          :label="$t('status')"
-          filter-icon="el-icon-ksd-filter"
-          :show-multiple-footer="false"
-          :filter-change="(v) => filterContent(v, 'status')">
-          <template slot-scope="scope">
-            <el-tag size="mini" :type="getModelStatusTagType[scope.row.status]">{{scope.row.status}}</el-tag>
-          </template>
-        </el-table-column>
+         </el-table-column> -->
         <el-table-column
           v-if="!isAutoProject"
           prop="owner"
@@ -238,6 +284,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
+import dayjs from 'dayjs'
 import { NamedRegex } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
@@ -259,6 +306,23 @@ import ModelRecommendModal from './ModelRecommendModal/index.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
+import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
+
+function getDefaultFilters () {
+  return {
+    page_offset: 0,
+    page_size: 10,
+    exact: false,
+    model_name: '',
+    sort_by: 'last_modify',
+    reverse: true,
+    status: [],
+    model_alias_or_owner: '',
+    last_modify: [],
+    owner: ''
+  }
+}
+
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -273,6 +337,9 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
       }
       // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的
       vm.filterArgs.project = vm.currentSelectedProject
+      const prop = 'gmtTime'
+      const order = 'descending'
+      vm.onSortChange({ prop, order })
     })
   },
   computed: {
@@ -337,26 +404,20 @@ import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
     ModelJson,
     ModelSql,
     ModelRecommendModal,
-    UploadSqlModel
+    UploadSqlModel,
+    DropdownFilter
   },
   locales
 })
 export default class ModelList extends Vue {
   mockSQL = mockSQL
-  filterArgs = {
-    page_offset: 0,
-    page_size: 10,
-    exact: false,
-    model_name: '',
-    sort_by: 'last_modify',
-    reverse: true,
-    status: []
-  }
+  filterArgs = getDefaultFilters()
   statusList = ['ONLINE', 'OFFLINE', 'BROKEN']
   currentEditModel = null
   showFull = false
   showSearchResult = false
   searchLoading = false
+  isShowFilters = true
   modelArray = []
   expandedRows = []
   filterTags = []
@@ -377,6 +438,37 @@ export default class ModelList extends Vue {
   }
   get modelTableTitle () {
     return this.isAutoProject ? this.$t('kylinLang.model.indexGroupName') : this.$t('kylinLang.model.modelNameGrid')
+  }
+  get selectedStatus () {
+    const { filterArgs } = this
+    return filterArgs.status.length
+      ? filterArgs.status.map(status => this.$t(status)).join(', ')
+      : this.$t('ALL')
+  }
+  get selectedRange () {
+    const { filterArgs } = this
+    if (filterArgs.last_modify && filterArgs.last_modify.length !== 0) {
+      const [startTime, endTime] = filterArgs.last_modify
+      const startDate = dayjs(startTime).format('YYYY-MM-DD HH:mm:ss')
+      const endDate = dayjs(endTime).format('YYYY-MM-DD HH:mm:ss')
+      return `${startDate} - ${endDate}`
+    }
+    return this.$t('allTimeRange')
+  }
+  handleFilterInput (value) {
+    this.filterArgs.model_alias_or_owner = value
+  }
+  handleResetFilters () {
+    const defaultFilters = getDefaultFilters()
+
+    Object.entries(defaultFilters).map(([key, value]) => {
+      this.filterArgs[key] = value
+    })
+
+    this.pageCurrentChange(0, this.filterArgs.page_size)
+  }
+  handleToggleFilters () {
+    this.isShowFilters = !this.isShowFilters
   }
   getModelStatusTagType = ModelStatusTagType
   renderFullExpandClass (row) {
@@ -602,7 +694,7 @@ export default class ModelList extends Vue {
       })
     })
   }
-  onSortChange ({ column, prop, order }) {
+  onSortChange ({ prop, order }) {
     this.filterArgs.sort_by = prop
     if (prop === 'gmtTime') {
       this.filterArgs.sort_by = 'last_modify'
@@ -727,11 +819,22 @@ export default class ModelList extends Vue {
       showCopyTextLeftBtn: true
     })
   }
+
+  renderStatusLabel (h, option) {
+    const { value } = option
+    return [
+      <i class={['filter-status', value]} />,
+      <span>{value}</span>
+    ]
+  }
 }
 </script>
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .mode-list{
+  .dropdown-filter + .dropdown-filter {
+    margin-left: 5px;
+  }
   .broken-column {
     .cell {
       display: none;
@@ -900,27 +1003,52 @@ export default class ModelList extends Vue {
   .el-tabs__content {
     overflow: initial;
   }
-  .filter-tags {
+  .table-filters {
     margin-bottom: 10px;
-    padding: 0px 5px 5px;
-    box-sizing: border-box;
-    position: relative;
-    background: @background-disabled-color;
-    .filter-tags-layout {
+    .actions {
+      float: right;
+      .el-button.is-text {
+        padding: 0;
+      }
+    }
+  }
+  .alias {
+    font-weight: 500;
+    line-height: 20px;
+    width: 100%;
+    margin-bottom: 5px;
+    float: left;
+  }
+  .last-modified {
+    font-size: 12px;
+    line-height: 18px;
+    float: left;
+    margin-right: 15px;
+    i {
+      color: #989898;
+    }
+  }
+  .recommend {
+    font-size: 12px;
+    line-height: 18px;
+    float: left;
+    color: @color-primary;
+    i {
+      color: #989898;
+    }
+  }
+  .recommend-count {
+    height: 18px;
+    border-radius: 4px;
+    background-color: #E3F2FC;
+    padding: 1px 5px;
+    line-height: 16px;
+    font-weight: 500;
+    margin-left: 2px;
+    b {
+      position: relative;
+      transform: scale(0.833333);
       display: inline-block;
-      width: calc(~'100% - 80px');
-    }
-    .el-tag {
-      margin-left: 5px;
-      margin-top: 5px;
-    }
-    .clear-all-filters {
-      position: absolute;
-      top: 8px;
-      right: 10px;
-      font-size: 14px;
-      color: @base-color;
-      cursor: pointer;
     }
   }
 }
@@ -929,6 +1057,51 @@ export default class ModelList extends Vue {
     .dialog-detail-scroll {
       max-height: 200px;
     }
+  }
+}
+.filter-button {
+  margin-left: 5px;
+  .el-icon-arrow-up {
+    transform: rotate(180deg);
+  }
+  .el-icon-arrow-up.reverse {
+    transform: rotate(0);
+  }
+}
+.filter-status {
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  position: relative;
+  top: 2px;
+  margin-right: 5px;
+  &.ONLINE {
+    background-color: #4CB050;
+  }
+  &.OFFLINE {
+    background-color: #5C5C5C;
+  }
+  &.BROKEN {
+    background-color: #E73371;
+  }
+}
+.last-modified-tooltip {
+  min-width: unset;
+  transform: translate(-5px, 5px);
+  .popper__arrow {
+    left: 5px !important;
+  }
+}
+.recommend-tooltip {
+  min-width: unset;
+  transform: translate(-5px, 5px);
+  .popper__arrow {
+    left: 5px !important;
+  }
+  .recommend-link {
+    color: @color-primary;
+    cursor: pointer;
   }
 }
 </style>
