@@ -30,9 +30,12 @@ import java.io.FileInputStream;
 import java.util.List;
 
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
+import org.apache.kylin.rest.response.ResponseCode;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -42,19 +45,25 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.SQLValidateRequest;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 import io.kyligence.kap.rest.service.ProjectService;
+import lombok.var;
 
 public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
 
@@ -85,6 +94,19 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
+    private void changeProjectToExpertMode() {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(PROJECT, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kap.metadata.semi-automatic-mode", "false");
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+    }
+
     @Test
     public void testCreateFavoriteQuery() throws Exception {
         FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList("test_sql_pattern"));
@@ -94,6 +116,23 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).createFavoriteQuery(Mockito.any());
+    }
+
+    @Test
+    public void testCreateFavoriteQueryFailedForExpertMode() throws Exception {
+        changeProjectToExpertMode();
+
+        FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList("test_sql_pattern"));
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/query/favorite_queries")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+
+        Mockito.verify(favoriteQueryController).createFavoriteQuery(Mockito.any());
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
     }
 
     private List<FavoriteQuery> mockedFavoriteQueries() {
@@ -130,6 +169,21 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         Mockito.verify(favoriteQueryController).getAccelerateTips(PROJECT);
+    }
+
+    @Test
+    public void testGetAccelerateTipsFailedForExpertMode() throws Exception {
+        changeProjectToExpertMode();
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/threshold")
+                        .contentType(MediaType.APPLICATION_JSON).param("project", PROJECT)
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+
+        Mockito.verify(favoriteQueryController).getAccelerateTips(PROJECT);
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
+        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
     }
 
     @Test

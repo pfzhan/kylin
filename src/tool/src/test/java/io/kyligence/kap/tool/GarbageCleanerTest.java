@@ -231,6 +231,45 @@ public class GarbageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCleanUpWithExpertMode() {
+        long currentTime = System.currentTimeMillis();
+        ZoneId zoneId = TimeZone.getDefault().toZoneId();
+        LocalDate localDate = Instant.ofEpochMilli(currentTime).atZone(zoneId).toLocalDate();
+        long currentDate = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+        val newFq = new FavoriteQuery("sql");
+        newFq.initAfterReload(getTestConfig(), PROJECT);
+        newFq.setCreateTime(System.currentTimeMillis() - 31 * 24 * 60 * 60 * 1000L);
+        newFq.setFrequencyMap(new FrequencyMap(new TreeMap<Long, Integer>() {
+            {
+                put(TimeUtil.minusDays(currentDate, 7), 10);
+                put(TimeUtil.minusDays(currentDate, 30), 10);
+            }
+        }));
+
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        favoriteQueryManager.create(Sets.newHashSet(newFq));
+
+        // before cleaned 4 fqs
+        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
+
+        // change project to expert mode
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(PROJECT, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kap.metadata.semi-automatic-mode", "false");
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+
+        // after clean is also the same
+        GarbageCleaner.cleanupMetadataManually(PROJECT);
+        Assert.assertEquals(4, favoriteQueryManager.getAll().size());
+    }
+
+    @Test
     public void testcleanupMetadataManually_ChangeConfig() {
         long currentTime = System.currentTimeMillis();
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
