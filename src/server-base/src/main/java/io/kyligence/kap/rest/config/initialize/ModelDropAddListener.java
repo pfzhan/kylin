@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.util.Map;
 
+import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.kylin.common.KylinConfig;
 
 import com.codahale.metrics.Gauge;
@@ -38,7 +39,6 @@ import io.kyligence.kap.common.metrics.NMetricsTag;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 public class ModelDropAddListener {
@@ -55,14 +55,13 @@ public class ModelDropAddListener {
 
         NMetricsGroup.newGauge(NMetricsName.MODEL_SEGMENTS, NMetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
-            @Override
-            public Long getResult() {
-                NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0L : df.getSegments().size();
-            }
-        });
-        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags,
-                new GaugeWrapper() {
+                    @Override
+                    public Long getResult() {
+                        NDataflow df = dfManager.getDataflow(modelId);
+                        return df == null ? 0L : df.getSegments().size();
+                    }
+                });
+        NMetricsGroup.newGauge(NMetricsName.MODEL_STORAGE, NMetricsCategory.PROJECT, project, tags, new GaugeWrapper() {
             @Override
             public Long getResult() {
                 NDataflow df = dfManager.getDataflow(modelId);
@@ -71,23 +70,39 @@ public class ModelDropAddListener {
         });
         NMetricsGroup.newGauge(NMetricsName.MODEL_LAST_QUERY_TIME, NMetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
-            @Override
-            public Long getResult() {
-                NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0L : df.getLastQueryTime();
-            }
-        });
+                    @Override
+                    public Long getResult() {
+                        NDataflow df = dfManager.getDataflow(modelId);
+                        return df == null ? 0L : df.getLastQueryTime();
+                    }
+                });
         NMetricsGroup.newGauge(NMetricsName.MODEL_QUERY_COUNT, NMetricsCategory.PROJECT, project, tags,
                 new GaugeWrapper() {
-            @Override
-            public Long getResult() {
-                NDataflow df = dfManager.getDataflow(modelId);
-                return df == null ? 0L : df.getQueryHitCount();
-            }
+                    @Override
+                    public Long getResult() {
+                        NDataflow df = dfManager.getDataflow(modelId);
+                        return df == null ? 0L : df.getQueryHitCount();
+                    }
+                });
+        NMetricsGroup.newGauge(NMetricsName.MODEL_INDEX_NUM_GAUGE, NMetricsCategory.PROJECT, project, tags,
+                new GaugeWrapper() {
+                    @Override
+                    public Long getResult() {
+                        NDataflow df = dfManager.getDataflow(modelId);
+                        return df == null ? 0L : df.getIndexPlan().getAllLayouts().size();
+                    }
+                });
+
+        NMetricsGroup.newGauge(NMetricsName.MODEL_EXPANSION_RATE_GAUGE, NMetricsCategory.PROJECT, project, tags, () -> {
+            NDataflow df = dfManager.getDataflow(modelId);
+            return df == null ? Double.valueOf(0)
+                    : Double.valueOf(
+                            ModelUtils.computeExpansionRate(df.getStorageBytesSize(), df.getSourceBytesSize()));
         });
 
         NMetricsGroup.newCounter(NMetricsName.MODEL_BUILD_DURATION, NMetricsCategory.PROJECT, project, tags);
         NMetricsGroup.newCounter(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, project, tags);
+        NMetricsGroup.newHistogram(NMetricsName.MODEL_BUILD_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, project, tags);
     }
 
     abstract static class GaugeWrapper implements Gauge<Long> {

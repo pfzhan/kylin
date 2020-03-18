@@ -45,6 +45,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.rest.util.ModelUtils;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -474,8 +475,8 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
                     nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
                     nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
-                    nDataModelResponse.setExpansionrate(
-                            computeExpansionRate(nDataModelResponse.getStorage(), nDataModelResponse.getSource()));
+                    nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
+                            nDataModelResponse.getSource()));
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                     nDataModelResponse
                             .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
@@ -536,19 +537,6 @@ public class ModelService extends BasicService {
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
         return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
                 || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
-    }
-
-    private String computeExpansionRate(long storageBytesSize, long sourceBytesSize) {
-        if (storageBytesSize == 0) {
-            return "0";
-        }
-        if (sourceBytesSize == 0) {
-            return "-1";
-        }
-        BigDecimal divide = new BigDecimal(storageBytesSize).divide(new BigDecimal(sourceBytesSize), 4,
-                BigDecimal.ROUND_HALF_UP);
-        BigDecimal bigDecimal = divide.multiply(new BigDecimal(100)).setScale(2);
-        return bigDecimal.toString();
     }
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {

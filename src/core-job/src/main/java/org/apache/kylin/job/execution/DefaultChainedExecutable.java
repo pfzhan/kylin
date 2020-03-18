@@ -237,6 +237,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                         tags, getDuration());
                 NMetricsGroup.counterInc(NMetricsName.MODEL_WAIT_DURATION, NMetricsCategory.PROJECT, getProject(), tags,
                         getWaitTime());
+                NMetricsGroup.histogramUpdate(NMetricsName.MODEL_BUILD_DURATION_HISTOGRAM, NMetricsCategory.PROJECT, project,
+                        tags, getDuration());
             }
         }
     }

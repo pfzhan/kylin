@@ -351,7 +351,7 @@ public class NMetricsGroup {
         return newHistogram(name, category, entity, Collections.emptyMap());
     }
 
-    private static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity,
+    public static boolean newHistogram(NMetricsName name, NMetricsCategory category, String entity,
             Map<String, String> tags) {
         try {
             final Histogram histogram = registerHistogramIfAbsent(name.getVal(), category.getVal(), entity, tags);

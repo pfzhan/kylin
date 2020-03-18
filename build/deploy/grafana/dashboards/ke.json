@@ -15,7 +15,8 @@
     "editable": true,
     "gnetId": null,
     "graphTooltip": 0,
-    "iteration": 1573117573085,
+    "id": 5,
+    "iteration": 1584527461261,
     "links": [],
     "panels": [
         {
@@ -1814,7 +1815,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -1935,7 +1942,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2056,7 +2069,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "timeFrom": null,
@@ -2136,7 +2155,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2252,7 +2277,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2368,7 +2399,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2484,7 +2521,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2600,7 +2643,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2624,6 +2673,381 @@
                     "yaxes": [
                         {
                             "format": "short",
+                            "label": null,
+                            "logBase": 1,
+                            "max": null,
+                            "min": null,
+                            "show": true
+                        },
+                        {
+                            "format": "short",
+                            "label": null,
+                            "logBase": 1,
+                            "max": null,
+                            "min": null,
+                            "show": true
+                        }
+                    ],
+                    "yaxis": {
+                        "align": false,
+                        "alignLevel": null
+                    }
+                },
+                {
+                    "aliasColors": {},
+                    "bars": false,
+                    "dashLength": 10,
+                    "dashes": false,
+                    "datasource": "KylinInfluxDB",
+                    "fill": 1,
+                    "gridPos": {
+                        "h": 8,
+                        "w": 12,
+                        "x": 0,
+                        "y": 35
+                    },
+                    "id": 212,
+                    "interval": "$granularity",
+                    "legend": {
+                        "alignAsTable": false,
+                        "avg": false,
+                        "current": false,
+                        "max": false,
+                        "min": false,
+                        "rightSide": false,
+                        "show": true,
+                        "total": false,
+                        "values": false
+                    },
+                    "lines": true,
+                    "linewidth": 1,
+                    "links": [],
+                    "nullPointMode": "null",
+                    "options": {},
+                    "percentage": false,
+                    "pointradius": 2,
+                    "points": false,
+                    "renderer": "flot",
+                    "seriesOverrides": [],
+                    "spaceLength": 10,
+                    "stack": false,
+                    "steppedLine": false,
+                    "targets": [
+                        {
+                            "alias": "$tag_model",
+                            "groupBy": [
+                                {
+                                    "params": [
+                                        "$__interval"
+                                    ],
+                                    "type": "time"
+                                },
+                                {
+                                    "params": [
+                                        "model"
+                                    ],
+                                    "type": "tag"
+                                }
+                            ],
+                            "hide": false,
+                            "measurement": "system_metric",
+                            "orderByTime": "ASC",
+                            "policy": "KE_METRICS_RP",
+                            "query": "SELECT last(\"model_index_num_gauge\") FROM \"KE_METRICS_RP\".\"system_metric\" WHERE $timeFilter GROUP BY time($__interval), \"model\"",
+                            "rawQuery": false,
+                            "refId": "A",
+                            "resultFormat": "time_series",
+                            "select": [
+                                [
+                                    {
+                                        "params": [
+                                            "model_index_num_gauge"
+                                        ],
+                                        "type": "field"
+                                    },
+                                    {
+                                        "params": [],
+                                        "type": "last"
+                                    }
+                                ]
+                            ],
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
+                        }
+                    ],
+                    "thresholds": [],
+                    "timeFrom": null,
+                    "timeRegions": [],
+                    "timeShift": null,
+                    "title": "number of indexes",
+                    "tooltip": {
+                        "shared": true,
+                        "sort": 0,
+                        "value_type": "individual"
+                    },
+                    "type": "graph",
+                    "xaxis": {
+                        "buckets": null,
+                        "mode": "time",
+                        "name": null,
+                        "show": true,
+                        "values": []
+                    },
+                    "yaxes": [
+                        {
+                            "format": "short",
+                            "label": null,
+                            "logBase": 1,
+                            "max": null,
+                            "min": null,
+                            "show": true
+                        },
+                        {
+                            "format": "short",
+                            "label": null,
+                            "logBase": 1,
+                            "max": null,
+                            "min": null,
+                            "show": true
+                        }
+                    ],
+                    "yaxis": {
+                        "align": false,
+                        "alignLevel": null
+                    }
+                },
+                {
+                    "aliasColors": {},
+                    "bars": false,
+                    "dashLength": 10,
+                    "dashes": false,
+                    "datasource": "KylinInfluxDB",
+                    "fill": 1,
+                    "gridPos": {
+                        "h": 8,
+                        "w": 12,
+                        "x": 12,
+                        "y": 35
+                    },
+                    "id": 213,
+                    "interval": "$granularity",
+                    "legend": {
+                        "avg": false,
+                        "current": false,
+                        "max": false,
+                        "min": false,
+                        "show": true,
+                        "total": false,
+                        "values": false
+                    },
+                    "lines": true,
+                    "linewidth": 1,
+                    "links": [],
+                    "nullPointMode": "null",
+                    "options": {},
+                    "percentage": false,
+                    "pointradius": 2,
+                    "points": false,
+                    "renderer": "flot",
+                    "seriesOverrides": [],
+                    "spaceLength": 10,
+                    "stack": false,
+                    "steppedLine": false,
+                    "targets": [
+                        {
+                            "alias": "$tag_model",
+                            "groupBy": [
+                                {
+                                    "params": [
+                                        "$__interval"
+                                    ],
+                                    "type": "time"
+                                },
+                                {
+                                    "params": [
+                                        "model"
+                                    ],
+                                    "type": "tag"
+                                }
+                            ],
+                            "measurement": "system_metric",
+                            "orderByTime": "ASC",
+                            "policy": "KE_METRICS_RP",
+                            "refId": "A",
+                            "resultFormat": "time_series",
+                            "select": [
+                                [
+                                    {
+                                        "params": [
+                                            "model_expansion_rate_gauge"
+                                        ],
+                                        "type": "field"
+                                    },
+                                    {
+                                        "params": [],
+                                        "type": "last"
+                                    }
+                                ]
+                            ],
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
+                        }
+                    ],
+                    "thresholds": [],
+                    "timeFrom": null,
+                    "timeRegions": [],
+                    "timeShift": null,
+                    "title": "expansion rate of models",
+                    "tooltip": {
+                        "shared": true,
+                        "sort": 0,
+                        "value_type": "individual"
+                    },
+                    "type": "graph",
+                    "xaxis": {
+                        "buckets": null,
+                        "mode": "time",
+                        "name": null,
+                        "show": true,
+                        "values": []
+                    },
+                    "yaxes": [
+                        {
+                            "decimals": 1,
+                            "format": "percent",
+                            "label": null,
+                            "logBase": 1,
+                            "max": null,
+                            "min": null,
+                            "show": true
+                        },
+                        {
+                            "format": "short",
+                            "label": null,
+                            "logBase": 1,
+                            "max": null,
+                            "min": null,
+                            "show": true
+                        }
+                    ],
+                    "yaxis": {
+                        "align": false,
+                        "alignLevel": null
+                    }
+                },
+                {
+                    "aliasColors": {},
+                    "bars": false,
+                    "dashLength": 10,
+                    "dashes": false,
+                    "datasource": "KylinInfluxDB",
+                    "fill": 1,
+                    "gridPos": {
+                        "h": 8,
+                        "w": 12,
+                        "x": 0,
+                        "y": 43
+                    },
+                    "id": 215,
+                    "interval": "$granularity",
+                    "legend": {
+                        "avg": false,
+                        "current": false,
+                        "max": false,
+                        "min": false,
+                        "show": true,
+                        "total": false,
+                        "values": false
+                    },
+                    "lines": true,
+                    "linewidth": 1,
+                    "links": [],
+                    "nullPointMode": "null",
+                    "options": {},
+                    "percentage": false,
+                    "pointradius": 2,
+                    "points": false,
+                    "renderer": "flot",
+                    "seriesOverrides": [],
+                    "spaceLength": 10,
+                    "stack": false,
+                    "steppedLine": false,
+                    "targets": [
+                        {
+                            "alias": "$tag_model",
+                            "groupBy": [
+                                {
+                                    "params": [
+                                        "$__interval"
+                                    ],
+                                    "type": "time"
+                                },
+                                {
+                                    "params": [
+                                        "model"
+                                    ],
+                                    "type": "tag"
+                                }
+                            ],
+                            "measurement": "system_metric",
+                            "orderByTime": "ASC",
+                            "policy": "KE_METRICS_RP",
+                            "refId": "A",
+                            "resultFormat": "time_series",
+                            "select": [
+                                [
+                                    {
+                                        "params": [
+                                            "model_build_duration_histogram_mean"
+                                        ],
+                                        "type": "field"
+                                    },
+                                    {
+                                        "params": [],
+                                        "type": "last"
+                                    }
+                                ]
+                            ],
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
+                        }
+                    ],
+                    "thresholds": [],
+                    "timeFrom": null,
+                    "timeRegions": [],
+                    "timeShift": null,
+                    "title": "model build duration (avg)",
+                    "tooltip": {
+                        "shared": true,
+                        "sort": 0,
+                        "value_type": "individual"
+                    },
+                    "type": "graph",
+                    "xaxis": {
+                        "buckets": null,
+                        "mode": "time",
+                        "name": null,
+                        "show": true,
+                        "values": []
+                    },
+                    "yaxes": [
+                        {
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2737,7 +3161,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -2972,7 +3402,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3088,7 +3524,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3205,7 +3647,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3322,7 +3770,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3441,7 +3895,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3557,7 +4017,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3674,7 +4140,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3790,7 +4262,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -3907,7 +4385,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4023,7 +4507,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4140,7 +4630,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4256,7 +4752,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4372,7 +4874,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4488,7 +4996,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4605,7 +5119,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4721,7 +5241,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4840,7 +5366,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -4956,7 +5488,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5075,7 +5613,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5194,7 +5738,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5431,7 +5981,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5552,7 +6108,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5672,7 +6234,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5792,7 +6360,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -5912,7 +6486,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6144,7 +6724,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6213,7 +6799,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 35
+                        "y": 5
                     },
                     "id": 34,
                     "interval": "$granularity",
@@ -6277,7 +6863,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6332,7 +6924,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 35
+                        "y": 5
                     },
                     "id": 32,
                     "interval": "$granularity",
@@ -6396,7 +6988,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6451,7 +7049,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 43
+                        "y": 13
                     },
                     "id": 118,
                     "interval": "$granularity",
@@ -6515,7 +7113,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6570,7 +7174,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 43
+                        "y": 13
                     },
                     "id": 119,
                     "interval": "$granularity",
@@ -6634,7 +7238,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6690,7 +7300,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 51
+                        "y": 21
                     },
                     "id": 101,
                     "interval": "$granularity",
@@ -6754,7 +7364,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6810,7 +7426,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 51
+                        "y": 21
                     },
                     "id": 120,
                     "interval": "$granularity",
@@ -6874,7 +7490,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -6930,7 +7552,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 59
+                        "y": 29
                     },
                     "id": 121,
                     "interval": "$granularity",
@@ -6994,7 +7616,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7050,7 +7678,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 59
+                        "y": 29
                     },
                     "id": 122,
                     "interval": "$granularity",
@@ -7114,7 +7742,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7170,7 +7804,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 67
+                        "y": 37
                     },
                     "id": 123,
                     "interval": "$granularity",
@@ -7234,7 +7868,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7289,7 +7929,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 67
+                        "y": 37
                     },
                     "id": 103,
                     "interval": "$granularity",
@@ -7353,7 +7993,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7408,7 +8054,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 75
+                        "y": 45
                     },
                     "id": 102,
                     "interval": "$granularity",
@@ -7473,7 +8119,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7528,7 +8180,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 75
+                        "y": 45
                     },
                     "id": 105,
                     "interval": "$granularity",
@@ -7592,7 +8244,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7647,7 +8305,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 83
+                        "y": 53
                     },
                     "id": 104,
                     "interval": "$granularity",
@@ -7711,7 +8369,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7766,7 +8430,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 83
+                        "y": 53
                     },
                     "id": 107,
                     "interval": "$granularity",
@@ -7830,7 +8494,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -7885,7 +8555,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 91
+                        "y": 61
                     },
                     "id": 106,
                     "interval": "$granularity",
@@ -7949,7 +8619,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8082,7 +8758,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8201,7 +8883,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8318,7 +9006,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8435,7 +9129,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8554,7 +9254,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8673,7 +9379,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8792,7 +9504,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -8911,7 +9629,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9030,7 +9754,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9149,7 +9879,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9268,7 +10004,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9387,7 +10129,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9503,7 +10251,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9619,7 +10373,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -9700,7 +10460,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 54
+                        "y": 7
                     },
                     "id": 26,
                     "interval": "$granularity",
@@ -9815,7 +10575,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 54
+                        "y": 7
                     },
                     "id": 114,
                     "interval": "$granularity",
@@ -9930,7 +10690,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 62
+                        "y": 15
                     },
                     "id": 115,
                     "interval": "$granularity",
@@ -10048,7 +10808,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 271
+                        "y": 8
                     },
                     "id": 95,
                     "interval": "$granularity",
@@ -10168,7 +10928,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 271
+                        "y": 8
                     },
                     "id": 28,
                     "interval": "$granularity",
@@ -10288,7 +11048,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 279
+                        "y": 16
                     },
                     "id": 116,
                     "interval": "$granularity",
@@ -10408,7 +11168,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 279
+                        "y": 16
                     },
                     "id": 117,
                     "interval": "$granularity",
@@ -10527,7 +11287,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 287
+                        "y": 24
                     },
                     "id": 30,
                     "interval": "$granularity",
@@ -10663,7 +11423,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 287
+                        "y": 24
                     },
                     "id": 98,
                     "interval": "$granularity",
@@ -10780,7 +11540,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 56
+                        "y": 9
                     },
                     "id": 46,
                     "interval": "$granularity",
@@ -10899,7 +11659,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 56
+                        "y": 9
                     },
                     "id": 76,
                     "interval": "$granularity",
@@ -11032,7 +11792,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 57
+                        "y": 10
                     },
                     "id": 44,
                     "interval": "$granularity",
@@ -11096,7 +11856,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11151,7 +11917,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 57
+                        "y": 10
                     },
                     "id": 42,
                     "interval": "$granularity",
@@ -11215,7 +11981,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11347,6 +12119,32 @@
                 "refresh": 2,
                 "skipUrlSync": false,
                 "type": "interval"
+            },
+            {
+                "allValue": null,
+                "current": {
+                    "tags": [],
+                    "text": "All",
+                    "value": "$__all"
+                },
+                "datasource": "KylinInfluxDB",
+                "definition": "show tag values from system_metric with key=\"entity\" where category =~ /project/;",
+                "hide": 0,
+                "includeAll": true,
+                "label": null,
+                "multi": false,
+                "name": "project",
+                "options": [],
+                "query": "show tag values from system_metric with key=\"entity\" where category =~ /project/;",
+                "refresh": 2,
+                "regex": "",
+                "skipUrlSync": false,
+                "sort": 0,
+                "tagValuesQuery": "",
+                "tags": [],
+                "tagsQuery": "",
+                "type": "query",
+                "useTags": false
             }
         ]
     },
@@ -11382,5 +12180,5 @@
     "timezone": "",
     "title": "Kyligence Enterprise",
     "uid": "rUE4Q44Zk",
-    "version": 2
+    "version": 3
 }
