@@ -222,7 +222,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         // after create spark job remove some layouts
         val removeIds = Sets.newHashSet(1L);
         cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayouts(removeIds, LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(removeIds, true, true);
         });
         df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.removeLayouts(df, removeIds);

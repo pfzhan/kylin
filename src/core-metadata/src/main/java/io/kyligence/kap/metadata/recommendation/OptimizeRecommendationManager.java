@@ -113,6 +113,7 @@ public class OptimizeRecommendationManager {
                 OptimizeRecommendation.class) {
             @Override
             protected OptimizeRecommendation initEntityAfterReload(OptimizeRecommendation entity, String resourceName) {
+                entity.setProject(project);
                 entity.init();
                 return entity;
             }
@@ -370,7 +371,6 @@ public class OptimizeRecommendationManager {
             recommendation.setCcRecommendations(Lists.newArrayList());
             recommendation.setDimensionRecommendations(Lists.newArrayList());
             recommendation.setMeasureRecommendations(Lists.newArrayList());
-            recommendation.setIndexRecommendations(Lists.newArrayList());
             recommendation.setLayoutRecommendations(Lists.newArrayList());
         });
         logOptimizeRecommendation(id);

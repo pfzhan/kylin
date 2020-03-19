@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -1084,28 +1085,6 @@ public class NDataModel extends RootPersistentEntity {
         }
     }
 
-    public List<Measure> getAllMeasures() {
-        return allMeasures;
-    }
-
-    /**
-     * returns ID <==> TblColRef
-     */
-    public ImmutableBiMap<Integer, TblColRef> getEffectiveColsMap() {
-        return effectiveCols;
-    }
-
-    public ImmutableBiMap<Integer, TblColRef> getEffectiveDimenionsMap() {
-        return effectiveDimensions;
-    }
-
-    /**
-     * returns ID <==> Measure
-     */
-    public ImmutableBiMap<Integer, Measure> getEffectiveMeasureMap() {
-        return effectiveMeasures;
-    }
-
     //TODO: !!! check the returned
     public @Nullable Integer getColId(TblColRef colRef) {
         return effectiveCols.inverse().get(colRef);
@@ -1113,10 +1092,6 @@ public class NDataModel extends RootPersistentEntity {
 
     public TblColRef getColRef(Integer colId) {
         return effectiveCols.get(colId);
-    }
-
-    public boolean isExtendedColumn(TblColRef tblColRef) {
-        return false; // TODO: enable derived
     }
 
     private void initMultilevelPartitionCols() {
@@ -1260,16 +1235,8 @@ public class NDataModel extends RootPersistentEntity {
         return Collections.unmodifiableSet(ccColumnNames);
     }
 
-    public boolean isSeekingCCAdvice() {
-        return isSeekingCCAdvice;
-    }
-
     public void setSeekingCCAdvice(boolean seekingCCAdvice) {
         isSeekingCCAdvice = seekingCCAdvice;
-    }
-
-    public List<NamedColumn> getAllNamedColumns() {
-        return allNamedColumns;
     }
 
     public void setAllNamedColumns(List<NamedColumn> allNamedColumns) {
@@ -1286,6 +1253,11 @@ public class NDataModel extends RootPersistentEntity {
 
     public ImmutableMultimap<TblColRef, TblColRef> getFk2Pk() {
         return fk2Pk;
+    }
+
+    public Map<Integer, NamedColumn> getEffectiveNamedColumns() {
+        return allNamedColumns.stream().filter(NamedColumn::isExist)
+                .collect(Collectors.toMap(NamedColumn::getId, Function.identity()));
     }
 
     public Map<String, Integer> getDimensionNameIdMap() {

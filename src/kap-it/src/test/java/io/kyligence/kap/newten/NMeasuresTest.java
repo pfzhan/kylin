@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -293,24 +294,40 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         UdfManager.create(ss);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, "default", SparderEnv.getSparkSession());
-        Pair<String, String> sqlForKap1 = new Pair<>("queryForKap", "select max(ID1),Round(avg(ID1),2) from TEST_MEASURE");
-        Pair<String, String> sqlForSpark1 = new Pair<>("queryForSpark", "select max(ID1),Round(sum(ID1)/count(1),2) from TEST_MEASURE");
+        Pair<String, String> sqlForKap1 = new Pair<>("queryForKap",
+                "select max(ID1),Round(avg(ID1),2) from TEST_MEASURE");
+        Pair<String, String> sqlForSpark1 = new Pair<>("queryForSpark",
+                "select max(ID1),Round(sum(ID1)/count(1),2) from TEST_MEASURE");
         Pair<String, String> sqlForKap2 = new Pair<>("queryForKap", "select count(ID1),count(1) from TEST_MEASURE");
         Pair<String, String> sqlForSpark2 = new Pair<>("queryForSpark", "select count(1),count(1) from TEST_MEASURE");
-        Pair<String, String> sqlForKap3 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE)");
-        Pair<String, String> sqlForSpark3 = new Pair<>("queryForSpark", "select count(1) from (select count(1) from TEST_MEASURE)");
-        Pair<String, String> sqlForKap4 = new Pair<>("queryForKap", "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE)");
-        Pair<String, String> sqlForSpark4 = new Pair<>("queryForSpark", "select count(ID1) from (select count(1) ID1 from TEST_MEASURE)");
-        Pair<String, String> sqlForKap5 = new Pair<>("queryForKap", "select count(1) from (select count(1) from TEST_MEASURE)");
-        Pair<String, String> sqlForSpark5 = new Pair<>("queryForSpark", "select count(1) from (select count(1) from TEST_MEASURE)");
-        Pair<String, String> sqlForKap6 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForSpark6 = new Pair<>("queryForSpark", "select count(1) from (select count(1) from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForKap7 = new Pair<>("queryForKap", "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForSpark7 = new Pair<>("queryForSpark", "select count(ID1) from (select count(1) ID1 from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForKap8 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE where ID1 > 0)");
-        Pair<String, String> sqlForSpark8 = new Pair<>("queryForSpark", "select count(1) from (select count(1) from TEST_MEASURE where ID1 > 0)");
-        Pair<String, String> sqlForKap9 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
-        Pair<String, String> sqlForSpark9 = new Pair<>("queryForSpark", "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
+        Pair<String, String> sqlForKap3 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE)");
+        Pair<String, String> sqlForSpark3 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(1) from TEST_MEASURE)");
+        Pair<String, String> sqlForKap4 = new Pair<>("queryForKap",
+                "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE)");
+        Pair<String, String> sqlForSpark4 = new Pair<>("queryForSpark",
+                "select count(ID1) from (select count(1) ID1 from TEST_MEASURE)");
+        Pair<String, String> sqlForKap5 = new Pair<>("queryForKap",
+                "select count(1) from (select count(1) from TEST_MEASURE)");
+        Pair<String, String> sqlForSpark5 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(1) from TEST_MEASURE)");
+        Pair<String, String> sqlForKap6 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForSpark6 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(1) from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForKap7 = new Pair<>("queryForKap",
+                "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForSpark7 = new Pair<>("queryForSpark",
+                "select count(ID1) from (select count(1) ID1 from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForKap8 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE where ID1 > 0)");
+        Pair<String, String> sqlForSpark8 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(1) from TEST_MEASURE where ID1 > 0)");
+        Pair<String, String> sqlForKap9 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
+        Pair<String, String> sqlForSpark9 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap1, sqlForSpark1, "left", getProject(), null));
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap2, sqlForSpark2, "left", getProject(), null));
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap3, sqlForSpark3, "left", getProject(), null));
@@ -356,24 +373,40 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         UdfManager.create(ss);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         populateSSWithCSVData(config, "default", SparderEnv.getSparkSession());
-        Pair<String, String> sqlForKap1 = new Pair<>("queryForKap", "select max(ID1),Round(avg(ID1),4) from TEST_MEASURE");
-        Pair<String, String> sqlForSpark1 = new Pair<>("queryForSpark", "select max(ID1),Round(avg(ID1),4) from TEST_MEASURE");
+        Pair<String, String> sqlForKap1 = new Pair<>("queryForKap",
+                "select max(ID1),Round(avg(ID1),4) from TEST_MEASURE");
+        Pair<String, String> sqlForSpark1 = new Pair<>("queryForSpark",
+                "select max(ID1),Round(avg(ID1),4) from TEST_MEASURE");
         Pair<String, String> sqlForKap2 = new Pair<>("queryForKap", "select count(ID1),count(1) from TEST_MEASURE");
         Pair<String, String> sqlForSpark2 = new Pair<>("queryForSpark", "select count(ID1),count(1) from TEST_MEASURE");
-        Pair<String, String> sqlForKap3 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE)");
-        Pair<String, String> sqlForSpark3 = new Pair<>("queryForSpark", "select count(1) from (select count(ID1) from TEST_MEASURE)");
-        Pair<String, String> sqlForKap4 = new Pair<>("queryForKap", "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE)");
-        Pair<String, String> sqlForSpark4 = new Pair<>("queryForSpark", "select count(ID1) from (select count(1) ID1 from TEST_MEASURE)");
-        Pair<String, String> sqlForKap5 = new Pair<>("queryForKap", "select count(1) from (select count(1) from TEST_MEASURE)");
-        Pair<String, String> sqlForSpark5 = new Pair<>("queryForSpark", "select count(1) from (select count(1) from TEST_MEASURE)");
-        Pair<String, String> sqlForKap6 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForSpark6 = new Pair<>("queryForSpark", "select count(1) from (select count(ID1) from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForKap7 = new Pair<>("queryForKap", "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForSpark7 = new Pair<>("queryForSpark", "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE group by ID1)");
-        Pair<String, String> sqlForKap8 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE where ID1 > 0)");
-        Pair<String, String> sqlForSpark8 = new Pair<>("queryForSpark", "select count(1) from (select count(ID1) from TEST_MEASURE where ID1 > 0)");
-        Pair<String, String> sqlForKap9 = new Pair<>("queryForKap", "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
-        Pair<String, String> sqlForSpark9 = new Pair<>("queryForSpark", "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
+        Pair<String, String> sqlForKap3 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE)");
+        Pair<String, String> sqlForSpark3 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(ID1) from TEST_MEASURE)");
+        Pair<String, String> sqlForKap4 = new Pair<>("queryForKap",
+                "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE)");
+        Pair<String, String> sqlForSpark4 = new Pair<>("queryForSpark",
+                "select count(ID1) from (select count(1) ID1 from TEST_MEASURE)");
+        Pair<String, String> sqlForKap5 = new Pair<>("queryForKap",
+                "select count(1) from (select count(1) from TEST_MEASURE)");
+        Pair<String, String> sqlForSpark5 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(1) from TEST_MEASURE)");
+        Pair<String, String> sqlForKap6 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForSpark6 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(ID1) from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForKap7 = new Pair<>("queryForKap",
+                "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForSpark7 = new Pair<>("queryForSpark",
+                "select count(ID1) from (select count(ID1) ID1 from TEST_MEASURE group by ID1)");
+        Pair<String, String> sqlForKap8 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE where ID1 > 0)");
+        Pair<String, String> sqlForSpark8 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(ID1) from TEST_MEASURE where ID1 > 0)");
+        Pair<String, String> sqlForKap9 = new Pair<>("queryForKap",
+                "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
+        Pair<String, String> sqlForSpark9 = new Pair<>("queryForSpark",
+                "select count(1) from (select count(ID1) from TEST_MEASURE order by count(ID1))");
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap1, sqlForSpark1, "left", getProject(), null));
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap2, sqlForSpark2, "left", getProject(), null));
         Assert.assertTrue(NExecAndComp.execAndCompareQueryResult(sqlForKap3, sqlForSpark3, "left", getProject(), null));
@@ -592,7 +625,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         List<String> funList = newArrayList(FUNC_SUM, FUNC_MAX, FUNC_MIN, FUNC_COUNT, FUNC_COUNT_DISTINCT,
                 FUNC_PERCENTILE);
         List<String> cdReturnTypeList = newArrayList("hllc(10)", "bitmap");
-        List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
+        List<TblColRef> columnList = model.getEffectiveCols().entrySet().stream().filter(entry -> entry.getKey() < 29)
+                .map(Map.Entry::getValue).collect(Collectors.toList());
 
         int meaStart = 110000;
         List<NDataModel.Measure> measureList = model.getAllMeasures();
@@ -637,7 +671,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     private List<NDataModel.Measure> generateTopnMeaLists() {
         NDataModelManager modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         NDataModel model = modelMgr.getDataModelDesc(DF_NAME);
-        List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
+        List<TblColRef> columnList = model.getEffectiveCols().entrySet().stream().filter(entry -> entry.getKey() < 29)
+                .map(Map.Entry::getValue).collect(Collectors.toList());
         List<TblColRef> groupByCols = Lists.newArrayList(columnList.get(12), columnList.get(14), columnList.get(15),
                 columnList.get(16), columnList.get(3));
         int meaStart = 120000;
@@ -646,7 +681,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         boolean isFirstNumCol = false;
         for (TblColRef groupByCol : groupByCols) {
             for (TblColRef col : columnList) {
-                if (col.getExpressionInSourceDB().contains("TEST_MEASURE1")) continue;
+                if (col.getExpressionInSourceDB().contains("TEST_MEASURE1"))
+                    continue;
                 // cannot support topn(date) topn(string) topn(boolean)
                 if (!col.getType().isNumberFamily() || !col.getType().isIntegerFamily() || groupByCol.equals(col)) {
                     continue;
@@ -675,7 +711,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     private List<NDataModel.Measure> generateCollectSetMeaLists() {
         NDataModelManager modelMgr = NDataModelManager.getInstance(getTestConfig(), getProject());
         NDataModel model = modelMgr.getDataModelDesc(DF_NAME);
-        List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
+        List<TblColRef> columnList = model.getEffectiveCols().values().asList();
         int meaStart = 300000;
         List<NDataModel.Measure> measureList = model.getAllMeasures();
 
@@ -708,7 +744,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         NDataModel finalModel = model;
         indePlanManager.updateIndexPlan(DF_NAME, copyForWrite -> {
             IndexEntity indexEntity = copyForWrite.getAllIndexes().get(0);
-            indexEntity.setMeasures(finalModel.getEffectiveMeasureMap().inverse().values().asList());
+            indexEntity.setMeasures(finalModel.getEffectiveMeasures().inverse().values().asList());
             LayoutEntity layout = indexEntity.getLayouts().get(0);
             List<Integer> colList = newArrayList(indexEntity.getDimensions());
             colList.addAll(indexEntity.getMeasures());
@@ -719,7 +755,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
             layout1.setAuto(true);
             layout1.setId(layout.getId() + 1);
             List<Integer> col1List = newArrayList(indexEntity.getDimensions());
-            List<Integer> meaList = Lists.newArrayList(finalModel.getEffectiveMeasureMap().inverse().values().asList());
+            List<Integer> meaList = Lists.newArrayList(finalModel.getEffectiveMeasures().inverse().values().asList());
             Collections.reverse(meaList);
             col1List.addAll(meaList);
             layout1.setColOrder(col1List);

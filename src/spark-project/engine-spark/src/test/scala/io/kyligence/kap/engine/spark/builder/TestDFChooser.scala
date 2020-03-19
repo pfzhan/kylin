@@ -80,7 +80,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
       override def modify(copyForWrite: IndexPlan): Unit = {
         val indexEntity = copyForWrite.getAllIndexes.get(0)
         indexEntity.setId(111000)
-        indexEntity.setMeasures(model.getEffectiveMeasureMap.inverse.values.asList)
+        indexEntity.setMeasures(model.getEffectiveMeasures.inverse.values.asList)
         val layout = indexEntity.getLayouts.get(0)
         layout.setId(layout.getId + 1)
         val colList = newArrayList[Integer](indexEntity.getDimensions)
@@ -206,7 +206,7 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
   }
 
   private def addBitmapMea(model: NDataModel): Measure = {
-    val columnList = model.getEffectiveColsMap
+    val columnList = model.getEffectiveCols
     val measure = new NDataModel.Measure
     measure.setName("test_bitmap_add")
     val func = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT_DISTINCT,

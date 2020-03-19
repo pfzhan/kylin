@@ -39,12 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -68,8 +64,9 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -78,6 +75,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -119,10 +117,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @Getter
     @JsonProperty("retention_range")
     private long retentionRange = 0;
-    @JsonProperty("notify_list")
-    private List<String> notifyList = Lists.newArrayList();
-    @JsonProperty("status_need_notify")
-    private List<String> statusNeedNotify = Lists.newArrayList();
     @JsonProperty("engine_type")
     private int engineType = IEngineAware.ID_KAP_NSPARK;
     @JsonProperty("dictionaries")
@@ -234,9 +228,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             measureBitSet.or(cuboid.getMeasureBitset().mutable());
         }
 
-        this.effectiveDimCols = Maps.filterKeys(getModel().getEffectiveColsMap(),
+        this.effectiveDimCols = Maps.filterKeys(getModel().getEffectiveCols(),
                 input -> input != null && dimBitSet.get(input));
-        this.effectiveMeasures = Maps.filterKeys(getModel().getEffectiveMeasureMap(),
+        this.effectiveMeasures = Maps.filterKeys(getModel().getEffectiveMeasures(),
                 input -> input != null && measureBitSet.get(input));
     }
 
@@ -558,7 +552,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     public Pair<Set<LayoutEntity>, Set<LayoutEntity>> diffRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
         genMeasuresForRulebasedIndex(ruleBasedIndex);
         if (CollectionUtils.isEmpty(ruleBasedIndex.getMeasures())) {
-            ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+            ruleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
         }
         ruleBasedIndex.setIndexStartId(nextAggregationIndexId);
         ruleBasedIndex.setIndexPlan(this);
@@ -577,7 +571,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         genMeasuresForRulebasedIndex(nRuleBasedIndex);
 
         if (CollectionUtils.isEmpty(nRuleBasedIndex.getMeasures())) {
-            nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+            nRuleBasedIndex.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasures().keySet()));
         }
         nRuleBasedIndex.setIndexStartId(reuseStartId ? nRuleBasedIndex.getIndexStartId() : nextAggregationIndexId);
         nRuleBasedIndex.setIndexPlan(this);
@@ -712,8 +706,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
 
         for (LayoutEntity layoutEntity : toBeDeletedLayouts) {
             // delete layouts from indexes.
-            layoutEntity.getIndex().removeLayoutsInCuboid(Lists.newArrayList(layoutEntity), null, LayoutEntity::equals,
-                    true, true);
+            layoutEntity.getIndex().removeLayouts(Lists.newArrayList(layoutEntity), null, true, true);
         }
 
         return true;
@@ -783,19 +776,6 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         this.retentionRange = retentionRange;
     }
 
-    public List<String> getNotifyList() {
-        return isCachedAndShared ? ImmutableList.copyOf(notifyList) : notifyList;
-    }
-
-    public void setNotifyList(List<String> notifyList) {
-        checkIsNotCachedAndShared();
-        this.notifyList = notifyList;
-    }
-
-    public List<String> getStatusNeedNotify() {
-        return isCachedAndShared ? ImmutableList.copyOf(statusNeedNotify) : statusNeedNotify;
-    }
-
     /**
      * will ignore rule based indexes;
      */
@@ -811,21 +791,16 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     private Map<IndexEntity.IndexIdentifier, IndexEntity> getIndexesMap(List<IndexEntity> indexEntities) {
-        Map<IndexEntity.IndexIdentifier, IndexEntity> originalCuboidsMap = Maps.newLinkedHashMap();
-        for (IndexEntity cuboidDesc : indexEntities) {
-            IndexEntity.IndexIdentifier identifier = cuboidDesc.createIndexIdentifier();
-            if (!originalCuboidsMap.containsKey(identifier)) {
-                originalCuboidsMap.put(identifier, cuboidDesc);
+        Map<IndexEntity.IndexIdentifier, IndexEntity> originIndexMap = Maps.newLinkedHashMap();
+        for (IndexEntity indexEntity : indexEntities) {
+            IndexEntity.IndexIdentifier identifier = indexEntity.createIndexIdentifier();
+            if (!originIndexMap.containsKey(identifier)) {
+                originIndexMap.put(identifier, indexEntity);
             } else {
-                originalCuboidsMap.get(identifier).getLayouts().addAll(cuboidDesc.getLayouts());
+                originIndexMap.get(identifier).getLayouts().addAll(indexEntity.getLayouts());
             }
         }
-        return isCachedAndShared ? ImmutableMap.copyOf(originalCuboidsMap) : originalCuboidsMap;
-    }
-
-    public void setStatusNeedNotify(List<String> statusNeedNotify) {
-        checkIsNotCachedAndShared();
-        this.statusNeedNotify = statusNeedNotify;
+        return isCachedAndShared ? ImmutableMap.copyOf(originIndexMap) : originIndexMap;
     }
 
     @Override
@@ -853,96 +828,39 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return "IndexPlan [" + uuid + "(" + getModelAlias() + ")]";
     }
 
-    public boolean removeLayoutsFromToBeDeletedList(Set<Long> layoutIds,
-            BiPredicate<LayoutEntity, LayoutEntity> comparator, boolean deleteAuto, boolean deleteManual) {
-        val tobeDeletedMap = getToBeDeletedIndexesMap();
-        val toRemovedMap = Maps.<IndexEntity.IndexIdentifier, List<LayoutEntity>> newHashMap();
-        for (Map.Entry<IndexEntity.IndexIdentifier, IndexEntity> descEntry : tobeDeletedMap.entrySet()) {
-            val layouts = descEntry.getValue().getLayouts();
-            val filteredLayouts = Lists.<LayoutEntity> newArrayList();
-            for (LayoutEntity layout : layouts) {
-                if (layoutIds.contains(layout.getId())) {
-                    filteredLayouts.add(layout);
-                }
-            }
-
-            toRemovedMap.put(descEntry.getKey(), filteredLayouts);
-        }
-
-        if (0 == toRemovedMap.size()) {
-            return false;
-        }
-
-        for (Map.Entry<IndexEntity.IndexIdentifier, List<LayoutEntity>> entity : toRemovedMap.entrySet()) {
-            IndexEntity.IndexIdentifier indexKey = entity.getKey();
-            IndexEntity originalIndex = tobeDeletedMap.get(indexKey);
-            if (null == originalIndex) {
-                continue;
-            }
-            originalIndex.removeLayoutsInCuboid(entity.getValue(), null, comparator, deleteAuto, deleteManual);
-            if (originalIndex.getLayouts().isEmpty()) {
-                tobeDeletedMap.remove(indexKey);
-            }
-        }
-
-        this.toBeDeletedIndexes = Lists.newArrayList(tobeDeletedMap.values());
-        return true;
+    public void removeLayouts(Set<Long> layoutIds, boolean deleteAuto, boolean deleteManual) {
+        removeLayouts(indexes, layoutIds, deleteAuto, deleteManual);
+        removeLayouts(toBeDeletedIndexes, layoutIds, deleteAuto, deleteManual);
+        addRuleBasedBlackList(Sets.intersection(
+                getRuleBaseLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()), layoutIds));
     }
 
-    /**
-     * remove useless layouts from indexPlan without shared
-     * this method will not persist indexPlan entity
-     * @param cuboids the layouts to be removed, group by cuboid's identify
-     * @param isSkip callback for user if skip some layout
-     * @param equal compare if two layouts is equal
-     * @param deleteAuto if delete auto layout
-     * @param deleteManual if delete manual layout
-     */
-    public void removeLayouts(Map<IndexEntity.IndexIdentifier, List<LayoutEntity>> cuboids,
-            Predicate<LayoutEntity> isSkip, BiPredicate<LayoutEntity, LayoutEntity> equal, boolean deleteAuto,
+    private void removeLayouts(Collection<IndexEntity> indexes, Set<Long> layoutIds, boolean deleteAuto,
             boolean deleteManual) {
         checkIsNotCachedAndShared();
-        Map<IndexEntity.IndexIdentifier, IndexEntity> originalCuboidsMap = getWhiteListIndexesMap();
-        for (Map.Entry<IndexEntity.IndexIdentifier, List<LayoutEntity>> cuboidEntity : cuboids.entrySet()) {
-            IndexEntity.IndexIdentifier cuboidKey = cuboidEntity.getKey();
-            IndexEntity originalCuboid = originalCuboidsMap.get(cuboidKey);
-            if (originalCuboid == null) {
-                continue;
-            }
-            originalCuboid.removeLayoutsInCuboid(cuboidEntity.getValue(), isSkip, equal, deleteAuto, deleteManual);
-            if (originalCuboid.getLayouts().isEmpty()) {
-                originalCuboidsMap.remove(cuboidKey);
-            }
-        }
-
-        setIndexes(Lists.newArrayList(originalCuboidsMap.values()));
-    }
-
-    public void removeLayouts(Map<IndexEntity.IndexIdentifier, List<LayoutEntity>> cuboidLayoutMap,
-            BiPredicate<LayoutEntity, LayoutEntity> comparator, boolean deleteAuto, boolean deleteManual) {
-        removeLayouts(cuboidLayoutMap, null, comparator, deleteAuto, deleteManual);
-    }
-
-    public void removeLayouts(Set<Long> cuboidLayoutIds, BiPredicate<LayoutEntity, LayoutEntity> comparator,
-            boolean deleteAuto, boolean deleteManual) {
-        val cuboidMap = Maps.newHashMap(getWhiteListIndexesMap());
-        val toRemovedMap = Maps.<IndexEntity.IndexIdentifier, List<LayoutEntity>> newHashMap();
-        for (Map.Entry<IndexEntity.IndexIdentifier, IndexEntity> cuboidDescEntry : cuboidMap.entrySet()) {
-            val layouts = cuboidDescEntry.getValue().getLayouts();
-            val filteredLayouts = Lists.<LayoutEntity> newArrayList();
-            for (LayoutEntity layout : layouts) {
-                if (cuboidLayoutIds.contains(layout.getId())) {
-                    filteredLayouts.add(layout);
+        val indexIt = indexes.iterator();
+        while (indexIt.hasNext()) {
+            val index = indexIt.next();
+            val it = index.getLayouts().iterator();
+            while (it.hasNext()) {
+                val layout = it.next();
+                if (!layoutIds.contains(layout.getId())) {
+                    continue;
+                }
+                if (deleteAuto) {
+                    layout.setAuto(false);
+                }
+                if (deleteManual) {
+                    layout.setManual(false);
+                }
+                if (layout.isExpired()) {
+                    it.remove();
                 }
             }
-
-            toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
+            if (index.getLayouts().isEmpty()) {
+                indexIt.remove();
+            }
         }
-
-        if (0 == toRemovedMap.size()) {
-            return;
-        }
-        removeLayouts(toRemovedMap, comparator, deleteAuto, deleteManual);
     }
 
     public boolean isSkipEncodeIntegerFamilyEnabled() {

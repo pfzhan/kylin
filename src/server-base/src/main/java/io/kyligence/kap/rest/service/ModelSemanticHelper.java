@@ -360,26 +360,26 @@ public class ModelSemanticHelper extends BasicService {
 
         if (isSignificantChange(originModel, newModel)) {
             log.info("model { " + originModel.getAlias() + " } reload data from datasource");
-            val savedIndexPlan = handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(),
+            val savedIndexPlan = handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasures().keySet(),
                     indePlanManager);
-            removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
+            removeUselessDimensions(savedIndexPlan, newModel.getEffectiveDimensions().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, originModel, project, start, end);
             recommendationManager.cleanAll(model);
             return;
         }
-        val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
-                .containsAll(originModel.getEffectiveDimenionsMap().keySet());
-        val measuresNotChanged = CollectionUtils.isEqualCollection(newModel.getEffectiveMeasureMap().keySet(),
-                originModel.getEffectiveMeasureMap().keySet());
+        val dimensionsOnlyAdded = newModel.getEffectiveDimensions().keySet()
+                .containsAll(originModel.getEffectiveDimensions().keySet());
+        val measuresNotChanged = CollectionUtils.isEqualCollection(newModel.getEffectiveMeasures().keySet(),
+                originModel.getEffectiveMeasures().keySet());
         if (dimensionsOnlyAdded && measuresNotChanged) {
             return;
         }
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
         if (!measuresNotChanged) {
             val oldRule = indexPlan.getRuleBasedIndex();
-            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), indePlanManager);
+            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasures().keySet(), indePlanManager);
             val newIndexPlan = indePlanManager.getIndexPlan(indexPlan.getId());
             if (newIndexPlan.getRuleBasedIndex() != null) {
                 handleIndexPlanUpdateRule(project, model, oldRule, newIndexPlan.getRuleBasedIndex(), false);
@@ -388,7 +388,7 @@ public class ModelSemanticHelper extends BasicService {
         // dimension deleted: previous step is remove dimensions in rule,
         //   so we only remove the auto created cuboids
         if (!dimensionsOnlyAdded) {
-            removeUselessDimensions(indexPlan, newModel.getEffectiveDimenionsMap().keySet(), true, config);
+            removeUselessDimensions(indexPlan, newModel.getEffectiveDimensions().keySet(), true, config);
         }
     }
 
@@ -447,15 +447,14 @@ public class ModelSemanticHelper extends BasicService {
             if (CollectionUtils.isNotEmpty(toBeDeletedLayoutIds)) {
                 val indexPlanManager = NIndexPlanManager.getInstance(config, indexPlan.getProject());
                 indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-                    copyForWrite.removeLayoutsFromToBeDeletedList(deprecatedLayoutIds, LayoutEntity::equals, true,
-                            true);
+                    copyForWrite.removeLayouts(deprecatedLayoutIds, true, true);
                 });
             }
         } else {
             val indexPlanManager = NIndexPlanManager.getInstance(config, indexPlan.getProject());
             indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-                copyForWrite.removeLayouts(deprecatedLayoutIds, LayoutEntity::equals, true, true);
-                copyForWrite.removeLayoutsFromToBeDeletedList(deprecatedLayoutIds, LayoutEntity::equals, true, true);
+                copyForWrite.removeLayouts(deprecatedLayoutIds, true, true);
+                copyForWrite.removeLayouts(deprecatedLayoutIds, true, true);
             });
         }
     }

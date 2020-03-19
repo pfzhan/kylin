@@ -98,7 +98,7 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
         cube = cubeManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             copyForWrite.removeLayouts(
                     copyForWrite.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()),
-                    LayoutEntity::equals, true, false);
+                    true, false);
         });
 
         testSSB();

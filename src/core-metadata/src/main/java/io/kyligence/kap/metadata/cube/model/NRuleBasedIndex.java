@@ -134,7 +134,7 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         this.dimensionBitset = ImmutableBitSet.valueOf(dimensions);
         this.measureBitset = ImmutableBitSet.valueOf(measures);
 
-        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(),
+        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveCols(),
                 input -> input != null && dimensionBitset.get(input));
 
         this.dimensionSet = ImmutableSet.copyOf(this.effectiveDimCols.values());
@@ -142,8 +142,8 @@ public class NRuleBasedIndex implements Serializable, IKeep {
         // all layouts' measure order follow cuboid_desc's define
         ImmutableBiMap.Builder<Integer, NDataModel.Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
-            if (model.getEffectiveMeasureMap().containsKey(m)) {
-                measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
+            if (model.getEffectiveMeasures().containsKey(m)) {
+                measuresBuilder.put(m, model.getEffectiveMeasures().get(m));
             }
         }
         this.orderedMeasures = measuresBuilder.build();

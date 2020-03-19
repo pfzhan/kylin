@@ -219,7 +219,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
 
         // remove maxId
         cube = indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(nextAggId1 + 1, nextTableId1 + 1), LayoutEntity::equals, true,
+            copyForWrite.removeLayouts(Sets.newHashSet(nextAggId1 + 1, nextTableId1 + 1), true,
                     false);
         });
         Assert.assertTrue(
@@ -267,7 +267,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, indexPlan.getIndexEntity(nexAggId).getNextLayoutOffset());
 
         indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(nexAggId + 2), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(nexAggId + 2), true, true);
         });
 
         indexPlan = indePlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {

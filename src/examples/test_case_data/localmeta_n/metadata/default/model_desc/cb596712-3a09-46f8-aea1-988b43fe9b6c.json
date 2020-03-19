@@ -21,7 +21,8 @@
     {
       "id": "1",
       "name": "ID1",
-      "column": "TEST_MEASURE.ID1"
+      "column": "TEST_MEASURE.ID1",
+      "status": "DIMENSION"
     },
     {
       "id": "2",
@@ -157,6 +158,81 @@
       "id": "28",
       "name": "CC_CROSSTABLE_PRICE2",
       "column": "TEST_MEASURE.CC_PRICE9"
+    },
+    {
+      "id": 29,
+      "name": "PRICE7",
+      "column": "TEST_MEASURE1.PRICE7"
+    },
+    {
+      "id": 30,
+      "name": "ID4",
+      "column": "TEST_MEASURE1.ID4"
+    },
+    {
+      "id": 31,
+      "name": "FLAG",
+      "column": "TEST_MEASURE1.FLAG"
+    },
+    {
+      "id": 32,
+      "name": "ID3",
+      "column": "TEST_MEASURE1.ID3"
+    },
+    {
+      "id": 33,
+      "name": "PRICE3",
+      "column": "TEST_MEASURE1.PRICE3"
+    },
+    {
+      "id": 34,
+      "name": "PRICE6",
+      "column": "TEST_MEASURE1.PRICE6"
+    },
+    {
+      "id": 35,
+      "name": "PRICE5",
+      "column": "TEST_MEASURE1.PRICE5"
+    },
+    {
+      "id": 36,
+      "name": "PRICE2",
+      "column": "TEST_MEASURE1.PRICE2"
+    },
+    {
+      "id": 37,
+      "name": "NAME3",
+      "column": "TEST_MEASURE1.NAME3"
+    },
+    {
+      "id": 38,
+      "name": "NAME4",
+      "column": "TEST_MEASURE1.NAME4"
+    },
+    {
+      "id": 39,
+      "name": "NAME1",
+      "column": "TEST_MEASURE1.NAME1"
+    },
+    {
+      "id": 40,
+      "name": "NAME2",
+      "column": "TEST_MEASURE1.NAME2"
+    },
+    {
+      "id": 41,
+      "name": "TIME2",
+      "column": "TEST_MEASURE1.TIME2"
+    },
+    {
+      "id": 42,
+      "name": "CC_PRICE10",
+      "column": "TEST_MEASURE.CC_PRICE10"
+    },
+    {
+      "id": 43,
+      "name": "TIME1",
+      "column": "TEST_MEASURE1.TIME1"
     }
   ],
   "all_measures": [

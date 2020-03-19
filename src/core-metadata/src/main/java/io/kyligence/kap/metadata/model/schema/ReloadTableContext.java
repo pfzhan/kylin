@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.metadata.model.schema;
 
 import java.util.Map;
 import java.util.Objects;
@@ -43,9 +43,9 @@ import lombok.val;
 @ToString
 public class ReloadTableContext {
 
-    private Map<String, ReloadTableAffectedModelContext> removeAffectedModels = Maps.newHashMap();
+    private Map<String, AffectedModelContext> removeAffectedModels = Maps.newHashMap();
 
-    private Map<String, ReloadTableAffectedModelContext> changeTypeAffectedModels = Maps.newHashMap();
+    private Map<String, AffectedModelContext> changeTypeAffectedModels = Maps.newHashMap();
 
     private Set<String> favoriteQueries = Sets.newHashSet();
 
@@ -58,6 +58,13 @@ public class ReloadTableContext {
     private TableDesc tableDesc;
 
     private TableExtDesc tableExtDesc;
+
+    public AffectedModelContext getRemoveAffectedModel(String modelId) {
+        return removeAffectedModels.getOrDefault(modelId, new AffectedModelContext(modelId, Sets.newHashSet()));
+    }
+    public AffectedModelContext getChangeTypeAffectedModel(String modelId) {
+        return changeTypeAffectedModels.getOrDefault(modelId, new AffectedModelContext(modelId, Sets.newHashSet()));
+    }
 
     @Getter(lazy = true)
     private final Set<String> removeColumnFullnames = initRemoveColumnFullnames();

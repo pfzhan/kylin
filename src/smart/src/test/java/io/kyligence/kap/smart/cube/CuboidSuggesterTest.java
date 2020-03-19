@@ -220,8 +220,8 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         final NDataModel targetModel = mdCtx.getTargetModel();
-        Assert.assertEquals(0, targetModel.getEffectiveDimenionsMap().size());
-        Assert.assertEquals(3, targetModel.getEffectiveMeasureMap().size());
+        Assert.assertEquals(0, targetModel.getEffectiveDimensions().size());
+        Assert.assertEquals(3, targetModel.getEffectiveMeasures().size());
         Assert.assertEquals(12, targetModel.getEffectiveCols().size());
 
         final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
@@ -340,7 +340,7 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(1, layouts1.size());
         Assert.assertEquals(1, layouts1.get(0).getShardByColumns().size());
         Assert.assertEquals("KYLIN_SALES.TRANS_ID", mdCtx
-                .getTargetModel().getEffectiveColsMap().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
+                .getTargetModel().getEffectiveCols().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
 
         // agg index
         val layouts2 = indexEntities.get(2).getLayouts();
@@ -351,7 +351,7 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
 
         indexPlanManager.updateIndexPlan(modelId, copyForWrite -> {
             copyForWrite.setAggShardByColumns(Lists.newArrayList(3, 7, 100));
-            copyForWrite.removeLayouts(Sets.newHashSet(layouts2.get(0).getId()), LayoutEntity::equals, true, false);
+            copyForWrite.removeLayouts(Sets.newHashSet(layouts2.get(0).getId()), true, false);
         });
 
         sqls = new String[] {
@@ -402,7 +402,7 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("unmatched layouts size", 1, layouts1.size());
         Assert.assertEquals("unmatched shard by columns size", 1, layouts1.get(0).getShardByColumns().size());
         Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.TRANS_ID", mdCtx
-                .getTargetModel().getEffectiveColsMap().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
+                .getTargetModel().getEffectiveCols().get(layouts1.get(0).getShardByColumns().get(0)).getIdentity());
 
         // case 2. AggIndex with eq-filter and high cardinality
         final List<LayoutEntity> layouts2 = indexEntities.get(2).getLayouts();
@@ -410,7 +410,7 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals("unmatched layouts size", 1, layouts2.size());
         Assert.assertEquals("unmatched shard by columns size", 1, layouts2.get(0).getShardByColumns().size());
         Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.TRANS_ID", mdCtx
-                .getTargetModel().getEffectiveColsMap().get(layouts2.get(0).getShardByColumns().get(0)).getIdentity());
+                .getTargetModel().getEffectiveCols().get(layouts2.get(0).getShardByColumns().get(0)).getIdentity());
     }
 
     @Test

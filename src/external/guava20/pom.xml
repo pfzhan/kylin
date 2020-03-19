@@ -70,6 +70,8 @@
                                     <shadedPattern>${guava20.shade}</shadedPattern>
                                 </relocation>
                             </relocations>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

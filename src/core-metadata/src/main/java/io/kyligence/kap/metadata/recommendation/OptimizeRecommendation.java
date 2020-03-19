@@ -41,15 +41,8 @@ public class OptimizeRecommendation extends RootPersistentEntity {
 
     @Getter
     @Setter
-    @JsonProperty("project")
-    private String project;
-
-    @Getter
-    @Setter
     @JsonProperty("last_verified_time")
     private long lastVerifiedTime;
-
-    private long modelVersion;
 
     @Getter
     @Setter
@@ -65,12 +58,6 @@ public class OptimizeRecommendation extends RootPersistentEntity {
     @Setter
     @JsonProperty("next_measure_recommendation_item_id")
     private long nextMeasureRecommendationItemId;
-
-    @Deprecated
-    @Getter
-    @Setter
-    @JsonProperty("next_index_recommendation_item_id")
-    private long nextIndexRecommendationItemId;
 
     @Getter
     @Setter
@@ -93,8 +80,6 @@ public class OptimizeRecommendation extends RootPersistentEntity {
     private List<MeasureRecommendationItem> measureRecommendations = Lists.newArrayList();
 
     @Deprecated
-    @Getter
-    @Setter
     @JsonProperty("index_recommendations")
     private List<IndexRecommendationItem> indexRecommendations = Lists.newArrayList();
 
@@ -102,6 +87,11 @@ public class OptimizeRecommendation extends RootPersistentEntity {
     @Setter
     @JsonProperty("layout_recommendations")
     private List<LayoutRecommendationItem> layoutRecommendations = Lists.newArrayList();
+
+
+    @Getter
+    @Setter
+    private String project;
 
     public void addCCRecommendations(List<CCRecommendationItem> ccRecommendations) {
         nextCCRecommendationItemId = addRecommendations(this.ccRecommendations, ccRecommendations,
@@ -149,11 +139,11 @@ public class OptimizeRecommendation extends RootPersistentEntity {
         setDefaultCreateTime(this.getCcRecommendations());
         setDefaultCreateTime(this.getDimensionRecommendations());
         setDefaultCreateTime(this.getMeasureRecommendations());
-        if (CollectionUtils.isEmpty(this.getIndexRecommendations())) {
+        if (CollectionUtils.isEmpty(indexRecommendations)) {
             return;
         }
-        this.addLayoutRecommendations(convertIndexToLayout(this.getIndexRecommendations()));
-        this.setIndexRecommendations(Lists.newArrayList());
+        this.addLayoutRecommendations(convertIndexToLayout(indexRecommendations));
+        indexRecommendations = Lists.newArrayList();
     }
 
     private <T extends RecommendationItem> void setDefaultCreateTime(List<T> items) {

@@ -119,7 +119,7 @@ object StorageUtils extends Logging {
           val colToShardsNum = JsonUtil.readValueAsMap(configJson)
           // now we only has one shard by col
           val shardColIdentity = shardByColumns.asScala.map(layout.getIndex.getModel
-            .getEffectiveDimenionsMap.get(_).toString).mkString(",")
+            .getEffectiveDimensions.get(_).toString).mkString(",")
           val num = colToShardsNum.getOrDefault(shardColIdentity, String.valueOf(partitionNumByStorage)).toInt
           logInfo(s"Get  num in config, col identity is:$shardColIdentity, bucket num is $num.")
           num

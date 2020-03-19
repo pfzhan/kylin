@@ -89,7 +89,7 @@ public class BuildAndQueryEmptySegmentsTest extends NLocalWithSparkSessionTest {
                 .collect(Collectors.toSet());
 
         cube = ipMgr.updateIndexPlan(dsMgr.getDataflow(DF_NAME1).getIndexPlan().getUuid(), copyForWrite -> {
-           copyForWrite.removeLayouts(tobeRemovedLayouts, LayoutEntity::equals, true, true);
+           copyForWrite.removeLayouts(tobeRemovedLayouts, true, true);
         });
         System.out.println(cube.getAllLayouts());
     }

@@ -580,7 +580,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testCuboidsNotInCube() {
         val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         val cube = indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(1L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(1L), true, true);
         });
 
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);

@@ -30,7 +30,6 @@ import java.util.Set;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.cube.optimization.GarbageLayoutType;
@@ -83,6 +82,6 @@ public class IndexCleaner implements MetadataCleaner {
         val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val indexPlan = indexPlanManager.getIndexPlan(modelId);
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(),
-                copyForWrite -> copyForWrite.removeLayouts(garbageLayouts, LayoutEntity::equals, true, false));
+                copyForWrite -> copyForWrite.removeLayouts(garbageLayouts, true, false));
     }
 }

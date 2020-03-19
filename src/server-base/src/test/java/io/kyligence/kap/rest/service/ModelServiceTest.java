@@ -3064,7 +3064,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setProject("default");
 
-        List<NDataModel.NamedColumn> namedColumns = modelRequest.getAllNamedColumns();
+        List<NDataModel.NamedColumn> namedColumns = modelRequest.getAllNamedColumns().stream()
+                .filter(col -> col.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList());
 
         // duplicate dimension names
         NDataModel.NamedColumn dimension = new NDataModel.NamedColumn();
@@ -3575,7 +3576,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         String project = "default";
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        String originSql = "trans_id = 0 and order_id < 100";
+        String originSql = "trans_id = 0 and TEST_KYLIN_FACT.order_id < 100";
         String newSql = modelService.addTableNameIfNotExist(originSql, model);
         Assert.assertEquals("((TEST_KYLIN_FACT.TRANS_ID = 0) AND (TEST_KYLIN_FACT.ORDER_ID < 100))", newSql);
         originSql = "trans_id between 1 and 10";

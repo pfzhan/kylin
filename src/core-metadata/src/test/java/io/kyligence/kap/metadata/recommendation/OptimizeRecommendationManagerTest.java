@@ -1340,7 +1340,6 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         recommendationManager.save(legacyRecommendation);
 
         val recommendation = recommendationManager.getOptimizeRecommendation(id);
-        Assert.assertEquals(0, recommendation.getIndexRecommendations().size());
         Assert.assertEquals(6, recommendation.getLayoutRecommendations().size());
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(3).isAggIndex());
         Assert.assertTrue(recommendation.getLayoutRecommendations().get(4).isAggIndex());

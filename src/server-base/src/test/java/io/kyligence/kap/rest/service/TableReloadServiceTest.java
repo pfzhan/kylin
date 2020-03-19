@@ -58,6 +58,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -216,7 +217,6 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         val response = tableService.preProcessBeforeReload(PROJECT, "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(11, response.getRemoveLayoutsCount());
         Assert.assertEquals(7, response.getAddLayoutsCount());
-
     }
 
     @Test
@@ -306,7 +306,9 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     public void testReload_BrokenModelInAutoProject() throws Exception {
         removeColumn("DEFAULT.TEST_KYLIN_FACT", "ORDER_ID");
         System.setProperty("kylin.metadata.broken-model-deleted-on-smart-mode", "true");
-        await().atMost(60000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+        await().atMost(10000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
             tableService.innerReloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", true);
             val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
             Assert.assertEquals(2, modelManager.listAllModels().size());
@@ -388,7 +390,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         originModel = originModels.get(0);
         Assert.assertEquals(9, originModel.getJoinTables().size());
         Assert.assertEquals(17, originModel.getAllMeasures().size());
-        Assert.assertEquals(34, originModel.getAllNamedColumns().size());
+        Assert.assertEquals(197, originModel.getAllNamedColumns().size());
     }
 
     @Test
@@ -598,7 +600,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(2, indexPlan.getRuleBasedIndex().getAggregationGroups().size());
         Assert.assertEquals(21, indexPlan.getRuleBasedIndex().getAggregationGroups().get(1).getIncludes().length);
         Integer removeId = 2;
-        val identity = originModel.getEffectiveDimenionsMap().get(removeId).toString();
+        val identity = originModel.getEffectiveDimensions().get(removeId).toString();
         String db = identity.split("\\.")[0];
         String tb = identity.split("\\.")[1];
         String col = identity.split("\\.")[2];
@@ -907,7 +909,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
             Assert.assertFalse(layoutIds.contains(layout.getId()));
         }
         Assert.assertFalse(model.getEffectiveCols().containsKey(3));
-        Assert.assertFalse(model.getEffectiveMeasureMap().containsKey(100008));
+        Assert.assertFalse(model.getEffectiveMeasures().containsKey(100008));
 
         val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
         var events = eventDao.getJobRelatedEventsByModel(model.getId());

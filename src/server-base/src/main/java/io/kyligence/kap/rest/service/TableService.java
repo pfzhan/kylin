@@ -40,12 +40,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -95,33 +93,33 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
 import io.kyligence.kap.metadata.acl.AclTCR;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.metadata.model.schema.AffectedModelContext;
+import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
+import io.kyligence.kap.metadata.model.schema.SchemaNode;
+import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
+import io.kyligence.kap.metadata.model.schema.SchemaUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ReloadTableAffectedModelContext;
-import io.kyligence.kap.rest.request.ReloadTableContext;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
@@ -1058,28 +1056,23 @@ public class TableService extends BasicService {
         result.setAddColumnCount(context.getAddColumns().size());
         result.setRemoveColumnCount(context.getRemoveColumns().size());
         result.setRemoveDimCount(context.getRemoveAffectedModels().values().stream()
-                .map(ReloadTableAffectedModelContext::getDimensions).mapToLong(Set::size).sum());
+                .map(AffectedModelContext::getDimensions).mapToLong(Set::size).sum());
         result.setDataTypeChangeColumnCount(context.getChangeTypeColumns().size());
         val projectInstance = getProjectManager().getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             val affectedModels = Maps.newHashMap(context.getChangeTypeAffectedModels());
             affectedModels.putAll(context.getRemoveAffectedModels());
-            result.setBrokenModelCount(
-                    affectedModels.values().stream().filter(ReloadTableAffectedModelContext::isBroken).count());
+            result.setBrokenModelCount(affectedModels.values().stream().filter(AffectedModelContext::isBroken).count());
         }
         result.setRemoveMeasureCount(context.getRemoveAffectedModels().values().stream()
-                .map(ReloadTableAffectedModelContext::getMeasures).mapToLong(Set::size).sum());
+                .map(AffectedModelContext::getMeasures).mapToLong(Set::size).sum());
         result.setRemoveLayoutsCount(
-                context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getRemovedLayouts().size()).sum());
+                context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getUpdatedLayouts().size()).sum());
         result.setAddLayoutsCount(
                 context.getRemoveAffectedModels().values().stream().mapToLong(m -> m.getAddLayouts().size()).sum());
-        result.setRefreshLayoutsCount(context.getChangeTypeAffectedModels().values().stream()
-                .mapToLong(m -> Sets.difference(m.getRemovedLayouts(),
-                        context.getRemoveAffectedModels()
-                                .getOrDefault(m.getModelId(), new ReloadTableAffectedModelContext(m.getModelId()))
-                                .getRemovedLayouts())
-                        .size())
-                .sum());
+        result.setRefreshLayoutsCount(context.getChangeTypeAffectedModels().values().stream().mapToLong(m -> Sets
+                .difference(m.getUpdatedLayouts(), context.getRemoveAffectedModel(m.getModelId()).getUpdatedLayouts())
+                .size()).sum());
         return result;
     }
 
@@ -1135,8 +1128,7 @@ public class TableService extends BasicService {
             return;
         }
 
-        val removeAffectedModel = context.getRemoveAffectedModels().getOrDefault(model.getId(),
-                new ReloadTableAffectedModelContext(model.getId()));
+        val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
 
         if (!removeAffectedModel.isBroken()) {
             return;
@@ -1147,14 +1139,10 @@ public class TableService extends BasicService {
         }
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
-        cleanRecommendation(projectName, model);
+        getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);
-        modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumnIds());
-    }
-
-    void cleanRecommendation(String project, NDataModel model) {
-        getOptimizeRecommendationManager(project).cleanAll(model.getId());
+        modelService.updateBrokenModel(projectName, request, removeAffectedModel.getColumns());
     }
 
     void updateModelByReloadTable(ProjectInstance project, NDataModel model, ReloadTableContext context,
@@ -1162,14 +1150,8 @@ public class TableService extends BasicService {
         val dataflowManager = getDataflowManager(project.getName());
         val projectName = project.getName();
 
-        if (!context.getRemoveAffectedModels().containsKey(model.getId())
-                && !context.getChangeTypeAffectedModels().containsKey(model.getId())) {
-            return;
-        }
-        val removeAffectedModel = context.getRemoveAffectedModels().getOrDefault(model.getId(),
-                new ReloadTableAffectedModelContext(model.getId()));
-        val changeTypeAffectedModel = context.getChangeTypeAffectedModels().getOrDefault(model.getId(),
-                new ReloadTableAffectedModelContext(model.getId()));
+        val removeAffectedModel = context.getRemoveAffectedModel(model.getId());
+        val changeTypeAffectedModel = context.getChangeTypeAffectedModel(model.getId());
         if (removeAffectedModel.isBroken()) {
             return;
         }
@@ -1183,7 +1165,7 @@ public class TableService extends BasicService {
         val events = eventDao.getEventsByModel(model.getId());
 
         cleanIndexPlan(projectName, model, removeAffectedModel, needBuild);
-        cleanRecommendation(projectName, model);
+        getOptimizeRecommendationManager(projectName).cleanAll(model.getId());
 
         val request = new ModelRequest(JsonUtil.deepCopy(model, NDataModel.class));
         setRequest(request, model, removeAffectedModel, projectName);
@@ -1194,9 +1176,9 @@ public class TableService extends BasicService {
         modelService.updateDataModelSemantic(projectName, request);
 
         val df = dataflowManager.getDataflow(model.getId());
-        if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getRemovedLayouts())) {
+        if (CollectionUtils.isNotEmpty(changeTypeAffectedModel.getUpdatedLayouts())) {
             val eventManager = getEventManager(projectName);
-            dataflowManager.removeLayouts(df, changeTypeAffectedModel.getRemovedLayouts());
+            dataflowManager.removeLayouts(df, changeTypeAffectedModel.getUpdatedLayouts());
             if (needBuild) {
                 eventManager.postAddCuboidEvents(model.getId(), getUsername());
             }
@@ -1205,7 +1187,7 @@ public class TableService extends BasicService {
         cleanRedundantEvents(projectName, model, events);
     }
 
-    private void setRequest(ModelRequest request, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel,
+    private void setRequest(ModelRequest request, NDataModel model, AffectedModelContext removeAffectedModel,
             String projectName) {
         request.setSimplifiedMeasures(model.getEffectiveMeasures().values().stream()
                 .filter(m -> !removeAffectedModel.getMeasures().contains(m.getId())).map(SimplifiedMeasure::fromMeasure)
@@ -1214,74 +1196,20 @@ public class TableService extends BasicService {
                 .filter(col -> !removeAffectedModel.getDimensions().contains(col.getId()) && col.isDimension())
                 .collect(Collectors.toList()));
         request.setComputedColumnDescs(model.getComputedColumnDescs().stream()
-                .filter(cc -> !removeAffectedModel.getComputedColumns().contains(cc.getFullName()))
+                .filter(cc -> !removeAffectedModel.getComputedColumns().contains(cc.getColumnName()))
                 .collect(Collectors.toList()));
         request.setProject(projectName);
     }
 
-    void cleanIndexPlan(String projectName, NDataModel model, ReloadTableAffectedModelContext removeAffectedModel,
+    void cleanIndexPlan(String projectName, NDataModel model, AffectedModelContext removeAffectedModel,
             boolean needBuild) {
         val indexManager = getIndexPlanManager(projectName);
         val indexPlan = indexManager.getIndexPlan(model.getId());
-
-        val newIndexPlan = indexManager.updateIndexPlan(model.getId(),
-                copyForWrite -> updateCleanIndexPlan(copyForWrite, removeAffectedModel));
+        val newIndexPlan = indexManager.updateIndexPlan(model.getId(), removeAffectedModel::shrinkIndexPlan);
         if (needBuild && indexPlan.getRuleBasedIndex() != null) {
             semanticHelper.handleIndexPlanUpdateRule(projectName, model.getId(), indexPlan.getRuleBasedIndex(),
                     newIndexPlan.getRuleBasedIndex(), false);
         }
-
-    }
-
-    private void updateCleanIndexPlan(IndexPlan indexPlan, ReloadTableAffectedModelContext removeAffectedModel) {
-        val removeDims = removeAffectedModel.getDimensions();
-        val removeColumnIds = removeAffectedModel.getColumnIds();
-        val removeIndexes = removeAffectedModel.getIndexes();
-        UnaryOperator<Integer[]> dimFilter = input -> Stream.of(input).filter(i -> !removeDims.contains(i))
-                .toArray(Integer[]::new);
-        UnaryOperator<Integer[]> meaFilter = input -> Stream.of(input)
-                .filter(i -> !removeAffectedModel.getMeasures().contains(i)).toArray(Integer[]::new);
-        indexPlan.setIndexes(indexPlan.getIndexes().stream().filter(index -> !removeIndexes.contains(index.getId()))
-                .collect(Collectors.toList()));
-
-        val layouts = indexPlan.getToBeDeletedIndexes().stream().filter(index -> removeIndexes.contains(index.getId()))
-                .map(IndexEntity::getLayouts).flatMap(List::stream).map(LayoutEntity::getId)
-                .collect(Collectors.toSet());
-        indexPlan.removeLayoutsFromToBeDeletedList(layouts, LayoutEntity::equals, true, true);
-
-        val overrideIndexes = Maps.newHashMap(indexPlan.getIndexPlanOverrideIndexes());
-        removeColumnIds.forEach(overrideIndexes::remove);
-        indexPlan.setIndexPlanOverrideIndexes(overrideIndexes);
-
-        if (indexPlan.getDictionaries() != null) {
-            indexPlan.setDictionaries(indexPlan.getDictionaries().stream()
-                    .filter(d -> !removeColumnIds.contains(d.getId())).collect(Collectors.toList()));
-        }
-
-        if (indexPlan.getRuleBasedIndex() == null) {
-            return;
-        }
-        val rule = JsonUtil.deepCopyQuietly(indexPlan.getRuleBasedIndex(), NRuleBasedIndex.class);
-        rule.setLayoutIdMapping(Lists.newArrayList());
-        rule.setDimensions(
-                rule.getDimensions().stream().filter(d -> !removeDims.contains(d)).collect(Collectors.toList()));
-        rule.setMeasures(rule.getMeasures().stream().filter(m -> !removeAffectedModel.getMeasures().contains(m))
-                .collect(Collectors.toList()));
-        val newAggGroups = rule.getAggregationGroups().stream().peek(group -> {
-            group.setIncludes(dimFilter.apply(group.getIncludes()));
-            group.setMeasures(meaFilter.apply(group.getMeasures()));
-            group.getSelectRule().mandatoryDims = dimFilter.apply(group.getSelectRule().mandatoryDims);
-            group.getSelectRule().hierarchyDims = Stream.of(group.getSelectRule().hierarchyDims).map(dimFilter)
-                    .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
-            group.getSelectRule().jointDims = Stream.of(group.getSelectRule().jointDims).map(dimFilter)
-                    .filter(dims -> dims.length > 0).toArray(Integer[][]::new);
-        }).filter(group -> ArrayUtils.isNotEmpty(group.getIncludes())).collect(Collectors.toList());
-        rule.setAggregationGroups(newAggGroups);
-        indexPlan.setRuleBasedIndex(rule);
-        indexPlan.setAggShardByColumns(indexPlan.getAggShardByColumns().stream()
-                .anyMatch(id -> removeDims.contains(id) || removeColumnIds.contains(id)) ? Lists.newArrayList()
-                        : indexPlan.getAggShardByColumns());
-        return;
     }
 
     void cleanRedundantEvents(String projectName, NDataModel model, List<Event> existEvents) {
@@ -1386,43 +1314,30 @@ public class TableService extends BasicService {
         context.setRemoveColumns(diff.entriesOnlyOnRight().keySet());
         context.setChangeTypeColumns(diff.entriesDiffering().keySet());
 
-        val dataflowManager = getDataflowManager(project);
-        for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
-            val affectedModel = calcAffectedModel(project, model, context.getRemoveColumns(), tableIdentity);
-            if (affectedModel == null) {
-                continue;
-            }
-            context.getRemoveAffectedModels().put(model.getId(), affectedModel);
-            val keyColumns = model.getJoinTables().stream().flatMap(join -> Stream
-                    .concat(Stream.of(join.getJoin().getPrimaryKey()), Stream.of(join.getJoin().getForeignKey())))
-                    .collect(Collectors.toSet());
-            if (model.getPartitionDesc() != null) {
-                if (model.getPartitionDesc().getPartitionDateColumnRef() != null) {
-                    keyColumns.add(model.getPartitionDesc().getPartitionDateColumnRef().getIdentity());
-                }
-            }
-            if (!Sets.intersection(affectedModel.getColumns(), keyColumns).isEmpty()) {
-                affectedModel.setBroken(true);
-            }
-            if (isSqlContainsColumns(model.getFilterCondition(), tableIdentity, context.getRemoveColumns())
-                    || isSqlContainsColumns(model.getFilterCondition(), tableIdentity,
-                            context.getChangeTypeColumns())) {
-                logger.warn("reload table would affect model {" + model.getAlias() + "} filter_condition");
-                affectedModel.setBroken(true);
-            }
-        }
-        for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
-            val affectedModel = calcAffectedModel(project, model, context.getChangeTypeColumns(), tableIdentity);
-            if (affectedModel == null) {
-                continue;
-            }
-            context.getChangeTypeAffectedModels().put(model.getId(), affectedModel);
-        }
+        val dependencyGraph = SchemaUtil.dependencyGraph(project);
+        Function<Set<String>, Map<String, AffectedModelContext>> toAffectedModels = cols -> {
+            Set<SchemaNode> affectedNodes = Sets.newHashSet();
+            cols.forEach(colName -> {
+                affectedNodes.addAll(Graphs.reachableNodes(dependencyGraph,
+                        SchemaNodeType.TABLE_COLUMN.withKey(newTableDesc.getName() + "." + colName)));
+            });
+            val nodesMap = affectedNodes.stream().filter(SchemaNode::isModelNode)
+                    .collect(Collectors.groupingBy(SchemaNode::getSubject, Collectors.toSet()));
+            Map<String, AffectedModelContext> modelContexts = Maps.newHashMap();
+            nodesMap.forEach((key, nodes) -> {
+                val indexPlan = getIndexPlanManager(project).getIndexPlan(key);
+                val modelContext = new AffectedModelContext(indexPlan, nodes);
+                modelContexts.put(key, modelContext);
+            });
+            return modelContexts;
+        };
+        context.setRemoveAffectedModels(toAffectedModels.apply(context.getRemoveColumns()));
+        context.setChangeTypeAffectedModels(toAffectedModels.apply(context.getChangeTypeColumns()));
         val fqManager = getFavoriteQueryManager(project);
         context.setFavoriteQueries(fqManager.getAll().stream()
                 .filter(fq -> fq.getRealizations().stream()
                         .anyMatch(fqr -> context.getRemoveAffectedModels().containsKey(fqr.getModelId())
-                                && context.getRemoveAffectedModels().get(fqr.getModelId()).getRemovedLayouts()
+                                && context.getRemoveAffectedModels().get(fqr.getModelId()).getUpdatedLayouts()
                                         .contains(fqr.getLayoutId())))
                 .map(FavoriteQuery::getId).collect(Collectors.toSet()));
 
@@ -1445,59 +1360,6 @@ public class TableService extends BasicService {
             }
         }
         return false;
-    }
-
-    ReloadTableAffectedModelContext calcAffectedModel(String project, NDataModel model, Set<String> changedColumns,
-            String tableIdentity) {
-        if (model.getAllTables().stream().noneMatch(ref -> ref.getTableIdentity().equalsIgnoreCase(tableIdentity))) {
-            return null;
-        }
-
-        val modelAffectedColumns = model.getAliasMap().entrySet().stream()
-                .filter(entry -> entry.getValue().getTableIdentity().equals(tableIdentity)) //
-                .map(Map.Entry::getKey).flatMap(alias -> changedColumns.stream().map(col -> alias + "." + col)) //
-                .collect(Collectors.toSet());
-        val affectedComputedColumns = model.getComputedColumnDescs().stream()
-                .filter(cc -> modelAffectedColumns.stream().anyMatch(col -> cc.getInnerExpression().contains(col)))
-                .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
-
-        modelAffectedColumns.addAll(affectedComputedColumns);
-
-        val affectedColIds = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist) //
-                .filter(nc -> modelAffectedColumns.contains(nc.getAliasDotColumn())).map(NDataModel.NamedColumn::getId)
-                .collect(Collectors.toSet());
-        val affectedDims = model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension) //
-                .filter(nc -> modelAffectedColumns.contains(nc.getAliasDotColumn())).map(NDataModel.NamedColumn::getId)
-                .collect(Collectors.toSet());
-        val affectedMeasures = model.getEffectiveMeasureMap().values().stream() //
-                .filter(m -> m.getFunction().getColRefs().stream()
-                        .anyMatch(colRef -> modelAffectedColumns.contains(colRef.getIdentity())))
-                .map(NDataModel.Measure::getId).collect(Collectors.toSet());
-        val affectedModel = new ReloadTableAffectedModelContext(model.getId());
-
-        affectedModel.setColumnIds(affectedColIds);
-        affectedModel.setColumns(modelAffectedColumns);
-        affectedModel.setComputedColumns(affectedComputedColumns);
-        affectedModel.setDimensions(affectedDims);
-        affectedModel.setMeasures(affectedMeasures);
-
-        val indexManager = getIndexPlanManager(project);
-        val indexPlan = indexManager.getIndexPlan(model.getId());
-        val affectedLayouts = indexPlan.getAllIndexes().stream()
-                .filter(index -> !Sets.intersection(index.getEffectiveDimCols().keySet(), affectedColIds).isEmpty()
-                        || !Sets.intersection(index.getEffectiveMeasures().keySet(), affectedMeasures).isEmpty())
-                .flatMap(index -> index.getLayouts().stream()).map(LayoutEntity::getId).collect(Collectors.toSet());
-
-        val copyIndexPlan = indexManager.copy(indexPlan);
-        updateCleanIndexPlan(copyIndexPlan, affectedModel);
-
-        val affectedAddLayouts = Sets.difference(
-                copyIndexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()),
-                indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()));
-        affectedModel.setRemovedLayouts(affectedLayouts);
-        affectedModel.setAddLayouts(affectedAddLayouts);
-
-        return affectedModel;
     }
 
     public Set<String> getLoadedDatabases(String project) {

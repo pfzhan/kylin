@@ -27,8 +27,6 @@ import java.io.Serializable;
 import java.util.Map;
 
 import org.apache.kylin.common.util.JsonUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -39,14 +37,9 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class IndexRecommendationItem extends RecommendationItem<IndexRecommendationItem> implements Serializable {
-    private static final Logger logger = LoggerFactory.getLogger(IndexRecommendationItem.class);
-
-
 
     @Getter
     @Setter

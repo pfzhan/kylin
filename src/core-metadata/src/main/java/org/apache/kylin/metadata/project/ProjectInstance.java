@@ -116,9 +116,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("ext_filters")
-    private Set<String> extFilters = new TreeSet<String>();
-
     @EqualsAndHashCode.Include
     @JsonProperty("maintain_model_type")
     private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
@@ -198,10 +195,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         this.description = description;
     }
 
-    public void setExtFilters(Set<String> extFilters) {
-        this.extFilters = extFilters;
-    }
-
     public ProjectStatusEnum getStatus() {
         return status;
     }
@@ -250,29 +243,12 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         return ImmutableSet.copyOf(getTableFromResource(name));
     }
 
-    public boolean containsRealization(final String realizationType, final String realization) {
-        return Iterables.any(getRealizationsFromResource(this.name), input -> input.getType().equals(realizationType)
-                && input.getRealization().equalsIgnoreCase(realization));
-    }
-
-    public List<RealizationEntry> getRealizationEntries(final String realizationType) {
-        if (realizationType == null)
-            return getRealizationsFromResource(name);
-
-        return ImmutableList.copyOf(Iterables.filter(getRealizationsFromResource(this.name),
-                input -> input.getType().equals(realizationType)));
-    }
-
     public int getRealizationCount(final String realizationType) {
         val realizationEntries = getRealizationsFromResource(this.name);
         if (realizationType == null)
             return realizationEntries.size();
 
         return Iterables.size(Iterables.filter(realizationEntries, input -> input.getType().equals(realizationType)));
-    }
-
-    public boolean containsTable(String tableName) {
-        return getTableFromResource(name).contains(tableName.toUpperCase());
     }
 
     public String getOwner() {

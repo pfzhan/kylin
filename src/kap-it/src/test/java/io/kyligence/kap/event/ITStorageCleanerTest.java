@@ -44,7 +44,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -121,7 +120,7 @@ public class ITStorageCleanerTest extends NLocalWithSparkSessionTest {
         prepareSegment(df.getUuid(), "2012-06-01", "2012-09-01", false);
 
         indexManager.updateIndexPlan(df.getId(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(30001L, 20001L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(30001L, 20001L), true, true);
         });
         val df2 = dataflowManager.getDataflow(df.getUuid());
 

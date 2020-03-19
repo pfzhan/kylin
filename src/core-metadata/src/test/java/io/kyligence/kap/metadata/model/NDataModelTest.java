@@ -87,7 +87,7 @@ public class NDataModelTest {
         Assert.assertNotNull(factTable);
         Assert.assertTrue(model.isFactTable(factTable));
 
-        ImmutableBiMap<Integer, TblColRef> dimMap = model.getEffectiveColsMap();
+        ImmutableBiMap<Integer, TblColRef> dimMap = model.getEffectiveCols();
         Assert.assertEquals(model.findColumn("TRANS_ID"), dimMap.get(1));
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.CAL_DT"), dimMap.get(2));
         Assert.assertEquals(model.findColumn("LSTG_FORMAT_NAME"), dimMap.get(3));
@@ -101,7 +101,7 @@ public class NDataModelTest {
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
         Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
 
-        ImmutableBiMap<Integer, NDataModel.Measure> measureMap = model.getEffectiveMeasureMap();
+        ImmutableBiMap<Integer, NDataModel.Measure> measureMap = model.getEffectiveMeasures();
         Assert.assertEquals(model.getAllMeasures().size() - 1, measureMap.size());
 
         NDataModel.Measure m = measureMap.get(100001);
@@ -115,12 +115,12 @@ public class NDataModelTest {
     @Test
     public void getAllNamedColumns_changeToTomb_lessEffectiveCols() {
         NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        int size = model.getEffectiveColsMap().size();
+        int size = model.getEffectiveCols().size();
 
         model.getAllNamedColumns().get(0).setStatus(NDataModel.ColumnStatus.TOMB);
         mgr.updateDataModelDesc(model);
         model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        int size2 = model.getEffectiveColsMap().size();
+        int size2 = model.getEffectiveCols().size();
 
         Assert.assertEquals(size - 1, size2);
     }
@@ -151,7 +151,7 @@ public class NDataModelTest {
     public void testGetNameById() {
         NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("CAL_DT", model.getNameByColumnId(2));
-        Assert.assertNull(model.getNameByColumnId(100));
+        Assert.assertNull(model.getNameByColumnId(300));
     }
 
 }

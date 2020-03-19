@@ -384,7 +384,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         onlyDeleteRule.setDimensions(Arrays.asList(1, 3, 4, 5, 6));
         onlyDeleteRule.setAggregationGroups(Lists.newArrayList(JsonUtil.deepCopyQuietly(group1, NAggregationGroup.class)));
         val onlyDeleteIndexPlan = indexPlanManager.updateIndexPlan(newIndexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayoutsFromToBeDeletedList(Sets.newHashSet(30001L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(30001L), true, true);
             copyForWrite.setRuleBasedIndex(onlyDeleteRule, false, true);
         });
 

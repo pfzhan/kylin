@@ -93,7 +93,7 @@ class CuboidSuggester {
                 .getProject(this.smartContext.getProject());
 
         aggFuncIdMap = Maps.newHashMap();
-        model.getEffectiveMeasureMap()
+        model.getEffectiveMeasures()
                 .forEach((measureId, measure) -> aggFuncIdMap.put(measure.getFunction(), measureId));
 
         collector.forEach((cuboidIdentifier, indexEntity) -> indexEntity.getLayouts()
@@ -147,7 +147,7 @@ class CuboidSuggester {
         if (CollectionUtils.isEmpty(sortedDimIds))
             return shardBy;
 
-        TblColRef colRef = model.getEffectiveColsMap().get(sortedDimIds.get(0));
+        TblColRef colRef = model.getEffectiveCols().get(sortedDimIds.get(0));
         TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats
                 .getColumnStats(smartContext.getTableMetadataManager(), colRef);
         if (colStats != null
@@ -230,7 +230,7 @@ class CuboidSuggester {
             Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
                     "Cannot suggest any columns in table index.");
             final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
-            nonFilterColumnSet.add(model.getEffectiveColsMap().get(namedColumn.getId()));
+            nonFilterColumnSet.add(model.getEffectiveCols().get(namedColumn.getId()));
         }
         nonFilterColumnSet.removeAll(context.filterColumns);
 
@@ -238,7 +238,7 @@ class CuboidSuggester {
         List<TblColRef> sortedDims = sortDimensionColumns(context.filterColumns, nonFilterColumnSet);
 
         // 4. generate dimension ids
-        return generateDimensionIds(sortedDims, model.getEffectiveColsMap().inverse());
+        return generateDimensionIds(sortedDims, model.getEffectiveCols().inverse());
     }
 
     private List<Integer> suggestAggIndexDimensions(OLAPContext context) {
@@ -251,7 +251,7 @@ class CuboidSuggester {
         List<TblColRef> sortedDims = sortDimensionColumns(context.filterColumns, nonFilterColumnSet);
 
         // 3. generate dimension ids
-        return generateDimensionIds(sortedDims, model.getEffectiveDimenionsMap().inverse());
+        return generateDimensionIds(sortedDims, model.getEffectiveDimensions().inverse());
     }
 
     private List<TblColRef> sortDimensionColumns(Collection<TblColRef> filterColumnsCollection,
@@ -280,7 +280,7 @@ class CuboidSuggester {
     }
 
     private SortedSet<Integer> suggestMeasures(OLAPContext ctx) {
-        Map<TblColRef, Integer> colIdMap = model.getEffectiveDimenionsMap().inverse();
+        Map<TblColRef, Integer> colIdMap = model.getEffectiveDimensions().inverse();
         SortedSet<Integer> measureIds = Sets.newTreeSet();
         // Add default measure count(1)
         measureIds.add(calcCountOneMeasureId());

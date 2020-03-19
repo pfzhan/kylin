@@ -263,9 +263,18 @@ public class TblColRef implements Serializable {
         return column.getTable().getIdentity();
     }
 
+    public String getAliasDotName() {
+        return getTableAlias() + "." + getName();
+    }
+
+    public String getTableDotName() {
+        return column.getTable().getName() + "." + getName();
+    }
+
     public String getCanonicalName() {
         return getTable() + "." + getName();
     }
+
 
     public String getDatatype() {
         return column.getDatatype();
@@ -273,10 +282,6 @@ public class TblColRef implements Serializable {
 
     public DataType getType() {
         return column.getType();
-    }
-
-    public String getBackupTableAlias() {
-        return backupTable.getAlias();
     }
 
     public String getParserDescription() {

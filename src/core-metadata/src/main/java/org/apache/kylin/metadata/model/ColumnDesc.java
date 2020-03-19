@@ -175,6 +175,10 @@ public class ColumnDesc implements Serializable {
         return (name == null) ? null : name.toUpperCase();
     }
 
+    public String getIdentity() {
+        return table.getName() + "." + getName();
+    }
+
     @JsonSetter("name")
     public void setName(String name) {
         this.name = name;

@@ -31,7 +31,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 import org.apache.kylin.common.util.BitSets;
@@ -98,7 +97,7 @@ public class IndexEntity implements Serializable, IKeep {
     private final BiMap<Integer, TblColRef> effectiveDimCols = initEffectiveDimCols();
 
     private BiMap<Integer, TblColRef> initEffectiveDimCols() {
-        return Maps.filterKeys(getModel().getEffectiveColsMap(),
+        return Maps.filterKeys(getModel().getEffectiveCols(),
                 input -> input != null && getDimensionBitset().get(input));
     }
 
@@ -109,8 +108,8 @@ public class IndexEntity implements Serializable, IKeep {
         val model = getModel();
         ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
-            if (model.getEffectiveMeasureMap().containsKey(m)) {
-                measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
+            if (model.getEffectiveMeasures().containsKey(m)) {
+                measuresBuilder.put(m, model.getEffectiveMeasures().get(m));
             }
         }
         return measuresBuilder.build();
@@ -267,8 +266,8 @@ public class IndexEntity implements Serializable, IKeep {
         return id >= TABLE_INDEX_START_ID;
     }
 
-    void removeLayoutsInCuboid(List<LayoutEntity> deprecatedLayouts, Predicate<LayoutEntity> isSkip,
-            BiPredicate<LayoutEntity, LayoutEntity> equal, boolean deleteAuto, boolean deleteManual) {
+    void removeLayouts(List<LayoutEntity> deprecatedLayouts, Predicate<LayoutEntity> isSkip, boolean deleteAuto,
+            boolean deleteManual) {
         checkIsNotCachedAndShared();
         List<LayoutEntity> toRemoveLayouts = Lists.newArrayList();
         for (LayoutEntity cuboidLayout : deprecatedLayouts) {
@@ -276,7 +275,7 @@ public class IndexEntity implements Serializable, IKeep {
                 continue;
             }
             LayoutEntity toRemoveLayout = getLayouts().stream()
-                    .filter(originLayout -> equal.test(originLayout, cuboidLayout)).findFirst().orElse(null);
+                    .filter(originLayout -> Objects.equals(originLayout, cuboidLayout)).findFirst().orElse(null);
             if (toRemoveLayout != null) {
                 if (deleteAuto) {
                     toRemoveLayout.setAuto(false);

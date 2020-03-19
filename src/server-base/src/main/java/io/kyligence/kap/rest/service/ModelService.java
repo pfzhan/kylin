@@ -1996,19 +1996,19 @@ public class ModelService extends BasicService {
         // check agg group contains removed dimensions
         val rule = indexPlan.getRuleBasedIndex();
         if (rule != null) {
-            if (!newModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
+            if (!newModel.getEffectiveDimensions().keySet().containsAll(rule.getDimensions())) {
                 val allDimensions = rule.getDimensions();
                 val dimensionNames = allDimensions.stream()
-                        .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
+                        .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
                 throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
                         indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
             }
 
             for (NAggregationGroup agg : rule.getAggregationGroups()) {
-                if (!newModel.getEffectiveMeasureMap().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
+                if (!newModel.getEffectiveMeasures().keySet().containsAll(Sets.newHashSet(agg.getMeasures()))) {
                     val measureNames = Arrays.stream(agg.getMeasures())
-                            .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
+                            .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                             .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
                     throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
                             indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));
@@ -2032,18 +2032,18 @@ public class ModelService extends BasicService {
         val recommendAggIndex = indexPlan.getIndexes().stream().filter(x -> !x.isTableIndex())
                 .collect(Collectors.toList());
         for (val aggIndex : recommendAggIndex) {
-            if (!newModel.getEffectiveDimenionsMap().keySet().containsAll(aggIndex.getDimensions())) {
+            if (!newModel.getEffectiveDimensions().keySet().containsAll(aggIndex.getDimensions())) {
                 val allDimensions = aggIndex.getDimensions();
                 val dimensionNames = allDimensions.stream()
-                        .filter(id -> !newModel.getEffectiveDimenionsMap().containsKey(id))
+                        .filter(id -> !newModel.getEffectiveDimensions().containsKey(id))
                         .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
                 throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_DIMENSION_NOTFOUND(),
                         indexPlan.getModel().getUuid(), StringUtils.join(dimensionNames, ",")));
             }
 
-            if (!newModel.getEffectiveMeasureMap().keySet().containsAll(aggIndex.getMeasures())) {
+            if (!newModel.getEffectiveMeasures().keySet().containsAll(aggIndex.getMeasures())) {
                 val measureNames = aggIndex.getMeasures().stream()
-                        .filter(measureId -> !newModel.getEffectiveMeasureMap().containsKey(measureId))
+                        .filter(measureId -> !newModel.getEffectiveMeasures().containsKey(measureId))
                         .map(originModel::getMeasureNameByMeasureId).collect(Collectors.toList());
                 throw new IllegalStateException(String.format(MsgPicker.getMsg().getAGGINDEX_MEASURE_NOTFOUND(),
                         indexPlan.getModel().getUuid(), StringUtils.join(measureNames, ",")));

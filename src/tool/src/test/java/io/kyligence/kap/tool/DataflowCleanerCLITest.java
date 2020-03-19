@@ -26,7 +26,6 @@ package io.kyligence.kap.tool;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -61,7 +60,7 @@ public class DataflowCleanerCLITest extends NLocalFileMetadataTestCase {
         var dataflow = dataflowManager.getDataflow(MODEL_ID);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var indexPlan = dataflow.getIndexPlan();
-        indexPlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), LayoutEntity::equals, true,
+        indexPlanManager.updateIndexPlan(indexPlan.getId(), copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), true,
                 false));
 
         for (NDataSegment segment : dataflow.getSegments()) {

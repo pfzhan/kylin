@@ -130,7 +130,7 @@ public class KylinPrepareEnvListener implements EnvironmentPostProcessor, Ordere
         try {
             Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
             H2Database h2DB = new H2Database(h2Connection, KylinConfig.getInstanceFromEnv(), "default");
-            h2DB.loadAllTables();
+//            h2DB.loadAllTables();
         } catch (SQLException ex) {
             log.error(ex.getMessage(), ex);
         }

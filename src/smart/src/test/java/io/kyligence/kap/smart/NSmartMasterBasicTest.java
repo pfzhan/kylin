@@ -119,8 +119,8 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         NDataModel model = mdCtx.getTargetModel();
         Assert.assertNotNull(model);
         Assert.assertEquals(kylinSalesTblDesc, model.getRootFactTable().getTableDesc());
-        Assert.assertFalse(model.getEffectiveColsMap().isEmpty());
-        Assert.assertFalse(model.getEffectiveMeasureMap().isEmpty());
+        Assert.assertFalse(model.getEffectiveCols().isEmpty());
+        Assert.assertFalse(model.getEffectiveMeasures().isEmpty());
 
         // select IndexPlan
         smartMaster.selectIndexPlan();
@@ -199,8 +199,8 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         NDataModel model = mdCtx.getTargetModel();
         Assert.assertEquals(kylinSalesTblDesc, model.getRootFactTable().getTableDesc());
         Assert.assertEquals(model.getUuid(), mdCtx.getOriginModel().getUuid());
-        Assert.assertFalse(model.getEffectiveColsMap().isEmpty());
-        Assert.assertFalse(model.getEffectiveMeasureMap().isEmpty());
+        Assert.assertFalse(model.getEffectiveCols().isEmpty());
+        Assert.assertFalse(model.getEffectiveMeasures().isEmpty());
 
         // select IndexPlan
         smartMaster.selectIndexPlan();
@@ -273,14 +273,14 @@ public class NSmartMasterBasicTest extends NAutoTestOnLearnKylinData {
         smartMaster.optimizeModel();
         NDataModel model0 = smartContext.getModelContexts().get(0).getTargetModel();
         Assert.assertNotNull(model0);
-        Assert.assertEquals(48, model0.getEffectiveColsMap().size());
-        Assert.assertEquals(2, model0.getEffectiveDimenionsMap().size());
-        Assert.assertEquals(1, model0.getEffectiveMeasureMap().size());
+        Assert.assertEquals(48, model0.getEffectiveCols().size());
+        Assert.assertEquals(2, model0.getEffectiveDimensions().size());
+        Assert.assertEquals(1, model0.getEffectiveMeasures().size());
         NDataModel model1 = smartContext.getModelContexts().get(1).getTargetModel();
         Assert.assertNotNull(model1);
-        Assert.assertEquals(17, model1.getEffectiveColsMap().size());
-        Assert.assertEquals(0, model1.getEffectiveDimenionsMap().size());
-        Assert.assertEquals(1, model1.getEffectiveMeasureMap().size());
+        Assert.assertEquals(17, model1.getEffectiveCols().size());
+        Assert.assertEquals(0, model1.getEffectiveDimensions().size());
+        Assert.assertEquals(1, model1.getEffectiveMeasures().size());
 
         // select IndexPlan
         smartMaster.selectIndexPlan();

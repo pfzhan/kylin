@@ -3,12 +3,6 @@
   "last_modified": 1509531215483,
   "version": "2.3.0.20500",
   "description": "test_description",
-  "index_plan_override_encodings": {
-    "1": {
-      "name": "fixed_length:12",
-      "version": "1"
-    }
-  },
   "indexes": [
     {
       "id": 0,

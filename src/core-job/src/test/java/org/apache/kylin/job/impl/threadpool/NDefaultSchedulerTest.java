@@ -83,7 +83,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.junit.rule.Repeat;
 import io.kyligence.kap.junit.rule.RepeatRule;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
@@ -703,7 +702,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val job = initNoErrorJob(modelId);
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), project);
         mgr.updateIndexPlan(modelId, copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(1L, 10001L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(1L, 10001L), true, true);
         });
 
         waitForJobFinish(job.getId());
@@ -719,7 +718,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         val job = initNoErrorJob(modelId);
         val mgr = NIndexPlanManager.getInstance(getTestConfig(), project);
         mgr.updateIndexPlan(modelId, copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(1L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(1L), true, true);
         });
 
         waitForJobFinish(job.getId());

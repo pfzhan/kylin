@@ -312,9 +312,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
-        Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(100018).getName());
-        Assert.assertNull(model.getEffectiveMeasureMap().get(100002));
-        Assert.assertNull(model.getEffectiveMeasureMap().get(100003));
+        Assert.assertEquals("GMV_AVG", model.getEffectiveMeasures().get(100018).getName());
+        Assert.assertNull(model.getEffectiveMeasures().get(100002));
+        Assert.assertNull(model.getEffectiveMeasures().get(100003));
     }
 
     @Test
@@ -367,7 +367,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
-        Assert.assertEquals("NEW_MEASURE", model.getEffectiveMeasureMap().get(originId).getName());
+        Assert.assertEquals("NEW_MEASURE", model.getEffectiveMeasures().get(originId).getName());
     }
 
     @Test
@@ -464,10 +464,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val model = getTestModel();
         Assert.assertEquals(newCol.getName(), model.getNameByColumnId(prevId));
-        Assert.assertNull(model.getEffectiveDimenionsMap().get(25));
+        Assert.assertNull(model.getEffectiveDimensions().get(25));
         Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_YEAR"));
-        Assert.assertNull(model.getEffectiveDimenionsMap().get(ccColId));
-        Assert.assertNull(model.getEffectiveColsMap().get(ccColId));
+        Assert.assertNull(model.getEffectiveDimensions().get(ccColId));
+        Assert.assertNull(model.getEffectiveCols().get(ccColId));
 
         newCol.setName("PRICE3");
         request.getComputedColumnDescs().add(ccDesc);
@@ -536,9 +536,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_multi_measures.json"),
                 ModelRequest.class);
         val model = modelService.createModel(request.getProject(), request);
-        Assert.assertEquals(3, model.getEffectiveMeasureMap().size());
+        Assert.assertEquals(3, model.getEffectiveMeasures().size());
         Assert.assertThat(
-                model.getEffectiveMeasureMap().values().stream().map(MeasureDesc::getName).collect(Collectors.toList()),
+                model.getEffectiveMeasures().values().stream().map(MeasureDesc::getName).collect(Collectors.toList()),
                 CoreMatchers.is(Lists.newArrayList("SUM_PRICE", "MAX_COUNT", "COUNT_ALL")));
     }
 
@@ -555,8 +555,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             cubeBasic.setRuleBasedIndex(rule);
         });
         val request = newSemanticRequest();
-        request.setSimplifiedDimensions(
-                request.getAllNamedColumns().stream().filter(c -> c.getId() != 26).collect(Collectors.toList()));
+        request.setSimplifiedDimensions(request.getAllNamedColumns().stream()
+                .filter(c -> c.getId() != 26 && c.isExist()).collect(Collectors.toList()));
         modelService.updateDataModelSemantic("default", request);
     }
 
@@ -740,8 +740,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     public void testOnlyAddDimensions() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
-        modelMgr.updateDataModel(MODEL_ID, model -> model.setAllNamedColumns(model.getAllNamedColumns().stream()
-                .peek(c -> c.setStatus(NDataModel.ColumnStatus.DIMENSION)).collect(Collectors.toList())));
+        modelMgr.updateDataModel(MODEL_ID,
+                model -> model.setAllNamedColumns(model.getAllNamedColumns().stream().peek(c -> {
+                    if (!c.isExist()) {
+                        return;
+                    }
+                    c.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                }).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel, null, null);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
@@ -831,6 +836,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         modelMgr.updateDataModel(originModel.getUuid(),
                 model -> model.setAllNamedColumns(model.getAllNamedColumns().stream().peek(c -> {
+                    if (!c.isExist()) {
+                        return;
+                    }
                     c.setStatus(NDataModel.ColumnStatus.DIMENSION);
                     if (c.getId() == 26) {
                         c.setStatus(NDataModel.ColumnStatus.EXIST);

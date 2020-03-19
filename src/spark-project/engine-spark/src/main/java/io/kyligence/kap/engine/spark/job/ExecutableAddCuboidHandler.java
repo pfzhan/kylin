@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
@@ -82,10 +81,7 @@ public class ExecutableAddCuboidHandler extends ExecutableHandler {
                 }
 
                 NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateIndexPlan(modelId,
-                        copyForWrite -> {
-                            copyForWrite.removeLayoutsFromToBeDeletedList(toBeDeletedLayoutIds, LayoutEntity::equals,
-                                    true, true);
-                        });
+                        copyForWrite -> copyForWrite.removeLayouts(toBeDeletedLayoutIds, true, true));
             }
         });
 

@@ -382,40 +382,35 @@ public class NSmartMaster {
     private Map<NDataModel, Pair<OptimizeRecommendation, Long>> genOptRecommendations() {
         log.info("Semi-Auto-Mode project:{} start to generate optimized recommendations.", project);
 
-        Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = Maps.newHashMap();
-        UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
-            @Override
-            public Object process() throws Exception {
-                OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), project);
-                for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-                    if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
-                        log.info(
-                                "Semi-Auto-Mode project:{} skip model optimize, withoutTargetModel: {}, withoutAnyIndexes: {}",
-                                project, modelCtx.withoutTargetModel(), modelCtx.withoutAnyIndexes());
-                        continue;
-                    }
-
-                    NDataModel model = modelCtx.getTargetModel();
-                    IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
-                    if (modelCtx.getOriginModel() != null) {
-                        long beforeLayoutItemId = 0;
-                        OptimizeRecommendation before = optRecMgr.getOptimizeRecommendation(model.getId());
-                        if (before != null) {
-                            beforeLayoutItemId = before.getNextLayoutRecommendationItemId();
-                        }
-                        OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
-                        optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
-                        recommendationMap.putIfAbsent(model, new Pair<>(recommendations, beforeLayoutItemId));
-                        saveRecommendation(model, recommendationMap.get(model));
-                    }
-                    log.info("Semi-Auto-Mode project:{} successfully generate optimized recommendations.", project);
+        return UnitOfWork.doInTransactionWithRetry(() -> {
+            Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = Maps.newHashMap();
+            OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
+            for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+                if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
+                    log.info(
+                            "Semi-Auto-Mode project:{} skip model optimize, withoutTargetModel: {}, withoutAnyIndexes: {}",
+                            project, modelCtx.withoutTargetModel(), modelCtx.withoutAnyIndexes());
+                    continue;
                 }
-                return null;
-            }
-        }, project);
 
-        return recommendationMap;
+                NDataModel model = modelCtx.getTargetModel();
+                IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
+                if (modelCtx.getOriginModel() != null) {
+                    long beforeLayoutItemId = 0;
+                    OptimizeRecommendation before = optRecMgr.getOptimizeRecommendation(model.getId());
+                    if (before != null) {
+                        beforeLayoutItemId = before.getNextLayoutRecommendationItemId();
+                    }
+                    OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
+                    optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
+                    recommendationMap.putIfAbsent(model, new Pair<>(recommendations, beforeLayoutItemId));
+                    saveRecommendation(model, recommendationMap.get(model));
+                }
+                log.info("Semi-Auto-Mode project:{} successfully generate optimized recommendations.", project);
+            }
+            return recommendationMap;
+        }, project);
     }
 
     private void saveRecommendation(NDataModel model, Pair<OptimizeRecommendation, Long> pair) {

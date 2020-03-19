@@ -27,15 +27,9 @@ package io.kyligence.kap.metadata.cube;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -43,14 +37,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import lombok.val;
 import lombok.var;
@@ -146,7 +141,7 @@ public class NIndexPlanManagerTest {
         dfManager.updateDataflow(update2);
 
         manager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), true, true);
         });
 
         df = dfManager.getDataflow(indexPlan.getId());
@@ -176,36 +171,6 @@ public class NIndexPlanManagerTest {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NIndexPlanManager manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
 
-        var cube = manager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").copy();
-        val originalSize = cube.getAllLayouts().size();
-        val cuboidMap = Maps.newHashMap(cube.getWhiteListIndexesMap());
-        val toRemovedMap = Maps.<IndexEntity.IndexIdentifier, List<LayoutEntity>> newHashMap();
-        for (Map.Entry<IndexEntity.IndexIdentifier, IndexEntity> cuboidDescEntry : cuboidMap.entrySet()) {
-            val layouts = cuboidDescEntry.getValue().getLayouts();
-            val filteredLayouts = Lists.<LayoutEntity> newArrayList();
-            for (LayoutEntity layout : layouts) {
-                if (Arrays.asList(1000001L, 10002L).contains(layout.getId())) {
-                    filteredLayouts.add(layout);
-                }
-            }
-
-            toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
-        }
-        cube.removeLayouts(toRemovedMap, LayoutEntity::equals, true, true);
-        Assert.assertEquals(originalSize - 1, cube.getAllLayouts().size());
-
-        cube = manager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a").copy();
-        cube.removeLayouts(toRemovedMap, input -> input != null && input.getId() == 10002L, LayoutEntity::equals, true,
-                true);
-        Assert.assertEquals(originalSize, cube.getAllLayouts().size());
-
-    }
-
-    @Test
-    public void testRemoveLayout2() throws IOException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NIndexPlanManager manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
-
         var cube = manager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         logLayouts(cube);
         log.debug("-------------");
@@ -214,13 +179,13 @@ public class NIndexPlanManagerTest {
         Assert.assertTrue(layout.isAuto());
         Assert.assertTrue(layout.isManual());
         cube = manager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(1000001L, 10002L), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(1000001L, 10002L), true, true);
         });
         logLayouts(cube);
-        Assert.assertEquals(originalSize - 1, cube.getAllLayouts().size());
+        Assert.assertEquals(originalSize - 2, cube.getAllLayouts().size());
+        Assert.assertEquals(1, cube.getRuleBasedIndex().getLayoutBlackList().size());
         val layout2 = cube.getCuboidLayout(1000001L);
-        Assert.assertFalse(layout2.isAuto());
-        Assert.assertTrue(layout2.isManual());
+        Assert.assertNull(layout2);
     }
 
     private void logLayouts(IndexPlan indexPlan) {

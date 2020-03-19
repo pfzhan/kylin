@@ -272,7 +272,7 @@ public class IndexPlanService extends BasicService {
         Preconditions.checkState(layout.isManual());
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(id), LayoutEntity::equals, false, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(id), false, true);
         });
     }
 
@@ -293,8 +293,8 @@ public class IndexPlanService extends BasicService {
             if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
                 copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
             }
-            copyForWrite.removeLayouts(Sets.newHashSet(id), LayoutEntity::equals, true, true);
-            copyForWrite.removeLayoutsFromToBeDeletedList(Sets.newHashSet(id), LayoutEntity::equals, true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(id), true, true);
+            copyForWrite.removeLayouts(Sets.newHashSet(id), true, true);
         });
         val recommendationManager = OptimizeRecommendationManager.getInstance(kylinConfig, project);
         recommendationManager.cleanInEffective(model);
