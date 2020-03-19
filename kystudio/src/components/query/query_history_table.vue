@@ -217,7 +217,7 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
   },
   filters: {
     filterNumbers (num) {
-      if (num > 0) return num
+      if (num >= 0) return num
     }
   }
 })

@@ -39,11 +39,11 @@
         </p>
         <p class="resultText" v-if="!extraoption.pushDown">
           <span class="label">{{$t('kylinLang.query.total_scan_count')}}: </span>
-          <span class="text">{{extraoption.totalScanRows}}</span>
+          <span class="text">{{extraoption.totalScanRows | filterNumbers}}</span>
         </p>
         <p class="resultText" v-if="!extraoption.pushDown">
           <span class="label">{{$t('kylinLang.query.result_row_count')}}: </span>
-          <span class="text">{{extraoption.resultRowCount}}</span>
+          <span class="text">{{extraoption.resultRowCount | filterNumbers}}</span>
         </p>
       </div>
     </div>
@@ -141,6 +141,11 @@ import { hasRole, transToGmtTime } from '../../util/business'
       queryResults: '查询结果',
       exportCSV: '导出 CSV',
       linkToSpark: '跳转至 Spark 任务详情'
+    }
+  },
+  filters: {
+    filterNumbers (num) {
+      if (num >= 0) return num
     }
   }
 })
