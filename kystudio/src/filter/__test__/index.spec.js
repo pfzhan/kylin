@@ -46,9 +46,9 @@ describe('vue-filter', () => {
   it('timeFormatHasTimeZone', () => {
     expect(filterElements.timeFormatHasTimeZone('')).toBe('')
     expect(filterElements.timeFormatHasTimeZone('time')).toBe('')
-    expect(filterElements.timeFormatHasTimeZone(1571529965000)).toEqual('2019-10-20 08:06:05 GMT+8')
-    expect(filterElements.timeFormatHasTimeZone(1580988555393)).toEqual('2020-02-06 19:29:15 GMT+8')
-    expect(filterElements.timeFormatHasTimeZone(1580947565000)).toEqual('2020-02-06 08:06:05 GMT+8')
+    expect(filterElements.timeFormatHasTimeZone(1571529965000)).toMatch(/(\d{4}-\d{2}-\d{2})\s(\d{2}:\d{2}:\d{2})\s(GMT\+\d)/)
+    expect(filterElements.timeFormatHasTimeZone(1580988555393)).toMatch(/(\d{4}-\d{2}-\d{2})\s(\d{2}:\d{2}:\d{2})\s(GMT\+\d)/)
+    expect(filterElements.timeFormatHasTimeZone(1580947565000)).toMatch(/(\d{4}-\d{2}-\d{2})\s(\d{2}:\d{2}:\d{2})\s(GMT\+\d)/)
   })
   it('fixed', () => {
     expect(filterElements.fixed('string', 2)).toBe('0')
@@ -126,7 +126,7 @@ describe('vue-filter', () => {
     expect(filterElements.arrayToStr(null)).toBeUndefined()
   })
   it('toGMTDate', () => {
-    expect(filterElements.toGMTDate(1580988555393)).toBe('2020-02-06 19:29:15 GMT+8')
+    expect(filterElements.toGMTDate(1580988555393)).toMatch(/(\d{4}-\d{2}-\d{2})\s(\d{2}:\d{2}:\d{2})\s(GMT\+\d)/)
   })
   it('toServerGMTDate', () => {
     expect(filterElements.toServerGMTDate(1580988555393)).toBe('2020-02-06 11:29:15 GMT+0')
