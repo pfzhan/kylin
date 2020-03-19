@@ -79,4 +79,21 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(jsonPath("$.code").value("999")).andExpect(jsonPath("$.msg")
                         .value("User creating is not allowed when username:test_user already exists."));
     }
+
+    @Test
+    public void testSaveUserReturnValueHasNotSensitiveElements() throws Exception {
+        ManagedUser request = new ManagedUser();
+        request.setUsername("test_user_2");
+        request.setPassword("1234567890Q!");
+        request.setDisabled(false);
+        request.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(GROUP_ALL_USERS)));
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.default_password").doesNotExist());
+
+    }
 }

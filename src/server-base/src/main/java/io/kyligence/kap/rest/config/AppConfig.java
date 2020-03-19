@@ -44,6 +44,11 @@ import org.springframework.web.servlet.config.annotation.ContentNegotiationConfi
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.handler.KapNoOpResponseErrorHandler;
@@ -119,5 +124,12 @@ public class AppConfig extends WebMvcConfigurerAdapter {
         }
         registry.addResourceHandler("/index.html").addResourceLocations(resourceProperties.getStaticLocations())
                 .setCacheControl(CacheControl.noCache());
+    }
+
+    @Bean
+    public ObjectMapper getObjectMapper() {
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("passwordFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("password", "defaultPassword"));
+        return new ObjectMapper().setFilterProvider(filterProvider);
     }
 }

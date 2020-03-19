@@ -66,6 +66,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.common.base.Preconditions;
 
 public class JsonUtil {
@@ -73,12 +74,16 @@ public class JsonUtil {
     // reuse the object mapper to save memory footprint
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final ObjectMapper indentMapper = new ObjectMapper();
+    private static final SimpleFilterProvider simpleFilterProvider = new SimpleFilterProvider()
+            .setFailOnUnknownId(false);
 
     static {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .setConfig(mapper.getSerializationConfig().withView(PersistenceView.class));
+        mapper.setFilterProvider(simpleFilterProvider);
         indentMapper.configure(SerializationFeature.INDENT_OUTPUT, true)
                 .setConfig(indentMapper.getSerializationConfig().withView(PersistenceView.class));
+        indentMapper.setFilterProvider(simpleFilterProvider);
     }
 
     public static <T> T readValue(File src, Class<T> valueType) throws IOException {

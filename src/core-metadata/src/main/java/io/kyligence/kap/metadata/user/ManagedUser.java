@@ -56,6 +56,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
@@ -77,6 +78,7 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 @Getter
 @Setter
+@JsonFilter("passwordFilter")
 public class ManagedUser extends RootPersistentEntity implements UserDetails, UserInsensitiveRequest {
 
     @JsonProperty
@@ -89,7 +91,7 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails, Us
     private List<SimpleGrantedAuthority> authorities = Lists.newArrayList();
     @JsonProperty
     private boolean disabled = false;
-    @JsonProperty("default_password")
+    @JsonProperty
     private boolean defaultPassword = false;
     @JsonProperty
     private boolean locked = false;

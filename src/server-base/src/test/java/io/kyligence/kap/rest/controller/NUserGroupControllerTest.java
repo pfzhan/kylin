@@ -42,6 +42,8 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+
 import java.util.List;
 
 import org.apache.kylin.common.util.JsonUtil;
@@ -58,6 +60,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -67,6 +70,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ContentNegotiationManager;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
@@ -74,8 +81,6 @@ import io.kyligence.kap.rest.request.UpdateGroupRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
 import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
 public class NUserGroupControllerTest {
 
@@ -100,11 +105,16 @@ public class NUserGroupControllerTest {
 
     @Before
     public void setup() {
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("passwordFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("password", "defaultPassword"));
+        ObjectMapper objectMapper = new ObjectMapper().setFilterProvider(filterProvider);
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objectMapper);
         MockitoAnnotations.initMocks(this);
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController)
-                .setContentNegotiationManager(contentNegotiationManager)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserGroupController).setMessageConverters(converter)
+                .setContentNegotiationManager(contentNegotiationManager).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
@@ -117,9 +127,8 @@ public class NUserGroupControllerTest {
         Mockito.doReturn(mockManagedUser()).when(userGroupService).getGroupMembersByName(Mockito.anyString());
         Mockito.doNothing().when(aclTCRService).revokeAclTCR(Mockito.anyString(), Mockito.anyBoolean());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/user_group/group_members/{group_name:.+}", "g1@.h")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("name", "").param("page_offset", "0").param("page_size", "10")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .contentType(MediaType.APPLICATION_JSON).param("name", "").param("page_offset", "0")
+                .param("page_size", "10").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nUserGroupController).getUsersByGroup("g1@.h", "", 0, 10);
