@@ -105,7 +105,7 @@ class TestSSBQuery
       calciteToSparkPlaner.go(relNode)
       val dataFrame = calciteToSparkPlaner.getResult()
       () => {
-        ResultPlan.getResult(dataFrame)
+        ResultPlan.getResult(dataFrame, resultType)
       }
     })
     helper.runTest()

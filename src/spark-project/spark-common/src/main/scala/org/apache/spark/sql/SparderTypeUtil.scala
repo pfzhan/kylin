@@ -33,7 +33,7 @@ import java.util.{GregorianCalendar, TimeZone}
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
-import org.apache.calcite.sql.`type`.SqlTypeName
+import org.apache.calcite.sql.`type`.{SqlTypeFamily, SqlTypeName}
 import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
@@ -212,6 +212,53 @@ object SparderTypeUtil extends Logging {
         literal.getValue.toString
     }
     ret
+  }
+
+  def convertToStringWithCalciteType(rawValue: Any, relType: RelDataType): String = (rawValue, relType.getSqlTypeName) match {
+    case (null, _) => null
+    // types that matched
+    case (value: BigDecimal, SqlTypeName.DECIMAL) => value.toString
+    case (value: Integer, SqlTypeName.INTEGER) => value.toString
+    case (value: Byte, SqlTypeName.TINYINT) => value.toString
+    case (value: Short, SqlTypeName.SMALLINT) => value.toString
+    case (value: Long, SqlTypeName.BIGINT) => value.toString
+    case (value: Float, SqlTypeName.FLOAT | SqlTypeName.REAL) => value.toString
+    case (value: Double, SqlTypeName.DOUBLE) => value.toString
+    case (value: java.sql.Date, SqlTypeName.DATE) => value.toString
+    case (value: java.sql.Timestamp, SqlTypeName.TIMESTAMP) => DateFormat.formatToTimeWithoutMilliStr(value.getTime)
+    case (value: java.sql.Time, SqlTypeName.TIME) => value.toString
+    case (value: Boolean, SqlTypeName.BOOLEAN) => value.toString
+    // handle cast to char/varchar
+    case (value: java.sql.Timestamp, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.formatToTimeWithoutMilliStr(value.getTime)
+    case (value: java.sql.Date, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.formatToDateStr(value.getTime)
+    case (value, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => value.toString
+    // cast type to align with relType
+    case (value: Any, SqlTypeName.DECIMAL) =>
+      new java.math.BigDecimal(value.toString)
+        .setScale(relType.getScale, BigDecimal.ROUND_HALF_EVEN)
+        .toString
+    case (value: Any, SqlTypeName.INTEGER | SqlTypeName.TINYINT | SqlTypeName.SMALLINT | SqlTypeName.BIGINT) =>
+      value match {
+        case number: Double => number.longValue().toString
+        case number: Float => number.longValue().toString
+        case number: BigDecimal => number.longValue().toString
+        case other => new BigDecimal(other.toString).setScale(0, BigDecimal.ROUND_HALF_EVEN).longValue().toString
+      }
+    case (value: Any, SqlTypeName.FLOAT | SqlTypeName.REAL) => java.lang.Float.parseFloat(value.toString).toString
+    case (value: Any, SqlTypeName.DOUBLE) => java.lang.Double.parseDouble(value.toString).toString
+    case (value: Any, SqlTypeName.DATE | SqlTypeName.TIMESTAMP | SqlTypeName.TIME) =>
+      val valueString = value.toString
+      val millis = if (valueString.contains("-")) {
+        DateFormat.stringToDate(valueString).getTime
+      } else {
+        DateFormat.stringToMillis(valueString)
+      }
+      if (relType.getSqlTypeName == SqlTypeName.DATE) {
+        DateFormat.formatToDateStr(millis)
+      } else {
+        DateFormat.formatToTimeWithoutMilliStr(millis)
+      }
+    case (other, _) => other.toString
   }
 
   // scalastyle:off

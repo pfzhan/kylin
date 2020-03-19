@@ -46,13 +46,57 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.sql.type.BasicSqlType;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.spark.sql.util.SparderTypeUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class SparderTypeUtilTest {
+
+    private RelDataType baiscSqlType(SqlTypeName typeName) {
+        return new BasicSqlType(RelDataTypeSystem.DEFAULT, typeName);
+    }
+
+    private String convertToStringWithCalciteType(Object value, SqlTypeName typeName) {
+        return SparderTypeUtil.convertToStringWithCalciteType(value, baiscSqlType(typeName));
+    }
+
+    private String convertToStringWithDecimalType(Object value, int precision, int scale) {
+        return SparderTypeUtil.convertToStringWithCalciteType(value, new BasicSqlType(RelDataTypeSystem.DEFAULT, SqlTypeName.DECIMAL, precision, scale));
+    }
+
+    @Test
+    public void testConvertToStringWithCalciteType() {
+        // matched types
+        Assert.assertEquals("9", convertToStringWithCalciteType(Integer.valueOf("9"), SqlTypeName.INTEGER));
+        Assert.assertEquals("9", convertToStringWithCalciteType(Short.valueOf("9"), SqlTypeName.SMALLINT));
+        Assert.assertEquals("9", convertToStringWithCalciteType(Byte.valueOf("9"), SqlTypeName.TINYINT));
+        Assert.assertEquals("9", convertToStringWithCalciteType(Long.valueOf("9"), SqlTypeName.BIGINT));
+        Assert.assertEquals("123.345", convertToStringWithDecimalType(new BigDecimal("123.345"), 29, 3));
+        Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.DATE));
+        Assert.assertEquals("2012-01-01 12:34:56", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.TIMESTAMP));
+        // cast to char/varchar
+        Assert.assertEquals("foo", convertToStringWithCalciteType("foo", SqlTypeName.VARCHAR));
+        Assert.assertEquals("foo", convertToStringWithCalciteType("foo", SqlTypeName.CHAR));
+        Assert.assertEquals("123.345", convertToStringWithCalciteType(new BigDecimal("123.345"), SqlTypeName.VARCHAR));
+        Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.VARCHAR));
+        Assert.assertEquals("2012-01-01 12:34:56", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.VARCHAR));
+        // type conversion
+        Assert.assertEquals("9", convertToStringWithCalciteType(Float.valueOf("9.1"), SqlTypeName.INTEGER));
+        Assert.assertEquals("9", convertToStringWithCalciteType(Double.valueOf("9.1"), SqlTypeName.TINYINT));
+        Assert.assertEquals("9", convertToStringWithCalciteType("9.1", SqlTypeName.SMALLINT));
+        Assert.assertEquals("9", convertToStringWithCalciteType(new BigDecimal("9.1"), SqlTypeName.BIGINT));
+        Assert.assertEquals("9", convertToStringWithDecimalType(Long.valueOf("9"), 18, 0));
+        Assert.assertEquals("9.123", convertToStringWithDecimalType(Double.valueOf("9.123"), 18, 3));
+        Assert.assertEquals("9.1", convertToStringWithDecimalType(Double.valueOf("9.123"), 18, 1));
+        Assert.assertEquals("2012-01-01 00:00:00", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.DATE));
+    }
 
     @Test
     public void testEmpty() {

@@ -21,16 +21,17 @@
  */
 package io.kyligence.kap.query.runtime.plan
 
-import java.sql.Timestamp
 import java.util
 
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
+import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.kylin.common.exceptions.KylinTimeoutException
-import org.apache.kylin.common.util.{DateFormat, HadoopUtil}
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule
 import org.apache.spark.sql.hive.QueryMetricUtils
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 
 import scala.collection.JavaConverters._
@@ -44,7 +45,8 @@ object ResultType extends Enumeration {
 object ResultPlan extends LogEx {
   val PARTITION_SPLIT_BYTES: Long = KylinConfig.getInstanceFromEnv.getQueryPartitionSplitSizeMB * 1024 * 1024 // 64MB
 
-  private def collectInternal(df: DataFrame): util.List[util.List[String]] = logTime("collectInternal", info = true) {
+  private def collectInternal(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = logTime("collectInternal", info = true) {
+    val resultTypes = rowType.getFieldList.asScala
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
     val kapConfig = KapConfig.getInstanceFromEnv
@@ -92,16 +94,11 @@ object ResultPlan extends LogEx {
       QueryContext.current().setScanRows(scanRows)
       QueryContext.current().setScanBytes(scanBytes)
 
-      val dt = rows.map { row => row.toSeq.map { cell => {
-        if (cell == null) {
-          null
-        } else {
-          cell match {
-            case ts: Timestamp => DateFormat.formatToTimeWithoutMilliStr(ts.getTime)
-            case value => value.toString
-          }
-        }
-      } }.asJava }.toSeq.asJava
+      val dt = rows.map { row =>
+        row.toSeq.zip(resultTypes).map{
+          case(value, relField) => SparderTypeUtil.convertToStringWithCalciteType(value, relField.getType)
+        }.asJava
+      }.toSeq.asJava
       QueryContext.current.record("transform_result")
       dt
     } catch {
@@ -138,9 +135,9 @@ object ResultPlan extends LogEx {
     r
   }
 
-  def getResult(df: DataFrame): util.List[util.List[String]] = withScope(df) {
+  def getResult(df: DataFrame, rowType: RelDataType): util.List[util.List[String]] = withScope(df) {
     val result = if (SparderEnv.needCompute()) {
-      collectInternal(df)
+      collectInternal(df, rowType)
     } else {
       new util.LinkedList[util.List[String]]
     }
