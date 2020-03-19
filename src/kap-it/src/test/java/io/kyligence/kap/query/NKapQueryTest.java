@@ -26,7 +26,10 @@ package io.kyligence.kap.query;
 
 import java.io.File;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.util.Shell;
@@ -132,6 +135,65 @@ public class NKapQueryTest extends NKylinTestBase {
             // compare the result
             Assert.assertEquals(expectedAnswers.get(i), queryResult.getRows().get(0).get(0));
         }
+    }
+
+    @Test
+    //ref:KE-9015
+    public void testConstantUdfQuery() throws Exception {
+        System.setProperty("kap.query.engine.run-constant-query-locally", "true");
+        System.setProperty("kap.query.engine.sparder-enabled", "true");
+
+        List<String> queries = Arrays.asList(
+                //sql-1
+                "select\n" + "  trunc('2009-02-12', 'MM'),trunc('2015-10-27', 'YEAR'),\n"
+                        + "  trunc(date'2009-02-12', 'MM'),trunc(timestamp'2009-02-12 00:00:00', 'MM'),\n"
+                        + "  add_months('2016-08-31', 1),add_months(date'2016-08-31', 2),add_months(timestamp'2016-08-31 00:00:00', 1),\n"
+                        + "  date_add('2016-07-30', 1),date_add(date'2016-07-30', 1),date_add(timestamp'2016-07-30 00:00:00', 1),\n"
+                        + "  date_sub('2016-07-30', 1),date_sub(date'2016-07-30', 1),date_sub(timestamp'2016-07-30 00:00:00', 1),\n"
+                        + "  from_unixtime(0, 'yyyy-MM-dd HH:mm:ss'),\n"
+                        + "  from_utc_timestamp('2016-08-31', 'Asia/Seoul'),from_utc_timestamp(timestamp'2016-08-31 00:00:00', 'Asia/Seoul'),from_utc_timestamp(date'2016-08-31', 'Asia/Seoul'),\n"
+                        + "  months_between('1997-02-28 10:30:00', '1996-10-30'),months_between(timestamp'1997-02-28 10:30:00', date'1996-10-30'),\n"
+                        + "  to_utc_timestamp('2016-08-31', 'Asia/Seoul'),to_utc_timestamp(timestamp'2016-08-31 00:00:00', 'Asia/Seoul'),to_utc_timestamp(date'2016-08-31', 'Asia/Seoul')\n",
+                //sql2
+                "select 1, sum(case when months_between('1997-02-28 10:30:00',FROM_UTC_TIMESTAMP(date'2016-08-31', 'Asia/Seoul')) > 100 then 100 else 2 end)",
+                //sql3
+                "select 1,2,3");
+
+        List<List<String>> expectedAnswers = new ArrayList<List<String>>();
+        expectedAnswers.add(Arrays.asList("2009-02-01", "2015-01-01", "2009-02-01", "2009-02-01", "2016-09-30",
+                "2016-10-31", "2016-09-30", "2016-07-31", "2016-07-31", "2016-07-31", "2016-07-29", "2016-07-29",
+                "2016-07-29", "1970-01-01 08:00:00", "2016-08-31 09:00:00", "2016-08-31 09:00:00",
+                "2016-08-31 09:00:00", "3.94959677", "3.94959677", "2016-08-30 15:00:00", "2016-08-30 15:00:00",
+                "2016-08-30 15:00:00"));
+        expectedAnswers.add(Arrays.asList("1", "2"));
+        expectedAnswers.add(Arrays.asList("1", "2", "3"));
+
+        for (int i = 0; i < queries.size(); i++) {
+            QueryResult queryResult = new QueryExec(getProject(), KylinConfig.getInstanceFromEnv())
+                    .executeQuery(queries.get(i));
+
+            List<String> resultList = queryResult.getRows().get(0);
+            List<String> expectList = expectedAnswers.get(i);
+
+            Assert.assertTrue(listElementEquals(resultList, expectList));
+        }
+    }
+
+    private boolean listElementEquals(List<String> a, List<String> b) {
+        if (Objects.isNull(a)) {
+            return Objects.isNull(b);
+        } else if (Objects.isNull(b) || a.size() != b.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < a.size(); i++) {
+            if (!a.get(i).equals(b.get(i))) {
+                return false;
+            }
+        }
+
+        return true;
+
     }
     //
     //    @Test

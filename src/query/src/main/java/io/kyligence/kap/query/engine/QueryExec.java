@@ -36,8 +36,10 @@ import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KapConfig;
@@ -51,6 +53,7 @@ import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
 import io.kyligence.kap.query.engine.meta.KECalciteConfig;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
+import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
 
 /**
  * entrance for query execution
@@ -174,22 +177,46 @@ public class QueryExec {
                 kylinConfig);
     }
 
+    private boolean isConstantQuery(RelNode rel) {
+        return !hasTableScanNode(rel) && !hasNotConstantUDF(rel);
+    }
+
     /**
      * search rel node tree to see if there is any table scan node
      * @param rel
      * @return
      */
-    private boolean isConstantQuery(RelNode rel) {
+    private boolean hasTableScanNode(RelNode rel) {
         if (TableScan.class.isAssignableFrom(rel.getClass())) {
-            return false;
+            return true;
         }
         for (RelNode input : rel.getInputs()) {
-            if (!isConstantQuery(input)) {
-                return false;
+            if (hasTableScanNode(input)) {
+                return true;
             }
         }
 
-        return true;
+        return false;
+    }
+
+    /**
+     * In constant query,
+     * visit RelNode tree to see if any UDF implement {@link org.apache.calcite.sql.type.NotConstant}
+     *
+     * @param rel
+     * @return true if any UDF implement {@link org.apache.calcite.sql.type.NotConstant},otherwise false
+     */
+    private boolean hasNotConstantUDF(RelNode rel) {
+
+        if (rel instanceof Project) {
+            Project projectRelNode = (Project) rel;
+            if (projectRelNode.getChildExps().stream().filter(pRelNode -> pRelNode instanceof RexCall)
+                    .anyMatch(pRelNode -> pRelNode.accept(new RexHasConstantUdfVisitor()))) {
+                return true;
+            }
+        }
+
+        return rel.getInputs().stream().anyMatch(this::hasNotConstantUDF);
     }
 
     private SQLException newSqlException(String sql, String msg, Throwable e) {
