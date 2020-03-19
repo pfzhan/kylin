@@ -57,7 +57,7 @@
           <div class="progress-item clearfix" v-for="item in diagDumpIds" :key="item.id">
             <el-checkbox v-model="item.isCheck" :disabled="item.stage !== 'DONE'" v-if="showManualDownloadLayout && isManualDownload" @change="changeCheckItems"></el-checkbox>
             <div class="download-details">
-              <p class="title">{{ getTitle(item) }}</p>
+              <p class="title"><template v-if="item.tm"><i class="el-icon-ksd-type_interval_day_to_seconds default-color"></i> {{getPrevTimeValue({date: item.tm}).split(' ')[1]}}<span class="split-character default-color">｜</span></template>{{ getTitle(item) }}</p>
               <el-progress class="progress" :percentage="Math.ceil(+item.progress * 100)" v-bind="setProgressColor(item)" ></el-progress>
               <template v-if="item.status === '001'">
                 <span :class="['retry-btn', {'ksd-ml-20': isManualDownload}]" @click="retryJob(item)">{{$t('retry')}}</span>
@@ -137,7 +137,8 @@ vuex.registerModule(['diagnosticModel'], store)
       delDumpid: types.DEL_DUMP_ID_LIST,
       resetDumpData: types.RESET_DUMP_DATA,
       stopInterfaceCall: types.STOP_INTERFACE_CALL
-    })
+    }),
+    getPrevTimeValue
   },
   locales
 })
@@ -197,7 +198,7 @@ export default class Diagnostic extends Vue {
     return `http://${label}`
   }
   getTimes (date) {
-    return new Date(date).getTime()
+    return date ? new Date(date).getTime() : new Date().getTime()
   }
   // 更改进度条颜色
   setProgressColor (item) {
@@ -311,7 +312,8 @@ export default class Diagnostic extends Vue {
     this.servers.forEach(async (host) => {
       await this.getDumpRemote({
         host: `http://${host.trim()}`,
-        ...data
+        ...data,
+        tm: this.getTimes()
       }).then(() => {
         // apiErrorNum += 1
       }).catch(() => {
@@ -454,6 +456,9 @@ export default class Diagnostic extends Vue {
             .title {
               font-size: 12px;
               margin-top: 8px;
+              .default-color {
+                color: @text-disabled-color;
+              }
             }
             .progress {
               width: 450px;

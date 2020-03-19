@@ -27,7 +27,7 @@ export default {
     isReset: false
   },
   mutations: {
-    [types.UPDATE_DUMP_IDS] (state, { host, start, end, id }) {
+    [types.UPDATE_DUMP_IDS] (state, { host, start, end, id, tm }) {
       let idList = state.diagDumpIds
       if (typeof id === 'string') {
         idList = {
@@ -43,7 +43,8 @@ export default {
             error: '',
             showErrorDetail: false,
             isCheck: false,
-            running: true
+            running: true,
+            tm
           }}
         }
       }
@@ -106,13 +107,13 @@ export default {
   },
   actions: {
     // 生成诊断包
-    [types.GET_DUMP_REMOTE] ({ state, commit, dispatch }, { host = '', start = '', end = '', job_id = '' }) {
+    [types.GET_DUMP_REMOTE] ({ state, commit, dispatch }, { host = '', start = '', end = '', job_id = '', tm }) {
       if (!host) return
       return new Promise((resolve, reject) => {
         api.system.getDumpRemote({ host, start, end, job_id }).then(async (res) => {
           if (state.isReset) return
           const { data } = res.data
-          await commit(types.UPDATE_DUMP_IDS, { host, start, end, id: data })
+          await commit(types.UPDATE_DUMP_IDS, { host, start, end, id: data, tm })
           dispatch(types.POLLING_STATUS_MSG, { host, id: data })
           resolve(data)
         }).catch((err) => {
