@@ -141,6 +141,7 @@ import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
@@ -160,6 +161,8 @@ import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SegmentCheckResponse;
+import io.kyligence.kap.rest.response.SegmentRangeResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.NSmartContext;
@@ -448,6 +451,7 @@ public class ModelService extends BasicService {
                     nDataModelResponse.setStatus(modelStatus);
                     nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
                     nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
+                    nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
                     nDataModelResponse.setExpansionrate(
                             computeExpansionRate(nDataModelResponse.getStorage(), nDataModelResponse.getSource()));
                     nDataModelResponse.setUsage(dataflow.getQueryHitCount());
@@ -1452,6 +1456,86 @@ public class ModelService extends BasicService {
                 DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
     }
 
+    public SegmentCheckResponse checkSegHoleExistIfNewRangeBuild(String project, String modelId, String start,
+            String end) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end), "Load data must set start and end date");
+        NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        TableDesc table = getTableManager(project).getTableDesc(dataModelDesc.getRootFactTableName());
+        SegmentRange segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+        List<NDataSegment> segmentGaps = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .checkHoleIfNewSegBuild(modelId, segmentRangeToBuild);
+
+        Segments<NDataSegment> segments = getSegmentsByRange(modelId, project, "0", "" + Long.MAX_VALUE);
+        val overlapSegments = segments.stream().filter(seg -> seg.getSegRange().overlaps(segmentRangeToBuild))
+                .map(seg -> new SegmentRangeResponse(seg.getTSRange().getStart(), seg.getTSRange().getEnd()))
+                .collect(Collectors.toList());
+
+        SegmentCheckResponse segmentCheckResponse = new SegmentCheckResponse();
+        val segHoles = segmentGaps.stream()
+                .map(seg -> new SegmentRangeResponse(seg.getTSRange().getStart(), seg.getTSRange().getEnd()))
+                .collect(Collectors.toList());
+        segmentCheckResponse.setSegmentHoles(segHoles);
+        segmentCheckResponse.setOverlapSegments(overlapSegments);
+        return segmentCheckResponse;
+    }
+
+    public SegmentCheckResponse checkSegHoleIfSegDeleted(String model, String project, String[] ids) {
+        aclEvaluate.checkProjectOperationPermission(project);
+        NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
+        if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            throw new BadRequestException(
+                    MODEL + dataModel.getAlias() + "' is table oriented, can not remove segments manually!");
+        }
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        checkSegmentsExist(model, project, ids);
+        checkSegmentsLocked(model, project, ids);
+        NDataflow dataflow = dataflowManager.getDataflow(model);
+        val toDeletedSeg = dataflow.getSegments().stream().filter(seg -> Arrays.asList(ids).contains(seg.getId()))
+                .collect(Collectors.toList());
+        val remainSegs = dataflow.getSegments().stream().filter(seg -> !Arrays.asList(ids).contains(seg.getId()))
+                .collect(Collectors.toList());
+        val segHoles = dataflowManager.calculateHoles(model, remainSegs).stream()
+                .filter(seg -> toDeletedSeg.stream()
+                        .anyMatch(deletedSeg -> deletedSeg.getSegRange().overlaps(seg.getSegRange())))
+                .map(seg -> new SegmentRangeResponse(seg.getTSRange().getStart(), seg.getTSRange().getEnd()))
+                .collect(Collectors.toList());
+        SegmentCheckResponse response = new SegmentCheckResponse();
+        response.setSegmentHoles(segHoles);
+        return response;
+    }
+
+    public JobInfoResponse fixSegmentHoles(String project, String modelId, List<SegmentTimeRequest> segmentHoles)
+            throws Exception {
+        aclEvaluate.checkProjectOperationPermission(project);
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
+        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            throw new BadRequestException(
+                    "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
+        }
+        val indexPlan = getIndexPlan(modelId, project);
+        if (indexPlan == null) {
+            throw new BadRequestException(
+                    "Can not build segments, please define table index or aggregate index first!");
+        }
+
+        String format = probeDateFormatIfNotExist(project, modelDesc);
+        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
+            List<JobInfoResponse.JobInfo> jobInfos = Lists.newArrayList();
+            for (SegmentTimeRequest hole : segmentHoles) {
+                jobInfos.addAll(
+                        constructAddSegFunctionInTransaction(project, modelId, hole.getStart(), hole.getEnd(), format,
+                                true));
+            }
+            return jobInfos;
+        }, project);
+
+        JobInfoResponse jobInfoResponse = new JobInfoResponse();
+        jobInfoResponse.setJobs(jobIds);
+        return jobInfoResponse;
+
+    }
+
     public JobInfoResponse buildSegmentsManually(String project, String modelId, String start, String end)
             throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
@@ -1466,46 +1550,51 @@ public class ModelService extends BasicService {
                     "Can not build segments, please define table index or aggregate index first!");
         }
         String format = probeDateFormatIfNotExist(project, modelDesc);
-        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
-            NDataModel modelDescInTransaction = getDataModelManager(project).getDataModelDesc(modelId);
-            SegmentRange segmentRangeToBuild;
+        EventManager eventManager = getEventManager(project);
+        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(
+                () -> constructAddSegFunctionInTransaction(project, modelId, start, end, format, false), project);
+        JobInfoResponse jobInfoResponse = new JobInfoResponse();
+        jobInfoResponse.setJobs(jobIds);
+        return jobInfoResponse;
+    }
 
-            TableDesc table = getTableManager(project).getTableDesc(modelDescInTransaction.getRootFactTableName());
+    private List<JobInfoResponse.JobInfo> constructAddSegFunctionInTransaction(String project, String modelId,
+            String start, String end, String partionColFormat, boolean fixSeg) throws Exception {
+        NDataModel modelDescInTransaction = getDataModelManager(project).getDataModelDesc(modelId);
+        EventManager eventManager = getEventManager(project);
+        TableDesc table = getTableManager(project).getTableDesc(modelDescInTransaction.getRootFactTableName());
+        val df = getDataflowManager(project).getDataflow(modelId);
 
-            EventManager eventManager = getEventManager(project);
-
-            val df = getDataflowManager(project).getDataflow(modelId);
-
-            if (modelDescInTransaction.getPartitionDesc() == null
-                    || StringUtils.isEmpty(modelDescInTransaction.getPartitionDesc().getPartitionDateColumn())) {
-                //if full seg exists,refresh it
-                val segs = df.getSegments(SegmentStatusEnum.READY);
-                if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
-                    return refreshSegmentById(modelId, project,
-                            Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
-                }
-                //build Full seg
-                segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-            } else {
-                Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end),
-                        "Load data must set start and end date");
-                segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+        SegmentRange segmentRangeToBuild;
+        if (modelDescInTransaction.getPartitionDesc() == null
+                || StringUtils.isEmpty(modelDescInTransaction.getPartitionDesc().getPartitionDateColumn())) {
+            //if full seg exists,refresh it
+            val segs = df.getSegments(SegmentStatusEnum.READY);
+            if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
+                return refreshSegmentById(modelId, project,
+                        Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
             }
-            saveDateFormatIfNotExist(project, modelId, format);
+            //build Full seg
+            segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+        } else {
+            Preconditions.checkArgument(!PushDownUtil.needPushdown(start, end),
+                    "Load data must set start and end date");
+            segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+        }
+        checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
 
-            checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
-
-            NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
-
+        saveDateFormatIfNotExist(project, modelId, partionColFormat);
+        NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
+        if (fixSeg) {
+            return Arrays.asList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
+                    eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())));
+        } else {
             return Arrays.asList(
                     new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
                             eventManager.postAddSegmentEvents(newSegment, modelId, getUsername())),
                     new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                             eventManager.postAddCuboidEvents(modelId, getUsername())));
-        }, project);
-        JobInfoResponse jobInfoResponse = new JobInfoResponse();
-        jobInfoResponse.setJobs(jobIds);
-        return jobInfoResponse;
+        }
     }
 
     void syncPartitionDesc(String model, String project) {
@@ -1713,9 +1802,6 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExist(model, project, ids);
         checkSegmentsLocked(model, project, ids);
-
-        if (!force)
-            checkDeleteSegmentLegally(model, project, ids);
 
         val indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());

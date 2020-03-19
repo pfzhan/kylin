@@ -32,15 +32,10 @@ import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
-
+public class SegmentFixRequest implements ProjectInsensitiveRequest {
+    @JsonProperty("project")
     private String project;
 
-    private String start;
-
-    private String end;
-
     @JsonProperty("segment_holes")
-    private List<SegmentTimeRequest> segment_holes;
-
+    private List<SegmentTimeRequest> segmentHoles;
 }

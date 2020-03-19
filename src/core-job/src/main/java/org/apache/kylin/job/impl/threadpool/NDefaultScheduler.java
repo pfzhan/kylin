@@ -142,7 +142,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             if (checkSuicide(jobId)) {
                 return UnitOfWork.doInTransactionWithRetry(() -> {
                     if (checkSuicide(jobId)) {
-                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).discardJob(jobId);
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).cancelJob(jobId);
                         return true;
                     }
                     return false;

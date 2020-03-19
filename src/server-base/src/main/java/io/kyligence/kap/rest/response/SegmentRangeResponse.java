@@ -21,26 +21,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.response;
 
-package io.kyligence.kap.rest.request;
-
-import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
-
-    private String project;
-
-    private String start;
-
-    private String end;
-
-    @JsonProperty("segment_holes")
-    private List<SegmentTimeRequest> segment_holes;
+@AllArgsConstructor
+public class SegmentRangeResponse {
+    private long start;
+    private long end;
 
 }

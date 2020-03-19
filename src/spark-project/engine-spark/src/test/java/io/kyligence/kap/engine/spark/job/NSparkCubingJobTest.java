@@ -25,16 +25,15 @@
 package io.kyligence.kap.engine.spark.job;
 
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
+import static org.awaitility.Awaitility.await;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -148,7 +147,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testBuildSnapshot() throws Exception {
         KylinConfig config = getTestConfig();
-        System.out.println(getTestConfig().getMetadataUrl());
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
@@ -309,30 +307,23 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, df.getSegments().size());
-        while (true) {
-            if (execMgr.getJob(job.getId()).getStatus().equals(ExecutableState.RUNNING)) {
-                Thread.sleep(1000);
-                break;
-            }
-        }
-        Class clazz = NDefaultScheduler.class;
-        Field field = clazz.getDeclaredField("threadToInterrupt");
-        field.setAccessible(true);
-        ConcurrentHashMap<String, Thread> threadToInterrupt = (ConcurrentHashMap<String, Thread>) field.get(clazz);
-        Assert.assertEquals(true, threadToInterrupt.containsKey(job.getId()));
-        Thread thread = threadToInterrupt.get(job.getId());
-        Assert.assertEquals(false, thread.isInterrupted());
-        job.cancelJob();
-        Assert.assertEquals(false, threadToInterrupt.containsKey(job.getId()));
+        await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, job.getStatus()));
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            execMgr.cancelJob(job.getId());
+            return null;
+        }, getProject());
         //FIXME Unstable, will fix in #7302
         //        waitThreadInterrupt(thread, 60000);
         //        Assert.assertEquals(true, thread.isInterrupted());
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(0, df.getSegments().size());
+        Assert.assertEquals(1, df.getSegments().size());
         UnitOfWork.doInTransactionWithRetry(() -> {
             execMgr.discardJob(job.getId());
             return null;
         }, getProject());
+        dsMgr = NDataflowManager.getInstance(config, getProject());
+        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(0, df.getSegments().size());
     }
 
     @Test
@@ -359,30 +350,20 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
                 UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
-        while (true) {
-            if (execMgr.getJob(firstMergeJob.getId()).getStatus().equals(ExecutableState.RUNNING)) {
-                Thread.sleep(1000);
-                break;
-            }
-        }
-        Class clazz = NDefaultScheduler.class;
-        Field field = clazz.getDeclaredField("threadToInterrupt");
-        field.setAccessible(true);
-        ConcurrentHashMap<String, Thread> threadToInterrupt = (ConcurrentHashMap<String, Thread>) field.get(clazz);
-        Assert.assertEquals(true, threadToInterrupt.containsKey(firstMergeJob.getId()));
-        Thread thread = threadToInterrupt.get(firstMergeJob.getId());
-        Assert.assertEquals(false, thread.isInterrupted());
-        firstMergeJob.cancelJob();
-        Assert.assertEquals(false, threadToInterrupt.containsKey(firstMergeJob.getId()));
-        //FIXME Unstable, will fix in #7302
-        //waitThreadInterrupt(thread, 1000000);
-        //Assert.assertEquals(true, thread.isInterrupted());
+        await().untilAsserted(() -> Assert.assertEquals(ExecutableState.RUNNING, firstMergeJob.getStatus()));
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            execMgr.cancelJob(firstMergeJob.getId());
+            return null;
+        }, getProject());
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(df.getSegment(firstMergeJob.getSparkMergingStep().getSegmentIds().iterator().next()), null);
+        Assert.assertEquals(3, df.getSegments().size());
         UnitOfWork.doInTransactionWithRetry(() -> {
             execMgr.discardJob(firstMergeJob.getId());
             return null;
         }, getProject());
+        dsMgr = NDataflowManager.getInstance(config, getProject());
+        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(2, df.getSegments().size());
     }
 
     private void validateCube(String segmentId) {

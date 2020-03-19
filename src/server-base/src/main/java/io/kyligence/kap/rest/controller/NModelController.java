@@ -72,6 +72,8 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
+import io.kyligence.kap.rest.request.SegmentFixRequest;
+import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
@@ -89,6 +91,7 @@ import io.kyligence.kap.rest.response.NRecomendationListResponse;
 import io.kyligence.kap.rest.response.OptRecommendationResponse;
 import io.kyligence.kap.rest.response.PurgeModelAffectedResponse;
 import io.kyligence.kap.rest.response.RecommendationStatsResponse;
+import io.kyligence.kap.rest.response.SegmentCheckResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
@@ -275,6 +278,41 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(segments, offset, limit), "");
     }
 
+    @ApiOperation(value = "fixSegmentsManually (update)", notes = "Add URL: {model}")
+    @PostMapping(value = "/{model:.+}/segment_holes")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> fixSegHoles(@PathVariable("model") String modelId,
+            @RequestBody SegmentFixRequest segmentsRequest) throws Exception {
+        checkProjectName(segmentsRequest.getProject());
+        checkRequiredArg("segment_holes", segmentsRequest.getSegmentHoles());
+        segmentsRequest.getSegmentHoles().forEach(seg -> validateDataRange(seg.getStart(), seg.getEnd()));
+        JobInfoResponse response = modelService.fixSegmentHoles(segmentsRequest.getProject(), modelId,
+                segmentsRequest.getSegmentHoles());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "checkSegments (check)")
+    @PostMapping(value = "/{model:.+}/segment/validation")
+    @ResponseBody
+    public EnvelopeResponse<SegmentCheckResponse> checkSegment(@PathVariable("model") String modelId,
+            @RequestBody BuildSegmentsRequest buildSegmentsRequest) {
+        checkProjectName(buildSegmentsRequest.getProject());
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        val res = modelService.checkSegHoleExistIfNewRangeBuild(buildSegmentsRequest.getProject(), modelId,
+                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+    }
+
+    @ApiOperation(value = "checkSegmentsIfDelete (check)")
+    @GetMapping(value = "/{model:.+}/segment/validation")
+    @ResponseBody
+    public EnvelopeResponse<SegmentCheckResponse> checkHolesIfSegDeleted(@PathVariable("model") String model,
+            @RequestParam("project") String project, @RequestParam(value = "ids", required = false) String[] ids) {
+        checkProjectName(project);
+        val res = modelService.checkSegHoleIfSegDeleted(model, project, ids);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, res, "");
+    }
+
     @GetMapping(value = "/model_info")
     @ResponseBody
     public EnvelopeResponse<List<ModelInfoResponse>> getModelInfo(
@@ -395,7 +433,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
 
-    @GetMapping(value = "/affected_models", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/affected_models", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<AffectedModelsResponse> getAffectedModelsBySourceTableAction(
             @RequestParam(value = "table") String tableName, //
@@ -565,6 +604,12 @@ public class NModelController extends NBasicController {
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        if (buildSegmentsRequest.getSegment_holes() != null && !buildSegmentsRequest.getSegment_holes().isEmpty()) {
+            for (SegmentTimeRequest entry : buildSegmentsRequest.getSegment_holes()) {
+                modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId, entry.getStart(),
+                        entry.getEnd());
+            }
+        }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

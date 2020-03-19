@@ -201,9 +201,15 @@ public class SegmentHelper extends BasicService {
             dataSegments.add(dataSegment);
         }
 
+        val remainSegs = df.getSegments().stream().filter(seg -> !tobeRemoveSegmentIds.contains(seg.getId()))
+                .collect(Collectors.toList());
+
         if (CollectionUtils.isNotEmpty(dataSegments)) {
             NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
             update.setToRemoveSegs(dataSegments.toArray(new NDataSegment[0]));
+            if (dfMgr.calculateHoles(df.getId(), remainSegs).size() > 0) {
+                update.setStatus(RealizationStatusEnum.WARNING);
+            }
             dfMgr.updateDataflow(update);
         }
 

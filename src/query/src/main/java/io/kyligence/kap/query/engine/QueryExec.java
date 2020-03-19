@@ -154,8 +154,8 @@ public class QueryExec {
     private QueryResult executeQueryPlan(RelNode rel) {
         QueryPlanExec planExec;
 
-        if (!KapConfig.wrap(kylinConfig).isSparderEnabled() ||
-                (KapConfig.wrap(kylinConfig).runConstantQueryLocally() && isConstantQuery(rel))) {
+        if (!KapConfig.wrap(kylinConfig).isSparderEnabled()
+                || (KapConfig.wrap(kylinConfig).runConstantQueryLocally() && isConstantQuery(rel))) {
             planExec = new CalciteQueryPlanExec(); // if sparder is not enabled, or the sql can run locally, use the calcite engine
         } else {
             planExec = new SparderQueryPlanExec();
@@ -163,17 +163,16 @@ public class QueryExec {
         return new QueryResult(planExec.execute(rel, dataContext), RelColumnMetaDataExtractor.getColumnMetadata(rel));
     }
 
-    private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig, ProjectSchemaFactory schemaFactory) {
+    private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig,
+            ProjectSchemaFactory schemaFactory) {
         RelDataTypeSystem relTypeSystem = new KylinRelDataTypeSystem();
         JavaTypeFactory javaTypeFactory = new JavaTypeFactoryImpl(relTypeSystem);
-        return new CalciteCatalogReader(schemaFactory.createProjectRootSchema(), Collections.singletonList(schemaFactory.getDefaultSchema()),
-                javaTypeFactory, connectionConfig);
+        return new CalciteCatalogReader(schemaFactory.createProjectRootSchema(),
+                Collections.singletonList(schemaFactory.getDefaultSchema()), javaTypeFactory, connectionConfig);
     }
 
     private SimpleDataContext createDataContext() {
-        return new SimpleDataContext(
-                schemaFactory.createProjectRootSchema().plus(),
-                sqlConverter.javaTypeFactory(),
+        return new SimpleDataContext(schemaFactory.createProjectRootSchema().plus(), sqlConverter.javaTypeFactory(),
                 kylinConfig);
     }
 

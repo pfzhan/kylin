@@ -34,4 +34,5 @@ public class BuildIndexRequest implements ProjectInsensitiveRequest {
 
     @JsonProperty("project")
     private String project;
+
 }

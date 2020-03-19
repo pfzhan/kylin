@@ -819,6 +819,36 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    public void testJobDiscard_AfterSuccess() {
+        changeSchedulerInterval();
+        val currMem = NDefaultScheduler.currentAvailableMem();
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
+        job.setProject("default");
+        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
+        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = dfMgr.getDataflow(job.getTargetSubject());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        val task = new SucceedTestExecutable();
+        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+        executableManager.addJob(job);
+
+        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            executableManager.discardJob(job.getId());
+            return null;
+        }, project);
+
+        assertMemoryRestore(currMem);
+        val output = executableManager.getOutput(job.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, output.getState());
+        Assert.assertEquals(ExecutableState.DISCARDED, job.getStatus());
+
+    }
+
+    @Test
     public void testIncBuildJobError_ModelBasedDataFlowOnline() {
         val currMem = NDefaultScheduler.currentAvailableMem();
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);

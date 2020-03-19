@@ -29,15 +29,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.Map;
-import java.util.HashMap;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -56,6 +56,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -402,7 +403,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
-    private NDataSegment newSegment(NDataflow df, SegmentRange segRange) {
+    @VisibleForTesting
+    NDataSegment newSegment(NDataflow df, SegmentRange segRange) {
         // BREAKING CHANGE: remove legacy caring as in org.apache.kylin.cube.CubeManager.SegmentAssist.newSegment()
         Preconditions.checkNotNull(segRange);
 
@@ -593,14 +595,16 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return df;
     }
 
-    public List<NDataSegment> calculateHoles(String dfId) {
+    List<NDataSegment> calculateHoles(String dfId) {
+        final NDataflow df = getDataflow(dfId);
+        Preconditions.checkNotNull(df);
+        return calculateHoles(dfId, df.getSegments());
+    }
+
+    public List<NDataSegment> calculateHoles(String dfId, List<NDataSegment> segments) {
         List<NDataSegment> holes = Lists.newArrayList();
         final NDataflow df = getDataflow(dfId);
         Preconditions.checkNotNull(df);
-        final List<NDataSegment> segments = df.getSegments();
-        if (segments.size() == 0) {
-            return holes;
-        }
 
         Collections.sort(segments);
         for (int i = 0; i < segments.size() - 1; ++i) {
@@ -617,12 +621,28 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 hole.setSegmentRange(first.getSegRange().gapTill(second.getSegRange()));
                 hole.setTimeRange(new TimeRange(first.getTSRange().getEnd(), second.getTSRange().getStart()));
                 hole.setName(Segments.makeSegmentName(hole.getSegRange()));
-
                 holes.add(hole);
             }
         }
         return holes;
     }
 
+    public List<SegmentRange> calculateSegHoles(String dfId) {
+        return calculateHoles(dfId).stream().map(NDataSegment::getSegRange).collect(Collectors.toList());
+    }
+
+    public List<NDataSegment> checkHoleIfNewSegBuild(String dfId, SegmentRange toBuildSegment) {
+        final NDataflow df = getDataflow(dfId);
+        List<NDataSegment> segments = Lists.newArrayList(df.getSegments());
+        if (toBuildSegment != null) {
+            NDataSegment toBuildSeg = new NDataSegment();
+            toBuildSeg.setDataflow(df);
+            toBuildSeg.setSegmentRange(toBuildSegment);
+            toBuildSeg.setName(Segments.makeSegmentName(toBuildSegment));
+            segments.add(toBuildSeg);
+        }
+
+        return calculateHoles(dfId, segments);
+    }
 
 }

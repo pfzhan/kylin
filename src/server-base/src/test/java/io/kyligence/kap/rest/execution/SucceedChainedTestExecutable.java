@@ -24,19 +24,18 @@
 
 package io.kyligence.kap.rest.execution;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import org.apache.kylin.job.execution.ExecutableContext;
 
 /**
  */
@@ -62,7 +61,7 @@ public class SucceedChainedTestExecutable extends DefaultChainedExecutable {
     }
 
     @Override
-    public void cancelJob() throws IOException {
+    public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();

@@ -33,8 +33,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import lombok.val;
 
 /**
  */
@@ -128,19 +130,26 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
     public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowId());
-        List<NDataSegment> segments = new ArrayList<>();
+        List<NDataSegment> toRemovedSegments = new ArrayList<>();
         for (String id : getSparkCubingStep().getSegmentIds()) {
             NDataSegment segment = dataflow.getSegment(id);
             if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)) {
-                segments.add(segment);
+                toRemovedSegments.add(segment);
             }
         }
-        NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
-        NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
+        NDataSegment[] nDataSegments = toRemovedSegments.toArray(new NDataSegment[0]);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
         nDataflowManager.updateDataflow(nDataflowUpdate);
-        NDefaultScheduler.stopThread(getId());
     }
 
+    @Override
+    public boolean safetyIfDiscard() {
+        NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
+        NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowId());
+        val execManager = NExecutableManager.getInstance(getConfig(), getProject());
+        val pendingJobsInModel = execManager.listExecByModelAndStatus(dataflow.getModel().getId(),
+                state -> state == ExecutableState.READY, JobTypeEnum.INC_BUILD);
+        return pendingJobsInModel.stream().allMatch(job -> job.getId().equals(getId()));
+    }
 }

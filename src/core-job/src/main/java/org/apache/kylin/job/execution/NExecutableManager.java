@@ -290,15 +290,16 @@ public class NExecutableManager {
     }
 
     public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate) {
-        return countByModelAndStatus(model, predicate, null);
+        return listExecByModelAndStatus(model, predicate, null).size();
     }
 
-    public long countByModelAndStatus(String model, Predicate<ExecutableState> predicate, JobTypeEnum jobType) {
+    public List<AbstractExecutable> listExecByModelAndStatus(String model, Predicate<ExecutableState> predicate,
+            JobTypeEnum jobType) {
         return getAllExecutables().stream() //
                 .filter(e -> e.getTargetSubject() != null) //
                 .filter(e -> e.getTargetSubject().equals(model)) //
                 .filter(e -> predicate.apply(e.getStatus()))
-                .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).count();
+                .filter(e -> (jobType == null || jobType.equals(e.getJobType()))).collect(Collectors.toList());
     }
 
     public Map<String, List<String>> getModelExecutables(Set<String> models, Predicate<ExecutableState> predicate) {
@@ -443,12 +444,22 @@ public class NExecutableManager {
                 .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();
     }
 
-    public void discardJob(String jobId) {
+    public void cancelJob(String jobId) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
             return;
         }
         updateJobOutput(jobId, ExecutableState.DISCARDED);
+    }
+
+    public void discardJob(String jobId) {
+        AbstractExecutable job = getJob(jobId);
+        if (job == null) {
+            return;
+        }
+
+        cancelJob(jobId);
+        job.cancelJob();
     }
 
     public void errorJob(String jobId) {

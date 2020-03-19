@@ -24,16 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.model;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.junit.TimeZoneTestRunner;
-import io.kyligence.kap.metadata.cube.CubeTestUtils;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,8 +34,6 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import lombok.val;
-import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -60,7 +49,19 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
-import static org.junit.Assert.fail;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.junit.TimeZoneTestRunner;
+import io.kyligence.kap.metadata.cube.CubeTestUtils;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.var;
 
 @RunWith(TimeZoneTestRunner.class)
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
@@ -549,9 +550,18 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1000L, 10000L));
 
         List<NDataSegment> dataSegments = mgr.calculateHoles(copy.getUuid());
-
         Assert.assertEquals(2, dataSegments.size());
 
+        df = mgr.getDataflow(copy.getId());
+        Assert.assertEquals(2, mgr.calculateHoles(copy.getUuid(), df.getSegments()).size());
+
+        val segments = Lists.newArrayList(df.getSegments());
+        segments.add(mgr.newSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 9L)));
+        Assert.assertEquals(2, mgr.calculateHoles(copy.getUuid(), segments).size());
+        segments.clear();
+        segments.addAll(df.getSegments());
+        segments.add(mgr.newSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 10L)));
+        Assert.assertEquals(1, mgr.calculateHoles(copy.getUuid(), segments).size());
     }
 
     @Test

@@ -98,6 +98,8 @@ import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
+import io.kyligence.kap.rest.request.SegmentFixRequest;
+import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.IndicesResponse;
@@ -921,6 +923,38 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).couldAnsweredByExistedModel(Mockito.any());
+    }
+
+    @Test
+    public void testFixSegmentHole() throws Exception {
+        SegmentFixRequest request = new SegmentFixRequest();
+        request.setProject("default");
+        SegmentTimeRequest timeRequest = new SegmentTimeRequest();
+        timeRequest.setEnd("2");
+        timeRequest.setStart("1");
+        request.setSegmentHoles(Lists.newArrayList(timeRequest));
+        mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/models/{model}/segment_holes", "e0e90065-e7c3-49a0-a801-20465ca64799")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).fixSegHoles(eq("e0e90065-e7c3-49a0-a801-20465ca64799"), eq(request));
+    }
+
+    @Test
+    public void testCheckSegmentHoles() throws Exception {
+        BuildSegmentsRequest request = new BuildSegmentsRequest();
+        request.setProject("default");
+        request.setStart("0");
+        request.setEnd("1");
+        mockMvc.perform(
+                MockMvcRequestBuilders
+                        .post("/api/models/{model}/segment/validation", "e0e90065-e7c3-49a0-a801-20465ca64799")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).checkSegment(eq("e0e90065-e7c3-49a0-a801-20465ca64799"), eq(request));
+
     }
 
     private List<NSpanningTreeForWeb> mockRelations() {

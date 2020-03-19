@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,16 +119,15 @@ public class NSparkMergingJob extends DefaultChainedExecutableOnModel {
     public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow(getSparkMergingStep().getDataflowId());
-        List<NDataSegment> segments = new ArrayList<>();
-        NDataSegment segment = dataflow.getSegment(getSparkMergingStep().getSegmentIds().iterator().next());
-        if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)) {
-            segments.add(segment);
+        List<NDataSegment> toRemovedSegments = new ArrayList<>();
+        for (String id : getSparkMergingStep().getSegmentIds()) {
+            NDataSegment segment = dataflow.getSegment(id);
+            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)) {
+                toRemovedSegments.add(segment);
+            }
         }
-        NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
-        NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
-        nDataflowUpdate.setToRemoveSegs(nDataSegments);
+        nDataflowUpdate.setToRemoveSegs(toRemovedSegments.toArray(new NDataSegment[0]));
         nDataflowManager.updateDataflow(nDataflowUpdate);
-        NDefaultScheduler.stopThread(getId());
     }
 }

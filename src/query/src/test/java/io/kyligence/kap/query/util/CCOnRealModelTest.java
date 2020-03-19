@@ -528,7 +528,6 @@ public class CCOnRealModelTest extends NLocalFileMetadataTestCase {
 
     private void check(ConvertToComputedColumn converter, String originSql, String ccSql, String project) {
         String transform = converter.transform(originSql, project, "DEFAULT");
-        System.out.println(transform);
         Assert.assertEquals(ccSql, transform);
     }
 

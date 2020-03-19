@@ -388,7 +388,7 @@ public class JobService extends BasicService {
             UnitOfWork.get().doAfterUnit(afterUnitTask);
             break;
         case DISCARD:
-            cancelJob(project, jobId);
+            discardJob(project, jobId);
             NMetricsGroup.counterInc(NMetricsName.JOB_DISCARDED, NMetricsCategory.PROJECT, project);
             break;
         case PAUSE:
@@ -400,7 +400,7 @@ public class JobService extends BasicService {
 
     }
 
-    private void cancelJob(String project, String jobId) throws IOException {
+    private void discardJob(String project, String jobId) throws IOException {
         AbstractExecutable job = getExecutableManager(project).getJob(jobId);
         if (job.getStatus().equals(ExecutableState.SUCCEED)) {
             throw new IllegalStateException(
@@ -409,7 +409,6 @@ public class JobService extends BasicService {
         if (job.getStatus().equals(ExecutableState.DISCARDED)) {
             return;
         }
-        job.cancelJob();
         getExecutableManager(project).discardJob(job.getId());
     }
 

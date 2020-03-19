@@ -46,5 +46,5 @@ import java.io.Serializable;
 
 public enum RealizationStatusEnum implements Serializable {
 
-    OFFLINE, ONLINE, BROKEN, LAG_BEHIND
+    OFFLINE, ONLINE, BROKEN, LAG_BEHIND, WARNING
 }

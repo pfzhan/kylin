@@ -1345,10 +1345,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<Event> events = eventDao.getEvents();
         //2 dataflows
         val df2 = dataflowManager.getDataflow(dataModel.getUuid());
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Only consecutive segments in head or tail can be removed!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { segments.get(2).getId(), segments.get(3).getId() }, false);
+        Assert.assertEquals(6, df2.getSegments().size());
     }
 
     @Test

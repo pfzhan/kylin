@@ -237,4 +237,45 @@ public class PostAddSegmentHandlerTest extends NLocalFileMetadataTestCase {
         var dataflow = NDataflowManager.getInstance(getTestConfig(), project).getDataflow(dataflowId);
         method.invoke(handler, dataflow);
     }
+
+    @Test
+    public void testDiscardDifferentStatusJob() throws Exception {
+        val project = "default";
+        val dataflowId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        var dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+        val executableManager = NExecutableManager.getInstance(getTestConfig(), project);
+
+        val job = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        // ready/running -> discard
+        executableManager.addJob(job);
+        executableManager.discardJob(job.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, job.getStatus());
+
+        // discard -> discard
+        executableManager.discardJob(job.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, job.getStatus());
+
+        // pause -> discard
+        val newJob = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        executableManager.addJob(newJob);
+        executableManager.pauseJob(newJob.getId());
+        Assert.assertEquals(ExecutableState.PAUSED, newJob.getStatus());
+        executableManager.discardJob(newJob.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, newJob.getStatus());
+
+        // error -> discard
+        val errorJob = NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegments()),
+                Sets.newLinkedHashSet(dataflow.getIndexPlan().getAllLayouts()), "", JobTypeEnum.INC_BUILD,
+                UUID.randomUUID().toString());
+        executableManager.addJob(errorJob);
+        executableManager.updateJobOutput(errorJob.getId(), ExecutableState.ERROR);
+        executableManager.discardJob(errorJob.getId());
+        Assert.assertEquals(ExecutableState.DISCARDED, job.getStatus());
+    }
+
 }

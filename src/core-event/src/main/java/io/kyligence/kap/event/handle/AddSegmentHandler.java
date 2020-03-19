@@ -167,8 +167,9 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
     private boolean checkOnline(NDataModel model) {
         // 1. check the job status of the model
         val executableManager = getExecutableManager(model.getProject(), KylinConfig.getInstanceFromEnv());
-        val count = executableManager.countByModelAndStatus(model.getId(), ExecutableState::isNotProgressing,
-                JobTypeEnum.INC_BUILD);
+        val count = executableManager
+                .listExecByModelAndStatus(model.getId(), ExecutableState::isNotProgressing, JobTypeEnum.INC_BUILD)
+                .size();
         if (count > 0) {
             return false;
         }

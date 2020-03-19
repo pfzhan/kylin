@@ -46,7 +46,6 @@ import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IllegalFormatException;
@@ -167,7 +166,15 @@ public abstract class AbstractExecutable implements Executable {
         setId(UUID.randomUUID().toString());
     }
 
-    public void cancelJob() throws IOException {
+    public void cancelJob() {
+    }
+
+    /**
+     * jude it will cause segment-holes or not if discard this job
+     * @return defult false
+     */
+    public boolean safetyIfDiscard() {
+        return false;
     }
 
     protected KylinConfig getConfig() {

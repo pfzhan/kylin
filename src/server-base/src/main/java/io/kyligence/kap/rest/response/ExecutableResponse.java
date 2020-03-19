@@ -26,10 +26,6 @@ package io.kyligence.kap.rest.response;
 
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -38,11 +34,15 @@ import org.apache.kylin.job.execution.ExecutableState;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import io.kyligence.kap.engine.spark.job.NTableSamplingJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 import lombok.var;
 
 @Setter
@@ -88,6 +88,8 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private String submitter;
     @JsonProperty("exec_end_time")
     private long execEndTime;
+    @JsonProperty("discard_safety")
+    private boolean discardSafety;
 
     private static ExecutableResponse newInstance(AbstractExecutable abstractExecutable) {
         ExecutableResponse executableResponse = new ExecutableResponse();
@@ -105,6 +107,7 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setWaitTime(abstractExecutable.getWaitTime());
         executableResponse.setSubmitter(abstractExecutable.getSubmitter());
         executableResponse.setExecEndTime(abstractExecutable.getEndTime());
+        executableResponse.setDiscardSafety(abstractExecutable.safetyIfDiscard());
         return executableResponse;
     }
 
