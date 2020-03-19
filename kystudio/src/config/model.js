@@ -7,5 +7,6 @@ export const ModelStatusTagType = {
   'OFFLINE': 'info',
   'BROKEN': 'danger',
   'LAG_BEHIND': 'warning',
-  'ONLINE': 'success'
+  'ONLINE': 'success',
+  'WARNING': 'warning'
 }

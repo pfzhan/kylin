@@ -59,20 +59,38 @@
         </template>
       </div>
     </el-alert>
+    <el-table class="detail-table ksd-mt-10"
+      border
+      nested
+      ref="detailTable"
+      v-if="detailTableData.length"
+      @selection-change="handleSelectionChange"
+      :row-class-name="tableRowClassName"
+      :data="detailTableData">
+      <el-table-column type="selection" align="center" width="44" v-if="isShowSelection"></el-table-column>
+      <el-table-column
+        v-for="(item, index) in detailColumns" :key="index"
+        :prop="item.column"
+        :label="item.label"
+        :min-width="item.minWidth"
+        show-overflow-tooltip>
+      </el-table-column>
+    </el-table>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <template v-if="dialogType === 'error'">
-        <el-button plain @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button plain @click="handleClose">{{closeT}}</el-button>
       </template>
       <template v-else>
-        <el-button plain @click="handleClose">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button :loading="loading" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button plain v-if="needResolveCancel" @click="handleCloseAndResove">{{cancelT}}</el-button>
+        <el-button plain v-else @click="handleClose">{{cancelT}}</el-button>
+        <el-button :loading="loading" @click="handleSubmit">{{submitT}}</el-button>
       </template>
     </div>
   </el-dialog>
 </template>
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapMutations } from 'vuex'
 
 import vuex from '../../../../store'
@@ -85,6 +103,9 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
     ...mapState('DetailDialogModal', {
       title: state => state.title,
       details: state => state.details,
+      detailTableData: state => state.detailTableData,
+      detailColumns: state => state.detailColumns,
+      isShowSelection: state => state.isShowSelection,
       theme: state => state.theme,
       msg: state => state.msg,
       detailMsg: state => state.detailMsg, // 详情里其他的文案信息
@@ -97,7 +118,12 @@ vuex.registerModule(['modals', 'DetailDialogModal'], store)
       showDetailBtn: state => state.showDetailBtn, // 控制是否需要显示详情按钮，默认是显示的
       showCopyBtn: state => state.showCopyBtn,
       needCallbackWhenClose: state => state.needCallbackWhenClose, // 数据源处的特殊需求，关闭时执行回调
-      callback: state => state.callback
+      callback: state => state.callback,
+      customCallback: state => state.customCallback,
+      closeText: state => state.closeText,
+      cancelText: state => state.cancelText,
+      submitText: state => state.submitText,
+      needResolveCancel: state => state.needResolveCancel
     })
   },
   methods: {
@@ -127,6 +153,17 @@ export default class DetailDialogModal extends Vue {
   copySuccess = false
   showCopyText = false
   copyBtnClickIndex = 0
+  multipleSelection = []
+  get closeT () {
+    return this.closeText || this.$t('kylinLang.common.close')
+  }
+  get cancelT () {
+    return this.cancelText || this.$t('kylinLang.common.cancel')
+  }
+  get submitT () {
+    return this.submitText || this.$t('kylinLang.common.submit')
+  }
+  // 纯关闭弹窗或者点取消按钮和X都resolve
   handleClose () {
     if (this.needCallbackWhenClose) {
       this.callback && this.callback()
@@ -135,11 +172,25 @@ export default class DetailDialogModal extends Vue {
     this.resetModal()
     this.loading = false
     this.showDetail = false
+    this.multipleSelection = []
+  }
+  // 取消按钮是关闭且resolve，点X保留纯关闭弹窗
+  handleCloseAndResove () {
+    this.callback && this.callback()
+    this.hideModal()
+    this.resetModal()
+    this.loading = false
+    this.showDetail = false
+    this.multipleSelection = []
   }
   handleSubmit () {
     this.loading = true
     setTimeout(() => {
-      this.callback && this.callback()
+      if (this.isShowSelection && this.customCallback) {
+        this.customCallback(this.multipleSelection)
+      } else {
+        this.callback && this.callback()
+      }
       this.handleClose()
     }, 200)
   }
@@ -176,11 +227,35 @@ export default class DetailDialogModal extends Vue {
       clearTimeout(timer)
     }, 2000)
   }
+  tableRowClassName ({row, rowIndex}) {
+    if (row.highlight) {
+      return 'highlight-row'
+    }
+    return ''
+  }
+  handleSelectionChange (val) {
+    this.multipleSelection = val
+  }
+  @Watch('isShow')
+  onModalShow () {
+    this.$nextTick(() => {
+      if (this.detailTableData.length && this.isShowSelection) {
+        this.detailTableData.forEach((item) => {
+          this.$refs.detailTable.toggleRowSelection(item)
+        })
+      }
+    })
+  }
 }
 </script>
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .global-dialog-box {
+  .detail-table {
+    .highlight-row {
+      background: @warning-color-2;
+    }
+  }
   .show-detail{
     display: inline-block;
   }

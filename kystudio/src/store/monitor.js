@@ -32,6 +32,9 @@ export default {
     [types.PAUSE_JOB]: function ({ commit }, para) {
       return api.monitor.pauseJob(para)
     },
+    [types.DISCARD_JOB]: function ({ commit }, para) {
+      return api.monitor.discardJob(para)
+    },
     [types.REMOVE_JOB]: function ({ commit }, para) {
       return api.monitor.removeJob(para)
     },

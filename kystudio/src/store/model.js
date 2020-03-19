@@ -304,6 +304,15 @@ export default {
     },
     [types.GET_INDEX_DIFF] ({ commit }, params) {
       return api.model.getIndexDiff(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp, params.globalDimCap)
+    },
+    [types.AUTO_FIX_SEGMENT_HOLES] ({ commit }, params) {
+      return api.model.autoFixSegmentHoles(params)
+    },
+    [types.CHECK_DATA_RANGE] ({ commit }, params) {
+      return api.model.checkDataRange(params)
+    },
+    [types.CHECK_SEGMENTS] ({ commit }, params) {
+      return api.model.checkSegments(params)
     }
   },
   getters: {

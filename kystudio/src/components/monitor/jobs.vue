@@ -19,6 +19,7 @@
           <el-button size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button size="medium" icon="el-icon-ksd-table_discard" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-table_delete" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group><el-button
         plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('refreshList')}}</el-button>
@@ -130,20 +131,35 @@
             class-name="job-fc-icon"
             width="96">
             <template slot-scope="scope">
-              <common-tip :content="$t('diagnosis')" v-if="monitorActions.includes('diagnostic')">
-                <i class="el-icon-ksd-ostin_diagnose ksd-fs-14" @click.stop="showDiagnosisDetail(scope.row.id)"></i>
-              </common-tip>
               <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-                <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project)"></i>
-              </common-tip>
-              <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'||scope.row.job_status=='RUNNING'">
-                <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project)"></i>
-              </common-tip>
-              <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-                <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id], scope.row.project)"></i>
-              </common-tip>
-              <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
-                <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project)"></i>
+                <i class="el-icon-ksd-table_delete ksd-fs-14" @click.stop="drop([scope.row.id], scope.row.project, '', scope.row)"></i>
+              </common-tip><common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
+                <i class="el-icon-ksd-pause ksd-fs-14" @click.stop="pause([scope.row.id], scope.row.project, '', scope.row)"></i>
+              </common-tip><common-tip
+              :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
+                <i class="el-icon-ksd-table_resume ksd-fs-14" @click.stop="resume([scope.row.id], scope.row.project, '', scope.row)"></i>
+              </common-tip><common-tip
+              :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED' || scope.row.job_status=='RUNNING'">
+                <i class="el-icon-ksd-restart ksd-fs-14" @click.stop="restart([scope.row.id], scope.row.project, '', scope.row)"></i>
+              </common-tip><common-tip
+              :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING'">
+                <i class="el-icon-ksd-error_02 ksd-fs-14" @click.stop="discard([scope.row.id], scope.row.project, '', scope.row)"></i>
+              </common-tip><common-tip
+              :content="$t('diagnosis')" v-if="monitorActions.includes('diagnostic') && (scope.row.job_status =='FINISHED' || scope.row.job_status == 'DISCARDED' || scope.row.job_status=='PENDING')">
+                <i class="el-icon-ksd-ostin_diagnose ksd-fs-14" @click.stop="showDiagnosisDetail(scope.row.id)"></i>
+              </common-tip><common-tip
+              :content="$t('kylinLang.common.moreActions')">
+                <el-dropdown trigger="click">
+                  <span class="el-dropdown-link" @click.stop>
+                    <common-tip :content="$t('kylinLang.common.moreActions')">
+                      <i class="el-icon-ksd-table_others ksd-fs-16" v-if="scope.row.job_status !=='FINISHED' && scope.row.job_status !== 'DISCARDED' && scope.row.job_status!=='PENDING'"></i>
+                    </common-tip>
+                  </span>
+                  <el-dropdown-menu slot="dropdown">
+                    <el-dropdown-item @click.native="discard([scope.row.id], scope.row.project, '', scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
+                    <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)" v-if="monitorActions.includes('diagnostic')">{{$t('jobDiagnosis')}}</el-dropdown-item>
+                  </el-dropdown-menu>
+                </el-dropdown>
               </common-tip>
             </template>
           </el-table-column>
@@ -313,7 +329,7 @@ import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
 import { pageCount } from '../../config'
 import { transToGmtTime, handleError, handleSuccess } from 'util/business'
-import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone } from 'util/index'
+import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime } from 'util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
 @Component({
   methods: {
@@ -327,6 +343,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pauseJob: 'PAUSE_JOB',
       restartJob: 'RESTART_JOB',
       resumeJob: 'RESUME_JOB',
+      discardJob: 'DISCARD_JOB',
       losdWaittingJobModels: 'LOAD_WAITTING_JOB_MODELS',
       laodWaittingJobsByModel: 'LOAD_WAITTING_JOBS_BY_MODEL'
     }),
@@ -364,6 +381,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       jobPause: 'Pause',
       jobDrop: 'Drop',
       jobRestart: 'Restart',
+      jobDiagnosis: 'Diagnosis',
       tip_jobResume: 'Resume the Job',
       tip_jobPause: 'Pause the Job',
       tip_jobDiscard: 'Discard the Job',
@@ -392,6 +410,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pauseJobTitle: 'Pause Job',
       dropJob: 'Do you really need to delete {count} job records?',
       dropJobTitle: 'Drop Job',
+      discardJob: 'Please confirm whether to discard below jobs? Please note that this operation cannot be undone.',
+      discardJobWarning: 'Please confirm whether to discard below jobs? Discarding the highlighted jobs will cause the segments to be discontinuous and the query results will be empty when querying those data ranges. Please note that this operation cannot be undone.',
+      discardJobTitle: 'Discard Job',
       jobName: 'Job Name',
       duration: 'Duration',
       waiting: 'Waiting',
@@ -439,6 +460,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       jobPause: '暂停',
       jobDrop: '删除',
       jobRestart: '重启',
+      jobDiagnosis: '诊断',
       tip_jobResume: '恢复 Job',
       tip_jobPause: '暂停 Job',
       tip_jobDiscard: '终止 Job',
@@ -467,6 +489,9 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       pauseJobTitle: '暂停任务',
       dropJob: '您确认要删除 {count} 个任务记录？',
       dropJobTitle: '删除任务',
+      discardJob: '请确认是否要终止以下任务？请注意：终止操作无法撤销。',
+      discardJobWarning: '请确认是否要终止以下任务？终止高亮部分任务将导致模型 Segment 不连续，此时查询对应数据范围时结果将为空。请注意：终止操作无法撤销。',
+      discardJobTitle: '终止任务',
       jobName: '任务名',
       duration: '持续时间',
       waiting: '等待时间',
@@ -545,6 +570,7 @@ export default class JobsList extends Vue {
     resume: false,
     restart: false,
     pause: false,
+    discard: false,
     drop: false
   }
   waitingJobListVisibel = false
@@ -594,6 +620,7 @@ export default class JobsList extends Vue {
       resume: ['ERROR', 'STOPPED'],
       restart: ['ERROR', 'STOPPED', 'RUNNING'],
       pause: ['PENDING', 'RUNNING'],
+      discard: ['PENDING', 'RUNNING', 'ERROR', 'STOPPED'],
       drop: ['DISCARDED', 'FINISHED']
     }
     $.each(batchBtns, (key, item) => {
@@ -796,7 +823,7 @@ export default class JobsList extends Vue {
     // 左边列表区域的高度
     let leftTableH = document.getElementById('leftTableBox').clientHeight
     // 右侧详情的高度
-    let rightStepDetailH = document.getElementById('stepList').clientHeight
+    let rightStepDetailH = document.getElementById('stepList') && document.getElementById('stepList').clientHeight
     // 可视区剔除掉导航头后的高度
     let screenH = document.documentElement.clientHeight - 52
     // 当前滚动距离
@@ -967,6 +994,19 @@ export default class JobsList extends Vue {
       }
     }
   }
+  batchDiscard () {
+    if (!this.batchBtnsEnabled.discard) return
+    if (!this.multipleSelection.length) {
+      this.$message.warning(this.$t('noSelectJobs'))
+    } else {
+      if (this.isSelectAll && this.isSelectAllShow) {
+        this.discard([], this.currentSelectedProject, 'batchAll')
+      } else {
+        const jobIds = this.getJobIds()
+        this.discard(jobIds, this.currentSelectedProject, 'batch')
+      }
+    }
+  }
   batchDrop () {
     if (!this.batchBtnsEnabled.drop) return
     if (!this.multipleSelection.length) {
@@ -1053,14 +1093,10 @@ export default class JobsList extends Vue {
     this.filter.page_offset = 0
     this.manualRefreshJobs()
   }
-  async resume (jobIds, project, isBatch) {
-    await this.callGlobalDetailDialog({
-      msg: this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
-      title: this.$t('resumeJobTitle'),
-      details: jobIds,
-      dialogType: 'tip',
-      showDetailBtn: false
-    })
+  async resume (jobIds, project, isBatch, row) {
+    const targetJobs = row ? [row] : this.multipleSelection
+    const msg = this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
+    await this.callGlobalDetail(targetJobs, msg, this.$t('resumeJobTitle'), 'tip')
     const resumeData = {job_ids: jobIds, project: project, action: 'RESUME'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete resumeData.project
@@ -1080,14 +1116,10 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async restart (jobIds, project, isBatch) {
-    await this.callGlobalDetailDialog({
-      msg: this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
-      title: this.$t('restartJobTitle'),
-      details: jobIds,
-      dialogType: 'tip',
-      showDetailBtn: false
-    })
+  async restart (jobIds, project, isBatch, row) {
+    const targetJobs = row ? [row] : this.multipleSelection
+    const msg = this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
+    await this.callGlobalDetail(targetJobs, msg, this.$t('restartJobTitle'), 'tip')
     const restartData = {job_ids: jobIds, project: project, action: 'RESTART'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete restartData.project
@@ -1107,14 +1139,10 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async pause (jobIds, project, isBatch) {
-    await this.callGlobalDetailDialog({
-      msg: this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
-      title: this.$t('pauseJobTitle'),
-      details: jobIds,
-      dialogType: 'tip',
-      showDetailBtn: false
-    })
+  async pause (jobIds, project, isBatch, row) {
+    const targetJobs = row ? [row] : this.multipleSelection
+    const msg = this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
+    await this.callGlobalDetail(targetJobs, msg, this.$t('pauseJobTitle'), 'tip')
     const pauseData = {job_ids: jobIds, project: project, action: 'PAUSE'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
@@ -1134,14 +1162,62 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async drop (jobIds, project, isBatch) {
+  async discard (jobIds, project, isBatch, row) {
+    let isHaveHoleWarning = false
+    const targetJobs = row ? [row] : this.multipleSelection
+    targetJobs.forEach((job) => {
+      if (job.discard_safety) {
+        isHaveHoleWarning = true
+      }
+    })
+    const msg = isHaveHoleWarning ? this.$t('discardJobWarning') : this.$t('discardJob')
+    await this.callGlobalDetail(targetJobs, msg, this.$t('discardJobTitle'), 'warning', true)
+    const pauseData = {job_ids: jobIds, project: project, action: 'DISCARD'}
+    if (this.$store.state.project.isAllProject && isBatch) {
+      delete pauseData.project
+    }
+    this.discardJob(pauseData).then(() => {
+      if (isBatch) {
+        if (isBatch === 'batchAll') {
+          this.filter.status = ''
+        }
+      }
+      this.manualRefreshJobs()
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.actionSuccess')
+      })
+    }).catch((res) => {
+      handleError(res)
+    })
+  }
+  async callGlobalDetail (targetJobs, msg, title, type, isShowHighlight) {
+    const tableData = []
+    targetJobs.forEach((job) => {
+      const obj = {}
+      obj['job_name'] = this.$t(job.job_name)
+      obj['target_subject'] = job.target_subject
+      obj['data_range'] = job.data_range_end === 9223372036854776000 ? this.$t('fullLoad') : transToServerGmtTime(job.data_range_start) + '-' + transToServerGmtTime(job.data_range_end)
+      obj['highlight'] = isShowHighlight && job.discard_safety
+      tableData.push(obj)
+    })
     await this.callGlobalDetailDialog({
-      msg: this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length}),
-      title: this.$t('dropJobTitle'),
-      details: jobIds,
-      dialogType: 'warning',
+      msg: msg,
+      title: title,
+      detailTableData: tableData,
+      detailColumns: [
+        {column: 'job_name', label: this.$t('JobType')},
+        {column: 'target_subject', label: this.$t('TargetSubject')},
+        {column: 'data_range', label: this.$t('dataRange'), minWidth: '180'}
+      ],
+      dialogType: type,
       showDetailBtn: false
     })
+  }
+  async drop (jobIds, project, isBatch, row) {
+    const targetJobs = row ? [row] : this.multipleSelection
+    const msg = this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
+    await this.callGlobalDetail(targetJobs, msg, this.$t('dropJobTitle'), 'warning')
     const dropData = {job_ids: jobIds, project: project}
     let removeJobType = 'removeJob'
     if (this.$store.state.project.isAllProject && isBatch) {

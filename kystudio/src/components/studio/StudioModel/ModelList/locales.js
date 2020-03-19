@@ -67,7 +67,11 @@ export default {
     aggIndexCount: 'Index Amount',
     recommendations_c: 'Recommendation: ',
     clickToView: 'Review',
-    filterModelOrOwner: 'Search model name or owner'
+    filterModelOrOwner: 'Search model name or owner',
+    modelSegmentHoleTips: 'There exists a hole in the segment range, and the model will not be able to server queries.Try to ',
+    autoFix: 'automatic fix',
+    segmentHoletips: 'There exists a hole in the segment range, and the model will not be able to server queries. Please confirm whether to add the following segments to fix.',
+    fixSegmentTitle: 'Fix Segment'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -137,6 +141,10 @@ export default {
     aggIndexCount: '索引数量',
     recommendations_c: '优化建议：',
     clickToView: '点击查看',
-    filterModelOrOwner: '搜索模型名称或所有者'
+    filterModelOrOwner: '搜索模型名称或所有者',
+    modelSegmentHoleTips: '当前Segment区间存在空洞，此时将无法服务于查询，尝试',
+    autoFix: '自动修复',
+    segmentHoletips: '当前 Segment 区间存在空洞，此时将无法服务于查询，是否需要补充以下 Segment 进行修复？',
+    fixSegmentTitle: '修复 Segment'
   }
 }

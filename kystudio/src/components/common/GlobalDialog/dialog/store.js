@@ -8,19 +8,27 @@ const types = {
 const initialState = JSON.stringify({
   isShow: false,
   callback: null,
+  customCallback: null,
   msg: '',
   detailMsg: '',
   title: '',
   dialogType: '',
   theme: '',
   details: [],
+  detailTableData: [],
+  detailColumns: [],
+  isShowSelection: false,
   showDetailBtn: false, // 默认设为不显示详情按钮，如果默认显示，配置为不显示的弹窗，在关闭时会闪现详情按钮
   showCopyBtn: false,
   needCallbackWhenClose: false, // 数据源处的特殊需求，关闭时执行回调
   showDetailDirect: false,
   showIcon: true,
   customClass: '',
-  showCopyTextLeftBtn: false
+  showCopyTextLeftBtn: false,
+  closeText: '',
+  cancelText: '',
+  submitText: '',
+  needResolveCancel: false
 })
 
 export default {
@@ -51,9 +59,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, details = [], theme = 'plain', showDetailBtn = true, showIcon = true, showDetailDirect = false, customClass = '', showCopyTextLeftBtn = false, showCopyBtn = false, needCallbackWhenClose = false }) {
+    [types.CALL_MODAL] ({ commit }, { dialogType = 'error', msg, detailMsg = '', title, details = [], detailTableData = [], detailColumns = [], isShowSelection = false, theme = 'plain', showDetailBtn = true, showIcon = true, showDetailDirect = false, customClass = '', showCopyTextLeftBtn = false, showCopyBtn = false, needCallbackWhenClose = false, customCallback = null, closeText = '', cancelText = '', submitText = '', needResolveCancel = false }) {
       return new Promise(async (resolve, reject) => {
-        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, details, theme, showDetailBtn, showIcon, showDetailDirect, customClass, showCopyTextLeftBtn, showCopyBtn, needCallbackWhenClose, callback: resolve })
+        commit(types.SET_MODAL, { dialogType, msg, detailMsg, title, details, detailTableData, detailColumns, isShowSelection, theme, showDetailBtn, showIcon, showDetailDirect, customClass, showCopyTextLeftBtn, showCopyBtn, needCallbackWhenClose, customCallback, closeText, cancelText, submitText, needResolveCancel, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

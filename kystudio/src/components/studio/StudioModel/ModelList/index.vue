@@ -34,6 +34,7 @@
             { renderLabel: renderStatusLabel, value: 'ONLINE' },
             { renderLabel: renderStatusLabel, value: 'OFFLINE' },
             { renderLabel: renderStatusLabel, value: 'BROKEN' },
+            { renderLabel: renderStatusLabel, value: 'WARNING' },
           ]">
           <span>{{selectedStatus}}</span>
         </DropdownFilter>
@@ -79,7 +80,7 @@
                 <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
                 <el-tabs class="el-tabs--default model-detail-tabs" type="card" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
-                    <ModelSegment ref="segmentComp" :model="props.row" :isShowSegmentActions="datasourceActions.includes('segmentActions')" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
+                    <ModelSegment ref="segmentComp" :model="props.row" :isShowSegmentActions="datasourceActions.includes('segmentActions')" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" @auto-fix="autoFix(props.row.alias, props.row.uuid, props.row.segment_holes)" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('index')" name="second">
                     <ModelAggregate
@@ -117,12 +118,16 @@
           <template slot-scope="scope">
             <div class="alias">
               <el-popover
-                popper-class="status-tooltip"
                 placement="top-start"
                 trigger="hover">
                 <i slot="reference" :class="['filter-status', scope.row.status]" />
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
+                <div v-if="scope.row.segment_holes.length">
+                  <span>{{$t('modelSegmentHoleTips')}}</span><span
+                    style="color:#0988DE;cursor: pointer;"
+                    @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
+                </div>
               </el-popover>
               <span>{{scope.row.alias}}</span>
             </div>
@@ -285,7 +290,7 @@ import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
 import { handleError, kapConfirm, kapMessage, handleSuccess } from 'util/business'
 
-import { objectClone } from 'util'
+import { objectClone, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
@@ -356,7 +361,8 @@ function getDefaultFilters () {
       enableModel: 'ENABLE_MODEL',
       updataModel: 'UPDATE_MODEL',
       getModelJson: 'GET_MODEL_JSON',
-      getModelByModelName: 'LOAD_MODEL_INFO'
+      getModelByModelName: 'LOAD_MODEL_INFO',
+      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -660,6 +666,44 @@ export default class ModelList extends Vue {
       handleError(res)
     })
   }
+  async autoFix (modelName, modleId, segmentHoles) {
+    try {
+      const tableData = []
+      let selectSegmentHoles = []
+      segmentHoles.forEach((seg) => {
+        const obj = {}
+        obj['start'] = transToServerGmtTime(seg.date_range_start)
+        obj['end'] = transToServerGmtTime(seg.date_range_end)
+        tableData.push(obj)
+      })
+      await this.callGlobalDetailDialog({
+        msg: this.$t('segmentHoletips', {modelName: modelName}),
+        title: this.$t('fixSegmentTitle'),
+        detailTableData: tableData,
+        detailColumns: [
+          {column: 'start', label: this.$t('kylinLang.common.startTime')},
+          {column: 'end', label: this.$t('kylinLang.common.endTime')}
+        ],
+        isShowSelection: true,
+        dialogType: 'warning',
+        showDetailBtn: false,
+        customCallback: async (segments) => {
+          selectSegmentHoles = segments.map((seg) => {
+            return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+          })
+          try {
+            await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
+            this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
+            this.loadModelsList()
+          } catch (e) {
+            handleError(e)
+          }
+        }
+      })
+    } catch (e) {
+      e !== 'cancel' && handleError(e)
+    }
+  }
   // 禁用model
   handleDisableModel (modelDesc) {
     this.handleModel('disableModel', modelDesc, this.$t('disableModelSuccessTip'))
@@ -884,7 +928,7 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
-    .recommend-btn {
+    .clickable-btn {
       color: @base-color;
       cursor: pointer;
     }
@@ -1077,13 +1121,16 @@ export default class ModelList extends Vue {
   top: 2px;
   margin-right: 5px;
   &.ONLINE {
-    background-color: #4CB050;
+    background-color: @color-success;
   }
   &.OFFLINE {
     background-color: #5C5C5C;
   }
   &.BROKEN {
-    background-color: #E73371;
+    background-color: @color-danger;
+  }
+  &.WARNING {
+    background-color: @color-warning;
   }
 }
 .last-modified-tooltip {

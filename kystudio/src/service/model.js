@@ -147,6 +147,12 @@ export default {
   buildModel: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.model_id + '/segments').save(para)
   },
+  checkDataRange: (para) => {
+    return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation`).save(para)
+  },
+  checkSegments: (para) => {
+    return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation{?ids}`).get({project: para.projectName, ids: para.ids})
+  },
   setPartition: (para) => {
     return Vue.resource(apiUrl + 'models/partition_desc').save(para)
   },
@@ -232,5 +238,8 @@ export default {
   },
   getIndexDiff: (project, modelId, dimensions, aggregationGroups, isCatchUp, globalDimCap) => {
     return Vue.resource(apiUrl + 'index_plans/rule_based_index_diff').update({ project, model_id: modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp, global_dim_cap: globalDimCap })
+  },
+  autoFixSegmentHoles: (para) => {
+    return Vue.resource(apiUrl + `models/${para.model_id}/segment_holes`).save(para)
   }
 }

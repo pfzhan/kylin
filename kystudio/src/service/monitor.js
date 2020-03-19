@@ -38,6 +38,9 @@ export default {
   pauseJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
+  discardJob: (para) => {
+    return Vue.resource(apiUrl + 'jobs/status').update(para)
+  },
   removeJob: (para) => {
     return Vue.resource(apiUrl + 'jobs' + '{?job_ids}' + '{&project}').delete(para)
   },

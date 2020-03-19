@@ -63,6 +63,21 @@
           </el-form-item>
         </el-form>
         <div class="error-msg" v-if="isShowRangeDateError">{{loadRangeDateError}}</div>
+        <div v-if="isShowErrorSegments" class="error_segments">
+          <el-alert type="error" :show-background="false" :closable="false" show-icon>
+            <span>{{$t('overlapsTips')}}</span>
+            <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}
+              <i class="el-icon-arrow-down" v-show="!showDetail"></i>
+              <i class="el-icon-arrow-up" v-show="showDetail"></i>
+            </a>
+          </el-alert>
+          <table class="ksd-table small-size" v-if="showDetail">
+            <tr class="ksd-tr" v-for="(s, index) in errorSegments" :key="index">
+              <td>{{s.start | toServerGMTDate}}</td>
+              <td>{{s.end | toServerGMTDate}}</td>
+            </tr>
+          </table>
+        </div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -76,7 +91,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from '../../../../../store'
   import { handleError, kapMessage, transToUTCMs, getGmtDateFromUtcLike } from 'util/business'
-  import { handleSuccessAsync } from 'util/index'
+  import { handleSuccessAsync, transToServerGmtTime } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -96,13 +111,17 @@
     methods: {
       ...mapActions({
         buildModel: 'MODEL_BUILD',
-        fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE'
+        fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE',
+        checkDataRange: 'CHECK_DATA_RANGE'
       }),
       ...mapMutations('ModelBuildModal', {
         setModal: types.SET_MODAL,
         hideModal: types.HIDE_MODAL,
         setModalForm: types.SET_MODAL_FORM,
         resetModalForm: types.RESET_MODAL_FORM
+      }),
+      ...mapActions('DetailDialogModal', {
+        callGlobalDetailDialog: 'CALL_MODAL'
       })
     },
     locales
@@ -121,6 +140,12 @@
     }
     loadRangeDateError = ''
     isShowRangeDateError = false
+    isShowErrorSegments = false
+    showDetail = false
+    errorSegments = []
+    toggleDetail () {
+      this.showDetail = !this.showDetail
+    }
     get format () {
       return this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_format || 'yyyy-MM-dd'
     }
@@ -176,11 +201,17 @@
     resetError () {
       this.loadRangeDateError = ''
       this.isShowRangeDateError = false
+      this.isShowErrorSegments = false
+      this.errorSegments = []
+      this.showDetail = false
     }
     closeModal (isSubmit) {
       this.isLoadingNewRange = false
       this.btnLoading = false
       this.$refs.buildForm && this.$refs.buildForm.resetFields()
+      this.isShowErrorSegments = false
+      this.errorSegments = []
+      this.showDetail = false
       this.resetError()
       this.hideModal()
       setTimeout(() => {
@@ -188,11 +219,12 @@
         this.resetModalForm()
       }, 200)
     }
-    _buildModel ({start, end, modelId}) {
+    _buildModel ({start, end, modelId, segment_holes}) {
       this.buildModel({
         model_id: modelId,
         start: start,
         end: end,
+        segment_holes: segment_holes,
         project: this.currentSelectedProject
       }).then(() => {
         this.btnLoading = false
@@ -205,7 +237,7 @@
       })
     }
     async setbuildModelRange () {
-      this.$refs.buildForm.validate((valid) => {
+      this.$refs.buildForm.validate(async (valid) => {
         if (!valid) { return }
         this.btnLoading = true
         let start = null
@@ -214,7 +246,51 @@
           start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0])
           end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1])
         }
-        this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid})
+        const res = await this.checkDataRange({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, start: start, end: end})
+        const data = await handleSuccessAsync(res)
+        if (data.overlap_segments.length) {
+          this.btnLoading = false
+          this.isShowErrorSegments = true
+          this.errorSegments = data.overlap_segments
+        } else if (data.segment_holes.length) {
+          const tableData = []
+          let selectSegmentHoles = []
+          const segmentHoles = data.segment_holes
+          segmentHoles.forEach((seg) => {
+            const obj = {}
+            obj['start'] = transToServerGmtTime(seg.start)
+            obj['end'] = transToServerGmtTime(seg.end)
+            tableData.push(obj)
+          })
+          await this.callGlobalDetailDialog({
+            msg: this.$t('segmentHoletips', {modelName: this.modelDesc.name}),
+            title: this.$t('fixSegmentTitle'),
+            detailTableData: tableData,
+            detailColumns: [
+              {column: 'start', label: this.$t('kylinLang.common.startTime')},
+              {column: 'end', label: this.$t('kylinLang.common.endTime')}
+            ],
+            isShowSelection: true,
+            dialogType: 'warning',
+            showDetailBtn: false,
+            needResolveCancel: true,
+            cancelText: this.$t('ignore'),
+            submitText: this.$t('fixAndBuild'),
+            customCallback: (segments) => {
+              selectSegmentHoles = segments.map((seg) => {
+                return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+              })
+              try {
+                this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, segment_holes: selectSegmentHoles})
+              } catch (e) {
+                handleError(e)
+              }
+            }
+          })
+          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid})
+        } else {
+          this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid})
+        }
       })
     }
     created () {
@@ -233,6 +309,9 @@
       color: @error-color-1;
       font-size: 12px;
       margin-top: 5px;
+    }
+    .error_segments a:hover {
+      text-decoration: none;
     }
   }
 </style>

@@ -259,7 +259,11 @@ import NModel from '../../ModelEdit/model.js'
       fetchIndexGraph: 'FETCH_INDEX_GRAPH',
       buildIndex: 'BUILD_INDEX',
       loadAllIndex: 'LOAD_ALL_INDEX',
-      deleteIndex: 'DELETE_INDEX'
+      deleteIndex: 'DELETE_INDEX',
+      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -383,7 +387,49 @@ export default class ModelAggregate extends Vue {
     </span>)
   }
   async buildAggIndex () {
-    await kapConfirm(this.$t('bulidTips', {modelName: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('buildIndex'), type: 'warning'})
+    if (this.model.segment_holes) {
+      const segmentHoles = this.model.segment_holes
+      try {
+        const tableData = []
+        let selectSegmentHoles = []
+        segmentHoles.forEach((seg) => {
+          const obj = {}
+          obj['start'] = transToServerGmtTime(seg.date_range_start)
+          obj['end'] = transToServerGmtTime(seg.date_range_end)
+          tableData.push(obj)
+        })
+        await this.callGlobalDetailDialog({
+          msg: this.$t('segmentHoletips', {modelName: this.model.name}),
+          title: this.$t('fixSegmentTitle'),
+          detailTableData: tableData,
+          detailColumns: [
+            {column: 'start', label: this.$t('kylinLang.common.startTime')},
+            {column: 'end', label: this.$t('kylinLang.common.endTime')}
+          ],
+          isShowSelection: true,
+          dialogType: 'warning',
+          showDetailBtn: false,
+          needResolveCancel: true,
+          cancelText: this.$t('ignore'),
+          submitText: this.$t('fixAndBuild'),
+          customCallback: async (segments) => {
+            selectSegmentHoles = segments.map((seg) => {
+              return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+            })
+            await this.autoFixSegmentHoles({project: this.projectName, model_id: this.model.uuid, segment_holes: selectSegmentHoles})
+            this.confirmBuild()
+          }
+        })
+        this.confirmBuild()
+      } catch (e) {
+        e !== 'cancel' && handleError(e)
+      }
+    } else {
+      await kapConfirm(this.$t('bulidTips', {modelName: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('buildIndex'), type: 'warning'})
+      this.confirmBuild()
+    }
+  }
+  async confirmBuild () {
     try {
       this.buildIndexLoading = true
       let res = await this.buildIndex({

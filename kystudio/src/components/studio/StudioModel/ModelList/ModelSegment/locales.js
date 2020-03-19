@@ -13,8 +13,9 @@ export default {
     segmentSetting: 'Segment Setting',
     selectContinueSegments: 'Please select continuous segments',
     pleaseSelectSegments: 'Please select at least one segment',
-    confirmDeleteSegments: 'Do you really need to delete {count} segments?',
+    confirmDeleteSegments: 'Please confirm whether to discard below segments? Please note that this operation cannot be undone.',
     pleaseSelectStartOrEndSegments: 'Please select first or last continuous segments.',
+    segmentWarning: 'Please confirm whether to delete below segments, which will cause the model {modelName} to be warning status and the query results will be empty when querying those data ranges. Please note that this operation cannot be undone.',
     storageSize: 'Storage Size',
     segmentDetail: 'Segment Details',
     segmentID: 'Segment ID:',
@@ -32,7 +33,9 @@ export default {
     segmentIsEmpty: 'There are no segments in this model, so it can\'t be purged.',
     refreshSegmentsTitle: 'Refresh Segment',
     deleteSegmentTip: 'Delete Segment',
-    showDetail: 'Show Detail'
+    showDetail: 'Show Detail',
+    fix: 'Fix',
+    fixTips: 'Automatic fix for discontinuous segments'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -48,8 +51,9 @@ export default {
     segmentSetting: 'Segment 管理参数',
     selectContinueSegments: '请选择时间相邻的 segment',
     pleaseSelectSegments: '至少选择一个 segment',
-    confirmDeleteSegments: '您确认要删除 {count} 个 segments？',
+    confirmDeleteSegments: '请确认是否删除以下 Segment(s)？请注意：删除操作无法撤销。',
     pleaseSelectStartOrEndSegments: '请选择第一个开始或最后一个结束的连续 segments。',
+    segmentWarning: '请确认是否删除以下 Segment(s)，删除后将导致模型 {modelName} 处于警告状态，查询对应数据范围时结果将为空。请注意：删除操作无法撤销。',
     storageSize: '存储大小',
     segmentDetail: 'Segment 详情',
     segmentID: 'Segment ID：',
@@ -67,6 +71,8 @@ export default {
     segmentIsEmpty: '模型中没有 segments，无法被清空。',
     refreshSegmentsTitle: '刷新 Segment',
     deleteSegmentTip: '删除 Segment',
-    showDetail: '查看详情'
+    showDetail: '查看详情',
+    fix: '修复',
+    fixTips: '自动补全不连续的 Segment'
   }
 }

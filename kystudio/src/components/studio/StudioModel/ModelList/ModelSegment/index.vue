@@ -6,6 +6,7 @@
         <!-- <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button> -->
         <el-button size="small" type="default" :disabled="!selectedSegments.length" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
         <el-button size="small" type="default" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        <el-button size="small" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
       </div>
       <div class="right">
         <div class="segment-action ky-no-br-space" v-if="!filterSegment">
@@ -118,7 +119,7 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { pageCount } from '../../../../../config'
-import { handleSuccessAsync, handleError, transToUTCMs } from '../../../../../util'
+import { handleSuccessAsync, handleError, transToUTCMs, transToServerGmtTime } from '../../../../../util'
 import { formatSegments } from './handler'
 
 @Component({
@@ -141,7 +142,8 @@ import { formatSegments } from './handler'
     ...mapActions({
       fetchSegments: 'FETCH_SEGMENTS',
       refreshSegments: 'REFRESH_SEGMENTS',
-      deleteSegments: 'DELETE_SEGMENTS'
+      deleteSegments: 'DELETE_SEGMENTS',
+      checkSegments: 'CHECK_SEGMENTS'
     }),
     ...mapActions('SourceTableModal', {
       callSourceTableModal: 'CALL_MODAL'
@@ -276,11 +278,29 @@ export default class ModelSegment extends Vue {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
         const segmentIdStr = this.selectedSegmentIds.join(',')
+        let tableData = []
+        let msg = this.$t('confirmDeleteSegments', {modelName: this.model.name})
+        this.selectedSegments.forEach((seg) => {
+          const obj = {}
+          obj['start'] = transToServerGmtTime(this.segmentTime(seg, seg.startTime))
+          obj['end'] = transToServerGmtTime(this.segmentTime(seg, seg.endTime))
+          tableData.push(obj)
+        })
+        const res = await this.checkSegments({ projectName, modelId, ids: this.selectedSegmentIds })
+        const data = await handleSuccessAsync(res)
+        if (data.segment_holes.length) {
+          msg = this.$t('segmentWarning', {modelName: this.model.name})
+        }
         await this.callGlobalDetailDialog({
-          msg: this.$t('confirmDeleteSegments', {count: segmentIds.length}),
+          msg: msg,
           title: this.$t('deleteSegmentTip'),
-          details: segmentIds,
-          dialogType: 'warning'
+          detailTableData: tableData,
+          detailColumns: [
+            {column: 'start', label: this.$t('kylinLang.common.startTime')},
+            {column: 'end', label: this.$t('kylinLang.common.endTime')}
+          ],
+          dialogType: 'warning',
+          showDetailBtn: false
         })
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
@@ -304,6 +324,9 @@ export default class ModelSegment extends Vue {
       this.$message({ type: 'info', message: this.$t('segmentIsEmpty') })
     }
   }
+  handleFixSegment () {
+    this.$emit('auto-fix')
+  }
 }
 </script>
 
@@ -321,6 +344,10 @@ export default class ModelSegment extends Vue {
 .model-segment {
   .segment-actions {
     margin-bottom: 10px;
+    .el-button .el-icon-ksd-what {
+      color: @base-color;
+      margin-left: 5px;
+    }
     .left {
       float: left;
     }
