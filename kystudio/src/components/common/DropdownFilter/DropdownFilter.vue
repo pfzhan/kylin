@@ -3,6 +3,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
+import { getPickerOptions } from './handler'
 
 @Component({
   props: {
@@ -27,6 +28,10 @@ import locales from './locales'
     },
     value: {
       type: [String, Number, Array, Boolean, Date]
+    },
+    shortcuts: {
+      type: Array,
+      default: () => []
     },
     options: {
       type: Array,
@@ -54,6 +59,18 @@ export default class DropdownFilter extends Vue {
   get isDatePickerType () {
     const { type } = this
     return ['datetimerange'].includes(type)
+  }
+
+  get pickerOptions () {
+    const { shortcuts } = this
+    return {
+      shortcuts: getPickerOptions(this)
+        .filter(option => shortcuts.includes(option.type))
+        .map(option => ({
+          ...option,
+          text: this.$t(option.type)
+        }))
+    }
   }
 
   handleInput (value) {
@@ -90,7 +107,7 @@ export default class DropdownFilter extends Vue {
   }
 
   renderDatePicker (h) {
-    const { value } = this
+    const { value, pickerOptions } = this
 
     return (
       <div class="invisible-item">
@@ -101,6 +118,7 @@ export default class DropdownFilter extends Vue {
           start-placeholder="开始日期"
           end-placeholder="结束日期"
           onInput={this.handleInput}
+          picker-options={pickerOptions}
           onFocus={() => this.handleSetDropdown(true)}
           onBlur={() => this.handleSetDropdown(false)}
           onChange={() => this.handleSetDropdown(false)}>

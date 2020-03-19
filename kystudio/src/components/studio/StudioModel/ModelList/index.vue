@@ -4,7 +4,7 @@
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
       <div class="ksd-mtb-10 ksd-fright">
-        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
+        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
         </el-input>
         <el-button
           text
@@ -42,6 +42,7 @@
           trigger="click"
           :value="filterArgs.last_modify"
           :label="$t('lastModifyTime_c')"
+          :shortcuts="['lastDay', 'lastWeek', 'lastMonth']"
           @input="v => filterContent(v, 'last_modify')">
           <span>{{selectedRange}}</span>
         </DropdownFilter>
@@ -49,7 +50,7 @@
           <el-button
             text
             type="info"
-            icon="el-icon-ksd-loading"
+            icon="el-icon-ksd-table_resure"
             @click="handleResetFilters">
             {{$t('reset')}}
           </el-button>
@@ -190,19 +191,6 @@
           :render-header="renderUsageHeader"
           :label="$t('usage')">
         </el-table-column>
-        <!-- <el-table-column
-          header-align="right"
-          align="right"
-          prop="recommendations_count"
-          sortable="recommendations_count"
-          width="200px"
-          :render-header="renderAdviceHeader"
-          v-if="$store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">
-          <template slot-scope="scope">
-            <span v-if="scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible)" class="recommend-btn" @click="openRecommendDialog(scope.row)">{{scope.row.recommendations_count}}</span>
-            <span v-else>{{scope.row.recommendations_count}}</span>
-          </template>
-         </el-table-column> -->
         <el-table-column
           v-if="!isAutoProject"
           prop="owner"
@@ -441,7 +429,7 @@ export default class ModelList extends Vue {
   }
   get selectedStatus () {
     const { filterArgs } = this
-    return filterArgs.status.length
+    return filterArgs.status.length && this.statusList.length !== filterArgs.status.length
       ? filterArgs.status.map(status => this.$t(status)).join(', ')
       : this.$t('ALL')
   }

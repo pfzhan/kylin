@@ -54,7 +54,7 @@ export default {
     recommendationsTip: 'By analyzing the query history and model usage, the system will provide some recommendations.',
     clearAll: 'Clear All',
     authorityDetails: 'The details of authority',
-    ALL: 'ALL',
+    ALL: 'All',
     ONLINE: 'ONLINE',
     OFFLINE: 'OFFLINE',
     BROKEN: 'BROKEN',
@@ -62,10 +62,11 @@ export default {
     reset: 'Reset',
     lastModifyTime_c: 'Last modified time:&nbsp;',
     allTimeRange: 'All Time Range',
-    filterButton: 'Filters',
+    filterButton: 'Filter',
     aggIndexCount: 'Index Amount',
-    recommendations_c: 'Recommendations: ',
-    clickToView: 'Click to view'
+    recommendations_c: 'Recommendation: ',
+    clickToView: 'Review',
+    filterModelOrOwner: 'Search model name or owner'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -122,17 +123,18 @@ export default {
     recommendationsTip: '系统将根据查询历史和模型使用情况，对当前模型的提供一些优化建议。',
     clearAll: '清除所有',
     authorityDetails: '权限详情',
-    ALL: 'ALL',
+    ALL: '全选',
     ONLINE: 'ONLINE',
     OFFLINE: 'OFFLINE',
     BROKEN: 'BROKEN',
     status_c: '状态：',
     reset: '重置',
     lastModifyTime_c: '修改时间：&nbsp;',
-    allTimeRange: '所有时间范围',
-    filterButton: '筛选条件',
+    allTimeRange: '全部时间范围',
+    filterButton: '筛选',
     aggIndexCount: '索引数量',
     recommendations_c: '优化建议：',
-    clickToView: '点击查看'
+    clickToView: '点击查看',
+    filterModelOrOwner: '搜索模型名称或所有者'
   }
 }
