@@ -28,6 +28,9 @@ export default {
     },
     [types.SAVE_CURRENT_USER_ACCESS]: function (state, result) {
       state.currentUserAccess = result.access
+    },
+    [types.RESET_CURRENT_USER]: function (state) {
+      state.currentUser = null
     }
   },
   actions: {

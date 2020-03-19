@@ -227,7 +227,8 @@ let MessageBox = ElementUI.MessageBox
     ...mapState({
       cachedHistory: state => state.config.cachedHistory,
       isSemiAutomatic: state => state.project.isSemiAutomatic,
-      licenseDates: state => state.system.serverAboutKap
+      licenseDates: state => state.system.serverAboutKap,
+      currentUser: state => state.user.currentUser
     }),
     ...mapGetters([
       'currentPathNameGet',
@@ -757,7 +758,7 @@ export default class LayoutLeftRightTop extends Vue {
     return !this.$store.state.project.selected_project && !this.$store.state.project.allProject.length ? 'primary' : ''
   }
   noProjectTips () {
-    if (this.highlightType && this.licenseDates['ke.dates']) {
+    if (this.highlightType && this.licenseDates['ke.dates'] && this.currentUser) {
       MessageBox.alert(this.$t('noProject'), this.$t('kylinLang.common.notice'), {
         confirmButtonText: this.$t('kylinLang.common.ok'),
         type: 'info'

@@ -378,6 +378,7 @@ export const IS_CLOUD = 'IS_CLOUD'
 export const LOGIN = 'LOGIN'
 export const LOGIN_OUT = 'LOGIN_OUT'
 export const SAVE_CURRENT_LOGIN_USER = 'SAVE_CURRENT_LOGIN_USER'
+export const RESET_CURRENT_USER = 'RESET_CURRENT_USER'
 
 export const FORMAT_SQL = 'FORMAT_SQL'
 export const LOAD_QUERY_HISTORY = 'LOAD_QUERY_HISTORY'
