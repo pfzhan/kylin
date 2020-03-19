@@ -18,7 +18,7 @@ export default {
 
   [USERNAME] (rule, value, callback) {
     if (!value.trim()) {
-      callback(new Error(this.$t('usernameEmpty')))
+      callback(new Error(this.$t('kylinLang.common.usernameEmpty')))
     } else if (!/^[a-zA-Z0-9][a-zA-Z0-9_\s]*$/.test(value)) {
       callback(new Error(this.$t('kylinLang.common.userNameFormatValidTip')))
     } else {
@@ -28,9 +28,9 @@ export default {
 
   [PASSWORD] (rule, value, callback) {
     if (!value) {
-      callback(new Error(this.$t('passwordEmpty')))
+      callback(new Error(this.$t('kylinLang.common.passwordEmpty')))
     } else if (value.length < 8) {
-      callback(new Error(this.$t('passwordLength')))
+      callback(new Error(this.$t('kylinLang.common.passwordLength')))
     } else if (!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/gi.test(value)) {
       callback(new Error(this.$t('kylinLang.user.tip_password_unsafe')))
     } else {
@@ -43,9 +43,9 @@ export default {
     const isNewPasswordInvalid = this.form.newPassword && value !== this.form.newPassword
 
     if (!value) {
-      callback(new Error(this.$t('passwordEmpty')))
+      callback(new Error(this.$t('kylinLang.common.passwordEmpty')))
     } else if (isPasswordInvalid || isNewPasswordInvalid) {
-      callback(new Error(this.$t('passwordConfirm')))
+      callback(new Error(this.$t('kylinLang.common.passwordConfirm')))
     } else {
       callback()
     }
@@ -53,7 +53,7 @@ export default {
 
   [PROJECT_NAME] (rule, value, callback) {
     if (!value) {
-      callback(new Error(this.$t('noProject')))
+      callback(new Error(this.$t('kylinLang.common.noProject')))
     } else if (!/^\w+$/.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else if (!/^(?![_])\w+$/.test(value)) {

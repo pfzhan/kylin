@@ -7,7 +7,11 @@
   "comments": false,
   "env": {
     "test": {
-      "plugins": [ "istanbul" ]
+      "presets": [
+        ["es2015", { "targets": { "node": "current" }}],
+        "stage-2"
+      ],
+      "plugins": ["transform-runtime", "transform-decorators-legacy", "dynamic-import-node"]
     }
   }
 }

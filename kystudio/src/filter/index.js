@@ -1,16 +1,17 @@
 import Vue from 'vue'
 import { getGmtDateFromUtcLike, transToGmtTime, transToServerGmtTime } from '../util'
-Vue.filter('nullValFilter', function (value) {
-  return value == null ? 'null' : value
-})
 
-Vue.filter('utcDate', function (value) {
+const nullValFilter = function (value) {
+  return value == null ? 'null' : value
+}
+
+const utcDate = function (value) {
   return value instanceof Array
     ? value.map(item => getGmtDateFromUtcLike(item))
     : getGmtDateFromUtcLike(value)
-})
+}
 
-Vue.filter('utcTime', function (value) {
+const utcTime = function (value) {
   if (/[^\d]/.test(value) || value === '') {
     return value
   }
@@ -22,9 +23,9 @@ Vue.filter('utcTime', function (value) {
   var mins = dateObj.getUTCMinutes() < 10 ? '0' + dateObj.getUTCMinutes() : dateObj.getUTCMinutes()
   var seconds = dateObj.getUTCSeconds() < 10 ? '0' + dateObj.getUTCSeconds() : dateObj.getUTCSeconds()
   return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds
-})
+}
 
-Vue.filter('utcTimeOrInt', function (value, isInt) {
+const utcTimeOrInt = function (value, isInt) {
   if (/[^\d]/.test(value) || value === '') {
     return ''
   }
@@ -39,9 +40,9 @@ Vue.filter('utcTimeOrInt', function (value, isInt) {
   var mins = dateObj.getUTCMinutes() < 10 ? '0' + dateObj.getUTCMinutes() : dateObj.getUTCMinutes()
   var seconds = dateObj.getUTCSeconds() < 10 ? '0' + dateObj.getUTCSeconds() : dateObj.getUTCSeconds()
   return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds
-})
+}
 
-Vue.filter('gmtTime', function (value) {
+const gmtTime = function (value) {
   if (/[^\d]/.test(value) || value === '') {
     return ''
   }
@@ -53,9 +54,9 @@ Vue.filter('gmtTime', function (value) {
   var mins = dateObj.getUTCMinutes() < 10 ? '0' + dateObj.getUTCMinutes() : dateObj.getUTCMinutes()
   var seconds = dateObj.getUTCSeconds() < 10 ? '0' + dateObj.getUTCSeconds() : dateObj.getUTCSeconds()
   return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds
-})
+}
 
-Vue.filter('timeFormatHasTimeZone', function (value) {
+const timeFormatHasTimeZone = function (value) {
   if (/[^\d]/.test(value) || value === '') {
     return ''
   }
@@ -69,17 +70,18 @@ Vue.filter('timeFormatHasTimeZone', function (value) {
   var seconds = dateObj.getSeconds() < 10 ? '0' + dateObj.getSeconds() : dateObj.getSeconds()
   var gmtHours = -(dateObj.getTimezoneOffset() / 60)
   return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds + ' GMT' + (gmtHours >= 0 ? '+' + gmtHours : gmtHours)
-})
+}
 
-Vue.filter('fixed', function (value, len) {
+const fixed = function (value, len) {
   var filterValue = !isNaN(+value) ? +value : 0
   var reg = new RegExp('^(\\d+?(?:\\.\\d{' + len + '})).*$')
   return ('' + filterValue).replace(reg, '$1')
-})
+}
+
 /*
- *cut string with replaceChar, the double char has double length for cut
-*/
-Vue.filter('omit', function (value, len, replaceChar) {
+ * cut string with replaceChar, the double char has double length for cut
+ */
+const omit = function (value, len, replaceChar) {
   if (value) {
     if (len) {
       var cutIndex = 0
@@ -103,16 +105,16 @@ Vue.filter('omit', function (value, len, replaceChar) {
     }
   }
   return value
-})
+}
 
-Vue.filter('number', function (value, fix) {
+const number = function (value, fix) {
   if (isNaN(value)) {
     value = 0
   }
   return +value.toFixed(fix)
-})
+}
 
-Vue.filter('readableNumber', function (value) {
+const readableNumber = function (value) {
   var b = value.toString()
   var len = b.length
   if (len <= 3) {
@@ -120,18 +122,22 @@ Vue.filter('readableNumber', function (value) {
   }
   var r = len % 3
   return r > 0 ? b.slice(0, r) + ',' + b.slice(r, len).match(/\d{3}/g).join(',') : b.slice(r, len).match(/\d{3}/g).join(',')
-})
+}
+
 // the time mins and seconds
-Vue.filter('tofixedTimer', function (value, fix) {
+const tofixedTimer = function (value, fix) {
   value = value / 1000
   if (value > 60) {
     return (value / 60).toFixed(fix) + ' mins'
   } else {
     return value + ' seconds'
   }
-})
+}
 
-Vue.filter('dataSize', function (data) {
+const dataSize = function (data) {
+  if (/[^\d]/.test(data) || data === '') {
+    return data
+  }
   var size
   if (data / 1024 / 1024 / 1024 / 1024 >= 1) {
     size = (data / 1024 / 1024 / 1024 / 1024).toFixed(2) + ' TB'
@@ -145,9 +151,9 @@ Vue.filter('dataSize', function (data) {
     size = data + ' B'
   }
   return size
-})
+}
 
-Vue.filter('timeSize', function (data) {
+const timeSize = function (data) {
   var size
   if (data / 1000 / 60 / 60 / 24 >= 1) {
     size = (data / 1000 / 60 / 60 / 24).toFixed(2) + ' days'
@@ -159,30 +165,57 @@ Vue.filter('timeSize', function (data) {
     return (data / 1000) + ' seconds'
   }
   return size
-})
+}
 
-Vue.filter('filterArr', function (data, value, isFuzzy) {
+const filterArr = function (data, value, isFuzzy) {
   return data && data.filter((d) => {
     return isFuzzy ? d.toLowerCase().indexOf(value.toLowerCase()) < 0 : d !== value
   }) || []
-})
-Vue.filter('filterObjArr', function (data, key, value, isFuzzy) {
+}
+
+const filterObjArr = function (data, key, value, isFuzzy) {
   return data && data.filter((d) => {
     return isFuzzy ? d[key].toLowerCase().indexOf(value.toLowerCase()) < 0 : d[key] !== value
   }) || []
-})
+}
 
-Vue.filter('arrayToStr', function (data) {
+const arrayToStr = function (data) {
   if (Array.isArray(data)) {
     return data.join(',')
   }
-})
+}
 
-Vue.filter('toGMTDate', function (data) {
+const toGMTDate = function (data) {
   return transToGmtTime(data)
-})
+}
 
-Vue.filter('toServerGMTDate', function (data) {
+const toServerGMTDate = function (data) {
   return transToServerGmtTime(data)
-})
+}
 
+const filterElements = {
+  'nullValFilter': nullValFilter,
+  'utcDate': utcDate,
+  'utcTime': utcTime,
+  'utcTimeOrInt': utcTimeOrInt,
+  'gmtTime': gmtTime,
+  'timeFormatHasTimeZone': timeFormatHasTimeZone,
+  'fixed': fixed,
+  'omit': omit,
+  'number': number,
+  'readableNumber': readableNumber,
+  'tofixedTimer': tofixedTimer,
+  'dataSize': dataSize,
+  'timeSize': timeSize,
+  'filterArr': filterArr,
+  'filterObjArr': filterObjArr,
+  'arrayToStr': arrayToStr,
+  'toGMTDate': toGMTDate,
+  'toServerGMTDate': toServerGMTDate
+}
+
+for (let item in filterElements) {
+  Vue.filter(item, filterElements[item])
+}
+
+export default filterElements

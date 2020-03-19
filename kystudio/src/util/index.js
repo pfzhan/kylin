@@ -254,7 +254,7 @@ export function objectArraySort (objArr, sequence, sortKey) {
   return objectArr
 }
 // 对象数组按照另一个数组来排序 （废弃）
-export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
+/* export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
   var resultArr = []
   var len1 = arr1 && arr1.length || 0
   var len2 = arr2 && arr2.length || 0
@@ -267,6 +267,7 @@ export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
   }
   return resultArr
 }
+*/
 /* 一个数组按照另一个数组里的排序进行重排
 * args: arr1:['a', 'b', 'c', 'd']  arr2:['d','a']
 * result ["d", "b", "c", "a"]

@@ -140,6 +140,11 @@ exports.default = {
     userNameFormatValidTip: 'The user name can only contain letters, digits, space or underscore and must start with a letter or digit.',
     userGroupNameFormatValidTip: 'The group name can only contain letters, digits, space or underscore and must start with a letter or digit.',
     userGroupNameEmpty: 'user group name required',
+    usernameEmpty: 'user name required',
+    passwordEmpty: 'password required',
+    passwordLength: 'the length of password is at least 8',
+    passwordConfirm: 'Password and confirm password are not the same.',
+    noProject: 'Please enter the project name',
     // 其他
     name: 'Name',
     users: 'Users',

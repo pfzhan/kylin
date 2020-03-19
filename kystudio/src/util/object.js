@@ -13,7 +13,7 @@ export function get (object, pathStr = '') {
 
     return curObject
   } catch (e) {
-    console.log(e)
+    // console.log(e)
     return null
   }
 }
@@ -38,7 +38,7 @@ export function set (object, pathStr = '', value) {
 
     return newObject
   } catch (e) {
-    console.log(e)
+    // console.log(e)
     return null
   }
 }
@@ -60,7 +60,7 @@ export function push (object, pathStr = '', value) {
 
     return newObject
   } catch (e) {
-    console.log(e)
+    // console.log(e)
     return null
   }
 }

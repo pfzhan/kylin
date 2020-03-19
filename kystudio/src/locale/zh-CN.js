@@ -139,6 +139,11 @@ exports.default = {
     userNameFormatValidTip: '用户名称中只能包含字母，数字，空格或下划线，并且以数字或字母开头。',
     userGroupNameFormatValidTip: '用户组名称中只能包含字母，数字，空格或下划线，并且以数字或字母开头。',
     userGroupNameEmpty: '用户组名不能为空',
+    usernameEmpty: '用户名不能为空',
+    passwordEmpty: '密码不能为空',
+    passwordLength: '密码长度至少 8 位',
+    passwordConfirm: '两次密码不一致, 请检查',
+    noProject: '请输入项目名称',
     // 其他
     name: '名称',
     users: '用户',
