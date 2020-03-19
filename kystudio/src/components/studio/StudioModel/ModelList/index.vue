@@ -4,7 +4,7 @@
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
       <div class="ksd-mtb-10 ksd-fright">
-        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
+        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
         </el-input>
         <el-button
           text
@@ -116,7 +116,14 @@
           :label="modelTableTitle">
           <template slot-scope="scope">
             <div class="alias">
-              <i :class="['filter-status', scope.row.status]" />
+              <el-popover
+                popper-class="status-tooltip"
+                placement="top-start"
+                trigger="hover">
+                <i slot="reference" :class="['filter-status', scope.row.status]" />
+                <span v-html="$t('modelStatus_c')" />
+                <span>{{scope.row.status}}</span>
+              </el-popover>
               <span>{{scope.row.alias}}</span>
             </div>
             <el-popover
@@ -136,7 +143,7 @@
               :disabled="!(scope.row.status !== 'BROKEN' && ('visible' in scope.row && scope.row.visible))">
               <div class="recommend" slot="reference">
                 <i class="el-icon-ksd-status" />
-                <span class="recommend-count">
+                <span class="recommend-count" @click="openRecommendDialog(scope.row)">
                   <b>{{scope.row.recommendations_count || 0}}</b>
                 </span>
               </div>
@@ -174,7 +181,7 @@
           sortable="custom"
           prop="expansionrate"
           show-overflow-tooltip
-          width="170px"
+          width="120px"
           :render-header="renderExpansionRateHeader">
           <template slot-scope="scope">
               <span v-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
@@ -195,7 +202,7 @@
           v-if="!isAutoProject"
           prop="owner"
           show-overflow-tooltip
-          width="100"
+          width="120px"
           :label="$t('kylinLang.model.ownerGrid')">
         </el-table-column>
         <el-table-column
@@ -571,8 +578,10 @@ export default class ModelList extends Vue {
     })
   }
   async openRecommendDialog (modelDesc) {
-    const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
-    isSubmit && this.loadModelsList()
+    if (modelDesc.status !== 'BROKEN' && ('visible' in modelDesc && modelDesc.visible)) {
+      const isSubmit = await this.callModelRecommendDialog({modelDesc: modelDesc})
+      isSubmit && this.loadModelsList()
+    }
   }
   async handleCommand (command, modelDesc) {
     if (command === 'dataCheck') {
@@ -1014,6 +1023,7 @@ export default class ModelList extends Vue {
     margin-right: 15px;
     i {
       color: #989898;
+      cursor: default;
     }
   }
   .recommend {
@@ -1023,6 +1033,7 @@ export default class ModelList extends Vue {
     color: @color-primary;
     i {
       color: #989898;
+      cursor: default;
     }
   }
   .recommend-count {
@@ -1033,6 +1044,7 @@ export default class ModelList extends Vue {
     line-height: 16px;
     font-weight: 500;
     margin-left: 2px;
+    cursor: pointer;
     b {
       position: relative;
       transform: scale(0.833333);
@@ -1091,5 +1103,17 @@ export default class ModelList extends Vue {
     color: @color-primary;
     cursor: pointer;
   }
+}
+.status-tooltip {
+  min-width: unset;
+  transform: translate(-5px, 5px);
+  .popper__arrow {
+    left: 5px !important;
+  }
+}
+
+.last-modified-tooltip,
+.status-tooltip {
+  pointer-events: none;
 }
 </style>
