@@ -24,16 +24,28 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
+
+import org.apache.kylin.metadata.model.PartitionDesc;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Data;
 
 @Data
-public class BuildSegmentsRequest implements ProjectInsensitiveRequest {
+public class IncrementBuildSegmentsRequest implements ProjectInsensitiveRequest {
 
     private String project;
 
     private String start;
 
     private String end;
+
+    @JsonProperty("partition_desc")
+    private PartitionDesc partitionDesc;
+
+    @JsonProperty("segment_holes")
+    private List<SegmentTimeRequest> segmentHoles;
 
 }

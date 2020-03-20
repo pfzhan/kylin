@@ -92,6 +92,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -534,18 +535,33 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBuildSegments() throws Exception {
-        BuildSegmentsRequest request = new BuildSegmentsRequest();
-        request.setProject("default");
-        request.setStart("0");
-        request.setEnd("100");
-        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
+        BuildSegmentsRequest request1 = new BuildSegmentsRequest();
+        request1.setProject("default");
+        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa","", "");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request1))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).buildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(BuildSegmentsRequest.class));
+
+        IncrementBuildSegmentsRequest request2 = new IncrementBuildSegmentsRequest();
+        request2.setProject("default");
+        request2.setStart("100");
+        request2.setEnd("200");
+        request2.setPartitionDesc(new PartitionDesc());
+        Mockito.doAnswer(x -> null).when(modelService).incrementBuildSegmentsManually("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request2.getStart(), request2.getEnd(),
+                request2.getPartitionDesc(), request2.getSegmentHoles());
+        mockMvc.perform(MockMvcRequestBuilders
+                .put("/api/models/{model}/model_segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request2))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).incrementBuildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
+                Mockito.any(IncrementBuildSegmentsRequest.class));
     }
 
     @Test
@@ -947,11 +963,10 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("0");
         request.setEnd("1");
-        mockMvc.perform(
-                MockMvcRequestBuilders
-                        .post("/api/models/{model}/segment/validation", "e0e90065-e7c3-49a0-a801-20465ca64799")
-                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/models/{model}/segment/validation", "e0e90065-e7c3-49a0-a801-20465ca64799")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).checkSegment(eq("e0e90065-e7c3-49a0-a801-20465ca64799"), eq(request));
 

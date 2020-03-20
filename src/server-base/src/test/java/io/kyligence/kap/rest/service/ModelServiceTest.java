@@ -77,6 +77,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -1415,8 +1416,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("new_model", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(1, df.getSegments().size());
-        Assert.assertTrue(df.getSegments().get(0).getSegRange().isInfinite());
+        Assert.assertEquals(0, df.getSegments().size());
 
         modelManager.dropModel(newModel);
     }
@@ -1427,7 +1427,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         testGetLatestData();
         testCreateModel_PartitionNotNull();
         testBuildSegmentsManually_WithPushDown();
-        testCreateModel_PartitionNotNull_WithStartAndEnd();
         testBuildSegmentsManually();
         testChangePartitionDesc();
         testChangePartitionDesc_OriginModelNoPartition();
@@ -1708,29 +1707,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelManager.dropModel(newModel);
     }
 
-    public void testCreateModel_PartitionNotNull_WithStartAndEnd() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        model.setManagementType(ManagementType.MODEL_BASED);
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setProject("default");
-        modelRequest.setAlias("new_model2");
-        modelRequest.setStart("0");
-        modelRequest.setEnd("100");
-        modelRequest.setUuid(null);
-        modelRequest.setLastModified(0L);
-        modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
-        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
-        Assert.assertEquals("new_model2", newModel.getAlias());
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(1, df.getSegments().size());
-        Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
-        Assert.assertEquals(0L, df.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(100L, df.getSegments().get(0).getSegRange().getEnd());
-        modelManager.dropModel(newModel);
-    }
-
     @Test
     public void testCreateModelWithDefaultMeasures() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -1754,8 +1730,23 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Table oriented model 'nmodel_basic' can not build segments manually!");
+        thrown.expect(TransactionException.class);
+        thrown.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof TransactionException)) {
+                    return false;
+                }
+                TransactionException exception = (TransactionException) item;
+                return exception.getCause() instanceof BadRequestException
+                        && exception.getCause().getMessage().contains("Table oriented model 'nmodel_basic' can not build segments manually!");
+
+            }
+        });
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 

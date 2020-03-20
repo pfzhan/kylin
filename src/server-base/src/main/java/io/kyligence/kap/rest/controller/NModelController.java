@@ -66,6 +66,7 @@ import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.BuildIndexRequest;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
+import io.kyligence.kap.rest.request.IncrementBuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -73,7 +74,6 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
-import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
@@ -145,7 +145,8 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
-            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse, modelAliasOrOwner, lastModifyFrom, lastModifyTo));
+            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse,
+                    modelAliasOrOwner, lastModifyFrom, lastModifyTo));
         } else {
             models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }
@@ -603,16 +604,22 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
-        checkProjectName(buildSegmentsRequest.getProject());
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        if (buildSegmentsRequest.getSegment_holes() != null && !buildSegmentsRequest.getSegment_holes().isEmpty()) {
-            for (SegmentTimeRequest entry : buildSegmentsRequest.getSegment_holes()) {
-                modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId, entry.getStart(),
-                        entry.getEnd());
-            }
-        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @ApiOperation(value = "buildSegmentsManually (update)", notes = "Add URL: {model}")
+    @PutMapping(value = "/{model:.+}/model_segments")
+    @ResponseBody
+    public EnvelopeResponse<JobInfoResponse> incrementBuildSegmentsManually(@PathVariable("model") String modelId,
+            @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
+        checkProjectName(buildSegmentsRequest.getProject());
+        validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
+                modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
+                buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getSegmentHoles());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

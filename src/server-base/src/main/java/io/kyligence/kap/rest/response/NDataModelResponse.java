@@ -79,6 +79,9 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("available_indexes_count")
     private long availableIndexesCount;
 
+    @JsonProperty("empty_indexes_count")
+    private long emptyIndexesCount;
+
     @JsonProperty("segment_holes")
     private List<SegmentRange> segmentHoles;
 
