@@ -44,6 +44,7 @@ import org.springframework.web.servlet.config.annotation.ContentNegotiationConfi
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
@@ -128,8 +129,11 @@ public class AppConfig extends WebMvcConfigurerAdapter {
 
     @Bean
     public ObjectMapper getObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         FilterProvider filterProvider = new SimpleFilterProvider().addFilter("passwordFilter",
                 SimpleBeanPropertyFilter.serializeAllExcept("password", "defaultPassword"));
-        return new ObjectMapper().setFilterProvider(filterProvider);
+
+        return objectMapper.setFilterProvider(filterProvider);
     }
 }
