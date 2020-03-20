@@ -1,5 +1,3 @@
---https://olapio.atlassian.net/browse/KE-12641
-
 SELECT count(to_date(UPD_DATE,'yyyy-MM-dd')),
 	   count(to_date(UPD_DATE,'yyyy-MM')),
 	   count(to_date(UPD_DATE,'yyyy'))

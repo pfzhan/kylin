@@ -1,4 +1,3 @@
---https://olapio.atlassian.net/browse/KE-12641
 --conformance=LENIENT
 
 select sum(tmp.ab) from (

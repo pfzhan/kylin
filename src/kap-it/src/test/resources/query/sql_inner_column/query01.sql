@@ -1,5 +1,3 @@
---https://olapio.atlassian.net/browse/KE-12641
-
 select is_screen_on, count(1) as num from
 (
 select trans_id,

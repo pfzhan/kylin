@@ -1,4 +1,2 @@
---https://olapio.atlassian.net/browse/KE-12641
-
 select count(split_part(LSTG_FORMAT_NAME,'I',1))
 from test_kylin_fact

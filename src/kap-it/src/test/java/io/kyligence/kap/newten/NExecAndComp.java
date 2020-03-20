@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.val;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -60,12 +61,14 @@ import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
     private static final Logger logger = LoggerFactory.getLogger(NExecAndComp.class);
+    private static final int COMPARE_DEVIATION = 5;
 
     public enum CompareLevel {
         SAME, // exec and compare
         SAME_ORDER, // exec and compare order
         SAME_ROWCOUNT, SUBSET, NONE, // batch execute
-        SAME_SQL_COMPARE
+        SAME_SQL_COMPARE,
+        SAME_WITH_DEVIATION_ALLOWED
     }
 
     static void execLimitAndValidate(List<Pair<String, String>> queries, String prj, String joinType) {
@@ -350,40 +353,28 @@ public class NExecAndComp {
 
     public static boolean compareResults(List<Row> expectedResult, List<Row> actualResult, CompareLevel compareLevel) {
         boolean good = true;
-        if (compareLevel == CompareLevel.SAME_ORDER) {
-            good = expectedResult.equals(actualResult);
-        }
-        if (compareLevel == CompareLevel.SAME) {
-            if (expectedResult.size() == actualResult.size()) {
-                if (expectedResult.size() > 15000) {
-                    throw new RuntimeException(
-                            "please modify the sql to control the result size that less than 15000 and it has "
-                                    + actualResult.size() + " rows");
-                }
-                for (Row eRow : expectedResult) {
-                    if (!actualResult.contains(eRow)) {
-                        good = false;
-                        break;
-                    }
-                }
-            } else {
-                good = false;
-            }
-        }
 
-        if (compareLevel == CompareLevel.SAME_ROWCOUNT) {
-            long count1 = expectedResult.size();
-            long count2 = actualResult.size();
-            good = count1 == count2;
-        }
-
-        if (compareLevel == CompareLevel.SUBSET) {
-            for (Row eRow : actualResult) {
-                if (!expectedResult.contains(eRow)) {
-                    good = false;
-                    break;
-                }
+        switch (compareLevel) {
+            case SAME_ORDER:
+                good = expectedResult.equals(actualResult);
+                break;
+            case SAME:
+                good = compareResultInLevelSame(expectedResult, actualResult);
+                break;
+            case SAME_ROWCOUNT:
+                good = expectedResult.size() == actualResult.size();
+                break;
+            case SUBSET: {
+                good = compareResultInLevelSubset(expectedResult, actualResult);
+                break;
             }
+            case SAME_WITH_DEVIATION_ALLOWED:
+                good = compareResultInLevelSame(expectedResult, actualResult)
+                        || compareTwoRowsWithDeviationAllowed(expectedResult, actualResult);
+                break;
+            default:
+                break;
+
         }
 
         if (!good) {
@@ -392,6 +383,58 @@ public class NExecAndComp {
             printRows("actual", actualResult);
         }
         return good;
+    }
+
+    private static boolean compareResultInLevelSubset(List<Row> expectedResult, List<Row> actualResult) {
+        for (Row eRow : actualResult) {
+            if (!expectedResult.contains(eRow)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean compareResultInLevelSame(List<Row> expectedResult, List<Row> actualResult) {
+        if (expectedResult.size() == actualResult.size()) {
+            if (expectedResult.size() > 15000) {
+                throw new RuntimeException(
+                        "please modify the sql to control the result size that less than 15000 and it has "
+                                + actualResult.size() + " rows");
+            }
+            for (Row eRow : expectedResult) {
+                if (!actualResult.contains(eRow)) {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static boolean compareTwoRowsWithDeviationAllowed(List<Row> expectedRows, List<Row> actualRows) {
+        for (int i = 0; i < expectedRows.size(); i++) {
+            val expectedRow = expectedRows.get(i);
+            val actualRow = actualRows.get(i);
+
+            for (int j = 0; j < expectedRow.size(); j++) {
+                val expectedValue = expectedRow.get(j);
+                val actualValue = actualRow.get(j);
+
+                if (expectedValue instanceof Double && actualValue instanceof Double) {
+                    double distance = (double) expectedValue - (double) actualValue;
+                    if (Math.abs(distance) > COMPARE_DEVIATION) {
+                        return false;
+                    }
+                } else if (!String.valueOf(expectedValue).equals(String.valueOf(actualValue))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private static void printRows(String source, List<Row> rows) {

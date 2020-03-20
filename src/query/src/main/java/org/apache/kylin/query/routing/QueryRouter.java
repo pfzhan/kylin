@@ -90,6 +90,7 @@ public class QueryRouter {
         ComputedColumnRewriter.rewriteCcInnerCol(olapContext, readyReal.getModel(),
                 new QueryAliasMatchInfo(aliasMapping, null));
 
+        olapContext.resetSQLDigest();
         SQLDigest sqlDigest = olapContext.getSQLDigest();
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {

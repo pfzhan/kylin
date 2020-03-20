@@ -16,10 +16,7 @@
 -- limitations under the License.
 --
 
---https://olapio.atlassian.net/browse/KE-12641
-
-
-SELECT test_kylin_fact.cal_dt ,sum(price) as y,cast(timestampadd(QUARTER,1,test_kylin_fact.cal_dt) as date) as x
+SELECT test_kylin_fact.cal_dt ,sum(price) as y, cast(timestampadd(MONTH,-23,test_kylin_fact.cal_dt) as date) as x
  FROM TEST_KYLIN_FACT 
  
 inner JOIN edw.test_cal_dt as test_cal_dt
