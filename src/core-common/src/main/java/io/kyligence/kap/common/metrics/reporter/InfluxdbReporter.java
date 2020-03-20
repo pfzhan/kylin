@@ -37,9 +37,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,11 +66,12 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point;
 
 public class InfluxdbReporter extends ScheduledReporter {
 
     private static final Logger logger = LoggerFactory.getLogger(InfluxdbReporter.class);
+
+    private final ConcurrentHashMap<String, PointBuilder.Point> metrics = new ConcurrentHashMap<>();
 
     private final InfluxDB influxDb;
 
@@ -100,6 +105,14 @@ public class InfluxdbReporter extends ScheduledReporter {
         this.defaultMeasurement = defaultMeasurement;
     }
 
+    public InfluxDB getInfluxDb() {
+        return this.influxDb;
+    }
+
+    public ImmutableList<PointBuilder.Point> getMetrics() {
+        return ImmutableList.copyOf(metrics.values());
+    }
+
     @Override
     public void report(SortedMap<String, Gauge> gauges, SortedMap<String, Counter> counters,
             SortedMap<String, Histogram> histograms, SortedMap<String, Meter> meters, SortedMap<String, Timer> timers) {
@@ -112,7 +125,7 @@ public class InfluxdbReporter extends ScheduledReporter {
 
             final long timestamp = clock.getTime();
 
-            final ImmutableList<Point> points = ImmutableList.<Point> builder()
+            final ImmutableList<PointBuilder.Point> points = ImmutableList.<PointBuilder.Point> builder()
                     .addAll(transformer.fromGauges(gauges, defaultMeasurement, timestamp, TimeUnit.MILLISECONDS))
                     .addAll(transformer.fromCounters(counters, defaultMeasurement, timestamp, TimeUnit.MILLISECONDS))
                     .addAll(transformer.fromHistograms(histograms, defaultMeasurement, timestamp,
@@ -121,13 +134,14 @@ public class InfluxdbReporter extends ScheduledReporter {
                     .addAll(transformer.fromTimers(timers, defaultMeasurement, timestamp, TimeUnit.MILLISECONDS))
                     .build();
 
-            points.forEach(influxDb::write);
+            points.stream().filter(Objects::nonNull).map(PointBuilder.Point::convert).forEach(influxDb::write);
             influxDb.flush();
 
             NMetricsGroup.counterInc(NMetricsName.SUMMARY_COUNTER, NMetricsCategory.GLOBAL, "global");
             NMetricsGroup.counterInc(NMetricsName.SUMMARY_DURATION, NMetricsCategory.GLOBAL, "global",
                     System.currentTimeMillis() - startAt);
 
+            points.stream().filter(Objects::nonNull).forEach(point -> metrics.putIfAbsent(point.getUniqueKey(), point));
             logger.debug("ke.metrics report data: {} points", points.size());
         } catch (Exception e) {
             logger.error("[UNEXPECTED_THINGS_HAPPENED] ke.metrics report data failed", e);
@@ -136,18 +150,18 @@ public class InfluxdbReporter extends ScheduledReporter {
 
     private class Transformer {
 
-        public List<Point> fromGauges(final Map<String, Gauge> gauges, final String measurement, final long timestamp,
-                final TimeUnit timeUnit) {
+        public List<PointBuilder.Point> fromGauges(final Map<String, Gauge> gauges, final String measurement,
+                final long timestamp, final TimeUnit timeUnit) {
             return fromGaugesOrCounters(gauges, Gauge::getValue, measurement, timestamp, timeUnit);
         }
 
-        public List<Point> fromCounters(final Map<String, Counter> counters, final String measurement,
+        public List<PointBuilder.Point> fromCounters(final Map<String, Counter> counters, final String measurement,
                 final long timestamp, final TimeUnit timeUnit) {
             return fromGaugesOrCounters(counters, Counter::getCount, measurement, timestamp, timeUnit);
         }
 
-        public List<Point> fromHistograms(final Map<String, Histogram> histograms, final String measurement,
-                final long timestamp, final TimeUnit timeUnit) {
+        public List<PointBuilder.Point> fromHistograms(final Map<String, Histogram> histograms,
+                final String measurement, final long timestamp, final TimeUnit timeUnit) {
 
             return histograms.entrySet().stream().map(e -> {
                 try {
@@ -178,8 +192,8 @@ public class InfluxdbReporter extends ScheduledReporter {
             }).filter(Objects::nonNull).collect(toList());
         }
 
-        public List<Point> fromMeters(final Map<String, Meter> meters, final String measurement, final long timestamp,
-                final TimeUnit timeUnit) {
+        public List<PointBuilder.Point> fromMeters(final Map<String, Meter> meters, final String measurement,
+                final long timestamp, final TimeUnit timeUnit) {
             return meters.entrySet().stream().map(e -> {
                 try {
                     Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
@@ -201,8 +215,8 @@ public class InfluxdbReporter extends ScheduledReporter {
             }).filter(Objects::nonNull).collect(toList());
         }
 
-        public List<Point> fromTimers(final Map<String, Timer> timers, final String measurement, final long timestamp,
-                final TimeUnit timeUnit) {
+        public List<PointBuilder.Point> fromTimers(final Map<String, Timer> timers, final String measurement,
+                final long timestamp, final TimeUnit timeUnit) {
             return timers.entrySet().stream().map(e -> {
                 try {
                     Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
@@ -240,8 +254,9 @@ public class InfluxdbReporter extends ScheduledReporter {
             }).filter(Objects::nonNull).collect(toList());
         }
 
-        private <T, R> List<Point> fromGaugesOrCounters(final Map<String, T> items, final Function<T, R> valueExtractor,
-                final String measurement, final long timestamp, final TimeUnit timeUnit) {
+        private <T, R> List<PointBuilder.Point> fromGaugesOrCounters(final Map<String, T> items,
+                final Function<T, R> valueExtractor, final String measurement, final long timestamp,
+                final TimeUnit timeUnit) {
             return items.entrySet().stream().map(e -> {
                 try {
                     Pair<String, Map<String, String>> nameTags = parseNameTags(e.getKey());
@@ -275,7 +290,7 @@ public class InfluxdbReporter extends ScheduledReporter {
     private static final Set<Class> VALID_FIELD_CLASSES = ImmutableSet.of(Boolean.class, Byte.class, Character.class,
             Double.class, Float.class, Integer.class, Long.class, Short.class, String.class);
 
-    private class PointBuilder {
+    public static class PointBuilder {
 
         // I definitely wanna a Measurement.Builder here, 
         // but it couldn't be realized in a inner class.
@@ -352,11 +367,43 @@ public class InfluxdbReporter extends ScheduledReporter {
             return this;
         }
 
-        public Point build() {
+        public PointBuilder.Point build() {
             if (this.fields.isEmpty()) {
                 return null;
             }
-            return Point.measurement(measurement).time(timestamp, timeUnit).tag(tags).fields(fields).build();
+
+            return new Point(measurement, tags, timestamp, timeUnit, fields);
         }
+
+        @Getter
+        @Setter
+        @AllArgsConstructor
+        public static class Point {
+            private String measurement;
+            private Map<String, String> tags;
+            private Long time;
+            private TimeUnit precision;
+            private Map<String, Object> fields;
+
+            public io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point convert() {
+                return io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point.measurement(this.measurement)
+                        .time(this.time, this.precision).tag(this.tags).fields(this.fields).build();
+            }
+
+            public String getUniqueKey() {
+                StringBuilder builder = new StringBuilder();
+                builder.append("Point [name=");
+                builder.append(this.measurement);
+
+                builder.append(", tags=");
+                builder.append(this.tags);
+
+                builder.append(", fields=");
+                builder.append(this.fields.keySet());
+                builder.append("]");
+                return builder.toString();
+            }
+        }
+
     }
 }

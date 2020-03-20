@@ -585,12 +585,27 @@ public class KapConfig {
         return sb.toString();
     }
 
+    public String getDailyMetricsDbNameWithMetadataUrlPrefix() {
+        StringBuilder sb = new StringBuilder(config.getMetadataUrlPrefix());
+        sb.append("_");
+        sb.append(config.getOptional("kylin.metrics.daily-influx-db", "KE_METRICS_DAILY"));
+        return sb.toString();
+    }
+
     public String getMetricsRpcServiceBindAddress() {
         return config.getOptional("kap.metrics.influx.rpc-service.bind-address", "127.0.0.1:8088");
     }
 
     public int getMetricsPollingIntervalSecs() {
         return Integer.parseInt(config.getOptional("kap.metrics.polling.interval.secs", "60"));
+    }
+
+    public int getDailyMetricsRunHour() {
+        return Integer.parseInt(config.getOptional("kylin.metrics.daily-run-hour", "1"));
+    }
+
+    public int getDailyMetricsMaxRetryTimes() {
+        return Integer.parseInt(config.getOptional("kylin.metrics.daily-max-retry-times", "3"));
     }
 
     /**

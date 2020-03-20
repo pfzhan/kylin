@@ -74,6 +74,10 @@ public class TimeUtil {
         return ts / ONE_HOUR_TS * ONE_HOUR_TS;
     }
 
+    public static int getHour(long ts) {
+        return (int) ((ts - getDayStart(ts)) / ONE_HOUR_TS);
+    }
+
     public static long getDayStart(long ts) {
         ZoneId zoneId = TimeZone.getDefault().toZoneId();
         LocalDate localDate = Instant.ofEpochMilli(ts).atZone(zoneId).toLocalDate();

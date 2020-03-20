@@ -24,8 +24,10 @@ then
     metadata_url_prefix=`echo ${metadata_url_prefix} | awk -F'@' '{print $1}'`
 fi
 metrics_db_suffix=`$KYLIN_HOME/bin/get-properties.sh kap.metrics.influx.db`
+metrics_daily_db_suffix=`$KYLIN_HOME/bin/get-properties.sh kylin.metrics.daily-influx-db`
 
 export KE_METRICS_DATABASE=${metadata_url_prefix}_${metrics_db_suffix}
+export KE_METRICS_DAILY_DATABASE=${metadata_url_prefix}_${metrics_daily_db_suffix}
 export INFLUXDB_ADDRESS=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.address`
 export INFLUXDB_USERNAME=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.username`
 export INFLUXDB_PASSWORD=`$KYLIN_HOME/bin/get-properties.sh kap.influxdb.password DEC`

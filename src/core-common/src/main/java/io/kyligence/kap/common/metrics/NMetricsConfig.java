@@ -37,4 +37,20 @@ public class NMetricsConfig {
     public int pollingIntervalSecs() {
         return this.kapConfig.getMetricsPollingIntervalSecs();
     }
+
+    public String getMetricsDB() {
+        return this.kapConfig.getMetricsDbNameWithMetadataUrlPrefix();
+    }
+
+    public String getDailyMetricsDB() {
+        return this.kapConfig.getDailyMetricsDbNameWithMetadataUrlPrefix();
+    }
+
+    public int getDailyMetricsRunHour() {
+        return this.kapConfig.getDailyMetricsRunHour();
+    }
+
+    public int getDailyMetricsMaxRetryTimes() {
+        return this.kapConfig.getDailyMetricsMaxRetryTimes();
+    }
 }
