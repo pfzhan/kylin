@@ -189,7 +189,7 @@ public class QueryService extends BasicService {
     protected CacheManager cacheManager;
 
     @Autowired
-    private AclEvaluate aclEvaluate;
+    protected AclEvaluate aclEvaluate;
 
     @Autowired
     private ClusterManager clusterManager;
@@ -247,7 +247,8 @@ public class QueryService extends BasicService {
         try {
             QueryExec queryExec = newQueryExec(sqlRequest.getProject());
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownNonSelectQuery(
-                    sqlRequest.getProject(), sqlRequest.getSql(), queryExec.getSchema(), BackdoorToggles.getPrepareOnly());
+                    sqlRequest.getProject(), sqlRequest.getSql(), queryExec.getSchema(),
+                    BackdoorToggles.getPrepareOnly());
 
             List<SelectedColumnMeta> columnMetas = Lists.newArrayList();
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, 1, false, Integer.MAX_VALUE, "c0", "c0",
@@ -266,6 +267,7 @@ public class QueryService extends BasicService {
 
     @Transaction(project = 1)
     public void saveQuery(final String creator, final String project, final Query query) throws IOException {
+        aclEvaluate.checkProjectReadPermission(project);
         Message msg = MsgPicker.getMsg();
         val record = getSavedQueries(creator, project);
         List<Query> currentQueries = record.getQueries();
@@ -278,12 +280,14 @@ public class QueryService extends BasicService {
 
     @Transaction(project = 1)
     public void removeSavedQuery(final String creator, final String project, final String id) throws IOException {
+        aclEvaluate.checkProjectReadPermission(project);
         val record = getSavedQueries(creator, project);
         record.setQueries(record.getQueries().stream().filter(q -> !q.getId().equals(id)).collect(Collectors.toList()));
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
     }
 
     public QueryRecord getSavedQueries(final String creator, final String project) throws IOException {
+        aclEvaluate.checkProjectReadPermission(project);
         if (null == creator) {
             return null;
         }
@@ -322,16 +326,11 @@ public class QueryService extends BasicService {
         if (StringUtils.isEmpty(sql))
             sql = request.getSql();
 
-        LogReport report = new LogReport()
-                .put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
-                .put(LogReport.SQL, sql)
-                .put(LogReport.USER, user)
-                .put(LogReport.SUCCESS, null == response.getExceptionMessage())
-                .put(LogReport.DURATION, duration)
-                .put(LogReport.PROJECT, request.getProject())
-                .put(LogReport.REALIZATION_NAMES, modelNames)
-                .put(LogReport.INDEX_LAYOUT_IDS, layoutIds)
-                .put(LogReport.IS_PARTIAL_MATCH_MODEL, isPartialMatchModel)
+        LogReport report = new LogReport().put(LogReport.QUERY_ID, QueryContext.current().getQueryId())
+                .put(LogReport.SQL, sql).put(LogReport.USER, user)
+                .put(LogReport.SUCCESS, null == response.getExceptionMessage()).put(LogReport.DURATION, duration)
+                .put(LogReport.PROJECT, request.getProject()).put(LogReport.REALIZATION_NAMES, modelNames)
+                .put(LogReport.INDEX_LAYOUT_IDS, layoutIds).put(LogReport.IS_PARTIAL_MATCH_MODEL, isPartialMatchModel)
                 .put(LogReport.SCAN_ROWS, response.getScanRows())
                 .put(LogReport.TOTAL_SCAN_ROWS, response.getTotalScanRows())
                 .put(LogReport.SCAN_BYTES, response.getScanBytes())
@@ -342,10 +341,8 @@ public class QueryService extends BasicService {
                 .put(LogReport.PARTIAL_RESULT, response.isPartial())
                 .put(LogReport.HIT_EXCEPTION_CACHE, response.isHitExceptionCache())
                 .put(LogReport.STORAGE_CACHE_USED, response.isStorageCacheUsed())
-                .put(LogReport.PUSH_DOWN, response.isQueryPushDown())
-                .put(LogReport.IS_PREPARE, response.isPrepare())
-                .put(LogReport.TIMEOUT, response.isTimeout())
-                .put(LogReport.TRACE_URL, response.getTraceUrl())
+                .put(LogReport.PUSH_DOWN, response.isQueryPushDown()).put(LogReport.IS_PREPARE, response.isPrepare())
+                .put(LogReport.TIMEOUT, response.isTimeout()).put(LogReport.TRACE_URL, response.getTraceUrl())
                 .put(LogReport.TIMELINE_SCHEMA, QueryContext.current().getSchema())
                 .put(LogReport.TIMELINE, QueryContext.current().getTimeLine())
                 .put(LogReport.ERROR_MSG, response.getExceptionMessage())
@@ -357,13 +354,13 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+        aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         final QueryContext queryContext = QueryContext.current();
         if (StringUtils.isNotEmpty(sqlRequest.getQueryId())) {
             queryContext.setQueryId(sqlRequest.getQueryId());
         }
         try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
             long t = System.currentTimeMillis();
-            aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
             logger.info("Check query permission in {} ms.", (System.currentTimeMillis() - t));
             sqlRequest.setUsername(getUsername());
             return queryWithCache(sqlRequest, isQueryInspect);
@@ -723,13 +720,8 @@ public class QueryService extends BasicService {
 
         List<TableMeta> tableMetas = new LinkedList<>();
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
-            TableMeta tblMeta = new TableMeta(
-                    tableSchema.getCatalog(),
-                    tableSchema.getSchema(),
-                    tableSchema.getTable(),
-                    tableSchema.getType(),
-                    tableSchema.getRemarks(),
-                    null, null, null, null, null);
+            TableMeta tblMeta = new TableMeta(tableSchema.getCatalog(), tableSchema.getSchema(), tableSchema.getTable(),
+                    tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null, null);
 
             if (JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
                 continue;
@@ -738,7 +730,7 @@ public class QueryService extends BasicService {
             tableMetas.add(tblMeta);
 
             int columnOrdinal = 1;
-            for (StructField field: tableSchema.getFields()) {
+            for (StructField field : tableSchema.getFields()) {
                 ColumnMeta colmnMeta = constructColumnMeta(tableSchema, field, columnOrdinal);
                 columnOrdinal++;
 
@@ -758,7 +750,7 @@ public class QueryService extends BasicService {
 
     @SuppressWarnings("checkstyle:methodlength")
     public List<TableMetaWithType> getMetadataV2(String project) {
-
+        aclEvaluate.checkProjectAdminPermission(project);
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
@@ -809,13 +801,9 @@ public class QueryService extends BasicService {
     private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData) {
         LinkedHashMap<String, TableMetaWithType> tableMap = Maps.newLinkedHashMap();
         for (TableSchema tableSchema : schemaMetaData.getTables()) {
-            TableMetaWithType tblMeta = new TableMetaWithType(
-                    tableSchema.getCatalog(),
-                    tableSchema.getSchema(),
-                    tableSchema.getTable(),
-                    tableSchema.getType(),
-                    tableSchema.getRemarks(),
-                    null, null, null, null, null);
+            TableMetaWithType tblMeta = new TableMetaWithType(tableSchema.getCatalog(), tableSchema.getSchema(),
+                    tableSchema.getTable(), tableSchema.getType(), tableSchema.getRemarks(), null, null, null, null,
+                    null);
 
             if (!JDBC_METADATA_SCHEMA.equalsIgnoreCase(tblMeta.getTABLE_SCHEM())) {
                 tableMap.put(tblMeta.getTABLE_SCHEM() + "#" + tblMeta.getTABLE_NAME(), tblMeta);
@@ -832,11 +820,11 @@ public class QueryService extends BasicService {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
 
-        for (TableSchema tableSchema: schemaMetaData.getTables()) {
+        for (TableSchema tableSchema : schemaMetaData.getTables()) {
             int columnOrdinal = 1;
             for (StructField field : tableSchema.getFields()) {
-                ColumnMetaWithType columnMeta =
-                        ColumnMetaWithType.ofColumnMeta(constructColumnMeta(tableSchema, field, columnOrdinal));
+                ColumnMetaWithType columnMeta = ColumnMetaWithType
+                        .ofColumnMeta(constructColumnMeta(tableSchema, field, columnOrdinal));
                 columnOrdinal++;
 
                 if (!shouldExposeColumn(projectInstance, columnMeta)) {
@@ -856,10 +844,8 @@ public class QueryService extends BasicService {
     private ColumnMeta constructColumnMeta(TableSchema tableSchema, StructField field, int columnOrdinal) {
         final int NUM_PREC_RADIX = 10;
         int columnSize = -1;
-        if (field.getDataType() == Types.TIMESTAMP ||
-                field.getDataType() == Types.DECIMAL ||
-                field.getDataType() == Types.VARCHAR ||
-                field.getDataType() == Types.CHAR) {
+        if (field.getDataType() == Types.TIMESTAMP || field.getDataType() == Types.DECIMAL
+                || field.getDataType() == Types.VARCHAR || field.getDataType() == Types.CHAR) {
             columnSize = field.getPrecision();
         }
         final int charOctetLength = columnSize;
@@ -868,29 +854,20 @@ public class QueryService extends BasicService {
         final String isNullable = field.isNullable() ? "YES" : "NO";
         final short sourceDataType = -1;
 
-        return new ColumnMeta(
-                tableSchema.getCatalog(),
-                tableSchema.getSchema(),
-                tableSchema.getTable(),
-                field.getName(),
-                field.getDataType(),
-                field.getDataTypeName(),
-                columnSize, // COLUMN_SIZE
+        return new ColumnMeta(tableSchema.getCatalog(), tableSchema.getSchema(), tableSchema.getTable(),
+                field.getName(), field.getDataType(), field.getDataTypeName(), columnSize, // COLUMN_SIZE
                 -1, // BUFFER_LENGTH
                 decimalDigit, // DECIMAL_DIGIT
                 NUM_PREC_RADIX, // NUM_PREC_RADIX
-                nullable ,
-                null, null, -1, -1, // REMAKRS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB
+                nullable, null, null, -1, -1, // REMAKRS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB
                 charOctetLength, // CHAR_OCTET_LENGTH
-                columnOrdinal,
-                isNullable,
-                null, null, null, sourceDataType, ""
-        );
+                columnOrdinal, isNullable, null, null, null, sourceDataType, "");
     }
 
     private boolean shouldExposeColumn(ProjectInstance projectInstance, ColumnMeta columnMeta) {
         // check for cc exposing
-        if (isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(), columnMeta.getTABLE_NAME())) {
+        if (isComputedColumn(projectInstance.getName(), columnMeta.getCOLUMN_NAME().toUpperCase(),
+                columnMeta.getTABLE_NAME())) {
             return projectInstance.getConfig().exposeComputedColumn();
         }
         return true;
@@ -988,7 +965,6 @@ public class QueryService extends BasicService {
                 return getPrepareOnlySqlResponse(correctedSql, queryExec, isPushDown, results, columnMetas);
             }
 
-
             if (isPrepareStatementWithParams(sqlRequest)) {
                 for (int i = 0; i < ((PrepareSqlRequest) sqlRequest).getParams().length; i++) {
                     setParam(queryExec, i, ((PrepareSqlRequest) sqlRequest).getParams()[i]);
@@ -1006,8 +982,8 @@ public class QueryService extends BasicService {
             for (int i = 0; i < columnCount; ++i) {
                 int nullable = fieldList.get(i).isNullable() ? 1 : 0;
                 columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, Integer.MAX_VALUE,
-                        fieldList.get(i).getName(), fieldList.get(i).getName(), null, null,
-                        null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
+                        fieldList.get(i).getName(), fieldList.get(i).getName(), null, null, null,
+                        fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
                         fieldList.get(i).getDataTypeName(), false, false, false));
             }
 
@@ -1023,7 +999,7 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse getPrepareOnlySqlResponse(String correctedSql, QueryExec queryExec, Boolean isPushDown,
-                                                  List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
+            List<List<String>> results, List<SelectedColumnMeta> columnMetas) throws SQLException {
 
         CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(true);
 
@@ -1039,12 +1015,10 @@ public class QueryService extends BasicService {
                     continue;
                 }
 
-                columnMetas.add(new SelectedColumnMeta(false, false, false, false,
-                        field.isNullable() ? 1 : 0, true, field.getPrecision(), columnName,
-                        columnName, null, null, null, field.getPrecision(),
-                        Math.max(field.getScale(), 0),
-                        field.getDataType(), field.getDataTypeName(),
-                        true, false, false));
+                columnMetas.add(new SelectedColumnMeta(false, false, false, false, field.isNullable() ? 1 : 0, true,
+                        field.getPrecision(), columnName, columnName, null, null, null, field.getPrecision(),
+                        Math.max(field.getScale(), 0), field.getDataType(), field.getDataTypeName(), true, false,
+                        false));
             }
         } finally {
             CalcitePrepareImpl.KYLIN_ONLY_PREPARE.set(false);
@@ -1155,51 +1129,51 @@ public class QueryService extends BasicService {
         Rep rep = Rep.of(clazz);
 
         switch (rep) {
-            case PRIMITIVE_CHAR:
-            case CHARACTER:
-            case STRING:
-                queryExec.setPrepareParam(index, isNull ? null : String.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_INT:
-            case INTEGER:
-                queryExec.setPrepareParam(index, isNull ? 0 : Integer.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_SHORT:
-            case SHORT:
-                queryExec.setPrepareParam(index, isNull ? 0 : Short.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_LONG:
-            case LONG:
-                queryExec.setPrepareParam(index, isNull ? 0 : Long.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_FLOAT:
-            case FLOAT:
-                queryExec.setPrepareParam(index, isNull ? 0 : Float.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_DOUBLE:
-            case DOUBLE:
-                queryExec.setPrepareParam(index, isNull ? 0 : Double.valueOf(param.getValue()));
-                break;
-            case PRIMITIVE_BOOLEAN:
-            case BOOLEAN:
-                queryExec.setPrepareParam(index, !isNull && Boolean.parseBoolean(param.getValue()));
-                break;
-            case PRIMITIVE_BYTE:
-            case BYTE:
-                queryExec.setPrepareParam(index, isNull ? 0 : Byte.valueOf(param.getValue()));
-                break;
-            case JAVA_UTIL_DATE:
-            case JAVA_SQL_DATE:
-                queryExec.setPrepareParam(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
-                break;
-            case JAVA_SQL_TIME:
-                queryExec.setPrepareParam(index, isNull ? null : Time.valueOf(param.getValue()));
-                break;
-            case JAVA_SQL_TIMESTAMP:
-                queryExec.setPrepareParam(index, isNull ? null : Timestamp.valueOf(param.getValue()));
-                break;
-            default:
-                queryExec.setPrepareParam(index, isNull ? null : param.getValue());
+        case PRIMITIVE_CHAR:
+        case CHARACTER:
+        case STRING:
+            queryExec.setPrepareParam(index, isNull ? null : String.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_INT:
+        case INTEGER:
+            queryExec.setPrepareParam(index, isNull ? 0 : Integer.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_SHORT:
+        case SHORT:
+            queryExec.setPrepareParam(index, isNull ? 0 : Short.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_LONG:
+        case LONG:
+            queryExec.setPrepareParam(index, isNull ? 0 : Long.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_FLOAT:
+        case FLOAT:
+            queryExec.setPrepareParam(index, isNull ? 0 : Float.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_DOUBLE:
+        case DOUBLE:
+            queryExec.setPrepareParam(index, isNull ? 0 : Double.valueOf(param.getValue()));
+            break;
+        case PRIMITIVE_BOOLEAN:
+        case BOOLEAN:
+            queryExec.setPrepareParam(index, !isNull && Boolean.parseBoolean(param.getValue()));
+            break;
+        case PRIMITIVE_BYTE:
+        case BYTE:
+            queryExec.setPrepareParam(index, isNull ? 0 : Byte.valueOf(param.getValue()));
+            break;
+        case JAVA_UTIL_DATE:
+        case JAVA_SQL_DATE:
+            queryExec.setPrepareParam(index, isNull ? null : java.sql.Date.valueOf(param.getValue()));
+            break;
+        case JAVA_SQL_TIME:
+            queryExec.setPrepareParam(index, isNull ? null : Time.valueOf(param.getValue()));
+            break;
+        case JAVA_SQL_TIMESTAMP:
+            queryExec.setPrepareParam(index, isNull ? null : Timestamp.valueOf(param.getValue()));
+            break;
+        default:
+            queryExec.setPrepareParam(index, isNull ? null : param.getValue());
         }
     }
 
@@ -1271,9 +1245,9 @@ public class QueryService extends BasicService {
     }
 
     public static class LogReport {
-        static final String QUERY_ID            = "id";
-        static final String SQL                 = "sql";
-        static final String USER                = "user";
+        static final String QUERY_ID = "id";
+        static final String SQL = "sql";
+        static final String USER = "user";
         static final String SUCCESS = "success";
         static final String DURATION = "duration";
         static final String PROJECT = "project";
@@ -1299,88 +1273,61 @@ public class QueryService extends BasicService {
         static final String ERROR_MSG = "error_msg";
         static final String USER_TAG = "user_defined_tag";
 
-        static final ImmutableMap<String, String> O2N =
-                new ImmutableMap.Builder<String, String>()
-                        .put(QUERY_ID, "Query Id: ")
-                        .put(SQL, "SQL: ")
-                        .put(USER, "User: ")
-                        .put(SUCCESS, "Success: ")
-                        .put(DURATION, "Duration: ")
-                        .put(PROJECT, "Project: ")
-                        .put(REALIZATION_NAMES, "Realization Names: ")
-                        .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ")
-                        .put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ")
-                        .put(SCAN_ROWS, "Scan rows: ")
-                        .put(TOTAL_SCAN_ROWS, "Total Scan rows: ")
-                        .put(SCAN_BYTES, "Scan bytes: ")
-                        .put(TOTAL_SCAN_BYTES, "Total Scan Bytes: ")
-                        .put(RESULT_ROW_COUNT, "Result Row Count: ")
-                        .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ")
-                        .put(ACCEPT_PARTIAL, "Accept Partial: ")
-                        .put(PARTIAL_RESULT, "Is Partial Result: ")
-                        .put(HIT_EXCEPTION_CACHE, "Hit Exception Cache: ")
-                        .put(STORAGE_CACHE_USED, "Storage Cache Used: ")
-                        .put(PUSH_DOWN, "Is Query Push-Down: ")
-                        .put(IS_PREPARE, "Is Prepare: ")
-                        .put(TIMEOUT, "Is Timeout: ")
-                        .put(TRACE_URL, "Trace URL: ")
-                        .put(TIMELINE_SCHEMA, "Time Line Schema: ")
-                        .put(TIMELINE, "Time Line: ")
-                        .put(ERROR_MSG, "Message: ")
-                        .put(USER_TAG,  "User Defined Tag: ")
-                        .build();
+        static final ImmutableMap<String, String> O2N = new ImmutableMap.Builder<String, String>()
+                .put(QUERY_ID, "Query Id: ").put(SQL, "SQL: ").put(USER, "User: ").put(SUCCESS, "Success: ")
+                .put(DURATION, "Duration: ").put(PROJECT, "Project: ").put(REALIZATION_NAMES, "Realization Names: ")
+                .put(INDEX_LAYOUT_IDS, "Index Layout Ids: ").put(IS_PARTIAL_MATCH_MODEL, "Is Partial Match Model: ")
+                .put(SCAN_ROWS, "Scan rows: ").put(TOTAL_SCAN_ROWS, "Total Scan rows: ").put(SCAN_BYTES, "Scan bytes: ")
+                .put(TOTAL_SCAN_BYTES, "Total Scan Bytes: ").put(RESULT_ROW_COUNT, "Result Row Count: ")
+                .put(SHUFFLE_PARTITIONS, "Shuffle partitions: ").put(ACCEPT_PARTIAL, "Accept Partial: ")
+                .put(PARTIAL_RESULT, "Is Partial Result: ").put(HIT_EXCEPTION_CACHE, "Hit Exception Cache: ")
+                .put(STORAGE_CACHE_USED, "Storage Cache Used: ").put(PUSH_DOWN, "Is Query Push-Down: ")
+                .put(IS_PREPARE, "Is Prepare: ").put(TIMEOUT, "Is Timeout: ").put(TRACE_URL, "Trace URL: ")
+                .put(TIMELINE_SCHEMA, "Time Line Schema: ").put(TIMELINE, "Time Line: ").put(ERROR_MSG, "Message: ")
+                .put(USER_TAG, "User Defined Tag: ").build();
 
         private Map<String, Object> logs = new HashMap<>(100);
 
         public LogReport put(String key, String value) {
-            if(!StringUtils.isEmpty(value))
+            if (!StringUtils.isEmpty(value))
                 logs.put(key, value);
             return this;
         }
+
         public LogReport put(String key, Object value) {
-            if(value != null)
+            if (value != null)
                 logs.put(key, value);
             return this;
         }
 
         private String get(String key) {
             Object value = logs.get(key);
-            if (value == null) return "null";
+            if (value == null)
+                return "null";
             return value.toString();
         }
-        public  String  oldStyleLog() {
+
+        public String oldStyleLog() {
 
             String newLine = System.getProperty("line.separator");
-            return newLine +
-                "==========================[QUERY]===============================" + newLine +
-                O2N.get(QUERY_ID) + get(QUERY_ID) + newLine +
-                O2N.get(SQL) + get(SQL) + newLine +
-                O2N.get(USER) + get(USER) + newLine +
-                O2N.get(SUCCESS) + get(SUCCESS) + newLine +
-                O2N.get(DURATION) + get(DURATION) + newLine +
-                O2N.get(PROJECT) + get(PROJECT) + newLine +
-                O2N.get(REALIZATION_NAMES) + get(REALIZATION_NAMES) + newLine +
-                O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine +
-                O2N.get(IS_PARTIAL_MATCH_MODEL) + get(IS_PARTIAL_MATCH_MODEL) + newLine +
-                O2N.get(SCAN_ROWS) + get(SCAN_ROWS) + newLine +
-                O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine +
-                O2N.get(SCAN_BYTES) + get(SCAN_BYTES) + newLine +
-                O2N.get(TOTAL_SCAN_BYTES) + get(TOTAL_SCAN_BYTES) + newLine +
-                O2N.get(RESULT_ROW_COUNT) + get(RESULT_ROW_COUNT) + newLine +
-                O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine +
-                O2N.get(ACCEPT_PARTIAL) + get(ACCEPT_PARTIAL) + newLine +
-                O2N.get(PARTIAL_RESULT) + get(PARTIAL_RESULT) + newLine +
-                O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine +
-                O2N.get(STORAGE_CACHE_USED) + get(STORAGE_CACHE_USED) + newLine +
-                O2N.get(PUSH_DOWN) + get(PUSH_DOWN) + newLine +
-                O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine +
-                O2N.get(TIMEOUT) + get(TIMEOUT) + newLine +
-                O2N.get(TRACE_URL) + get(TRACE_URL) + newLine +
-                O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA) + newLine +
-                O2N.get(TIMELINE) + get(TIMELINE) + newLine +
-                O2N.get(ERROR_MSG) + get(ERROR_MSG) + newLine +
-                O2N.get(USER_TAG) + get(USER_TAG) + newLine +
-                "==========================[QUERY]===============================" + newLine;
+            return newLine + "==========================[QUERY]===============================" + newLine
+                    + O2N.get(QUERY_ID) + get(QUERY_ID) + newLine + O2N.get(SQL) + get(SQL) + newLine + O2N.get(USER)
+                    + get(USER) + newLine + O2N.get(SUCCESS) + get(SUCCESS) + newLine + O2N.get(DURATION)
+                    + get(DURATION) + newLine + O2N.get(PROJECT) + get(PROJECT) + newLine + O2N.get(REALIZATION_NAMES)
+                    + get(REALIZATION_NAMES) + newLine + O2N.get(INDEX_LAYOUT_IDS) + get(INDEX_LAYOUT_IDS) + newLine
+                    + O2N.get(IS_PARTIAL_MATCH_MODEL) + get(IS_PARTIAL_MATCH_MODEL) + newLine + O2N.get(SCAN_ROWS)
+                    + get(SCAN_ROWS) + newLine + O2N.get(TOTAL_SCAN_ROWS) + get(TOTAL_SCAN_ROWS) + newLine
+                    + O2N.get(SCAN_BYTES) + get(SCAN_BYTES) + newLine + O2N.get(TOTAL_SCAN_BYTES)
+                    + get(TOTAL_SCAN_BYTES) + newLine + O2N.get(RESULT_ROW_COUNT) + get(RESULT_ROW_COUNT) + newLine
+                    + O2N.get(SHUFFLE_PARTITIONS) + get(SHUFFLE_PARTITIONS) + newLine + O2N.get(ACCEPT_PARTIAL)
+                    + get(ACCEPT_PARTIAL) + newLine + O2N.get(PARTIAL_RESULT) + get(PARTIAL_RESULT) + newLine
+                    + O2N.get(HIT_EXCEPTION_CACHE) + get(HIT_EXCEPTION_CACHE) + newLine + O2N.get(STORAGE_CACHE_USED)
+                    + get(STORAGE_CACHE_USED) + newLine + O2N.get(PUSH_DOWN) + get(PUSH_DOWN) + newLine
+                    + O2N.get(IS_PREPARE) + get(IS_PREPARE) + newLine + O2N.get(TIMEOUT) + get(TIMEOUT) + newLine
+                    + O2N.get(TRACE_URL) + get(TRACE_URL) + newLine + O2N.get(TIMELINE_SCHEMA) + get(TIMELINE_SCHEMA)
+                    + newLine + O2N.get(TIMELINE) + get(TIMELINE) + newLine + O2N.get(ERROR_MSG) + get(ERROR_MSG)
+                    + newLine + O2N.get(USER_TAG) + get(USER_TAG) + newLine
+                    + "==========================[QUERY]===============================" + newLine;
         }
 
         public String jsonStyleLog() {

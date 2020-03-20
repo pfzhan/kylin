@@ -55,10 +55,15 @@ import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -92,20 +97,34 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_HISTORY\"]]}]}]}\n";
 
-    private KapQueryService queryService;
     private List<QueryHistory> queryHistories = new ArrayList<>();
     private CountDownLatch countDown;
 
+    @InjectMocks
+    private KapQueryService queryService = Mockito.spy(new KapQueryService());
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
+    @BeforeClass
+    public static void setupResource() {
+        staticCreateTestMetadata();
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        staticCleanupTestMetadata();
+    }
+
     @Before
     public void setup() {
-        createTestMetadata();
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(queryService, "aclEvaluate", aclEvaluate);
         System.setProperty("kylin.query.cache-enabled", "false");
-
-        queryService = Mockito.spy(KapQueryService.class);
 
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
 
         AppConfig appConfig = Mockito.spy(new AppConfig());
         ClusterManager clusterManager = new DefaultClusterManager(7070);
@@ -120,7 +139,6 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
     @After
     public void destroy() {
-        cleanupTestMetadata();
         System.clearProperty("kylin.query.cache-enabled");
     }
 
@@ -129,7 +147,6 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryExec.executeQuery(sql)).thenThrow(throwable);
         Mockito.when(queryService.newQueryExec(PROJECT)).thenReturn(queryExec);
     }
-
 
     private InfluxDB mockInfluxDB() {
         final OkHttpClient.Builder client = new OkHttpClient.Builder();
@@ -208,7 +225,8 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSyntaxErrorQuery() throws Exception {
         countDown = new CountDownLatch(1);
-        SQLException exception = new SQLException(new SqlValidatorException("sql syntax error", new RuntimeException()));
+        SQLException exception = new SQLException(
+                new SqlValidatorException("sql syntax error", new RuntimeException()));
         String sql1 = "select * from test_kylin_fact";
         mockQueryException(queryService, sql1, exception);
         SQLRequest request = new SQLRequest();
@@ -231,15 +249,14 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
 
         countDown.await();
 
-
         Assert.assertEquals(2, queryHistories.size());
         Assert.assertEquals(QueryHistory.SYNTAX_ERROR, queryHistories.get(0).getErrorType());
         Assert.assertEquals(QueryHistory.NO_REALIZATION_FOUND_ERROR, queryHistories.get(1).getErrorType());
 
-
         NFavoriteScheduler favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doReturn(queryHistories).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(),
+                Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 
         ReflectionTestUtils.invokeMethod(favoriteScheduler, "initFrequencyStatus");
@@ -249,4 +266,3 @@ public class FavoriteQueryTest extends NLocalFileMetadataTestCase {
     }
 
 }
-

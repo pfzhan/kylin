@@ -288,7 +288,6 @@ public class JobService extends BasicService {
         return projectService.getReadableProjects(null, false);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public DataResult<List<ExecutableResponse>> listGlobalJobs(final JobFilter jobFilter, int offset, int limit) {
         List<AbstractExecutable> jobs = new ArrayList<>();
         for (ProjectInstance project : getReadableProjects()) {
@@ -536,10 +535,10 @@ public class JobService extends BasicService {
         batchUpdateJobStatus0(jobIds, project, action, filterStatus);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, String filterStatus) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
+                aclEvaluate.checkProjectOperationPermission(project.getName());
                 batchUpdateJobStatus0(jobIds, project.getName(), action, filterStatus);
             }
             return null;
@@ -569,6 +568,7 @@ public class JobService extends BasicService {
     public void batchDropGlobalJob(List<String> jobIds, String filterStatus) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
+                aclEvaluate.checkProjectOperationPermission(project.getName());
                 batchDropJob0(project.getName(), jobIds, filterStatus);
             }
             return null;

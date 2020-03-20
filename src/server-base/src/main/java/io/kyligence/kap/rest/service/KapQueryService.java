@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -70,6 +69,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.metric.MetricWriterStrategy;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
@@ -140,13 +140,16 @@ public class KapQueryService extends QueryService {
         updateQueryTypeMetrics(sqlResponse, project);
 
         NMetricsGroup.counterInc(NMetricsName.QUERY_HOST, NMetricsCategory.HOST, sqlResponse.getServer());
-        NMetricsGroup.counterInc(NMetricsName.QUERY_SCAN_BYTES_HOST, NMetricsCategory.HOST, sqlResponse.getServer(), sqlResponse.getTotalScanBytes());
+        NMetricsGroup.counterInc(NMetricsName.QUERY_SCAN_BYTES_HOST, NMetricsCategory.HOST, sqlResponse.getServer(),
+                sqlResponse.getTotalScanBytes());
 
         NMetricsGroup.histogramUpdate(NMetricsName.QUERY_LATENCY, NMetricsCategory.PROJECT, sqlRequest.getProject(),
                 sqlResponse.getDuration());
-        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, sqlResponse.getServer(), sqlResponse.getDuration());
+        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, sqlResponse.getServer(),
+                sqlResponse.getDuration());
 
-        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_SCAN_BYTES, NMetricsCategory.PROJECT, project, sqlResponse.getTotalScanBytes());
+        NMetricsGroup.histogramUpdate(NMetricsName.QUERY_SCAN_BYTES, NMetricsCategory.PROJECT, project,
+                sqlResponse.getTotalScanBytes());
 
         super.recordMetric(sqlRequest, sqlResponse);
     }
@@ -172,8 +175,12 @@ public class KapQueryService extends QueryService {
         }
 
         if (sqlResponse.getNativeRealizations() != null) {
-            boolean hitAggIndex = sqlResponse.getNativeRealizations().stream().anyMatch(realization -> realization != null && QueryMetricsContext.AGG_INDEX.equals(realization.getIndexType()));
-            boolean hitTableIndex = sqlResponse.getNativeRealizations().stream().anyMatch(realization -> realization != null && QueryMetricsContext.TABLE_INDEX.equals(realization.getIndexType()));
+            boolean hitAggIndex = sqlResponse.getNativeRealizations().stream()
+                    .anyMatch(realization -> realization != null
+                            && QueryMetricsContext.AGG_INDEX.equals(realization.getIndexType()));
+            boolean hitTableIndex = sqlResponse.getNativeRealizations().stream()
+                    .anyMatch(realization -> realization != null
+                            && QueryMetricsContext.TABLE_INDEX.equals(realization.getIndexType()));
             if (hitAggIndex) {
                 NMetricsGroup.counterInc(NMetricsName.QUERY_AGG_INDEX, NMetricsCategory.PROJECT, project);
             }
@@ -200,7 +207,7 @@ public class KapQueryService extends QueryService {
 
     public QueryEngineStatisticsResponse getQueryStatisticsByEngine(String project, long startTime, long endTime) {
         Preconditions.checkArgument(project != null && !project.isEmpty());
-
+        aclEvaluate.checkProjectReadPermission(project);
         return QueryEngineStatisticsResponse
                 .valueOf(getQueryHistoryDao(project).getQueryEngineStatistics(startTime, endTime));
     }

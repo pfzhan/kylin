@@ -69,6 +69,7 @@ public class SystemService extends BasicService {
             .expireAfterAccess(1, TimeUnit.DAYS).build();
     private ExecutorService executorService = Executors.newFixedThreadPool(3);
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public void backup(BackupRequest backupRequest) throws Exception {
         String[] args = createBackupArgs(backupRequest);
         val metadataTool = new MetadataTool(getConfig());

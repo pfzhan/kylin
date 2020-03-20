@@ -295,6 +295,7 @@ public class TableService extends BasicService {
     }
 
     public List<String> getSourceDbNames(String project) throws Exception {
+        aclEvaluate.checkProjectWritePermission(project);
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
         return explr.listDatabases().stream().map(s -> s.toUpperCase()).collect(Collectors.toList());
@@ -829,7 +830,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void unloadTable(String project, String table, Boolean cascade) {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
@@ -868,7 +869,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0, readonly = true)
     public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         val response = new PreUnloadTableResponse();
         val dataflowManager = getDataflowManager(project);
         val tableMetadataManager = getTableManager(project);
@@ -1050,7 +1051,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0, readonly = true)
     public PreReloadTableResponse preProcessBeforeReload(String project, String tableIdentity) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         val context = calcReloadContext(project, tableIdentity);
         val result = new PreReloadTableResponse();
         result.setAddColumnCount(context.getAddColumns().size());
@@ -1078,7 +1079,7 @@ public class TableService extends BasicService {
 
     public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows,
             boolean needBuild) {
-        aclEvaluate.checkProjectWritePermission(projectName);
+        aclEvaluate.checkProjectAdminPermission(projectName);
         UnitOfWork.doInTransactionWithRetry(() -> {
             innerReloadTable(projectName, tableIdentity, needBuild);
             if (needSample && maxRows > 0) {
@@ -1468,12 +1469,14 @@ public class TableService extends BasicService {
     }
 
     public NHiveTableNameResponse loadHiveTableNameToCache(boolean force) throws Exception {
+        aclEvaluate.checkIsGlobalAdmin();
         return NHiveTableName.getInstance().loadHiveTableName(force);
     }
 
     private static final String SSB_ERROR_MSG = "import ssb data error.";
 
     public void importSSBDataBase() {
+        aclEvaluate.checkIsGlobalAdmin();
         if (checkSSBDataBase()) {
             return;
         }
@@ -1526,6 +1529,7 @@ public class TableService extends BasicService {
     }
 
     public boolean checkSSBDataBase() {
+        aclEvaluate.checkIsGlobalAdmin();
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return true;
         }

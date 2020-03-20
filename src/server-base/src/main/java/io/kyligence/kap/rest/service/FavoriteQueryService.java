@@ -170,6 +170,7 @@ public class FavoriteQueryService extends BasicService {
 
     @Transaction(project = 0)
     public Map<String, Integer> createFavoriteQuery(String project, FavoriteRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         return createFavoriteQuery0(project, request).getStatusMap();
     }
 
@@ -221,6 +222,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public Map<String, Integer> getFQSizeInDifferentStatus(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         int canBeAcceleratedSize = 0;
         int waitingSize = 0;
         int notAcceleratedSize = 0;
@@ -314,6 +316,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public Map<String, Object> getAccelerateTips(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         Map<String, Object> data = Maps.newHashMap();
         List<String> waitingAcceleratedSqls = getWaitingAcceleratingSqlPattern(project);
@@ -452,6 +455,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public void ignoreAccelerate(String project, int ignoreSize) {
+        aclEvaluate.checkProjectWritePermission(project);
         var projectInstance = getProjectManager().getProject(project);
         int threshold = projectInstance.getConfig().getFavoriteQueryAccelerateThreshold();
 

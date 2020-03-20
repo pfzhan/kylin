@@ -34,6 +34,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
@@ -63,7 +65,11 @@ import lombok.var;
 @Component("optimizeRecommendationService")
 public class OptimizeRecommendationService extends BasicService {
 
+    @Autowired
+    public AclEvaluate aclEvaluate;
+
     public OptRecommendationResponse getRecommendationByModel(String project, String modelId, List<String> sources) {
+        aclEvaluate.checkProjectWritePermission(project);
         var optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
         if (optRecommendation == null) {
             optRecommendation = new OptimizeRecommendation();
@@ -86,6 +92,7 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 1)
     public void applyRecommendations(ApplyRecommendationsRequest request, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         updateOptimizeRecom(request);
         shiftLayoutHitCount(project, request.getModelId());
         val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
@@ -109,6 +116,7 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 1)
     public void removeRecommendations(RemoveRecommendationsRequest request, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
                 request.getModelId());
 
@@ -122,6 +130,7 @@ public class OptimizeRecommendationService extends BasicService {
 
     public LayoutRecommendationDetailResponse getLayoutRecommendationContent(String project, String modelId,
             String content, long itemId, int offset, int size) {
+        aclEvaluate.checkProjectWritePermission(project);
         val optRecommendation = getOptRecommendationManager(project).getOptimizeRecommendation(modelId);
         if (optRecommendation == null)
             return null;
@@ -227,6 +236,7 @@ public class OptimizeRecommendationService extends BasicService {
     }
 
     public RecommendationStatsResponse getRecommendationsStatsByProject(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         val projectInstance = getProjectManager().getProject(project);
         if (projectInstance == null)
             throw new IllegalArgumentException(String.format("project [%s] does not exist", project));
@@ -266,6 +276,7 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 0)
     public void batchApplyRecommendations(String project, List<String> modelAlias) {
+        aclEvaluate.checkProjectWritePermission(project);
         val models = getDataflowManager(project).listAllDataflows().stream()
                 .filter(df -> df.getStatus() == RealizationStatusEnum.ONLINE && !df.getModel().isBroken())
                 .map(NDataflow::getModel);

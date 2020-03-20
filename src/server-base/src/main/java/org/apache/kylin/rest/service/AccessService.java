@@ -116,8 +116,6 @@ public class AccessService extends BasicService {
     @Qualifier("userService")
     protected UserService userService;
 
-    // ~ Methods to manage acl life circle of domain objects ~
-
     @Transaction
     public MutableAclRecord init(AclEntity ae, Permission initPermission) {
         MutableAclRecord acl;
@@ -183,7 +181,7 @@ public class AccessService extends BasicService {
     @Transaction
     MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
         Message msg = MsgPicker.getMsg();
-
+        checkAuthorized(ae);
         if (ae == null)
             throw new BadRequestException(msg.getACL_DOMAIN_NOT_FOUND());
         if (permission == null)
@@ -202,9 +200,9 @@ public class AccessService extends BasicService {
     }
 
     @Transaction
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission) {
         AclEntity ae = getAclEntity(type, uuid);
+        checkAuthorized(ae);
         Sid sid = getSid(identifier, isPrincipal);
         grant(ae, AclPermissionFactory.getPermission(permission), sid);
     }

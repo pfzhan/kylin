@@ -29,10 +29,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -42,6 +42,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.request.JobActionEnum;
@@ -59,19 +61,23 @@ public class NJobControllerV2 extends NBasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
+    @Autowired
+    public AclEvaluate aclEvaluate;
+
     @PutMapping(value = "/{jobId}/resume")
     @ResponseBody
     public EnvelopeResponse<ExecutableResponse> resume(@PathVariable(value = "jobId") String jobId) throws IOException {
         checkRequiredArg(JOB_ID_ARG_NAME, jobId);
-
         final ExecutableResponse jobInstance = jobService.getJobInstance(jobId);
+        aclEvaluate.checkProjectOperationPermission(jobInstance.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 jobService.manageJob(jobInstance.getProject(), jobInstance, JobActionEnum.RESUME.toString()), "");
     }
 
     @GetMapping(value = "")
     @ResponseBody
-    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false, defaultValue = "") String status,
+    public EnvelopeResponse getJobList(
+            @RequestParam(value = "status", required = false, defaultValue = "") String status,
             @RequestParam(value = "jobNames", required = false) List<String> jobNames,
             @RequestParam(value = "timeFilter") Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,

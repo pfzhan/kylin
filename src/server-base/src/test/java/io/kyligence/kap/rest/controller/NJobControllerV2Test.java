@@ -30,6 +30,8 @@ import java.util.List;
 
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +43,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -64,6 +67,12 @@ public class NJobControllerV2Test {
     @InjectMocks
     private NJobControllerV2 nJobControllerV2 = Mockito.spy(new NJobControllerV2());
 
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     @Before
@@ -73,6 +82,8 @@ public class NJobControllerV2Test {
                 .build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(jobService, "aclEvaluate", aclEvaluate);
     }
 
     @After

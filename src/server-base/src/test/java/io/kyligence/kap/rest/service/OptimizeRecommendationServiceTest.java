@@ -40,6 +40,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
@@ -48,7 +50,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Maps;
 
@@ -102,6 +106,12 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
     @InjectMocks
     private OptimizeRecommendationService service = Mockito.spy(new OptimizeRecommendationService());
 
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @Before
     public void setup() {
         createTestMetadata();
@@ -109,6 +119,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         dataflowManager = NDataflowManager.getInstance(getTestConfig(), projectDefault);
         recommendationManager = OptimizeRecommendationManager.getInstance(getTestConfig(), projectDefault);
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(service, "aclEvaluate", aclEvaluate);
     }
 
     @After

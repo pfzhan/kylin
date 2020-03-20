@@ -195,6 +195,7 @@ public class ProjectService extends BasicService {
     }
 
     public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         val response = new StorageVolumeInfoResponse();
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
                 StorageInfoEnum.TOTAL_STORAGE);
@@ -303,9 +304,9 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateJobNotificationConfig(String project, JobNotificationConfigRequest jobNotificationConfigRequest) {
+        aclEvaluate.checkProjectAdminPermission(project);
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.job.notification-on-empty-data-load",
                 String.valueOf(jobNotificationConfigRequest.getDataLoadEmptyNotificationEnabled()));
@@ -381,8 +382,8 @@ public class ProjectService extends BasicService {
         return response;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public ProjectConfigResponse getProjectConfig(String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         return getProjectConfig0(project);
     }
 
@@ -428,9 +429,9 @@ public class ProjectService extends BasicService {
         });
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void updateSegmentConfig(String project, SegmentConfigRequest segmentConfigRequest) {
+        aclEvaluate.checkProjectAdminPermission(project);
         //api send volatileRangeEnabled = false but finally it is reset to true
         segmentConfigRequest.getVolatileRange().setVolatileRangeEnabled(true);
         if (segmentConfigRequest.getVolatileRange().getVolatileRangeNumber() < 0) {
@@ -513,9 +514,9 @@ public class ProjectService extends BasicService {
         config.clearManagersByClz(NProjectManager.class);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
+        aclEvaluate.checkProjectAdminPermission(project);
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);
         });

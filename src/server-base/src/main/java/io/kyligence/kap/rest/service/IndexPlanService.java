@@ -320,6 +320,7 @@ public class IndexPlanService extends BasicService {
     }
 
     public DiffRuleBasedIndexResponse calculateDiffRuleBasedIndex(UpdateRuleBasedCuboidRequest request) {
+        aclEvaluate.checkProjectWritePermission(request.getProject());
         Pair<Set<LayoutEntity>, Set<LayoutEntity>> diff = getIndexPlan(request.getProject(), request.getModelId())
                 .diffRuleBasedIndex(request.convertToRuleBasedIndex());
 
@@ -327,6 +328,7 @@ public class IndexPlanService extends BasicService {
     }
 
     public AggIndexResponse calculateAggIndexCount(UpdateRuleBasedCuboidRequest request) {
+        aclEvaluate.checkProjectWritePermission(request.getProject());
         val maxCount = getConfig().getCubeAggrGroupMaxCombination();
         List<NAggregationGroup> aggregationGroups = request.getAggregationGroups();
         val indexPlan = getIndexPlan(request.getProject(), request.getModelId()).copy();
@@ -446,6 +448,7 @@ public class IndexPlanService extends BasicService {
     }
 
     public List<TableIndexResponse> getTableIndexs(String project, String model) {
+        aclEvaluate.checkProjectReadPermission(project);
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkState(indexPlan != null);
         List<TableIndexResponse> result = Lists.newArrayList();
@@ -459,7 +462,7 @@ public class IndexPlanService extends BasicService {
 
     public List<IndexResponse> getIndexes(String project, String modelId, String key, List<String> status,
             String orderBy, Boolean desc, List<IndexResponse.Source> sources) {
-
+        aclEvaluate.checkProjectReadPermission(project);
         Set<IndexResponse.Status> statusSet = Sets.newHashSet();
         Optional.ofNullable(status).ifPresent(stringStatus -> statusSet
                 .addAll(stringStatus.stream().map(IndexResponse.Status::valueOf).collect(Collectors.toSet())));
@@ -506,6 +509,7 @@ public class IndexPlanService extends BasicService {
     }
 
     public IndexGraphResponse getIndexGraph(String project, String modelId, int maxSize) {
+        aclEvaluate.checkProjectReadPermission(project);
         val indexPlan = getIndexPlan(project, modelId);
         Preconditions.checkNotNull(indexPlan);
         val indexes = indexPlan.getAllLayouts();
@@ -582,6 +586,7 @@ public class IndexPlanService extends BasicService {
     }
 
     public NRuleBasedIndex getRule(String project, String model) {
+        aclEvaluate.checkProjectWritePermission(project);
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkState(indexPlan != null);
         return indexPlan.getRuleBasedIndex();

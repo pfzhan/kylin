@@ -26,13 +26,17 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.AclUtil;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
@@ -47,6 +51,12 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private KapQueryService kapQueryService = Mockito.spy(new KapQueryService());
 
+    @Mock
+    private AclUtil aclUtil = Mockito.spy(AclUtil.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
+
     @BeforeClass
     public static void setupResource() throws Exception {
         staticCreateTestMetadata();
@@ -60,6 +70,8 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
+        ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
+        ReflectionTestUtils.setField(kapQueryService, "aclEvaluate", aclEvaluate);
     }
 
     @Test
@@ -69,10 +81,12 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
         queryStatistics.setEngineType("RDBMS");
         queryStatistics.setCount(7);
         queryStatistics.setMeanDuration(1108.7142857142858);
-        Mockito.doReturn(Lists.newArrayList(queryStatistics)).when(queryHistoryDAO).getQueryEngineStatistics(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doReturn(Lists.newArrayList(queryStatistics)).when(queryHistoryDAO)
+                .getQueryEngineStatistics(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(kapQueryService).getQueryHistoryDao("default");
 
-        final QueryEngineStatisticsResponse actual = kapQueryService.getQueryStatisticsByEngine("default", 0L, Long.MAX_VALUE);
+        final QueryEngineStatisticsResponse actual = kapQueryService.getQueryStatisticsByEngine("default", 0L,
+                Long.MAX_VALUE);
 
         Assert.assertEquals(7, actual.getAmount());
 
@@ -97,12 +111,15 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSqlsFormat() {
-        List<String> sqls = Lists.newArrayList("select * from A", "select A.a, B.b from A join B on A.a2=B.b2", "Select sum(a), b from A group by b");
+        List<String> sqls = Lists.newArrayList("select * from A", "select A.a, B.b from A join B on A.a2=B.b2",
+                "Select sum(a), b from A group by b");
         val formated = kapQueryService.format(sqls);
 
         Assert.assertEquals(3, formated.size());
         Assert.assertEquals("SELECT\n  *\nFROM \"A\"", formated.get(0));
-        Assert.assertEquals("SELECT\n  \"A\".\"A\",\n  \"B\".\"B\"\nFROM \"A\"\n  INNER JOIN \"B\" ON \"A\".\"A2\" = \"B\".\"B2\"", formated.get(1));
+        Assert.assertEquals(
+                "SELECT\n  \"A\".\"A\",\n  \"B\".\"B\"\nFROM \"A\"\n  INNER JOIN \"B\" ON \"A\".\"A2\" = \"B\".\"B2\"",
+                formated.get(1));
         Assert.assertEquals("SELECT\n  SUM(\"A\"),\n  \"B\"\nFROM \"A\"\nGROUP BY\n  \"B\"", formated.get(2));
     }
 }

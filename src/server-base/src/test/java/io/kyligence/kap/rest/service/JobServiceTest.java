@@ -280,7 +280,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(executableManager1.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs1);
 
         List<String> jobNames = Lists.newArrayList();
-        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, "", "", "", "", true);
+        JobFilter jobFilter = new JobFilter(Lists.newArrayList(), jobNames, 4, "", "", "default", "", true);
         List<ExecutableResponse> jobs = jobService.listGlobalJobs(jobFilter, 0, 10).getValue();
         Assert.assertEquals(4, jobs.size());
         Assert.assertEquals("default1", jobs.get(3).getProject());

@@ -68,7 +68,7 @@ public class TableExtService extends BasicService {
      */
     @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadTables(String[] tables, String project) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
         LoadTableResponse loadTableResponse = new LoadTableResponse();
         Set<String> loaded = Sets.newLinkedHashSet();
@@ -127,7 +127,7 @@ public class TableExtService extends BasicService {
 
     @Transaction(project = 0, retry = 1)
     public LoadTableResponse loadTablesByDatabase(String project, final String[] databases) throws Exception {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, "");

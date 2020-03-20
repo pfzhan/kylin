@@ -246,6 +246,7 @@ public class QueryHistoryService extends BasicService {
 
         Map<String, String> result = Maps.newHashMap();
         for (String project : filterProjects) {
+            aclEvaluate.checkProjectReadPermission(project);
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
             ProjectInstance projectInstance = getProjectManager().getProject(project);
             if (projectInstance == null)

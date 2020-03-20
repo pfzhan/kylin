@@ -78,6 +78,7 @@ public class FavoriteRuleService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     public Map<String, Object> getFavoriteRules(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         Map<String, Object> result = Maps.newHashMap();
 
         for (String ruleName : favoriteRuleNames) {
@@ -213,6 +214,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project, String sql) {
+        aclEvaluate.checkProjectWritePermission(project);
         FavoriteRule blacklist = getFavoriteRuleManager(project).getByName(FavoriteRule.BLACKLIST_NAME);
         if (blacklist == null) {
             return Lists.newArrayList();
@@ -341,6 +343,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     public SQLValidateResponse sqlValidate(String project, String sql) {
+        aclEvaluate.checkProjectWritePermission(project);
         String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA, false);
         // sql validation
         Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(correctedSql), project);
@@ -350,6 +353,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     public double getAccelerateRatio(String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         AccelerateRatioManager ratioManager = getAccelerateRatioManager(project);
         AccelerateRatio accelerateRatio = ratioManager.get();
         if (accelerateRatio == null || accelerateRatio.getOverallQueryNum() == 0)

@@ -28,10 +28,12 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.TaskSchedulerImpl;
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend;
 import org.apache.spark.sql.SparderEnv;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,9 +50,13 @@ public class NSparkController extends NBasicController {
 
     private String msg = " not exists in Spark";
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     @GetMapping(value = "/blacklist")
     @ResponseBody
     public EnvelopeResponse<Tuple2<String[], String[]>> getBlacklist() {
+        aclEvaluate.checkIsGlobalAdmin();
         Tuple2<String[], String[]> blacklist = getSparkTaskScheduler().getBlacklist();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, blacklist, "get blacklist");
     }
@@ -58,6 +64,7 @@ public class NSparkController extends NBasicController {
     @PutMapping(value = "/blacklist/executor/{executor_id:.+}")
     @ResponseBody
     public EnvelopeResponse<String> addExecutorToBlackListManually(@PathVariable("executor_id") String executorId) {
+        aclEvaluate.checkIsGlobalAdmin();
         if (getBackend().getExecutorIds().contains(executorId)) {
             String host = getBackend().getHostByExecutor(executorId);
             if (!host.isEmpty()) {
@@ -75,6 +82,7 @@ public class NSparkController extends NBasicController {
     @PutMapping(value = "/blacklist/node/{node:.+}")
     @ResponseBody
     public EnvelopeResponse<String> addNodeToBlackListManually(@PathVariable("node") String node) {
+        aclEvaluate.checkIsGlobalAdmin();
         if (getBackend().getHosts().contains(node)) {
             getSparkTaskScheduler().addNodeToBlackListManually(node);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add node to blacklist");
@@ -87,6 +95,7 @@ public class NSparkController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> removeExecutorFromBlackListManually(
             @PathVariable("executor_id") String executorId) {
+        aclEvaluate.checkIsGlobalAdmin();
         if (getBackend().getExecutorIds().contains(executorId)) {
             getSparkTaskScheduler().removeExecutorFromBlackListManually(executorId);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del executor from blacklist");
@@ -98,6 +107,7 @@ public class NSparkController extends NBasicController {
     @DeleteMapping(value = "/blacklist/node/{node:.+}")
     @ResponseBody
     public EnvelopeResponse<String> removeNodeFromBlackListManually(@PathVariable("node") String node) {
+        aclEvaluate.checkIsGlobalAdmin();
         if (getBackend().getHosts().contains(node)) {
             getSparkTaskScheduler().removeNodeFromBlackListManually(node);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "del node from blacklist");

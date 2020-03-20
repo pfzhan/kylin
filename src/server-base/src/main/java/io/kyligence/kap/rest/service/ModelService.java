@@ -767,6 +767,7 @@ public class ModelService extends BasicService {
     }
 
     public boolean checkModelAliasUniqueness(String modelId, String newAlias, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         List<NDataModel> models = getDataflowManager(project).listUnderliningDataModels();
         for (NDataModel model : models) {
             if ((StringUtils.isNotEmpty(modelId) || !model.getUuid().equals(modelId))
@@ -977,7 +978,7 @@ public class ModelService extends BasicService {
 
     public RefreshAffectedSegmentsResponse getRefreshAffectedSegmentsResponse(String project, String table,
             String start, String end) {
-        aclEvaluate.checkProjectOperationPermission(project);
+        aclEvaluate.checkProjectReadPermission(project);
         val dfManager = getDataflowManager(project);
         long byteSize = 0L;
         List<RelatedModelResponse> models = getRelateModels(project, table, "").stream().filter(
@@ -1178,6 +1179,7 @@ public class ModelService extends BasicService {
     }
 
     public boolean couldAnsweredByExistedModel(String project, List<String> sqls) {
+        aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return true;
         }
@@ -1186,6 +1188,7 @@ public class ModelService extends BasicService {
     }
 
     public NRecomendationListResponse suggestModel(String project, List<String> sqls, boolean reuseExistedModel) {
+        aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(sqls)) {
             return null;
         }
@@ -1675,6 +1678,7 @@ public class ModelService extends BasicService {
     }
 
     public ComputedColumnUsageResponse getComputedColumnUsages(String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         ComputedColumnUsageResponse ret = new ComputedColumnUsageResponse();
         List<NDataModel> models = getDataflowManager(project).listUnderliningDataModels();
         for (NDataModel model : models) {
@@ -1691,7 +1695,7 @@ public class ModelService extends BasicService {
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
     public ComputedColumnDesc checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
-
+        aclEvaluate.checkProjectWritePermission(project);
         if (dataModelDesc.getUuid() == null)
             dataModelDesc.updateRandomUuid();
 
@@ -2178,6 +2182,7 @@ public class ModelService extends BasicService {
 
     public List<ModelInfoResponse> getModelInfo(String suite, String model, List<String> projects, long start,
             long end) {
+        aclEvaluate.checkIsGlobalAdmin();
         List<ModelInfoResponse> modelInfoList = Lists.newArrayList();
         checkProjectWhenModelSelected(model, projects);
 
@@ -2353,6 +2358,7 @@ public class ModelService extends BasicService {
     }
 
     public PurgeModelAffectedResponse getPurgeModelAffectedResponse(String project, String model) {
+        aclEvaluate.checkProjectWritePermission(project);
         val response = new PurgeModelAffectedResponse();
         val byteSize = getDataflowManager(project).getDataflowStorageSize(model);
         response.setByteSize(byteSize);
@@ -2362,6 +2368,7 @@ public class ModelService extends BasicService {
     }
 
     public void checkFilterCondition(ModelRequest modelRequest) {
+        aclEvaluate.checkProjectWritePermission(modelRequest.getProject());
         NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
         NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
         if (oldDataModel != null && !oldDataModel.isBroken()) {
@@ -2446,6 +2453,7 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void updateDataModelParatitionDesc(String project, String modelAlias,
             ModelParatitionDescRequest modelParatitionDescRequest) {
+        aclEvaluate.checkProjectWritePermission(project);
         if (getProjectManager().getProject(project) == null) {
             throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }

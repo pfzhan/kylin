@@ -52,7 +52,7 @@ public class TableSamplingService extends BasicService {
 
     @Transaction(project = 1)
     public void sampling(Set<String> tables, String project, int rows) {
-        aclEvaluate.checkProjectWritePermission(project);
+        aclEvaluate.checkProjectAdminPermission(project);
         NExecutableManager execMgr = NExecutableManager.getInstance(getConfig(), project);
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getConfig(), project);
 
@@ -70,6 +70,7 @@ public class TableSamplingService extends BasicService {
     }
 
     public boolean hasSamplingJob(String project, String table) {
+        aclEvaluate.checkProjectAdminPermission(project);
         return !collectRunningSamplingJobs(Sets.newHashSet(table), project).isEmpty();
     }
 
