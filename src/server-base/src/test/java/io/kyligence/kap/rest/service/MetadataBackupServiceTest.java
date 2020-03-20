@@ -77,8 +77,11 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
         kylinConfig.setMetadataUrl("metadata_backup_ut_test");
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
-                StringEntity.serializer);
+
+        if (!resourceStore.exists("/UUID")) {
+            resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                    StringEntity.serializer);
+        }
 
         //1.assert there is no metadata dir in root dir before backup,the root dir is junitFolder.getAbsolutePath()
         val rootPath = new Path(kylinConfig.getHdfsWorkingDirectory()).getParent();
