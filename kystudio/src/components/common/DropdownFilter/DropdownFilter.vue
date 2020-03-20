@@ -200,6 +200,7 @@ export default class DropdownFilter extends Vue {
     display: inline-block;
     position: relative;
     cursor: pointer;
+    color: @color-text-primary;
     &:hover,
     &:hover i {
       color: @color-primary;

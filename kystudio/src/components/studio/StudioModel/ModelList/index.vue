@@ -3,25 +3,27 @@
     <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
-      <div class="ksd-mtb-10 ksd-fright">
-        <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
-        </el-input>
-        <el-button
-          text
-          class="filter-button"
-          type="primary"
-          @click="handleToggleFilters">
-          {{$t('filterButton')}}
-          <i :class="['el-icon-arrow-up', isShowFilters && 'reverse']" />
-        </el-button>
-      </div>
-      <div class="ky-no-br-space model-list-header">
-        <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
-          <span>{{$t('kylinLang.common.model')}}</span>
-        </el-button>
-        <el-button type="primary" icon="el-icon-ksd-add_2" v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')" size="medium" plain class="ksd-mtb-10 ksd-ml-10" @click="showGenerateModelDialog">
-          <span>{{$t('kylinLang.model.generateModel')}}</span>
-        </el-button>
+      <div class="clearfix">
+        <div class="ksd-mtb-10 ksd-fright">
+          <el-input :placeholder="isAutoProject ? $t('kylinLang.common.pleaseFilterByIndexGroupName') : $t('filterModelOrOwner')" style="width:250px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :value="filterArgs.model_alias_or_owner" @input="handleFilterInput" v-global-key-event.enter.debounce="searchModels" @clear="searchModels()" class="show-search-btn" >
+          </el-input>
+          <el-button
+            text
+            class="filter-button"
+            type="primary"
+            @click="handleToggleFilters">
+            {{$t('filterButton')}}
+            <i :class="['el-icon-arrow-up', isShowFilters && 'reverse']" />
+          </el-button>
+        </div>
+        <div class="ky-no-br-space model-list-header">
+          <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
+            <span>{{$t('kylinLang.common.model')}}</span>
+          </el-button>
+          <el-button type="primary" icon="el-icon-ksd-add_2" v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')" size="medium" plain class="ksd-mtb-10 ksd-ml-10" @click="showGenerateModelDialog">
+            <span>{{$t('kylinLang.model.generateModel')}}</span>
+          </el-button>
+        </div>
       </div>
       <div class="table-filters clearfix" v-show="isShowFilters">
         <DropdownFilter
@@ -118,6 +120,7 @@
           <template slot-scope="scope">
             <div class="alias">
               <el-popover
+                popper-class="status-tooltip"
                 placement="top-start"
                 trigger="hover">
                 <i slot="reference" :class="['filter-status', scope.row.status]" />
@@ -186,7 +189,7 @@
           sortable="custom"
           prop="expansionrate"
           show-overflow-tooltip
-          width="120px"
+          width="170px"
           :render-header="renderExpansionRateHeader">
           <template slot-scope="scope">
               <span v-if="scope.row.expansion_rate !== '-1'">{{scope.row.expansion_rate}}%</span>
@@ -1114,12 +1117,11 @@ export default class ModelList extends Vue {
 }
 .filter-status {
   border-radius: 50%;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   display: inline-block;
   position: relative;
   top: 2px;
-  margin-right: 5px;
   &.ONLINE {
     background-color: @color-success;
   }
@@ -1136,6 +1138,7 @@ export default class ModelList extends Vue {
 .last-modified-tooltip {
   min-width: unset;
   transform: translate(-5px, 5px);
+  pointer-events: none;
   .popper__arrow {
     left: 5px !important;
   }
@@ -1157,10 +1160,5 @@ export default class ModelList extends Vue {
   .popper__arrow {
     left: 5px !important;
   }
-}
-
-.last-modified-tooltip,
-.status-tooltip {
-  pointer-events: none;
 }
 </style>
