@@ -1515,7 +1515,7 @@ public class ModelService extends BasicService {
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExist(model, project, ids);
-        checkSegmentsLocked(model, project, ids);
+        checkSegmentsStatus(model, project, ids, SegmentStatusEnumToDisplay.LOCKED);
         NDataflow dataflow = dataflowManager.getDataflow(model);
         val toDeletedSeg = dataflow.getSegments().stream().filter(seg -> Arrays.asList(ids).contains(seg.getId()))
                 .collect(Collectors.toList());
@@ -1828,7 +1828,7 @@ public class ModelService extends BasicService {
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExist(model, project, ids);
-        checkSegmentsLocked(model, project, ids);
+        checkSegmentsStatus(model, project, ids, SegmentStatusEnumToDisplay.LOCKED);
 
         val indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
@@ -1862,15 +1862,23 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkSegmentsLocked(String model, String project, String[] ids) {
+    private void checkSegmentsStatus(String model, String project, String[] ids, SegmentStatusEnumToDisplay... statuses) {
+        for (SegmentStatusEnumToDisplay status : statuses) {
+            checkSegmentsStatus(model, project, ids, status);
+        }
+    }
+
+    private void checkSegmentsStatus(String model, String project, String[] ids, SegmentStatusEnumToDisplay status) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         IndexPlan indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Segments<NDataSegment> segments = dataflow.getSegments();
+        String message = status.equals(SegmentStatusEnumToDisplay.LOCKED) ?
+                "Can not remove or refresh or merge segment (ID:%s), because the segment is LOCKED."
+                : "Can not refresh or merge segment (ID:%s), because the segment is " + status + ".";
         for (String id : ids) {
-            if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(SegmentStatusEnumToDisplay.LOCKED)) {
-                throw new BadRequestException(
-                        "Can not remove or refresh segment (ID:" + id + "), because the segment is LOCKED.");
+            if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(status)) {
+                throw new BadRequestException(String.format(message, id));
             }
         }
     }
@@ -1902,16 +1910,37 @@ public class ModelService extends BasicService {
         }
     }
 
+    private void checkSegmentsContinuous(String modelId, String project, String[] ids) {
+        val dfManager = getDataflowManager(project);
+        val indexPlan = getIndexPlan(modelId, project);
+        val df = dfManager.getDataflow(indexPlan.getUuid());
+        List<NDataSegment> segmentList = Arrays.stream(ids)
+                .map(df::getSegment)
+                .sorted(NDataSegment::compareTo)
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < segmentList.size() - 1; i++) {
+            if (!segmentList.get(i).getSegRange().connects(segmentList.get(i + 1).getSegRange())) {
+                throw new IllegalStateException("Merging segments must not have gaps between "
+                        + segmentList.get(i).getId() + " and " + segmentList.get(i + 1).getId());
+            }
+        }
+    }
+
     @Transaction(project = 1)
     public void mergeSegmentsManually(String modelId, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
+
         val dfManager = getDataflowManager(project);
         val eventManager = getEventManager(project);
         val indexPlan = getIndexPlan(modelId, project);
         val df = dfManager.getDataflow(indexPlan.getUuid());
 
+
         checkSegmentsExist(modelId, project, ids);
-        checkSegmentsLocked(modelId, project, ids);
+        checkSegmentsStatus(modelId, project, ids, SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.REFRESHING, SegmentStatusEnumToDisplay.MERGING, SegmentStatusEnumToDisplay.LOCKED);
+        checkSegmentsContinuous(modelId, project, ids);
 
         long start = Long.MAX_VALUE;
         long end = -1;
@@ -1951,14 +1980,15 @@ public class ModelService extends BasicService {
     @Transaction(project = 1)
     public List<JobInfoResponse.JobInfo> refreshSegmentById(String modelId, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
+        checkSegmentsExist(modelId, project, ids);
+        checkSegmentsStatus(modelId, project, ids, SegmentStatusEnumToDisplay.LOADING,
+                SegmentStatusEnumToDisplay.REFRESHING, SegmentStatusEnumToDisplay.MERGING, SegmentStatusEnumToDisplay.LOCKED);
+
         List<JobInfoResponse.JobInfo> jobIds = new ArrayList<>();
         NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
         NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
-
-        checkSegmentsExist(modelId, project, ids);
-        checkSegmentsLocked(modelId, project, ids);
 
         for (String id : ids) {
             NDataSegment segment = df.getSegment(id);

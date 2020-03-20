@@ -1059,7 +1059,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "Can not remove or refresh segment (ID:" + dataSegment.getId() + "), because the segment is LOCKED.");
+                "Can not remove or refresh or merge segment (ID:" + dataSegment.getId() + "), because the segment is LOCKED.");
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1180,7 +1180,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         segments.add(dataSegment1);
 
         // second segment
-        start = SegmentRange.dateToLong("2010-03-01");
+        start = SegmentRange.dateToLong("2010-02-01");
         end = SegmentRange.dateToLong("2010-04-01");
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         val dataSegment2 = dfManager.appendSegment(df, segmentRange);
@@ -1202,6 +1202,12 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         eventDao.deleteAllEvents();
 
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("Merging segments must not have gaps between "
+                + dataSegment1.getId() + " and " + dataSegment3.getId());
+        modelService.mergeSegmentsManually(dfId, "default",
+                new String[] { dataSegment1.getId(), dataSegment3.getId() });
+
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment2.getId(), dataSegment3.getId() });
         List<Event> events = eventDao.getEvents();
@@ -1215,7 +1221,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "Can not remove or refresh segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
+                "Can not remove or refresh or merge segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
         //refresh exception
         modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment2.getId() });
 
@@ -1258,7 +1264,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Cannot merge segments which are not ready");
+        thrown.expectMessage("Can not refresh or merge segment (ID:" + dataSegment1.getId() +"), because the segment is LOADING.");
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment2.getId() });
 
@@ -1303,7 +1309,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 new String[] { dataSegment2.getId() });
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "Can not remove or refresh segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
+                "Can not remove or refresh or merge segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
