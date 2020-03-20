@@ -1141,6 +1141,7 @@ public class QueryService extends BasicService {
      * @param param
      * @throws SQLException
      */
+    @SuppressWarnings("squid:S3776")
     private void setParam(QueryExec queryExec, int index, PrepareSqlRequest.StateParam param) {
         boolean isNull = (null == param.getValue());
 
