@@ -84,7 +84,7 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
             case DATE:
                 return DateFormat.formatDayToEpchoToDateStr(Long.parseLong(value));
             case TIMESTAMP:
-                return DateFormat.formatToTimeStr(Long.parseLong(value));
+                return DateFormat.formatToTimeWithoutMilliStr(Long.parseLong(value));
             default:
                 return value;
         }

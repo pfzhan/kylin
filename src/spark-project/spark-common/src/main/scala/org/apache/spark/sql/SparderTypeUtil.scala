@@ -258,6 +258,9 @@ object SparderTypeUtil extends Logging {
       } else {
         DateFormat.formatToTimeWithoutMilliStr(millis)
       }
+    // in case the type is not set
+    case (ts: java.sql.Timestamp, _) => DateFormat.formatToTimeWithoutMilliStr(ts.getTime)
+    case (dt: java.sql.Date, _) => DateFormat.formatToDateStr(dt.getTime)
     case (other, _) => other.toString
   }
 

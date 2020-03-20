@@ -96,6 +96,10 @@ public class SparderTypeUtilTest {
         Assert.assertEquals("9.1", convertToStringWithDecimalType(Double.valueOf("9.123"), 18, 1));
         Assert.assertEquals("2012-01-01 00:00:00", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.TIMESTAMP));
         Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.DATE));
+        // in case type is not set
+        Assert.assertEquals("9.1", convertToStringWithCalciteType(Float.valueOf("9.1"), SqlTypeName.ANY));
+        Assert.assertEquals("2012-01-01 12:34:56", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.ANY));
+        Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.ANY));
     }
 
     @Test
