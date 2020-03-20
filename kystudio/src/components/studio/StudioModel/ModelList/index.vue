@@ -416,7 +416,7 @@ function getDefaultFilters () {
 export default class ModelList extends Vue {
   mockSQL = mockSQL
   filterArgs = getDefaultFilters()
-  statusList = ['ONLINE', 'OFFLINE', 'BROKEN']
+  statusList = ['ONLINE', 'OFFLINE', 'BROKEN', 'WARNING']
   currentEditModel = null
   showFull = false
   showSearchResult = false
