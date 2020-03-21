@@ -511,10 +511,8 @@ public class QueryService extends BasicService {
                 queryContext.setTimeout(true);
             }
 
-            sqlResponse.setQueryId(queryContext.getQueryId());
-            sqlResponse.setScanRows(queryContext.getScanRows());
-            sqlResponse.setScanBytes(queryContext.getScanBytes());
-            sqlResponse.setShufflePartitions(queryContext.getShufflePartitions());
+            sqlResponse.wrapResultOfQueryContext(queryContext);
+
             sqlResponse.setTimeout(queryContext.isTimeout());
 
             setAppMaterURL(sqlResponse);
@@ -1013,10 +1011,9 @@ public class QueryService extends BasicService {
 
         SQLResponse response = new SQLResponse(columnMetas, results, 0, false, null, isPartialResult, isPushDown);
         QueryContext queryContext = QueryContext.current();
-        response.setQueryId(queryContext.getQueryId());
-        response.setScanRows(queryContext.getScanRows());
-        response.setScanBytes(queryContext.getScanBytes());
-        response.setShufflePartitions(queryContext.getShufflePartitions());
+
+        response.wrapResultOfQueryContext(queryContext);
+
         response.setNativeRealizations(realizations);
 
         setAppMaterURL(response);

@@ -44,6 +44,7 @@ package org.apache.kylin.common;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,6 +66,8 @@ public class QueryContext {
     public static final String PUSHDOWN_HIVE = "HIVE";
     public static final String PUSHDOWN_MOCKUP = "MOCKUP";
     public static final String PUSHDOWN_FILE = "FILE";
+
+    public static final long DEFAULT_NULL_SCANNED_DATA = -1L;
 
     private static final ThreadLocal<QueryContext> contexts = new ThreadLocal<QueryContext>() {
         @Override
@@ -130,6 +133,14 @@ public class QueryContext {
 
     @Getter
     @Setter
+    private long scannedRows = DEFAULT_NULL_SCANNED_DATA;
+
+    @Getter
+    @Setter
+    private long scannedBytes = DEFAULT_NULL_SCANNED_DATA;
+
+    @Getter
+    @Setter
     private boolean hasAdminPermission;
 
     private QueryContext() {
@@ -181,22 +192,6 @@ public class QueryContext {
 
     public void setHasLike(boolean hasLike) {
         this.hasLike = hasLike;
-    }
-
-    public long getScannedRows() {
-        if (scanRows == null) {
-            return -1;
-        } else {
-            return scanRows.stream().reduce((x, y) -> x + y).orElse(-1L);
-        }
-    }
-
-    public long getScannedBytes() {
-        if (scanBytes == null) {
-            return -1;
-        } else {
-            return scanBytes.stream().reduce((x, y) -> x + y).orElse(-1L);
-        }
     }
 
     public long getSourceScanBytes() {
@@ -315,25 +310,25 @@ public class QueryContext {
         recordMillis = current;
     }
     /*
-
+    
     public Set<Future> getAllRunningTasks() {
         return allRunningTasks;
     }
-
+    
     public void addRunningTasks(Future task) {
         this.allRunningTasks.add(task);
     }
-
+    
     public void removeRunningTask(Future task) {
         this.allRunningTasks.remove(task);
     }
-
-
-
+    
+    
+    
     public long getQueryStartMillis() {
         return queryStartMillis;
     }
-
+    
     public void checkMillisBeforeDeadline() {
         if (Thread.interrupted()) {
             throw new KylinTimeoutException("Query timeout");
@@ -409,4 +404,35 @@ public class QueryContext {
     public void setCorrectedSql(String correctedSql) {
         this.correctedSql = correctedSql;
     }
+
+    /**
+     * update scanRows and calculate scannedRows
+     * @param scanRows
+     */
+    public void updateAndCalScanRows(List<Long> scanRows) {
+        setScanRows(scanRows);
+        setScannedRows(calScannedValueWithDefault(scanRows));
+    }
+
+    /**
+     * update scanBytes and calculate scannedBytes
+     * @param scanBytes
+     */
+    public void updateAndCalScanBytes(List<Long> scanBytes) {
+        setScanBytes(scanBytes);
+        setScannedBytes(calScannedValueWithDefault(scanBytes));
+    }
+
+    /**
+     * @param scanList
+     * @return if scanList == null return default -1, else return sum of list
+     */
+    public static long calScannedValueWithDefault(List<Long> scanList) {
+        if (Objects.isNull(scanList)) {
+            return DEFAULT_NULL_SCANNED_DATA;
+        } else {
+            return scanList.stream().mapToLong(Long::longValue).sum();
+        }
+    }
+
 }

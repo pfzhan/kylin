@@ -91,8 +91,8 @@ object ResultPlan extends LogEx {
       QueryContext.current.record("collect_result")
 
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-      QueryContext.current().setScanRows(scanRows)
-      QueryContext.current().setScanBytes(scanBytes)
+      QueryContext.current().updateAndCalScanRows(scanRows)
+      QueryContext.current().updateAndCalScanBytes(scanBytes)
 
       val dt = rows.map { row =>
         row.toSeq.zip(resultTypes).map{

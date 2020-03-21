@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.query.engine.exec.calcite;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import io.kyligence.kap.query.relnode.KapRel;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -40,15 +40,19 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.runtime.ArrayBindable;
 import org.apache.calcite.runtime.Bindable;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.DateFormat;
 
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
+import io.kyligence.kap.query.relnode.KapRel;
 
 /**
  * implement and execute a physical plan with Calcite
  * this exec is only used for constants queries
  */
 public class CalciteQueryPlanExec implements QueryPlanExec {
+
+    public static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     @Override
     public List<List<String>> execute(RelNode rel, DataContext dataContext) {
@@ -75,7 +79,14 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
             result.add(row);
         }
 
+        updateQueryContext();
         return result;
+    }
+
+    private void updateQueryContext() {
+        //constant query should fill empty list for scan data
+        QueryContext.current().updateAndCalScanRows(DEFAULT_SCANNED_DATA);
+        QueryContext.current().updateAndCalScanBytes(DEFAULT_SCANNED_DATA);
     }
 
     private String rawQueryResultToString(Object object, RelDataType dataType) {

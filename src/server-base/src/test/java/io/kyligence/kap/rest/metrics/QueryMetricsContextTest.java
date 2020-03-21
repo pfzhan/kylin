@@ -214,6 +214,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         response.setDuration(100L);
         response.setScanBytes(Lists.newArrayList(999L));
         response.setScanRows(Lists.newArrayList(111L));
+        response.setTotalScanBytes(QueryContext.calScannedValueWithDefault(response.getScanBytes()));
+        response.setTotalScanRows(QueryContext.calScannedValueWithDefault(response.getScanRows()));
 
         final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
@@ -232,6 +234,9 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("select * from test_with_pushdown", influxdbFields.get("sql_text"));
         Assert.assertEquals(100L, influxdbFields.get("duration"));
         Assert.assertEquals(999L, influxdbFields.get("total_scan_bytes"));
+        Assert.assertEquals(111L, influxdbFields.get("total_scan_count"));
+        Assert.assertEquals(999L, response.getTotalScanBytes());
+        Assert.assertEquals(111L, response.getTotalScanRows());
 
         // assert realizations
         final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();

@@ -30,9 +30,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -45,6 +45,7 @@ package org.apache.kylin.rest.response;
 import java.io.Serializable;
 import java.util.List;
 
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.slf4j.Logger;
@@ -52,6 +53,7 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import lombok.Getter;
@@ -89,25 +91,11 @@ public class SQLResponse implements Serializable {
 
     private List<Long> scanRows;
 
-    @JsonProperty("totalScanRows")
-    public long getTotalScanRows() {
-        if (scanRows == null) {
-            return -1;
-        } else {
-            return scanRows.stream().reduce((x, y) -> x + y).orElse(-1L);
-        }
-    }
+    private long totalScanRows;
 
     private List<Long> scanBytes;
 
-    @JsonProperty("totalScanBytes")
-    public long getTotalScanBytes() {
-        if (scanBytes == null) {
-            return -1;
-        } else {
-            return scanBytes.stream().reduce((x, y) -> x + y).orElse(-1L);
-        }
-    }
+    private long totalScanBytes;
 
     private String appMasterURL = "";
 
@@ -189,5 +177,22 @@ public class SQLResponse implements Serializable {
     @JsonIgnore
     public Throwable getThrowable() {
         return throwable;
+    }
+
+    public SQLResponse wrapResultOfQueryContext(QueryContext queryContext) {
+        Preconditions.checkNotNull(queryContext, "queryContext is null");
+        this.setQueryId(queryContext.getQueryId());
+        this.setScanRows(queryContext.getScanRows());
+        this.setScanBytes(queryContext.getScanBytes());
+
+        //QueryContext.scannedRows and scannedBytes must be calculated
+        //directly set value avoid repeated calculation
+        this.setTotalScanRows(queryContext.getScannedRows());
+        this.setTotalScanBytes(queryContext.getScannedBytes());
+
+        this.setShufflePartitions(queryContext.getShufflePartitions());
+
+        return this;
+
     }
 }

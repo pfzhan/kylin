@@ -50,7 +50,7 @@ object QueryMetricUtils extends Logging {
     } catch {
       case throwable: Throwable =>
         logWarning("Error occurred when collect query scan metrics.", throwable)
-        (List.empty[java.lang.Long].asJava, List.empty[java.lang.Long].asJava)
+        (null, null)
     }
   }
 }

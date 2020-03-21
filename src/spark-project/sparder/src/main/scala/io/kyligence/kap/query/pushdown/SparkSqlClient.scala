@@ -94,8 +94,8 @@ object SparkSqlClient {
       }.asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
-      QueryContext.current().setScanRows(scanRows)
-      QueryContext.current().setScanBytes(scanBytes)
+      QueryContext.current().updateAndCalScanRows(scanRows)
+      QueryContext.current().updateAndCalScanBytes(scanBytes)
       Pair.newPair(rowList, fieldList)
     } catch {
       case e: Throwable =>

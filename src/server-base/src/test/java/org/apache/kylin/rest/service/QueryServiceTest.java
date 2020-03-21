@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -1049,5 +1050,68 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         File expectedMetaFile = new File("src/test/resources/ut_table_meta/defaultTableMetasV2");
         String expectedMetaString = FileUtils.readFileToString(expectedMetaFile);
         Assert.assertEquals(expectedMetaString, metaString);
+    }
+
+    @Test
+    //reference KE-8052
+    public void testQueryWithConstant() throws SQLException {
+        doTestQueryWithConstant("select current_timestamp");
+        doTestQueryWithConstant("select 1,2,3,4,5");
+
+    }
+
+    private void doTestQueryWithConstant(String testSql) {
+        SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql(testSql);
+        request.setQueryId(UUID.randomUUID().toString());
+
+        Predicate<SQLResponse> scannedRows = (s -> s.getTotalScanRows() == 0);
+        Predicate<SQLResponse> scannedBytes = (s -> s.getTotalScanBytes() == 0);
+
+        final SQLResponse response = queryService.doQueryWithCache(request, false);
+        Assert.assertTrue(scannedRows.and(scannedBytes).test(response));
+    }
+
+    @Test
+    //reference KE-8052
+    public void testQueryWithScanBytesAndRows() {
+        long defaultValue = QueryContext.DEFAULT_NULL_SCANNED_DATA;
+
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setScanRows(Arrays.asList(1L, 2L));
+        sqlResponse.setScanBytes(Arrays.asList(2L, 3L));
+        sqlResponse.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponse.getScanBytes()));
+        sqlResponse.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponse.getScanRows()));
+
+        Assert.assertTrue(sqlResponse.getTotalScanRows() == 3L);
+        Assert.assertTrue(sqlResponse.getTotalScanBytes() == 5L);
+
+        SQLResponse sqlResponseNull = new SQLResponse();
+        sqlResponseNull.setScanRows(null);
+        sqlResponseNull.setScanBytes(null);
+        sqlResponseNull.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponseNull.getScanBytes()));
+        sqlResponseNull.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponseNull.getScanRows()));
+
+        Assert.assertTrue(sqlResponseNull.getTotalScanRows() == defaultValue);
+        Assert.assertTrue(sqlResponseNull.getTotalScanBytes() == defaultValue);
+
+        SQLResponse sqlResponseEmpty = new SQLResponse();
+
+        sqlResponseEmpty.setScanRows(Collections.emptyList());
+        sqlResponseEmpty.setScanBytes(Collections.emptyList());
+        sqlResponseEmpty.setTotalScanBytes(QueryContext.calScannedValueWithDefault(sqlResponseEmpty.getScanBytes()));
+        sqlResponseEmpty.setTotalScanRows(QueryContext.calScannedValueWithDefault(sqlResponseEmpty.getScanRows()));
+
+        Assert.assertTrue(sqlResponseEmpty.getTotalScanRows() == 0);
+        Assert.assertTrue(sqlResponseEmpty.getTotalScanBytes() == 0);
+
+        QueryContext queryContext = QueryContext.current();
+        queryContext.updateAndCalScanRows(Arrays.asList(1L, 2L));
+        queryContext.updateAndCalScanBytes(Arrays.asList(2L, 3L));
+
+        Assert.assertTrue(queryContext.getScannedRows() == 3L);
+        Assert.assertTrue(queryContext.getScannedBytes() == 5L);
+
     }
 }
