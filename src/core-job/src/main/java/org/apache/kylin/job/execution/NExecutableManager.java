@@ -194,6 +194,11 @@ public class NExecutableManager {
 
     //for ut
     public void deleteJob(String jobId) {
+        checkJobCanBeDeleted(jobId);
+        executableDao.deleteJob(jobId);
+    }
+
+    public void checkJobCanBeDeleted(String jobId) {
         AbstractExecutable executable = getJob(jobId);
         ExecutableState status = executable.getStatus();
         if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED)
@@ -201,7 +206,6 @@ public class NExecutableManager {
             throw new IllegalStateException(
                     "Cannot drop running job " + executable.getDisplayName() + ", please discard it first.");
         }
-        executableDao.deleteJob(jobId);
     }
 
     public AbstractExecutable getJob(String id) {
@@ -315,8 +319,7 @@ public class NExecutableManager {
         return result;
     }
 
-    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, ExecutableState status) {
-
+    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, List<ExecutableState> statuses) {
         val executables = getAllExecutables();
         val resultExecutables = new ArrayList<AbstractExecutable>();
         if (CollectionUtils.isNotEmpty(jobIds)) {
@@ -325,8 +328,8 @@ public class NExecutableManager {
         } else {
             resultExecutables.addAll(executables);
         }
-        if (Objects.nonNull(status)) {
-            return resultExecutables.stream().filter(t -> t.getStatus().equals(status)).collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(statuses)) {
+            return resultExecutables.stream().filter(t -> statuses.contains(t.getStatus())).collect(Collectors.toList());
         } else {
             return resultExecutables;
         }

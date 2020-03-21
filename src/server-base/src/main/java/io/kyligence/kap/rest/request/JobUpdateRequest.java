@@ -41,6 +41,5 @@ public class JobUpdateRequest implements ProjectInsensitiveRequest {
     private List<String> jobIds = new ArrayList<>();
     private String project;
     private String action;
-    private String status;
-
+    private List<String> statuses;
 }

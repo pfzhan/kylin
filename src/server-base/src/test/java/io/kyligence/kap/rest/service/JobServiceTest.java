@@ -318,28 +318,33 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()),
+                "default", "PAUSE", Lists.newArrayList());
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", "");
+            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME",
+                    Lists.newArrayList());
             return null;
         }, "default");
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", "OTHER_STATUS");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE",
+                Lists.newArrayList("OTHER_STATUS"));
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.PAUSED));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", "STOPPED");
+            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME",
+                    Lists.newArrayList("STOPPED"));
             return null;
         }, "default");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
         UnitOfWork.doInTransactionWithRetry(() -> {
-            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
+            jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD",
+                    Lists.newArrayList());
             return null;
         }, "default");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
         Assert.assertTrue(
                 dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment() == null);
         Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
-        jobService.batchDropJob("default", Lists.newArrayList(executable.getId()), "");
+        jobService.batchDropJob("default", Lists.newArrayList(executable.getId()), Lists.newArrayList());
         List<AbstractExecutable> executables = manager.getAllExecutables();
         Assert.assertTrue(!executables.contains(executable));
     }
@@ -353,23 +358,25 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         SucceedChainedTestExecutable executable = new SucceedChainedTestExecutable();
         manager.addJob(executable);
 
-        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", "");
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 
-        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", "");
-        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE", "OTHER_STATUS");
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", Lists.newArrayList());
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "PAUSE",
+                Lists.newArrayList("OTHER_STATUS"));
         Assert.assertEquals(ExecutableState.PAUSED, manager.getJob(executable.getId()).getStatus());
 
-        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME", "STOPPED");
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "RESUME",
+                Lists.newArrayList("STOPPED"));
         Assert.assertEquals(ExecutableState.READY, manager.getJob(executable.getId()).getStatus());
 
-        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "DISCARD", "");
+        jobService.batchUpdateGlobalJobStatus(Lists.newArrayList(executable.getId()), "DISCARD", Lists.newArrayList());
         Assert.assertEquals(ExecutableState.DISCARDED, manager.getJob(executable.getId()).getStatus());
 
         Assert.assertNull(dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment());
 
         Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
-        jobService.batchDropGlobalJob(Lists.newArrayList(executable.getId()), "");
+        jobService.batchDropGlobalJob(Lists.newArrayList(executable.getId()), Lists.newArrayList());
         Assert.assertFalse(manager.getAllExecutables().contains(executable));
     }
 
@@ -384,7 +391,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", Lists.newArrayList());
     }
 
     @Test
@@ -398,7 +405,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.setName("test");
         manager.addJob(executable);
         thrown.expect(IllegalStateException.class);
-        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "ROLLBACK", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "ROLLBACK", Lists.newArrayList());
     }
 
     @Test

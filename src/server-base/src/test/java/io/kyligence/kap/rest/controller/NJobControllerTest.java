@@ -147,40 +147,47 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDropJob() throws Exception {
         Mockito.doNothing().when(jobService).batchDropJob("default",
-                Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
+                Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), Lists.newArrayList());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default")
-                .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("status", "")
+                .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("statuses", "")
+                .param("project_all_jobs", "false")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).dropJob("default", Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
-                "");
+                Lists.newArrayList());
     }
 
     @Test
     public void testDropGlobalJob() throws Exception {
         Mockito.doNothing().when(jobService)
-                .batchDropGlobalJob(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
+                .batchDropGlobalJob(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), Lists.newArrayList());
         mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/jobs").param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de")
-                        .param("status", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                MockMvcRequestBuilders.delete("/api/jobs")
+                        .param("job_ids", "e1ad7bb0-522e-456a-859d-2eab1df448de")
+                        .param("statuses", "")
+                        .param("project_all_jobs", "false")
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).dropJob(null, Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
+        Mockito.verify(nJobController).dropJob(null, Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
+                Lists.newArrayList());
     }
 
     @Test
     public void testDropJob_selectNoneJob_exception() throws Exception {
-        Mockito.doNothing().when(jobService).batchDropJob("default", Lists.newArrayList(), "");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default").param("job_ids", "")
-                .param("status", "").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nJobController).dropJob("default", Lists.newArrayList(), "");
+        Mockito.doNothing().when(jobService).batchDropJob("default", Lists.newArrayList(), Lists.newArrayList());
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs").param("project", "default")
+                .param("job_ids", "")
+                .param("statuses", "")
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nJobController).dropJob("default", Lists.newArrayList(), Lists.newArrayList());
     }
 
     @Test
     public void testUpdateJobStatus_PASS() throws Exception {
         val request = mockJobUpdateRequest();
         Mockito.doNothing().when(jobService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
-                "RESUME", mockJobUpdateRequest().getStatus());
+                "RESUME", mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -193,7 +200,7 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
         val request = mockJobUpdateRequest();
         request.setProject(null);
         Mockito.doNothing().when(jobService).batchUpdateGlobalJobStatus(mockJobUpdateRequest().getJobIds(), "RESUME",
-                mockJobUpdateRequest().getStatus());
+                mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
@@ -206,11 +213,11 @@ public class NJobControllerTest extends NLocalFileMetadataTestCase {
         val request = mockJobUpdateRequest();
         request.setJobIds(Lists.newArrayList());
         Mockito.doNothing().when(jobService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
-                "RESUME", mockJobUpdateRequest().getStatus());
+                "RESUME", mockJobUpdateRequest().getStatuses());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
 

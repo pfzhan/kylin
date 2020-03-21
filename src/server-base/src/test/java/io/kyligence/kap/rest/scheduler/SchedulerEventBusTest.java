@@ -260,7 +260,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         executableManager.updateJobOutput(job.getId(), ExecutableState.PAUSED);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESUME", "");
+            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESUME", Lists.newArrayList());
             return null;
         }, PROJECT);
 
@@ -292,7 +292,7 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         executableManager.updateJobOutput(job.getId(), ExecutableState.ERROR);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESTART", "");
+            jobService.batchUpdateJobStatus(Lists.newArrayList(job.getId()), PROJECT, "RESTART", Lists.newArrayList());
             return null;
         }, PROJECT);
 

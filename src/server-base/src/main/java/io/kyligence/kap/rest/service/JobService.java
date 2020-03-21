@@ -514,62 +514,69 @@ public class JobService extends BasicService {
         return result;
     }
 
-    private void batchUpdateJobStatus0(List<String> jobIds, String project, String action, String filterStatus)
+    private void batchUpdateJobStatus0(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
-        Preconditions.checkNotNull(project);
-        Preconditions.checkNotNull(jobIds);
-
-        val executableManager = getExecutableManager(project);
-        JobStatusEnum jobStatus = JobStatusEnum.getByName(filterStatus);
-        ExecutableState executableState = Objects.isNull(jobStatus) ? null : parseToExecutableState(jobStatus);
-        val jobs = executableManager.getExecutablesByStatus(jobIds, executableState);
+        val jobs = getJobsByStatus(project, jobIds, filterStatuses);
         for (val job : jobs) {
             updateJobStatus(job.getId(), project, action);
         }
     }
 
     @Transaction(project = 1)
-    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String filterStatus)
+    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, List<String> filterStatuses)
             throws IOException {
         aclEvaluate.checkProjectOperationPermission(project);
-        batchUpdateJobStatus0(jobIds, project, action, filterStatus);
+        batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
     }
 
-    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, String filterStatus) {
+    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action,  List<String> filterStatuses) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
                 aclEvaluate.checkProjectOperationPermission(project.getName());
-                batchUpdateJobStatus0(jobIds, project.getName(), action, filterStatus);
+                batchUpdateJobStatus0(jobIds, project.getName(), action, filterStatuses);
             }
             return null;
         }, false);
     }
 
-    private void batchDropJob0(String project, List<String> jobIds, String filterStatus) throws IOException {
+    private void batchDropJob0(String project, List<String> jobIds, List<String> filterStatuses) {
+        val jobs = getJobsByStatus(project, jobIds, filterStatuses);
+
+        NExecutableManager executableManager = getExecutableManager(project);
+        jobs.forEach(job -> executableManager.checkJobCanBeDeleted(job.getId()));
+
+        jobs.forEach(job -> dropJob(project, job.getId()));
+    }
+
+    private List<AbstractExecutable> getJobsByStatus(String project, List<String> jobIds, List<String> filterStatuses) {
         Preconditions.checkNotNull(project);
-        Preconditions.checkNotNull(jobIds);
 
         val executableManager = getExecutableManager(project);
-        JobStatusEnum jobStatus = JobStatusEnum.getByName(filterStatus);
-        ExecutableState executableState = Objects.isNull(jobStatus) ? null : parseToExecutableState(jobStatus);
-        val jobs = executableManager.getExecutablesByStatus(jobIds, executableState);
-        for (val job : jobs) {
-            dropJob(project, job.getId());
+        List<ExecutableState> executableStates = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(filterStatuses)) {
+            for (String status : filterStatuses) {
+                JobStatusEnum jobStatus = JobStatusEnum.getByName(status);
+                if (Objects.nonNull(jobStatus)) {
+                    executableStates.add(parseToExecutableState(jobStatus));
+                }
+            }
         }
+
+        return executableManager.getExecutablesByStatus(jobIds, executableStates);
     }
 
     @Transaction(project = 0)
-    public void batchDropJob(String project, List<String> jobIds, String filterStatus) throws IOException {
+    public void batchDropJob(String project, List<String> jobIds, List<String> filterStatuses) throws IOException {
         aclEvaluate.checkProjectOperationPermission(project);
-        batchDropJob0(project, jobIds, filterStatus);
+        batchDropJob0(project, jobIds, filterStatuses);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
-    public void batchDropGlobalJob(List<String> jobIds, String filterStatus) {
+    public void batchDropGlobalJob(List<String> jobIds, List<String> filterStatuses) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
                 aclEvaluate.checkProjectOperationPermission(project.getName());
-                batchDropJob0(project.getName(), jobIds, filterStatus);
+                batchDropJob0(project.getName(), jobIds, filterStatuses);
             }
             return null;
         }, false);

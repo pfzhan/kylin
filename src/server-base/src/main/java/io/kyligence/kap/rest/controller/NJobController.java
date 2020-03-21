@@ -127,16 +127,16 @@ public class NJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> dropJob(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "job_ids", required = false) List<String> jobIds,
-            @RequestParam(value = "status", required = false) String status) throws IOException {
-        checkJobStatus(status);
-        if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
+            @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
+        checkJobStatus(statuses);
+        if (StringUtils.isBlank(project) && CollectionUtils.isEmpty(jobIds)) {
             throw new BadRequestException("At least one job should be selected to delete!");
         }
 
         if (null != project) {
-            jobService.batchDropJob(project, jobIds, status);
+            jobService.batchDropJob(project, jobIds, statuses);
         } else {
-            jobService.batchDropGlobalJob(jobIds, status);
+            jobService.batchDropGlobalJob(jobIds, statuses);
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -145,18 +145,17 @@ public class NJobController extends NBasicController {
     @PutMapping(value = "/status")
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
-        checkJobStatus(jobUpdateRequest.getStatus());
-        if (CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())
-                && StringUtils.isEmpty(jobUpdateRequest.getStatus())) {
+        checkJobStatus(jobUpdateRequest.getStatuses());
+        if (StringUtils.isBlank(jobUpdateRequest.getProject()) && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
             throw new BadRequestException("At least one job should be selected to " + jobUpdateRequest.getAction());
         }
 
         if (!StringUtils.isEmpty(jobUpdateRequest.getProject())) {
             jobService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
-                    jobUpdateRequest.getAction(), jobUpdateRequest.getStatus());
+                    jobUpdateRequest.getAction(), jobUpdateRequest.getStatuses());
         } else {
             jobService.batchUpdateGlobalJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getAction(),
-                    jobUpdateRequest.getStatus());
+                    jobUpdateRequest.getStatuses());
         }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
