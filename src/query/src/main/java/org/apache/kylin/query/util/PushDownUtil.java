@@ -88,6 +88,7 @@ import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.security.AccessDeniedException;
 import org.apache.kylin.query.udf.CalciteNotSupportException;
+import org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 import org.codehaus.commons.compiler.CompileException;
 import org.slf4j.Logger;
@@ -171,6 +172,9 @@ public class PushDownUtil {
                 sql = completed;
             }
         }
+
+        //ref:KE-11848,only quote on push down query
+        sql = DoubleQuotePushDownConverter.convertDoubleQuote(sql);
 
         sql = QueryUtil.massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
 
