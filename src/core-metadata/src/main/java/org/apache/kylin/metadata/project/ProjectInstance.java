@@ -287,8 +287,16 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     }
 
     public void init(KylinConfig config) {
+        init(config, false);
+    }
+
+    public void init(KylinConfig config, boolean copyOverrides) {
         if (name == null)
             name = ProjectInstance.DEFAULT_PROJECT_NAME;
+
+        if (copyOverrides && config instanceof KylinConfigExt) {
+            overrideKylinProps = (LinkedHashMap<String, String>) ((KylinConfigExt) config).getExtendedOverrides();
+        }
 
         if (overrideKylinProps == null) {
             overrideKylinProps = new LinkedHashMap<>();

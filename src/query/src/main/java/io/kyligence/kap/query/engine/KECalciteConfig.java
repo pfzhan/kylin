@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine.meta;
+package io.kyligence.kap.query.engine;
 
 import java.util.Properties;
 
@@ -35,14 +35,19 @@ import org.apache.kylin.common.KylinConfig;
  */
 public class KECalciteConfig extends CalciteConnectionConfigImpl {
 
-    private KECalciteConfig(Properties properties) {
+    static final ThreadLocal<KECalciteConfig> THREAD_LOCAL = new ThreadLocal<>();
+
+    private KylinConfig kylinConfig;
+
+    private KECalciteConfig(Properties properties, KylinConfig kylinConfig) {
         super(properties);
+        this.kylinConfig = kylinConfig;
     }
 
     public static KECalciteConfig fromKapConfig(KylinConfig kylinConfig) {
         Properties props = new Properties();
         props.putAll(kylinConfig.getCalciteExtrasProperties());
-        return new KECalciteConfig(props);
+        return new KECalciteConfig(props, kylinConfig);
     }
 
     @Override
@@ -53,5 +58,13 @@ public class KECalciteConfig extends CalciteConnectionConfigImpl {
     @Override
     public boolean caseSensitive() {
         return false;
+    }
+
+    public boolean exposeComputedColumn() {
+        return kylinConfig.exposeComputedColumn();
+    }
+
+    public static KECalciteConfig current() {
+        return THREAD_LOCAL.get();
     }
 }

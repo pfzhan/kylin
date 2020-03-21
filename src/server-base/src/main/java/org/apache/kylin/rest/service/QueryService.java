@@ -639,7 +639,9 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
-        return new QueryExec(project, KylinConfig.getInstanceFromEnv());
+        KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
+                .getConfig();
+        return new QueryExec(project, projectKylinConfig);
     }
 
     public Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(SQLRequest sqlRequest,

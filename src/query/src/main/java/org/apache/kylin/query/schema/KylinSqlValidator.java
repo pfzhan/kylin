@@ -41,6 +41,7 @@
  */
 package org.apache.kylin.query.schema;
 
+import io.kyligence.kap.query.engine.KECalciteConfig;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -48,7 +49,6 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlInsert;
 import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
-import org.apache.kylin.common.KapConfig;
 
 import io.kyligence.kap.common.obf.IKeep;
 
@@ -67,7 +67,7 @@ public class KylinSqlValidator extends SqlValidatorImpl implements IKeep {
         if ((field instanceof KylinRelDataTypeFieldImpl)
                 && KylinRelDataTypeFieldImpl.ColumnType.CC_FIELD == ((KylinRelDataTypeFieldImpl) field)
                         .getColumnType()) {
-            return KapConfig.getInstanceFromEnv().exposeComputedColumnInSelectStar();
+            return KECalciteConfig.current().exposeComputedColumn();
         }
         return true;
     }

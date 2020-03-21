@@ -26,6 +26,7 @@ import java.io.File
 import java.nio.file.Paths
 import java.sql.SQLException
 
+import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kylin.common.{KapConfig, KylinConfig}
@@ -61,7 +62,8 @@ class KylinSession(
   def singleQuery(sql: String, project: String): DataFrame = {
     val prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE")
     try {
-      val queryExec = new QueryExec(project, KylinConfig.getInstanceFromEnv)
+      val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig;
+      val queryExec = new QueryExec(project, projectKylinConfig)
       val convertedSql =
         QueryUtil.massageSql(sql, project, 0, 0, queryExec.getSchema, true)
       queryExec.executeQuery(convertedSql)

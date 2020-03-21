@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.query.mockup;
 import java.sql.SQLException;
 import java.util.Collection;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -62,7 +63,9 @@ public class MockupQueryExecutor extends AbstractQueryExecutor {
 
         try {
             // execute and discard the result data
-            QueryExec queryExec = new QueryExec(projectName, KylinConfig.getInstanceFromEnv());
+            KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getProject(projectName).getConfig();
+            QueryExec queryExec = new QueryExec(projectName, projectKylinConfig);
             queryExec.executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, queryExec.getSchema(), true));
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);

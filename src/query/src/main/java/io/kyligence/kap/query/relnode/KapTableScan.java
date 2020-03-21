@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import io.kyligence.kap.query.engine.KECalciteConfig;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -129,7 +130,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
                 // 1. col with _KY_
                 // 2. CC col when exposeComputedColumn config is set to false
                 if (!tblColRef.getName().startsWith("_KY_") && !(tblColRef.getColumnDesc().isComputedColumn()
-                        && !KapConfig.getInstanceFromEnv().exposeComputedColumnInSelectStar())) {
+                        && !KECalciteConfig.current().exposeComputedColumn())) {
                     context.allColumns.add(tblColRef);
                 }
             }

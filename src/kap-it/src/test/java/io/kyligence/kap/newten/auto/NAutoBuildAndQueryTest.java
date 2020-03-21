@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Throwables;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
@@ -153,7 +154,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Ignore("For development")
     public void testTemp() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
-        overwriteSystemProp("kap.query.expose-computed-column", "FALSE");
+        overwriteSystemProp("kap.query.metadata.expose-computed-column", "FALSE");
         Set<String> exclusionList = Sets.newHashSet();
         overwriteSystemProp("calcite.debug", "true");
         new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/temp").execute();
@@ -179,9 +180,18 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testCCWithSelectStar() throws Exception {
-        overwriteSystemProp("kap.query.expose-computed-column", "TRUE");
-        new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1).execute();
-        new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4).execute();
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig().exposeComputedColumn();
+        projectManager.updateProject(getProject(), copyForWrite ->
+                copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", "TRUE"));
+        try {
+            new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1).execute();
+            new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4).execute();
+        } finally {
+            projectManager.updateProject(getProject(), copyForWrite ->
+                    copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", String.valueOf(exposeComputedColumnConfBefore)));
+
+        }
     }
 
     @Test

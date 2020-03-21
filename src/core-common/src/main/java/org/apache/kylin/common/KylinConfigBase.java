@@ -532,7 +532,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     /**
-     * expose computed column in the table metadata
+     * expose computed column in the table metadata and select * queries
      * @return
      */
     public boolean exposeComputedColumn() {

@@ -134,7 +134,6 @@ public class ComputedColumnDesc implements Serializable {
 
     /**
      * check if a column name starts with "_CC_"
-     * note that this checking is only valid with config 'kap.query.expose-computed-column=false'
      * @param columnName
      * @return
      */

@@ -856,11 +856,4 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.storage.monitor-spark-period-seconds", "30"));
     }
 
-    /**
-     * expose computed column
-     * @return
-     */
-    public Boolean exposeComputedColumnInSelectStar() {
-        return Boolean.parseBoolean(config.getOptional("kap.query.expose-computed-column", FALSE));
-    }
 }

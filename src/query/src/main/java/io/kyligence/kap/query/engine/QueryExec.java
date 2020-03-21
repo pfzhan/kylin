@@ -51,7 +51,6 @@ import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
 import io.kyligence.kap.query.engine.exec.calcite.CalciteQueryPlanExec;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
-import io.kyligence.kap.query.engine.meta.KECalciteConfig;
 import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
 
@@ -61,7 +60,7 @@ import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
 public class QueryExec {
 
     private final KylinConfig kylinConfig;
-    private final CalciteConnectionConfig config;
+    private final KECalciteConfig config;
     private final RelOptPlanner planner;
     private final ProjectSchemaFactory schemaFactory;
     private final Prepare.CatalogReader catalogReader;
@@ -88,7 +87,7 @@ public class QueryExec {
      */
     public QueryResult executeQuery(String sql) throws SQLException {
         try {
-            Prepare.CatalogReader.THREAD_LOCAL.set(catalogReader);
+            beforeQuery();
 
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
 
@@ -101,7 +100,7 @@ public class QueryExec {
         } catch (Exception e) {
             throw newSqlException(sql, e.getMessage(), e);
         } finally {
-            Prepare.CatalogReader.THREAD_LOCAL.remove();
+            afterQuery();
         }
     }
 
@@ -113,7 +112,7 @@ public class QueryExec {
      */
     public List<StructField> getColumnMetaData(String sql) throws SQLException {
         try {
-            Prepare.CatalogReader.THREAD_LOCAL.set(catalogReader);
+            beforeQuery();
 
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
 
@@ -121,8 +120,18 @@ public class QueryExec {
         } catch (Exception e) {
             throw new SQLException(e);
         } finally {
-            Prepare.CatalogReader.THREAD_LOCAL.remove();
+            afterQuery();
         }
+    }
+
+    private void beforeQuery() {
+        Prepare.CatalogReader.THREAD_LOCAL.set(catalogReader);
+        KECalciteConfig.THREAD_LOCAL.set(config);
+    }
+
+    private void afterQuery() {
+        Prepare.CatalogReader.THREAD_LOCAL.remove();
+        KECalciteConfig.THREAD_LOCAL.remove();
     }
 
     public void setContextVar(String name, Object val) {

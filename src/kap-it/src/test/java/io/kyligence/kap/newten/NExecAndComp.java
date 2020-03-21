@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -521,7 +522,7 @@ public class NExecAndComp {
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
         String prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE");
         try {
-            QueryExec queryExec = new QueryExec(prj, KylinConfig.getInstanceFromEnv());
+            QueryExec queryExec = new QueryExec(prj, NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
             if (parameters != null) {
                 for (int i = 0; i < parameters.size(); i++) {
                     queryExec.setPrepareParam(i, parameters.get(i));

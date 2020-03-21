@@ -83,7 +83,7 @@ class NLocalQueryRunnerBuilder {
         dumpProj.setName(projectName);
         dumpProj.setDefaultDatabase(
                 NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getDefaultDatabase(projectName));
-        dumpProj.init(KylinConfig.getInstanceFromEnv());
+        dumpProj.init(NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(projectName).getConfig(), true);
         mockupResources.put(dumpProj.getResourcePath(), dumpProj);
 
         NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
