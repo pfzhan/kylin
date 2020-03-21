@@ -32,6 +32,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
@@ -68,7 +69,6 @@ import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import net.sf.ehcache.CacheManager;
 
 @Slf4j
 @Configuration
@@ -87,7 +87,7 @@ public class AppInitializer {
     ClusterManager clusterManager;
 
     @Autowired
-    CacheManager cacheManager;
+    QueryCacheManager queryCacheManager;
 
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
@@ -128,7 +128,7 @@ public class AppInitializer {
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
 
         // register acl update listener
-        EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(cacheManager), "acl");
+        EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
 
         // init influxDB writer and create DB
         try {

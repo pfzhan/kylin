@@ -24,29 +24,26 @@
 
 package io.kyligence.kap.rest.config.initialize;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Ehcache;
 
 public class AclTCRListener implements EventListenerRegistry.ResourceEventListener {
 
     private static final Logger logger = LoggerFactory.getLogger(AclTCRListener.class);
 
-    private final CacheManager cacheManager;
+    private final QueryCacheManager queryCacheManager;
 
-    public AclTCRListener(CacheManager cacheManager) {
-        this.cacheManager = cacheManager;
+    public AclTCRListener(QueryCacheManager queryCacheManager) {
+        this.queryCacheManager = queryCacheManager;
     }
 
     @Override
@@ -75,15 +72,6 @@ public class AclTCRListener implements EventListenerRegistry.ResourceEventListen
     }
 
     private void clearCache(String project) {
-        logger.debug("clear query cache for {}", project);
-        final String suffix = String.format("-%s", project);
-        Optional.ofNullable(cacheManager.getCacheNames()).map(Arrays::stream).orElseGet(Stream::empty)
-                .filter(name -> name.endsWith(suffix)).forEach(cacheName -> {
-                    Ehcache ehcache = cacheManager.getEhcache(cacheName);
-                    if (Objects.isNull(ehcache)) {
-                        return;
-                    }
-                    ehcache.removeAll();
-                });
+        queryCacheManager.clear(project);
     }
 }

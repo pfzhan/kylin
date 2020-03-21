@@ -1309,7 +1309,13 @@ public abstract class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.translated-in-clause-max-size", String.valueOf(1024 * 1024)));
     }
 
-    public int getLargeQueryThreshold() {
+    /**
+     * the threshold for query result caching
+     * query result will only be cached if the result is below the threshold
+     * the size of the result is counted by its cells (rows * columns)
+     * @return
+     */
+    public long getLargeQueryThreshold() {
         return Integer.parseInt(getOptional("kylin.query.large-query-threshold", String.valueOf(1000000)));
     }
 
@@ -1455,7 +1461,10 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public boolean isPushdownQueryCacheEnabled() {
-        return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown.cache-enabled", TRUE));
+        // KAP#12784 disable all push-down caches, even if the pushdown result is cached, it won't be used
+        // Thus this config is set to FALSE by default
+        // you may need to change the default value if the pushdown cache issue KAP#13060 is resolved
+        return Boolean.parseBoolean(this.getOptional("kylin.query.pushdown.cache-enabled", FALSE));
     }
 
     public boolean isAutoSetPushDownPartitions() {

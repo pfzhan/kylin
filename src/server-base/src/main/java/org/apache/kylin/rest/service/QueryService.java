@@ -67,8 +67,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.commons.collections.CollectionUtils;
@@ -103,6 +101,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
@@ -133,7 +132,6 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -165,11 +163,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.val;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-import net.sf.ehcache.Ehcache;
-import net.sf.ehcache.Element;
-import net.sf.ehcache.config.CacheConfiguration;
 
 /**
  * @author xduo
@@ -177,8 +170,6 @@ import net.sf.ehcache.config.CacheConfiguration;
 @Component("queryService")
 public class QueryService extends BasicService {
 
-    public static final String SUCCESS_QUERY_CACHE = "StorageCache";
-    public static final String EXCEPTION_QUERY_CACHE = "ExceptionQueryCache";
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     public static final String UNKNOWN = "Unknown";
     private static final String JDBC_METADATA_SCHEMA = "metadata";
@@ -186,7 +177,7 @@ public class QueryService extends BasicService {
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
 
     @Autowired
-    protected CacheManager cacheManager;
+    private QueryCacheManager queryCacheManager;
 
     @Autowired
     protected AclEvaluate aclEvaluate;
@@ -210,11 +201,6 @@ public class QueryService extends BasicService {
 
     private static String getQueryKeyById(String project, String creator) {
         return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
-    }
-
-    @PostConstruct
-    public void init() throws IOException {
-        Preconditions.checkNotNull(cacheManager, "cacheManager is not injected yet");
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
@@ -441,7 +427,7 @@ public class QueryService extends BasicService {
             }
 
             if (sqlResponse == null && isQueryCacheEnabled) {
-                sqlResponse = searchQueryInCache(sqlRequest);
+                sqlResponse = queryCacheManager.searchQuery(sqlRequest);
                 Trace.addTimelineAnnotation("query cache searched");
             }
 
@@ -495,7 +481,7 @@ public class QueryService extends BasicService {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Message msg = MsgPicker.getMsg();
 
-        SQLResponse sqlResponse = null;
+        SQLResponse sqlResponse;
         try {
             final boolean isSelect = QueryUtil.isSelectStatement(sqlRequest.getSql());
             if (isSelect) {
@@ -509,28 +495,8 @@ public class QueryService extends BasicService {
                 throw new BadRequestException(msg.getNOT_SUPPORTED_SQL());
             }
 
-            long durationThreshold = kylinConfig.getQueryDurationCacheThreshold();
-            long scanCountThreshold = kylinConfig.getQueryScanCountCacheThreshold();
-            long scanBytesThreshold = kylinConfig.getQueryScanBytesCacheThreshold();
-            sqlResponse.setDuration(System.currentTimeMillis() - startTime);
-            if (checkCondition(queryCacheEnabled, "query cache is disabled") //
-                    && checkCondition(!sqlResponse.isException(), "query has exception") //
-                    && checkCondition(
-                            !(sqlResponse.isQueryPushDown()
-                                    && (isSelect == false || kylinConfig.isPushdownQueryCacheEnabled() == false)),
-                            "query is executed with pushdown, but it is non-select, or the cache for pushdown is disabled") //
-                    && checkCondition(
-                            sqlResponse.getDuration() > durationThreshold
-                                    || sqlResponse.getTotalScanRows() > scanCountThreshold
-                                    || sqlResponse.getTotalScanBytes() > scanBytesThreshold, //
-                            "query is too lightweight with duration: {} (threshold {}), scan count: {} (threshold {}), scan bytes: {} (threshold {})",
-                            sqlResponse.getDuration(), durationThreshold, sqlResponse.getTotalScanRows(),
-                            scanCountThreshold, sqlResponse.getTotalScanBytes(), scanBytesThreshold)
-                    && checkCondition(sqlResponse.getResults().size() < kylinConfig.getLargeQueryThreshold(),
-                            "query response is too large: {} ({})", sqlResponse.getResults().size(),
-                            kylinConfig.getLargeQueryThreshold())) {
-                getEhCache(SUCCESS_QUERY_CACHE, sqlRequest.getProject())
-                        .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
+            if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
+                queryCacheManager.cacheSuccessQuery(sqlRequest, sqlResponse);
             }
             Trace.addTimelineAnnotation("response from execution");
         } catch (Throwable e) { // calcite may throw AssertError
@@ -555,8 +521,7 @@ public class QueryService extends BasicService {
 
             if (queryCacheEnabled && e.getCause() != null
                     && ExceptionUtils.getRootCause(e) instanceof ResourceLimitExceededException) {
-                getEhCache(EXCEPTION_QUERY_CACHE, sqlRequest.getProject())
-                        .put(new Element(sqlRequest.getCacheKey(), sqlResponse));
+                queryCacheManager.cacheFailedQuery(sqlRequest, sqlResponse);
             }
             Trace.addTimelineAnnotation("error response");
         }
@@ -593,26 +558,6 @@ public class QueryService extends BasicService {
         }
 
         return "http://" + hostname + ":" + port + "/zipkin/traces/" + Long.toHexString(scope.getSpan().getTraceId());
-    }
-
-    public SQLResponse searchQueryInCache(SQLRequest sqlRequest) {
-        SQLResponse response = null;
-        Ehcache exceptionCache = getEhCache(EXCEPTION_QUERY_CACHE, sqlRequest.getProject());
-        Ehcache successCache = getEhCache(SUCCESS_QUERY_CACHE, sqlRequest.getProject());
-
-        Element element = null;
-        if ((element = exceptionCache.get(sqlRequest.getCacheKey())) != null) {
-            response = (SQLResponse) element.getObjectValue();
-            response.setHitExceptionCache(true);
-        } else if ((element = successCache.get(sqlRequest.getCacheKey())) != null) {
-            response = (SQLResponse) element.getObjectValue();
-            if (QueryCacheSignatureUtil.checkCacheExpired(response, sqlRequest.getProject())) {
-                return null;
-            }
-            response.setStorageCacheUsed(true);
-        }
-
-        return response;
     }
 
     private SQLResponse queryWithSqlMassage(SQLRequest sqlRequest) throws Exception {
@@ -1177,15 +1122,6 @@ public class QueryService extends BasicService {
         }
     }
 
-    private Ehcache getEhCache(String prefix, String project) {
-        final String cacheName = String.format("%s-%s", prefix, project);
-        Ehcache ehcache = cacheManager.getEhcache(cacheName);
-        if (Objects.isNull(ehcache)) {
-            ehcache = cacheManager.addCacheIfAbsent(new Cache(new CacheConfiguration(cacheName, 0)));
-        }
-        return ehcache;
-    }
-
     protected int getInt(String content) {
         try {
             return Integer.parseInt(content);
@@ -1200,10 +1136,6 @@ public class QueryService extends BasicService {
         } catch (Exception e) {
             return -1;
         }
-    }
-
-    public void setCacheManager(CacheManager cacheManager) {
-        this.cacheManager = cacheManager;
     }
 
     private static ResourceStore getStore() {

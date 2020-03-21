@@ -124,6 +124,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.data.QueryResult;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.cluster.DefaultClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
@@ -139,6 +140,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private CacheManager cacheManager = Mockito
             .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache.xml")));
+
+    private QueryCacheManager queryCacheManager = new QueryCacheManager();
 
     private ClusterManager clusterManager = new DefaultClusterManager(8080);
 
@@ -170,8 +173,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
+        ReflectionTestUtils.setField(queryCacheManager, "cacheManager", cacheManager);
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
-        ReflectionTestUtils.setField(queryService, "cacheManager", cacheManager);
+        ReflectionTestUtils.setField(queryService, "queryCacheManager", queryCacheManager);
         ReflectionTestUtils.setField(queryService, "clusterManager", clusterManager);
         Mockito.when(appConfig.getPort()).thenReturn(7070);
         ReflectionTestUtils.setField(queryService, "appConfig", appConfig);
