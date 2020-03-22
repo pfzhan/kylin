@@ -12,7 +12,7 @@
 
     <!-- Only for debug -->
     <properties>
-        <tomcat.version>8.5.31</tomcat.version>
+        <tomcat.version>8.5.51</tomcat.version>
 
     </properties>
 
