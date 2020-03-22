@@ -33,6 +33,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -43,6 +44,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -387,5 +389,22 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
         long completedTaskCount = ((ThreadPoolExecutor) executorService).getCompletedTaskCount()
                 + (mainTaskComplete ? 1 : 0);
         return (float) completedTaskCount / totalTaskCount * 0.9f;
+    }
+
+    protected void awaitDiagPackageTermination(long timeout) throws InterruptedException {
+        try {
+            if (executorService != null && !executorService.awaitTermination(timeout, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+                throw new KylinTimeoutException("diagnosis packaging timeout.");
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            logger.debug("diagnosis main wait for all sub task exit...");
+            long start = System.currentTimeMillis();
+            boolean allSubTaskExit = executorService.awaitTermination(600, TimeUnit.SECONDS);
+            logger.warn("diagnosis main task quit by interrupt , all sub task exit ? {} , waiting for {} ms ",
+                    allSubTaskExit, System.currentTimeMillis() - start);
+            throw e;
+        }
     }
 }

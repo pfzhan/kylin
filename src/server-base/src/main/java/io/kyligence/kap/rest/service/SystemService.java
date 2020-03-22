@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.validation.constraints.NotNull;
@@ -55,6 +56,9 @@ import io.kyligence.kap.tool.AbstractInfoExtractorTool;
 import io.kyligence.kap.tool.DiagClientTool;
 import io.kyligence.kap.tool.JobDiagInfoTool;
 import io.kyligence.kap.tool.MetadataTool;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,9 +66,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SystemService extends BasicService {
 
-    private Cache<String, AbstractInfoExtractorTool> extractorMap = CacheBuilder.newBuilder()
-            .expireAfterAccess(1, TimeUnit.DAYS).build();
-    private Cache<String, File> exportPathMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build();
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DiagInfo {
+        private AbstractInfoExtractorTool extractor;
+        private File exportFile;
+        private Future task;
+    }
+
+    private Cache<String, DiagInfo> diagMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build();
     private Cache<String, DiagStatusResponse> exceptionMap = CacheBuilder.newBuilder()
             .expireAfterAccess(1, TimeUnit.DAYS).build();
     private ExecutorService executorService = Executors.newFixedThreadPool(3);
@@ -96,11 +107,11 @@ public class SystemService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String dumpLocalDiagPackage(String startTime, String endTime, String jobId) throws IOException {
+
         File exportFile = KylinConfigBase.getDiagFileName();
         String uuid = exportFile.getName();
         FileUtils.deleteQuietly(exportFile);
         exportFile.mkdirs();
-        exportPathMap.put(uuid, exportFile);
 
         AbstractInfoExtractorTool extractor;
         String[] arguments;
@@ -116,8 +127,7 @@ public class SystemService extends BasicService {
             extractor = new JobDiagInfoTool();
             arguments = new String[] { "-destDir", exportFile.getAbsolutePath(), "-job", jobId };
         }
-        extractorMap.put(uuid, extractor);
-        executorService.execute(() -> {
+        Future task = executorService.submit(() -> {
             try {
                 exceptionMap.invalidate(uuid);
                 extractor.execute(arguments);
@@ -125,6 +135,7 @@ public class SystemService extends BasicService {
                 handleDiagException(uuid, ex);
             }
         });
+        diagMap.put(uuid, new DiagInfo(extractor, exportFile, task));
         return uuid;
     }
 
@@ -144,7 +155,9 @@ public class SystemService extends BasicService {
         }
         response.setError(cause == null ? ex.getMessage() : cause.getMessage());
         exceptionMap.put(uuid, response);
-        FileUtils.deleteQuietly(exportPathMap.getIfPresent(uuid));
+        DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+        FileUtils.deleteQuietly(diagInfo == null ? null : diagInfo.getExportFile());
+        diagMap.invalidate(uuid);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
@@ -153,11 +166,12 @@ public class SystemService extends BasicService {
         if (exception != null) {
             throw new RuntimeException(exception.getError());
         }
-        val extractor = extractorMap.getIfPresent(uuid);
+        DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+        AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
         if (extractor != null && !extractor.getStage().equals("DONE")) {
             throw new RuntimeException("Diagnostic task is running now , can not download yet");
         }
-        File exportFile = exportPathMap.getIfPresent(uuid);
+        File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
         if (exportFile == null) {
             throw new RuntimeException("ID {" + uuid + "} is not exist");
         }
@@ -196,7 +210,8 @@ public class SystemService extends BasicService {
             exception.setUuid(uuid);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, exception, "");
         }
-        val extractor = extractorMap.getIfPresent(uuid);
+        DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+        AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
         if (extractor == null) {
             throw new RuntimeException("ID {" + uuid + "} is not exist");
         }
@@ -206,5 +221,16 @@ public class SystemService extends BasicService {
         response.setStage(extractor.getStage());
         response.setProgress(extractor.getProgress());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public Boolean stopDiagTask(String uuid) {
+        log.debug("stop diagnostic package task {}", uuid);
+        DiagInfo diagInfo = diagMap.getIfPresent(uuid);
+        Future task = diagInfo == null ? null : diagInfo.getTask();
+        if (task == null) {
+            throw new RuntimeException("ID {" + uuid + "} is not exist");
+        }
+        return task.cancel(true);
     }
 }

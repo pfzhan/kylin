@@ -24,6 +24,9 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -36,17 +39,14 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.response.DiagStatusResponse;
-import io.kyligence.kap.tool.AbstractInfoExtractorTool;
 import io.kyligence.kap.tool.DiagClientTool;
 import lombok.val;
 
@@ -56,9 +56,6 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public TestName testName = new TestName();
-
-    @Mock
-    private RestTemplate restTemplate = Mockito.spy(new RestTemplate());
 
     @InjectMocks
     private SystemService systemService = Mockito.spy(new SystemService());
@@ -78,7 +75,8 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetDiagPackagePath() throws Exception {
-        Cache<String, File> exportPathMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS).build();
+        Cache<String, SystemService.DiagInfo> exportPathMap = CacheBuilder.newBuilder()
+                .expireAfterAccess(1, TimeUnit.DAYS).build();
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
         File uuid = new File(mainDir, "uuid");
@@ -86,21 +84,42 @@ public class SystemServiceTest extends NLocalFileMetadataTestCase {
         date.mkdirs();
         File zipFile = new File(date, "diag.zip");
         zipFile.createNewFile();
-        exportPathMap.put("test2", uuid);
-        ReflectionTestUtils.setField(systemService, "exportPathMap", exportPathMap);
+        SystemService.DiagInfo diagInfo = new SystemService.DiagInfo();
+        diagInfo.setExportFile(uuid);
+        exportPathMap.put("test2", diagInfo);
+        ReflectionTestUtils.setField(systemService, "diagMap", exportPathMap);
         val result = systemService.getDiagPackagePath("test2");
         Assert.assertTrue(result.endsWith("diag.zip"));
     }
 
     @Test
     public void testGetExtractorStatus() throws Exception {
-        Cache<String, AbstractInfoExtractorTool> extractorMap = CacheBuilder.newBuilder()
+        Cache<String, SystemService.DiagInfo> extractorMap = CacheBuilder.newBuilder()
                 .expireAfterAccess(1, TimeUnit.DAYS).build();
         DiagClientTool diagClientTool = new DiagClientTool();
-        extractorMap.put("test1", diagClientTool);
-        ReflectionTestUtils.setField(systemService, "extractorMap", extractorMap);
+        SystemService.DiagInfo diagInfo = new SystemService.DiagInfo();
+        diagInfo.setExtractor(diagClientTool);
+        extractorMap.put("test1", diagInfo);
+        ReflectionTestUtils.setField(systemService, "diagMap", extractorMap);
         val result = systemService.getExtractorStatus("test1");
         Assert.assertEquals("PREPARE", ((DiagStatusResponse) result.getData()).getStage());
+    }
+
+    @Test
+    public void testStopDiagTask() throws Exception {
+        String uuid = "test3";
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        Future task = executorService.submit(() -> {
+        });
+        task.get();
+        Cache<String, SystemService.DiagInfo> futureMap = CacheBuilder.newBuilder().expireAfterAccess(1, TimeUnit.DAYS)
+                .build();
+        SystemService.DiagInfo diagInfo = new SystemService.DiagInfo();
+        diagInfo.setTask(task);
+        futureMap.put(uuid, diagInfo);
+        ReflectionTestUtils.setField(systemService, "diagMap", futureMap);
+        val result = systemService.stopDiagTask(uuid);
+        Assert.assertFalse(result);
     }
 
 }

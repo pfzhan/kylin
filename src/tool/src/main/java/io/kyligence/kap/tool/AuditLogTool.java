@@ -225,6 +225,9 @@ public class AuditLogTool extends ExecutableApplication {
         long fromId = 0L;
         try (JdbcAuditLogStore auditLogStore = new JdbcAuditLogStore(kylinConfig)) {
             while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("audit log task is interrupt");
+                }
                 List<AuditLog> auditLogs = auditLogStore.fetchRange(fromId, startTs, endTs, BATCH_SIZE);
                 if (CollectionUtils.isEmpty(auditLogs)) {
                     break;

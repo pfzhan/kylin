@@ -49,6 +49,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -187,6 +188,11 @@ public class CliCommandExecutor {
                 if (logAppender != null) {
                     logAppender.log(line);
                 }
+                if (Thread.currentThread().isInterrupted()) {
+                    String msg = Arrays.toString(cmd) + " is interrupt";
+                    logger.warn(msg);
+                    throw new InterruptedException(msg);
+                }
             }
 
             try {
@@ -197,6 +203,7 @@ public class CliCommandExecutor {
                 }
                 return Pair.newPair(exitCode, b);
             } catch (InterruptedException e) {
+                logger.warn("thread is interrupt", e);
                 Thread.currentThread().interrupt();
                 throw e;
             }

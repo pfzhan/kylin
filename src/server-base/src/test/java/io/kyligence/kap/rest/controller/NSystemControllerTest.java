@@ -156,4 +156,14 @@ public class NSystemControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nSystemController).remoteDownloadPackage(Mockito.anyString(), Mockito.anyString(), Mockito.any(),
                 Mockito.any());
     }
+
+    @Test
+    public void testRemoteStopPackage() throws Exception {
+        Mockito.doAnswer(x -> null).when(nSystemController).generateTaskForRemoteHost(Mockito.any(),
+                Mockito.anyString());
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/system/diag").contentType(MediaType.APPLICATION_JSON)
+                .param("host", "ip").param("id", "id").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nSystemController).remoteStopPackage(Mockito.anyString(), Mockito.anyString(), Mockito.any());
+    }
 }

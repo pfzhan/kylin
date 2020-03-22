@@ -45,6 +45,7 @@ import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -210,6 +211,18 @@ public class NSystemController extends NBasicController {
         } else {
             String url = host + "/kylin/api/system/diag?id=" + id;
             downloadFromRemoteHost(request, url, response);
+        }
+    }
+
+    @DeleteMapping(value = "/diag")
+    @ResponseBody
+    public EnvelopeResponse<Boolean> remoteStopPackage(@RequestParam(value = "host", required = false) String host,
+            @RequestParam(value = "id") String id, final HttpServletRequest request) throws Exception {
+        if (StringUtils.isEmpty(host)) {
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, systemService.stopDiagTask(id), "");
+        } else {
+            String url = host + "/kylin/api/system/diag?id=" + id;
+            return generateTaskForRemoteHost(request, url);
         }
     }
 

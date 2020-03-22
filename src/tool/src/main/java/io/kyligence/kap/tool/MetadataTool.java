@@ -277,6 +277,9 @@ public class MetadataTool extends ExecutableApplication {
                     }
                     // The "_global" directory is already included in the full backup
                     copyResourceStore(projectPath, resourceStore, backupResourceStore, false, excludeTableExd);
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException("metadata task is interrupt");
+                    }
                 }
                 val auditLogStore = resourceStore.getAuditLogStore();
                 val offset = auditLogStore.getMaxId();
@@ -300,10 +303,11 @@ public class MetadataTool extends ExecutableApplication {
                                 uuid.getTimestamp(), -1);
                         return null;
                     }).build());
-
+            if (Thread.currentThread().isInterrupted()) {
+                throw new InterruptedException("metadata task is interrupt");
+            }
             log.info("start to backup project {}", project);
         }
-
         backupMetadataStore.dump(backupResourceStore);
         log.info("backup successfully at {}", path);
     }

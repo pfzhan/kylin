@@ -26,12 +26,10 @@ package io.kyligence.kap.tool;
 import java.io.File;
 import java.util.Set;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.slf4j.Logger;
@@ -220,10 +218,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         });
 
         executorService.shutdown();
-        if (!executorService.awaitTermination(getKapConfig().getDiagPackageTimeout(), TimeUnit.SECONDS)) {
-            logger.info("diag diagnosis packaging timeout.");
-            throw new KylinTimeoutException("diag diagnosis packaging timeout.");
-        }
+        awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
 
         // export logs
         logger.info("Start to extract log files.");

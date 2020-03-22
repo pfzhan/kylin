@@ -23,19 +23,6 @@
  */
 package io.kyligence.kap.tool;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.tool.util.ToolUtil;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.Pair;
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -49,6 +36,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.Pair;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.tool.util.ToolUtil;
 
 public class KylinLogTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -340,6 +342,9 @@ public class KylinLogTool {
             }
 
             for (FileStatus fileStatus : fileStatuses) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException("spark log task is interrupt");
+                }
                 fs.copyToLocalFile(false, fileStatus.getPath(), new Path(sparkLogsDir.getAbsolutePath()), true);
             }
         } catch (Exception e) {
@@ -398,6 +403,9 @@ public class KylinLogTool {
 
             DateTime date = new DateTime(startTime).withTimeAtStartOfDay();
             while (date.getMillis() <= (endTime + DAY - 1)) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("sparder log task is interrupt");
+                }
                 String hdfsPath = ToolUtil.getSparderLogsDir() + '/' + date.toString("yyyy-MM-dd");
                 FileSystem fs = HadoopUtil.getWorkingFileSystem();
                 if (fs.exists(new Path(hdfsPath))) {
