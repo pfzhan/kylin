@@ -101,6 +101,7 @@ exports.default = {
     saveSuccess: 'Saved successfully.',
     cloneSuccess: 'Cloned successfully.',
     delSuccess: 'Deleted successfully.',
+    mergeSuccess: 'Merge successfully',
     markSuccess: 'Mark successfully.',
     backupSuccess: 'Back up successfully.',
     updateSuccess: 'Updated successfully.',

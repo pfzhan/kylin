@@ -135,10 +135,14 @@ export default {
     return Vue.resource(apiUrl + 'index_plans/table_index').save(para)
   },
   refreshSegments: (modelId, project, ids) => {
-    return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids })
+    return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'REFRESH' })
   },
   deleteSegments: (model, project, ids) => {
     return Vue.resource(`${apiUrl}models/${model}/segments/?project=${project}&purge=false`).delete({ ids })
+  },
+  // merge segment
+  mergeSegments: (modelId, project, ids) => {
+    return Vue.resource(apiUrl + 'models/' + modelId + '/segments').update({ project, ids, type: 'MERGE' })
   },
   // 弃用
   modelDataCheck: (para) => {

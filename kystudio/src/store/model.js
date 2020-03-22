@@ -212,6 +212,9 @@ export default {
     [types.REFRESH_SEGMENTS] ({ commit }, params) {
       return api.model.refreshSegments(params.modelId, params.projectName, params.segmentIds)
     },
+    [types.MERGE_SEGMENTS] (_, params) {
+      return api.model.mergeSegments(params.modelId, params.projectName, params.segmentIds)
+    },
     [types.GET_AGG_CUBOIDS] ({ commit }, params) {
       return api.model.getCalcCuboids(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.globalDimCap)
     },

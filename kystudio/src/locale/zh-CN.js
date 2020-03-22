@@ -100,6 +100,7 @@ exports.default = {
     saveSuccess: '保存成功。',
     cloneSuccess: '克隆成功。',
     delSuccess: '删除成功。',
+    mergeSuccess: '合并成功。',
     markSuccess: '标记成功。',
     backupSuccess: '备份成功。',
     updateSuccess: '更新成功。',

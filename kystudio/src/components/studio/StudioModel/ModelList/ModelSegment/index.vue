@@ -2,10 +2,10 @@
   <div class="model-segment">
     <div class="segment-actions clearfix">
       <div class="left ky-no-br-space" v-if="isShowSegmentActions">
-        <el-button size="small" type="primary" :disabled="!selectedSegments.length" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
-        <!-- <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button> -->
-        <el-button size="small" type="default" :disabled="!selectedSegments.length" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        <el-button size="small" type="default" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        <el-button size="small" icon="el-icon-ksd-table_refresh" type="primary" :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button size="small" icon="el-icon-ksd-merge" type="default" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')" @click="handleMergeSegment">{{$t('merge')}}</el-button>
+        <el-button size="small" icon="el-icon-ksd-table_delete" type="default" :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="small" icon="el-icon-ksd-clear" type="default" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
         <el-button size="small" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
       </div>
       <div class="right">
@@ -49,6 +49,11 @@
         <el-table-column prop="id" label="Segment ID">
         </el-table-column>
         <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="114">
+          <template slot-scope="scope">
+            <el-tooltip :content="$t(scope.row.status)" effect="dark" placement="top">
+              <el-tag size="mini" :type="getTagType(scope.row)">{{scope.row.status}}</el-tag>
+            </el-tooltip>
+          </template>
         </el-table-column>
         <el-table-column :label="$t('storageSize')" width="145" align="right" prop="storage" sortable="custom">
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
@@ -143,6 +148,7 @@ import { formatSegments } from './handler'
       fetchSegments: 'FETCH_SEGMENTS',
       refreshSegments: 'REFRESH_SEGMENTS',
       deleteSegments: 'DELETE_SEGMENTS',
+      mergeSegments: 'MERGE_SEGMENTS',
       checkSegments: 'CHECK_SEGMENTS'
     }),
     ...mapActions('SourceTableModal', {
@@ -197,6 +203,29 @@ export default class ModelSegment extends Vue {
     this.$on('refresh', () => {
       this.loadSegments()
     })
+  }
+  // 更改不同状态对应不同type
+  getTagType (row) {
+    if (row.status === 'ONLINE') {
+      return 'success'
+    } else if (['LOCKED'].includes(row.status)) {
+      return 'info'
+    } else {
+      return ''
+    }
+  }
+  // 状态控制按钮的使用
+  hasEventAuthority (type) {
+    let typeList = (type) => {
+      return this.selectedSegments.length && typeof this.selectedSegments[0] !== 'undefined' ? this.selectedSegments.filter(it => !type.includes(it.status)).length > 0 : false
+    }
+    if (type === 'refresh') {
+      return typeList(['ONLINE'])
+    } else if (type === 'merge') {
+      return typeList(['ONLINE'])
+    } else if (type === 'delete') {
+      return typeList(['ONLINE', 'LOADING', 'REFRESHING', 'MERGING'])
+    }
   }
   getStartDateLimit (time) {
     return this.filter.endDate ? time.getTime() > this.filter.endDate.getTime() : false
@@ -258,15 +287,33 @@ export default class ModelSegment extends Vue {
       }
     } catch (e) {
       handleError(e)
+      this.loadSegments()
     }
   }
   async handleMergeSegment () {
     try {
-      const projectName = this.currentSelectedProject
-      const model = this.model
-      await this.callSourceTableModal({ editType: 'dataMerge', model, projectName })
+      const segmentIds = this.selectedSegmentIds
+      if (!segmentIds.length) {
+        this.$message(this.$t('pleaseSelectSegments'))
+      } else {
+        const projectName = this.currentSelectedProject
+        const modelId = this.model.uuid
+        await this.callGlobalDetailDialog({
+          msg: this.$t('confirmMergeSegments', {count: segmentIds.length}),
+          title: this.$t('mergeSegmentTip'),
+          details: segmentIds,
+          dialogType: 'warning'
+        })
+        // 合并segment
+        const isSubmit = await this.mergeSegments({ projectName, modelId, segmentIds })
+        if (isSubmit) {
+          await this.loadSegments()
+          this.$message({ type: 'success', message: this.$t('kylinLang.common.mergeSuccess') })
+        }
+      }
     } catch (e) {
       handleError(e)
+      this.loadSegments()
     }
   }
   async handleDeleteSegment () {
@@ -308,6 +355,7 @@ export default class ModelSegment extends Vue {
       }
     } catch (e) {
       e !== 'cancel' && handleError(e)
+      this.loadSegments()
     }
   }
   handleShowDetail (segment) {
