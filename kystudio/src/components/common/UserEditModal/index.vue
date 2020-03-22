@@ -92,6 +92,7 @@ import locales from './locales'
 import store, { types } from './store'
 import { fieldVisiableMaps, titleMaps, getSubmitData } from './handler'
 import { validate, validateTypes, handleError } from '../../../util'
+import { Base64 } from 'js-base64'
 
 const { USERNAME, PASSWORD, CONFIRM_PASSWORD } = validateTypes
 
@@ -211,6 +212,14 @@ export default class UserEditModal extends Vue {
     try {
       // 获取Form格式化后的递交数据
       const data = getSubmitData(this)
+      // Base64加密密码
+      if (this.editType === 'password') {
+        data.new_password = Base64.encode(data.new_password)
+        data.password = Base64.encode(data.password)
+      }
+      if (this.editType === 'new') {
+        data.detail.password = Base64.encode(data.detail.password)
+      }
       // 验证表单
       await this.$refs['form'].validate()
       // 针对不同的模式，发送不同的请求
