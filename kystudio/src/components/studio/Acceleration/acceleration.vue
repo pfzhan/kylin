@@ -220,7 +220,7 @@
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button plain @click="cancelRuleSetting" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-        @click="saveRuleSetting" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
+        @click="saveRuleSetting" type="primary" size="medium" :loading="updateLoading">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
 

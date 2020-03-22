@@ -43,7 +43,7 @@
       <update_license v-if="updateLicenseVisible" ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess" @requestLicense="apply"></update_license>
       <div slot="footer" class="dialog-footer">
         <el-button plain size="medium" @click="resetUpdate">{{$t('cancel')}}</el-button>
-        <el-button size="medium" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -61,7 +61,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button plain size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
-        <el-button @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 

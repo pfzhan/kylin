@@ -56,7 +56,7 @@
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" :disabled="stepLocked || isLoading" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
-      <el-button size="medium" :disabled="stepLocked" :key="editType" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
+      <el-button type="primary" size="medium" :disabled="stepLocked" :key="editType" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
   </el-dialog>
 </template>

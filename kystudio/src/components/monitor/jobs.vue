@@ -300,7 +300,7 @@
         <kap-pager :totalSize="waitingJob.jobsSize" :curPage="waittingJobsFilter.offset+1" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
+        <el-button type="primary" size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
       </span>
     </el-dialog>
     <el-dialog

@@ -39,7 +39,7 @@
     </div>
     <span slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" @click="submit">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" size="medium" @click="submit">{{$t('kylinLang.common.ok')}}</el-button>
     </span>
   </el-dialog>
 </template>

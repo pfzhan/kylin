@@ -54,7 +54,7 @@
     <span slot="footer" class="dialog-footer">
       <!-- <el-button @click="delConn" v-if="currentConnObj" size="medium" class="ksd-fleft">{{$t('delConn')}}</el-button> -->
       <el-button plain @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button v-guide.saveJoinBtn size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-guide.saveJoinBtn size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
     </span>
   </el-dialog>
 </template>

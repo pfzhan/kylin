@@ -283,7 +283,7 @@
       <div class="right">
         <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" @click="checkCuboids(true)" :loading="calcLoading">{{$t('checkIndexAmount')}}<el-tooltip placement="top" :content="$t('checkIndexAmountBtnTips')"><i class="plainWhat el-icon-ksd-what ksd-ml-5"></i></el-tooltip></el-button>
-        <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
   </el-dialog>
@@ -303,7 +303,7 @@
     <div slot="footer" class="dialog-footer ky-no-br-space clearfix">
       <el-button plain size="medium" @click="handleCloseConfirm">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" v-guide.setAggIndexConfitmBtn v-if="isShowBuildAndConfirm" @click="confirmSubmit(true)">{{$t('bulidAndSubmit')}}</el-button>
-      <el-button size="medium" @click="confirmSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" size="medium" @click="confirmSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </div>

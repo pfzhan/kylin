@@ -75,7 +75,7 @@
             </div>
             <span slot="footer" class="dialog-footer">
               <el-button plain @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button><el-button
-               @click="resubmit" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
+               @click="resubmit" type="primary" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
             </span>
           </el-dialog>
         </div>

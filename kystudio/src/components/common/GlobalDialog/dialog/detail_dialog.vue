@@ -83,7 +83,7 @@
       <template v-else>
         <el-button plain v-if="needResolveCancel" @click="handleCloseAndResove">{{cancelT}}</el-button>
         <el-button plain v-else @click="handleClose">{{cancelT}}</el-button>
-        <el-button :loading="loading" @click="handleSubmit">{{submitT}}</el-button>
+        <el-button type="primary" :loading="loading" @click="handleSubmit">{{submitT}}</el-button>
       </template>
     </div>
   </el-dialog>

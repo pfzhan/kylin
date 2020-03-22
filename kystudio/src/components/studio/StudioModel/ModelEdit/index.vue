@@ -480,7 +480,7 @@
       </div>
       <span slot="footer" class="dialog-footer" v-if="gotoIndexdialogVisible">
         <el-button plain @click="ignoreAddIndex">{{$t('ignoreaddIndexTip')}}</el-button>
-        <el-button @click="willAddIndex" v-guide.willAddIndex>{{$t('addIndexTip')}}</el-button>
+        <el-button type="primary" @click="willAddIndex" v-guide.willAddIndex>{{$t('addIndexTip')}}</el-button>
       </span>
     </el-dialog>
   </div>

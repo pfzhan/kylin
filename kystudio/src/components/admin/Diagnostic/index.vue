@@ -97,7 +97,7 @@
         </div>
       </el-popover>
       <el-button v-popover="'closePopover'" plain size="medium" @click="handleClose">{{$t('kylinLang.common.close')}}</el-button>
-      <el-button size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length || isManualDownload">{{$t('generateBtn')}}</el-button>
+      <el-button type="primary" size="medium" @click="generateDiagnostic" :loading="isRunning" :disabled="getDateTimeValid || !servers.length || isManualDownload">{{$t('generateBtn')}}</el-button>
     </div>
   </el-dialog>
 </template>

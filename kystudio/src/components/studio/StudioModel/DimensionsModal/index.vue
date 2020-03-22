@@ -250,7 +250,7 @@
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" v-guide.saveBatchDimensionBtn :disabled="allColumnsCount(true) <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" size="medium" v-guide.saveBatchDimensionBtn :disabled="allColumnsCount(true) <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>

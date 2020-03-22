@@ -55,7 +55,7 @@
       <license v-if="hasLicense" ref="licenseEnter" v-on:validSuccess="licenseValidSuccess" @requestLicense="apply"></license>
       <div slot="footer" class="dialog-footer">
         <el-button plain size="medium" @click="closeDialog" name="cancelUpdate">{{$t('cancel')}}</el-button>
-        <el-button size="medium" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" size="medium" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -75,7 +75,7 @@
       <span slot="footer" class="dialog-footer">
         <div>
           <a class="el-button  el-button--primary el-button--medium is-plain" style="text-decoration:none;" href="mailto:info@kyligence.io">{{$t('kylinLang.common.contactTech')}}</a>
-          <el-button size="medium" type="primary" plain @click="handleClose">{{$t('kylinLang.common.IKnow')}}</el-button>
+          <el-button size="medium" type="primary" @click="handleClose">{{$t('kylinLang.common.IKnow')}}</el-button>
         </div>
       </span>
     </el-dialog>
@@ -94,7 +94,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button plain size="medium" @click="closeApplyLicense">{{$t('cancel')}}</el-button>
-        <el-button @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" @click="submitApply" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
   </div>

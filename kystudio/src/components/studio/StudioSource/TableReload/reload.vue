@@ -42,7 +42,7 @@
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" :loading="reloadLoading" @click="submit">{{$t('reloadBtn')}}</el-button>
-      <el-button v-if="checkData && (('add_layouts_count' in checkData && checkData.add_layouts_count) || ('refresh_layouts_count' in checkData && checkData.refresh_layouts_count))" size="medium" :loading="reloadLoading1" @click="submit('refreshIndex')">{{$t('reloadAndRefresh')}}</el-button>
+      <el-button type="primary" v-if="checkData && (('add_layouts_count' in checkData && checkData.add_layouts_count) || ('refresh_layouts_count' in checkData && checkData.refresh_layouts_count))" size="medium" :loading="reloadLoading1" @click="submit('refreshIndex')">{{$t('reloadAndRefresh')}}</el-button>
     </div>
   </el-dialog>
 </template>

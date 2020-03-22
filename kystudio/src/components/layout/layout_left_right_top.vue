@@ -140,7 +140,7 @@
       <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
       <span slot="footer" class="dialog-footer">
         <el-button plain @click="getLicense">{{$t('applayLisence')}}</el-button>
-        <el-button @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
+        <el-button type="primary" @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
       </span>
     </el-dialog>
     <!-- 全局apply favorite query -->
@@ -158,7 +158,7 @@
       </el-row>
       <div slot="footer" class="dialog-footer">
         <el-button plain size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
-        <el-button size="medium" @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
+        <el-button type="primary" size="medium" @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
       </div>
     </el-dialog>
 

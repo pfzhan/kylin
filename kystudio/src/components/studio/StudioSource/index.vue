@@ -70,7 +70,7 @@
         </div>
         <span slot="footer" class="dialog-footer ky-no-br-space">
           <el-button plain @click="cancelSample" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button @click="submitSample" size="medium" :disabled="!!errorMsg" :loading="sampleLoading">{{$t('kylinLang.common.submit')}}</el-button>
+          <el-button type="primary" @click="submitSample" size="medium" :disabled="!!errorMsg" :loading="sampleLoading">{{$t('kylinLang.common.submit')}}</el-button>
         </span>
       </el-dialog>
 
@@ -86,7 +86,7 @@
         <span slot="footer" class="dialog-footer ky-no-br-space">
           <el-button plain size="medium" @click="isDelAllDepVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button plain size="medium" :loading="delAllLoading" @click="handelDeleteTable(true)">{{$t('deleteAll')}}</el-button>
-          <el-button size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('deleteTable')}}</el-button>
+          <el-button type="primary" size="medium" :loading="delLoading" @click="handelDeleteTable(false)">{{$t('deleteTable')}}</el-button>
         </span>
       </el-dialog>
     </div>

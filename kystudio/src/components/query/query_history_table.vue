@@ -576,7 +576,7 @@ export default class QueryHistoryTable extends Vue {
             </div>
             <div class="latency-filter-footer">
               <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
-              <el-button type="primary" onClick={this.saveLatencyRange} plain size="small">{this.$t('kylinLang.common.save')}</el-button>
+              <el-button type="primary" onClick={this.saveLatencyRange} size="small">{this.$t('kylinLang.common.save')}</el-button>
             </div>
             <i class="el-icon-ksd-data_range isFilter" onClick={e => (e.stopPropagation())} slot="reference"></i>
           </el-popover>
@@ -609,7 +609,7 @@ export default class QueryHistoryTable extends Vue {
           </div>
           <div class="latency-filter-footer">
             <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
-            <el-button type="primary" onClick={this.saveLatencyRange} plain size="small">{this.$t('kylinLang.common.save')}</el-button>
+            <el-button type="primary" onClick={this.saveLatencyRange} size="small">{this.$t('kylinLang.common.save')}</el-button>
           </div>
           <i class="el-icon-ksd-data_range" onClick={e => (e.stopPropagation())} slot="reference"></i>
         </el-popover>
