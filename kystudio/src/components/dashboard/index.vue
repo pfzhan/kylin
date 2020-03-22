@@ -89,8 +89,7 @@
           </div>
         </el-col>
       </el-row>
-      <hr class="divider"/>
-      <div class="clearfix ksd-mb-10">
+      <div class="clearfix ksd-mb-10 ksd-mt-20">
         <div class="ksd-fleft">
           <el-date-picker v-model="daterange"
             type="daterange"

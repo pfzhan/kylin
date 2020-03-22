@@ -752,11 +752,11 @@ export default class QueryHistoryTable extends Vue {
   @import '../../assets/styles/variables.less';
   #queryHistoryTable {
     margin-top: 20px;
-    table.ksd-table{
+    /* table.ksd-table{
       tr:nth-child(odd){
-        background: @background-disabled-color;
+        background: @table-stripe-color;
       }
-    }
+    } */
     .el-table__expanded-cell {
       padding: 15px;
       .copy-btn {
@@ -782,7 +782,6 @@ export default class QueryHistoryTable extends Vue {
         }
       }
       .detail-content {
-        padding-top: 15px;
         line-height: 1.8;
         .el-col {
           position: relative;

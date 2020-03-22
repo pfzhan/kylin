@@ -1022,7 +1022,7 @@ export default class SourceHive extends Vue {
       position:relative;
       overflow:hidden;
       text-overflow:ellipsis;
-      color: @text-normal-color;
+      color: @text-title-color;
     }
     .table.parent-selected .el-icon-ksd-good_health {
       transform: translate(-16px, -50%);

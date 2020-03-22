@@ -1888,6 +1888,7 @@ export default class ModelEdit extends Vue {
         left:0;
         .ksd-nobr-text {
           width: calc(~'100% - 80px');
+          color:@text-title-color;
         }
         .content-scroll-layout {
           height: 100%;

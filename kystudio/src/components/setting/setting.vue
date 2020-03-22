@@ -177,12 +177,16 @@ export default class Setting extends Vue {
   }
   // setting-item 通用style
   .setting-item {
-    border-bottom: 1px solid @line-split-color;
-    padding: 10px 15px;
+    /* border-bottom: 1px solid @line-split-color; */
+    padding: 7.5px 15px;
     margin: 0;
+    &:first-child{
+      padding-top:10px;
+    }
   }
   .setting-item:last-child {
     border: none;
+    padding-bottom:10px;
   }
   .setting-label {
     margin-right: 10px;

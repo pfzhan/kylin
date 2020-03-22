@@ -414,7 +414,7 @@ export default class StudioSource extends Vue {
   }
   .table-update-at {
     font-size: 12px;
-    color: @text-disabled-color;
+    color: @text-normal-color;
     font-weight: normal;
   }
   .table-header {
