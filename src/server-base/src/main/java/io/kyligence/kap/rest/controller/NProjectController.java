@@ -40,6 +40,7 @@ import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.AclPermissionFactory;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -86,6 +87,9 @@ public class NProjectController extends NBasicController {
             .toCharArray();
 
     @Autowired
+    private AclEvaluate aclEvaluate;
+
+    @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
 
@@ -101,7 +105,8 @@ public class NProjectController extends NBasicController {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
             throw new BadRequestException("Operation failed, unknown permission:" + permission);
         }
-        List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch, permission);
+        List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch,
+                permission);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(projects, offset, size), "");
     }
 
@@ -177,6 +182,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<StorageVolumeInfoResponse> getStorageVolumeInfo(
             @PathVariable(value = "project") String project) {
+        aclEvaluate.checkProjectReadPermission(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project),
                 "");
     }
@@ -253,7 +259,7 @@ public class NProjectController extends NBasicController {
     @PutMapping(value = "/{project:.+}/computed_column_config")
     @ResponseBody
     public EnvelopeResponse<String> updatePushDownConfig(@PathVariable("project") String project,
-                                                         @RequestBody ComputedColumnConfigRequest computedColumnConfigRequest) {
+            @RequestBody ComputedColumnConfigRequest computedColumnConfigRequest) {
         checkRequiredArg("expose_computed_column", computedColumnConfigRequest.getExposeComputedColumn());
         projectService.updateComputedColumnConfig(project, computedColumnConfigRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

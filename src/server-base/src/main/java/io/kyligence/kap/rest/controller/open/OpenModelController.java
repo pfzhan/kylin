@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -235,9 +234,7 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelValidationResponse> answeredByExistedModel(@RequestBody FavoriteRequest request) {
         checkProjectName(request.getProject());
-        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
+        aclEvaluate.checkProjectWritePermission(request.getProject());
 
         Map<String, List<String>> validSqls = Maps.newHashMap();
         List<String> errorSqls = Lists.newArrayList();
@@ -263,10 +260,6 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<BuildIndexResponse> buildIndicesManually(@PathVariable("model_name") String modelAlias,
             @RequestBody BuildIndexRequest request) {
         checkProjectName(request.getProject());
-        if (!aclEvaluate.hasProjectOperationPermission(getProject(request.getProject()))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
-
         String modelId = getModel(modelAlias, request.getProject()).getId();
         return modelController.buildIndicesManually(modelId, request);
     }
@@ -278,9 +271,6 @@ public class OpenModelController extends NBasicController {
             @RequestParam(value = "project") String project, //
             @RequestParam(value = "sources", required = false, defaultValue = "") List<String> sources) {
         checkProjectName(project);
-        if (!aclEvaluate.hasProjectWritePermission(getProject(project))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
 
         String modelId = getModel(modelAlias, project).getId();
 
@@ -363,9 +353,6 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> suggestModels(@RequestBody OpenSqlAccerelateRequest request) {
         checkProjectName(request.getProject());
-        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
 
         request.setForce2CreateNewModel(true);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOROptimizeModels(request), "");
@@ -375,9 +362,6 @@ public class OpenModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<OpenModelSuggestionResponse> optimizeModels(@RequestBody OpenSqlAccerelateRequest request) {
         checkProjectName(request.getProject());
-        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
 
         request.setForce2CreateNewModel(false);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, suggestOROptimizeModels(request), "");
@@ -388,9 +372,6 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<RecommendationStatsResponse> getRecommendationsByProject(
             @RequestParam("project") String project) {
         checkProjectName(project);
-        if (!aclEvaluate.hasProjectWritePermission(getProject(project))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
 
         return modelController.getRecommendationsByProject(project);
     }
@@ -400,9 +381,6 @@ public class OpenModelController extends NBasicController {
     public EnvelopeResponse<String> batchApplyRecommendations(
             @RequestBody OpenBatchApplyRecommendationsRequest request) {
         checkProjectName(request.getProject());
-        if (!aclEvaluate.hasProjectWritePermission(getProject(request.getProject()))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
 
         boolean filterByModels = request.isFilterByModelNames() && request.isFilterByModes();
         if (filterByModels) {

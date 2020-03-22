@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -108,6 +107,7 @@ import org.springframework.web.client.RestTemplate;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
+import io.kyligence.kap.rest.service.ProjectService;
 import lombok.val;
 
 public class NBasicController {

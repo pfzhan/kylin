@@ -55,7 +55,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
@@ -105,6 +104,7 @@ import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.RecommendationType;
+import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
@@ -274,6 +274,12 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Test
     public void testGetStorageVolumeInfoResponse() {
         prepareLayoutHitCount();
+        String error = "do not use aclEvalute in getStorageVolumeInfoResponse, because backend thread would invoke this method in (BootstrapCommand.class)";
+        Mockito.doThrow(new RuntimeException(error)).when(aclEvaluate).checkProjectReadPermission(Mockito.any());
+        Mockito.doThrow(new RuntimeException(error)).when(aclEvaluate).checkProjectOperationPermission(Mockito.any());
+        Mockito.doThrow(new RuntimeException(error)).when(aclEvaluate).checkProjectWritePermission(Mockito.any());
+        Mockito.doThrow(new RuntimeException(error)).when(aclEvaluate).checkProjectAdminPermission(Mockito.any());
+        Mockito.doThrow(new RuntimeException(error)).when(aclEvaluate).checkIsGlobalAdmin();
         StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse(PROJECT);
 
         Assert.assertEquals(10240L * 1024 * 1024 * 1024, storageVolumeInfoResponse.getStorageQuotaSize());

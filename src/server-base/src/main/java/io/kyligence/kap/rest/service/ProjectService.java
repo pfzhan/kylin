@@ -195,7 +195,6 @@ public class ProjectService extends BasicService {
     }
 
     public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
-        aclEvaluate.checkProjectReadPermission(project);
         val response = new StorageVolumeInfoResponse();
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
                 StorageInfoEnum.TOTAL_STORAGE);

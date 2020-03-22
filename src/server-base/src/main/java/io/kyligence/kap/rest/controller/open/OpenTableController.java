@@ -31,7 +31,6 @@ import java.util.List;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -109,10 +108,6 @@ public class OpenTableController extends NBasicController {
     public EnvelopeResponse<LoadTableResponse> loadTables(@RequestBody TableLoadRequest tableLoadRequest)
             throws Exception {
         checkProjectName(tableLoadRequest.getProject());
-        if (!aclEvaluate.hasProjectWritePermission(getProject(tableLoadRequest.getProject()))) {
-            throw new BadRequestException(MsgPicker.getMsg().getPERMISSION_DENIED());
-        }
-
         checkRequiredArg("need_sampling", tableLoadRequest.getNeedSampling());
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
                 && (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS

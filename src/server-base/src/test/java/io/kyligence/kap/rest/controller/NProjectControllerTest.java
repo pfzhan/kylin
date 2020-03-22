@@ -56,6 +56,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.security.AclPermissionType;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -104,6 +105,9 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Mock
     private ProjectService projectService;
