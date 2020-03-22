@@ -62,5 +62,10 @@ export default {
   // 获取诊断包生成进度
   getStatusRemote: (para) => {
     return Vue.resource(apiUrl + 'system/diag/status').get(para)
+  },
+  // 终止后台诊断包生成
+  stopDumpTask: (para) => {
+    const { host, id } = para
+    return Vue.resource(apiUrl + `system/diag?host=${host}`).delete({id})
   }
 }

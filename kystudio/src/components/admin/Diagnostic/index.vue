@@ -130,7 +130,8 @@ vuex.registerModule(['diagnosticModel'], store)
     ...mapActions('diagnosticModel', {
       getDumpRemote: types.GET_DUMP_REMOTE,
       getServers: types.GET_SERVERS,
-      downloadDumps: types.DOWNLOAD_DUMP_DIAG
+      downloadDumps: types.DOWNLOAD_DUMP_DIAG,
+      removeDiagnosticTask: types.REMOVE_DIAGNOSTIC_TASK
     }),
     ...mapMutations('diagnosticModel', {
       updateCheckType: types.UPDATE_CHECK_TYPE,
@@ -282,6 +283,8 @@ export default class Diagnostic extends Vue {
   }
   // 关闭弹窗
   closeDialog () {
+    // 增加停止后台诊断包生成接口
+    this.removeDiagnosticTask()
     this.$refs['closePopover'] && this.$refs['closePopover'].doClose()
     this.resetDumpData(true)
     this.stopInterfaceCall(true)

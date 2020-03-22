@@ -17,7 +17,8 @@ export const types = {
   DEL_DUMP_ID_LIST: 'DEL_DUMP_ID_LIST',
   POLLING_STATUS_MSG: 'POLLING_STATUS_MSG',
   DOWNLOAD_DUMP_DIAG: 'DOWNLOAD_DUMP_DIAG',
-  STOP_INTERFACE_CALL: 'STOP_INTERFACE_CALL'
+  STOP_INTERFACE_CALL: 'STOP_INTERFACE_CALL',
+  REMOVE_DIAGNOSTIC_TASK: 'REMOVE_DIAGNOSTIC_TASK'
 }
 
 export default {
@@ -175,6 +176,15 @@ export default {
       dom.setAttribute('download', true)
       dom.setAttribute('href', `${location.origin}${apiUrl}/system/diag?host=${host}&id=${id}`)
       dom.click()
+    },
+    // 关闭弹窗后通知后端终止正在进行的任务
+    [types.REMOVE_DIAGNOSTIC_TASK] ({ state }) {
+      const { diagDumpIds } = state
+      let removeList = Object.keys(diagDumpIds).filter(item => diagDumpIds[item].running)
+      removeList.length && removeList.forEach(it => {
+        let { host, id } = diagDumpIds[it]
+        api.system.stopDumpTask({ host, id })
+      })
     }
   },
   namespaced: true
