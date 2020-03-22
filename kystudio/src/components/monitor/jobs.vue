@@ -961,7 +961,7 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.resume([], this.currentSelectedProject, 'batchAll')
+        this.resume([], this.currentSelectedProject, 'batchAll', null, this.filter.status)
       } else {
         const jobIds = this.getJobIds()
         this.resume(jobIds, this.currentSelectedProject, 'batch')
@@ -974,7 +974,7 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.restart([], this.currentSelectedProject, 'batchAll')
+        this.restart([], this.currentSelectedProject, 'batchAll', null, this.filter.status)
       } else {
         const jobIds = this.getJobIds()
         this.restart(jobIds, this.currentSelectedProject, 'batch')
@@ -987,7 +987,7 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.pause([], this.currentSelectedProject, 'batchAll')
+        this.pause([], this.currentSelectedProject, 'batchAll', null, this.filter.status)
       } else {
         const jobIds = this.getJobIds()
         this.pause(jobIds, this.currentSelectedProject, 'batch')
@@ -1000,7 +1000,7 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.discard([], this.currentSelectedProject, 'batchAll')
+        this.discard([], this.currentSelectedProject, 'batchAll', null, this.filter.status)
       } else {
         const jobIds = this.getJobIds()
         this.discard(jobIds, this.currentSelectedProject, 'batch')
@@ -1013,7 +1013,7 @@ export default class JobsList extends Vue {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll && this.isSelectAllShow) {
-        this.drop([], this.currentSelectedProject, 'batchAll')
+        this.drop([], this.currentSelectedProject, 'batchAll', null, this.filter.status)
       } else {
         const jobIds = this.getJobIds()
         this.drop(jobIds, this.currentSelectedProject, 'batch')
@@ -1093,7 +1093,7 @@ export default class JobsList extends Vue {
     this.filter.page_offset = 0
     this.manualRefreshJobs()
   }
-  async resume (jobIds, project, isBatch, row) {
+  async resume (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('resumeJobTitle'), 'tip')
@@ -1101,10 +1101,11 @@ export default class JobsList extends Vue {
     if (this.$store.state.project.isAllProject && isBatch) {
       delete resumeData.project
     }
+    this.isSelectAll && status && (resumeData.statuses = status)
     this.resumeJob(resumeData).then(() => {
       if (isBatch) {
         if (isBatch === 'batchAll') {
-          this.filter.status = ''
+          this.filter.status = []
         }
       }
       this.manualRefreshJobs()
@@ -1116,7 +1117,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async restart (jobIds, project, isBatch, row) {
+  async restart (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('restartJobTitle'), 'tip')
@@ -1124,10 +1125,11 @@ export default class JobsList extends Vue {
     if (this.$store.state.project.isAllProject && isBatch) {
       delete restartData.project
     }
+    this.isSelectAll && status && (restartData.statuses = status)
     this.restartJob(restartData).then(() => {
       if (isBatch) {
         if (isBatch === 'batchAll') {
-          this.filter.status = ''
+          this.filter.status = []
         }
       }
       this.manualRefreshJobs()
@@ -1139,7 +1141,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async pause (jobIds, project, isBatch, row) {
+  async pause (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('pauseJobTitle'), 'tip')
@@ -1147,10 +1149,11 @@ export default class JobsList extends Vue {
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
     }
+    this.isSelectAll && status && (pauseData.statuses = status)
     this.pauseJob(pauseData).then(() => {
       if (isBatch) {
         if (isBatch === 'batchAll') {
-          this.filter.status = ''
+          this.filter.status = []
         }
       }
       this.manualRefreshJobs()
@@ -1162,7 +1165,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async discard (jobIds, project, isBatch, row) {
+  async discard (jobIds, project, isBatch, row, status) {
     let isHaveHoleWarning = false
     const targetJobs = row ? [row] : this.multipleSelection
     targetJobs.forEach((job) => {
@@ -1176,10 +1179,11 @@ export default class JobsList extends Vue {
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
     }
+    this.isSelectAll && status && (pauseData.statuses = status)
     this.discardJob(pauseData).then(() => {
       if (isBatch) {
         if (isBatch === 'batchAll') {
-          this.filter.status = ''
+          this.filter.status = []
         }
       }
       this.manualRefreshJobs()
@@ -1214,7 +1218,7 @@ export default class JobsList extends Vue {
       showDetailBtn: false
     })
   }
-  async drop (jobIds, project, isBatch, row) {
+  async drop (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('dropJobTitle'), 'warning')
@@ -1224,10 +1228,11 @@ export default class JobsList extends Vue {
       delete dropData.project
       removeJobType = 'removeJobForAll'
     }
+    this.isSelectAll && status && (dropData.statuses = status.join(','))
     this[removeJobType](dropData).then(() => {
       if (isBatch) {
         if (isBatch === 'batchAll') {
-          this.filter.status = ''
+          this.filter.status = []
         }
       }
       this.manualRefreshJobs()
