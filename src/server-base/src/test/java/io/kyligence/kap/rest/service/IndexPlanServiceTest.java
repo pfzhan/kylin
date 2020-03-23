@@ -34,13 +34,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.model.EventContext;
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -63,6 +62,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -724,7 +724,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     @Test
     public void testUpdateAggShard_WithInvalidColumn() {
         val wrongColumn = "TEST_CAL_DT.WEEK_BEG_DT";
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Column " + wrongColumn + " is not dimension");
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val request = new AggShardByColumnsRequest();

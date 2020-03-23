@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
@@ -97,7 +98,7 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckProjectException() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         nBasicController.checkProjectName("");
     }
 
@@ -115,49 +116,49 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCheckRequiredArgException() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("model is required");
         nBasicController.checkRequiredArg("model", "");
     }
 
     @Test
     public void testCheckStartAndEndException() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Start and end must exist or not at the same time!");
         nBasicController.validateDataRange("10", "");
     }
 
     @Test
     public void testTimeRangeEndGreaterThanStart() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("End of range must be greater than start!");
         nBasicController.validateDataRange("10", "1");
     }
 
     @Test
     public void testTimeRangeEndEqualToStart() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("End of range must be greater than start!");
         nBasicController.validateDataRange("1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidStart() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Start of range must be greater than 0!");
         nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("End of range must be greater than 0!");
         nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("No valid value for 'start' or 'end'. Only support timestamp type, unit: ms.");
         nBasicController.validateDataRange("start", "end");
     }

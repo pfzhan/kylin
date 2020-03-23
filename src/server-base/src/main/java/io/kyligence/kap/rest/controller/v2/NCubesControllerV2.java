@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,11 +34,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,8 +60,6 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
-
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
 @RestController
 @RequestMapping(value = "/api/cubes", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
@@ -93,7 +93,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
+            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataModelResponse, "");
@@ -110,7 +110,7 @@ public class NCubesControllerV2 extends NBasicController {
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
+            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
         }
 
         switch (request.getBuildType()) {
@@ -124,7 +124,7 @@ public class NCubesControllerV2 extends NBasicController {
                             && segment.getEndTime() <= request.getEndTime())
                     .map(NDataSegmentResponse::getId).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(idList)) {
-                throw new BadRequestException("You should choose at least one segment to refresh!");
+                throw new KylinException("KE-1010", "You should choose at least one segment to refresh!");
             }
             modelService.refreshSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
                     idList.toArray(new String[0]));
@@ -142,12 +142,12 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project,
             @RequestBody SegmentMgmtRequest request) {
         if (CollectionUtils.isEmpty(request.getSegments())) {
-            throw new BadRequestException("You should choose at least one segment!");
+            throw new KylinException("KE-1010", "You should choose at least one segment!");
         }
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
+            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
         }
 
         Set<String> idList = dataModelResponse.getSegments().stream()
@@ -157,7 +157,7 @@ public class NCubesControllerV2 extends NBasicController {
         switch (request.getBuildType()) {
         case "MERGE":
             if (idList.size() < 2) {
-                throw new BadRequestException("You should choose at least two segments to merge!");
+                throw new KylinException("KE-1010", "You should choose at least two segments to merge!");
             }
 
             modelService.mergeSegmentsManually(dataModelResponse.getId(), dataModelResponse.getProject(),
@@ -165,7 +165,7 @@ public class NCubesControllerV2 extends NBasicController {
             break;
         case "REFRESH":
             if (CollectionUtils.isEmpty(idList)) {
-                throw new BadRequestException("You should choose at least one segment to refresh!");
+                throw new KylinException("KE-1010", "You should choose at least one segment to refresh!");
             }
             modelService.refreshSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
                     idList.toArray(new String[0]));
@@ -183,7 +183,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new BadRequestException(FAILED_CUBE_MSG, ResponseCode.CODE_UNDEFINED);
+            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
         }
 
         List<NDataSegment> holes = Lists.newArrayList();

@@ -48,8 +48,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.AclPermissionFactory;
@@ -194,7 +194,7 @@ public class AccessServiceTest extends ServiceTestBase {
         }
     }
 
-    @Test(expected = BadRequestException.class)
+    @Test(expected = KylinException.class)
     public void testCheckGlobalAdminException() throws IOException {
         accessService.checkGlobalAdmin("ADMIN");
     }

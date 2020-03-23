@@ -50,10 +50,10 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.security.AclPermissionType;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -164,7 +164,7 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
     public void testInvalidProjectName() {
         ProjectRequest projectRequest = mockProjectRequest();
         projectRequest.setName("^project");
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(Message.getInstance().getINVALID_PROJECT_NAME());
         nProjectController.saveProject(projectRequest);
     }

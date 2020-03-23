@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,14 +44,13 @@ package org.apache.kylin.common.exceptions;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-public class KylinTimeoutException extends RuntimeException {
+public class KylinTimeoutException extends KylinException {
 
     public KylinTimeoutException(String message) {
-        super(message);
+        super("KE-5003", message);
     }
 
     public static boolean causedByTimeout(Throwable e) {
-        return e instanceof KylinTimeoutException ||
-                ExceptionUtils.getRootCause(e) instanceof KylinTimeoutException;
+        return e instanceof KylinTimeoutException || ExceptionUtils.getRootCause(e) instanceof KylinTimeoutException;
     }
 }

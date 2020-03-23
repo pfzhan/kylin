@@ -31,8 +31,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
@@ -157,7 +157,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         try {
             favoriteRuleService.batchDeleteFQs(PROJECT, Lists.newArrayList("not_exist_uuid", "not_exist_uuid2"), false);
         } catch (Exception ex) {
-            Assert.assertEquals(BadRequestException.class, ex.getClass());
+            Assert.assertEquals(KylinException.class, ex.getClass());
             Assert.assertEquals("Favorite query 'not_exist_uuid' does not exist", ex.getMessage());
         }
 

@@ -57,6 +57,7 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -95,12 +96,14 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testSaveUser() throws Exception {
         request.setUsername(username.toUpperCase());
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value("999")).andExpect(jsonPath("$.msg")
-                        .value("User creating is not allowed when username:test_user already exists."));
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andReturn();
+        Assert.assertTrue(result.getResponse().getContentAsString()
+                .contains("User creating is not allowed when username:test_user already exists."));
     }
 
     @Test
@@ -166,8 +169,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(MockMvcResultMatchers.status().isOk()).andExpect(jsonPath("$.password").doesNotExist())
                 .andExpect(jsonPath("$.default_password").doesNotExist());
 
     }

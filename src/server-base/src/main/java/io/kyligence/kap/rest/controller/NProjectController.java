@@ -33,12 +33,12 @@ import java.util.Objects;
 import javax.validation.Valid;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -103,7 +103,7 @@ public class NProjectController extends NBasicController {
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
             @RequestParam(value = "permission", required = false, defaultValue = "READ") String permission) {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
-            throw new BadRequestException("Operation failed, unknown permission:" + permission);
+            throw new KylinException("KE-1039", "Operation failed, unknown permission:" + permission);
         }
         List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch,
                 permission);
@@ -136,7 +136,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("name", projectRequest.getName());
         if (StringUtils.isEmpty(projectRequest.getName())
                 || !StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
-            throw new BadRequestException(MsgPicker.getMsg().getINVALID_PROJECT_NAME(), projectDesc.getName());
+            throw new KylinException("KE-1016", MsgPicker.getMsg().getINVALID_PROJECT_NAME());
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
@@ -194,7 +194,7 @@ public class NProjectController extends NBasicController {
             throws Exception {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
         if (projectInstance == null) {
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectService.cleanupGarbage(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");

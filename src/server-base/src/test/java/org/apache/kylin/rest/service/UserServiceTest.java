@@ -45,6 +45,7 @@ package org.apache.kylin.rest.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.Assert;
 import org.junit.Test;
@@ -93,7 +94,8 @@ public class UserServiceTest extends ServiceTestBase {
             userService.createUser(user);
             Assert.fail();
         } catch (TransactionException e) {
-            Assert.assertEquals("User creating is not allowed when username:ADMIN already exists.", e.getCause().getCause().getMessage());
+            Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
+                    "User creating is not allowed when username:ADMIN already exists."));
         }
     }
 
@@ -103,7 +105,8 @@ public class UserServiceTest extends ServiceTestBase {
             userService.deleteUser("ADMIN");
             Assert.fail();
         } catch (TransactionException e) {
-            Assert.assertEquals("User ADMIN is not allowed to be deleted.", e.getCause().getCause().getMessage());
+            Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
+                    "User ADMIN is not allowed to be deleted."));
         }
 
     }

@@ -38,11 +38,11 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclManager;
@@ -119,7 +119,7 @@ public class ProjectService extends BasicService {
         }
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
-            throw new BadRequestException(String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
+            throw new KylinException("KE-1035", String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
@@ -157,7 +157,7 @@ public class ProjectService extends BasicService {
             filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
             break;
         default:
-            throw new BadRequestException("Operation failed, unknown permission:" + permission);
+            throw new KylinException("KE-1010", "Operation failed, unknown permission:" + permission);
         }
         if (StringUtils.isNotBlank(projectName)) {
             Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch
@@ -174,9 +174,10 @@ public class ProjectService extends BasicService {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         if (threshold != null) {
             if (threshold <= 0) {
-                throw new BadRequestException("No valid value for 'threshold'. Please set an integer 'x' "
-                        + "greater than 0 to 'threshold'. The system will notify you whenever there "
-                        + "are more then 'x' queries waiting to accelerate.");
+                throw new KylinException("KE-1010",
+                        "No valid value for 'threshold'. Please set an integer 'x' "
+                                + "greater than 0 to 'threshold'. The system will notify you whenever there "
+                                + "are more then 'x' queries waiting to accelerate.");
             }
             overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", String.valueOf(threshold));
         }
@@ -272,7 +273,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
         if (storageQuotaSize < 0) {
-            throw new BadRequestException(
+            throw new KylinException("KE-1010",
                     "No valid storage quota size, Please set an integer greater than or equal to 0 "
                             + "to 'storage_quota_size', unit byte.");
         }
@@ -286,7 +287,7 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new BadRequestException(String.format("Project '%s' does not exist!", project));
+            throw new KylinException("KE-1015", String.format("Project '%s' does not exist!", project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
@@ -326,7 +327,7 @@ public class ProjectService extends BasicService {
 
     private String convertToString(List<String> stringList) {
         if (CollectionUtils.isEmpty(stringList)) {
-            throw new BadRequestException("Please enter at least one email address.");
+            throw new KylinException("KE-1010", "Please enter at least one email address.");
         }
         Set<String> notEmails = Sets.newHashSet();
         for (String email : Sets.newHashSet(stringList)) {
@@ -337,7 +338,7 @@ public class ProjectService extends BasicService {
             }
         }
         if (!notEmails.isEmpty()) {
-            throw new BadRequestException(
+            throw new KylinException("KE-1010",
                     "No valid value " + notEmails + " for 'job_notification_email'. Please enter valid email address.");
         }
         return String.join(",", Sets.newHashSet(stringList));
@@ -434,17 +435,18 @@ public class ProjectService extends BasicService {
         //api send volatileRangeEnabled = false but finally it is reset to true
         segmentConfigRequest.getVolatileRange().setVolatileRangeEnabled(true);
         if (segmentConfigRequest.getVolatileRange().getVolatileRangeNumber() < 0) {
-            throw new BadRequestException("No valid value. Please set an integer 'x' to "
-                    + "'volatile_range_number'. The 'Auto-Merge' will not merge latest 'x' "
-                    + "period(day/week/month/etc..) segments.");
+            throw new KylinException("KE-1010",
+                    "No valid value. Please set an integer 'x' to "
+                            + "'volatile_range_number'. The 'Auto-Merge' will not merge latest 'x' "
+                            + "period(day/week/month/etc..) segments.");
         }
         if (segmentConfigRequest.getRetentionRange().getRetentionRangeNumber() < 0) {
-            throw new BadRequestException("No valid value for 'retention_range_number'."
+            throw new KylinException("KE-1010", "No valid value for 'retention_range_number'."
                     + " Please set an integer 'x' to specify the retention threshold. The system will "
                     + "only retain the segments in the retention threshold (x years before the last data time). ");
         }
         if (segmentConfigRequest.getAutoMergeTimeRanges().isEmpty()) {
-            throw new BadRequestException("No valid value for 'auto_merge_time_ranges'. Please set "
+            throw new KylinException("KE-1010", "No valid value for 'auto_merge_time_ranges'. Please set "
                     + "{'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'} to specify the period of auto-merge. ");
         }
         segmentConfigRequest.getRetentionRange().setRetentionRangeType(segmentConfigRequest.getAutoMergeTimeRanges()
@@ -496,7 +498,7 @@ public class ProjectService extends BasicService {
             projectInstance.setDefaultDatabase(uppderDB);
             prjManager.updateProject(projectInstance);
         } else {
-            throw new BadRequestException(String
+            throw new KylinException("KE-1036", String
                     .format("Update default database failed, cause by database: %s is not found.", defaultDatabase));
         }
     }
@@ -525,10 +527,11 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         if (garbageCleanUpConfigRequest.getLowFrequencyThreshold() < 0L) {
-            throw new BadRequestException("No valid value for 'low_frequency_threshold'. Please "
-                    + "set an integer 'x' greater than or equal to 0 to specify the low usage storage "
-                    + "calculation time. When index usage is lower than 'x' times, it would be regarded "
-                    + "as low usage storage.");
+            throw new KylinException("KE-1010",
+                    "No valid value for 'low_frequency_threshold'. Please "
+                            + "set an integer 'x' greater than or equal to 0 to specify the low usage storage "
+                            + "calculation time. When index usage is lower than 'x' times, it would be regarded "
+                            + "as low usage storage.");
         }
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.cube.low-frequency-threshold",
@@ -550,7 +553,7 @@ public class ProjectService extends BasicService {
         } else if ("segment_config".equals(resetItem)) {
             resetSegmentConfig(project);
         } else {
-            throw new BadRequestException("No valid value for 'reset_item'. Please enter a project setting "
+            throw new KylinException("KE-1010", "No valid value for 'reset_item'. Please enter a project setting "
                     + "type which needs to be reset {'job_notification_config'，"
                     + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config'} to 'reset_item'.");
         }
@@ -599,7 +602,7 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new BadRequestException(String.format("Project '%s' does not exist!", project));
+            throw new KylinException("KE-1015", String.format("Project '%s' does not exist!", project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);

@@ -47,8 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.slf4j.Logger;
@@ -135,7 +135,7 @@ public class QueryRequestLimits implements AutoCloseable {
         if (!ok) {
             Message msg = MsgPicker.getMsg();
             logger.warn("Directly return exception as too many concurrent query requests for project:" + project);
-            throw new BadRequestException(msg.getQUERY_TOO_MANY_RUNNING());
+            throw new KylinException("KE-1005", msg.getQUERY_TOO_MANY_RUNNING());
         }
     }
 

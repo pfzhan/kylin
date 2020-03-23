@@ -54,12 +54,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -397,7 +397,7 @@ public class LicenseInfoService extends BasicService {
                     checker.accept(node);
                 } catch (NumberFormatException e) {
                     backupAndDeleteLicense("error");
-                    throw new BadRequestException(msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR, e);
+                    throw new KylinException("KE-1013", msg.getLICENSE_INVALID_LICENSE(), CODE_ERROR, e);
                 }
             }
             realNode = node;

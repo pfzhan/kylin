@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -126,11 +127,13 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         } catch (BadCredentialsException e) {
             authenticateFail(managedUser, userName);
             if (managedUser != null && managedUser.isLocked()) {
-                limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
-                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
+                limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), new KylinException("KE-1009", e));
+                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(),
+                        new KylinException("KE-1009", e));
             } else {
-                limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
-                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
+                limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), new KylinException("KE-1008", e));
+                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
+                        new KylinException("KE-1008", e));
             }
         }
     }
@@ -153,7 +156,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             } else {
                 int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
                 String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(), userName, leftSeconds);
-                throw new LockedException(msg, new Throwable(userName));
+                throw new LockedException(msg, new KylinException("KE-1008", userName));
             }
         }
     }

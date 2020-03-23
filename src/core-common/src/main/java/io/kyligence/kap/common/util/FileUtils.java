@@ -24,7 +24,13 @@
 
 package io.kyligence.kap.common.util;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Map;
+
+import org.apache.kylin.common.util.OrderedProperties;
 
 public final class FileUtils {
     public static File findFile(String dir, String ptn) {
@@ -36,5 +42,16 @@ public final class FileUtils {
             }
         }
         return null;
+    }
+
+    public static Map<String, String> readFromPropertiesFile(InputStream inputStream) {
+        try (BufferedReader confReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"))) {
+            OrderedProperties temp = new OrderedProperties();
+            temp.load(confReader);
+            return temp.getProperties();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

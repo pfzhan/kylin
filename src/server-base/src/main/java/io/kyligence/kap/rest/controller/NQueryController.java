@@ -46,9 +46,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
@@ -58,7 +58,7 @@ import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -326,10 +326,10 @@ public class NQueryController extends NBasicController {
     private void checkQueryName(String queryName) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(queryName)) {
-            throw new BadRequestException(msg.getEMPTY_QUERY_NAME());
+            throw new KylinException("KE-1010", msg.getEMPTY_QUERY_NAME());
         }
         if (!queryNamePattern.matcher(queryName).matches()) {
-            throw new BadRequestException(msg.getINVALID_QUERY_NAME());
+            throw new KylinException("KE-1016", msg.getINVALID_QUERY_NAME());
         }
     }
 }

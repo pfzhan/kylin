@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -331,7 +332,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -351,7 +352,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).batchLoad(Mockito.anyList());
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -369,7 +370,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -388,7 +389,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -473,7 +474,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -534,7 +535,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).getAutoMergeConfig("", "", "default");
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -596,7 +597,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -613,7 +614,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -707,7 +708,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -729,7 +730,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -748,7 +749,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     @Test
@@ -768,7 +769,7 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         Mockito.verify(nTableController).submitSampling(Mockito.any(SamplingRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
-        Assert.assertEquals(errorMsg, jsonNode.get("exception").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
     private List<TablesAndColumnsResponse> mockTableAndColumns() {

@@ -30,9 +30,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -184,7 +184,7 @@ public class AclManager {
         List<ObjectIdentity> children = findChildren(objectIdentity);
         if (!deleteChildren && !children.isEmpty()) {
             Message msg = MsgPicker.getMsg();
-            throw new BadRequestException(String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
+            throw new KylinException("KE-1005", String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
         }
         for (ObjectIdentity oid : children) {
             deleteAcl(oid, deleteChildren);

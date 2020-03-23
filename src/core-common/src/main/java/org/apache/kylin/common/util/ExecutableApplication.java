@@ -25,6 +25,7 @@ package org.apache.kylin.common.util;
 
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +43,9 @@ public abstract class ExecutableApplication implements Application {
             execute(optionsHelper);
         } catch (ParseException e) {
             optionsHelper.printUsage("error parsing args ", getOptions());
-            throw new RuntimeException("error parsing args", e);
+            throw new KylinException("KE-5001", "error parsing args", e);
         } catch (Exception e) {
-            throw new RuntimeException("error execute " + this.getClass().getName(), e);
+            throw new KylinException("KE-5004", "error execute " + this.getClass().getName(), e);
         }
     }
 }

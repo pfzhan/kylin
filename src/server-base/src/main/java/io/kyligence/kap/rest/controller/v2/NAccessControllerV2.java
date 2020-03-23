@@ -32,13 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -76,7 +76,7 @@ public class NAccessControllerV2 extends NBasicController {
 
     private void checkUserName(String userName) {
         if (!userService.userExists(userName)) {
-            throw new BadRequestException(String.format("User '%s' does not exists.", userName));
+            throw new KylinException("KE-1002", String.format("User '%s' does not exists.", userName));
         }
     }
 
@@ -114,7 +114,8 @@ public class NAccessControllerV2 extends NBasicController {
             @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException {
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,

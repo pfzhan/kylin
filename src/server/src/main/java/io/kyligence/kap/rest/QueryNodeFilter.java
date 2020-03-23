@@ -37,10 +37,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -127,6 +128,7 @@ public class QueryNodeFilter implements Filter {
             int responseStatus;
             HttpHeaders responseHeaders;
             MsgPicker.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
+            KylinException.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
             try {
                 val exchange = restTemplate.exchange(
                         "http://all" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),

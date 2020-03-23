@@ -51,12 +51,13 @@ import static org.hamcrest.CoreMatchers.containsString;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
@@ -199,7 +200,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         val user = new ManagedUser();
         user.setUsername("");
         user.setPassword("p1234sgw$");
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Username should not be empty.");
         nUserController.createUser(user);
     }

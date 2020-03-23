@@ -23,12 +23,12 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
-import io.kyligence.kap.rest.controller.NBasicController;
-import lombok.val;
-import org.apache.kylin.rest.exception.BadRequestException;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -36,7 +36,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import io.kyligence.kap.rest.controller.NBasicController;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/api/system")
@@ -55,7 +56,7 @@ public class NSystemControllerV2 extends NBasicController {
             if (warning != null) {
                 setResponse(response, LicenseInfoService.CODE_WARNING, warning);
             }
-        } catch (BadRequestException e) {
+        } catch (KylinException e) {
             setResponse(response, e.getCode(), e.getMessage());
         }
         return response;

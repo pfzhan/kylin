@@ -32,14 +32,14 @@ import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -184,7 +184,7 @@ public class NModelController extends NBasicController {
             modelService.createModel(modelRequest.getProject(), modelRequest);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
+            throw new KylinException("KE-1018", e);
         }
     }
 
@@ -199,7 +199,7 @@ public class NModelController extends NBasicController {
             modelService.batchCreateModel(project, modelRequests);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
+            throw new KylinException("KE-1018", e.getMessage(), e);
         }
     }
 
@@ -405,7 +405,7 @@ public class NModelController extends NBasicController {
             String json = modelService.getModelJson(modelId, project);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, json, "");
         } catch (JsonProcessingException e) {
-            throw new BadRequestException("can not get model json " + e);
+            throw new RuntimeException("can not get model json " + e);
         }
     }
 
@@ -421,7 +421,7 @@ public class NModelController extends NBasicController {
             String sql = modelService.getModelSql(modelId, project);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sql, "");
         } catch (Exception e) {
-            throw new BadRequestException("can not get model sql, " + e);
+            throw new RuntimeException("can not get model sql, " + e);
         }
     }
 
@@ -478,7 +478,7 @@ public class NModelController extends NBasicController {
             }
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new BadRequestException(e.getMessage(), ResponseCode.CODE_UNDEFINED, e);
+            throw new KylinException("KE-1025", e);
         }
     }
 
@@ -491,7 +491,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
+            throw new KylinException("KE-1023", String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
         }
 
         modelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
@@ -543,7 +543,7 @@ public class NModelController extends NBasicController {
         if (purge) {
             modelService.purgeModelManually(model, project);
         } else if (ArrayUtils.isEmpty(ids)) {
-            throw new BadRequestException("Segments id list can not empty!");
+            throw new KylinException("KE-1010", "Segments id list can not empty!");
         } else {
             modelService.deleteSegmentById(model, project, ids, force);
         }
@@ -572,7 +572,8 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
+            throw new KylinException("KE-1016",
+                    String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -586,12 +587,12 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
             if (ArrayUtils.isEmpty(request.getIds())) {
-                throw new BadRequestException("You should choose at least one segment to refresh!");
+                throw new KylinException("KE-1010", "You should choose at least one segment to refresh!");
             }
             modelService.refreshSegmentById(modelId, request.getProject(), request.getIds());
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
-                throw new BadRequestException("You should choose at least two segments to merge!");
+                throw new KylinException("KE-1010", "You should choose at least two segments to merge!");
             }
             modelService.mergeSegmentsManually(modelId, request.getProject(), request.getIds());
         }
@@ -774,7 +775,7 @@ public class NModelController extends NBasicController {
     public void validatePartitionDesc(NDataModel model) {
         if (model.getPartitionDesc() != null
                 && StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
-            throw new BadRequestException("Partition column does not exist!");
+            throw new KylinException("KE-1027", "Partition column does not exist!");
         }
     }
 

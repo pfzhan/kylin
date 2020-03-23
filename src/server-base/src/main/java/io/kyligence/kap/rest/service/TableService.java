@@ -49,6 +49,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -67,9 +68,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -692,7 +691,7 @@ public class TableService extends BasicService {
         Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName).map(String::toUpperCase)
                 .collect(Collectors.toSet());
         if (!columnSet.contains(partitionColumn.toUpperCase())) {
-            throw new BadRequestException(String.format("Can not find the column:%s in table:%s, project:%s",
+            throw new KylinException("KE-1010", String.format("Can not find the column:%s in table:%s, project:%s",
                     partitionColumn, table, project));
         }
 
@@ -835,7 +834,7 @@ public class TableService extends BasicService {
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
             val msg = MsgPicker.getMsg();
-            throw new BadRequestException(String.format(msg.getTABLE_NOT_FOUND(), table));
+            throw new KylinException("KE-1029", String.format(msg.getTABLE_NOT_FOUND(), table));
         }
 
         val dataflowManager = getDataflowManager(project);
@@ -930,12 +929,12 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         SegmentRange readySegmentRange = dataLoadingRange.getCoveredRange();
         if (readySegmentRange == null) {
-            throw new BadRequestException("There is no ready segment to refresh!");
+            throw new KylinException("KE-1005", "There is no ready segment to refresh!");
         }
         SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
         if (!readySegmentRange.contains(segmentRangeRefresh)) {
-            throw new BadRequestException("Data during refresh range must be ready!");
+            throw new KylinException("KE-1005", "Data during refresh range must be ready!");
         }
     }
 
@@ -966,7 +965,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new BadRequestException("Model " + modelId + " does not exist in project " + project);
+            throw new KylinException("KE-1037", "Model " + modelId + " does not exist in project " + project);
         }
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
@@ -1003,7 +1002,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new IllegalStateException("Model " + modelId + "does not exist in project " + project);
+            throw new KylinException("KE-1037", "Model " + modelId + "does not exist in project " + project);
         }
         if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
@@ -1491,10 +1490,10 @@ public class TableService extends BasicService {
                 exec.execute(sampleSh, patternedLogger);
             } catch (ShellException e) {
                 logger.error(SSB_ERROR_MSG, e);
-                throw new BadRequestException(SSB_ERROR_MSG, ResponseCode.CODE_UNDEFINED, e);
+                throw new KylinException("KE-1041", SSB_ERROR_MSG, e);
             }
             if (!checkSSBDataBase()) {
-                throw new BadRequestException(SSB_ERROR_MSG);
+                throw new KylinException("KE-1041", SSB_ERROR_MSG);
             }
         }
     }
@@ -1524,7 +1523,7 @@ public class TableService extends BasicService {
     private void checkFile(String fileName) {
         File file = new File(fileName);
         if (!file.exists() || !file.isFile()) {
-            throw new BadRequestException("cannot find file " + fileName);
+            throw new KylinException("KE-1034", "cannot find file " + fileName);
         }
     }
 

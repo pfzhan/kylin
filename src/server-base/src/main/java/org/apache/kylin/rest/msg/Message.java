@@ -681,6 +681,10 @@ public class Message {
         return "Invalid license, please contact the Kyligence sales staff.";
     }
 
+    public String getLICENSE_MISMATCH_LICENSE() {
+        return "The cluster information does not match the license. Please upload a new license or contact the Kyligence sales staff.";
+    }
+
     public String getLICENSE_NOT_EFFECTIVE() {
         return "License is not effective yet, please apply for a new license.";
     }

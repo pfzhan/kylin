@@ -47,6 +47,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.validation.constraints.Size;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.springframework.validation.FieldError;
+
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
@@ -55,11 +61,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.rest.msg.MsgPicker;
-import org.springframework.validation.FieldError;
-
-import javax.validation.constraints.Size;
 
 /**
  * if you're adding/removing fields from SQLRequest, take a look at getCacheKey
@@ -118,7 +119,7 @@ public class SQLRequest implements Serializable, ProjectInsensitiveRequest, Vali
             return false;
         if (!Objects.equals(limit, that.limit))
             return false;
-        if(!Objects.equals(user_defined_tag, that.user_defined_tag))
+        if (!Objects.equals(user_defined_tag, that.user_defined_tag))
             return false;
         return Objects.equals(backdoorToggles, that.backdoorToggles);
 

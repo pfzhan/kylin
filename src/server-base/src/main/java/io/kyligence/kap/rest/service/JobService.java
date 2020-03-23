@@ -46,6 +46,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
@@ -63,9 +66,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -318,7 +318,7 @@ public class JobService extends BasicService {
         case ALL:
             return 0;
         default:
-            throw new BadRequestException(String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
+            throw new KylinException("KE-1010", String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
         }
     }
 
@@ -341,7 +341,7 @@ public class JobService extends BasicService {
         case STOPPED:
             return ExecutableState.PAUSED;
         default:
-            throw new BadRequestException(String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
+            throw new KylinException("KE-1010", String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
     }
 

@@ -30,7 +30,6 @@ import static io.kyligence.kap.tool.util.ServiceDiscoveryUtil.runWithCurator;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -49,6 +48,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -219,7 +219,7 @@ public class MetadataTool extends ExecutableApplication {
         } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
             restore(optionsHelper);
         } else {
-            throw new IllegalArgumentException("The input parameters are wrong");
+            throw new KylinException("KE-5001", "The input parameters are wrong");
         }
     }
 
@@ -230,14 +230,14 @@ public class MetadataTool extends ExecutableApplication {
             File localFile = new File(path);
             if (localFile.exists()) {
                 log.error("[UNEXPECTED_THINGS_HAPPENED] local file {} already exists ", path);
-                throw new FileAlreadyExistsException(path);
+                throw new KylinException("KE-5002", path);
             }
             return;
         }
         val fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(path))) {
             log.error("[UNEXPECTED_THINGS_HAPPENED] specified file {} already exists ", path);
-            throw new org.apache.hadoop.fs.FileAlreadyExistsException(path);
+            throw new KylinException("KE-5002", path);
         }
     }
 

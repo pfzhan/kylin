@@ -65,6 +65,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -83,7 +84,6 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -214,7 +214,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             pushdownCount++;
             Assert.assertTrue(
                     ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()) instanceof InMemResourceStore);
-            return new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST);
+            return new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST,
+                    Collections.EMPTY_LIST);
         }).when(queryService).tryPushDownSelectQuery(sqlRequest, null, sqlException, false);
 
     }
@@ -283,7 +284,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         final SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertTrue(response.isException());
-        Assert.assertEquals("[HIVE Exception] push down error", response.getExceptionMessage());
+        Assert.assertTrue(StringUtils.contains(response.getExceptionMessage(), "[HIVE Exception] push down error"));
     }
 
     @Test
@@ -297,7 +298,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             queryService.doQueryWithCache(request, false);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof BadRequestException);
+            Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals("Cannot find project 'default0'.", e.getMessage());
         }
     }
@@ -313,7 +314,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             queryService.doQueryWithCache(request, false);
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof BadRequestException);
+            Assert.assertTrue(e instanceof KylinException);
             Assert.assertEquals("SQL should not be empty.", e.getMessage());
         }
     }
@@ -429,7 +430,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final String sql = "select * from exception_table";
         final String project = "newten";
 
-
         Mockito.when(queryService.newQueryExec(project))
                 .thenThrow(new RuntimeException(new KylinTimeoutException("calcite timeout exception")));
 
@@ -510,8 +510,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // expose computed column
         {
-            projectManager.updateProject("default", copyForWrite ->
-                    copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", "true"));
+            projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
+                    .put("kap.query.metadata.expose-computed-column", "true"));
             final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
 
             List<ColumnMeta> factColumns;
@@ -524,8 +524,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         // hide computed column
         {
-            projectManager.updateProject("default", copyForWrite ->
-                    copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", "false"));
+            projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
+                    .put("kap.query.metadata.expose-computed-column", "false"));
             final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
 
             List<ColumnMeta> factColumns;
@@ -941,8 +941,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(queryId, response.getQueryId());
     }
+
     @Test
-    public  void testQueryLogMatch() {
+    public void testQueryLogMatch() {
         final String sql = "-- This is comment" + '\n' + "select * from test";
         final String project = "default";
         final String tag = "tagss";
@@ -957,37 +958,21 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryContext.current().setUserSQL(sql);
         String log = queryService.logQuery(request, response);
         //
-        final  int groupCnt = 27;
+        final int groupCnt = 27;
         String matchNewLine = "\\n";
-        String s =
-                "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine +
-                        "SQL:\\s(.*?)" + matchNewLine +
-                        "User:\\s(.*?)" + matchNewLine +
-                        "Success:\\s(.*?)" + matchNewLine +
-                        "Duration:\\s(.*?)" + matchNewLine +
-                        "Project:\\s(.*?)" + matchNewLine +
-                        "Realization Names:\\s\\[(.*?)\\]" + matchNewLine +
-                        "Index Layout Ids:\\s\\[(.*?)\\]" + matchNewLine +
-                        "Is Partial Match Model:\\s\\[(.*?)\\]" + matchNewLine +
-                        "Scan rows:\\s(.*?)" + matchNewLine +
-                        "Total Scan rows:\\s(.*?)" + matchNewLine +
-                        "Scan bytes:\\s(.*?)" + matchNewLine +
-                        "Total Scan Bytes:\\s(.*?)" + matchNewLine +
-                        "Result Row Count:\\s(.*?)" + matchNewLine +
-                        "Shuffle partitions:\\s(.*?)" + matchNewLine +
-                        "Accept Partial:\\s(.*?)" + matchNewLine +
-                        "Is Partial Result:\\s(.*?)" + matchNewLine +
-                        "Hit Exception Cache:\\s(.*?)" + matchNewLine +
-                        "Storage Cache Used:\\s(.*?)" + matchNewLine +
-                        "Is Query Push-Down:\\s(.*?)" + matchNewLine +
-                        "Is Prepare:\\s(.*?)" + matchNewLine +
-                        "Is Timeout:\\s(.*?)" + matchNewLine +
-                        "Trace URL:\\s(.*?)" + matchNewLine +
-                        "Time Line Schema:\\s(.*?)" + matchNewLine +
-                        "Time Line:\\s(.*?)" + matchNewLine +
-                        "Message:\\s(.*?)" + matchNewLine +
-                        "User Defined Tag:\\s(.*?)" + matchNewLine +
-                        "[=]+\\[QUERY\\][=]+.*";
+        String s = "(?s)[=]+\\[QUERY\\][=]+.*Query Id:\\s(.*?)" + matchNewLine + "SQL:\\s(.*?)" + matchNewLine
+                + "User:\\s(.*?)" + matchNewLine + "Success:\\s(.*?)" + matchNewLine + "Duration:\\s(.*?)"
+                + matchNewLine + "Project:\\s(.*?)" + matchNewLine + "Realization Names:\\s\\[(.*?)\\]" + matchNewLine
+                + "Index Layout Ids:\\s\\[(.*?)\\]" + matchNewLine + "Is Partial Match Model:\\s\\[(.*?)\\]"
+                + matchNewLine + "Scan rows:\\s(.*?)" + matchNewLine + "Total Scan rows:\\s(.*?)" + matchNewLine
+                + "Scan bytes:\\s(.*?)" + matchNewLine + "Total Scan Bytes:\\s(.*?)" + matchNewLine
+                + "Result Row Count:\\s(.*?)" + matchNewLine + "Shuffle partitions:\\s(.*?)" + matchNewLine
+                + "Accept Partial:\\s(.*?)" + matchNewLine + "Is Partial Result:\\s(.*?)" + matchNewLine
+                + "Hit Exception Cache:\\s(.*?)" + matchNewLine + "Storage Cache Used:\\s(.*?)" + matchNewLine
+                + "Is Query Push-Down:\\s(.*?)" + matchNewLine + "Is Prepare:\\s(.*?)" + matchNewLine
+                + "Is Timeout:\\s(.*?)" + matchNewLine + "Trace URL:\\s(.*?)" + matchNewLine
+                + "Time Line Schema:\\s(.*?)" + matchNewLine + "Time Line:\\s(.*?)" + matchNewLine + "Message:\\s(.*?)"
+                + matchNewLine + "User Defined Tag:\\s(.*?)" + matchNewLine + "[=]+\\[QUERY\\][=]+.*";
         Pattern pattern = Pattern.compile(s);
         Matcher matcher = pattern.matcher(log);
 
@@ -1009,8 +994,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         QueryContext curOld = QueryContext.current();
         QueryContext.reset();
         QueryContext curNew = QueryContext.current();
-        Pattern uuid_p =
-                Pattern.compile("([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}");
+        Pattern uuid_p = Pattern
+                .compile("([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}){1}");
         Assert.assertNotNull(curNew);
         Assert.assertTrue(StringUtils.isNotEmpty(curNew.getQueryId()));
 
@@ -1024,12 +1009,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testMetaData() throws IOException {
         final List<TableMeta> tableMetas = queryService.getMetadata("default");
         // TEST_MEASURE table has basically all possible column types
-        String metaString = tableMetas.stream()
-                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
-                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE"))
-                .findFirst()
-                .get()
-                .toString();
+        String metaString = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE")).findFirst().get().toString();
 
         File expectedMetaFile = new File("src/test/resources/ut_table_meta/defaultTableMetas");
         String expectedMetaString = FileUtils.readFileToString(expectedMetaFile);
@@ -1040,12 +1021,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testMetaDataV2() throws IOException {
         final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
         // TEST_MEASURE table has basically all possible column types
-        String metaString = tableMetas.stream()
-                .filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
-                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE"))
-                .findFirst()
-                .get()
-                .toString();
+        String metaString = tableMetas.stream().filter(t -> t.getTABLE_SCHEM().equalsIgnoreCase("DEFAULT"))
+                .filter(t -> t.getTABLE_NAME().equalsIgnoreCase("TEST_MEASURE")).findFirst().get().toString();
 
         File expectedMetaFile = new File("src/test/resources/ut_table_meta/defaultTableMetasV2");
         String expectedMetaString = FileUtils.readFileToString(expectedMetaFile);

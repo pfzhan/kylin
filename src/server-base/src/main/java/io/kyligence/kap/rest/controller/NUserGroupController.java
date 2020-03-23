@@ -37,13 +37,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -99,8 +99,8 @@ public class NUserGroupController extends NBasicController {
         List<ManagedUser> members = userGroupService.getGroupMembersByName(groupName);
 
         if (StringUtils.isNotBlank(name)) {
-            members = members.stream()
-                    .filter(user -> StringUtils.containsIgnoreCase(user.getUsername(), name)).collect(Collectors.toList());
+            members = members.stream().filter(user -> StringUtils.containsIgnoreCase(user.getUsername(), name))
+                    .collect(Collectors.toList());
         }
 
         val subList = PagingUtil.cutPage(members, pageOffset, pageSize);
@@ -187,10 +187,10 @@ public class NUserGroupController extends NBasicController {
 
     private void checkGroupName(String groupName) {
         if (StringUtils.isEmpty(groupName)) {
-            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_GROUP_NAME());
+            throw new KylinException("KE-1003", MsgPicker.getMsg().getEMPTY_GROUP_NAME());
         }
         if (!sidPattern.matcher(groupName).matches()) {
-            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
+            throw new KylinException("KE-1016", MsgPicker.getMsg().getINVALID_SID());
         }
     }
 }

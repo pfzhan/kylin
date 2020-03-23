@@ -42,7 +42,7 @@ import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;

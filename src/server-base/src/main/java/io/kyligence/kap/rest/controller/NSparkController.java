@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.spark.SparkContext;
 import org.apache.spark.scheduler.TaskSchedulerImpl;

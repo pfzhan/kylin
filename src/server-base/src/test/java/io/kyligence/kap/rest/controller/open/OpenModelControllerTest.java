@@ -43,7 +43,7 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Before;

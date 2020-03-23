@@ -28,7 +28,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.v2.NUserControllerV2;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

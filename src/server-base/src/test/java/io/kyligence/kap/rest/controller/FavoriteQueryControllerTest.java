@@ -29,11 +29,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -132,7 +133,8 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(favoriteQueryController).createFavoriteQuery(Mockito.any());
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
     }
 
     private List<FavoriteQuery> mockedFavoriteQueries() {
@@ -183,7 +185,8 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(favoriteQueryController).getAccelerateTips(PROJECT);
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
     }
 
     @Test

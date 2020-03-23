@@ -46,9 +46,9 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 
 import java.util.List;
 
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.Before;
@@ -168,7 +168,7 @@ public class NUserGroupControllerTest {
 
     @Test
     public void testAddEmptyGroup() throws Exception {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("User group name should not be empty.");
         nUserGroupController.addUserGroup("");
     }

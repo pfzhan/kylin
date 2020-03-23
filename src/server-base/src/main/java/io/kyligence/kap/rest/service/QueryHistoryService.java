@@ -36,10 +36,10 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -250,7 +250,7 @@ public class QueryHistoryService extends BasicService {
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
             ProjectInstance projectInstance = getProjectManager().getProject(project);
             if (projectInstance == null)
-                throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
             result.put(project, getQueryHistoryDao(project).getQueryMetricMeasurement());
         }
 

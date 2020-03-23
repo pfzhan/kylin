@@ -271,7 +271,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(getModelRequest()))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().is(500)).andReturn().getResponse().getContentAsString();
+                .andExpect(MockMvcResultMatchers.status().is(400)).andReturn().getResponse().getContentAsString();
 
         Assert.assertTrue(errorMessage.contains(
                 "model 89af4ee2-2cdb-4b07-b39e-4c29856309aa's agg group still contains measure(s) SUM_DEAL_AMOUNT"));

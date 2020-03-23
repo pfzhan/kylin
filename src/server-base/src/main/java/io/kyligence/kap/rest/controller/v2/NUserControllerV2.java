@@ -30,7 +30,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

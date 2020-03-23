@@ -37,10 +37,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -130,7 +130,7 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "statuses", required = false) List<String> statuses) throws IOException {
         checkJobStatus(statuses);
         if (StringUtils.isBlank(project) && CollectionUtils.isEmpty(jobIds)) {
-            throw new BadRequestException("At least one job should be selected to delete!");
+            throw new KylinException("KE-1010", "At least one job should be selected to delete!");
         }
 
         if (null != project) {
@@ -146,8 +146,10 @@ public class NJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkJobStatus(jobUpdateRequest.getStatuses());
-        if (StringUtils.isBlank(jobUpdateRequest.getProject()) && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
-            throw new BadRequestException("At least one job should be selected to " + jobUpdateRequest.getAction());
+        if (StringUtils.isBlank(jobUpdateRequest.getProject())
+                && CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())) {
+            throw new KylinException("KE-1010",
+                    "At least one job should be selected to " + jobUpdateRequest.getAction());
         }
 
         if (!StringUtils.isEmpty(jobUpdateRequest.getProject())) {

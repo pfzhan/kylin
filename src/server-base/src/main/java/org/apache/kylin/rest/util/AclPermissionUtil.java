@@ -49,10 +49,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
@@ -226,10 +226,10 @@ public class AclPermissionUtil {
     public static void checkAclUpdatable(String project) {
         if (!AclPermissionUtil.isAclUpdatable(project)) {
             if (KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()) {
-                throw new BadRequestException(
+                throw new KylinException("KE-1005",
                         "Access Denied, only system and project administrators can edit users' tables, columns, and rows permissions");
             } else {
-                throw new BadRequestException(
+                throw new KylinException("KE-1005",
                         "Access Denied, only system administrators can edit users' tables, columns, and rows permissions");
             }
         }

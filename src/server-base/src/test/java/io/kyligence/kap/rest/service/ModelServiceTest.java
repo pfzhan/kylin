@@ -77,12 +77,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
@@ -127,6 +127,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
@@ -282,8 +283,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 "admin", null, null);
         Assert.assertEquals(6, models7.size());
 
-        List<NDataModelResponse> models8 = modelService.getModels("nmodel_full_measure_test", "default", false, "", null, "last_modify", true,
-                "admin", 0L, 1L);
+        List<NDataModelResponse> models8 = modelService.getModels("nmodel_full_measure_test", "default", false, "",
+                null, "last_modify", true, "admin", 0L, 1L);
         Assert.assertEquals(0, models8.size());
     }
 
@@ -641,7 +642,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testDropModelExceptionName() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
         modelService.dropModel("nmodel_basic2222", "default");
     }
@@ -695,7 +696,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model 'test_encoding' is table oriented, can not purge the model!");
         modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
@@ -751,21 +752,21 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testPurgeModelExceptionName() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
         modelService.purgeModelManually("nmodel_basic2222", "default");
     }
 
     @Test
     public void testCloneModelException() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model alias nmodel_basic_inner already exists");
         modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner", "default");
     }
 
     @Test
     public void testCloneModelExceptionName() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
         modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
     }
@@ -792,14 +793,14 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testRenameModelException() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
         modelService.renameDataModel("default", "nmodel_basic222", "new_name");
     }
 
     @Test
     public void testRenameModelException2() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model alias nmodel_basic_inner already exists");
         modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner");
     }
@@ -815,7 +816,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testUpdateDataModelStatus_ModelNotExist_Exception() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
         modelService.updateDataModelStatus("nmodel_basic222", "default", "OFFLINE");
     }
@@ -1058,9 +1059,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         dataflowManager.refreshSegment(df, segmentRange);
 
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                "Can not remove or refresh or merge segment (ID:" + dataSegment.getId() + "), because the segment is LOCKED.");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Can not remove or refresh or merge segment (ID:" + dataSegment.getId()
+                + "), because the segment is LOCKED.");
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1074,7 +1075,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
@@ -1153,7 +1154,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model 'nmodel_basic_inner' is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1204,8 +1205,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         eventDao.deleteAllEvents();
 
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("Merging segments must not have gaps between "
-                + dataSegment1.getId() + " and " + dataSegment3.getId());
+        thrown.expectMessage(
+                "Merging segments must not have gaps between " + dataSegment1.getId() + " and " + dataSegment3.getId());
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment3.getId() });
 
@@ -1220,9 +1221,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(SegmentRange.dateToLong("2010-01-01"), mergedSegment.getSegRange().getStart());
         Assert.assertEquals(SegmentRange.dateToLong("2010-05-01"), mergedSegment.getSegRange().getEnd());
 
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                "Can not remove or refresh or merge segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Can not remove or refresh or merge segment (ID:" + dataSegment2.getId()
+                + "), because the segment is LOCKED.");
         //refresh exception
         modelService.mergeSegmentsManually(dfId, "default", new String[] { dataSegment2.getId() });
 
@@ -1264,8 +1265,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dfManager.updateDataflow(update);
 
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not refresh or merge segment (ID:" + dataSegment1.getId() +"), because the segment is LOADING.");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(
+                "Can not refresh or merge segment (ID:" + dataSegment1.getId() + "), because the segment is LOADING.");
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment2.getId() });
 
@@ -1308,9 +1310,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         //refresh normally
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                "Can not remove or refresh or merge segment (ID:" + dataSegment2.getId() + "), because the segment is LOCKED.");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Can not remove or refresh or merge segment (ID:" + dataSegment2.getId()
+                + "), because the segment is LOCKED.");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
@@ -1318,7 +1320,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testRefreshSegmentById_isNotExist() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Can not find the Segments by ids [not_exist_01]");
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
@@ -1372,7 +1374,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testCreateModel_ExistedAlias_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model alias nmodel_basic already exists!");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setUuid("new_model");
@@ -1395,7 +1397,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setUuid("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Can not create model manually in SQL acceleration project!");
         modelService.createModel(modelRequest.getProject(), modelRequest);
 
@@ -1742,8 +1744,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
                     return false;
                 }
                 TransactionException exception = (TransactionException) item;
-                return exception.getCause() instanceof BadRequestException
-                        && exception.getCause().getMessage().contains("Table oriented model 'nmodel_basic' can not build segments manually!");
+                return exception.getCause() instanceof KylinException && exception.getCause().getMessage()
+                        .contains("Table oriented model 'nmodel_basic' can not build segments manually!");
 
             }
         });
@@ -2926,7 +2928,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetModelInfoByModel_ProjectNotSpecifiedOnly() throws IOException {
         val projects = Lists.newArrayList("default", "demo");
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Only one project name should be specified while model is specified!");
         modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
     }
@@ -2969,7 +2971,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetModelInfo_ProjectEmpty_exception() throws IOException {
         List<String> projects = Lists.newArrayList();
 
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Only one project name should be specified while model is specified!");
         modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", projects, 0, 0);
     }
@@ -2978,7 +2980,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testGetModelInfo_ModelNotExist_exception() throws IOException {
         List<String> projects = Lists.newArrayList("default");
 
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model 'nmodel_basic2222' does not exist!");
         modelService.getModelInfo("*", "nmodel_basic2222", projects, 0, 0);
     }
@@ -3087,8 +3089,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals("Duplicate dimension name 'CAL_DT1'.", ex.getMessage());
+            Assert.assertEquals(KylinException.class, ex.getClass());
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "Duplicate dimension name 'CAL_DT1'."));
         }
 
         // invalid dimension name
@@ -3096,10 +3098,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals(
-                    "Invalid dimension name 'CAL_DT1@!', only letters, numbers and underlines are supported.",
-                    ex.getMessage());
+            Assert.assertEquals(KylinException.class, ex.getClass());
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(),
+                    "Invalid dimension name 'CAL_DT1@!', only letters, numbers and underlines are supported."));
         }
 
         namedColumns.remove(dimension);
@@ -3118,10 +3119,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals(
-                    "Invalid measure name 'illegal_measure_name@!', only letters, numbers and underlines are supported.",
-                    e.getMessage());
+            Assert.assertEquals(KylinException.class, e.getClass());
+            Assert.assertTrue(StringUtils.contains(e.getMessage(),
+                    "Invalid measure name 'illegal_measure_name@!', only letters, numbers and underlines are supported."));
         }
 
         // duplicate measure name
@@ -3137,8 +3137,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Duplicate measure name 'count_1'.", e.getMessage());
+            Assert.assertEquals(KylinException.class, e.getClass());
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Duplicate measure name 'count_1'."));
         }
 
         // duplicate measure definitions
@@ -3147,8 +3147,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Duplicate measure definition 'count_2'.", e.getMessage());
+            Assert.assertEquals(KylinException.class, e.getClass());
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Duplicate measure definition 'count_2'."));
         }
 
         measures.remove(measure2);
@@ -3168,9 +3168,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
-            Assert.assertEquals(IllegalArgumentException.class, e.getClass());
-            Assert.assertEquals("Duplicate join condition 'TEST_ACCOUNT.ACCOUNT_ID' and 'TEST_KYLIN_FACT.SELLER_ID'.",
-                    e.getMessage());
+            Assert.assertEquals(KylinException.class, e.getClass());
+            Assert.assertTrue(StringUtils.contains(e.getMessage(),
+                    "Duplicate join condition 'TEST_ACCOUNT.ACCOUNT_ID' and 'TEST_KYLIN_FACT.SELLER_ID'."));
         }
     }
 
@@ -3178,7 +3178,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     public void testBuildIndexManually_TableOriented_exception() {
         val project = "default";
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Table oriented model 'all_fixed_length' can not build indices manually!");
         modelService.buildIndicesManually(modelId, project);
     }
@@ -3248,7 +3248,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     //first test exception
     @Test
     public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() throws IOException {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Ready segments range has changed, can not refresh, please try again.");
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
@@ -3260,7 +3260,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("No segments to refresh, please select new range and try again!");
         List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default",
                 "0", "" + Long.MAX_VALUE);
@@ -3282,7 +3282,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
 
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Can not refresh, some segments is building within the range you want to refresh!");
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         val loadingRange = new NDataLoadingRange();
@@ -3302,7 +3302,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val df = dfMgr.getDataflowByModelAlias("nmodel_basic_inner");
         dfMgr.refreshSegment(df, df.getSegments().get(0).getSegRange());
 
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Can not refresh, some segments is building within the range you want to refresh!");
         val loadingRangeMgr = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         val loadingRange = new NDataLoadingRange();
@@ -3621,7 +3621,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testComputedColumnNameCheck_PreProcessBeforeModelSave_ExceptionWhenCCNameIsSameWithColumnInLookupTable() {
 
-        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
                 "In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";
@@ -3645,7 +3645,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testComputedColumnNameCheck_CheckCC_ExceptionWhenCCNameIsSameWithColumnInLookupTable() {
 
-        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expect(KylinException.class);
         expectedEx.expectMessage(
                 "In this model, computed column name [SITE_ID] has been used, please rename your computed column.");
         String tableIdentity = "DEFAULT.TEST_KYLIN_FACT";

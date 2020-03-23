@@ -36,11 +36,12 @@ import javax.validation.constraints.NotNull;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -173,11 +174,11 @@ public class SystemService extends BasicService {
         }
         File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
         if (exportFile == null) {
-            throw new RuntimeException("ID {" + uuid + "} is not exist");
+            throw new KylinException("KE-1010", "ID {" + uuid + "} is not exist");
         }
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
-            throw new RuntimeException(
+            throw new KylinException("KE-1034",
                     String.format(MsgPicker.getMsg().getDIAG_PACKAGE_NOT_AVAILABLE(), exportFile.getAbsoluteFile()));
         }
         return zipFilePath;
@@ -213,7 +214,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
         if (extractor == null) {
-            throw new RuntimeException("ID {" + uuid + "} is not exist");
+            throw new KylinException("KE-1010", "ID {" + uuid + "} is not exist");
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);

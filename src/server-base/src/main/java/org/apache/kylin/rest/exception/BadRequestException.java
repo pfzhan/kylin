@@ -42,7 +42,7 @@
 
 package org.apache.kylin.rest.exception;
 
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -50,6 +50,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author xduo
  *
  */
+//use KylinException instead
+@Deprecated
 @ResponseStatus(value = HttpStatus.BAD_REQUEST)
 public class BadRequestException extends RuntimeException {
 

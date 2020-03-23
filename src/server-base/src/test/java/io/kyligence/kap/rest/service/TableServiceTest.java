@@ -62,6 +62,7 @@ import java.util.TimeZone;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -70,7 +71,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -448,7 +448,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testUnloadNotExistTable() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Cannot find table 'DEFAULT.not_exist_table'");
         tableService.unloadTable("default", "DEFAULT.not_exist_table", false);
     }
@@ -669,7 +669,7 @@ public class TableServiceTest extends CSVSourceTestCase {
             tableService.setDataRange("default", request);
         } catch (Exception ex) {
             Assert.assertEquals(IllegalStateException.class, ex.getClass());
-            Assert.assertEquals("There is no more new data to load", ex.getMessage());
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "There is no more new data to load"));
         }
     }
 
@@ -764,7 +764,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void checkRefreshDataRangeException1() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("There is no ready segment to refresh!");
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
@@ -772,7 +772,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void checkRefreshDataRangeException2() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Data during refresh range must be ready!");
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
@@ -788,7 +788,7 @@ public class TableServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testGetAutoMergeConfigException() {
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Model default does not exist in project default");
         tableService.getAutoMergeConfigByModel("default", "default");
     }
@@ -896,7 +896,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "", "");
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");
@@ -905,7 +905,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testSetFact_IncrementingExists_Exception() {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT", "yyyy-MM-dd");
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, as another model 'nmodel_basic_inner' uses it as a lookup table");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT", "yyyy-MM-dd");

@@ -28,12 +28,12 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -79,7 +79,7 @@ public class OpenTableController extends NBasicController {
     public TableDesc getTable(String project, String tableName) {
         TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
         if (null == table) {
-            throw new BadRequestException(String.format("Can not find the table with tableName: %s", tableName));
+            throw new KylinException("KE-1029", String.format("Can not find the table with tableName: %s", tableName));
         }
         return table;
     }
@@ -112,13 +112,13 @@ public class OpenTableController extends NBasicController {
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
                 && (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS
                         || tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS)) {
-            throw new BadRequestException(
+            throw new KylinException("KE-1010",
                     "Invalid parameters, please check whether the number of sampling rows is between 10000 and 20000000.");
         }
 
         // default set data_source_type = 9
         if (ISourceAware.ID_SPARK != tableLoadRequest.getDataSourceType()) {
-            throw new BadRequestException("Only support Hive as the data source. (data_source_type = 9)");
+            throw new KylinException("KE-1010", "Only support Hive as the data source. (data_source_type = 9)");
         }
         updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 

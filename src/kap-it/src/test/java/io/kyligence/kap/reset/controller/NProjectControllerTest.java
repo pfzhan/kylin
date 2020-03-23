@@ -50,6 +50,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -73,12 +74,14 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         request.setName("test_project");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value("999"))
-                .andExpect(jsonPath("$.msg").value("The project named 'test_PROJECT' already exists."));
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andReturn();
+        Assert.assertTrue(
+                result.getResponse().getContentAsString().contains("The project named 'test_PROJECT' already exists."));
     }
 
     @Test

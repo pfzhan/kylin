@@ -35,11 +35,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,7 +85,7 @@ public class NSystemController extends NBasicController {
             if (warning != null) {
                 setResponse(response, LicenseInfoService.CODE_WARNING, warning);
             }
-        } catch (BadRequestException e) {
+        } catch (KylinException e) {
             setResponse(response, e.getCode(), e.getMessage());
         }
         return response;
@@ -129,8 +130,8 @@ public class NSystemController extends NBasicController {
             bytes = licenseContent.getBytes("UTF-8");
         }
 
-        if (bytes == null)
-            throw new IllegalArgumentException("license content is empty");
+        if (ArrayUtils.isEmpty(bytes))
+            throw new KylinException("KE-1012", "license content is empty");
 
         licenseInfoService.updateLicense(bytes);
 
@@ -144,19 +145,19 @@ public class NSystemController extends NBasicController {
         if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
                 || Strings.isNullOrEmpty(licenseRequest.getUsername())
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
-            throw new BadRequestException("email username company can not be empty");
+            throw new KylinException("KE-1010", "email username company can not be empty");
         }
         if (licenseRequest.getEmail().length() > 50 || licenseRequest.getUsername().length() > 50
                 || licenseRequest.getCompany().length() > 50) {
-            throw new BadRequestException("email username company length should be less or equal than 50");
+            throw new KylinException("KE-1010", "email username company length should be less or equal than 50");
         }
         if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
-            throw new BadRequestException("personal email or illegal email is not allowed");
+            throw new KylinException("KE-1014", "personal email or illegal email is not allowed");
         }
 
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
         if (trialLicense == null || !trialLicense.isSuccess()) {
-            throw new BadRequestException("get license error");
+            throw new KylinException("KE-1040", "get license error");
         }
         licenseInfoService.updateLicense(trialLicense.getData());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");

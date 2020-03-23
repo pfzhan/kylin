@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
@@ -60,19 +61,21 @@ public class NUserGroupServiceTest extends ServiceTestBase {
             userGroupService.deleteGroup(group);
         }
         //test group add and get
-//        userGroupService.addGroup(GROUP_ALL_USERS);
+        //        userGroupService.addGroup(GROUP_ALL_USERS);
         userGroupService.addGroup("g1");
         userGroupService.addGroup("g2");
         userGroupService.addGroup("g3");
         Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAllUserGroups());
-        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAuthoritiesFilterByGroupName("G"));
+        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"),
+                userGroupService.getAuthoritiesFilterByGroupName("G"));
         Assert.assertEquals(Lists.newArrayList("g1"), userGroupService.getAuthoritiesFilterByGroupName("g1"));
 
         // test add a existing user group
         try {
             userGroupService.addGroup("g1");
         } catch (Exception e) {
-            Assert.assertEquals("Operation failed, group:g1 already exists", e.getCause().getCause().getMessage());
+            Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
+                    "Operation failed, group:g1 already exists"));
         }
 
         //test modify users in user group

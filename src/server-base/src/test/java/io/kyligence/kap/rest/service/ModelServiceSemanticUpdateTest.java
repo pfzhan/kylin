@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -319,7 +320,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateMeasure_DuplicateParams_EmptyReturnType() throws Exception {
-        thrown.expect(IllegalArgumentException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("Duplicate measure definition 'TRANS_SUM2'");
         val request = newSemanticRequest();
         val newMeasure1 = new SimplifiedMeasure();

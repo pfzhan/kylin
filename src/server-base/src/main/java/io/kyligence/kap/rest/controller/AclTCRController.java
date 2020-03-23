@@ -31,11 +31,11 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -115,8 +115,7 @@ public class AclTCRController extends NBasicController {
     @GetMapping(value = "/updatable")
     @ResponseBody
     public EnvelopeResponse<Boolean> getAllowAclUpdatable(@RequestParam("project") String project) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AclPermissionUtil.isAclUpdatable(project),
-                "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, AclPermissionUtil.isAclUpdatable(project), "");
     }
 
     private List<AclTCRResponse> getProjectSidTCR(String project, String sid, boolean principal, boolean authorizedOnly)
@@ -134,14 +133,14 @@ public class AclTCRController extends NBasicController {
     @VisibleForTesting
     void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
-            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
+            throw new KylinException("KE-1001", MsgPicker.getMsg().getEMPTY_SID());
         }
 
         if (principal && !userService.userExists(sid)) {
-            throw new BadRequestException("Operation failed, user:" + sid + " not exists, please add it first.");
+            throw new KylinException("KE-1005", "Operation failed, user:" + sid + " not exists, please add it first.");
         }
         if (!principal && !userGroupService.exists(sid)) {
-            throw new BadRequestException("Operation failed, group:" + sid + " not exists, please add it first.");
+            throw new KylinException("KE-1005", "Operation failed, group:" + sid + " not exists, please add it first.");
         }
     }
 }

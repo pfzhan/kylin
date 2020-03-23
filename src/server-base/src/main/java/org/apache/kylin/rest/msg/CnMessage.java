@@ -634,6 +634,10 @@ public class CnMessage extends Message {
         return "无效许可证，请联系 Kyligence 销售人员。";
     }
 
+    public String getLICENSE_MISMATCH_LICENSE() {
+        return "许可证适用的集群信息与当前不符，请重新上传新的许可证或联系 Kyligence 销售人员。";
+    }
+
     public String getLICENSE_NOT_EFFECTIVE() {
         return "许可证尚未生效，请重新申请。";
     }

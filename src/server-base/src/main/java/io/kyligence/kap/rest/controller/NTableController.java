@@ -35,16 +35,16 @@ import java.util.Set;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -132,7 +132,8 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "getProjectTables (update)", notes = "Update Param: is_fuzzy, page_offset, page_size")
-    @GetMapping(value = "/project_tables", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/project_tables", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<NInitTablesResponse> getProjectTables(
             @RequestParam(value = "ext", required = false) boolean withExt,
@@ -150,7 +151,8 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "unloadTable (update)", notes = "Update URL: {project}; Update Param: project")
-    @DeleteMapping(value = "/{database:.+}/{table:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @DeleteMapping(value = "/{database:.+}/{table:.+}", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> unloadTable(@RequestParam(value = "project") String project,
             @PathVariable(value = "database") String database, // 
@@ -164,8 +166,8 @@ public class NTableController extends NBasicController {
     }
 
     @ApiOperation(value = "prepareUnloadTable (update)", notes = "Update URL: {project}; Update Param: project")
-    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload",
-            produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/{database:.+}/{table:.+}/prepare_unload", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<PreUnloadTableResponse> prepareUnloadTable(@RequestParam(value = "project") String project,
             @PathVariable(value = "database") String database, //
@@ -179,7 +181,8 @@ public class NTableController extends NBasicController {
      * set table partition key
      */
     @ApiOperation(value = "getUsersByGroup (update)", notes = "Update Body: partition_column_format")
-    @PostMapping(value = "/partition_key", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @PostMapping(value = "/partition_key", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> setPartitionKey(@RequestBody PartitionKeyRequest partitionKeyRequest) {
 
@@ -205,11 +208,11 @@ public class NTableController extends NBasicController {
         checkProjectName(tableLoadRequest.getProject());
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(tableLoadRequest.getProject()) == null) {
-            throw new BadRequestException(
+            throw new KylinException("KE-1015",
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), tableLoadRequest.getProject()));
         }
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
-            throw new BadRequestException("You should select at least one table or database to load!!");
+            throw new KylinException("KE-1010", "You should select at least one table or database to load!!");
         }
 
         LoadTableResponse loadTableResponse = new LoadTableResponse();
@@ -267,7 +270,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @GetMapping(value = "/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/data_range/latest_data", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) {
@@ -329,7 +333,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
     }
 
-    @GetMapping(value = "/loaded_databases", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/loaded_databases", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<Set<String>> getLoadedDatabases(@RequestParam(value = "project") String project) {
         checkProjectName(project);
@@ -385,7 +390,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(responses, offset, limit), "");
     }
 
-    @GetMapping(value = "/affected_data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @GetMapping(value = "/affected_data_range", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<RefreshAffectedSegmentsResponse> getRefreshAffectedDateRange(
             @RequestParam(value = "project") String project, @RequestParam(value = "table") String table,
@@ -430,7 +436,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
         if (StringUtils.isEmpty(modelId) && StringUtils.isEmpty(tableName)) {
-            throw new BadRequestException("model name or table name must be specified!");
+            throw new KylinException("KE-1010", "model name or table name must be specified!");
         }
         AutoMergeConfigResponse response;
         if (StringUtils.isNotEmpty(modelId)) {
@@ -448,10 +454,10 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<String> updateAutoMergeConfig(@RequestBody AutoMergeRequest autoMergeRequest) {
         checkProjectName(autoMergeRequest.getProject());
         if (ArrayUtils.isEmpty(autoMergeRequest.getAutoMergeTimeRanges())) {
-            throw new BadRequestException("You should specify at least one autoMerge range!");
+            throw new KylinException("KE-1010", "You should specify at least one autoMerge range!");
         }
         if (StringUtils.isEmpty(autoMergeRequest.getModel()) && StringUtils.isEmpty(autoMergeRequest.getTable())) {
-            throw new BadRequestException("model name or table name must be specified!");
+            throw new KylinException("KE-1010", "model name or table name must be specified!");
         }
         if (StringUtils.isNotEmpty(autoMergeRequest.getModel())) {
             tableService.setAutoMergeConfigByModel(autoMergeRequest.getProject(), autoMergeRequest);
@@ -461,7 +467,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @PostMapping(value = "/sampling_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
+    @PostMapping(value = "/sampling_jobs", produces = { HTTP_VND_APACHE_KYLIN_JSON,
+            HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> submitSampling(@RequestBody SamplingRequest request) {
         checkProjectName(request.getProject());
@@ -487,22 +494,25 @@ public class NTableController extends NBasicController {
     private void checkSamplingRows(int rows) {
         Message msg = MsgPicker.getMsg();
         if (rows > MAX_SAMPLING_ROWS) {
-            throw new BadRequestException(String.format(msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
+            throw new KylinException("KE-1028",
+                    String.format(msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
         }
 
         if (rows < MIN_SAMPLING_ROWS) {
-            throw new BadRequestException(String.format(msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
+            throw new KylinException("KE-1028",
+                    String.format(msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
         }
     }
 
     private void checkSamplingTable(String tableName) {
         Message msg = MsgPicker.getMsg();
         if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
-            throw new BadRequestException(msg.getFAILED_FOR_NO_SAMPLING_TABLE());
+            throw new KylinException("KE-1029", msg.getFAILED_FOR_NO_SAMPLING_TABLE());
         }
 
         if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
-            throw new BadRequestException(String.format(msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
+            throw new KylinException("KE-1029",
+                    String.format(msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
         }
     }
 
@@ -515,7 +525,7 @@ public class NTableController extends NBasicController {
             val result = tableService.preProcessBeforeReload(project, table);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
         } catch (Exception e) {
-            throw new BadRequestException("prepare reload table error", ResponseCode.CODE_UNDEFINED, e);
+            throw new KylinException("KE-1030", "prepare reload table error", e);
         }
     }
 
@@ -524,14 +534,14 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) {
         checkProjectName(request.getProject());
         if (StringUtils.isEmpty(request.getTable())) {
-            throw new BadRequestException("table name must be specified!");
+            throw new KylinException("KE-1029", "table name must be specified!");
         }
         try {
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
                     request.getMaxRows(), request.isNeedBuild());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (Exception e) {
-            throw new BadRequestException("reload table error", ResponseCode.CODE_UNDEFINED, e);
+            throw new KylinException("KE-1030", "reload table error", e);
         }
     }
 
@@ -544,7 +554,7 @@ public class NTableController extends NBasicController {
             NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(force);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
         } catch (Exception e) {
-            throw new BadRequestException("reload hive table name error", ResponseCode.CODE_UNDEFINED, e);
+            throw new RuntimeException("reload hive table name error", e);
         }
     }
 

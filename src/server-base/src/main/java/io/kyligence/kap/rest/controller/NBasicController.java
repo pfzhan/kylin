@@ -68,12 +68,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.Message;
@@ -128,7 +128,7 @@ public class NBasicController {
             }
         }
 
-        throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -150,6 +150,7 @@ public class NBasicController {
     @ExceptionHandler(ForbiddenException.class)
     @ResponseBody
     ErrorResponse handleForbidden(HttpServletRequest req, Exception ex) {
+        logger.error("", ex);
         return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
@@ -157,6 +158,7 @@ public class NBasicController {
     @ExceptionHandler(NotFoundException.class)
     @ResponseBody
     ErrorResponse handleNotFound(HttpServletRequest req, Exception ex) {
+        logger.error("", ex);
         return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
@@ -164,6 +166,14 @@ public class NBasicController {
     @ExceptionHandler(BadRequestException.class)
     @ResponseBody
     ErrorResponse handleBadRequest(HttpServletRequest req, Exception ex) {
+        logger.error("", ex);
+        return new ErrorResponse(req.getRequestURL().toString(), ex);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(KylinException.class)
+    @ResponseBody
+    ErrorResponse handleErrorCode(HttpServletRequest req, Exception ex) {
         logger.error("", ex);
         return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
@@ -193,7 +203,7 @@ public class NBasicController {
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new BadRequestException(fieldName + " is required");
+            throw new KylinException("KE-1010", fieldName + " is required");
         }
     }
 
@@ -207,7 +217,7 @@ public class NBasicController {
             IOUtils.copyLarge(fileInputStream, output);
             output.flush();
         } catch (IOException e) {
-            throw new InternalErrorException("Failed to download file: " + e.getMessage(), e);
+            throw new KylinException("KE-1011", e);
         }
     }
 
@@ -240,38 +250,38 @@ public class NBasicController {
     public void checkProjectName(String project) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
-            throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+            throw new KylinException("KE-1015", msg.getEMPTY_PROJECT_NAME());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         if (projectManager == null) {
-            throw new BadRequestException("Cannot get ProjectManager for project: " + project);
+            throw new RuntimeException("Cannot get ProjectManager for project: " + project);
         }
 
         ProjectInstance prjInstance = projectManager.getProject(project);
         if (prjInstance == null) {
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectNotSemiAuto(String project) {
         if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-            throw new BadRequestException(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectUnmodifiable(String project) {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-            throw new BadRequestException(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 
     public void checkJobStatus(String jobStatus) {
         Message msg = MsgPicker.getMsg();
         if (!StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new BadRequestException(String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
+            throw new KylinException("KE-1032", String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
     }
 
@@ -284,7 +294,7 @@ public class NBasicController {
 
     public void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
-            throw new BadRequestException("Id cannot be empty");
+            throw new KylinException("KE-1010", "Id cannot be empty");
         }
     }
 
@@ -294,10 +304,10 @@ public class NBasicController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new BadRequestException("Start or end of range must be greater than 0!");
+            throw new KylinException("KE-1017", "Start or end of range must be greater than 0!");
         }
         if (start >= end) {
-            throw new BadRequestException("End of range must be greater than start!");
+            throw new KylinException("KE-1017", "End of range must be greater than start!");
         }
     }
 
@@ -313,21 +323,21 @@ public class NBasicController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new BadRequestException(
+                throw new KylinException("KE-1017",
                         "No valid value for 'start' or 'end'. Only support timestamp type, unit: ms.");
             }
 
             if (startLong < 0)
-                throw new BadRequestException("Start of range must be greater than 0!");
+                throw new KylinException("KE-1017", "Start of range must be greater than 0!");
 
             if (endLong < 0)
-                throw new BadRequestException("End of range must be greater than 0!");
+                throw new KylinException("KE-1017", "End of range must be greater than 0!");
 
             if (startLong >= endLong)
-                throw new BadRequestException("End of range must be greater than start!");
+                throw new KylinException("KE-1017", "End of range must be greater than start!");
 
         } else {
-            throw new BadRequestException("Start and end must exist or not at the same time!");
+            throw new KylinException("KE-1017", "Start and end must exist or not at the same time!");
         }
     }
 

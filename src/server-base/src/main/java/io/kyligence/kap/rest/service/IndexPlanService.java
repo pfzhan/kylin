@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -46,7 +47,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
@@ -108,26 +108,30 @@ public class IndexPlanService extends BasicService {
     public Pair<IndexPlan, BuildIndexResponse> updateRuleBasedCuboid(String project,
             final UpdateRuleBasedCuboidRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val indexPlanManager = getIndexPlanManager(project);
-        val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
-        IndexPlan originIndexPlan = getIndexPlan(request.getProject(), request.getModelId());
-        val model = modelManager.getDataModelDesc(request.getModelId());
+        try {
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            val indexPlanManager = getIndexPlanManager(project);
+            val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
+            IndexPlan originIndexPlan = getIndexPlan(request.getProject(), request.getModelId());
+            val model = modelManager.getDataModelDesc(request.getModelId());
 
-        Preconditions.checkNotNull(model);
+            Preconditions.checkNotNull(model);
 
-        val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
-            val newRuleBasedCuboid = request.convertToRuleBasedIndex();
-            newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
-            copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
-        });
-        BuildIndexResponse response = new BuildIndexResponse();
-        if (request.isLoadData()) {
-            response = semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
-                    originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
+            val indexPlan = indexPlanManager.updateIndexPlan(originIndexPlan.getUuid(), copyForWrite -> {
+                val newRuleBasedCuboid = request.convertToRuleBasedIndex();
+                newRuleBasedCuboid.setLastModifiedTime(System.currentTimeMillis());
+                copyForWrite.setRuleBasedIndex(newRuleBasedCuboid, false, true);
+            });
+            BuildIndexResponse response = new BuildIndexResponse();
+            if (request.isLoadData()) {
+                response = semanticUpater.handleIndexPlanUpdateRule(request.getProject(), model.getUuid(),
+                        originIndexPlan.getRuleBasedIndex(), indexPlan.getRuleBasedIndex(), false);
+            }
+            cleanInEffectiveRecommendation(project, request.getModelId());
+            return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
+        } catch (Exception e) {
+            throw new KylinException("KE-1031", e);
         }
-        cleanInEffectiveRecommendation(project, request.getModelId());
-        return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
     }
 
     private void cleanInEffectiveRecommendation(String project, String modelId) {
@@ -142,32 +146,36 @@ public class IndexPlanService extends BasicService {
     @Transaction(project = 0)
     public BuildIndexResponse updateTableIndex(String project, CreateTableIndexRequest request) {
         aclEvaluate.checkProjectWritePermission(project);
-        val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
-        val layout = parseToLayout(project, request);
-        for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
-            if (cuboidLayout.equals(layout) && cuboidLayout.isManual()) {
-                return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
+        try {
+            val indexPlan = getIndexPlan(request.getProject(), request.getModelId());
+            val layout = parseToLayout(project, request);
+            for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
+                if (cuboidLayout.equals(layout) && cuboidLayout.isManual()) {
+                    return new BuildIndexResponse(BuildIndexResponse.BuildIndexType.NO_LAYOUT);
+                }
             }
-        }
 
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataflow(request.getModelId());
+            NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .getDataflow(request.getModelId());
 
-        val readySegs = df.getSegments(SegmentStatusEnum.READY);
-        if (readySegs.isEmpty()) {
-            removeIndex(project, request.getModelId(), request.getId());
-        } else {
-            NDataSegment segment = readySegs.getLatestReadySegment();
-            NDataLayout dataLayout = segment.getLayout(request.getId());
-            // may no data before the last ready segments but have a add cuboid job.
-            if (null == dataLayout) {
+            val readySegs = df.getSegments(SegmentStatusEnum.READY);
+            if (readySegs.isEmpty()) {
                 removeIndex(project, request.getModelId(), request.getId());
             } else {
-                addTableIndexToBeDeleted(project, request.getModelId(), Lists.newArrayList(request.getId()));
+                NDataSegment segment = readySegs.getLatestReadySegment();
+                NDataLayout dataLayout = segment.getLayout(request.getId());
+                // may no data before the last ready segments but have a add cuboid job.
+                if (null == dataLayout) {
+                    removeIndex(project, request.getModelId(), request.getId());
+                } else {
+                    addTableIndexToBeDeleted(project, request.getModelId(), Lists.newArrayList(request.getId()));
+                }
             }
-        }
 
-        return createTableIndex(project, request);
+            return createTableIndex(project, request);
+        } catch (Exception e) {
+            throw new KylinException("KE-1031", e);
+        }
     }
 
     private LayoutEntity parseToLayout(String project, CreateTableIndexRequest request) {
@@ -420,7 +428,7 @@ public class IndexPlanService extends BasicService {
         val dimensions = model.getDimensionNameIdMap();
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
-                throw new BadRequestException("Column " + shardByColumn + " is not dimension");
+                throw new KylinException("KE-1005", "Column " + shardByColumn + " is not dimension");
             }
         }
 

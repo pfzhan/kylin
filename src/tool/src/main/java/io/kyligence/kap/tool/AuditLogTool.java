@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.security.InvalidParameterException;
 import java.util.List;
 
 import org.apache.commons.cli.Option;
@@ -42,6 +41,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
@@ -133,16 +133,16 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void extractJob(OptionsHelper optionsHelper, final String dir) throws Exception {
         if (!optionsHelper.hasOption(OPTION_PROJECT)) {
-            throw new IllegalArgumentException("'-project' specify project name");
+            throw new KylinException("KE-5001", "'-project' specify project name");
         }
         val project = optionsHelper.getOptionValue(OPTION_PROJECT);
         if (StringUtils.isEmpty(project)) {
-            throw new InvalidParameterException("project name shouldn't be empty");
+            throw new KylinException("KE-5001", "project name shouldn't be empty");
         }
 
         val jobId = optionsHelper.getOptionValue(OPTION_JOB);
         if (StringUtils.isEmpty(jobId)) {
-            throw new InvalidParameterException("job id shouldn't be empty");
+            throw new KylinException("KE-5001", "job id shouldn't be empty");
         }
         AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, project).getJob(jobId);
         long startTs = job.getStartTime();
@@ -154,10 +154,10 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void extractFull(OptionsHelper optionsHelper, final String dir) throws Exception {
         if (!optionsHelper.hasOption(OPTION_START_TIME)) {
-            throw new IllegalArgumentException("'-startTime' specify start timestamp (milliseconds)");
+            throw new KylinException("KE-5001", "'-startTime' specify start timestamp (milliseconds)");
         }
         if (!optionsHelper.hasOption(OPTION_END_TIME)) {
-            throw new IllegalArgumentException("'-endTime' specify end timestamp (milliseconds)");
+            throw new KylinException("KE-5001", "'-endTime' specify end timestamp (milliseconds)");
         }
         long startTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_START_TIME));
         long endTs = Long.parseLong(optionsHelper.getOptionValue(OPTION_END_TIME));
@@ -167,16 +167,16 @@ public class AuditLogTool extends ExecutableApplication {
 
     private void restore(OptionsHelper optionsHelper, final String dir) throws Exception {
         if (!optionsHelper.hasOption(OPTION_TABLE)) {
-            throw new IllegalArgumentException("'-table' specify table name");
+            throw new KylinException("KE-5001", "'-table' specify table name");
         }
         val table = optionsHelper.getOptionValue(OPTION_TABLE);
         if (StringUtils.isEmpty(table)) {
-            throw new InvalidParameterException("table name shouldn't be empty");
+            throw new KylinException("KE-5001", "table name shouldn't be empty");
         }
 
         File dirFile = Paths.get(dir).toFile();
         if (!dirFile.exists()) {
-            throw new IllegalArgumentException("Directory not exists: " + dir);
+            throw new KylinException("KE-5001", "Directory not exists: " + dir);
         }
 
         val url = kylinConfig.getMetadataUrl();

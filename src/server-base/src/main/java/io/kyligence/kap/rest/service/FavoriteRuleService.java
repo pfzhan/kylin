@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
@@ -200,7 +200,8 @@ public class FavoriteRuleService extends BasicService {
         uuids.forEach(uuid -> {
             val favoriteQuery = getFavoriteQueryManager(project).getByUuid(uuid);
             if (favoriteQuery == null)
-                throw new BadRequestException(String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_EXIST(), uuid));
+                throw new KylinException("KE-1010",
+                        String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_EXIST(), uuid));
 
             if (block) {
                 // put to blacklist

@@ -29,10 +29,9 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBIOException;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.spark.memory.MetricsCollectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -49,6 +48,7 @@ import io.kyligence.kap.rest.response.ClusterStatusResponse;
 import io.kyligence.kap.rest.response.ExecutorMemoryResponse;
 import io.kyligence.kap.rest.response.ExecutorThreadInfoResponse;
 import io.kyligence.kap.rest.service.MonitorService;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBIOException;
 import io.swagger.annotations.ApiOperation;
 
 @Controller
@@ -116,7 +116,7 @@ public class NMonitorController extends NBasicController {
         long now = System.currentTimeMillis();
         end = end > now ? now : end;
         if (start > end) {
-            throw new BadRequestException(String.format("start: %s > end: %s", start, end));
+            throw new KylinException("KE-1010", String.format("start: %s > end: %s", start, end));
         }
 
         ClusterStatisticStatusResponse result;

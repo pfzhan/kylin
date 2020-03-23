@@ -44,9 +44,14 @@ package io.kyligence.kap.reset.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.kylin.common.util.JsonUtil;
+import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -55,9 +60,6 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
@@ -65,12 +67,14 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
         ModelRequest request = new ModelRequest();
         request.setProject("DEfault");
         request.setAlias("NMODEL_BASIC");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("999"))
-                .andExpect(jsonPath("$.msg").value("Model alias nmodel_basic already exists!"));
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andReturn();
+        Assert.assertTrue(
+                result.getResponse().getContentAsString().contains("Model alias nmodel_basic already exists!"));
     }
 
     @Test
@@ -85,13 +89,15 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
 
         List<ModelRequest> modelRequests = Arrays.asList(request, request2);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/batch_save_models").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "GC_TEST")
-                .content(JsonUtil.writeValueAsString(modelRequests))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("999"))
-                .andExpect(jsonPath("$.msg").value("Model alias new_MOdel, new_model are duplicated!"));
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/models/batch_save_models")
+                        .contentType(MediaType.APPLICATION_JSON).param("project", "GC_TEST")
+                        .content(JsonUtil.writeValueAsString(modelRequests))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andReturn();
+        Assert.assertTrue(
+                result.getResponse().getContentAsString().contains("Model alias new_MOdel, new_model are duplicated!"));
     }
 
     @Test
@@ -114,12 +120,15 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
         request.setNewModelName("UT_inner_JOIN_CUBE_PARTIAL");
         request.setProject("deFaUlt");
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/89af4ee2-2cdb-4b07-b39e-4c29856309aa/name")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value("999"))
-                .andExpect(jsonPath("$.msg").value("Model alias ut_inner_join_cube_partial already exists!"));
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.put("/api/models/89af4ee2-2cdb-4b07-b39e-4c29856309aa/name")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andReturn();
+        Assert.assertTrue(result.getResponse().getContentAsString()
+                .contains("Model alias ut_inner_join_cube_partial already exists!"));
+
     }
 
     @Test
@@ -128,11 +137,13 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
         request.setProject("deFaUlt");
         request.setNewModelName("nmodel_BASIC");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/89af4ee2-2cdb-4b07-b39e-4c29856309aa/clone")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value("999"))
-                .andExpect(jsonPath("$.msg").value("Model alias nmodel_basic already exists!"));
+        MvcResult result = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/models/89af4ee2-2cdb-4b07-b39e-4c29856309aa/clone")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
+                .andReturn();
+        Assert.assertTrue(
+                result.getResponse().getContentAsString().contains("Model alias nmodel_basic already exists!"));
     }
 }

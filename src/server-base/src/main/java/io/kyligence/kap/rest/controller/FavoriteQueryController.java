@@ -32,12 +32,12 @@ import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -190,11 +190,11 @@ public class FavoriteQueryController extends NBasicController {
     private void checkUpdateFavoriteRuleArgs(FavoriteRuleUpdateRequest request) {
         // either disabled or arguments not empty
         if (request.isFreqEnable() && StringUtils.isEmpty(request.getFreqValue()))
-            throw new BadRequestException("Frequency rule value is empty");
+            throw new KylinException("KE-1010", "Frequency rule value is empty");
 
         if (request.isDurationEnable()
                 && (StringUtils.isEmpty(request.getMinDuration()) || StringUtils.isEmpty(request.getMaxDuration())))
-            throw new BadRequestException("Duration rule values are empty");
+            throw new KylinException("KE-1010", "Duration rule values are empty");
     }
 
     @ApiOperation(value = "getBlacklist (update)", notes = "Update Response: total_size")

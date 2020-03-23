@@ -26,7 +26,7 @@ package io.kyligence.kap.rest.controller.fixture;
 
 import io.kyligence.kap.rest.controller.NBasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 

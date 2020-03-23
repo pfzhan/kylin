@@ -40,7 +40,7 @@
  * limitations under the License.
 */
 
-package org.apache.kylin.rest.response;
+package org.apache.kylin.common.response;
 
 /**
  * It's not HTTP return code!

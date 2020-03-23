@@ -36,15 +36,14 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
@@ -180,7 +179,7 @@ public class NUserController extends NBasicController {
         checkProfile();
 
         if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
-            throw new ForbiddenException(msg.getSELF_DISABLE_FORBIDDEN());
+            throw new KylinException("KE-1006", msg.getSELF_DISABLE_FORBIDDEN());
         }
         val username = user.getUsername();
         checkUsername(username);
@@ -188,7 +187,7 @@ public class NUserController extends NBasicController {
         // merge with existing user
         val existing = getManagedUser(username);
         if (existing == null) {
-            throw new BadRequestException(String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException("KE-1002", String.format(msg.getUSER_NOT_FOUND(), username));
         }
         if (StringUtils.isEmpty(user.getPassword()))
             user.setPassword(existing.getPassword());
@@ -222,7 +221,7 @@ public class NUserController extends NBasicController {
         checkProfile();
         checkUsername(username);
         if (StringUtils.equals(getPrincipal(), username)) {
-            throw new ForbiddenException(msg.getSELF_DELETE_FORBIDDEN());
+            throw new KylinException("KE-1006", msg.getSELF_DELETE_FORBIDDEN());
         }
         accessService.checkDefaultAdmin(username, false);
         //delete user's project ACL
@@ -266,7 +265,7 @@ public class NUserController extends NBasicController {
         val username = user.getUsername();
 
         if (!isAdmin() && !StringUtils.equals(getPrincipal(), username)) {
-            throw new ForbiddenException(msg.getPERMISSION_DENIED());
+            throw new KylinException("KE-1005", msg.getPERMISSION_DENIED());
         }
         accessService.checkDefaultAdmin(username, true);
         val oldPassword = pwdBase64Decode(user.getPassword());
@@ -280,16 +279,16 @@ public class NUserController extends NBasicController {
 
         ManagedUser existingUser = getManagedUser(username);
         if (existingUser == null) {
-            throw new BadRequestException(String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException("KE-1002", String.format(msg.getUSER_NOT_FOUND(), username));
         }
         val actualOldPassword = existingUser.getPassword();
 
         if (!isAdmin() && !pwdEncoder.matches(oldPassword, actualOldPassword)) {
-            throw new BadRequestException(msg.getOLD_PASSWORD_WRONG());
+            throw new KylinException("KE-1007", msg.getOLD_PASSWORD_WRONG());
         }
 
         if (newPassword.equals(oldPassword)) {
-            throw new BadRequestException(msg.getNEW_PASSWORD_SAME_AS_OLD());
+            throw new KylinException("KE-1007", msg.getNEW_PASSWORD_SAME_AS_OLD());
         }
 
         existingUser.setPassword(pwdEncode(newPassword));
@@ -352,30 +351,30 @@ public class NUserController extends NBasicController {
     private void checkPasswordCharacter(String password) {
         val msg = MsgPicker.getMsg();
         if (!passwordPattern.matcher(password).matches()) {
-            throw new BadRequestException(msg.getINVALID_PASSWORD());
+            throw new KylinException("KE-1007", msg.getINVALID_PASSWORD());
         }
     }
 
     private void checkProfile() {
         val msg = MsgPicker.getMsg();
         if (!env.acceptsProfiles(PROFILE_DEFAULT, PROFILE_CUSTOM)) {
-            throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
+            throw new KylinException("KE-1006", msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }
 
     private void checkPasswordLength(String password) {
         val msg = MsgPicker.getMsg();
         if (password == null || password.length() < 8)
-            throw new BadRequestException(msg.getSHORT_PASSWORD());
+            throw new KylinException("KE-1007", msg.getSHORT_PASSWORD());
     }
 
     private void checkUsername(String username) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username)) {
-            throw new BadRequestException(msg.getEMPTY_USER_NAME());
+            throw new KylinException("KE-1001", msg.getEMPTY_USER_NAME());
         }
         if (!sidPattern.matcher(username).matches()) {
-            throw new BadRequestException(MsgPicker.getMsg().getINVALID_SID());
+            throw new KylinException("KE-1016", MsgPicker.getMsg().getINVALID_SID());
         }
     }
 

@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -60,7 +61,7 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccerelateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -726,7 +727,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 Lists.newArrayList());
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getEMPTY_PROJECT_NAME(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(
+                StringUtils.contains(jsonNode.get("msg").textValue(), MsgPicker.getMsg().getEMPTY_PROJECT_NAME()));
     }
 
     @Test
@@ -758,7 +760,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 Mockito.any(ApplyRecommendationsRequest.class));
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getEMPTY_PROJECT_NAME(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(
+                StringUtils.contains(jsonNode.get("msg").textValue(), MsgPicker.getMsg().getEMPTY_PROJECT_NAME()));
     }
 
     @Test
@@ -782,7 +785,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getEMPTY_PROJECT_NAME(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(
+                StringUtils.contains(jsonNode.get("msg").textValue(), MsgPicker.getMsg().getEMPTY_PROJECT_NAME()));
     }
 
     @Test
@@ -809,8 +813,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nModelController).getRecommendationsByProject("other");
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other"),
-                jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other")));
     }
 
     @Test
@@ -825,7 +829,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
     }
 
     @Test
@@ -852,8 +857,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nModelController).batchApplyRecommendations(eq("other"), Mockito.anyList());
         final JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other"),
-                jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "other")));
     }
 
     @Test
@@ -868,7 +873,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
     }
 
     @Test
@@ -884,7 +890,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
         JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
         Assert.assertEquals(ResponseCode.CODE_UNDEFINED, jsonNode.get("code").textValue());
-        Assert.assertEquals(MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON(), jsonNode.get("msg").textValue());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("msg").textValue(),
+                MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON()));
     }
 
     @Test

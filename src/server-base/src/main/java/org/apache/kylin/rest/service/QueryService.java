@@ -76,6 +76,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.htrace.HtraceInit;
@@ -103,7 +104,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
 import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.msg.Message;
@@ -372,19 +372,19 @@ public class QueryService extends BasicService {
         String serverMode = kylinConfig.getServerMode();
         if (!(Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)
                 || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode))) {
-            throw new BadRequestException(String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
+            throw new KylinException("KE-1005", String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
-            throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+            throw new KylinException("KE-1010", msg.getEMPTY_PROJECT_NAME());
         }
 
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
-            throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
+            throw new KylinException("KE-1015", String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
         }
 
         if (StringUtils.isBlank(sqlRequest.getSql())) {
-            throw new BadRequestException(msg.getNULL_EMPTY_SQL());
+            throw new KylinException("KE-1010", msg.getNULL_EMPTY_SQL());
         }
 
         if (sqlRequest.getBackdoorToggles() != null)
@@ -492,7 +492,7 @@ public class QueryService extends BasicService {
                 Trace.addTimelineAnnotation("update query almost done");
             } else {
                 logger.debug("Directly return exception as the sql is unsupported, and query pushdown is disabled");
-                throw new BadRequestException(msg.getNOT_SUPPORTED_SQL());
+                throw new KylinException("KE-1005", msg.getNOT_SUPPORTED_SQL());
             }
 
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {

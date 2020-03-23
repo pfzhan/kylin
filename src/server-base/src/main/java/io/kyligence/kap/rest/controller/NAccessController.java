@@ -38,14 +38,14 @@ import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.service.AccessService;
@@ -214,7 +214,8 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(type, uuid);
         Permission permission = AclPermissionFactory.getPermission(accessRequest.getPermission());
         if (Objects.isNull(permission)) {
-            throw new BadRequestException("Operation failed, unknown permission:" + accessRequest.getPermission());
+            throw new KylinException("KE-1010",
+                    "Operation failed, unknown permission:" + accessRequest.getPermission());
         }
         if (accessRequest.isPrincipal()) {
             accessService.checkGlobalAdmin(accessRequest.getSid());
@@ -268,14 +269,14 @@ public class NAccessController extends NBasicController {
 
     private void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
-            throw new BadRequestException(MsgPicker.getMsg().getEMPTY_SID());
+            throw new KylinException("KE-1001", MsgPicker.getMsg().getEMPTY_SID());
         }
 
         if (principal && !userService.userExists(sid)) {
-            throw new BadRequestException("Operation failed, user:" + sid + " not exists, please add it first.");
+            throw new KylinException("KE-1005", "Operation failed, user:" + sid + " not exists, please add it first.");
         }
         if (!principal && !userGroupService.exists(sid)) {
-            throw new BadRequestException("Operation failed, group:" + sid + " not exists, please add it first.");
+            throw new KylinException("KE-1005", "Operation failed, group:" + sid + " not exists, please add it first.");
         }
     }
 
@@ -291,7 +292,7 @@ public class NAccessController extends NBasicController {
                 }).collect(Collectors.toList())).flatMap(List::stream).collect(Collectors.toList());
         Set<String> sids = Sets.newHashSet();
         result.stream().filter(r -> !sids.add(r.getSid())).findAny().ifPresent(r -> {
-            throw new BadRequestException("Operation failed, duplicated sid: " + r.getSid());
+            throw new KylinException("KE-1010", "Operation failed, duplicated sid: " + r.getSid());
         });
         return result;
     }

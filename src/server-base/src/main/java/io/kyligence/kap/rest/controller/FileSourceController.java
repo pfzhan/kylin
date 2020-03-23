@@ -29,7 +29,7 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4
 import java.util.List;
 
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

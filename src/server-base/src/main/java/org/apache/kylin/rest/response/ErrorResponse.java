@@ -42,7 +42,8 @@
 
 package org.apache.kylin.rest.response;
 
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 
 import com.google.common.base.Throwables;
 
@@ -69,8 +70,8 @@ public class ErrorResponse extends EnvelopeResponse {
         this.stacktrace = Throwables.getStackTraceAsString(exception);
         this.data = null;
 
-        if (exception instanceof BadRequestException) {
-            this.code = ((BadRequestException) exception).getCode();
+        if (exception instanceof KylinException) {
+            this.code = ((KylinException) exception).getCode();
         } else {
             this.code = ResponseCode.CODE_UNDEFINED;
         }

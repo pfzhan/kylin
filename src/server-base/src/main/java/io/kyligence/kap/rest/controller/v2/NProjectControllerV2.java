@@ -27,7 +27,7 @@ import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;

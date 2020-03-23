@@ -56,6 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -63,7 +64,6 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
@@ -192,7 +192,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(PROJECT);
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage("The project named 'default' already exists.");
         projectService.createProject(projectInstance.getName(), projectInstance);
 
@@ -468,7 +468,7 @@ public class ProjectServiceTest extends ServiceTestBase {
 
         jobNotificationConfigRequest
                 .setJobNotificationEmails(Lists.newArrayList("@kyligence.io", "user2@.io", "user2@kyligence.io"));
-        thrown.expect(BadRequestException.class);
+        thrown.expect(KylinException.class);
         projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
         thrown = ExpectedException.none();
 
