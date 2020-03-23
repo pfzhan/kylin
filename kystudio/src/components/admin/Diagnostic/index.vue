@@ -380,7 +380,7 @@ export default class Diagnostic extends Vue {
     .body {
       color: @text-title-color;
       .time-range {
-        margin-bottom: 14px;
+        margin-bottom: 10px;
         .el-icon-ksd-what {
           margin-left: 5px;
         }

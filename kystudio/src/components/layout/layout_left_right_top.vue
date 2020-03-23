@@ -47,7 +47,7 @@
             </template>
           </el-menu>
           <div :class="['diagnostic-model', {'is-hold-menu': briefMenuGet}]" v-if="showMenuByRole('diagnostic')" @click="showDiagnosticDialog">
-            <el-tooltip :content="$t('diagnosis')" effect="dark" placement="top">
+            <el-tooltip :content="$t('diagnosis')" effect="dark" placement="right" popper-class="diagnosis-tip" :disabled="!briefMenuGet">
               <span>
                 <i class="el-icon-ksd-ostin_diagnose"/>
                 <span class="text" v-if="!briefMenuGet">{{$t('diagnosis')}}</span>
@@ -1149,5 +1149,8 @@ export default class LayoutLeftRightTop extends Vue {
       color: @base-color;
       border: solid 1px @base-color;
     }
+  }
+  .diagnosis-tip {
+    margin-left: 30px !important;
   }
 </style>
