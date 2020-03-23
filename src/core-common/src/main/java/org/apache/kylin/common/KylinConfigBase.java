@@ -1767,11 +1767,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.valueOf(getOptional("kylin.event.auto-approved", TRUE));
     }
 
-    // newten new add
-    public boolean isParquetSeparateFsEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.separate-fs-enable", FALSE));
-    }
-
     public Boolean isCalciteInClauseEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite-in-clause-enabled", TRUE));
     }
