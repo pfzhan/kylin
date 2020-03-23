@@ -538,7 +538,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         BuildSegmentsRequest request1 = new BuildSegmentsRequest();
         request1.setProject("default");
         Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa","", "");
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request1))
@@ -555,10 +555,10 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doAnswer(x -> null).when(modelService).incrementBuildSegmentsManually("default",
                 "89af4ee2-2cdb-4b07-b39e-4c29856309aa", request2.getStart(), request2.getEnd(),
                 request2.getPartitionDesc(), request2.getSegmentHoles());
-        mockMvc.perform(MockMvcRequestBuilders
-                .put("/api/models/{model}/model_segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request2))
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
+        mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/models/{model}/model_segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request2))
+                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).incrementBuildSegmentsManually(eq("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 Mockito.any(IncrementBuildSegmentsRequest.class));
