@@ -5,7 +5,7 @@
         <el-button size="small" icon="el-icon-ksd-table_refresh" type="primary" :disabled="!selectedSegments.length || hasEventAuthority('refresh')" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <el-button size="small" icon="el-icon-ksd-merge" type="default" :disabled="selectedSegments.length < 2 || hasEventAuthority('merge')" @click="handleMergeSegment">{{$t('merge')}}</el-button>
         <el-button size="small" icon="el-icon-ksd-table_delete" type="default" :disabled="!selectedSegments.length || hasEventAuthority('delete')" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
-        <el-button size="small" icon="el-icon-ksd-clear" type="default" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
+        <el-button size="small" icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
         <el-button size="small" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
       </div>
       <div class="right">
