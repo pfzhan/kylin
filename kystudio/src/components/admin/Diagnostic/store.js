@@ -51,7 +51,12 @@ export default {
       }
       // 按时间顺序倒序排列
       let obj = {}
-      Object.keys(idList).reverse().forEach(item => { obj[item] = idList[item] })
+      let timeList = Object.keys(idList).map(it => {
+        return { tm: idList[it].tm, id: idList[it].id }
+      }).sort((a, b) => b.tm - a.tm)
+      timeList.forEach(item => {
+        obj[item.id] = idList[item.id]
+      })
       state.diagDumpIds = {...obj}
     },
     [types.UPDATE_SERVERS] (state, data) {

@@ -332,7 +332,7 @@ export default class Diagnostic extends Vue {
   retryJob (item) {
     const { host, start, end, id } = item
     this.delDumpid(id)
-    this.getDumpRemote({ host, start, end })
+    this.getDumpRemote({ host, start, end, job_id: this.jobId || '', tm: this.getTimes() })
   }
   changeCheckAllType (val) {
     this.indeterminate = false
