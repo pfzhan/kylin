@@ -161,7 +161,7 @@ export default class DropdownFilter extends Vue {
           {this.renderFilterInput(h)}
         </div>
         <div class="footer">
-          <el-button text type="primary" onClick={this.handleClearValue}>
+          <el-button text type="primary" disabled={!value.length} onClick={this.handleClearValue}>
             {this.$t('clearSelectItems')}
           </el-button>
         </div>
