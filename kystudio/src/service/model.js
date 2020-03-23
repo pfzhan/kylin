@@ -149,10 +149,13 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.modelId + '/data_check').update(para.data)
   },
   buildModel: (para) => {
-    return Vue.resource(apiUrl + 'models/' + para.model_id + '/segments').save(para)
+    return Vue.resource(apiUrl + 'models/' + para.model_id + '/model_segments').update(para.data)
+  },
+  buildFullLoadModel: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model_id + '/segments').save({project: para.project, start: para.start, end: para.end})
   },
   checkDataRange: (para) => {
-    return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation`).save(para)
+    return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation`).save({project: para.project, start: para.start, end: para.end})
   },
   checkSegments: (para) => {
     return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation{?ids}`).get({project: para.projectName, ids: para.ids})
@@ -190,7 +193,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.model + '/sql').get(para)
   },
   buildIndex: (para) => {
-    return Vue.resource(apiUrl + 'models/' + para.model_id + '/indices').save(para)
+    return Vue.resource(apiUrl + 'models/' + para.model_id + '/indices').save({project: para.project})
   },
   getModelRecommendations: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.model + '/recommendations?project=' + para.project).get()

@@ -40,9 +40,10 @@
        </div>
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
-        <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox>
+        <!-- <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox> -->
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" :loading="btnLoading" size="medium" @click="submit" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -96,7 +97,7 @@
       col_order: [],
       sort_by_columns: [],
       shard_by_columns: [],
-      load_data: true
+      load_data: false
     })
     tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
     rules = {
@@ -312,7 +313,7 @@
         this.$message({message: tipMsg, type: 'success'})
       }
     }
-    confirmSubmit () {
+    confirmSubmit (isLoadData) {
       this.btnLoading = true
       let successCb = (res) => {
         handleSuccess(res, (data) => {
@@ -320,6 +321,12 @@
         })
         this.closeModal(true)
         this.btnLoading = false
+        if (!isLoadData && !this.modelInstance.available_indexes_count) {
+          this.$emit('needShowBuildTips', this.modelInstance.uuid)
+        }
+        if (isLoadData && !this.modelInstance.available_indexes_count) {
+          this.$emit('openBuildDialog', this.modelInstance, true)
+        }
       }
       let errorCb = (res) => {
         this.btnLoading = false
@@ -349,13 +356,16 @@
         this.addTableIndex(this.tableIndexMeta).then(successCb, errorCb)
       }
     }
-    async submit () {
+    async submit (isLoadData) {
+      if (isLoadData && this.modelInstance.available_indexes_count || !isLoadData) {
+        this.tableIndexMeta.load_data = isLoadData
+      }
       if (this.tableIndexDesc && this.tableIndexDesc.status && this.tableIndexDesc.status !== 'EMPTY') {
         kapConfirm(this.$t('cofirmEditTableIndex'), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.submit'), type: 'warning'}).then(() => {
-          this.confirmSubmit()
+          this.confirmSubmit(isLoadData)
         })
       } else {
-        this.confirmSubmit()
+        this.confirmSubmit(isLoadData)
       }
     }
   }

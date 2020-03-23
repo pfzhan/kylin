@@ -1,23 +1,7 @@
 <template>
   <div class="model-aggregate ksd-mb-15" v-if="model">
-    <div class="aggregate-actions" v-if="isShowAggregateAction">
-      <el-button-group>
-        <el-button type="primary" plain size="small" v-guide.addAggBtn icon="el-icon-ksd-add_2" @click="handleAggregateGroup" v-if="isShowEditAgg">
-          {{$t('aggregateGroup')}}
-        </el-button>
-        <el-button v-if="isShowEditAgg" type="primary" plain size="small" @click="openAggAdvancedModal()">{{$t('aggIndexAdvancedTitle')}}</el-button>
-      </el-button-group><el-button
-        type="primary" plain size="small" class="ksd-ml-10" icon="el-icon-ksd-add_2" v-if="isShowTableIndexActions" v-visible="!isHideEdit" @click="editTableIndex()">{{$t('tableIndex')}}
-      </el-button><el-button
-        type="primary" plain size="small" class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex&&cuboidCount">
-        {{$t('buildIndex')}}
-      </el-button><common-tip :content="$t('noIndexTips')" v-if="isShowBulidIndex&&!cuboidCount"><el-button
-        type="primary" plain size="small" disabled class="ksd-ml-10" :loading="buildIndexLoading" @click="buildAggIndex" v-if="isShowBulidIndex">
-        {{$t('buildIndex')}}
-      </el-button></common-tip>
-    </div>
     <div class="aggregate-view">
-      <el-row :gutter="15">
+      <el-row :gutter="10">
         <el-col :span="12">
           <el-card class="agg-detail-card agg_index">
             <div slot="header" class="clearfix">
@@ -27,22 +11,15 @@
                   <i class="el-icon-ksd-what"></i>
                 </el-tooltip>
               </div>
-              <div class="right">
-                <span>{{$t('aggregateAmount')}}</span>{{cuboidCount}}
-                <!-- <el-input v-model.trim="cuboidCount" :readonly="true" size="small"></el-input> -->
-              </div>
             </div>
-            <div class="agg-counter">
+            <div class="agg-counter ksd-fs-12">
               <div>
-                <!-- <img src="./empty_note.jpg" /> -->
+                <span>{{$t('aggregateAmount')}}</span>
+                <span>{{cuboidCount}}</span>
+                <span class="divide"></span>
                 <span>{{$t('emptyAggregate')}}</span>
                 <span>{{emptyCuboidCount}}</span>
               </div>
-              <!-- <div>
-                <img src="./broken_note.jpg" />
-                <span>{{$t('brokenAggregate')}}</span>
-                <span>{{brokenCuboidCount}}</span>
-              </div> -->
             </div>
             <kap-empty-data v-if="cuboidCount === 0 || noDataNum === 0" size="small"></kap-empty-data>
             <TreemapChart
@@ -57,15 +34,24 @@
           <el-card class="agg-detail-card agg-detail">
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
+              <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction">
+                <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">
+                  {{$t('index')}}
+                </el-button>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
+                  <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="editTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
               <div class="right fix">
-                <el-input class="search-input" v-model.trim="filterArgs.key" size="mini" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
+                <el-input class="search-input" v-model.trim="filterArgs.key" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search" v-global-key-event.enter.debounce="searchAggs" @clear="searchAggs()"></el-input>
               </div>
             </div>
             <div class="detail-content" v-loading="indexLoading">
-              <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
+              <div class="ksd-mb-5 ksd-fs-12" v-if="isFullLoaded">
                 {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
               </div>
-              <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
+              <div class="ksd-mb-5 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
                 {{$t('dataRange')}}: {{dataRange}}
               </div>
               <div class="filter-tags-agg" v-show="filterTags.length">
@@ -183,9 +169,9 @@
       </div>
     </el-dialog>
 
-    <AggregateModal/>
-    <TableIndexEdit/>
-    <AggAdvancedModal v-on:refreshIndexGraph="refreshIndexGraphAfterSubmitSetting" />
+    <!-- <TableIndexEdit/> -->
+    <!-- <AggregateModal/> -->
+    <!-- <AggAdvancedModal v-on:refreshIndexGraph="refreshIndexGraphAfterSubmitSetting" /> -->
   </div>
 </template>
 
@@ -196,13 +182,13 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import FlowerChart from '../../../../common/FlowerChart'
 import TreemapChart from '../../../../common/TreemapChart'
-import { handleSuccessAsync, objectClone } from '../../../../../util'
+import { handleSuccessAsync } from '../../../../../util'
 import { handleError, transToGmtTime, kapConfirm, transToServerGmtTime } from '../../../../../util/business'
 import { speedProjectTypes } from '../../../../../config'
 import { BuildIndexStatus } from '../../../../../config/model'
-import AggregateModal from './AggregateModal/index.vue'
-import AggAdvancedModal from './AggAdvancedModal/index.vue'
-import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
+// import AggregateModal from './AggregateModal/index.vue'
+// import AggAdvancedModal from './AggAdvancedModal/index.vue'
+// import TableIndexEdit from '../../TableIndexEdit/tableindex_edit'
 import { formatGraphData } from './handler'
 import NModel from '../../ModelEdit/model.js'
 
@@ -249,9 +235,9 @@ import NModel from '../../ModelEdit/model.js'
     ...mapActions('AggregateModal', {
       callAggregateModal: 'CALL_MODAL'
     }),
-    ...mapActions('AggAdvancedModal', {
-      callAggAdvancedModal: 'CALL_MODAL'
-    }),
+    // ...mapActions('AggAdvancedModal', {
+    //   callAggAdvancedModal: 'CALL_MODAL'
+    // }),
     ...mapActions('TableIndexEditModal', {
       showTableIndexEditModal: 'CALL_MODAL'
     }),
@@ -268,10 +254,10 @@ import NModel from '../../ModelEdit/model.js'
   },
   components: {
     FlowerChart,
-    TreemapChart,
-    AggregateModal,
-    AggAdvancedModal,
-    TableIndexEdit
+    TreemapChart
+    // AggregateModal
+    // AggAdvancedModal,
+    // TableIndexEdit
   },
   locales
 })
@@ -308,12 +294,12 @@ export default class ModelAggregate extends Vue {
   indexDetailTitle = ''
   filterTags = []
   // 打开高级设置
-  openAggAdvancedModal () {
-    this.callAggAdvancedModal({
-      model: objectClone(this.model),
-      aggIndexAdvancedDesc: null
-    })
-  }
+  // openAggAdvancedModal () {
+  //   this.callAggAdvancedModal({
+  //     model: objectClone(this.model),
+  //     aggIndexAdvancedDesc: null
+  //   })
+  // }
 
   tableRowClassName ({row, rowIndex}) {
     if (row.status === 'EMPTY' || row.status === 'BUILDING') {
@@ -347,6 +333,7 @@ export default class ModelAggregate extends Vue {
     }).then((res) => {
       if (res.isSubmit) {
         this.refreshIndexGraphAfterSubmitSetting()
+        this.$emit('loadModels')
       }
     })
   }
@@ -387,7 +374,7 @@ export default class ModelAggregate extends Vue {
     </span>)
   }
   async buildAggIndex () {
-    if (this.model.segment_holes) {
+    if (this.model.segment_holes.length) {
       const segmentHoles = this.model.segment_holes
       try {
         const tableData = []
@@ -572,6 +559,7 @@ export default class ModelAggregate extends Vue {
     const { projectName, model } = this
     const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
     isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
+    isSubmit && await this.$emit('loadModels')
   }
   // 查询状态过滤回调函数
   filterContent (val, type) {
@@ -653,13 +641,12 @@ export default class ModelAggregate extends Vue {
     }
   }
   .agg-counter {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    white-space: nowrap;
-    font-size: 12px;
     * {
       vertical-align: middle;
+    }
+    .divide {
+      border-left: 1px solid @line-border-color;
+      margin: 0 5px;
     }
     img {
       width: 18px;
@@ -683,21 +670,36 @@ export default class ModelAggregate extends Vue {
   }
   .agg-detail-card {
     height: 496px;
-    &.agg_index .el-card__body {
-      overflow: hidden;
+    border: none;
+    background: none;
+    .el-card__header {
+      background: none;
+      border-bottom: none;
+      height: 24px;
+      font-size: 12px;
+      padding: 0px;
+      margin-bottom: 10px;
     }
-    &.agg-detail {
-      .el-card__header {
-        padding-top:6px;
-        padding-bottom:6px;
+    &.agg_index {
+      border-right: 1px solid @line-border-color;
+      padding-right: 10px;
+      .el-card__body {
+        overflow: hidden;
       }
     }
+    // &.agg-detail {
+    //   .el-card__header {
+    //     padding-top:6px;
+    //     padding-bottom:6px;
+    //   }
+    // }
     .el-card__body {
       overflow: auto;
       height: 460px;
       width: 100%;
       position: relative;
       box-sizing: border-box;
+      padding: 0px !important;
       .detail-content {
         .el-row {
           margin-bottom: 10px;
@@ -710,6 +712,8 @@ export default class ModelAggregate extends Vue {
     .left {
       display: block;
       float: left;
+      position: relative;
+      top: 8px;
       &.fix {
         width: 130px;
       }

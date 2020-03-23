@@ -78,14 +78,22 @@
           <template slot-scope="props" v-if="props.row.status !== 'BROKEN'">
             <transition name="full-model-slide-fade">
               <div :class="renderFullExpandClass(props.row)">
-                <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
-                <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
-                <el-tabs class="el-tabs--default model-detail-tabs" type="card" v-model="props.row.tabTypes">
+                <!-- <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div> -->
+                <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
+                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
-                    <ModelSegment ref="segmentComp" :model="props.row" :isShowSegmentActions="datasourceActions.includes('segmentActions')" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" @auto-fix="autoFix(props.row.alias, props.row.uuid, props.row.segment_holes)" />
+                    <ModelSegment
+                     ref="segmentComp"
+                     class="ksd-mrl-15 ksd-mt-15"
+                     :model="props.row"
+                     :isShowSegmentActions="datasourceActions.includes('segmentActions')"
+                     v-if="props.row.tabTypes === 'first'"
+                     @purge-model="model => handleCommand('purge', model)"
+                     @auto-fix="autoFix(props.row.alias, props.row.uuid, props.row.segment_holes)" />
                   </el-tab-pane>
-                  <el-tab-pane :label="$t('index')" name="second">
+                  <el-tab-pane :label="$t('indexOverview')" name="second">
                     <ModelAggregate
+                      class="ksd-mrl-15 ksd-mt-15"
                       :model="props.row"
                       :project-name="currentSelectedProject"
                       :isShowEditAgg="datasourceActions.includes('editAggGroup')"
@@ -94,18 +102,27 @@
                       @loadModels="loadModelsList"
                       v-if="props.row.tabTypes === 'second'" />
                   </el-tab-pane>
-                  <!-- <el-tab-pane :label="$t('tableIndex')" name="third">
-                    <TableIndex
-                      :modelDesc="props.row"
-                      :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
-                      :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
+                  <el-tab-pane :label="$t('aggregateGroup')" name="third">
+                    <ModelAggregateView
+                      :model="props.row"
+                      :project-name="currentSelectedProject"
+                      :isShowEditAgg="datasourceActions.includes('editAggGroup')"
+                      @loadModels="loadModelsList"
                       v-if="props.row.tabTypes === 'third'" />
-                  </el-tab-pane> -->
-                  <el-tab-pane label="JSON" name="forth">
-                    <ModelJson v-if="props.row.tabTypes === 'forth'" :model="props.row.uuid"/>
                   </el-tab-pane>
-                  <el-tab-pane label="SQL" name="fifth">
-                    <ModelSql v-if="props.row.tabTypes === 'fifth'" :model="props.row.uuid"/>
+                  <el-tab-pane :label="$t('tableIndex')" name="forth">
+                    <TableIndexView
+                      :model="props.row"
+                      :project-name="currentSelectedProject"
+                      :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')"
+                      @loadModels="loadModelsList"
+                      v-if="props.row.tabTypes === 'forth'" />
+                  </el-tab-pane>
+                  <el-tab-pane label="JSON" name="fifth">
+                    <ModelJson v-if="props.row.tabTypes === 'fifth'" class="ksd-mrl-15 ksd-mt-15" :model="props.row.uuid"/>
+                  </el-tab-pane>
+                  <el-tab-pane label="SQL" name="sixth">
+                    <ModelSql v-if="props.row.tabTypes === 'sixth'" class="ksd-mrl-15 ksd-mt-15" :model="props.row.uuid"/>
                   </el-tab-pane>
                 </el-tabs>
               </div>
@@ -126,6 +143,7 @@
                 <i slot="reference" :class="['filter-status', scope.row.status]" />
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
+                <div v-if="scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
                 <div v-if="scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
@@ -231,8 +249,19 @@
               <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
                 <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i>
               </common-tip>
-              <common-tip :content="$t('build')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')">
-                <i class="el-icon-ksd-data_range ksd-fs-14" v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
+              <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')">
+                <el-popover
+                  ref="popoverBuild"
+                  placement="bottom-end"
+                  width="280"
+                  trigger="manual"
+                  v-model="buildVisible[scope.row.uuid]">
+                  <div>{{$t('buildTips')}}</div>
+                  <div style="text-align: right; margin: 0">
+                    <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(scope.row.uuid)">{{$t('iKown')}}</el-button>
+                  </div>
+                </el-popover>
+                <i class="el-icon-ksd-auto_model_ssistant ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions')">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
@@ -281,6 +310,10 @@
     <ModelRecommendModal/>
     <!-- 推荐模型 -->
     <UploadSqlModel v-on:reloadModelList="loadModelsList"/>
+    <!-- 聚合索引编辑 -->
+    <AggregateModal v-on:needShowBuildTips="needShowBuildTips" v-on:openBuildDialog="setModelBuldRange"/>
+    <!-- 表索引编辑 -->
+    <TableIndexEdit v-on:needShowBuildTips="needShowBuildTips" v-on:openBuildDialog="setModelBuldRange"/>
   </div>
 </template>
 <script>
@@ -292,11 +325,12 @@ import { NamedRegex } from '../../../../config'
 import { ModelStatusTagType } from '../../../../config/model.js'
 import locales from './locales'
 import { handleError, kapConfirm, kapMessage, handleSuccess } from 'util/business'
-
-import { objectClone, transToServerGmtTime } from 'util'
+import { objectClone, handleSuccessAsync, transToServerGmtTime } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
+import ModelAggregateView from './ModelAggregateView/index.vue'
+import TableIndexView from './TableIndexView/index.vue'
 import ModelRenameModal from './ModelRenameModal/rename.vue'
 import ModelCloneModal from './ModelCloneModal/clone.vue'
 import ModelAddModal from './ModelAddModal/addmodel.vue'
@@ -326,6 +360,8 @@ function getDefaultFilters () {
   }
 }
 
+import AggregateModal from './AggregateModal/index.vue'
+import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
@@ -365,7 +401,8 @@ function getDefaultFilters () {
       updataModel: 'UPDATE_MODEL',
       getModelJson: 'GET_MODEL_JSON',
       getModelByModelName: 'LOAD_MODEL_INFO',
-      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
+      autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
+      fetchSegments: 'FETCH_SEGMENTS'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -399,6 +436,8 @@ function getDefaultFilters () {
     TableIndex,
     ModelSegment,
     ModelAggregate,
+    ModelAggregateView,
+    TableIndexView,
     ModelRenameModal,
     ModelCloneModal,
     ModelAddModal,
@@ -409,7 +448,9 @@ function getDefaultFilters () {
     ModelSql,
     ModelRecommendModal,
     UploadSqlModel,
-    DropdownFilter
+    DropdownFilter,
+    AggregateModal,
+    TableIndexEdit
   },
   locales
 })
@@ -426,12 +467,18 @@ export default class ModelList extends Vue {
   expandedRows = []
   filterTags = []
   prevExpendContent = []
+  buildVisible = {}
   showGenerateModelDialog () {
     this.showUploadSqlDialog({
       isGenerateModel: true
     })
   }
-  changeCurrentType (res) {
+  needShowBuildTips (uuid) {
+    this.buildVisible[uuid] = !localStorage.getItem('hideBuildTips')
+  }
+  closeBuildTips (uuid) {
+    this.buildVisible[uuid] = false
+    localStorage.setItem('hideBuildTips', true)
   }
   setRowClass (res) {
     const {row} = res
@@ -547,21 +594,21 @@ export default class ModelList extends Vue {
       )
     }
   }
-  async setModelBuldRange (modelDesc) {
-    if (modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) {
-      await this.callModelBuildDialog({
-        modelDesc: modelDesc
-      })
-    } else {
-      let storage = modelDesc.storage
-      await this._showFullDataLoadConfirm(storage, modelDesc.alias).then(() => {
-        this.$refs.modelBuildComp.$emit('buildModel', {
-          start: null,
-          end: null,
-          modelId: modelDesc.uuid
-        })
-      })
+  async setModelBuldRange (modelDesc, isNeedBuildGuild) {
+    if (!modelDesc.total_indexes && !isNeedBuildGuild) return
+    const projectName = this.currentSelectedProject
+    const modelName = modelDesc.uuid
+    const res = await this.fetchSegments({ projectName, modelName })
+    const { total_size } = await handleSuccessAsync(res)
+    let type = 'incremental'
+    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) && total_size) {
+      type = 'fullLoad'
     }
+    await this.callModelBuildDialog({
+      modelDesc: modelDesc,
+      type: type,
+      isHaveSegment: !!total_size
+    })
     this.refreshSegment()
   }
   async refreshSegment () {
@@ -931,6 +978,12 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
+    .el-icon-ksd-auto_model_ssistant.build-disabled {
+      color: @color-text-disabled;
+      &:hover {
+        color: @color-text-disabled;
+      }
+    }
     .clickable-btn {
       color: @base-color;
       cursor: pointer;
@@ -939,23 +992,34 @@ export default class ModelList extends Vue {
       color: @text-disabled-color;
     }
     .el-table__expanded-cell {
-      background-color: #fbfbfb;
-      padding-bottom:0;
+      background-color: @fff;
+      padding:0;
       &:hover {
-        background-color: @breadcrumbs-bg-color;
+        background-color: @fff !important;
       }
       .full-cell-content {
         position: relative;
       }
       .full-model-box {
         vertical-align:middle;
-        font-size: 20px;
+        font-size: 16px;
         margin-left:10px;
         z-index: 10;
       }
-      .model-detail-tabs{
+      .model-detail-tabs {
         &.el-tabs--card>.el-tabs__header .el-tabs__item.is-active{
           border-bottom-color: #fbfbfb;
+        }
+        > .el-tabs__header {
+          margin-bottom: 0px;
+          z-index: 1;
+          .el-tabs__item.is-active{
+            border-bottom-color: #fbfbfb;
+          }
+          &> .el-tabs__nav-wrap {
+            box-shadow:0px 2px 4px 0px rgba(229,229,229,1);
+            background-color: @fff;
+          }
         }
       }
     }
@@ -997,6 +1061,7 @@ export default class ModelList extends Vue {
   margin-right: 20px;
   .row-action {
     right:20px;
+    top: 4px;
   }
   &.full-cell {
     margin: 0 20px;
@@ -1018,10 +1083,10 @@ export default class ModelList extends Vue {
         .el-table__expanded-cell {
           padding: 0;
           .full-cell-content {
-            z-index: 999;
+            z-index: 9;
             position: absolute;
             padding-top: 10px;
-            background: @breadcrumbs-bg-color;
+            background: @fff;
             top: 0px;
             height: 100vh;
             width: calc(~'100% + 40px');

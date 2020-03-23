@@ -1,165 +1,122 @@
 <template>
-<div>
-  <el-dialog class="aggregate-modal" limited-area width="960px"
-    :visible="isShow"
-    top="5vh"
-    :append-to-body="true"
-    :close-on-press-escape="false"
-    :close-on-click-modal="false"
-    @close="isShow && handleClose(false)">
-    <span class="el-dialog__title" slot="title">{{$t(modalTitle)}}
-      <!-- 超出上限的情况 -->
-      <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10 + 1})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
-      <!-- 数字的情况 -->
-      <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.total_count.result})}})</span></span>
-      <!-- 待检测的情况 -->
-      <span v-if="isWaitingCheckAllCuboids&&isNeedCheck&&!isDisabledSaveBtn">({{$t('numTitle', {num: $t('needCheck')})}})</span>
-      <!-- 正在检测的情况 -->
-      <i v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'" class="el-icon-loading"></i>
-    </span>
-    <!-- <div class="loading" v-if="isLoading" v-loading="isLoading"></div> -->
-    <template v-if="model">
-      <!-- 维度列表展示 -->
-      <!-- <div class="dimension-list clearfix" v-if="isDimensionShow">
-        <div class="dimension disable" v-for="dimension in dimensions" :key="dimension.value">
-          {{dimension.label}}
-        </div>
-      </div> -->
-      <!-- 维度按钮 -->
-      <!-- <div class="dimension-buttons">
-        <el-button @click="toggleDimensionShow">
-          {{$t(isDimensionShow ? 'hideDimensions' : 'showDimensions')}}
-          <i class="el-icon-ksd-more_01" :class="{ 'less': isDimensionShow }"></i>
-        </el-button>
-      </div> -->
-      <!-- 聚合组按钮 -->
-      <div v-loading="calcLoading || isSubmit"
-            element-loading-text=" "
-            element-loading-spinner=" "
-            element-loading-background="rgba(0, 0, 0, 0)">
-        <el-alert
-          class="ksd-pt-0 ksd-pb-15"
-          :title="$t('aggGroupTip')"
-          type="info"
-          :show-background="false"
-          :closable="false"
-          show-icon>
-        </el-alert>
-        <div class="aggregate-buttons ksd-mb-15">
-          <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
-        </div>
-        <div class="content">
-          <!-- 聚合组表单 -->
-          <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregate.id" :class="{'js_exceedLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
-            <div class="header">
-              <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}} 
-                <!-- 超出上限的情况 -->
-                <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
-                <!-- 数字的情况 -->
-                <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">({{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}})</span></span>
-                <!-- 待检测的情况 -->
-                <span v-if="isWaitingCheckCuboids[aggregate.id]&&isNeedCheck&&!isDisabledSaveBtn">({{$t('numTitle', {num: $t('needCheck')})}})</span>
-                <!-- 正在检测的情况 -->
-                <i v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'" class="el-icon-loading"></i>
-              </h1>
-              <div class="actions">
-                <!-- <el-button type="mini" @click="() => openAggregateItem(aggregateIdx)">{{ aggregate.open ? $t('retract') : $t('open') }}</el-button> -->
-                <common-tip :content="$t('kylinLang.common.copy')"><i class="el-icon-ksd-copy" @click="() => handleCopyAggregate(aggregateIdx)"></i></common-tip>
-                <common-tip :content="$t('kylinLang.common.delete')"><i class="el-icon-ksd-table_delete" @click="() => handleDeleteAggregate(aggregateIdx, form.aggregateArray.length - aggregateIdx)"></i></common-tip>
+  <div class="aggregate-modal" v-if="isShow">
+    <div class="aggregate-dialog">
+      <div class="el-dialog__title ksd-mb-10">{{$t(modalTitle)}}
+      </div>
+      <!-- <div class="loading" v-if="isLoading" v-loading="isLoading"></div> -->
+      <div v-if="model" class="ksd-mb-70">
+        <!-- 聚合组按钮 -->
+        <div v-loading="calcLoading || isSubmit"
+              element-loading-text=" "
+              element-loading-spinner=" "
+              element-loading-background="rgba(0, 0, 0, 0)">
+          <el-alert
+            class="ksd-pt-0 ksd-pb-20"
+            :title="$t('aggGroupTip')"
+            type="info"
+            :show-background="false"
+            :closable="false"
+            show-icon>
+          </el-alert>
+          <div class="content">
+            <!-- 聚合组表单 -->
+            <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregate.id" :class="{'js_exceedLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'}">
+              <div class="header">
+                <h1 class="title font-medium">
+                  <i @click="openAggregateItem(aggregateIdx)" :class="{'el-icon-arrow-down': aggregate.open, 'el-icon-arrow-right': !aggregate.open}"></i>
+                  {{$t('aggregateGroupTitle', { id: aggregateIdx + 1 })}}
+                </h1>
+                <span class="ksd-ml-15 ksd-fleft">
+                  <!-- 超出上限的情况 -->
+                  <span class="cuboid-error" v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationNum', {num: maxCombinationNum})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+                  <!-- 数字的情况 -->
+                  <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'number'"><span class="cuboid-result">{{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id] && cuboidsInfo.agg_index_counts[aggregate.id].result})}}</span></span>
+                  <!-- 待检测的情况 -->
+                  <span v-if="isWaitingCheckCuboids[aggregate.id]">{{$t('numTitle', {num: $t('needCheck')})}}</span>
+                  <!-- 正在检测的情况 -->
+                  <span v-if="!isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'loading'">{{$t('numTitle1')}}<i class="el-icon-loading"></i></span>
+                </span>
+                <div class="dimCap-block ksd-ml-10">
+                  <span class="divide"></span>
+                  <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+                  </span>
+                  <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&!form.globalDimCap" class="nolimit-dim">{{$t('noLimitation')}}</span>
+                  <span v-if="!aggregate.isEditDim&&aggregate.dimCap">{{aggregate.dimCap}}</span>
+                  <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&form.globalDimCap" class="global-dim">{{form.globalDimCap}}</span>
+                  <el-input
+                    class="dim-input"
+                    v-if="aggregate.isEditDim"
+                    size="mini"
+                    :clearable="false"
+                    v-model="groupsDim[aggregateIdx]"
+                    v-number2="groupsDim[aggregateIdx]"
+                    :placeholder="!groupsDim[aggregateIdx]?(form.globalDimCap?form.globalDimCap+'':$t('noLimitation')) : ''"
+                  ></el-input>
+                  <span v-if="!aggregate.isEditDim">
+                    <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit" @click.stop="editDimCan(aggregateIdx, true)"></i></common-tip>
+                  </span>
+                  <span v-else>
+                    <i class="el-icon-ksd-right" @click.stop="saveDimCan(aggregateIdx)"></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click.stop="editDimCan(aggregateIdx, false)"></i>
+                  </span>
+                </div>
+                <div class="actions">
+                  <!-- <el-button type="mini" @click="() => openAggregateItem(aggregateIdx)">{{ aggregate.open ? $t('retract') : $t('open') }}</el-button> -->
+                  <common-tip :content="$t('kylinLang.common.copy')"><i class="el-icon-ksd-copy" @click.stop="() => handleCopyAggregate(aggregateIdx)"></i></common-tip>
+                  <common-tip :content="$t('kylinLang.common.delete')"><i class="el-icon-ksd-table_delete" @click.stop="() => handleDeleteAggregate(aggregateIdx, aggregateIdx + 1)"></i></common-tip>
+                </div>
               </div>
-              <div class="ksd-fright dimCap-block">
-                <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
-                </span>
-                <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&!form.globalDimCap" class="nolimit-dim">{{$t('noLimitation')}}</span>
-                <span v-if="!aggregate.isEditDim&&aggregate.dimCap">{{aggregate.dimCap}}</span>
-                <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&form.globalDimCap" class="global-dim">{{form.globalDimCap}}</span>
-                <el-input
-                  class="dim-input"
-                  v-if="aggregate.isEditDim"
-                  size="mini"
-                  :clearable="false"
-                  v-model="groupsDim[aggregateIdx]"
-                  v-number2="groupsDim[aggregateIdx]"
-                  :placeholder="!groupsDim[aggregateIdx]?(form.globalDimCap?form.globalDimCap+'':$t('noLimitation')) : ''"
-                ></el-input>
-                <span v-if="!aggregate.isEditDim">
-                  <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit" @click="editDimCan(aggregateIdx, true)"></i></common-tip>
-                </span>
-                <span v-else>
-                  <i class="el-icon-ksd-right" @click="saveDimCan(aggregateIdx)"></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click="editDimCan(aggregateIdx, false)"></i>
-                </span>
-              </div>
-            </div>
-            <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
-              <div class="contain">
-                <el-tabs v-model="aggregate.activeTab" type="card">
-                  <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
-                </el-tabs>
-                <template v-if="aggregate.activeTab === 'dimension'">
-                  <!-- Include聚合组 -->
-                  <div class="row">
-                    <h2 class="title font-medium">{{$t('include')}}</h2>
-                    <div class="row ksd-mb-10">
-                      <el-button plain size="mini" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAllDimension')}}<el-tooltip class="item tip-item" effect="dark" :content="$t('dimensionTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
-                      <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllDimension')}}</el-button>
-                    </div>
-                    <el-select
-                      v-guide.aggIncludes
-                      multiple
-                      filterable
-                      class="mul-filter-select"
-                      :class="{'reset-padding': aggregate.includes.length}"
-                      :ref="`aggregate.include.${aggregateIdx}`"
-                      :value="aggregate.includes"
-                      :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                      @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value, aggregate.id)"
-                      @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
-                      <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
-                      <el-option
-                        v-for="dimension in dimensions"
-                        :key="dimension.value"
-                        :label="dimension.label"
-                        :value="dimension.value">
-                      </el-option>
-                    </el-select>
-                  </div>
-                  <!-- Mandatory聚合组 -->
-                  <div class="row mandatory">
-                    <h2 class="title font-medium">{{$t('mandatory')}}</h2>
-                    <el-select
-                      v-guide.aggMandatory
-                      multiple
-                      filterable
-                      class="mul-filter-select"
-                      :class="{'reset-padding': aggregate.mandatory.length}"
-                      :value="aggregate.mandatory"
-                      :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                      @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value, aggregate.id)">
-                      <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
-                      <el-option
-                        v-for="dimension in getUnusedDimensions(aggregateIdx)"
-                        :key="dimension.value"
-                        :label="dimension.label"
-                        :value="dimension.value">
-                      </el-option>
-                    </el-select>
-                  </div>
-                  <!-- Hierarchy聚合组 -->
-                  <div class="row hierarchy">
-                    <h2 class="title font-medium">{{$t('hierarchy')}}</h2>
-                    <div class="list"
-                      v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
-                      :key="`hierarchy-${hierarchyRowIdx}`">
+              <div class="body" :class="{'overLimit': !isWaitingCheckCuboids[aggregate.id] && renderCoboidTextCheck(cuboidsInfo.agg_index_counts && cuboidsInfo.agg_index_counts[aggregate.id]) === 'overLimit', 'open': aggregate.open}" :style="aggregateStyle[aggregateIdx] ? aggregateStyle[aggregateIdx] : (!aggregate.open && {'display': 'none'})">
+                <div class="contain">
+                  <el-tabs v-model="aggregate.activeTab">
+                    <el-tab-pane :label="$t(item.key, {size: aggregate[item.target].length, total: totalSize(item.name)})" :name="item.key" v-for="item in tabList" :key="item.key"></el-tab-pane>
+                  </el-tabs>
+                  <template v-if="aggregate.activeTab === 'dimension'">
+                    <!-- Include聚合组 -->
+                    <div class="row">
+                      <div class="ksd-mb-10">
+                        <span class="title font-medium include-title">{{$t('include')}}</span>
+                        <div class="row ksd-fright ky-no-br-space">
+                          <el-button plain size="mini" class="add-all-item" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx, aggregate.id)">{{$t('selectAllDimension')}}<el-tooltip class="item tip-item" effect="dark" :content="$t('dimensionTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
+                          <el-button class="ksd-ml-10" size="mini" @click="handleRemoveAllIncludes(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllDimension')}}</el-button>
+                        </div>
+                      </div>
                       <el-select
-                        v-guide.aggHierarchy
+                        v-guide.aggIncludes
                         multiple
                         filterable
                         class="mul-filter-select"
-                        :class="{'reset-padding': hierarchy.items.length}"
-                        :value="hierarchy.items"
+                        :class="{'reset-padding': aggregate.includes.length}"
+                        :ref="`aggregate.include.${aggregateIdx}`"
+                        :value="aggregate.includes"
                         :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                        @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value, aggregate.id)">
-                        <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
+                        @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value, aggregate.id)"
+                        @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
+                        <i slot="prefix" v-show="!aggregate.includes.length" class="el-input__icon el-icon-search"></i>
+                        <el-option
+                          v-for="dimension in dimensions"
+                          :key="dimension.value"
+                          :label="dimension.label"
+                          :value="dimension.value">
+                        </el-option>
+                      </el-select>
+                    </div>
+                    <!-- Mandatory聚合组 -->
+                    <div class="row mandatory">
+                      <h2 class="title font-medium">{{$t('mandatory')}}
+                        <common-tip placement="right" :content="$t('mandatoryDesc')">
+                          <i class="el-icon-ksd-what"></i>
+                        </common-tip>
+                      </h2>
+                      <el-select
+                        v-guide.aggMandatory
+                        multiple
+                        filterable
+                        class="mul-filter-select"
+                        :class="{'reset-padding': aggregate.mandatory.length}"
+                        :value="aggregate.mandatory"
+                        :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                        @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value, aggregate.id)">
+                        <i slot="prefix" v-show="!aggregate.mandatory.length" class="el-input__icon el-icon-search"></i>
                         <el-option
                           v-for="dimension in getUnusedDimensions(aggregateIdx)"
                           :key="dimension.value"
@@ -167,146 +124,176 @@
                           :value="dimension.value">
                         </el-option>
                       </el-select>
-                      <div class="list-actions clearfix">
-                        <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
-                          @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregate.id)">
-                        </el-button>
-                        <el-button circle class="delete" size="mini" icon="el-icon-minus"
-                          :disabled="aggregate.hierarchyArray.length === 1"
-                          @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx, aggregate.id)">
-                        </el-button>
+                    </div>
+                    <!-- Hierarchy聚合组 -->
+                    <div class="row hierarchy">
+                      <h2 class="title font-medium">{{$t('hierarchy')}}
+                        <common-tip placement="right" :content="$t('hierarchyDesc')">
+                          <i class="el-icon-ksd-what"></i>
+                        </common-tip>
+                      </h2>
+                      <div class="list"
+                        v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
+                        :key="`hierarchy-${hierarchyRowIdx}`">
+                        <el-select
+                          v-guide.aggHierarchy
+                          multiple
+                          filterable
+                          class="mul-filter-select"
+                          :class="{'reset-padding': hierarchy.items.length}"
+                          :value="hierarchy.items"
+                          :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                          @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value, aggregate.id)">
+                          <i slot="prefix" v-show="!hierarchy.items.length" class="el-input__icon el-icon-search"></i>
+                          <el-option
+                            v-for="dimension in getUnusedDimensions(aggregateIdx)"
+                            :key="dimension.value"
+                            :label="dimension.label"
+                            :value="dimension.value">
+                          </el-option>
+                        </el-select>
+                        <div class="list-actions clearfix ky-no-br-space">
+                          <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
+                            @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregate.id)">
+                          </el-button>
+                          <el-button circle class="delete" size="mini" icon="el-icon-minus"
+                            :disabled="aggregate.hierarchyArray.length === 1"
+                            @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx, aggregate.id)">
+                          </el-button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <!-- Joint聚合组 -->
-                  <div class="row joint">
-                    <h2 class="title font-medium">{{$t('joint')}}</h2>
-                    <div class="list"
-                      v-for="(joint, jointRowIdx) in aggregate.jointArray"
-                      :key="`joint-${jointRowIdx}`">
+                    <!-- Joint聚合组 -->
+                    <div class="row joint">
+                      <h2 class="title font-medium">{{$t('joint')}}
+                        <common-tip placement="right" :content="$t('jointDesc')">
+                          <i class="el-icon-ksd-what"></i>
+                        </common-tip>
+                      </h2>
+                      <div class="list"
+                        v-for="(joint, jointRowIdx) in aggregate.jointArray"
+                        :key="`joint-${jointRowIdx}`">
+                        <el-select
+                          v-guide.joint
+                          multiple
+                          filterable
+                          class="mul-filter-select"
+                          :class="{'reset-padding': joint.items.length}"
+                          :value="joint.items"
+                          :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
+                          @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value, aggregate.id)">
+                          <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
+                          <el-option
+                            v-for="dimension in getUnusedDimensions(aggregateIdx)"
+                            :key="dimension.value"
+                            :label="dimension.label"
+                            :value="dimension.value">
+                          </el-option>
+                        </el-select>
+                        <div class="list-actions clearfix ksd-no-br-space">
+                          <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
+                            @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
+                          </el-button>
+                          <el-button circle class="delete" size="mini" icon="el-icon-minus"
+                            :disabled="aggregate.jointArray.length === 1"
+                            @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx, aggregate.id)">
+                          </el-button>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="row">
+                      <div class="ksd-mb-10">
+                        <span class="title font-medium measure-title">{{$t('includeMeasure')}}</span>
+                        <div class="row ksd-mb-10 ksd-fright ky-no-br-space">
+                          <el-button plain size="mini" class="add-all-item" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
+                          <el-button size="mini" class="ksd-ml-10" @click="handleRemoveAllMeasure(aggregateIdx, aggregateIdx+1, aggregate.id)">{{$t('clearAllMeasures')}}</el-button>
+                        </div>
+                      </div>
                       <el-select
-                        v-guide.joint
                         multiple
                         filterable
                         class="mul-filter-select"
-                        :class="{'reset-padding': joint.items.length}"
-                        :value="joint.items"
+                        :class="{'reset-padding': aggregate.measures.length}"
+                        :ref="`aggregate.measures.${aggregateIdx}`"
+                        :value="aggregate.measures"
                         :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                        @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value, aggregate.id)">
-                        <i slot="prefix" v-show="!joint.items.length" class="el-input__icon el-icon-search"></i>
+                        @input="value => handleInput(`aggregateArray.${aggregateIdx}.measures`, value, aggregate.id)"
+                        @remove-tag="value => handleRemoveMeasureRules(value, aggregateIdx, aggregate.id)">
+                        <i slot="prefix" v-show="!aggregate.measures.length" class="el-input__icon el-icon-search"></i>
                         <el-option
-                          v-for="dimension in getUnusedDimensions(aggregateIdx)"
-                          :key="dimension.value"
-                          :label="dimension.label"
-                          :value="dimension.value">
+                          v-for="measure in measures"
+                          :key="measure.value"
+                          :label="measure.label"
+                          :disabled="measure.value === 'COUNT_ALL'"
+                          :value="measure.value">
                         </el-option>
                       </el-select>
-                      <div class="list-actions clearfix ksd-no-br-space">
-                        <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
-                          @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
-                        </el-button>
-                        <el-button circle class="delete" size="mini" icon="el-icon-minus"
-                          :disabled="aggregate.jointArray.length === 1"
-                          @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx, aggregate.id)">
-                        </el-button>
-                      </div>
                     </div>
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="row">
-                    <h2 class="title font-medium">{{$t('includeMeasure')}}</h2>
-                    <div class="row ksd-mb-10">
-                      <el-button plain size="mini" class="add-all-item" type="primary" @click="handleAddAllMeasure(aggregateIdx, aggregate.id)">{{$t('selectAllMeasure')}}<el-tooltip class="item tip-item" popper-class='aggregate-tip' effect="dark" :content="$t('measureTabTip')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
-                      <el-button size="mini" @click="handleRemoveAllMeasure(aggregateIdx, form.aggregateArray.length - aggregateIdx, aggregate.id)">{{$t('clearAllMeasures')}}</el-button>
-                    </div>
-                    <el-select
-                      multiple
-                      filterable
-                      class="mul-filter-select"
-                      :class="{'reset-padding': aggregate.measures.length}"
-                      :ref="`aggregate.measures.${aggregateIdx}`"
-                      :value="aggregate.measures"
-                      :placeholder="$t('kylinLang.common.pleaseSelectOrSearch')"
-                      @input="value => handleInput(`aggregateArray.${aggregateIdx}.measures`, value, aggregate.id)"
-                      @remove-tag="value => handleRemoveMeasureRules(value, aggregateIdx, aggregate.id)">
-                      <i slot="prefix" v-show="!aggregate.measures.length" class="el-input__icon el-icon-search"></i>
-                      <el-option
-                        v-for="measure in measures"
-                        :key="measure.value"
-                        :label="measure.label"
-                        :disabled="measure.value === 'COUNT_ALL'"
-                        :value="measure.value">
-                      </el-option>
-                    </el-select>
-                  </div>
-                </template>
+                  </template>
+                </div>
               </div>
             </div>
-            <div class="open-aggregate-group" @click="openAggregateItem(aggregateIdx)"><i :class="['el-icon-d-arrow-left', {'open': aggregate.open}]"></i></div>
+          </div>
+          <div class="aggregate-buttons ksd-mt-20">
+            <el-button type="primary" icon="el-icon-ksd-add_2" @click="handleAddAggregate">{{$t('addAggregateGroup')}}</el-button>
           </div>
         </div>
       </div>
-    </template>
-    <div slot="footer" class="dialog-footer clearfix">
-      <div class="left">
-        <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
-        </span>
-        <span v-if="!isEditGlobalDim&&!form.globalDimCap">{{$t('noLimitation')}}</span>
-        <span v-if="!isEditGlobalDim&&form.globalDimCap">{{form.globalDimCap}}</span>
-        <el-input class="dim-input" v-if="isEditGlobalDim" :placeholder="form.globalDimCap?'':$t('noLimitation')" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
-        <span v-if="!isEditGlobalDim">
-          <common-tip :content="$t('kylinLang.common.edit')" v-show="isShowTooltips"><i
-            class="dim-btn el-icon-ksd-table_edit" @click="editGlobalDim"></i>
-          </common-tip><common-tip
-            v-show="isShowTooltips"
-            :content="clearTips">
-            <i class="dim-btn el-icon-ksd-clear ksd-ml-5" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
-          </common-tip>
-        </span>
-        <span v-else>
-          <el-popover
-            ref="popover"
-            placement="top"
-            width="160"
-            trigger="click"
-            v-model="popoverVisible">
-            <p>{{$t('dimConfirm')}}</p>
-            <div style="text-align: right; margin: 0">
-              <el-button size="mini" type="info" text @click="popoverVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-              <el-button type="primary" size="mini" @click="saveGlobalDim">{{$t('kylinLang.common.ok')}}</el-button>
-            </div>
-          </el-popover>
-          <i class="el-icon-ksd-right" v-popover:popover></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click="isEditGlobalDim = false"></i>
-        </span>
-      </div>
-      <div class="right">
-        <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" @click="checkCuboids(true)" :loading="calcLoading">{{$t('checkIndexAmount')}}<el-tooltip placement="top" :content="$t('checkIndexAmountBtnTips')"><i class="plainWhat el-icon-ksd-what ksd-ml-5"></i></el-tooltip></el-button>
-        <el-button type="primary" size="medium" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+      <div slot="footer" class="dialog-footer clearfix">
+        <div class="left">
+          <span class="ksd-fleft">
+            <!-- 超出上限的情况 -->
+            <span class="cuboid-error" v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'overLimit'"><span class="cuboid-result errorClass">( {{$t('exceedLimitTitle')}}<el-tooltip :content="$t('maxCombinationTotalNum', {num: maxCombinationNum, numTotal: maxCombinationNum * 10 + 1})"><i class="el-icon-ksd-what ksd-ml-5"></i></el-tooltip> )</span></span>
+            <!-- 数字的情况 -->
+            <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'number'"><span class="cuboid-result">{{$t('numTitle', {num: isNeedCheck ? $t('needCheck') : cuboidsInfo.total_count.result})}}</span></span>
+            <!-- 待检测的情况 -->
+            <span v-if="isWaitingCheckAllCuboids">{{$t('numTitle', {num: $t('needCheck')})}}</span>
+            <!-- 正在检测的情况 -->
+            <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'">{{$t('numTitle1')}}<i class="el-icon-loading"></i></span>
+            <i class="el-icon-ksd-table_refresh ksd-ml-10" :class="{'is-disabled': isDisabledSaveBtn}" @click="checkCuboids(true)"></i>
+          </span>
+          <div class="dimCap-block ksd-ml-10">
+            <span class="divide"></span>
+            <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+            </span>
+            <span v-if="!isEditGlobalDim&&!form.globalDimCap">{{$t('noLimitation')}}</span>
+            <span v-if="!isEditGlobalDim&&form.globalDimCap">{{form.globalDimCap}}</span>
+            <el-input class="dim-input" v-if="isEditGlobalDim" :placeholder="form.globalDimCap?'':$t('noLimitation')" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
+            <span v-if="!isEditGlobalDim">
+              <common-tip :content="$t('kylinLang.common.edit')" v-show="isShowTooltips"><i
+                class="dim-btn el-icon-ksd-table_edit" @click="editGlobalDim"></i>
+              </common-tip><common-tip
+                v-show="isShowTooltips"
+                :content="clearTips">
+                <i class="dim-btn el-icon-ksd-clear ksd-ml-5" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
+              </common-tip>
+            </span>
+            <span v-else>
+              <el-popover
+                ref="popover"
+                placement="top"
+                width="160"
+                trigger="click"
+                v-model="popoverVisible">
+                <p>{{$t('dimConfirm')}}</p>
+                <div style="text-align: right; margin: 0">
+                  <el-button size="mini" type="info" text @click="popoverVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+                  <el-button type="primary" size="mini" @click="saveGlobalDim">{{$t('kylinLang.common.ok')}}</el-button>
+                </div>
+              </el-popover>
+              <i class="el-icon-ksd-right" v-popover:popover></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click="isEditGlobalDim = false"></i>
+            </span>
+          </div>
+        </div>
+        <div class="right">
+          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
+          <el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
+        </div>
       </div>
     </div>
-  </el-dialog>
-  <el-dialog class="confirm-dialog" width="480px"
-    :title="$t('kylinLang.common.tip')"
-    :visible="isShowConfirm"
-    :append-to-body="true"
-    @close="handleCloseConfirm"
-    :close-on-press-escape="false"
-    :close-on-click-modal="false">
-    <div class="el-message-box__content">
-      <div class="el-message-box__status el-icon-warning"></div>
-      <div class="el-message-box__message">
-        <p>{{confirmMsg}}</p>
-      </div>
-    </div>
-    <div slot="footer" class="dialog-footer ky-no-br-space clearfix">
-      <el-button plain size="medium" @click="handleCloseConfirm">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" v-guide.setAggIndexConfitmBtn v-if="isShowBuildAndConfirm" @click="confirmSubmit(true)">{{$t('bulidAndSubmit')}}</el-button>
-      <el-button type="primary" size="medium" @click="confirmSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
-    </div>
-  </el-dialog>
-</div>
+  </div>
 </template>
 
 <script>
@@ -314,12 +301,12 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 
-import vuex from '../../../../../../store'
+import vuex from 'store'
 import locales from './locales'
 import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
 import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
-import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone } from '../../../../../../util'
+import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone } from 'util'
 import { handleSuccess } from 'util/business'
 
 const { EDIT } = editTypes
@@ -336,6 +323,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       callback: state => state.callback,
       model: state => state.model,
       projectName: state => state.projectName,
+      aggregateIdx: state => state.aggregateIdx,
       formDataLoaded: state => state.formDataLoaded
     }),
     ...mapGetters('AggregateModal', [
@@ -383,30 +371,6 @@ export default class AggregateModal extends Vue {
   groupsDim = []
   isShowTooltips = false
   isNeedCheck = false
-
-  mounted () {
-    this.$nextTick(() => {
-      this.$el.querySelector('.dialog-footer .left').onmouseover = () => {
-        this.isShowTooltips = true
-      }
-      this.$el.querySelector('.dialog-footer .left').onmouseout = () => {
-        this.isShowTooltips = false
-      }
-      this.$el.querySelector('.aggregate-modal').onclick = (e) => {
-        if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1 && e.target.classList.value.indexOf('el-icon-ksd-right') === -1) {
-          this.isEditGlobalDim = false
-          const aggregateArray = get(this.form, 'aggregateArray')
-          aggregateArray.forEach((agg) => {
-            agg.isEditDim = false
-          })
-          this.groupsDim = aggregateArray.map((agg) => { return agg.dimCap })
-          this.setModalForm({ aggregateArray })
-          this.popoverVisible = false
-        }
-      }
-    })
-  }
-
   get clearTips () {
     return this.form.isDimClearable ? this.$t('clearDimTips') : this.$t('disableClear')
   }
@@ -484,7 +448,7 @@ export default class AggregateModal extends Vue {
         if (data) {
           this.cuboidsInfo = objectClone(data)
           // this.cuboidsInfo.agg_index_counts = data.agg_index_counts.reverse()
-          let resultData = objectClone(data.agg_index_counts.reverse())
+          let resultData = objectClone(data.agg_index_counts)
           // 用聚合组的唯一id 做标识
           this.cuboidsInfo.agg_index_counts = {}
           for (let i = 0; i < this.form.aggregateArray.length; i++) {
@@ -562,6 +526,10 @@ export default class AggregateModal extends Vue {
         this.isWaitingCheckCuboids[id] = true
       }
       this.calcCuboids()
+      this.$nextTick(() => {
+        const detailContents = this.$el.querySelectorAll('.aggregate-modal .aggregate-dialog .aggregate-group')
+        this.$el.querySelector('.aggregate-modal .aggregate-dialog').parentElement.scrollTop = detailContents[this.aggregateIdx].offsetTop - 100
+      })
     }
   }
   @Watch('isShow')
@@ -572,6 +540,28 @@ export default class AggregateModal extends Vue {
       })
       this.isFormShow = true
       this.resetCuboidInfo()
+      this.$nextTick(() => {
+        if (this.$el.querySelector('.dialog-footer .left')) {
+          this.$el.querySelector('.dialog-footer .left').onmouseover = () => {
+            this.isShowTooltips = true
+          }
+          this.$el.querySelector('.dialog-footer .left').onmouseout = () => {
+            this.isShowTooltips = false
+          }
+          this.$el.querySelector('.aggregate-modal .aggregate-dialog').onclick = (e) => {
+            if (e.target.classList.value.indexOf('dim-btn') === -1 && e.target.parentElement.classList.value.indexOf('dim-input') === -1 && e.target.classList.value.indexOf('el-icon-ksd-right') === -1) {
+              this.isEditGlobalDim = false
+              const aggregateArray = get(this.form, 'aggregateArray')
+              aggregateArray.forEach((agg) => {
+                agg.isEditDim = false
+              })
+              this.groupsDim = aggregateArray.map((agg) => { return agg.dimCap })
+              this.setModalForm({ aggregateArray })
+              this.popoverVisible = false
+            }
+          }
+        }
+      })
     } else {
       setTimeout(() => {
         this.isFormShow = false
@@ -600,11 +590,15 @@ export default class AggregateModal extends Vue {
       id: sampleGuid()
     }
     this.aggregateStyle = []
-    this.setModalForm({ aggregateArray: [ aggregateData, ...aggregateArray ] })
+    this.setModalForm({ aggregateArray: [ ...aggregateArray, aggregateData ] })
     this.isWaitingCheckCuboids[aggregateData.id] = true
     this.isWaitingCheckAllCuboids = true
     this.aggregateStyle = []
     // this.calcCuboids()
+    this.$nextTick(() => {
+      const scrollTop = this.$el.querySelector('.aggregate-modal .aggregate-dialog').parentElement.scrollTop
+      this.$el.querySelector('.aggregate-modal .aggregate-dialog').parentElement.scrollTop = scrollTop + 370
+    })
   }
   editDimCan (aggregateIdx, isEdit) {
     const aggregateArray = get(this.form, 'aggregateArray')
@@ -637,6 +631,10 @@ export default class AggregateModal extends Vue {
     this.isWaitingCheckAllCuboids = true
     this.aggregateStyle = []
     // this.calcCuboids()
+    this.$nextTick(() => {
+      const detailContents = this.$el.querySelectorAll('.aggregate-modal .aggregate-dialog .aggregate-group')
+      this.$el.querySelector('.aggregate-modal .aggregate-dialog').parentElement.scrollTop = detailContents[this.form.aggregateArray.length - 1].offsetTop - 100
+    })
   }
   handleDeleteAggregate (aggregateIdx, titleId) {
     kapConfirm(this.$t('delAggregateTip', {aggId: titleId}), {type: 'warning'}, this.$t('delAggregateTitle')).then(() => {
@@ -670,12 +668,12 @@ export default class AggregateModal extends Vue {
     this.isWaitingCheckAllCuboids = true
     // this.calcCuboids()
   }
-  handleClose (isSubmit) {
+  handleClose (isSubmit, isNeedBuildGuild) {
     this.hideModal()
     this.isEditGlobalDim = false
     setTimeout(() => {
       this.resetModalForm()
-      this.callback && this.callback(isSubmit)
+      this.callback && this.callback({isSubmit, isNeedBuildGuild})
     }, 200)
   }
   handleInput (key, value, id) {
@@ -731,7 +729,7 @@ export default class AggregateModal extends Vue {
     let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
     if (this.form.isCatchUp) {
       if (data.type === BuildIndexStatus.NORM_BUILD) {
-        tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1')
+        tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.aggregateGroupIndex')})
         this.$message({message: tipMsg, type: 'success'})
         return
       }
@@ -747,6 +745,7 @@ export default class AggregateModal extends Vue {
     }
   }
   checkCuboids (isShowCheckSuccess) {
+    if (this.isDisabledSaveBtn) { return }
     if (this.checkFormVaild()) {
       // 每次检测前，reset cuboid的信息
       this.resetCuboidInfo()
@@ -756,13 +755,16 @@ export default class AggregateModal extends Vue {
   dealScrollToFirstError () {
     this.$nextTick(() => {
       // 第一个数量超过的元素
-      if (document.querySelector('.js_exceedLimit')) {
+      if (this.$el.querySelector('.js_exceedLimit')) {
         let firstErrorDomTop = document.querySelector('.js_exceedLimit').offsetTop - 100
-        document.querySelector('.aggregate-modal').querySelector('.el-dialog__body').scrollTop = firstErrorDomTop
+        this.$el.querySelector('.aggregate-modal .aggregate-dialog').scrollTop = firstErrorDomTop
       }
     })
   }
-  async handleSubmit () {
+  async handleSubmit (isCatchUp) {
+    if (isCatchUp && this.model.available_indexes_count || !isCatchUp) {
+      this.setModalForm({isCatchUp: set(this.form, 'isCatchUp', isCatchUp)['isCatchUp']})
+    }
     this.isSubmit = true
     // this.showLoading()
     try {
@@ -785,7 +787,7 @@ export default class AggregateModal extends Vue {
           this.maxCombinationNum = cuboidsResult.max_combination_num
           this.cuboidsInfo = objectClone(cuboidsResult)
           // this.cuboidsInfo.agg_index_counts = cuboidsResult.agg_index_counts.reverse()
-          let resultData = objectClone(cuboidsResult.agg_index_counts.reverse())
+          let resultData = objectClone(cuboidsResult.agg_index_counts)
           // 用聚合组的唯一id 做标识
           this.cuboidsInfo.agg_index_counts = {}
           for (let i = 0; i < this.form.aggregateArray.length; i++) {
@@ -815,16 +817,20 @@ export default class AggregateModal extends Vue {
         }
         let diffRes = await this.getIndexDiff(data)
         let diffResult = await handleSuccessAsync(diffRes)
+        await this.confirmSubmitTips(diffResult)
         // 获取数字正常的情况下，才进行 submit
-        if (!diffResult.decrease_layouts && !diffResult.increase_layouts) {
-          let res = await this.submit(data)
-          let result = await handleSuccessAsync(res)
-          this.handleBuildIndexTip(result)
-          this.isSubmit = false
-          this.handleClose(true)
-        } else {
-          this.confirmSubmitTips(diffResult)
+        let res = await this.submit(data)
+        let result = await handleSuccessAsync(res)
+        if (!isCatchUp && !this.model.available_indexes_count) {
+          this.$emit('needShowBuildTips', this.model.uuid)
         }
+        if (isCatchUp && !this.model.available_indexes_count) {
+          this.$emit('openBuildDialog', this.model, true)
+        }
+        this.handleBuildIndexTip(result)
+        this.isSubmit = false
+        this.handleClose(true)
+        // this.hideLoading()
       } else {
         this.isSubmit = false
         // this.hideLoading()
@@ -878,38 +884,16 @@ export default class AggregateModal extends Vue {
     this.$message.success(this.$t('clearSuccess'))
     this.isNeedCheck = true
   }
-  async confirmSubmit (isCatchUp) {
-    this.setModalForm({isCatchUp: set(this.form, 'isCatchUp', isCatchUp)['isCatchUp']})
-    const data = this.getSubmitData()
-    delete data.dimensions // 后台处理规整顺序
-    this.isShowConfirm = false
-    try {
-      let res = await this.submit(data)
-      let result = await handleSuccessAsync(res)
-      this.handleBuildIndexTip(result)
-      this.isSubmit = false
-      this.handleClose(true)
-    } catch (e) {
-      this.calcLoading = false
-      for (let prop in this.isWaitingCheckCuboids) {
-        this.isWaitingCheckCuboids[prop] = false
-      }
-      e && handleError(e)
-      this.isSubmit = false
-    }
-  }
   confirmSubmitTips (diffResult) {
-    if (diffResult.decrease_layouts === 0 && diffResult.increase_layouts > 0) {
-      this.confirmMsg = this.$t('increaseTips', {increaseNum: diffResult.increase_layouts, model_name: this.model.name})
-      this.isShowBuildAndConfirm = true
-      this.isShowConfirm = true
-    } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts === 0) {
-      this.confirmMsg = this.$t('decreaseTips', {decreaseNum: diffResult.decrease_layouts, model_name: this.model.name})
-      this.isShowConfirm = true
+    if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts === 0) {
+      return kapConfirm(this.$t('decreaseTips', {decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}), {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: this.$t('kylinLang.common.save'), type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
     } else if (diffResult.decrease_layouts > 0 && diffResult.increase_layouts > 0) {
-      this.confirmMsg = this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts, model_name: this.model.name})
-      this.isShowBuildAndConfirm = true
-      this.isShowConfirm = true
+      const saveText = this.form.isCatchUp ? this.$t('saveAndBuild') : this.$t('kylinLang.common.save')
+      return kapConfirm(this.$t('mixTips', {increaseNum: diffResult.increase_layouts, decreaseNum: diffResult.decrease_layouts, model_name: this.model.name}) + saveText, {cancelButtonText: this.$t('kylinLang.common.cancel'), confirmButtonText: saveText, type: 'warning', closeOnClickModal: false, showClose: false, closeOnPressEscape: false}, this.$t('kylinLang.common.tip'))
+    } else {
+      return new Promise((resolve) => {
+        resolve()
+      })
     }
   }
   checkFormVaild () {
@@ -950,7 +934,7 @@ export default class AggregateModal extends Vue {
               }).filter(joints => joints.length),
               dim_cap: aggregate.dimCap
             }
-          })).reverse()
+          }))
         }
       }
     }
@@ -1002,7 +986,7 @@ export default class AggregateModal extends Vue {
   }
 
   aggregateHeight (index) {
-    return document.querySelectorAll('.aggregate-group .body').length ? (document.querySelectorAll('.aggregate-group .body')[index].offsetHeight || null) : null
+    return this.$el.querySelectorAll('.aggregate-group .body').length ? (document.querySelectorAll('.aggregate-group .body')[index].offsetHeight || null) : null
   }
 
   computeCurrentAggHeigth (index) {
@@ -1038,13 +1022,36 @@ export default class AggregateModal extends Vue {
 </script>
 
 <style lang="less">
-@import '../../../../../../assets/styles/variables.less';
+@import '../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
+  z-index: 10;
+  position: absolute;
+  // padding-top: 20px;
+  background: @fff;
+  top: 0px;
+  height: 100vh;
+  width: calc(~'100%');
+  margin: 0 -20px 0 -20px;
+  // padding: 20px;
+  overflow-y: auto;
+  .aggregate-dialog {
+    margin: 20px;
+  }
   .el-icon-ksd-right {
     color: @base-color;
   }
   .dialog-footer{
+    line-height: 50px;
+    height: 50px;
+    border-top: 1px solid #ccc;
+    margin: 0px -20px 0 -20px;
+    padding: 0 20px;
+    position: fixed;
+    bottom: 0px;
+    width: calc(~'100% - 180px');
+    background-color: #fff;
+    z-index: 11;
     .dim-btn {
       cursor: pointer;
       display: none;
@@ -1059,6 +1066,17 @@ export default class AggregateModal extends Vue {
     .left {
       min-width: 230px;
       text-align: left;
+      .el-icon-ksd-table_refresh.is-disabled {
+        color: @color-text-disabled;
+      }
+      .dimCap-block {
+        margin-left: 10px;
+        float: left;
+        .divide {
+          border-left: 1px solid @line-border-color;
+          margin-right: 10px;
+        }
+      }
       .dim-input{
         display: inline-block;
         width: 58px;
@@ -1148,29 +1166,38 @@ export default class AggregateModal extends Vue {
   .aggregate-group {
     position: relative;
     &:not(:last-child) {
-      margin-bottom: 25px;
+      margin-bottom: 20px;
     }
     .title {
       color: @text-title-color;
-      margin-bottom: 7px;
+      margin-bottom: 10px;
+      &.include-title,
+      &.measure-title {
+        position: relative;
+        top: 6px;
+      }
     }
     .header {
       width: 100%;
       height: 36px;
-      background: @regular-background-color;
+      background: @background-disabled-color;
       line-height: 36px;
       padding: 0 10px;
       box-sizing: border-box;
       border-radius: 2px 2px 0 0;
-      border: 1px solid @line-border-color;
+      // border: 1px solid @line-border-color;
       overflow: hidden;
       .title {
         float: left;
         margin: 0;
       }
       .dimCap-block {
-        padding: 0 5px;
+        .divide {
+          border-left: 1px solid @line-border-color;
+          margin-right: 10px;
+        }
         min-width: 222px;
+        float: left;
         i {
           cursor: pointer;
         }
@@ -1199,8 +1226,8 @@ export default class AggregateModal extends Vue {
       }
     }
     .body {
-      border: 1px solid @line-border-color;
-      border-top: 0;
+      // border: 1px solid @line-border-color;
+      // border-top: 0;
       overflow: hidden;
       transition: height 1s;
       box-sizing: border-box;
@@ -1208,7 +1235,7 @@ export default class AggregateModal extends Vue {
         border: 1px solid @error-color-1;
       }
       .contain {
-        padding: 10px 15px;
+        padding: 15px 0 0px 0;
         box-sizing: border-box;
       }
     }
@@ -1234,7 +1261,7 @@ export default class AggregateModal extends Vue {
       }
     }
     .row {
-      margin-bottom: 17px;
+      margin-bottom: 15px;
       &.joint {
         margin-bottom: 0;
       }
@@ -1249,12 +1276,9 @@ export default class AggregateModal extends Vue {
       font-size: 14px;
       float: right;
       padding: 0 2px 0 12px;
-      border-left: 1px solid @line-border-color;
-      .el-button+.el-button {
-        margin-left: 5px;
-      }
       i {
         color: @text-title-color;
+        margin-left: 6px;
       }
     }
   }
@@ -1297,16 +1321,16 @@ export default class AggregateModal extends Vue {
   .hierarchy,
   .joint {
     .el-tag {
-      background: @base-color;
-      border: 1px solid @base-color;
+      background: @lighter-color-tip;
+      border: 1px solid @color-success;
       border-radius: 2px;
-      color: @fff;
+      color: @color-success;
       .el-icon-close {
-        color: @fff;
+        color: @color-success;
       }
       .el-icon-close:hover {
-        background: @fff;
-        color: @base-color;
+        background: @color-success;
+        color: @fff;
       }
     }
   }
@@ -1315,16 +1339,16 @@ export default class AggregateModal extends Vue {
     color: @base-color;
     border: 1px solid @base-color;
     &[data-tag='used'] {
-      background: @base-color;
-      border: 1px solid @base-color;
+      background: @lighter-color-tip;
+      border: 1px solid @color-success;
       border-radius: 2px;
-      color: @fff;
+      color: @color-success;
       .el-icon-close {
-        color: @fff;
+        color: @color-success;
       }
       .el-icon-close:hover {
-        background: @fff;
-        color: @base-color;
+        background: @color-success;
+        color: @fff;
       }
     }
   }
@@ -1333,9 +1357,6 @@ export default class AggregateModal extends Vue {
   }
   .right {
     float: right;
-  }
-  .dialog-footer {
-    line-height: 32px;
   }
   .loading {
     position: absolute;

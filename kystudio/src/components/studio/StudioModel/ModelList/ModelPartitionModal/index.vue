@@ -10,10 +10,10 @@
     :close-on-press-escape="false" 
     :close-on-click-modal="false">
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
-    <div class="partition-set ksd-title-label ksd-mb-10" v-if="mode === 'saveModel'">
+    <div class="partition-set ksd-title-label ksd-mb-10" v-if="mode !== 'saveModel'">
       <span>*</span>{{$t('modelPartitionSet')}}
     </div>
-    <el-form :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top"> 
+    <el-form v-if="mode !== 'saveModel'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
       <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
         <el-row :gutter="5">
           <el-col :span="12">
@@ -63,7 +63,7 @@
       </el-form-item>
     </el-form>
     <template v-if="mode === 'saveModel'">
-      <div class="divider"></div>
+      <!-- <div class="divider"></div> -->
       <div class="ksd-title-label ksd-mb-10">
         {{$t('dataFilterCond')}}
         <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">

@@ -10,7 +10,7 @@
       class="agg-dialog"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
-      width="1104px">
+      width="1200px">
       <ModelAggregate
         v-if="aggDetailVisible"
         :model="model"
@@ -27,7 +27,7 @@
       class="agg-dialog"
       :close-on-press-escape="false"
       :close-on-click-modal="false"
-      width="1104px">
+      width="1200px">
       <TableIndex
         v-if="tabelIndexVisible"
         :model-desc="model"

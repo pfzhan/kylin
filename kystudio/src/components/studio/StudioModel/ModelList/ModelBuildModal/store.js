@@ -8,6 +8,8 @@ const types = {
 // 声明：初始state状态
 const initialState = JSON.stringify({
   isShow: false,
+  type: '',
+  isHaveSegment: false,
   form: {
     modelDesc: ''
   },
@@ -28,6 +30,8 @@ export default {
     },
     [types.SET_MODAL_FORM]: (state, payload) => {
       state.form.modelDesc = payload.modelDesc
+      state.type = payload.type
+      state.isHaveSegment = payload.isHaveSegment
       state.callback = payload.callback
     },
     [types.RESET_MODAL_FORM]: (state) => {
@@ -35,9 +39,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { modelDesc }) {
+    [types.CALL_MODAL] ({ commit }, { modelDesc, type, isHaveSegment }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL_FORM, {modelDesc: modelDesc, callback: resolve})
+        commit(types.SET_MODAL_FORM, {modelDesc: modelDesc, type: type, isHaveSegment: isHaveSegment, callback: resolve})
         commit(types.SHOW_MODAL)
       })
     }

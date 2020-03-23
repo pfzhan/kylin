@@ -1,4 +1,4 @@
-import { handleSuccessAsync, getFullMapping } from '../../../../../../util'
+import { handleSuccessAsync, getFullMapping } from 'util'
 
 const types = {
   SHOW_MODAL: 'SHOW_MODAL',
@@ -37,6 +37,7 @@ const initialState = JSON.stringify({
   callback: null,
   model: null,
   projectName: null,
+  aggregateIdx: 0,
   formDataLoaded: false,
   form: {
     isCatchUp: false,
@@ -127,18 +128,18 @@ export default {
           }
           measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
           return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap }
-        }).reverse()
+        })
       }
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model }) {
+    [types.CALL_MODAL] ({ commit, state }, { editType, projectName, model, aggregateIdx }) {
       const { dispatch } = this
 
       return new Promise(async (resolve, reject) => {
         const modelId = model && model.uuid
         commit(types.SET_MODEL_DATA_LOADED, false)
-        commit(types.SET_MODAL, { editType, model, projectName, callback: resolve })
+        commit(types.SET_MODAL, { editType, model, projectName, aggregateIdx, callback: resolve })
         commit(types.SHOW_LOADING)
         commit(types.SHOW_MODAL)
         const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
@@ -185,7 +186,7 @@ function getDimensions (model) {
 }
 
 function getMeasures (model) {
-  return model ? model.simplified_measures.map(measure => ({label: measure.name, value: measure.name, id: measure.id})).reverse() : []
+  return model ? model.simplified_measures.map(measure => ({label: measure.name, value: measure.name, id: measure.id})) : []
 }
 
 export { types }

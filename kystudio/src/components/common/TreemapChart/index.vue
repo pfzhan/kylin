@@ -223,7 +223,7 @@ export default class TreemapChart extends Vue {
 
 .treemap-chart {
   .project-capacity {
-    margin-top: 25px;
+    margin-top: 5px;
     height: 400px;
     width: 100%;
   }

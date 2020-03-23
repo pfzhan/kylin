@@ -44,7 +44,8 @@ export default {
     segmentHoletips: 'There exists a hole in the segment range, and the model will not be able to server queries. Please confirm whether to add the following segments to fix.',
     fixSegmentTitle: 'Fix Segment',
     ignore: 'Ignore',
-    fixAndBuild: 'Fix and Build'
+    fixAndBuild: 'Fix and Build',
+    index: 'Index'
   },
   'zh-cn': {
     aggregateGroup: '聚合索引',
@@ -91,6 +92,7 @@ export default {
     segmentHoletips: '当前 Segment 区间存在空洞，此时将无法服务于查询，是否需要补充以下 Segment 进行修复？',
     fixSegmentTitle: '修复 Segment',
     ignore: '忽略',
-    fixAndBuild: '修复并构建'
+    fixAndBuild: '修复并构建',
+    index: '索引'
   }
 }

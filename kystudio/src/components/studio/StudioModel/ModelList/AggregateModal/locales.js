@@ -24,6 +24,7 @@ export default {
     checkIndexAmount: 'Check Index Amount',
     checkIndexAmountBtnTips: 'Check if the index amount exceeds the upper limit',
     numTitle: 'Index Amount: {num}',
+    numTitle1: 'Index Amount: ',
     exceedLimitTitle: 'Index Amount: Exceed Limit',
     maxTotalCombinationTip: 'The aggregate index amount exceeds the upper limit, please optimize the group setting or reduce dimension amount.',
     maxCombinationTotalNum: 'The upper limit of index amount per aggregate group is {num}. The upper limit of aggregate index amount is {numTotal}.',
@@ -39,8 +40,8 @@ export default {
     clearMeasureTitle: 'Clear Measures',
     aggGroupTip: 'You can define dimensions and measures in different aggregate groups according to your business scenario. In the dimension setting, it is recommended to select the frequently used grouping dimensions and filtering dimensions into the aggregate group in the descending order of the cardinality.',
     increaseTips: 'After submitting, {increaseNum} index(indexes) will be added into model {model_name}. The index(indexes) can serve queries after being built. Please confirm whether to submit and build, or just submit without building?',
-    decreaseTips: 'After submitting, {decreaseNum} index(indexes) will be deleted from model {model_name}. The index(indexes) cannot serve queries after being deleted, and the delete operation cannot be recovered. Are you sure to submit?',
-    mixTips: 'After submitting, {decreaseNum} index(indexes) will be deleted and {increaseNum} index(indexes) will be added in model {model_name}. At this point, the influenced indexes will be changed to "LOCKED" status and can still serve queries. All the changes will take effect after the new indexes are built successfully. Please note that the deleted indexes cannot be recovered. Please confirm whether to submit and build, or just submit without building?',
+    decreaseTips: 'After submission, {decreaseNum} indexes in model {model_name} will be deleted. The affected indexes will be in a "locked" state and can still answer queries. However, the index cannot be restored after being deleted. Please confirm whether to save it.',
+    mixTips: 'After submission, {decreaseNum} indexes in model {model_name} will be deleted and {increaseNum} indexes will be added. The affected indexes will be in a "locked" state and can still answer queries. However, the index cannot be restored after being deleted. The newly added indexes can be queried after the build is complete. Please confirm whether to .',
     bulidAndSubmit: 'Submit and Build',
     maxDimCom: 'Max Dimension Combination',
     noLimitation: 'No Limitation',
@@ -54,7 +55,11 @@ export default {
     clearConfirm: 'After confirmation, all MDCs will be cleared, and there will be no MDC restriction in all aggregate groups. Please confirm whether  to clear all MDCs?',
     clearbtn: 'Confirm to Clear',
     clearSuccess: 'Succeeded to clear all MDCs. ',
-    needCheck: 'Pending'
+    needCheck: 'Pending',
+    mandatoryDesc: 'If a dimension is set to a mandatory dimension, only the index with this dimension will be calculated.',
+    hierarchyDesc: 'If there is a hierarchical relationship between the dimensions, you can set it as a hierarchy dimension.',
+    jointDesc: 'If there are dimensions that will be used at the same time, you can set them as joint dimensions.',
+    saveAndBuild: 'Save and Build Index'
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',
@@ -81,6 +86,7 @@ export default {
     checkIndexAmount: '检测索引数',
     checkIndexAmountBtnTips: '检测聚合索引数是否超过上限',
     numTitle: '索引数：{num}',
+    numTitle1: '索引数：',
     exceedLimitTitle: '索引数：超过上限',
     maxTotalCombinationTip: '聚合索引总数超过上限，请优化当前聚合组或者减少聚合组中的维度。',
     maxCombinationTotalNum: '单个聚合组内索引上限为 {num}，聚合索引总数上限为 {numTotal}。',
@@ -96,8 +102,8 @@ export default {
     clearMeasureTitle: '清除度量',
     aggGroupTip: '您可以将维度和度量根据分析场景定义在不同的聚合组。在维度设置中，推荐将查询中常用的分组维度、过滤维度按照基数从大到小的方式选入聚合组。',
     increaseTips: '提交后模型 {model_name} 中将有 {increaseNum} 个索引被添加，新索引构建完成后将服务于查询。请确认是否提交并构建，或者仅提交不进行构建？',
-    decreaseTips: '提交后模型 {model_name} 中将有 {decreaseNum} 个索引被删除，索引删除后不能服务于查询，且删除操作不可恢复。请确认是否提交？',
-    mixTips: '提交后模型 {model_name} 中将有 {decreaseNum} 个索引被删除，{increaseNum} 个索引被添加。此时，受影响的索引将处于 "锁定" 状态，并仍可服务于查询。所有修改将在新索引构建完成后生效，请注意索引被删除后无法恢复。请确认是否提交并构建，或者仅提交不进行构建？',
+    decreaseTips: '提交后，模型 {model_name} 中将有 {decreaseNum} 个索引将被删除。受影响的索引将处于”锁定“状态，并仍可以服务查询。但是索引被删除后无法恢复，请确认是否保存。',
+    mixTips: '提交后，模型 {model_name} 中将有 {decreaseNum} 个索引将被删除，{increaseNum} 个索引将被添加。受影响的索引将处于”锁定“状态，并仍可以服务查询。但是索引被删除后无法恢复。新增的索引完成构建后即可服务查询。请确认是否',
     bulidAndSubmit: '提交并构建',
     maxDimCom: '最大维度组合数',
     noLimitation: '无限制',
@@ -111,6 +117,10 @@ export default {
     clearConfirm: '确认后将清空全部最大维度组合数，所有的聚合组将失去已设最大维度组合数限制，请确认是否要清空？',
     clearbtn: '确认清空',
     clearSuccess: '清空全部最大维度组合数成功。',
-    needCheck: '待检测'
+    needCheck: '待检测',
+    mandatoryDesc: '若有维度被设置成必需维度，则只有包含此维度的索引会被生成。',
+    hierarchyDesc: '若维度间存在层级关系，您可以将其设置为层级维度。',
+    jointDesc: '若有维度会被同时使用，您可以将其设置为联合维度。',
+    saveAndBuild: '保存并构建索引'
   }
 }

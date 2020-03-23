@@ -227,6 +227,9 @@ export default {
     [types.MODEL_BUILD] ({ commit }, para) {
       return api.model.buildModel(para)
     },
+    [types.MODEL_FULLLOAD_BUILD] ({ commit }, para) {
+      return api.model.buildFullLoadModel(para)
+    },
     [types.MODEL_PARTITION_SET] ({ commit }, para) {
       return api.model.setPartition(para)
     },
