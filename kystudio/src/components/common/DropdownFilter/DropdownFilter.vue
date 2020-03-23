@@ -74,7 +74,11 @@ export default class DropdownFilter extends Vue {
   }
 
   handleInput (value) {
-    this.$emit('input', value)
+    if (value === null && this.isDatePickerType) {
+      this.$emit('input', [])
+    } else {
+      this.$emit('input', value)
+    }
   }
 
   handleClearValue () {
