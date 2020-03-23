@@ -87,10 +87,13 @@ export default class DropdownFilter extends Vue {
 
   handleSetDropdown (isShowDropDown) {
     this.isShowDropDown = isShowDropDown
+    if (this.isDatePickerType) {
+      !this.isShowDropDown && this.$refs.$datePicker.hidePicker()
+    }
   }
 
   handleToggleDropdown () {
-    this.isShowDropDown = !this.isShowDropDown
+    this.handleSetDropdown(!this.isShowDropDown)
   }
 
   renderCheckboxGroup (h) {
@@ -114,16 +117,16 @@ export default class DropdownFilter extends Vue {
     const { value, pickerOptions } = this
 
     return (
-      <div class="invisible-item">
+      <div class="invisible-item" onClick={this.handleToggleDropdown}>
         <el-date-picker
           value={value}
           type="datetimerange"
           align="left"
+          ref="$datePicker"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
           onInput={this.handleInput}
           picker-options={pickerOptions}
-          onFocus={() => this.handleSetDropdown(true)}
           onBlur={() => this.handleSetDropdown(false)}
           onChange={() => this.handleSetDropdown(false)}>
         </el-date-picker>
@@ -158,7 +161,7 @@ export default class DropdownFilter extends Vue {
           {this.renderFilterInput(h)}
         </div>
         <div class="footer">
-          <el-button text type="info" onClick={this.handleClearValue}>
+          <el-button text type="primary" onClick={this.handleClearValue}>
             {this.$t('clearSelectItems')}
           </el-button>
         </div>

@@ -54,9 +54,8 @@
             text
             type="info"
             icon="el-icon-ksd-table_resure"
-            @click="handleResetFilters">
-            {{$t('reset')}}
-          </el-button>
+            :disabled="isResetFilterDisabled"
+            @click="handleResetFilters">{{$t('reset')}}</el-button>
         </div>
       </div>
       <el-table class="model_list_table"
@@ -131,7 +130,6 @@
         </el-table-column>
         <el-table-column
           min-width="209px"
-          show-overflow-tooltip
           prop="alias"
           :label="modelTableTitle">
           <template slot-scope="scope">
@@ -149,8 +147,10 @@
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
                 </div>
-              </el-popover>
-              <span>{{scope.row.alias}}</span>
+              </el-popover><!--
+              --><OverflowTextTooltip>
+                <span>{{scope.row.alias}}</span>
+              </OverflowTextTooltip>
             </div>
             <el-popover
               popper-class="last-modified-tooltip"
@@ -344,6 +344,7 @@ import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
+import OverflowTextTooltip from '../../../common/OverflowTextTooltip/OverflowTextTooltip.vue'
 
 function getDefaultFilters () {
   return {
@@ -450,7 +451,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     UploadSqlModel,
     DropdownFilter,
     AggregateModal,
-    TableIndexEdit
+    TableIndexEdit,
+    OverflowTextTooltip
   },
   locales
 })
@@ -505,6 +507,9 @@ export default class ModelList extends Vue {
       return `${startDate} - ${endDate}`
     }
     return this.$t('allTimeRange')
+  }
+  get isResetFilterDisabled () {
+    return !this.filterArgs.last_modify.length && !this.filterArgs.status.length
   }
   handleFilterInput (value) {
     this.filterArgs.model_alias_or_owner = value
@@ -1163,6 +1168,11 @@ export default class ModelList extends Vue {
       display: inline-block;
     }
   }
+  .alias .filter-status {
+    float: left;
+    position: relative;
+    top: 4px;
+  }
 }
 .no-acl-model {
   .dialog-detail {
@@ -1187,6 +1197,7 @@ export default class ModelList extends Vue {
   display: inline-block;
   position: relative;
   top: 2px;
+  margin-right: 5px;
   &.ONLINE {
     background-color: @color-success;
   }
