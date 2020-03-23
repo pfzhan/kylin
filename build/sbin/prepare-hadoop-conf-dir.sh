@@ -22,6 +22,9 @@ function fetchKylinHadoopConf() {
     fi
 
     if [[ -d ${kylin_hadoop_conf_dir} ]]; then
+        if [ -n "$FI_ENV_PLATFORM" ]; then
+            checkAndcopyFIHiveSite
+        fi
         return
     fi
 
@@ -32,11 +35,8 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/core-site.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hdfs-site.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/yarn-site.xml
-        checkAndCopyFile $FI_ENV_PLATFORM/Hive/config/hive-site.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/mapred-site.xml
-
-        # Spark need hive-site.xml in FI
-        checkAndCopyFile $FI_ENV_PLATFORM/Hive/config/hive-site.xml ${SPARK_HOME}/conf
+        checkAndcopyFIHiveSite
 
         # don't find topology.map in FI
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py
@@ -87,6 +87,38 @@ function checkAndCopyFile() {
             dst_dir=${kylin_hadoop_conf_dir}
         fi
         cp -rf ${source_file} ${dst_dir}
+    fi
+}
+
+# KE-9142 FI hive-site.xml is lack of some configuration
+function checkAndcopyFIHiveSite() {
+
+    checkAndCopyFile $FI_ENV_PLATFORM/Hive/config/hive-site.xml
+    hivesite_file=${kylin_hadoop_conf_dir}/hive-site.xml
+    hivemeta_file=$FI_ENV_PLATFORM/Hive/config/hivemetastore-site.xml
+
+    command -v xmllint || echo "ERROR: Command 'xmllint' is not accessible. Please install xmllint."
+    if [[ -f ${hivemeta_file} ]] && [[ -f ${hivesite_file} ]]; then
+        formartXML $hivemeta_file
+        formartXML $hivesite_file
+        metastore=$(echo "cat //configuration" |xmllint --shell $hivemeta_file| sed '/^\/ >/d'| sed '/configuration>/d')
+        clean_content=$(echo $metastore | sed 's/\//\\\//g')
+        if [[ -n $clean_content ]]; then
+            sed -i "/<\/configuration.*>/ s/.*/${clean_content}&/" $hivesite_file
+            formartXML $hivesite_file
+        fi
+    fi
+
+    # Spark need hive-site.xml in FI
+    checkAndCopyFile $hivesite_file ${SPARK_HOME}/conf
+}
+
+function formartXML() {
+	set -e
+    file=$1
+    if [[ -f ${file} ]]; then
+        xmllint --format "$file" > "$file.xmlbak"
+        mv "$file.xmlbak" "$file"
     fi
 }
 
