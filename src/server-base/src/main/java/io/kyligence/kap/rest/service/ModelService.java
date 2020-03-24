@@ -435,65 +435,49 @@ public class ModelService extends BasicService {
             String owner, List<String> status, String sortBy, boolean reverse, String modelAliasOrOwner,
             Long lastModifyFrom, Long lastModifyTo) {
         aclEvaluate.checkProjectReadPermission(projectName);
-        List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
+        List<Pair<NDataflow, NDataModel>> pairs = getDataflowManager(projectName).listAllDataflows(true).stream()
+                .map(df -> Pair.newPair(df,
+                        df.checkBrokenWithRelatedInfo() ? getBrokenModel(projectName, df.getId()) : df.getModel()))
+                .filter(p -> !(Objects.nonNull(lastModifyFrom) && lastModifyFrom > p.getValue().getLastModified())
+                        && !(Objects.nonNull(lastModifyTo) && lastModifyTo <= p.getValue().getLastModified())
+                        && (isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getAlias())
+                                || isArgMatch(modelAliasOrOwner, exactMatch, p.getValue().getOwner()))
+                        && isArgMatch(modelAlias, exactMatch, p.getValue().getAlias())
+                        && isArgMatch(owner, exactMatch, p.getValue().getOwner()))
+                .collect(Collectors.toList());
         val dfManager = getDataflowManager(projectName);
         val optRecomManager = getOptRecommendationManager(projectName);
-
         List<NDataModelResponse> filterModels = new ArrayList<>();
-        for (NDataflow dataflow : dataflowList) {
-            var modelDesc = dataflow.getModel();
-            val isBroken = dataflow.checkBrokenWithRelatedInfo();
-            if (isBroken) {
-                modelDesc = getBrokenModel(projectName, modelDesc.getId());
+        pairs.forEach(p -> {
+            val dataflow = p.getKey();
+            val modelDesc = p.getValue();
+            RealizationStatusEnum modelStatus = modelDesc.isBroken() ? RealizationStatusEnum.BROKEN
+                    : getModelStatus(modelDesc.getUuid(), projectName);
+            long emptyIndexCount = modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
+                    : getEmptyIndexesCount(projectName, modelDesc.getId());
+            if (emptyIndexCount > 0) {
+                modelStatus = RealizationStatusEnum.WARNING;
             }
-
-            if (Objects.nonNull(lastModifyFrom) && lastModifyFrom > modelDesc.getLastModified()) {
-                continue;
+            boolean isModelStatusMatch = isListContains(status, modelStatus);
+            if (isModelStatusMatch) {
+                NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
+                nDataModelResponse.setModelBroken(modelDesc.isBroken());
+                nDataModelResponse.setStatus(modelStatus);
+                nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
+                nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
+                nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
+                nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
+                        nDataModelResponse.getSource()));
+                nDataModelResponse.setUsage(dataflow.getQueryHitCount());
+                nDataModelResponse.setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
+                nDataModelResponse.setAvailableIndexesCount(modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
+                        : getAvailableIndexesCount(projectName, modelDesc.getId()));
+                nDataModelResponse.setTotalIndexes(modelDesc.isBroken() ? 0
+                        : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
+                nDataModelResponse.setEmptyIndexesCount(emptyIndexCount);
+                filterModels.add(nDataModelResponse);
             }
-
-            if (Objects.nonNull(lastModifyTo) && lastModifyTo <= modelDesc.getLastModified()) {
-                continue;
-            }
-
-            boolean isConditionMatchModelName = isArgMatch(modelAliasOrOwner, exactMatch, modelDesc.getAlias());
-            boolean isConditionMatchModelOwner = isArgMatch(modelAliasOrOwner, exactMatch, modelDesc.getOwner());
-
-            if (!(isConditionMatchModelName || isConditionMatchModelOwner)) {
-                continue;
-            }
-
-            boolean isModelNameMatch = isArgMatch(modelAlias, exactMatch, modelDesc.getAlias());
-            boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
-            if (isModelNameMatch && isModelOwnerMatch) {
-                RealizationStatusEnum modelStatus = isBroken ? RealizationStatusEnum.BROKEN
-                        : getModelStatus(modelDesc.getUuid(), projectName);
-                long emptyIndexCount = modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
-                        : getEmptyIndexesCount(projectName, modelDesc.getId());
-                if (emptyIndexCount > 0) {
-                    modelStatus = RealizationStatusEnum.WARNING;
-                }
-                boolean isModelStatusMatch = isListContains(status, modelStatus);
-                if (isModelStatusMatch) {
-                    NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
-                    nDataModelResponse.setModelBroken(isBroken);
-                    nDataModelResponse.setStatus(modelStatus);
-                    nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
-                    nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
-                    nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
-                    nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
-                            nDataModelResponse.getSource()));
-                    nDataModelResponse.setUsage(dataflow.getQueryHitCount());
-                    nDataModelResponse
-                            .setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
-                    nDataModelResponse.setAvailableIndexesCount(modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
-                            : getAvailableIndexesCount(projectName, modelDesc.getId()));
-                    nDataModelResponse.setTotalIndexes(isBroken ? 0
-                            : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
-                    nDataModelResponse.setEmptyIndexesCount(emptyIndexCount);
-                    filterModels.add(nDataModelResponse);
-                }
-            }
-        }
+        });
         if ("expansionrate".equalsIgnoreCase(sortBy)) {
             return sortExpansionRate(reverse, filterModels);
         } else {
@@ -1527,16 +1511,7 @@ public class ModelService extends BasicService {
             throws Exception {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
-        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new KylinException("KE-1005",
-                    "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
-        }
-        val indexPlan = getIndexPlan(modelId, project);
-        if (indexPlan == null) {
-            throw new KylinException("KE-1005",
-                    "Can not build segments, please define table index or aggregate index first!");
-        }
-
+        checkModelAndIndexManually(project, modelId);
         String format = probeDateFormatIfNotExist(project, modelDesc);
         List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
             List<JobInfoResponse.JobInfo> jobInfos = Lists.newArrayList();
@@ -1574,7 +1549,7 @@ public class ModelService extends BasicService {
     }
 
     private List<JobInfoResponse.JobInfo> constructFullBuild(String project, String modelId) {
-        checkModelAndIndex(project, modelId);
+        checkModelAndIndexManually(project, modelId);
         NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
         if (model.getPartitionDesc() != null
                 && !StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
@@ -1638,7 +1613,7 @@ public class ModelService extends BasicService {
 
     private List<JobInfoResponse.JobInfo> innerIncrementBuild(String project, String modelId, String start, String end,
             PartitionDesc partitionDesc, String format, List<SegmentTimeRequest> segmentHoles) throws Exception {
-        checkModelAndIndex(project, modelId);
+        checkModelAndIndexManually(project, modelId);
         if (CollectionUtils.isEmpty(segmentHoles)) {
             segmentHoles = Lists.newArrayList();
         }
@@ -1666,7 +1641,7 @@ public class ModelService extends BasicService {
         return res;
     }
 
-    private void checkModelAndIndex(String project, String modelId) {
+    private void checkModelAndIndexManually(String project, String modelId) {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new KylinException("KE-1005",
