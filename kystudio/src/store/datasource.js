@@ -22,6 +22,12 @@ export default {
       const projectType = rootGetters.currentProjectData && rootGetters.currentProjectData.maintain_model_type
 
       return getAvailableOptions('datasourceActions', { groupRole, projectType, projectRole })
+    },
+    modelActions (state, getters, rootState, rootGetters) {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+
+      return getAvailableOptions('modelActions', { groupRole, projectRole })
     }
   },
   mutations: {

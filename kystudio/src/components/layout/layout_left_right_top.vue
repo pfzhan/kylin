@@ -772,7 +772,7 @@ export default class LayoutLeftRightTop extends Vue {
     if (from === 'cloud' || uimode === 'nomenu') { // 保留cloud，兼容云老参数
       $('#fullBox').addClass('cloud-frame-page')
     }
-    if (this.isAutoProject) {
+    if (this.isAutoProject && this.availableMenus.includes('acceleration')) {
       // 获取加速信息
       this.loadSpeedInfo()
       this.circleLoadSpeedInfo()

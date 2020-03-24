@@ -120,6 +120,7 @@
       :is-edited="isFormEdited(form, 'yarn-name')"
       :is-editable="userType"
       :is-reset="false"
+      v-if="settingActions.includes('yarnQueue')"
       @submit="(scb, ecb) => handleSubmit('yarn-name', scb, ecb)">
       <el-form ref="yarn-setting-form" :model="form" :rules="yarnQueueRules" :inline-message="true">
         <div class="setting-item">
@@ -194,7 +195,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
     ...mapGetters([
       'currentSelectedProject',
       'currentProjectData',
-      'isAutoProject'
+      'isAutoProject',
+      'settingActions'
     ]),
     ...mapState({
       currentUser: state => state.user.currentUser

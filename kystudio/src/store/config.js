@@ -98,10 +98,11 @@ export default {
 
       return getAvailableOptions('dashboardActions', { groupRole, projectRole })
     },
-    userGuideActions (state, getters, rootState, rootGetters) {
+    systemActions (state, getters, rootState, rootGetters) {
       const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
 
-      return getAvailableOptions('userGuideActions', { groupRole })
+      return getAvailableOptions('systemActions', { groupRole, projectRole })
     }
   }
 }

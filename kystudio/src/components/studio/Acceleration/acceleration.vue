@@ -27,13 +27,13 @@
     <div class="fav-tables ksd-mt-40">
       <div class="btn-group" v-if="datasourceActions.includes('accelerationActions')">
         <!-- <el-button size="small" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button><el-button size="small" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button> -->
-        <el-dropdown @command="handleCommand">
+        <el-dropdown @command="handleCommand" v-if="datasourceActions.includes('acceRuleSettingActions') || datasourceActions.includes('acceBlackListActions')">
           <el-button size="small" type="primary" plain class="el-dropdown-link">
             {{$t('more')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item v-if="datasourceActions.includes('acceRuleSettingActions')" command="ruleSetting">{{$t('ruleSetting')}}</el-dropdown-item>
-            <el-dropdown-item command="blackList">{{$t('blackList')}}</el-dropdown-item>
+            <el-dropdown-item v-if="datasourceActions.includes('acceBlackList')" command="blackList">{{$t('blackList')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </div>

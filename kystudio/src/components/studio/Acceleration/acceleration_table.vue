@@ -1,13 +1,13 @@
 <template>
   <div>
     <div class="batch-btn-groups ky-no-br-space ksd-mb-10">
-      <el-button @click="isShowBatch = !isShowBatch">{{batchBtn}}
+      <el-button @click="isShowBatch = !isShowBatch" v-if="hasBatchBtnAccess">{{batchBtn}}
         <i :class="{'el-icon-arrow-right': !isShowBatch, 'el-icon-arrow-left': isShowBatch}"></i>
       </el-button>
       <transition name="slide">
         <el-button-group class="ksd-btn-groups" v-if="isShowBatch">
-          <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.delete')}}</el-button>
-          <el-button icon="el-icon-ksd-table_discard" :disabled="!checkedList.length" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
+          <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('acceDelSql')" :loading="dropLoading" @click="delFav(false)">{{$t('kylinLang.common.delete')}}</el-button>
+          <el-button icon="el-icon-ksd-table_discard" :disabled="!checkedList.length" v-if="datasourceActions.includes('acceBlackList')" @click="delFav(true)">{{$t('kylinLang.common.disable')}}</el-button>
         </el-button-group>
       </transition>
     </div>
@@ -87,7 +87,8 @@ import { handleError, indexOfObjWithSomeKey, objectClone } from '../../../util/i
   props: ['favoriteTableData', 'tab', 'loading'],
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'datasourceActions'
     ])
   },
   methods: {
@@ -158,6 +159,12 @@ export default class FavoriteTable extends Vue {
     if (val !== oldVal) {
       this.checkedList = []
     }
+  }
+
+  get hasBatchBtnAccess () {
+    const { datasourceActions } = this
+    return datasourceActions.includes('acceBlackList') ||
+      datasourceActions.includes('acceDelSql')
   }
 
   get batchBtn () {

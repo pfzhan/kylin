@@ -8,7 +8,7 @@
     v-model="selected_project"
     popper-class="project-select_dropdown"
     @change="changeProject">
-    <el-option v-if="isAdmin && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
+    <el-option v-if="systemActions.includes('viewAllProjectJobs') && needAllProjectView " value="**" :label="$t('selectAll')"></el-option>
     <span slot="prefix" v-if="projectList.length" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
@@ -61,7 +61,8 @@ export default {
   },
   computed: {
     ...mapGetters([
-      'isAutoProject'
+      'isAutoProject',
+      'systemActions'
     ]),
     projectList () {
       return this.$store.state.project.allProject || ''

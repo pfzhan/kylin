@@ -101,7 +101,7 @@
                       @loadModels="loadModelsList"
                       v-if="props.row.tabTypes === 'second'" />
                   </el-tab-pane>
-                  <el-tab-pane :label="$t('aggregateGroup')" name="third">
+                  <el-tab-pane v-if="datasourceActions.includes('editAggGroup')" :label="$t('aggregateGroup')" name="third">
                     <ModelAggregateView
                       :model="props.row"
                       :project-name="currentSelectedProject"
@@ -109,7 +109,7 @@
                       @loadModels="loadModelsList"
                       v-if="props.row.tabTypes === 'third'" />
                   </el-tab-pane>
-                  <el-tab-pane :label="$t('tableIndex')" name="forth">
+                  <el-tab-pane v-if="datasourceActions.includes('editAggGroup')" :label="$t('tableIndex')" name="forth">
                     <TableIndexView
                       :model="props.row"
                       :project-name="currentSelectedProject"
@@ -249,7 +249,7 @@
               <common-tip :content="$t('kylinLang.common.repair')" v-if="scope.row.broken_reason === 'SCHEMA' && datasourceActions.includes('modelActions')">
                 <i class="el-icon-ksd-fix_tool ksd-fs-14" @click="handleEditModel(scope.row.alias)"></i>
               </common-tip>
-              <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('loadData')">
+              <common-tip :content="scope.row.total_indexes ? $t('build') : $t('noIndexTips')" v-if="scope.row.status !== 'BROKEN'&&datasourceActions.includes('bulidIndex')">
                 <el-popover
                   ref="popoverBuild"
                   placement="bottom-end"
@@ -263,7 +263,7 @@
                 </el-popover>
                 <i class="el-icon-ksd-auto_model_ssistant ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
-              <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions')">
+              <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge')">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-14"></i>
@@ -273,17 +273,17 @@
                     <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
                     <!-- 设置partition -->
                     <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
-                    <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN'">{{$t('modelPartitionSet')}}</el-dropdown-item>
+                    <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
-                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
-                    <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
-                    <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN'">{{$t('purge')}}</el-dropdown-item>
-                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportTDS')">{{$t('exportTds')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('rename')}}</el-dropdown-item>
+                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('clone')">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                    <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
+                    <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
+                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('online')">{{$t('onLine')}}</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
               </common-tip>
@@ -388,7 +388,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       'modelsPagerRenderData',
       'briefMenuGet',
       'isAutoProject',
-      'datasourceActions'
+      'datasourceActions',
+      'modelActions'
     ])
   },
   methods: {

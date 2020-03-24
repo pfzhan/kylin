@@ -34,7 +34,7 @@
           <el-card class="agg-detail-card agg-detail">
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
-              <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction">
+              <el-dropdown class="right ksd-ml-10" v-if="isShowIndexActions">
                 <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">
                   {{$t('index')}}
                 </el-button>
@@ -89,10 +89,10 @@
                     <common-tip :content="$t('viewDetail')">
                       <i class="el-icon-ksd-desc" @click="showDetail(scope.row)"></i>
                     </common-tip>
-                    <common-tip :content="$t('editIndex')">
+                    <common-tip :content="$t('editIndex')" v-if="datasourceActions.includes('editAggGroup')">
                       <i class="el-icon-ksd-table_edit ksd-ml-5" v-if="scope.row.source === 'MANUAL_TABLE'" @click="editTableIndex(scope.row)"></i>
                     </common-tip>
-                    <common-tip :content="$t('delIndex')">
+                    <common-tip :content="$t('delIndex')" v-if="datasourceActions.includes('delAggIdx')">
                       <i class="el-icon-ksd-table_delete ksd-ml-5" @click="removeIndex(scope.row)"></i>
                     </common-tip>
                   </template>
@@ -224,7 +224,8 @@ import NModel from '../../ModelEdit/model.js'
   computed: {
     ...mapGetters([
       'currentProjectData',
-      'isAutoProject'
+      'isAutoProject',
+      'datasourceActions'
     ]),
     modelInstance () {
       this.model.project = this.currentProjectData.name
@@ -310,6 +311,12 @@ export default class ModelAggregate extends Vue {
 
   get emptyText () {
     return this.filterArgs.key || this.filterArgs.sources.length || this.filterArgs.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+
+  get isShowIndexActions () {
+    const { isShowEditAgg, isShowTableIndexActions, isHideEdit } = this
+
+    return isShowEditAgg || (isShowTableIndexActions && !isHideEdit)
   }
 
   handleBuildIndexTip (data) {

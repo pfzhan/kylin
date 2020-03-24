@@ -231,6 +231,12 @@ export default {
 
       return getAvailableOptions('projectActions', { groupRole, projectRole })
     },
+    settingActions: (state, getters, rootState, rootGetters) => {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+
+      return getAvailableOptions('settingActions', { groupRole, projectRole })
+    },
     currentSelectedProject: (state) => {
       return state.selected_project
     },

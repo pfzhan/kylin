@@ -66,12 +66,28 @@ export default {
       { "id": "loadData" },
       { "id": "accelerationActions" },
       { "id": "acceRuleSettingActions" },
+      { "id": "acceDelSql" },
+      { "id": "acceBlackList" },
       { "id": "modelActions" },
       { "id": "segmentActions" },
       { "id": "editAggGroup" },
+      { "id": "delAggIdx" },
       { "id": "bulidIndex" },
       { "id": "tableIndexActions" },
-      { "id": "viewDataSource" }
+      { "id": "viewDataSource" },
+      { "id": "changePartition" }
+    ],
+    "modelActions": [
+      { "id": "dataLoad" },
+      { "id": "importMDX" },
+      { "id": "exportTDS" },
+      { "id": "exportMDX" },
+      { "id": "rename" },
+      { "id": "clone" },
+      { "id": "delete" },
+      { "id": "purge" },
+      { "id": "offline" },
+      { "id": "online" },
     ],
     "monitorActions": [
       { "id": "jobActions" },
@@ -103,8 +119,13 @@ export default {
       { "id": "viewSetting" },
       { "id": "viewAcceleration" }
     ],
-    "userGuideActions": [
-      { "id": "userGuide"}
+    "systemActions": [
+      { "id": "userGuide" },
+      { "id": "viewAllProjectJobs" },
+      { "id": "updateLicense" }
+    ],
+    "settingActions": [
+      { "id": "yarnQueue" }
     ]
   },
   "disableOptionMaps": {
@@ -119,17 +140,18 @@ export default {
         { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin" },
         { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
         { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,monitor,job" },
-        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit,monitor,job" },
         { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit" },
         { "key": "systemUser-default-*", "value": "dashboard" }
       ]
     },
     // 新手引导
-    "userGuideActions": {
-      "keyPattern": "groupRole",
+    "systemActions": {
+      "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin", "value": "userGuide" },
-        { "key": "systemUser", "value": "none" }
+        { "key": "systemAdmin-*", "value": "userGuide,viewAllProjectJobs,updateLicense" },
+        { "key": "systemUser-admin", "value": "viewAllProjectJobs" },
+        { "key": "systemUser-*", "value": "none" }
       ]
     },
     // 仪表盘
@@ -147,19 +169,30 @@ export default {
     "datasourceActions": {
       "keyPattern": "groupRole-projectType-projectRole",
       "entries": [
-        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
-        { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions" },
+        { "key": "systemAdmin-manualMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition" },
+        { "key": "systemAdmin-autoMaintain-*", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
-        { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+        { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition" },
+        { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,bulidIndex,tableIndexActions" },
-        { "key": "systemUser-autoMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
+        { "key": "systemUser-manualMaintain-management", "value": "loadData,accelerationActions,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition" },
+        { "key": "systemUser-autoMaintain-management", "value": "loadData,accelerationActions" },
 
         { "key": "systemUser-manualMaintain-operation", "value": "loadData,segmentActions,bulidIndex" },
         { "key": "systemUser-autoMaintain-operation", "value": "loadData" },
 
         { "key": "systemUser-*-read", "value": "none" }
+      ]
+    },
+    // 模型操作权限
+    "modelActions": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
+        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
+        { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
+        { "key": "systemUser-operation", "value": "purge" },
+        { "key": "systemUser-read", "value": "none" }
       ]
     },
     // 任务模块操作权限
@@ -194,6 +227,13 @@ export default {
         { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions" },
         { "key": "systemUser-admin", "value": "editProject,backUpProject,accessActions" },
         { "key": "systemUser-[management,operation,read]", "value": "none" }
+      ]
+    },
+    "settingActions": {
+      "keyPattern": "groupRole",
+      "entries": [
+        { "key": "systemAdmin", "value": "yarnQueue" },
+        { "key": "systemUser", "value": "none" }
       ]
     }
   }
