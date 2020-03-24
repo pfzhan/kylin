@@ -78,7 +78,13 @@ export default {
     buildTips: 'The indexes in the model have not been built and are not available for query analysis. Build indexes to optimize query performance.',
     iKown: 'I Kown',
     emptyIndexTips: 'This model has unbuilt indexes. Please click the Load Data button to build the indexes.',
-    noIndexTips: 'You should add indexes first before building.'
+    noIndexTips: 'You should add indexes first before building.',
+    exportMetadata: 'Export Metadata',
+    noModelsExport: 'There are no models in this project, and model metadata cannot be exported.',
+    exportMetadatas: 'Export Models',
+    exportMetadataSuccess: 'A model metadata package is being generated. The download will start after generation. please wait.',
+    exportMetadataFailed: 'Export models failed. Please try again.',
+    importModels: 'Import Models'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -156,6 +162,12 @@ export default {
     buildTips: '模型尚未构建索引，不可服务于查询分析。构建索引后可优化查询性能。',
     iKown: '知道了',
     emptyIndexTips: '该模型中存在未构建的索引。请点击加载数据按钮以构建索引。',
-    noIndexTips: '您需要先添加索引，才可以进行构建。'
+    noIndexTips: '您需要先添加索引，才可以进行构建。',
+    exportMetadata: '导出元数据',
+    noModelsExport: '该项目中无任何模型,无法导出模型元数据。',
+    exportMetadatas: '导出模型',
+    exportMetadataSuccess: '正在生成模型元数据包。生成后将开始下载，请稍后。',
+    exportMetadataFailed: '导出失败，请重试。',
+    importModels: '导入模型'
   }
 }

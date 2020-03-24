@@ -17,12 +17,38 @@
           </el-button>
         </div>
         <div class="ky-no-br-space model-list-header">
-          <el-button v-guide.addModelBtn icon="el-icon-ksd-add_2" type="primary" size="medium" plain class="ksd-mtb-10" id="addModel" v-if="datasourceActions.includes('modelActions')" @click="showAddModelDialog">
-            <span>{{$t('kylinLang.common.model')}}</span>
-          </el-button>
-          <el-button type="primary" icon="el-icon-ksd-add_2" v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')" size="medium" plain class="ksd-mtb-10 ksd-ml-10" @click="showGenerateModelDialog">
-            <span>{{$t('kylinLang.model.generateModel')}}</span>
-          </el-button>
+          <el-dropdown
+            v-guide.addModelBtn
+            split-button
+            plain
+            class="ksd-mtb-10"
+            type="primary"
+            size="medium"
+            id="addModel"
+            v-if="datasourceActions.includes('modelActions')"
+            @click="showAddModelDialog">
+            <span>
+              <i class="el-icon-ksd-add_2" />
+              {{$t('kylinLang.common.model')}}
+            </span>
+            <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
+              <el-dropdown-item
+                v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')"
+                @click="showGenerateModelDialog">
+                {{$t('kylinLang.model.generateModel')}}
+              </el-dropdown-item>
+              <el-dropdown-item
+                v-if="metadataActions.includes('executeModelMetadata')"
+                @click="handleImportModels">
+                {{$t('importModels')}}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+          <common-tip :content="$t('noModelsExport')" v-if="metadataActions.includes('executeModelMetadata')" placement="top" :disabled="!!modelArray.length">
+            <el-button icon="el-icon-ksd-export_2" size="medium" plain class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
+              <span>{{$t('exportMetadatas')}}</span>
+            </el-button>
+          </common-tip>
         </div>
       </div>
       <div class="table-filters clearfix" v-show="isShowFilters">
@@ -279,6 +305,7 @@
                     <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item>
                     <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportTDS')">{{$t('exportTds')}}</el-dropdown-item>
                     <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMetadata" v-if="scope.row.status !== 'BROKEN' && metadataActions.includes('executeModelMetadata')">{{$t('exportMetadata')}}</el-dropdown-item>
                     <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('rename')}}</el-dropdown-item>
                     <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('clone')">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
                     <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
@@ -390,7 +417,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       'briefMenuGet',
       'isAutoProject',
       'datasourceActions',
-      'modelActions'
+      'modelActions',
+      'metadataActions'
     ])
   },
   methods: {
@@ -405,7 +433,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       getModelJson: 'GET_MODEL_JSON',
       getModelByModelName: 'LOAD_MODEL_INFO',
       autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
-      fetchSegments: 'FETCH_SEGMENTS'
+      fetchSegments: 'FETCH_SEGMENTS',
+      downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -433,6 +462,12 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     }),
     ...mapActions('DetailDialogModal', {
       callGlobalDetailDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelsImportModal', {
+      callModelsImportModal: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelsExportModal', {
+      callModelsExportModal: 'CALL_MODAL'
     })
   },
   components: {
@@ -701,6 +736,15 @@ export default class ModelList extends Vue {
       kapConfirm(this.$t('enableModelTip', {modelName: modelDesc.alias}), null, this.$t('enableModelTitle')).then(() => {
         this.handleEnableModel(objectClone(modelDesc))
       })
+    } else if (command === 'exportMetadata') {
+      const project = this.currentSelectedProject
+      const form = { ids: [modelDesc.uuid] }
+      try {
+        await this.downloadModelsMetadata({ project, form })
+        this.$message.success(this.$t('exportMetadataSuccess'))
+      } catch (e) {
+        this.$message.error(this.$t('exportMetadataFailed'))
+      }
     }
   }
   handleSaveModel (modelDesc) {
@@ -780,6 +824,17 @@ export default class ModelList extends Vue {
   // 编辑model
   handleEditModel (modelName) {
     this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
+  }
+  async handleImportModels () {
+    const project = this.currentSelectedProject
+    const isSubmit = await this.callModelsImportModal({ project })
+    if (isSubmit) {
+      this.pageCurrentChange(0, this.filterArgs.page_size)
+    }
+  }
+  async handleExportMetadatas () {
+    const project = this.currentSelectedProject
+    await this.callModelsExportModal({ project })
   }
   @Watch('modelsPagerRenderData')
   onModelChange (modelsPagerRenderData) {
@@ -1238,5 +1293,9 @@ export default class ModelList extends Vue {
   .popper__arrow {
     left: 5px !important;
   }
+}
+.model-actions-dropdown {
+  text-align: left;
+  min-width: 95px;
 }
 </style>

@@ -90,14 +90,24 @@
           </span> -->
           <el-tooltip :content="$t('backup')" effect="dark" placement="top">
             <i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('backUpProject')" @click="backup(scope.row)"></i>
-          </el-tooltip><span>
-          </span><el-tooltip :content="$t('author')" effect="dark" placement="top">
+          </el-tooltip><!--
+          --><el-tooltip :content="$t('author')" effect="dark" placement="top">
             <router-link :to="{path: '/admin/project/' + scope.row.name, query: {projectId: scope.row.uuid}}">
               <i class="el-icon-ksd-security ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('accessActions')"></i>
             </router-link>
-          </el-tooltip><span>
-          </span><el-tooltip :content="$t('delete')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="projectActions.includes('deleteProject')"></i>
+          </el-tooltip><!--
+          --><common-tip :content="$t('kylinLang.common.moreActions')" v-if="canExecuteModelMetadata(scope.row)">
+            <el-dropdown trigger="click">
+              <i class="el-icon-ksd-table_others"></i>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item v-if="canExecuteModelMetadata(scope.row)" @click.native="handleExportModels(scope.row)">{{$t('exportModelsMetadata')}}</el-dropdown-item>
+                <el-dropdown-item v-if="canExecuteModelMetadata(scope.row)" @click.native="handleImportModels(scope.row)">{{$t('importModelsMetadata')}}</el-dropdown-item>
+                <el-dropdown-item v-if="projectActions.includes('deleteProject')" @click.native="removeProject(scope.row)">{{$t('delete')}}</el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+          </common-tip><!--
+          --><el-tooltip :content="$t('delete')" effect="dark" placement="top" v-if="projectActions.includes('deleteProject') && !canExecuteModelMetadata(scope.row)">
+            <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)"></i>
           </el-tooltip>
         </template>
       </el-table-column>
@@ -136,9 +146,19 @@ export default {
     ...mapActions('ProjectEditModal', {
       callProjectEditModal: 'CALL_MODAL'
     }),
+    ...mapActions('ModelsExportModal', {
+      callModelsExportModal: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelsImportModal', {
+      callModelsImportModal: 'CALL_MODAL'
+    }),
     ...mapMutations({
       resetQueryTabs: 'RESET_QUERY_TABS'
     }),
+    canExecuteModelMetadata (row) {
+      return this.projectActions.includes('executeModelsMetadata') &&
+        row.maintain_model_type !== projectCfgs.projectType.auto
+    },
     inputFilter (value) {
       this.filterData.project = value
       this.filterData.page_offset = 0
@@ -178,6 +198,14 @@ export default {
           handleError(res)
         })
       })
+    },
+    async handleExportModels (row) {
+      const { name: project } = row
+      await this.callModelsExportModal({ project })
+    },
+    async handleImportModels (row) {
+      const { name: project } = row
+      await this.callModelsImportModal({ project })
     },
     backup (project) {
       kapConfirm(this.$t('backupProject'), {type: 'info'}, this.$t('backupPro')).then(() => {
@@ -288,7 +316,9 @@ export default {
       projectsList: 'Project List',
       projectFilter: 'Search Project',
       backupPro: 'Backup Project',
-      author: 'Authorization'
+      author: 'Authorization',
+      exportModelsMetadata: 'Export Model Metadata',
+      importModelsMetadata: 'Import Model Metadata'
     },
     'zh-cn': {
       autoType: '智能模式',
@@ -318,7 +348,9 @@ export default {
       projectsList: '项目列表',
       projectFilter: '搜索项目',
       backupPro: '备份项目',
-      author: '授权'
+      author: '授权',
+      exportModelsMetadata: '导出模型元数据',
+      importModelsMetadata: '导入模型元数据'
     }
   }
 }

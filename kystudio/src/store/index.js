@@ -13,6 +13,7 @@ import system from './system'
 import monitor from './monitor'
 import kybot from './kybot'
 import auto from './auto'
+import * as actionTypes from './types'
 
 export default new Vuex.Store({
   modules: {
@@ -30,3 +31,7 @@ export default new Vuex.Store({
     modals: {}
   }
 })
+
+export {
+  actionTypes
+}

@@ -5,6 +5,8 @@
     <DataSourceModal />
     <ProjectEditModal />
     <SourceTableModal :project-name="currentSelectedProject" />
+    <ModelsExportModal />
+    <ModelsImportModal />
   </div>
 </template>
 
@@ -17,6 +19,8 @@ import BatchLoadModal from '../BatchLoadModal/BatchLoadModal.vue'
 import ProjectEditModal from '../ProjectEditModal/ProjectEditModal.vue'
 import DataSourceModal from '../DataSourceModal/index.vue'
 import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
+import ModelsExportModal from '../ModelsExportModal/ModelsExportModal.vue'
+import ModelsImportModal from '../ModelsImportModal/ModelsImportModal.vue'
 
 @Component({
   computed: {
@@ -29,7 +33,9 @@ import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
     BatchLoadModal,
     DataSourceModal,
     SourceTableModal,
-    ProjectEditModal
+    ProjectEditModal,
+    ModelsExportModal,
+    ModelsImportModal
   }
 })
 export default class Modal extends Vue {

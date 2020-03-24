@@ -23,6 +23,13 @@ export default {
 
       return getAvailableOptions('datasourceActions', { groupRole, projectType, projectRole })
     },
+    metadataActions (state, getters, rootState, rootGetters) {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+      const projectType = rootGetters.currentProjectData && rootGetters.currentProjectData.maintain_model_type
+
+      return getAvailableOptions('metadataActions', { groupRole, projectType, projectRole })
+    },
     modelActions (state, getters, rootState, rootGetters) {
       const groupRole = rootGetters.userAuthorities
       const projectRole = rootState.user.currentUserAccess

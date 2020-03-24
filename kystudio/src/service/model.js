@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import VueResource from 'vue-resource'
 import { apiUrl } from '../config'
+import { download } from '../util/domHelper'
 
 Vue.use(VueResource)
 
@@ -248,5 +249,17 @@ export default {
   },
   autoFixSegmentHoles: (para) => {
     return Vue.resource(apiUrl + `models/${para.model_id}/segment_holes`).save(para)
+  },
+  getMetadataStructure (para) {
+    return Vue.resource(apiUrl + `metastore/previews/models?project=${para.project}`).get()
+  },
+  downloadModelsMetadata (para) {
+    return download.post(apiUrl + `metastore/backup/models?project=${para.project}`, para.form)
+  },
+  uploadModelsMetadata (para) {
+    return Vue.resource(apiUrl + `metastore/validation/models?project=${para.project}`).save(para.form)
+  },
+  importModelsMetadata (para) {
+    return Vue.resource(apiUrl + `metastore/models?project=${para.project}`).save(para.form)
   }
 }

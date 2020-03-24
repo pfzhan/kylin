@@ -319,6 +319,9 @@ export default {
     },
     [types.CHECK_SEGMENTS] ({ commit }, params) {
       return api.model.checkSegments(params)
+    },
+    async [types.DOWNLOAD_MODELS_METADATA] ({ commit }, payload) {
+      await api.model.downloadModelsMetadata(payload)
     }
   },
   getters: {

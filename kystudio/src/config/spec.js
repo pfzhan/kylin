@@ -88,7 +88,10 @@ export default {
       { "id": "delete" },
       { "id": "purge" },
       { "id": "offline" },
-      { "id": "online" },
+      { "id": "online" }
+    ],
+    "metadataActions": [
+      { "id": "executeModelMetadata" }
     ],
     "monitorActions": [
       { "id": "jobActions" },
@@ -107,7 +110,8 @@ export default {
       { "id": "deleteProject" },
       { "id": "editProject" },
       { "id": "backUpProject" },
-      { "id": "accessActions" }
+      { "id": "accessActions" },
+      { "id": "executeModelsMetadata" }
     ],
     "groupActions": [
       { "id": "addGroup" },
@@ -225,8 +229,8 @@ export default {
     "projectActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions" },
-        { "key": "systemUser-admin", "value": "editProject,backUpProject,accessActions" },
+        { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions,executeModelsMetadata" },
+        { "key": "systemUser-admin", "value": "editProject,backUpProject,accessActions,executeModelsMetadata" },
         { "key": "systemUser-[management,operation,read]", "value": "none" }
       ]
     },
@@ -235,6 +239,15 @@ export default {
       "entries": [
         { "key": "systemAdmin", "value": "yarnQueue" },
         { "key": "systemUser", "value": "none" }
+      ]
+    },
+    "metadataActions": {
+      "keyPattern": "groupRole-projectRole-projectType",
+      "entries": [
+        { "key": "*-*-autoMaintain", "value": "none" },
+        { "key": "systemAdmin-*-*", "value": "executeModelMetadata" },
+        { "key": "systemUser-[admin,management]-*", "value": "executeModelMetadata" },
+        { "key": "systemUser-[operation,read]-*", "value": "none" }
       ]
     }
   }
