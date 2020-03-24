@@ -33,6 +33,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class IndexOptimizerFactory {
+
+    private IndexOptimizerFactory() {
+    }
+
     private static final AbstractOptStrategy INCLUDED_OPT_STRATEGY = new IncludedLayoutOptStrategy();
     private static final AbstractOptStrategy LOW_FREQ_OPT_STRATEGY = new LowFreqLayoutOptStrategy();
     private static final AbstractOptStrategy SIMILAR_OPT_STRATEGY = new SimilarLayoutOptStrategy();
@@ -40,26 +44,33 @@ public class IndexOptimizerFactory {
     public static IndexOptimizer getOptimizer(NDataflow dataflow, boolean needLog) {
         IndexOptimizer optimizer = new IndexOptimizer(needLog);
         final int indexOptimizationLevel = KylinConfig.getInstanceFromEnv().getIndexOptimizationLevel();
-        if (indexOptimizationLevel == 0) {
-            log.info("Routing to index optimization level zero, no optimization.");
-        } else if (indexOptimizationLevel == 1) {
-            log.info("Routing to index optimization level one.");
+        if (indexOptimizationLevel == 1) {
             optimizer.getStrategiesForAuto().add(INCLUDED_OPT_STRATEGY);
         } else if (indexOptimizationLevel == 2) {
-            log.info("Routing to index optimization level two.");
             optimizer.getStrategiesForAuto().addAll(Lists.newArrayList(INCLUDED_OPT_STRATEGY, LOW_FREQ_OPT_STRATEGY));
         } else if (indexOptimizationLevel == 3) {
             optimizer.getStrategiesForAuto().addAll(Lists.newArrayList(INCLUDED_OPT_STRATEGY, LOW_FREQ_OPT_STRATEGY));
-            if (dataflow.getIndexPlan().isFastBitmapEnabled()) {
-                log.info("Routing to index optimization level two for fastBitMap enabled.");
-            } else {
-                log.info("Routing to index optimization level three.");
-                optimizer.getStrategiesForManual().add(SIMILAR_OPT_STRATEGY);
-            }
+            optimizer.getStrategiesForManual().add(SIMILAR_OPT_STRATEGY);
+        }
+
+        // log if needed
+        printLog(needLog, indexOptimizationLevel, dataflow.getIndexPlan().isFastBitmapEnabled());
+        return optimizer;
+    }
+
+    private static void printLog(boolean needLog, int indexOptimizationLevel, boolean isFastBitmapEnabled) {
+        if (!needLog) {
+            return;
+        }
+
+        if (indexOptimizationLevel == 3 && isFastBitmapEnabled) {
+            log.info("Routing to index optimization level two for fastBitMap enabled.");
+        } else if (indexOptimizationLevel == 3 || indexOptimizationLevel == 2 || indexOptimizationLevel == 1) {
+            log.info("Routing to index optimization level " + indexOptimizationLevel + ".");
+        } else if (indexOptimizationLevel == 0) {
+            log.info("Routing to index optimization level zero, no optimization.");
         } else {
             log.error("Not supported index optimization level");
         }
-
-        return optimizer;
     }
 }
