@@ -102,7 +102,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.query.util.TempStatementUtil;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
@@ -154,6 +153,7 @@ import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.query.engine.SchemaMetaData;
 import io.kyligence.kap.query.engine.data.QueryResult;
 import io.kyligence.kap.query.engine.data.TableSchema;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.config.AppConfig;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
@@ -637,8 +637,8 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
-        KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project)
-                .getConfig();
+        KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);
     }
 
@@ -695,7 +695,7 @@ public class QueryService extends BasicService {
 
     @SuppressWarnings("checkstyle:methodlength")
     public List<TableMetaWithType> getMetadataV2(String project) {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectReadPermission(project);
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
