@@ -2410,6 +2410,9 @@ export default class ModelEdit extends Vue {
                 color: #f7ba2a;
               }
             }
+            .col-name {
+              color:@text-title-color;
+            }
             &.column-li-cc {
               background-color:@warning-color-2;
               &:hover {

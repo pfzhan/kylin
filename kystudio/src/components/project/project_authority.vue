@@ -24,7 +24,7 @@
     </el-row>
     <div v-if="accessView === 'user'">
       <el-table :data="userAccessList" :empty-text="emptyText" class="user-access-table" border key="user">
-        <el-table-column type="expand">
+        <el-table-column type="expand" :width="36">
           <template slot-scope="props">
             <user_access :roleOrName="props.row.role_or_name" :projectName="currentProject" :type="props.row.type"></user_access>
           </template>

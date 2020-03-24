@@ -262,7 +262,7 @@ export default class UserEditModal extends Vue {
 <style lang="less">
 .user-edit-modal {
   .el-transfer-panel {
-    width: 284px;
+    width: 276px;
   }
 }
 </style>

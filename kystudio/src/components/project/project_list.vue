@@ -22,7 +22,7 @@
       :empty-text="emptyText"
       class="project-table"
       style="width: 100%">
-      <el-table-column type="expand" :width="34" align="center">
+      <el-table-column type="expand" :width="36" align="center">
         <template slot-scope="props">
           <el-tabs activeName="first" type="card" class="el-tabs--default">
             <!-- <el-tab-pane label="Models" name="first">

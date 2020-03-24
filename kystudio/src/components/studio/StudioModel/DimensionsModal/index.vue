@@ -680,7 +680,7 @@ export default class DimensionsModal extends Vue {
   }
   .table-header {
     padding-left:15px;
-    background-color: @grey-4;
+    background-color: @regular-background-color;
     &:hover {
       color: @base-color;
       .right-icon {

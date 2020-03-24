@@ -406,7 +406,7 @@ export default class NewQuery extends Vue {
           padding: 10px;
           margin-bottom: 10px;
           position: relative;
-          background-color: @aceditor-bg-color;
+          /* background-color: @aceditor-bg-color; */
           &:hover {
             box-shadow: 0 0 2px 0 #ccc, 0 0px 2px 0 #ccc;
           }

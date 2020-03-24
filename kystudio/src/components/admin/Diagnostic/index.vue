@@ -381,6 +381,7 @@ export default class Diagnostic extends Vue {
       color: @text-title-color;
       .time-range {
         margin-bottom: 10px;
+        font-weight: bold;
         .el-icon-ksd-what {
           margin-left: 5px;
         }
@@ -422,6 +423,9 @@ export default class Diagnostic extends Vue {
         }
       }
       .server {
+        .title{
+          font-weight: bold;
+        }
         .el-select {
           margin-top: 10px;
           width: 100%;

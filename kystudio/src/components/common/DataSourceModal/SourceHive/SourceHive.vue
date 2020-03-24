@@ -774,7 +774,7 @@ export default class SourceHive extends Vue {
     margin-left: calc(400px + 25px + 10px);
     margin-top: -13px;
     .sample-desc {
-      color: @text-normal-color;
+      color: @text-title-color;
       word-break: break-word;
       .error-msg {
         color: @color-danger;
@@ -878,13 +878,13 @@ export default class SourceHive extends Vue {
     margin-top: 10px;
     right: 20px;
     .header {
-      color: @text-normal-color;
+      color: @text-title-color;
       font-size: 12px;
       margin-bottom: 2px;
     }
     .body {
       line-height: 1.4;
-      color: @text-normal-color;
+      color: @text-title-color;
       font-size: 12px;
       &.zh-body{
         line-height: 1.5;
