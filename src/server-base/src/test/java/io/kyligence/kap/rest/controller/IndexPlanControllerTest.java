@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 
+import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
@@ -60,6 +61,9 @@ public class IndexPlanControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private IndexPlanService indexPlanService;
+
+    @Mock
+    private ModelService modelService;
 
     @InjectMocks
     private NIndexPlanController indexPlanController = Mockito.spy(new NIndexPlanController());

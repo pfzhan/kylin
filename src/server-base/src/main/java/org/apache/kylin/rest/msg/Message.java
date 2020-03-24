@@ -271,6 +271,10 @@ public class Message {
         return "Model renaming is not allowed.";
     }
 
+    public String getCheckCCType() {
+        return "The actual data type of computed column {0} is {1}, but defined as {2}. Please modify and try again.";
+    }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "Illegal timeFilter: %s.";

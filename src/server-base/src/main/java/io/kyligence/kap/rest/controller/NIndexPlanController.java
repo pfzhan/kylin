@@ -30,6 +30,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -69,11 +70,16 @@ public class NIndexPlanController extends NBasicController {
     @Qualifier("indexPlanService")
     private IndexPlanService indexPlanService;
 
+    @Autowired
+    @Qualifier("modelService")
+    private ModelService modelService;
+
     @ApiOperation(value = "updateRule (update)", notes = "Update Body: model_id")
     @PutMapping(value = "/rule")
     public EnvelopeResponse<BuildIndexResponse> updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
+        modelService.validateCCType(request.getModelId(), request.getProject());
         indexPlanService.checkIndexCountWithinLimit(request);
         val response = indexPlanService.updateRuleBasedCuboid(request.getProject(), request).getSecond();
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
@@ -114,6 +120,7 @@ public class NIndexPlanController extends NBasicController {
     public EnvelopeResponse<BuildIndexResponse> createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
+        modelService.validateCCType(request.getModelId(), request.getProject());
         val response = indexPlanService.createTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -124,6 +131,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, request.getModelId());
         checkRequiredArg("id", request.getId());
+        modelService.validateCCType(request.getModelId(), request.getProject());
         val response = indexPlanService.updateTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }

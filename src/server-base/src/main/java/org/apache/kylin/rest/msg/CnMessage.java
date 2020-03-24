@@ -279,6 +279,10 @@ public class CnMessage extends Message {
         return "Join条件 '%s'和'%s' 已存在，不能被创建";
     }
 
+    public String getCheckCCType() {
+        return "可计算列 {0} 定义的数据类型 {2} 与实际类型{1} 不符，请修改后进行重试";
+    }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "非法时间条件: %s";

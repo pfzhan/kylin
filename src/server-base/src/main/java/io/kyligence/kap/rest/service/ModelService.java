@@ -28,6 +28,7 @@ import static java.util.stream.Collectors.groupingBy;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2628,5 +2629,55 @@ public class ModelService extends BasicService {
                                 + " are duplicated!");
             }
         });
+    }
+
+    /**
+     * Validate computed column type and throw errors to report wrongly typed computed columns.
+     * Models migrated from 3x may have wrongly typed computed columns. see KE-11862
+     * @param modelId
+     * @param project
+     */
+    public void validateCCType(String modelId, String project) {
+        StringBuilder errorSb = new StringBuilder();
+        NDataModel model = getDataModelManager(project).getDataModelDesc(modelId);
+        for (ComputedColumnDesc computedColumnDesc : model.getComputedColumnDescs()) {
+            try {
+                // evaluate on a computedcolumn copy to avoid changing the metadata
+                ComputedColumnDesc ccCopy = JsonUtil.deepCopy(computedColumnDesc, ComputedColumnDesc.class);
+                ComputedColumnEvalUtil.evaluateExprAndType(model, ccCopy);
+                if (!matchCCDataType(computedColumnDesc.getDatatype(), ccCopy.getDatatype())) {
+                    errorSb.append(MessageFormat.format(MsgPicker.getMsg().getCheckCCType(), computedColumnDesc.getFullName(),
+                            ccCopy.getDatatype(), computedColumnDesc.getDatatype()));
+                }
+            } catch (Exception e) {
+                logger.error("Error validating computed column {}, {}", computedColumnDesc, e);
+            }
+        }
+
+        if (errorSb.length() > 0) {
+            throw new RuntimeException(errorSb.toString());
+        }
+    }
+
+    private static final Set<String> StringTypes = Sets.newHashSet("STRING", "CHAR", "VARCHAR");
+    private boolean matchCCDataType(String actual, String expected) {
+        if (actual == null) {
+            return false;
+        }
+
+        actual = actual.toUpperCase();
+        expected = expected.toUpperCase();
+        // char, varchar, string are of the same
+        if (StringTypes.contains(actual)) {
+            return StringTypes.contains(expected);
+        }
+
+        // if actual type is of decimal type with no prec, scala
+        // match it with any decimal types
+        if (actual.equals("DECIMAL")) {
+            return expected.startsWith("DECIMAL");
+        }
+
+        return actual.equalsIgnoreCase(expected);
     }
 }

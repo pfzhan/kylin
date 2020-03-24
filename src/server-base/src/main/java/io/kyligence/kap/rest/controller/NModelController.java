@@ -389,6 +389,9 @@ public class NModelController extends NBasicController {
             @RequestBody BuildIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_ID, modelId);
+
+        modelService.validateCCType(modelId, request.getProject());
+
         val response = modelService.buildIndicesManually(modelId, request.getProject());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -606,6 +609,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<JobInfoResponse> buildSegmentsManually(@PathVariable("model") String modelId,
             @RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), modelId,
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
