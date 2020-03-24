@@ -298,7 +298,7 @@
       let tipMsg = this.$t('kylinLang.model.saveIndexSuccess', {indexType: this.$t('kylinLang.model.tableIndex')})
       if (this.tableIndexMeta.load_data) {
         if (data.type === BuildIndexStatus.NORM_BUILD) {
-          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1')
+          tipMsg += ' ' + this.$t('kylinLang.model.buildIndexSuccess1', {indexType: this.$t('kylinLang.model.tableIndex')})
           this.$message({message: tipMsg, type: 'success'})
           return
         }

@@ -19,7 +19,7 @@
           <el-button size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
-          <el-button size="medium" icon="el-icon-ksd-table_discard" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button size="medium" icon="el-icon-ksd-error_02" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
           <el-button size="medium" icon="el-icon-ksd-table_delete" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group><el-button
         plain size="medium" class="ksd-ml-10 ksd-fleft" icon="el-icon-refresh" @click="manualRefreshJobs">{{$t('refreshList')}}</el-button>
@@ -1096,7 +1096,7 @@ export default class JobsList extends Vue {
   async resume (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
-    await this.callGlobalDetail(targetJobs, msg, this.$t('resumeJobTitle'), 'tip')
+    await this.callGlobalDetail(targetJobs, msg, this.$t('resumeJobTitle'), 'tip', this.$t('jobResume'))
     const resumeData = {job_ids: jobIds, project: project, action: 'RESUME'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete resumeData.project
@@ -1120,7 +1120,7 @@ export default class JobsList extends Vue {
   async restart (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
-    await this.callGlobalDetail(targetJobs, msg, this.$t('restartJobTitle'), 'tip')
+    await this.callGlobalDetail(targetJobs, msg, this.$t('restartJobTitle'), 'tip', this.$t('jobRestart'))
     const restartData = {job_ids: jobIds, project: project, action: 'RESTART'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete restartData.project
@@ -1144,7 +1144,7 @@ export default class JobsList extends Vue {
   async pause (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
-    await this.callGlobalDetail(targetJobs, msg, this.$t('pauseJobTitle'), 'tip')
+    await this.callGlobalDetail(targetJobs, msg, this.$t('pauseJobTitle'), 'tip', this.$t('jobPause'))
     const pauseData = {job_ids: jobIds, project: project, action: 'PAUSE'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
@@ -1174,7 +1174,7 @@ export default class JobsList extends Vue {
       }
     })
     const msg = isHaveHoleWarning ? this.$t('discardJobWarning') : this.$t('discardJob')
-    await this.callGlobalDetail(targetJobs, msg, this.$t('discardJobTitle'), 'warning', true)
+    await this.callGlobalDetail(targetJobs, msg, this.$t('discardJobTitle'), 'warning', this.$t('jobDiscard'), true)
     const pauseData = {job_ids: jobIds, project: project, action: 'DISCARD'}
     if (this.$store.state.project.isAllProject && isBatch) {
       delete pauseData.project
@@ -1195,7 +1195,7 @@ export default class JobsList extends Vue {
       handleError(res)
     })
   }
-  async callGlobalDetail (targetJobs, msg, title, type, isShowHighlight) {
+  async callGlobalDetail (targetJobs, msg, title, type, submitText, isShowHighlight) {
     const tableData = []
     targetJobs.forEach((job) => {
       const obj = {}
@@ -1215,13 +1215,14 @@ export default class JobsList extends Vue {
         {column: 'data_range', label: this.$t('dataRange'), minWidth: '180'}
       ],
       dialogType: type,
-      showDetailBtn: false
+      showDetailBtn: false,
+      submitText: submitText
     })
   }
   async drop (jobIds, project, isBatch, row, status) {
     const targetJobs = row ? [row] : this.multipleSelection
     const msg = this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
-    await this.callGlobalDetail(targetJobs, msg, this.$t('dropJobTitle'), 'warning')
+    await this.callGlobalDetail(targetJobs, msg, this.$t('dropJobTitle'), 'warning', this.$t('jobDrop'))
     const dropData = {job_ids: jobIds, project: project}
     let removeJobType = 'removeJob'
     if (this.$store.state.project.isAllProject && isBatch) {

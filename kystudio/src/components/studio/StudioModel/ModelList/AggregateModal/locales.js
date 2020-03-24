@@ -59,7 +59,8 @@ export default {
     mandatoryDesc: 'If a dimension is set to a mandatory dimension, only the index with this dimension will be calculated.',
     hierarchyDesc: 'If there is a hierarchical relationship between the dimensions, you can set it as a hierarchy dimension.',
     jointDesc: 'If there are dimensions that will be used at the same time, you can set them as joint dimensions.',
-    saveAndBuild: 'Save and Build Index'
+    saveAndBuild: 'Save and Build Index',
+    colon: ': '
   },
   'zh-cn': {
     'editAggregateGroup': '编辑聚合索引',
@@ -121,6 +122,7 @@ export default {
     mandatoryDesc: '若有维度被设置成必需维度，则只有包含此维度的索引会被生成。',
     hierarchyDesc: '若维度间存在层级关系，您可以将其设置为层级维度。',
     jointDesc: '若有维度会被同时使用，您可以将其设置为联合维度。',
-    saveAndBuild: '保存并构建索引'
+    saveAndBuild: '保存并构建索引',
+    colon: '：'
   }
 }

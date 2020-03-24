@@ -84,7 +84,7 @@
             <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
           </el-form-item>
         </el-form>
-        <div class="divide-block ksd-mt-20">
+        <div class="divide-block">
           <span v-if="isExpand" @click="toggleShowPartition">{{$t('showLess')}}</span>
           <span v-else @click="toggleShowPartition">{{$t('showMore')}}</span>
           <div class="divide-line"></div>
@@ -197,6 +197,7 @@
       ...mapState('ModelBuildModal', {
         isShow: state => state.isShow,
         type: state => state.type,
+        buildOrComp: state => state.buildOrComp,
         isHaveSegment: state => state.isHaveSegment,
         modelDesc: state => state.form.modelDesc,
         modelInstance: state => state.form.modelInstance || state.form.modelDesc && new NModel(state.form.modelDesc) || null,
@@ -245,7 +246,6 @@
     errorSegments = []
     buildType = ''
     buildOrComplete = 'build'
-    buildOrComplete
     partitionMeta = {
       table: '',
       column: '',
@@ -426,6 +426,7 @@
     initModelBuldRange () {
       if (this.isShow) {
         this.buildType = this.type
+        this.buildOrComplete = this.buildOrComp
         this.modelBuildMeta.dataRangeVal = []
         if (this.modelDesc.last_build_end && this.buildType === 'incremental') {
           let lastBuildDate = getGmtDateFromUtcLike(+this.modelDesc.last_build_end)
@@ -660,7 +661,7 @@
                 return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
               })
               try {
-                await this.autoFixSegmentHoles({project: this.projectName, model_id: this.model.uuid, segment_holes: selectSegmentHoles})
+                await this.autoFixSegmentHoles({project: this.projectName, model_id: this.modelDesc.uuid, segment_holes: selectSegmentHoles})
               } catch (e) {
                 handleError(e)
               }
@@ -703,7 +704,7 @@
       if (data.type === BuildIndexStatus.NO_LAYOUT) {
         tipMsg = this.$t('kylinLang.model.buildIndexFail2', {indexType: this.$t('kylinLang.model.index')})
       } else if (data.type === BuildIndexStatus.NO_SEGMENT) {
-        tipMsg += this.$t('kylinLang.model.buildIndexFail1', {modelName: this.model.name})
+        tipMsg += this.$t('kylinLang.model.buildIndexFail1', {modelName: this.modelDesc.name})
       }
       this.$confirm(tipMsg, this.$t('kylinLang.common.notice'), {showCancelButton: false, type: 'warning', dangerouslyUseHTMLString: true})
     }

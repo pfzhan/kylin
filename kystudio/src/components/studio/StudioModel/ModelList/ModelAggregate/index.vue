@@ -35,9 +35,7 @@
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
               <el-dropdown class="right ksd-ml-10" v-if="isShowIndexActions">
-                <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">
-                  {{$t('index')}}
-                </el-button>
+                <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
                   <el-dropdown-item v-if="isShowTableIndexActions&&!isHideEdit" @click.native="editTableIndex()">{{$t('tableIndex')}}</el-dropdown-item>
@@ -564,7 +562,7 @@ export default class ModelAggregate extends Vue {
   }
   async handleAggregateGroup () {
     const { projectName, model } = this
-    const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
+    const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
     isSubmit && await this.refreshIndexGraphAfterSubmitSetting()
     isSubmit && await this.$emit('loadModels')
   }
@@ -683,7 +681,7 @@ export default class ModelAggregate extends Vue {
       background: none;
       border-bottom: none;
       height: 24px;
-      font-size: 12px;
+      font-size: 14px;
       padding: 0px;
       margin-bottom: 10px;
     }

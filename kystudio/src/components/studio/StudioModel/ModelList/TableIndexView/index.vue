@@ -11,7 +11,9 @@
           </el-option>
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowTableIndexActions&&!isHideEdit">
-          <i class="el-icon-ksd-project_add" @click="editTableIndex()"></i>
+          <common-tip :content="$t('addTableIndex')">
+            <i class="el-icon-ksd-project_add" @click="editTableIndex()"></i>
+          </common-tip>
         </div>
       </div>
       <ul v-if="indexDatas.length">

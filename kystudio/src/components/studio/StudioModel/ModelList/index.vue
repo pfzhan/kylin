@@ -105,7 +105,7 @@
               <div :class="renderFullExpandClass(props.row)">
                 <!-- <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div> -->
                 <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
-                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                <el-tabs class="el-tabs--default model-detail-tabs ksd-mt-10" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
                      ref="segmentComp"

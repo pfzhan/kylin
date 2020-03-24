@@ -38,7 +38,7 @@
                 </span>
                 <div class="dimCap-block ksd-ml-10">
                   <span class="divide"></span>
-                  <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+                  <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
                   </span>
                   <span v-if="!aggregate.isEditDim&&!aggregate.dimCap&&!form.globalDimCap" class="nolimit-dim">{{$t('noLimitation')}}</span>
                   <span v-if="!aggregate.isEditDim&&aggregate.dimCap">{{aggregate.dimCap}}</span>
@@ -53,10 +53,10 @@
                     :placeholder="!groupsDim[aggregateIdx]?(form.globalDimCap?form.globalDimCap+'':$t('noLimitation')) : ''"
                   ></el-input>
                   <span v-if="!aggregate.isEditDim">
-                    <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit" @click.stop="editDimCan(aggregateIdx, true)"></i></common-tip>
+                    <common-tip :content="$t('kylinLang.common.edit')"><i class="dim-btn el-icon-ksd-table_edit ksd-ml-5" @click.stop="editDimCan(aggregateIdx, true)"></i></common-tip>
                   </span>
                   <span v-else>
-                    <i class="el-icon-ksd-right" @click.stop="saveDimCan(aggregateIdx)"></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click.stop="editDimCan(aggregateIdx, false)"></i>
+                    <i class="el-icon-ksd-right ksd-ml-6" @click.stop="saveDimCan(aggregateIdx)"></i><i class="el-icon-ksd-error_02 ksd-ml-10" @click.stop="editDimCan(aggregateIdx, false)"></i>
                   </span>
                 </div>
                 <div class="actions">
@@ -190,7 +190,7 @@
                             :value="dimension.value">
                           </el-option>
                         </el-select>
-                        <div class="list-actions clearfix ksd-no-br-space">
+                        <div class="list-actions clearfix ky-no-br-space">
                           <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
                             @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregate.id)">
                           </el-button>
@@ -256,18 +256,18 @@
           </span>
           <div class="dimCap-block ksd-ml-10">
             <span class="divide"></span>
-            <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+            <span>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
             </span>
             <span v-if="!isEditGlobalDim&&!form.globalDimCap">{{$t('noLimitation')}}</span>
             <span v-if="!isEditGlobalDim&&form.globalDimCap">{{form.globalDimCap}}</span>
             <el-input class="dim-input" v-if="isEditGlobalDim" :placeholder="form.globalDimCap?'':$t('noLimitation')" size="mini" :clearable="false" v-number2="globalDim" v-model="globalDim"></el-input>
             <span v-if="!isEditGlobalDim">
               <common-tip :content="$t('kylinLang.common.edit')" v-show="isShowTooltips"><i
-                class="dim-btn el-icon-ksd-table_edit" @click="editGlobalDim"></i>
+                class="dim-btn el-icon-ksd-table_edit ksd-ml-5" @click="editGlobalDim"></i>
               </common-tip><common-tip
                 v-show="isShowTooltips"
                 :content="clearTips">
-                <i class="dim-btn el-icon-ksd-clear ksd-ml-5" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
+                <i class="dim-btn el-icon-ksd-clear ksd-ml-10" :class="{'disable-clear': !form.isDimClearable}" @click = clearDims()></i>
               </common-tip>
             </span>
             <span v-else>
@@ -283,13 +283,12 @@
                   <el-button type="primary" size="mini" @click="saveGlobalDim">{{$t('kylinLang.common.ok')}}</el-button>
                 </div>
               </el-popover>
-              <i class="el-icon-ksd-right" v-popover:popover></i><i class="el-icon-ksd-error_02 ksd-ml-5" @click="isEditGlobalDim = false"></i>
+              <i class="el-icon-ksd-right ksd-ml-6" v-popover:popover></i><i class="el-icon-ksd-error_02 ksd-ml-10" @click="isEditGlobalDim = false"></i>
             </span>
           </div>
         </div>
         <div class="right">
-          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button>
-          <el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
+          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
         </div>
       </div>
     </div>
@@ -305,11 +304,9 @@ import vuex from 'store'
 import locales from './locales'
 import { BuildIndexStatus } from 'config/model'
 import store, { types, initialAggregateData } from './store'
-import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
+import { titleMaps, getPlaintDimensions, findIncludeDimension } from './handler'
 import { handleError, get, set, push, kapConfirm, handleSuccessAsync, sampleGuid, objectClone } from 'util'
 import { handleSuccess } from 'util/business'
-
-const { EDIT } = editTypes
 
 vuex.registerModule(['modals', 'AggregateModal'], store)
 
@@ -528,7 +525,8 @@ export default class AggregateModal extends Vue {
       this.calcCuboids()
       this.$nextTick(() => {
         const detailContents = this.$el.querySelectorAll('.aggregate-modal .aggregate-dialog .aggregate-group')
-        this.$el.querySelector('.aggregate-modal .aggregate-dialog').parentElement.scrollTop = detailContents[this.aggregateIdx].offsetTop - 100
+        const index = this.aggregateIdx === -1 ? detailContents.length - 1 : this.aggregateIdx
+        this.$el.querySelector('.aggregate-modal .aggregate-dialog').parentElement.scrollTop = detailContents[index].offsetTop - 100
       })
     }
   }
@@ -623,8 +621,8 @@ export default class AggregateModal extends Vue {
       // id: aggregateArray.length
       id: sampleGuid()
     }
-    this.setModalForm({ aggregateArray: [copyedAggregate, ...aggregateArray] })
-    this.groupsDim = [copyedAggregate, ...aggregateArray].map((agg) => {
+    this.setModalForm({ aggregateArray: [...aggregateArray, copyedAggregate] })
+    this.groupsDim = [...aggregateArray, copyedAggregate].map((agg) => {
       return agg.dimCap
     })
     this.isWaitingCheckCuboids[copyedAggregate.id] = true
@@ -904,39 +902,31 @@ export default class AggregateModal extends Vue {
     return this.isFormVaild
   }
   submit (data) {
-    switch (this.editType) {
-      case EDIT:
-        return this.updateAggregateGroups(data)
-    }
+    return this.updateAggregateGroups(data)
   }
   getSubmitData () {
-    const { editType, form, usedDimensions, dimensionIdMapping, measureIdMapping, projectName, model } = this
-
-    switch (editType) {
-      case EDIT: {
-        const { aggregateArray, isCatchUp, globalDimCap } = form
-        return {
-          projectName,
-          modelId: model.uuid,
-          isCatchUp,
-          globalDimCap,
-          dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
-          aggregationGroups: aggregateArray.map(aggregate => ({
-            includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
-            measures: aggregate.measures.map(measure => measureIdMapping[measure]),
-            select_rule: {
-              mandatory_dims: aggregate.mandatory.map(includeItem => dimensionIdMapping[includeItem]),
-              hierarchy_dims: aggregate.hierarchyArray.map(hierarchys => {
-                return hierarchys.items.map(hierarchyItem => dimensionIdMapping[hierarchyItem])
-              }).filter(hierarchys => hierarchys.length),
-              joint_dims: aggregate.jointArray.map(joints => {
-                return joints.items.map(jointItem => dimensionIdMapping[jointItem])
-              }).filter(joints => joints.length),
-              dim_cap: aggregate.dimCap
-            }
-          }))
+    const { form, usedDimensions, dimensionIdMapping, measureIdMapping, projectName, model } = this
+    const { aggregateArray, isCatchUp, globalDimCap } = form
+    return {
+      projectName,
+      modelId: model.uuid,
+      isCatchUp,
+      globalDimCap,
+      dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
+      aggregationGroups: aggregateArray.map(aggregate => ({
+        includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
+        measures: aggregate.measures.map(measure => measureIdMapping[measure]),
+        select_rule: {
+          mandatory_dims: aggregate.mandatory.map(includeItem => dimensionIdMapping[includeItem]),
+          hierarchy_dims: aggregate.hierarchyArray.map(hierarchys => {
+            return hierarchys.items.map(hierarchyItem => dimensionIdMapping[hierarchyItem])
+          }).filter(hierarchys => hierarchys.length),
+          joint_dims: aggregate.jointArray.map(joints => {
+            return joints.items.map(jointItem => dimensionIdMapping[jointItem])
+          }).filter(joints => joints.length),
+          dim_cap: aggregate.dimCap
         }
-      }
+      }))
     }
   }
   repaintDimensionSelector () {
@@ -1143,7 +1133,7 @@ export default class AggregateModal extends Vue {
       }
     }
   }
-  .el-button + .el-button { margin-left: 3px;}
+  .el-button + .el-button { margin-left: 5px;}
   .dimension {
     float: left;
     padding: 6px 13px;
@@ -1166,7 +1156,7 @@ export default class AggregateModal extends Vue {
   .aggregate-group {
     position: relative;
     &:not(:last-child) {
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
     .title {
       color: @text-title-color;

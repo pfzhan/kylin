@@ -276,11 +276,24 @@ export default class ModelSegment extends Vue {
       if (segmentIds.length) {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
+        let tableData = []
+        this.selectedSegments.forEach((seg) => {
+          const obj = {}
+          obj['start'] = transToServerGmtTime(this.segmentTime(seg, seg.startTime))
+          obj['end'] = transToServerGmtTime(this.segmentTime(seg, seg.endTime))
+          tableData.push(obj)
+        })
         await this.callGlobalDetailDialog({
           msg: this.$t('confirmRefreshSegments', {count: segmentIds.length}),
           title: this.$t('refreshSegmentsTitle'),
-          details: segmentIds,
-          dialogType: 'tip'
+          detailTableData: tableData,
+          detailColumns: [
+            {column: 'start', label: this.$t('kylinLang.common.startTime')},
+            {column: 'end', label: this.$t('kylinLang.common.endTime')}
+          ],
+          dialogType: 'tip',
+          showDetailBtn: false,
+          submitText: this.$t('kylinLang.common.refresh')
         })
         const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds })
         if (isSubmit) {
@@ -303,11 +316,24 @@ export default class ModelSegment extends Vue {
       } else {
         const projectName = this.currentSelectedProject
         const modelId = this.model.uuid
+        let tableData = []
+        this.selectedSegments.forEach((seg) => {
+          const obj = {}
+          obj['start'] = transToServerGmtTime(this.segmentTime(seg, seg.startTime))
+          obj['end'] = transToServerGmtTime(this.segmentTime(seg, seg.endTime))
+          tableData.push(obj)
+        })
         await this.callGlobalDetailDialog({
           msg: this.$t('confirmMergeSegments', {count: segmentIds.length}),
           title: this.$t('mergeSegmentTip'),
-          details: segmentIds,
-          dialogType: 'warning'
+          detailTableData: tableData,
+          detailColumns: [
+            {column: 'start', label: this.$t('kylinLang.common.startTime')},
+            {column: 'end', label: this.$t('kylinLang.common.endTime')}
+          ],
+          dialogType: 'tip',
+          showDetailBtn: false,
+          submitText: this.$t('merge')
         })
         // 合并segment
         const isSubmit = await this.mergeSegments({ projectName, modelId, segmentIds })
@@ -352,7 +378,8 @@ export default class ModelSegment extends Vue {
             {column: 'end', label: this.$t('kylinLang.common.endTime')}
           ],
           dialogType: 'warning',
-          showDetailBtn: false
+          showDetailBtn: false,
+          submitText: this.$t('kylinLang.common.delete')
         })
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })

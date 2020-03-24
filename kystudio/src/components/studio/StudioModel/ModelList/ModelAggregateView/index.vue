@@ -11,8 +11,18 @@
           </el-option>
         </el-select>
         <div class="icon-group ksd-fright" v-if="isShowEditAgg">
-          <i class="el-icon-ksd-project_add" @click="handleAggregateGroup()"></i><i
-          class="el-icon-ksd-setting ksd-ml-10" @click="openAggAdvancedModal()"></i>
+          <common-tip :content="$t('addAggGroup')">
+            <i class="el-icon-ksd-project_add" @click="handleAggregateGroup()"></i>
+          </common-tip><common-tip :content="$t('aggAdvanced')">
+            <i class="el-icon-ksd-setting ksd-ml-10" @click="openAggAdvancedModal()"></i>
+          </common-tip>
+        </div>
+      </div>
+      <div class="agg-total-info-block" v-if="aggregationGroups.length">
+        <div>{{$t('numTitle', {num: cuboidsInfo.total_count && cuboidsInfo.total_count.result})}}</div>
+        <div>{{$t('maxDimCom')}}<common-tip :content="$t('maxDimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
+        <span v-if="aggregationObj&&!aggregationObj.global_dim_cap" class="nolimit-dim">{{$t('noLimitation')}}</span>
+        <span v-if="aggregationObj&&aggregationObj.global_dim_cap" class="global-dim">{{aggregationObj.global_dim_cap}}</span>
         </div>
       </div>
       <ul v-if="aggregationGroups.length">
@@ -24,16 +34,16 @@
       </kap-nodata>
     </div>
     <div class="agg-detail-block" v-if="aggregationGroups.length">
-      <div class="agg-detail ksd-mb-15" v-for="(aggregate, aggregateIdx) in aggregationGroups" :key="aggregate.id">
+      <div class="agg-detail ksd-mb-30" v-for="(aggregate, aggregateIdx) in aggregationGroups" :key="aggregate.id">
         <div class="agg-content-title">
-          <span class="ksd-fs-16">
+          <span class="ksd-fs-14">
             {{$t('aggregateGroupTitle', { id: aggregateIdx + 1 })}}
           </span><span class="agg-type ksd-ml-10">
             {{$t('custom')}}</span><span class="ksd-ml-15">
             {{$t('numTitle', {num: cuboidsInfo.agg_index_counts[aggregateIdx] && cuboidsInfo.agg_index_counts[aggregateIdx].result})}}
           </span><span class="divide">
           </span><span class="dimCap-block">
-            <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>:
+            <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
             </span>
             <span v-if="!aggregate.select_rule.dim_cap&&aggregationObj&&!aggregationObj.global_dim_cap" class="nolimit-dim">{{$t('noLimitation')}}</span>
             <span v-if="aggregate.select_rule.dim_cap&&aggregationObj&&!aggregationObj.global_dim_cap">{{aggregate.select_rule.dim_cap}}</span>
@@ -171,7 +181,7 @@ export default class AggregateView extends Vue {
   }
   async handleAggregateGroup () {
     const { projectName, model } = this
-    const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
+    const isSubmit = await this.callAggregateModal({ editType: 'new', model, projectName })
     isSubmit && this.loadAggregateGroups()
     isSubmit && this.$emit('loadModels')
   }
@@ -191,7 +201,6 @@ export default class AggregateView extends Vue {
         modelId: model.uuid,
         isCatchUp: false,
         globalDimCap: this.aggregationObj.global_dim_cap,
-        dimensions: this.aggregationObj.dimensions,
         aggregationGroups: this.aggregationObj.aggregation_groups
       })
       this.loadAggregateGroups()
@@ -295,6 +304,12 @@ export default class AggregateView extends Vue {
         background-color: @base-color-9;
       }
     }
+  }
+  .agg-total-info-block {
+    background-color: @background-disabled-color;
+    padding: 10px;
+    color: @color-text-regular;
+    font-size: 12px;
   }
   .agg-detail-block {
     height: 100%;

@@ -14,7 +14,7 @@
       :show-background="false"
       :closable="false"
       :show-icon="showIcon">
-      <span style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
+      <span class="confirm-msg" style="word-break: break-word;" v-html="filterInjectScript(msg).replace(/\r\n/g, '<br/><br/>')"></span>
       <a href="javascript:;" @click="toggleDetail" v-if="showDetailBtn" class="show-detail">{{$t('kylinLang.common.seeDetail')}}  
         <i class="el-icon-arrow-down" v-show="!showDetail"></i>
         <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -255,6 +255,9 @@ export default class DetailDialogModal extends Vue {
     .highlight-row {
       background: @warning-color-2;
     }
+  }
+  .confirm-msg {
+    line-height: 20px;
   }
   .show-detail{
     display: inline-block;

@@ -77,14 +77,14 @@ export default {
     sort: 'Order',
     buildTips: 'The indexes in the model have not been built and are not available for query analysis. Build indexes to optimize query performance.',
     iKown: 'I Kown',
-    emptyIndexTips: 'This model has unbuilt indexes. Please click the Load Data button to build the indexes.',
-    noIndexTips: 'You should add indexes first before building.',
     exportMetadata: 'Export Metadata',
     noModelsExport: 'There are no models in this project, and model metadata cannot be exported.',
     exportMetadatas: 'Export Models',
     exportMetadataSuccess: 'A model metadata package is being generated. The download will start after generation. please wait.',
     exportMetadataFailed: 'Export models failed. Please try again.',
-    importModels: 'Import Models'
+    importModels: 'Import Models',
+    emptyIndexTips: 'This model has unbuilt indexes. Please click the build index button to build the indexes.',
+    noIndexTips: 'You should add indexes first before building.'
   },
   'zh-cn': {
     capbility: '加速比例',

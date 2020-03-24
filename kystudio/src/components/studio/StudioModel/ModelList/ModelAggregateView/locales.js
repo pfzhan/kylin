@@ -19,7 +19,11 @@ export default {
     aggGroupTips: 'The aggregate index group contains different combinations of all dimensions. It is used to answer aggregate queries in SQL.',
     aggGroup: 'Aggregate Group',
     delAggregateTip: 'Are you sure to delete Aggregate-Group-{aggId}?',
-    delAggregateTitle: 'Delete Aggregate Group'
+    delAggregateTitle: 'Delete Aggregate Group',
+    addAggGroup: 'Add Aggregate Group',
+    aggAdvanced: 'Advanced Setting',
+    colon: ': ',
+    maxDimComTips: 'MDC (Max Dimension Combination) is the max number of dimensions in aggregate index. Please set this number carefully according to your query characteristics. The MDC set here applies to all aggregate groups without separate MDC.'
   },
   'zh-cn': {
     viewAll: '查看所有',
@@ -41,6 +45,10 @@ export default {
     aggGroupTips: '聚合索引组包含了所有维度不同的组合，用于回答 SQL 中的聚合查询。',
     aggGroup: '聚合组',
     delAggregateTip: '你确认要删除聚合组-{aggId}吗？',
-    delAggregateTitle: '删除聚合组'
+    delAggregateTitle: '删除聚合组',
+    addAggGroup: '添加聚合组',
+    aggAdvanced: '高级设置',
+    colon: '：',
+    maxDimComTips: '最大维度组合数是聚合索引中所包含的最大维度个数，设置该数据可以有效控制多维度索引的构建和存储开销，请根据您的查询特征谨慎设置。此处设置的最大维度组合数将应用于所有未单独设置最大维度组合数的聚合组。'
   }
 }

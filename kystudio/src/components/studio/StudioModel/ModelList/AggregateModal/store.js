@@ -37,7 +37,7 @@ const initialState = JSON.stringify({
   callback: null,
   model: null,
   projectName: null,
-  aggregateIdx: 0,
+  aggregateIdx: -1,
   formDataLoaded: false,
   form: {
     isCatchUp: false,
@@ -93,15 +93,15 @@ export default {
       state.formDataLoaded = result
     },
     [types.INIT_FORM]: (state, payload) => {
-      if (payload) {
+      if (payload.aggregateGroupRule && payload.aggregateGroupRule.aggregation_groups.length) {
         const dimensions = getDimensions(state.model)
         const measuresList = getMeasures(state.model)
         const nameMapping = getMapping(dimensions)
         const measuresMapping = getMapping(measuresList)
-        state.form.globalDimCap = payload.global_dim_cap
-        state.form.isDimClearable = !!payload.global_dim_cap
-        state.form.aggregateArray = payload.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
-          const id = payload.aggregation_groups.length - aggregateIdx
+        state.form.globalDimCap = payload.aggregateGroupRule.global_dim_cap
+        state.form.isDimClearable = !!payload.aggregateGroupRule.global_dim_cap
+        state.form.aggregateArray = payload.aggregateGroupRule.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
+          const id = payload.aggregateGroupRule.aggregation_groups.length - aggregateIdx
           const includes = aggregationGroup.includes.map(include => nameMapping[include])
           let measures = aggregationGroup.measures.map(measures => measuresMapping[measures])
           const selectRules = aggregationGroup.select_rule
@@ -129,6 +129,9 @@ export default {
           measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
           return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap }
         })
+        if (payload.editType === 'new') {
+          state.form.aggregateArray.push(JSON.parse(initialAggregateData))
+        }
       }
     }
   },
@@ -145,7 +148,7 @@ export default {
         const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
         const aggregateGroupRule = await handleSuccessAsync(response)
         commit(types.HIDE_LOADING)
-        if (!aggregateGroupRule) {
+        if (!aggregateGroupRule || !aggregateGroupRule.aggregation_groups.length) {
           let measuresList = []
           for (let item of getMeasures(state.model)) {
             item.label && (item.label === 'COUNT_ALL' ? measuresList.unshift(item.label) : measuresList.push(item.label))
@@ -155,7 +158,7 @@ export default {
         }
         setTimeout(() => {
           commit(types.SET_MODEL_DATA_LOADED, true)
-          commit(types.INIT_FORM, aggregateGroupRule)
+          commit(types.INIT_FORM, {aggregateGroupRule, editType})
         }, 0)
       })
     }

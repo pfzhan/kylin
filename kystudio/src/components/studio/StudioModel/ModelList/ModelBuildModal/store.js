@@ -9,6 +9,7 @@ const types = {
 const initialState = JSON.stringify({
   isShow: false,
   type: '',
+  buildOrComp: 'build',
   isHaveSegment: false,
   form: {
     modelDesc: ''
