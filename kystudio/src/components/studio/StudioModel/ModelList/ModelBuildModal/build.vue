@@ -20,7 +20,7 @@
             <el-radio v-else label="complete">{{$t('complete')}}</el-radio>
           </el-radio-group>
         </div>
-        <el-select v-model="buildType" class="ksd-mb-10" @change="handChangeBuildType" v-if="buildOrComplete == 'build'">
+        <el-select v-model="buildType" class="ksd-mb-10" @change="handChangeBuildType" v-if="buildOrComplete == 'build'" :disabled="!datasourceActions.includes('changeBuildType')">
           <el-option :label="$t('incremental')" value="incremental"></el-option>
           <el-option :label="$t('fullLoad')" value="fullLoad"></el-option>
         </el-select>
