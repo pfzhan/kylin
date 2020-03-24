@@ -232,6 +232,7 @@ export default class DropdownFilter extends Vue {
     left: 0;
     cursor: pointer;
     overflow: hidden;
+    z-index: 1;
     > * {
       position: absolute;
       bottom: 0;

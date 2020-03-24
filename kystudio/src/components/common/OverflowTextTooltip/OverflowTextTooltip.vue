@@ -39,6 +39,10 @@ export default class OverflowTextTooltip extends Vue {
     this.handleResizeWindow()
   }
 
+  beforeDestroy () {
+    window.removeEventListener('resize', this.handleResizeWindow)
+  }
+
   get isShowTooltip () {
     const { sampleWidth, containerWidth } = this
     return sampleWidth > containerWidth
