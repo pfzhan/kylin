@@ -58,6 +58,7 @@
             ref="datasourceTree"
             :project-name="currentSelectedProject"
             :is-show-load-source="true"
+            :is-show-load-table="datasourceActions.includes('loadSource')"
             :is-show-settings="false"
             :is-show-action-group="false"
             :is-expand-on-click-node="false"
@@ -511,7 +512,8 @@ import { NamedRegex } from '../../../../config'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'isFullScreen'
+      'isFullScreen',
+      'datasourceActions'
     ]),
     ...mapState('TableJoinModal', {
       tableJoinDialogShow: state => state.isShow

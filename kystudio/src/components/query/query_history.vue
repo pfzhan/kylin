@@ -15,7 +15,10 @@
         v-if="aggDetailVisible"
         :model="model"
         :project-name="currentSelectedProject"
-        :is-show-aggregate-action="false">
+        :is-show-aggregate-action="false"
+        :isShowEditAgg="datasourceActions.includes('editAggGroup')"
+        :isShowBulidIndex="datasourceActions.includes('bulidIndex')"
+        :isShowTableIndexActions="datasourceActions.includes('tableIndexActions')">
       </ModelAggregate>
     </el-dialog>
 
@@ -55,7 +58,8 @@ import TableIndex from '../studio/StudioModel/TableIndex/index.vue'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'datasourceActions'
     ])
   },
   components: {
