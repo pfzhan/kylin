@@ -38,10 +38,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
-import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -174,7 +174,7 @@ public class SystemService extends BasicService {
         }
         File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
         if (exportFile == null) {
-            throw new KylinException("KE-1010", "ID {" + uuid + "} is not exist");
+            throw new KylinException("KE-1010", String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
@@ -214,7 +214,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
         if (extractor == null) {
-            throw new KylinException("KE-1010", "ID {" + uuid + "} is not exist");
+            throw new KylinException("KE-1010", String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);
@@ -230,7 +230,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         Future task = diagInfo == null ? null : diagInfo.getTask();
         if (task == null) {
-            throw new RuntimeException("ID {" + uuid + "} is not exist");
+            throw new KylinException("KE-1010", String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         return task.cancel(true);
     }

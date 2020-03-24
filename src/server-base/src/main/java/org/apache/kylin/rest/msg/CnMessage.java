@@ -690,7 +690,11 @@ public class CnMessage extends Message {
     }
 
     //Query
-    public String getINVALID_USER_TAG(){
+    public String getINVALID_USER_TAG() {
         return "user_defined_tag 必须小于等于 256.";
+    }
+
+    public String getINVALID_ID() {
+        return "id {%s} 不存在";
     }
 }

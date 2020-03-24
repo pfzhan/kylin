@@ -755,7 +755,11 @@ public class Message {
     }
 
     //Query
-    public String getINVALID_USER_TAG(){
+    public String getINVALID_USER_TAG() {
         return "user_defined_tag must be not greater than 256.";
+    }
+
+    public String getINVALID_ID() {
+        return "id {%s} is not exist";
     }
 }

@@ -549,13 +549,9 @@ public class NTableController extends NBasicController {
     @GetMapping(value = "/reload_hive_table_name")
     @ResponseBody
     public EnvelopeResponse<NHiveTableNameResponse> reloadHiveTablename(
-            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force) {
-        try {
-            NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(force);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
-        } catch (Exception e) {
-            throw new RuntimeException("reload hive table name error", e);
-        }
+            @RequestParam(value = "force", required = false, defaultValue = "false") boolean force) throws Exception {
+        NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(force);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
     @PostMapping(value = "/import_ssb")
