@@ -67,8 +67,13 @@ export default class OverflowTextTooltip extends Vue {
     text-overflow: ellipsis;
   }
   .text-sample {
-    display: inline;
-    white-space: nowrap;
+    // white-space: nowrap; 在safari浏览器上有问题
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    /*! autoprefixer: off */
+    -webkit-box-orient: vertical;
+    /* autoprefixer: on */
+    white-space: nowrap\0;
   }
 }
 </style>
