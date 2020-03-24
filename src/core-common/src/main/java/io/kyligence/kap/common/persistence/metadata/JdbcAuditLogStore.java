@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
@@ -104,7 +103,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         this.config = config;
         val url = config.getMetadataUrl();
         val props = datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        val dataSource = JdbcDataSource.getDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier() + AUDIT_LOG_SUFFIX;

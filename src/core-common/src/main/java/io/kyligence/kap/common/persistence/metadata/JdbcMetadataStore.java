@@ -38,7 +38,6 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -99,7 +98,7 @@ public class JdbcMetadataStore extends MetadataStore {
         super(config);
         val url = config.getMetadataUrl();
         val props = JdbcUtil.datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
+        val dataSource = JdbcDataSource.getDataSource(props);
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier();
