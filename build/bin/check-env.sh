@@ -6,6 +6,9 @@ if [ "$1" == "-v" ]; then
     shift
 fi
 
+export KYLIN_CONFIG_FILE="${KYLIN_HOME}/conf/kylin.properties"
+export SPARK_HOME=${KYLIN_HOME}/spark
+
 # avoid re-entering
 if [[ "$CHECKENV_ING" == "" ]]; then
     export CHECKENV_ING=true
