@@ -34,9 +34,9 @@
       </kap-nodata>
     </div>
     <div class="agg-detail-block" v-if="aggregationGroups.length">
-      <div class="agg-detail ksd-mb-30" v-for="(aggregate, aggregateIdx) in aggregationGroups" :key="aggregate.id">
+      <div class="agg-detail ksd-mb-15" v-for="(aggregate, aggregateIdx) in aggregationGroups" :key="aggregate.id">
         <div class="agg-content-title">
-          <span class="ksd-fs-14">
+          <span class="ksd-fs-14 font-medium">
             {{$t('aggregateGroupTitle', { id: aggregateIdx + 1 })}}
           </span><span class="agg-type ksd-ml-10">
             {{$t('custom')}}</span><span class="ksd-ml-15">
@@ -60,17 +60,17 @@
           <!-- Include聚合组 -->
           <div class="row ksd-mb-15">
             <div class="title font-medium ksd-mb-10">{{$t('include')}}({{aggregate.includes.length}})</div>
-            <div>{{aggregate.includes.join(', ')}}</div>
+            <div class="content">{{aggregate.includes.join(', ')}}</div>
           </div>
           <!-- Mandatory聚合组 -->
           <div class="row ksd-mb-15">
             <div class="title font-medium ksd-mb-10">{{$t('mandatory')}}({{aggregate.mandatory.length}})</div>
-            <div>{{aggregate.mandatory.join(', ')}}</div>
+            <div class="content">{{aggregate.mandatory.join(', ')}}</div>
           </div>
           <!-- Hierarchy聚合组 -->
           <div class="row ksd-mb-15">
             <div class="title font-medium ksd-mb-10">{{$t('hierarchy')}}({{aggregate.hierarchyArray.length}})</div>
-            <div class="list"
+            <div class="list content"
               v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
               :key="`hierarchy-${hierarchyRowIdx}`">
               {{$t('group') + `-${hierarchyRowIdx + 1}`}}: <span>{{hierarchy.items.join(', ')}}</span>
@@ -79,7 +79,7 @@
           <!-- Joint聚合组 -->
           <div class="row ksd-mb-15">
             <div class="title font-medium ksd-mb-10">{{$t('joint')}}({{aggregate.jointArray.length}})</div>
-            <div class="list"
+            <div class="list content"
               v-for="(joint, jointRowIdx) in aggregate.jointArray"
               :key="`joint-${jointRowIdx}`">
               {{$t('group') + `-${jointRowIdx + 1}`}}: <span>{{joint.items.join(', ')}}</span>
@@ -89,7 +89,7 @@
         <template v-else>
           <div class="row ksd-mb-15">
             <div class="title font-medium ksd-mb-10">{{$t('includeMeasure')}}</div>
-            <div>{{aggregate.measures.join(', ')}}</div>
+            <div class="content">{{aggregate.measures.join(', ')}}</div>
           </div>
         </template>
       </div>
@@ -313,35 +313,40 @@ export default class AggregateView extends Vue {
   }
   .agg-detail-block {
     height: 100%;
-    margin: 0 15px 0 235px;
-    background-color: @fff;
+    margin: 15px 15px 15px 235px;
     overflow-y: auto;
-    padding-top: 15px;
+    padding-bottom: 15px;
     position: relative;
-    .agg-content-title {
-      height: 40px;
-      line-height: 40px;
-      background-color: @background-disabled-color;
-      padding: 0 20px 0 10px;
-      margin-bottom: 20px;
-      .agg-type {
-        font-size: 12px;
-        border: 1px solid @text-disabled-color;
-        color: @text-disabled-color;
-        border-radius: 2px;
-        padding: 0 2px;
-      }
-      .divide {
-        border-left: 1px solid @line-border-color;
-        margin: 0 10px;
-      }
-      .dimCap-block {
-        .nolimit-dim {
+    .content {
+      color: @color-text-regular;
+    }
+    .agg-detail {
+      padding: 10px;
+      background-color: @fff;
+      border: 1px solid @line-border-color4;
+      .agg-content-title {
+        height: 30px;
+        line-height: 30px;
+        margin-bottom: 10px;
+        .agg-type {
+          font-size: 12px;
+          border: 1px solid @text-disabled-color;
           color: @text-disabled-color;
+          border-radius: 2px;
+          padding: 0 2px;
         }
-        .global-dim {
-          font-style: oblique;
-          color: @text-disabled-color;
+        .divide {
+          border-left: 1px solid @line-border-color;
+          margin: 0 10px;
+        }
+        .dimCap-block {
+          .nolimit-dim {
+            color: @text-disabled-color;
+          }
+          .global-dim {
+            font-style: oblique;
+            color: @text-disabled-color;
+          }
         }
       }
     }

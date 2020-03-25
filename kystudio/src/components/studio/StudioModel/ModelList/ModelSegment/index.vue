@@ -384,6 +384,7 @@ export default class ModelSegment extends Vue {
         await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
+        this.$emit('loadModels')
       }
     } catch (e) {
       e !== 'cancel' && handleError(e)
@@ -422,6 +423,9 @@ export default class ModelSegment extends Vue {
   }
 }
 .model-segment {
+  background-color: @fff;
+  padding: 10px;
+  border: 1px solid @line-border-color4;
   .segment-actions {
     margin-bottom: 10px;
     .el-button .el-icon-ksd-what {

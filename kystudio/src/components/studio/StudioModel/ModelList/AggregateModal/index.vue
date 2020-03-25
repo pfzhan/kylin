@@ -288,7 +288,7 @@
           </div>
         </div>
         <div class="right">
-          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
+          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button><el-button type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
         </div>
       </div>
     </div>
@@ -368,6 +368,7 @@ export default class AggregateModal extends Vue {
   groupsDim = []
   isShowTooltips = false
   isNeedCheck = false
+  cloneForm = ''
   get clearTips () {
     return this.form.isDimClearable ? this.$t('clearDimTips') : this.$t('disableClear')
   }
@@ -488,7 +489,7 @@ export default class AggregateModal extends Vue {
   }
   get isDisabledSaveBtn () {
     // 正在计算的时候按钮disable，选的维度有空的时候，disable，聚合组数为0 时
-    return this.calcLoading || this.isSubmit || !this.isFormVaild || !this.form.aggregateArray || this.form.aggregateArray.length === 0
+    return this.calcLoading || this.isSubmit || !this.isFormVaild || !this.form.aggregateArray || this.form.aggregateArray.length === 0 || this.cloneForm === JSON.stringify(this.form)
   }
   renderCoboidTextCheck (cuboidsInfo, id) {
     let cuboidText = ''
@@ -522,6 +523,7 @@ export default class AggregateModal extends Vue {
         let id = this.form.aggregateArray[i].id
         this.isWaitingCheckCuboids[id] = true
       }
+      this.cloneForm = JSON.stringify(this.form)
       this.calcCuboids()
       this.$nextTick(() => {
         const detailContents = this.$el.querySelectorAll('.aggregate-modal .aggregate-dialog .aggregate-group')
@@ -1016,12 +1018,12 @@ export default class AggregateModal extends Vue {
 
 .aggregate-modal {
   z-index: 10;
-  position: absolute;
+  position: fixed;
   // padding-top: 20px;
   background: @fff;
-  top: 0px;
+  top: 52px;
   height: 100vh;
-  width: calc(~'100%');
+  width: calc(~'100% - 124px');
   margin: 0 -20px 0 -20px;
   // padding: 20px;
   overflow-y: auto;

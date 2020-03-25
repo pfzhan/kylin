@@ -117,6 +117,7 @@ export default {
           const activeTab = 'dimension'
           const open = true
           const dimCap = selectRules.dim_cap
+          const isEditDim = false
           if (dimCap) {
             state.form.isDimClearable = true
           }
@@ -127,10 +128,16 @@ export default {
             jointArray.push({ id: 0, items: [] })
           }
           measures.includes('COUNT_ALL') && (measures = ['COUNT_ALL', ...measures.filter(label => label !== 'COUNT_ALL')])
-          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap }
+          return { id, includes, measures, mandatory, jointArray, hierarchyArray, activeTab, open, dimCap, isEditDim }
         })
         if (payload.editType === 'new') {
-          state.form.aggregateArray.push(JSON.parse(initialAggregateData))
+          const initAggregate = JSON.parse(initialAggregateData)
+          let measuresList = []
+          for (let item of getMeasures(state.model)) {
+            item.label && (item.label === 'COUNT_ALL' ? measuresList.unshift(item.label) : measuresList.push(item.label))
+          }
+          initAggregate.measures = measuresList
+          state.form.aggregateArray.push(initAggregate)
         }
       }
     }

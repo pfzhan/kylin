@@ -34,7 +34,7 @@
           <el-card class="agg-detail-card agg-detail">
             <div slot="header" class="clearfix">
               <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
-              <el-dropdown class="right ksd-ml-10" v-if="isShowIndexActions">
+              <el-dropdown class="right ksd-ml-10" v-if="isShowAggregateAction&&isShowIndexActions">
                 <el-button icon="el-icon-ksd-add_2" type="primary" plain size="small">{{$t('index')}}</el-button>
                 <el-dropdown-menu slot="dropdown">
                   <el-dropdown-item @click.native="handleAggregateGroup" v-if="isShowEditAgg">{{$t('aggregateGroup')}}</el-dropdown-item>
@@ -406,7 +406,7 @@ export default class ModelAggregate extends Vue {
           submitText: this.$t('fixAndBuild'),
           customCallback: async (segments) => {
             selectSegmentHoles = segments.map((seg) => {
-              return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+              return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
             })
             await this.autoFixSegmentHoles({project: this.projectName, model_id: this.model.uuid, segment_holes: selectSegmentHoles})
             this.confirmBuild()
@@ -605,6 +605,11 @@ export default class ModelAggregate extends Vue {
 @import '../../../../../assets/styles/variables.less';
 
 .model-aggregate {
+  .aggregate-view {
+    background-color: @fff;
+    padding: 10px;
+    border: 1px solid @line-border-color4;
+  }
   .el-button-group .el-button--primary:last-child {
     border-left-color: @base-color;
   }

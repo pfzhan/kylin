@@ -103,7 +103,7 @@
               <div :class="renderFullExpandClass(props.row)">
                 <!-- <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div> -->
                 <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
-                <el-tabs class="el-tabs--default model-detail-tabs ksd-mt-10" v-model="props.row.tabTypes">
+                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
                      ref="segmentComp"
@@ -112,6 +112,7 @@
                      :isShowSegmentActions="datasourceActions.includes('segmentActions')"
                      v-if="props.row.tabTypes === 'first'"
                      @purge-model="model => handleCommand('purge', model)"
+                     @loadModels="loadModelsList"
                      @auto-fix="autoFix(props.row.alias, props.row.uuid, props.row.segment_holes)" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('indexOverview')" name="second">
@@ -286,7 +287,7 @@
                     <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(scope.row.uuid)">{{$t('iKown')}}</el-button>
                   </div>
                 </el-popover>
-                <i class="el-icon-ksd-auto_model_ssistant ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
+                <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
               </common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" v-if="datasourceActions.includes('modelActions') || modelActions.includes('purge')">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
@@ -309,7 +310,7 @@
                     <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
                     <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
                     <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('online')">{{$t('onLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN' && scope.row.status !== 'WARNING' && modelActions.includes('online')">{{$t('onLine')}}</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
               </common-tip>
@@ -788,7 +789,7 @@ export default class ModelList extends Vue {
         showDetailBtn: false,
         customCallback: async (segments) => {
           selectSegmentHoles = segments.map((seg) => {
-            return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+            return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
           })
           try {
             await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
@@ -1052,10 +1053,10 @@ export default class ModelList extends Vue {
       color: @text-disabled-color;
     }
     .el-table__expanded-cell {
-      background-color: @fff;
+      background-color: @background-color-base-1;
       padding:0;
       &:hover {
-        background-color: @fff !important;
+        background-color: @background-color-base-1 !important;
       }
       .full-cell-content {
         position: relative;
@@ -1073,6 +1074,10 @@ export default class ModelList extends Vue {
         > .el-tabs__header {
           margin-bottom: 0px;
           z-index: 1;
+          .el-tabs__item {
+            height: 40px;
+            line-height: 40px;
+          }
           .el-tabs__item.is-active{
             border-bottom-color: #fbfbfb;
           }

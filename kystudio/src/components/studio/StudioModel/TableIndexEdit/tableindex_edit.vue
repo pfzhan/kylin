@@ -42,8 +42,8 @@
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <!-- <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox> -->
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
-        <el-button :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
+        <el-button type="primary" :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -105,6 +105,7 @@
         {validator: this.checkName, trigger: 'blur'}
       ]
     }
+    cloneMeta = ''
     upRow (col) {
       let i = this.getRowIndex(col, 'fullName')
       this.allColumns.splice(i - 1, 0, col)
@@ -237,7 +238,7 @@
       })
     }
     get saveBtnDisable () {
-      return filterObjectArray(this.allColumns, 'isUsed', true).length === 0
+      return filterObjectArray(this.allColumns, 'isUsed', true).length === 0 || this.cloneMeta === JSON.stringify(this.allColumns)
     }
     @Watch('isShow')
     initTableIndex (val) {
@@ -252,6 +253,7 @@
           Object.assign(this.tableIndexMeta, this.tableIndexDesc)
         }
         this.getAllColumns()
+        this.cloneMeta = JSON.stringify(this.allColumns)
       } else {
         this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
       }

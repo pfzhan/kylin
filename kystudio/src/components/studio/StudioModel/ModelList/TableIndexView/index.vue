@@ -242,27 +242,29 @@ export default class TableIndexView extends Vue {
   }
   .table-index-detail-block {
     height: 100%;
-    margin: 0 15px 0 235px;
-    background-color: @fff;
+    margin: 15px 15px 15px 235px;
+    padding-bottom: 15px;
     overflow-y: auto;
-    padding-top: 15px;
     position: relative;
-    .table-index-content-title {
-      height: 40px;
-      line-height: 40px;
-      background-color: @background-disabled-color;
-      padding: 0 20px 0 10px;
-      margin-bottom: 20px;
-      .index-type {
-        font-size: 12px;
-        border: 1px solid @text-disabled-color;
-        color: @text-disabled-color;
-        border-radius: 2px;
-        padding: 0 2px;
-      }
-      .index-time {
-        font-size: 14px;
-        color: @text-disabled-color;
+    .table-index-detail {
+      padding: 10px;
+      background-color: @fff;
+      border: 1px solid @line-border-color4;
+      .table-index-content-title {
+        height: 30px;
+        line-height: 30px;
+        margin-bottom: 10px;
+        .index-type {
+          font-size: 12px;
+          border: 1px solid @text-disabled-color;
+          color: @text-disabled-color;
+          border-radius: 2px;
+          padding: 0 2px;
+        }
+        .index-time {
+          font-size: 14px;
+          color: @text-disabled-color;
+        }
       }
     }
     .empty-block {

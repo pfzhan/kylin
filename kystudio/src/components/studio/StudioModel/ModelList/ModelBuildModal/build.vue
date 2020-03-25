@@ -60,7 +60,7 @@
           <el-form-item  :label="$t('dateFormat')" v-if="partitionMeta.table">
             <el-row :gutter="5">
               <el-col :span="12">
-                <el-select :disabled="isLoadingFormat || !datasourceActions.includes('changePartition')" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
+                <el-select :disabled="isLoadingFormat || !datasourceActions.includes('changePartition')" v-guide.partitionColumnFormat style="width:100%" @change="partitionColumnFormatChange" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
                   <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
                   <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
                 </el-select>
@@ -98,7 +98,7 @@
             </el-radio>
             <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
           </el-form-item> -->
-          <el-form-item prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
+          <el-form-item prop="dataRangeVal" :class="{'is-error': isShowErrorSegments}" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
             <!-- <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
               {{$t('customLoadRange')}}
             </el-radio>
@@ -133,18 +133,18 @@
                 :format="format"
                 :placeholder="$t('kylinLang.common.endTime')">
               </el-date-picker>
-              <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
+              <common-tip :content="noPartition ? $t('partitionFirst'):$t('detectAvailableRange')" placement="top">
                 <el-button
                   size="medium"
                   class="ksd-ml-10"
                   v-if="$store.state.project.projectPushdownConfig"
-                  :disabled="modelBuildMeta.isLoadExisted"
+                  :disabled="modelBuildMeta.isLoadExisted || noPartition"
                   :loading="isLoadingNewRange"
                   v-guide.getPartitionRangeDataBtn
                   icon="el-icon-ksd-data_range_search"
                   @click="handleLoadNewestRange">
                 </el-button>
-              </el-tooltip>
+              </common-tip>
               <span v-guide.getPartitionRangeData style="position:absolute;width:1px; height:0" @click="handleLoadNewestRange"></span>
               <span v-guide.checkPartitionDataRangeHasData style="position:absolute;width:1px; height:0" v-if="modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[1]"></span>
             </div>
@@ -275,6 +275,9 @@
     toggleDetail () {
       this.showDetail = !this.showDetail
     }
+    get noPartition () {
+      return !(this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format)
+    }
     get incrementalDisabled () {
       return !(this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format && this.modelBuildMeta.dataRangeVal.length) && this.buildType === 'incremental'
     }
@@ -364,11 +367,17 @@
       this.partitionMeta.column = ''
       this.partitionMeta.format = ''
       this.$refs.partitionForm.validate()
+      this.modelBuildMeta.dataRangeVal = []
     }
 
     partitionColumnChange () {
       this.partitionMeta.format = 'yyyy-MM-dd'
       this.$refs.partitionForm.validate()
+      this.modelBuildMeta.dataRangeVal = []
+    }
+
+    partitionColumnFormatChange () {
+      this.modelBuildMeta.dataRangeVal = []
     }
 
     get partitionTables () {
@@ -466,10 +475,15 @@
     async handleLoadNewestRange () {
       this.isLoadingNewRange = true
       this.resetError()
+      const partition_desc = {
+        partition_date_column: this.partitionMeta.table + '.' + this.partitionMeta.column,
+        partition_date_format: this.partitionMeta.format
+      }
       try {
         const submitData = {
           project: this.currentSelectedProject,
-          model: this.modelDesc.uuid
+          model: this.modelDesc.uuid,
+          partition_desc: partition_desc
         }
         const response = await this.fetchNewestModelRange(submitData)
         if (submitData.model !== this.modelDesc.uuid) { // 避免ajax耗时太长导致会覆盖新的model的load range数据
@@ -554,8 +568,12 @@
               start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0])
               end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1])
             }
-            // 如果切换分区列，会清空segment，不用检测
-            if (!(this.prevPartitionMeta.table && (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format))) {
+            // 如果切换分区列或者构建方式，会清空segment，不用检测
+            const isChangePatition = this.prevPartitionMeta.table && (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format)
+            const isChangeBuildType = !this.prevPartitionMeta.table && this.isHaveSegment
+            if (isChangePatition || isChangeBuildType) {
+              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
+            } else {
               const res = await this.checkDataRange({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, start: start, end: end})
               const data = await handleSuccessAsync(res)
               if (data.overlap_segments.length) {
@@ -588,7 +606,7 @@
                   submitText: this.$t('fixAndBuild'),
                   customCallback: async (segments) => {
                     selectSegmentHoles = segments.map((seg) => {
-                      return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+                      return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
                     })
                     try {
                       this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
@@ -601,8 +619,6 @@
               } else {
                 this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
               }
-            } else {
-              this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc})
             }
           })
         } else if (this.buildType === 'fullLoad' && this.buildOrComplete === 'build') {
@@ -658,7 +674,7 @@
             submitText: this.$t('fixAndBuild'),
             customCallback: async (segments) => {
               selectSegmentHoles = segments.map((seg) => {
-                return {start: new Date(seg.start).getTime(), end: new Date(seg.end).getTime()}
+                return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
               })
               try {
                 await this.autoFixSegmentHoles({project: this.projectName, model_id: this.modelDesc.uuid, segment_holes: selectSegmentHoles})
