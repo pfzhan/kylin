@@ -1098,7 +1098,7 @@ export default class LayoutLeftRightTop extends Vue {
       margin-left:0;
     }
     > [role='menuitem']:not(:last-child) {
-      margin-bottom: 1px;
+      /* margin-bottom: 1px; */
     }
   }
   .el-menu--popup {
