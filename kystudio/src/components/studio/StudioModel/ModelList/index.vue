@@ -25,12 +25,10 @@
             type="primary"
             size="medium"
             id="addModel"
+            btn-icon="el-icon-ksd-add_2"
             v-if="datasourceActions.includes('modelActions')"
             @click="showAddModelDialog">
-            <span>
-              <i class="el-icon-ksd-add_2" />
-              {{$t('kylinLang.common.model')}}
-            </span>
+            {{$t('kylinLang.common.model')}}
             <el-dropdown-menu slot="dropdown" class="model-actions-dropdown">
               <el-dropdown-item
                 v-if="$store.state.project.isSemiAutomatic&&datasourceActions.includes('modelActions')"
