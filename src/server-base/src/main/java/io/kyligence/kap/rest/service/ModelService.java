@@ -456,7 +456,7 @@ public class ModelService extends BasicService {
                     : getModelStatus(modelDesc.getUuid(), projectName);
             long emptyIndexCount = modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
                     : getEmptyIndexesCount(projectName, modelDesc.getId());
-            if (emptyIndexCount > 0) {
+            if (modelStatus == RealizationStatusEnum.ONLINE && emptyIndexCount > 0) {
                 modelStatus = RealizationStatusEnum.WARNING;
             }
             boolean isModelStatusMatch = isListContains(status, modelStatus);
@@ -1443,14 +1443,13 @@ public class ModelService extends BasicService {
 
     }
 
-    private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String model)
-            throws Exception {
+    private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table,
+            PartitionDesc desc) throws Exception {
+        Preconditions.checkNotNull(desc);
         val modelManager = getDataModelManager(project);
-        val modelDesc = modelManager.getDataModelDesc(model);
-        val table = modelDesc.getRootFactTableName();
 
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
-        String dateFormat = modelDesc.getPartitionDesc().getPartitionDateFormat();
+        String partitionColumn = desc.getPartitionDateColumn();
+        String dateFormat = desc.getPartitionDateFormat();
         Preconditions.checkArgument(StringUtils.isNotEmpty(dateFormat) && StringUtils.isNotEmpty(partitionColumn));
 
         val minAndMaxTime = PushDownUtil.getMaxAndMinTimeWithTimeOut(partitionColumn, table, project);
@@ -1560,16 +1559,20 @@ public class ModelService extends BasicService {
         }
         val dataflowManager = getDataflowManager(project);
         val df = dataflowManager.getDataflow(modelId);
-        val segs = df.getSegments(SegmentStatusEnum.READY);
-        if (CollectionUtils.isEmpty(segs)) {
+        val seg = df.getFirstSegment();
+        if (Objects.isNull(seg)) {
             NDataSegment newSegment = dataflowManager.appendSegment(df,
                     SegmentRange.TimePartitionedSegmentRange.createInfinite());
             return Lists.newArrayList(new JobInfoResponse.JobInfo(JobTypeEnum.INC_BUILD.toString(),
                     getEventManager(project).postAddSegmentEvents(newSegment, modelId, getUsername())));
         }
-        return refreshSegmentById(modelId, project,
+        List<JobInfoResponse.JobInfo> res = Lists.newArrayListWithCapacity(2);
+        res.addAll(refreshSegmentById(modelId, project,
                 Lists.newArrayList(getDataflowManager(project).getDataflow(modelId).getSegments().get(0).getId())
-                        .toArray(new String[0]));
+                        .toArray(new String[0])));
+        res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
+                getEventManager(project).postAddCuboidEvents(modelId, getUsername())));
+        return res;
     }
 
     private JobInfoResponse.JobInfo constructIncrementBuild(String project, String modelId, String start, String end,
@@ -1622,12 +1625,8 @@ public class ModelService extends BasicService {
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())
                 || !modelDesc.getPartitionDesc().equals(partitionDesc)) {
-            val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
+            val request = convertToRequest(modelDesc);
             request.setPartitionDesc(partitionDesc);
-            request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
-                    .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-            request.setSimplifiedDimensions(modelDesc.getAllNamedColumns());
-            request.setComputedColumnDescs(modelDesc.getComputedColumnDescs());
             request.setProject(project);
             updateDataModelSemantic(project, request);
             segmentHoles.clear();
@@ -1640,6 +1639,34 @@ public class ModelService extends BasicService {
         res.add(new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_BUILD.toString(),
                 getEventManager(project).postAddCuboidEvents(modelId, getUsername())));
         return res;
+    }
+
+    private ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {
+        val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
+        request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.setSimplifiedDimensions(modelDesc.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .collect(Collectors.toList()));
+        request.setComputedColumnDescs(modelDesc.getComputedColumnDescs());
+        return request;
+    }
+
+    @Transaction(project = 0)
+    public void updatePartitionColumn(String project, String modelId, PartitionDesc partitionDesc) throws IOException {
+        aclEvaluate.checkProjectWritePermission(project);
+        val dataflowManager = getDataflowManager(project);
+        val df = dataflowManager.getDataflow(modelId);
+        val model = df.getModel();
+        if (partitionDesc == null && model.getPartitionDesc() == null && df.getFirstSegment() == null) {
+            dataflowManager.fillDfManually(df,
+                    Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+        }
+        if (!Objects.equals(partitionDesc, model.getPartitionDesc())) {
+            val request = convertToRequest(model);
+            request.setProject(project);
+            request.setPartitionDesc(partitionDesc);
+            updateDataModelSemantic(project, request);
+        }
     }
 
     private void checkModelAndIndexManually(String project, String modelId) {
@@ -1908,9 +1935,8 @@ public class ModelService extends BasicService {
         IndexPlan indexPlan = getIndexPlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Segments<NDataSegment> segments = dataflow.getSegments();
-        String message = status.equals(SegmentStatusEnumToDisplay.LOCKED)
-                ? "Can not remove or refresh or merge segment (ID:%s), because the segment is LOCKED."
-                : "Can not refresh or merge segment (ID:%s), because the segment is " + status + ".";
+        String message = status.equals(SegmentStatusEnumToDisplay.LOCKED) ? MsgPicker.getMsg().getSEGMENT_LOCKED()
+                : MsgPicker.getMsg().getSEGMENT_STATUS(status);
         for (String id : ids) {
             if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(status)) {
                 throw new KylinException("KE-1005", String.format(message, id));
@@ -2371,12 +2397,20 @@ public class ModelService extends BasicService {
         });
     }
 
-    public ExistedDataRangeResponse getLatestDataRange(String project, String modelId) throws Exception {
+    public ExistedDataRangeResponse getLatestDataRange(String project, String modelId, PartitionDesc desc)
+            throws Exception {
         Preconditions.checkNotNull(modelId);
         aclEvaluate.checkProjectReadPermission(project);
 
         val df = getDataflowManager(project).getDataflow(modelId);
-        Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
+        val model = df.getModel();
+        val table = model.getRootFactTableName();
+        if (Objects.nonNull(desc) && !desc.equals(model.getPartitionDesc())) {
+            Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table, desc);
+            return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
+        }
+        Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table,
+                model.getPartitionDesc());
         pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
         if (pushdownResult.getFirst().compareTo(pushdownResult.getSecond()) > 0) {
             pushdownResult.setSecond(pushdownResult.getFirst());
@@ -2646,8 +2680,8 @@ public class ModelService extends BasicService {
                 ComputedColumnDesc ccCopy = JsonUtil.deepCopy(computedColumnDesc, ComputedColumnDesc.class);
                 ComputedColumnEvalUtil.evaluateExprAndType(model, ccCopy);
                 if (!matchCCDataType(computedColumnDesc.getDatatype(), ccCopy.getDatatype())) {
-                    errorSb.append(MessageFormat.format(MsgPicker.getMsg().getCheckCCType(), computedColumnDesc.getFullName(),
-                            ccCopy.getDatatype(), computedColumnDesc.getDatatype()));
+                    errorSb.append(MessageFormat.format(MsgPicker.getMsg().getCheckCCType(),
+                            computedColumnDesc.getFullName(), ccCopy.getDatatype(), computedColumnDesc.getDatatype()));
                 }
             } catch (Exception e) {
                 logger.error("Error validating computed column {}, {}", computedColumnDesc, e);
@@ -2660,6 +2694,7 @@ public class ModelService extends BasicService {
     }
 
     private static final Set<String> StringTypes = Sets.newHashSet("STRING", "CHAR", "VARCHAR");
+
     private boolean matchCCDataType(String actual, String expected) {
         if (actual == null) {
             return false;

@@ -35,6 +35,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccerelateRequest;
@@ -72,6 +73,7 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.PartitionColumnRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
@@ -179,7 +181,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
         validateDataRange(modelRequest.getStart(), modelRequest.getEnd());
-        validatePartitionDesc(modelRequest);
+        validatePartitionDesc(modelRequest.getPartitionDesc());
         try {
             modelService.createModel(modelRequest.getProject(), modelRequest);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
@@ -246,11 +248,24 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<ExistedDataRangeResponse> getLatestData(@PathVariable(value = "model") String modelId,
             @RequestParam(value = "project") String project) {
+        return getPartitionLatestData(project, modelId, null);
+    }
+
+    @ApiOperation(value = "getLatestData (update)", notes = "Update URL: {model}")
+    @PostMapping(value = "/{model:.+}/data_range/latest_data")
+    @ResponseBody
+    public EnvelopeResponse<ExistedDataRangeResponse> getPartitionLatestData(
+            @PathVariable(value = "model") String modelId, @RequestBody PartitionColumnRequest request) {
+        return getPartitionLatestData(request.getProject(), modelId, request.getPartitionDesc());
+    }
+
+    private EnvelopeResponse<ExistedDataRangeResponse> getPartitionLatestData(String project, String modelId,
+            PartitionDesc partitionDesc) {
         checkProjectName(project);
 
         ExistedDataRangeResponse response;
         try {
-            response = modelService.getLatestDataRange(project, modelId);
+            response = modelService.getLatestDataRange(project, modelId, partitionDesc);
         } catch (KylinTimeoutException e) {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null,
                     MsgPicker.getMsg().getPUSHDOWN_DATARANGE_TIMEOUT());
@@ -471,7 +486,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> updateSemantic(@RequestBody ModelRequest request) throws Exception {
         checkProjectName(request.getProject());
         validateDataRange(request.getStart(), request.getEnd());
-        validatePartitionDesc(request);
+        validatePartitionDesc(request.getPartitionDesc());
         checkRequiredArg(MODEL_ID, request.getUuid());
         try {
             if (request.getBrokenReason() == NDataModel.BrokenReason.SCHEMA) {
@@ -479,6 +494,21 @@ public class NModelController extends NBasicController {
             } else {
                 modelService.updateDataModelSemantic(request.getProject(), request);
             }
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        } catch (LookupTableException e) {
+            throw new KylinException("KE-1025", e);
+        }
+    }
+
+    @PutMapping(value = "/{model:.+}/partition")
+    @ResponseBody
+    public EnvelopeResponse<String> updatePartitionSemantic(@PathVariable("model") String modelId,
+            @RequestBody PartitionColumnRequest request) throws Exception {
+        checkProjectName(request.getProject());
+        validatePartitionDesc(request.getPartitionDesc());
+        checkRequiredArg(MODEL_ID, modelId);
+        try {
+            modelService.updatePartitionColumn(request.getProject(), modelId, request.getPartitionDesc());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
             throw new KylinException("KE-1025", e);
@@ -776,9 +806,8 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    public void validatePartitionDesc(NDataModel model) {
-        if (model.getPartitionDesc() != null
-                && StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+    public void validatePartitionDesc(PartitionDesc partitionDesc) {
+        if (partitionDesc != null && StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
             throw new KylinException("KE-1027", "Partition column does not exist!");
         }
     }

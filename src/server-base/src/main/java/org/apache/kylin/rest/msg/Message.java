@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.msg;
 
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
+
 public class Message {
 
     private static Message instance = null;
@@ -286,6 +288,7 @@ public class Message {
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
         return "Model '%s' import failed: the fact table in the model already exists as a dimension table in other models.";
     }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "Illegal timeFilter: %s.";
@@ -772,5 +775,13 @@ public class Message {
 
     public String getINVALID_ID() {
         return "id {%s} is not exist";
+    }
+
+    public String getSEGMENT_LOCKED() {
+        return "Can not remove or refresh or merge segment [%s], because the segment is LOCKED.";
+    }
+
+    public String getSEGMENT_STATUS(SegmentStatusEnumToDisplay status) {
+        return "Can not refresh or merge segment [%s], because the segment is " + status + ".";
     }
 }

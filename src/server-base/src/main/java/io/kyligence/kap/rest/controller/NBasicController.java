@@ -136,7 +136,6 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleError(HttpServletRequest req, Exception ex) {
         logger.error("", ex);
-
         Message msg = MsgPicker.getMsg();
         Throwable cause = ex;
         while (cause != null && cause.getCause() != null) {
@@ -175,7 +174,11 @@ public class NBasicController {
     @ResponseBody
     ErrorResponse handleErrorCode(HttpServletRequest req, Exception ex) {
         logger.error("", ex);
-        return new ErrorResponse(req.getRequestURL().toString(), ex);
+        KylinException cause = (KylinException) ex;
+        while (cause != null && cause.getCause() != null && cause.getCause() instanceof KylinException) {
+            cause = (KylinException) cause.getCause();
+        }
+        return new ErrorResponse(req.getRequestURL().toString(), cause);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -207,8 +210,9 @@ public class NBasicController {
         }
     }
 
-    protected void setDownloadResponse(File file, String fileName, String contentType, final HttpServletResponse response) {
-        try(FileInputStream fileInputStream = new FileInputStream(file)) {
+    protected void setDownloadResponse(File file, String fileName, String contentType,
+            final HttpServletResponse response) {
+        try (FileInputStream fileInputStream = new FileInputStream(file)) {
             setDownloadResponse(fileInputStream, fileName, contentType, response);
             response.setContentLength((int) file.length());
         } catch (IOException e) {
@@ -216,7 +220,8 @@ public class NBasicController {
         }
     }
 
-    protected void setDownloadResponse(InputStream inputStream, String fileName, String contentType, final HttpServletResponse response) {
+    protected void setDownloadResponse(InputStream inputStream, String fileName, String contentType,
+            final HttpServletResponse response) {
         try (OutputStream output = response.getOutputStream()) {
             response.reset();
             response.setContentType(contentType);

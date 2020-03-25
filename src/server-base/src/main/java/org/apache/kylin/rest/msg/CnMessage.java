@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.msg;
 
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
+
 public class CnMessage extends Message {
 
     private static CnMessage instance = null;
@@ -708,5 +710,13 @@ public class CnMessage extends Message {
 
     public String getINVALID_ID() {
         return "id {%s} 不存在";
+    }
+
+    public String getSEGMENT_LOCKED() {
+        return "由于 Segment [%s]被锁定，所以不能删除或者刷新该 Segment。";
+    }
+
+    public String getSEGMENT_STATUS(SegmentStatusEnumToDisplay status) {
+        return "由于 Segment [%s] 处于 " + status + " 状态，所以不能合并或者刷新该 Segment。";
     }
 }

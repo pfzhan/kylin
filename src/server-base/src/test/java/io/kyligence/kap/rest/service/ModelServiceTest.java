@@ -95,12 +95,14 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.BaseMatcher;
@@ -1060,8 +1062,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflowManager.refreshSegment(df, segmentRange);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not remove or refresh or merge segment (ID:" + dataSegment.getId()
-                + "), because the segment is LOCKED.");
+        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment.getId()));
 
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
@@ -1266,8 +1267,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(
-                "Can not refresh or merge segment (ID:" + dataSegment1.getId() + "), because the segment is LOADING.");
+        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING),
+                dataSegment1.getId()));
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment2.getId() });
 
@@ -1311,8 +1312,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Can not remove or refresh or merge segment (ID:" + dataSegment2.getId()
-                + "), because the segment is LOCKED.");
+        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.getId()));
         //refresh exception
         modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
@@ -1553,7 +1553,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private void testGetLatestData() throws Exception {
         ExistedDataRangeResponse response = modelService.getLatestDataRange("default",
-                "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
         Assert.assertEquals(String.valueOf(Long.MAX_VALUE), response.getEndTime());
     }
 
@@ -2850,23 +2850,32 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val project = "default";
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
 
-        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
-            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-            copyForWrite.setPartitionDesc(null);
-        });
-
+        val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
+        request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.getAllNamedColumns().forEach(c -> c.setName(c.getAliasDotColumn().replace(".", "_")));
+        request.setSimplifiedDimensions(request.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isExist)
+                .collect(Collectors.toList()));
+        request.setComputedColumnDescs(request.getComputedColumnDescs());
+        request.setPartitionDesc(null);
+        request.setProject(project);
+        modelService.updateDataModelSemantic(project, request);
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         eventDao.deleteAllEvents();
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         val events = eventDao.getEvents();
-        Assert.assertEquals(1, events.size());
+        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
     }
 
     @Test
