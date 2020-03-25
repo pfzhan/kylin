@@ -1169,7 +1169,7 @@ export default class JobsList extends Vue {
     let isHaveHoleWarning = false
     const targetJobs = row ? [row] : this.multipleSelection
     targetJobs.forEach((job) => {
-      if (job.discard_safety) {
+      if (!job.discard_safety) {
         isHaveHoleWarning = true
       }
     })
@@ -1202,7 +1202,7 @@ export default class JobsList extends Vue {
       obj['job_name'] = this.$t(job.job_name)
       obj['target_subject'] = job.target_subject
       obj['data_range'] = job.data_range_end === 9223372036854776000 ? this.$t('fullLoad') : transToServerGmtTime(job.data_range_start) + '-' + transToServerGmtTime(job.data_range_end)
-      obj['highlight'] = isShowHighlight && job.discard_safety
+      obj['highlight'] = isShowHighlight && !job.discard_safety
       tableData.push(obj)
     })
     await this.callGlobalDetailDialog({
