@@ -10,7 +10,7 @@
 
         <el-button-group>
           <el-button size="small" icon="el-icon-ksd-clear" type="default" :disabled="!segments.length" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-repair" type="default" v-if="true || model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
+          <el-button size="small" icon="el-icon-ksd-repair" type="default" v-if="model.segment_holes.length" @click="handleFixSegment">{{$t('fix')}}<el-tooltip class="item tip-item" :content="$t('fixTips')" placement="bottom"><i class="el-icon-ksd-what"></i></el-tooltip></el-button>
         </el-button-group>
       </div>
       <div class="right">
