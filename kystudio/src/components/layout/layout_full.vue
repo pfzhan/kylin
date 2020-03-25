@@ -18,7 +18,7 @@
         :show-background="false"
         :closable="false"
         show-icon>
-        <span style="word-break: break-word;" v-html="filterInjectScript($store.state.config.errorMsgBox.msg).replace(/\r\n/g, '<br/><br/>')"></span>
+        <span class="error-title" v-html="filterInjectScript($store.state.config.errorMsgBox.msg).replace(/\r\n/g, '<br/><br/>')"></span>
         <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
           <i class="el-icon-arrow-up" v-show="showDetail"></i>
@@ -204,12 +204,25 @@ body{
     .el-alert__content {
       width:100%;
       padding-right: 0;
+      display: inline-block;
     }
     // border-top: 1px solid #2b2d3c;
     // box-shadow: 0 -1px 0 0 #424860;
     position: relative;
     .el-input{
       font-size: 12px;
+    }
+    .error-title {
+      display: inline-block;
+      word-break: break-word;
+      word-wrap: break-word;
+      white-space: -moz-pre-wrap;
+      white-space: -hp-pre-wrap;
+      white-space: -o-pre-wrap;
+      white-space: -pre-wrap;
+      white-space: pre;
+      white-space: pre-wrap;
+      white-space: pre-line;
     }
   }
   .copy-status-msg{

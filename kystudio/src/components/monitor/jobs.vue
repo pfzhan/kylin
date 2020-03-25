@@ -63,8 +63,8 @@
           <el-table-column align="center" width="40" prop="icon" v-if="monitorActions.includes('jobActions')">
             <template slot-scope="scope">
               <i :class="{
-                'el-icon-arrow-right': scope.row.id !== selectedJob.id || !showStep,
-                'el-icon-arrow-down': scope.row.id == selectedJob.id && showStep}"></i>
+                'el-icon-caret-right': scope.row.id !== selectedJob.id || !showStep,
+                'el-icon-caret-bottom': scope.row.id == selectedJob.id && showStep}"></i>
             </template>
           </el-table-column>
           <el-table-column :filters="jobTypeFilteArr.map(item => ({text: $t(item), value: item}))" :filtered-value="filter.job_names" :label="$t('JobType')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'job_names')" prop="job_name" width="144">

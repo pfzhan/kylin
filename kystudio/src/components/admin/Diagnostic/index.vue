@@ -83,7 +83,7 @@
       </div>
     </div>
     <div slot="footer">
-      <span class="manual-download"><span :class="['manual', {'is-disable': !showManualDownloadLayout || isManualDownload}]" @click="isManualDownload = true">{{$t('manualDownload')}}</span><el-tooltip :content="$t('manualDownloadTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></span>
+      <span class="manual-download"><span :class="['manual', {'is-disable': !showManualDownloadLayout || isManualDownload}]" @click="!(!showManualDownloadLayout || isManualDownload) && (isManualDownload = true)">{{$t('manualDownload')}}</span><el-tooltip :content="$t('manualDownloadTip')" effect="dark" placement="top"><i class="el-icon-ksd-what"></i></el-tooltip></span>
       <el-popover
         ref="closePopover"
         placement="top"
@@ -537,7 +537,10 @@ export default class Diagnostic extends Vue {
         cursor: pointer;
         &.is-disable {
           color: @text-disabled-color;
-          pointer-events: none;
+          cursor: default;
+          &:hover {
+            color: @text-disabled-color;
+          }
         }
         &:hover {
           color: @base-color;

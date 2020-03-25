@@ -178,9 +178,12 @@ export default {
     // 下载诊断包
     [types.DOWNLOAD_DUMP_DIAG] (_, { host, id }) {
       let dom = document.createElement('a')
-      dom.setAttribute('download', true)
-      dom.setAttribute('href', `${location.origin}${apiUrl}/system/diag?host=${host}&id=${id}`)
+      dom.download = true
+      // 兼容IE 10以下 无origin属性问题，此处用protocol和host拼接
+      dom.href = `${location.protocol}//${location.host}${apiUrl}/system/diag?host=${host}&id=${id}`
+      document.body.appendChild(dom)
       dom.click()
+      document.body.removeChild(dom)
     },
     // 关闭弹窗后通知后端终止正在进行的任务
     [types.REMOVE_DIAGNOSTIC_TASK] ({ state }) {

@@ -613,7 +613,7 @@ export default class DataSourceBar extends Vue {
     top:200px;
   }
   &:hover {
-    border-color: @base-color;
+    border-left: 1px solid @base-color;
     .ky-drag-layout-bar {
       background: #e6f3fb;
       border: solid 1px #0988DE;
