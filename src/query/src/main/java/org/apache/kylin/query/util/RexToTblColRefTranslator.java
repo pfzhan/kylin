@@ -294,7 +294,7 @@ public class RexToTblColRefTranslator {
             registerCaseOpNew();
             registerReinterpret();
             registerCast();
-            registerDivInt();
+            registerDivDate();
             registerExtract();
             registerTimestampAdd();
             registerTimestampDiff();
@@ -382,7 +382,7 @@ public class RexToTblColRefTranslator {
 
         /**
          *  The RexCall of the expression `timestampdiff(second, time0, time1)` is:
-         *  `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         *  `/(Reinterpret(-($23, $22)), 1000)`.
          *  We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
          *  <br>
          *  <br>Following steps used for erasing redundant content of REINTERPRET:
@@ -405,7 +405,7 @@ public class RexToTblColRefTranslator {
 
         /**
          * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
-         * `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         * `/(Reinterpret(-($23, $22)), 1000)`.
          * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
          * <br>
          * <br>Following steps used for erasing redundant content of CAST:
@@ -442,7 +442,7 @@ public class RexToTblColRefTranslator {
 
         /**
          * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
-         * `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         * `/(Reinterpret(-($23, $22)), 1000)`.
          * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
          * <br>
          * <br>Following steps use for erasing redundant content of DIVIDE_INTEGER:
@@ -453,12 +453,12 @@ public class RexToTblColRefTranslator {
          * <br>In this example, the translation result of RexNode
          * `/INT(Reinterpret(-($23, $22)), 1000)` is `timestampdiff(second, time0, time1)`.
          */
-        private void registerDivInt() {
-            registerOp(SqlStdOperatorTable.DIVIDE_INTEGER, (RexToSqlNodeConverter converter, RexCall call) -> {
+        private void registerDivDate() {
+            registerOp(SqlStdOperatorTable.DIVIDE_DATE, (RexToSqlNodeConverter converter, RexCall call) -> {
                 List<RexNode> rexNodes = call.getOperands();
                 if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.REINTERPRET)) {
                     return converter.convertCall((RexCall) rexNodes.get(0));
-                } else if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.CAST)) {
+                } else if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.DIVIDE)) {
                     SqlNode node = converter.convertCall((RexCall) rexNodes.get(0));
                     RexNode secRex = rexNodes.get(1);
                     if (node.getKind() == SqlKind.TIMESTAMP_DIFF && secRex instanceof RexLiteral) {
@@ -481,7 +481,7 @@ public class RexToTblColRefTranslator {
 
         /**
          * The RexCall of the expression `timestampdiff(second, time0, time1)` is:
-         * `CAST(/INT(Reinterpret(-($23, $22)), 1000)):INTEGER`.
+         * `/(Reinterpret(-($23, $22)), 1000)`.
          * We need to re-translate this RexCall to a SqlCall of TIMESTAMPDIFF.
          * <br>
          * <br>Following steps use for translating TIMESTAMPDIFF RexCall to SqlCall:

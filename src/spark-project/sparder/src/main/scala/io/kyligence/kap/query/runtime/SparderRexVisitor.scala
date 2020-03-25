@@ -34,6 +34,7 @@ import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.{BasicSqlType, IntervalSqlType, SqlTypeFamily, SqlTypeName}
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
+import org.apache.calcite.sql.fun.SqlDateTimeDivisionOperator
 import org.apache.kylin.common.util.DateFormat
 import org.apache.spark.sql.KapFunctions._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -268,6 +269,13 @@ class SparderRexVisitor(val inputFieldNames: Array[String],
         assert(children.size == 2)
         val (left: Column, right: Any) = getOperands
         left mod right
+      case DIVIDE =>
+        assert(children.size == 2)
+        var divisionResult = k_lit(children.head).divide(k_lit(children.last))
+        if (op.isInstanceOf[SqlDateTimeDivisionOperator]) {
+          divisionResult = divisionResult.cast(LongType)
+        }
+        divisionResult
       case _ =>
 
         ExpressionConverter.convert(call.getType.getSqlTypeName, call.`type`, op.getKind, op.getName, children)
