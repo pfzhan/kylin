@@ -16,12 +16,12 @@
             <i :class="['el-icon-arrow-up', isShowFilters && 'reverse']" />
           </el-button>
         </div>
-        <div class="ky-no-br-space model-list-header">
+        <div class="ky-no-br-space model-list-header clearfix">
           <el-dropdown
             v-guide.addModelBtn
             split-button
             plain
-            class="ksd-mtb-10"
+            class="ksd-mtb-10 ksd-fleft"
             type="primary"
             size="medium"
             id="addModel"
