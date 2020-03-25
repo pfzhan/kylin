@@ -275,6 +275,17 @@ public class Message {
         return "The actual data type of computed column {0} is {1}, but defined as {2}. Please modify and try again.";
     }
 
+    public String getMODEL_METADATA_PACKAGE_INVALID() {
+        return "Parsing the file failed. Please check that the model package is complete.";
+    }
+
+    public String getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED() {
+        return "Model '%s' import failed: Computed column '%s' of this model has the same expression as computed column '%s' in model '%s'.";
+    }
+
+    public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
+        return "Model '%s' import failed: the fact table in the model already exists as a dimension table in other models.";
+    }
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "Illegal timeFilter: %s.";

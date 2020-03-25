@@ -45,6 +45,7 @@ import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -170,7 +171,7 @@ public class NSystemController extends NBasicController {
         String info = licenseInfoService.requestLicenseInfo();
         File licenseInfo = File.createTempFile("license", ".info");
         FileUtils.write(licenseInfo, info, Charset.defaultCharset());
-        setDownloadResponse(licenseInfo, "license.info", response);
+        setDownloadResponse(licenseInfo, "license.info", MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
     }
 
     @PostMapping(value = "/diag")
@@ -208,7 +209,7 @@ public class NSystemController extends NBasicController {
             @RequestParam(value = "id") String id, final HttpServletRequest request, final HttpServletResponse response)
             throws Exception {
         if (StringUtils.isEmpty(host)) {
-            setDownloadResponse(systemService.getDiagPackagePath(id), response);
+            setDownloadResponse(systemService.getDiagPackagePath(id), MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
         } else {
             String url = host + "/kylin/api/system/diag?id=" + id;
             downloadFromRemoteHost(request, url, response);

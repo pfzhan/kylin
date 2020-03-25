@@ -26,7 +26,6 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -39,7 +38,6 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
@@ -167,113 +165,5 @@ public abstract class MetadataStore {
                 throw new IllegalArgumentException("cannot not read file " + f, e);
             }
         });
-    }
-
-    public VerifyResult verify() {
-        VerifyResult verifyResult = new VerifyResult();
-
-        // The valid metadata image contains at least the following conditions：
-        //     1.may have one UUID file
-        //     2.may have one _global dir which may have one user_group file or one user dir or one acl dir
-        //     3.all other subdir as a project and must have only one project.json file
-
-        val allFiles = list(File.separator);
-        for (final String file : allFiles) {
-            //check uuid file
-            if (file.equals(ResourceStore.METASTORE_UUID_TAG)) {
-                verifyResult.existUUIDFile = true;
-                continue;
-            }
-
-            //check user_group file
-            if (file.equals(ResourceStore.USER_GROUP_ROOT)) {
-                verifyResult.existUserGroupFile = true;
-                continue;
-            }
-
-            //check user dir
-            if (file.startsWith(ResourceStore.USER_ROOT)) {
-                verifyResult.existUserDir = true;
-                continue;
-            }
-
-            //check acl dir
-            if (file.startsWith(ResourceStore.ACL_ROOT)) {
-                verifyResult.existACLDir = true;
-                continue;
-            }
-
-            if (file.startsWith(ResourceStore.METASTORE_IMAGE)) {
-                verifyResult.existImageFile = true;
-                continue;
-            }
-
-            if (file.startsWith(ResourceStore.COMPRESSED_FILE)) {
-                verifyResult.existCompressedFile = true;
-                continue;
-            }
-
-            //check illegal file which locates in metadata dir
-            if (File.separator.equals(Paths.get(file).toFile().getParent())) {
-                verifyResult.illegalFiles.add(file);
-                continue;
-            }
-
-            //check project dir
-            final String project = Paths.get(file).getName(0).toString();
-            if (Paths.get(ResourceStore.GLOBAL_PROJECT).getName(0).toString().equals(project)) {
-                continue;
-            }
-            if (!allFiles.contains(Paths.get(File.separator + "_global", "project", project + ".json").toString())) {
-                verifyResult.illegalProjects.add(project);
-                verifyResult.illegalFiles.add(file);
-            }
-        }
-
-        return verifyResult;
-
-    }
-
-    public class VerifyResult {
-        @VisibleForTesting
-        boolean existUUIDFile = false;
-        boolean existImageFile = false;
-        boolean existACLDir = false;
-        boolean existUserDir = false;
-        boolean existUserGroupFile = false;
-        boolean existCompressedFile = false;
-        Set<String> illegalProjects = Sets.newHashSet();
-        Set<String> illegalFiles = Sets.newHashSet();
-
-        public boolean isQualified() {
-            return illegalProjects.isEmpty() && illegalFiles.isEmpty();
-        }
-
-        public String getResultMessage() {
-            StringBuilder resultMessage = new StringBuilder();
-
-            resultMessage.append("the uuid file exists : " + existUUIDFile + "\n");
-            resultMessage.append("the image file exists : " + existImageFile + "\n");
-            resultMessage.append("the user_group file exists : " + existUserGroupFile + "\n");
-            resultMessage.append("the user dir exist : " + existUserDir + "\n");
-            resultMessage.append("the acl dir exist : " + existACLDir + "\n");
-
-            if (!illegalProjects.isEmpty()) {
-                resultMessage.append("illegal projects : \n");
-                for (String illegalProject : illegalProjects) {
-                    resultMessage.append("\t" + illegalProject + "\n");
-                }
-            }
-
-            if (!illegalFiles.isEmpty()) {
-                resultMessage.append("illegal files : \n");
-                for (String illegalFile : illegalFiles) {
-                    resultMessage.append("\t" + illegalFile + "\n");
-                }
-            }
-
-            return resultMessage.toString();
-        }
-
     }
 }

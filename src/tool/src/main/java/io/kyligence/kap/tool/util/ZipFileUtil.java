@@ -70,8 +70,8 @@ public class ZipFileUtil {
         }
     }
 
-    private static boolean validateZipFilename(String filename) {
-        return !StringUtils.isEmpty(filename) && filename.trim().toLowerCase().endsWith(".zip");
+    public static boolean validateZipFilename(String filename) {
+        return StringUtils.isNotBlank(filename) && filename.trim().toLowerCase().endsWith(".zip");
     }
 
     private static String normDir(String dirName) {

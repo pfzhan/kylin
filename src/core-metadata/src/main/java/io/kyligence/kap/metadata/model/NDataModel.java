@@ -926,8 +926,8 @@ public class NDataModel extends RootPersistentEntity {
         checkSingleIncrementingLoadingTable();
         setDependencies(calcDependencies());
 
-        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject())
-                .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject());
+        if (Objects.nonNull(projectInstance) && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             if (isIncrementBuildOnExpertMode()) {
                 val incrementLookupTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
                         .flatMap(model -> model.getJoinTables().stream()

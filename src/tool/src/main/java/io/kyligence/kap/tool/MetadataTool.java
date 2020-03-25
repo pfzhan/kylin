@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.MetadataChecker;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
@@ -362,8 +363,9 @@ public class MetadataTool extends ExecutableApplication {
 
         val restoreResourceStore = ResourceStore.getKylinMetaStore(restoreConfig);
         val restoreMetadataStore = restoreResourceStore.getMetadataStore();
+        MetadataChecker metadataChecker = new MetadataChecker(restoreMetadataStore);
 
-        val verifyResult = restoreMetadataStore.verify();
+        val verifyResult = metadataChecker.verify();
         if (!verifyResult.isQualified()) {
             throw new RuntimeException(verifyResult.getResultMessage() + "\n the metadata dir is not qualified");
         }

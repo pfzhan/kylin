@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.MessageDigest;
 
 public enum HashFunction {
@@ -45,7 +47,16 @@ public enum HashFunction {
     }
 
     public byte[] checksum(File input) {
-        try (FileInputStream in = new FileInputStream(input)) {
+        try (FileInputStream inputStream = new FileInputStream(input)) {
+            return checksum(inputStream);
+        } catch (Exception e) {
+            logger.error("Failed to checksum and return null: input={}", input.getAbsolutePath(), e);
+        }
+        return new byte[]{0x01, 0x01, 0x01};
+    }
+
+    public byte[] checksum(InputStream in) throws IOException {
+        try {
             MessageDigest digester = MessageDigest.getInstance(this.getName());
             byte[] block = new byte[4096];
             int length;
@@ -55,9 +66,9 @@ public enum HashFunction {
 
             return digester.digest();
         } catch (Exception e) {
-            logger.error("Failed to checksum and return null: input={}", input.getAbsolutePath(), e);
+            logger.error("Failed to checksum and return null.", e);
         }
-
         return new byte[]{0x01, 0x01, 0x01};
     }
+
 }

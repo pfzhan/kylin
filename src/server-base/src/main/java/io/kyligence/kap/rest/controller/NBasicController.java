@@ -207,23 +207,30 @@ public class NBasicController {
         }
     }
 
-    protected void setDownloadResponse(File file, String fileName, final HttpServletResponse response) {
-        try (InputStream fileInputStream = new FileInputStream(file);
-                OutputStream output = response.getOutputStream()) {
+    protected void setDownloadResponse(File file, String fileName, String contentType, final HttpServletResponse response) {
+        try(FileInputStream fileInputStream = new FileInputStream(file)) {
+            setDownloadResponse(fileInputStream, fileName, contentType, response);
+            response.setContentLength((int) file.length());
+        } catch (IOException e) {
+            throw new KylinException("KE-1011", e);
+        }
+    }
+
+    protected void setDownloadResponse(InputStream inputStream, String fileName, String contentType, final HttpServletResponse response) {
+        try (OutputStream output = response.getOutputStream()) {
             response.reset();
-            response.setContentType("application/octet-stream");
-            response.setContentLength((int) (file.length()));
+            response.setContentType(contentType);
             response.setHeader(CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
-            IOUtils.copyLarge(fileInputStream, output);
+            IOUtils.copyLarge(inputStream, output);
             output.flush();
         } catch (IOException e) {
             throw new KylinException("KE-1011", e);
         }
     }
 
-    protected void setDownloadResponse(String downloadFile, final HttpServletResponse response) {
+    protected void setDownloadResponse(String downloadFile, String contentType, final HttpServletResponse response) {
         File file = new File(downloadFile);
-        setDownloadResponse(file, file.getName(), response);
+        setDownloadResponse(file, file.getName(), contentType, response);
     }
 
     public boolean isAdmin() {

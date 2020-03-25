@@ -283,6 +283,18 @@ public class CnMessage extends Message {
         return "可计算列 {0} 定义的数据类型 {2} 与实际类型{1} 不符，请修改后进行重试";
     }
 
+    public String getMODEL_METADATA_PACKAGE_INVALID() {
+        return "解析失败，请检查模型数据包是否完整。";
+    }
+
+    public String getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED() {
+        return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列 '%s' 表达式相同。";
+    }
+
+    public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
+        return "模型 '%s' 导入失败：模型中的事实表在其他模型中已经作为维度表存在。";
+    }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "非法时间条件: %s";
