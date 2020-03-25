@@ -166,6 +166,10 @@ public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTes
 
     @Test
     public void testSparkExecutorHdfsLogAppender() throws InterruptedException, IOException {
+        if (!"true".equals(System.getProperty("runDailyUT"))) {
+            return;
+        }
+
         final String mainFolder = temporaryFolder.getRoot().getAbsolutePath() + "/" + testName.getMethodName();
 
         SparkExecutorHdfsLogAppender hdfsLogAppender = new SparkExecutorHdfsLogAppender();
@@ -184,6 +188,10 @@ public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTes
 
     @Test
     public void testErrorSparkExecutorHdfsLogAppender() throws InterruptedException, IOException {
+        if (!"true".equals(System.getProperty("runDailyUT"))) {
+            return;
+        }
+
         final String mainFolder = temporaryFolder.getRoot().getAbsolutePath() + "/" + testName.getMethodName();
 
         TestErrorSparkExecutorHdfsLogAppender hdfsLogAppender = new TestErrorSparkExecutorHdfsLogAppender();
