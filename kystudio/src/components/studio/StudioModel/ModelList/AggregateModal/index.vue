@@ -4,7 +4,7 @@
       <div class="el-dialog__title ksd-mb-10">{{$t(modalTitle)}}
       </div>
       <!-- <div class="loading" v-if="isLoading" v-loading="isLoading"></div> -->
-      <div v-if="model" class="ksd-mb-70">
+      <div v-if="model" class="ksd-pb-100">
         <!-- 聚合组按钮 -->
         <div v-loading="calcLoading || isSubmit"
               element-loading-text=" "
