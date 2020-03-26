@@ -426,6 +426,7 @@ export default class ModelSegment extends Vue {
   background-color: @fff;
   padding: 10px;
   border: 1px solid @line-border-color4;
+  margin: 15px;
   .segment-actions {
     margin-bottom: 10px;
     .el-button .el-icon-ksd-what {

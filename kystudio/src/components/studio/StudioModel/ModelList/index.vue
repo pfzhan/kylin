@@ -107,7 +107,6 @@
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
                      ref="segmentComp"
-                     class="ksd-mrl-15 ksd-mt-15"
                      :model="props.row"
                      :isShowSegmentActions="datasourceActions.includes('segmentActions')"
                      v-if="props.row.tabTypes === 'first'"
