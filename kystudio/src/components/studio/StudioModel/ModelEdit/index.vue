@@ -369,7 +369,7 @@
     </transition> 
    
      
-    <PartitionModal/>
+    <ModelSaveConfig/>
     <DimensionModal/>
     <BatchMeasureModal/>
     <TableJoinModal/>
@@ -500,7 +500,7 @@ import BatchMeasureModal from '../BatchMeasureModal/index.vue'
 import AddMeasure from '../AddMeasure/index.vue'
 import TableJoinModal from '../TableJoinModal/index.vue'
 import SingleDimensionModal from '../SingleDimensionModal/addDimension.vue'
-import PartitionModal from '../ModelList/ModelPartitionModal/index.vue'
+import ModelSaveConfig from '../ModelList/ModelSaveConfig/index.vue'
 import DragBar from './dragbar.vue'
 import AddCC from '../AddCCModal/addcc.vue'
 import ShowCC from '../ShowCC/showcc.vue'
@@ -551,8 +551,8 @@ import { NamedRegex } from '../../../../config'
     ...mapActions('SingleDimensionModal', {
       showSingleDimensionDialog: 'CALL_MODAL'
     }),
-    ...mapActions('ModelPartitionModal', {
-      showPartitionDialog: 'CALL_MODAL'
+    ...mapActions('ModelSaveConfig', {
+      showSaveConfigDialog: 'CALL_MODAL'
     }),
     ...mapMutations({
       toggleFullScreen: 'TOGGLE_SCREEN'
@@ -572,7 +572,7 @@ import { NamedRegex } from '../../../../config'
     BatchMeasureModal,
     TableJoinModal,
     SingleDimensionModal,
-    PartitionModal,
+    ModelSaveConfig,
     AddCC,
     ShowCC
   },
@@ -1488,7 +1488,7 @@ export default class ModelEdit extends Vue {
   addPartitionFunc (data) {
     data.available_indexes_count = this.modelData.available_indexes_count
     if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
-      this.showPartitionDialog({
+      this.showSaveConfigDialog({
         modelDesc: data,
         modelInstance: this.modelInstance,
         mode: 'saveModel'

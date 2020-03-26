@@ -213,7 +213,8 @@
         fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE',
         fetchPartitionFormat: 'FETCH_PARTITION_FORMAT',
         updataModel: 'UPDATE_MODEL',
-        autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
+        autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
+        setModelPartition: 'MODEL_PARTITION_SET'
       }),
       ...mapMutations('ModelBuildModal', {
         setModal: types.SET_MODAL,
@@ -625,10 +626,7 @@
           if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
             await kapConfirm(this.$t('changeBuildTypeTipsConfirm'), '', this.$t('kylinLang.common.tip'))
             this.btnLoading = true
-            const modelClone = objectClone(this.modelDesc)
-            modelClone.partition_desc = null
-            modelClone.project = this.currentSelectedProject
-            await this.updataModel(modelClone)
+            await this.setModelPartition({modelId: this.modelDesc.uuid, project: this.currentSelectedProject, partition_desc: null})
           }
           await this.buildFullLoadModel({
             model_id: this.modelDesc.uuid,

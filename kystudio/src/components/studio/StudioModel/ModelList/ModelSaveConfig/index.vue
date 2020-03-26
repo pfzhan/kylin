@@ -1,16 +1,16 @@
 <template>
-  <el-dialog 
+  <el-dialog
     :title="partitionTitle"
     width="560px"
     append-to-body
     limited-area
-    :visible="isShow" 
-    class="model-partition-dialog" 
-    @close="isShow && handleClose(false)" 
-    :close-on-press-escape="false" 
+    :visible="isShow"
+    class="model-partition-dialog"
+    @close="isShow && handleClose(false)"
+    :close-on-press-escape="false"
     :close-on-click-modal="false">
     <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
-    <div class="partition-set ksd-title-label ksd-mb-10" v-if="mode !== 'saveModel'">
+    <!-- <div class="partition-set ksd-title-label ksd-mb-10" v-if="mode !== 'saveModel'">
       <span>*</span>{{$t('modelPartitionSet')}}
     </div>
     <el-form v-if="mode !== 'saveModel'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
@@ -40,9 +40,9 @@
         <el-row :gutter="5">
           <el-col :span="12">
             <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
-              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
+              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option> -->
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
-            </el-select>
+            <!-- </el-select>
           </el-col>
           <el-col :span="12">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
@@ -61,7 +61,7 @@
         </el-row>
         <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
       </el-form-item>
-    </el-form>
+    </el-form> -->
     <template v-if="mode === 'saveModel'">
       <!-- <div class="divider"></div> -->
       <div class="ksd-title-label ksd-mb-10">
@@ -105,7 +105,7 @@ import NModel from '../../ModelEdit/model.js'
 import { isDatePartitionType, objectClone, kapConfirm, handleWaiting } from '../../../../../util'
 import { handleSuccess, transToUTCMs } from 'util/business'
 import { handleSuccessAsync, handleError } from 'util/index'
-vuex.registerModule(['modals', 'ModelPartitionModal'], store)
+vuex.registerModule(['modals', 'ModelSaveConfig'], store)
 
 @Component({
   computed: {
@@ -113,7 +113,7 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
       'currentSelectedProject'
     ]),
     // Store数据注入
-    ...mapState('ModelPartitionModal', {
+    ...mapState('ModelSaveConfig', {
       isShow: state => state.isShow,
       mode: state => state.form.mode,
       modelDesc: state => state.form.modelDesc,
@@ -123,7 +123,7 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
   },
   methods: {
     // Store方法注入
-    ...mapMutations('ModelPartitionModal', {
+    ...mapMutations('ModelSaveConfig', {
       setModal: types.SET_MODAL,
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,

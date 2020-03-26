@@ -162,7 +162,7 @@ export default {
     return Vue.resource(apiUrl + `models/${para.modelId}/segment/validation{?ids}`).get({project: para.projectName, ids: para.ids})
   },
   setPartition: (para) => {
-    return Vue.resource(apiUrl + 'models/partition_desc').save(para)
+    return Vue.resource(apiUrl + `models/${para.modelId}/partition`).update({project: para.project, partition_desc: para.partition_desc})
   },
   fetchAggregateGroups: (project, model) => {
     return Vue.resource(apiUrl + 'index_plans/rule').get({ project, model })

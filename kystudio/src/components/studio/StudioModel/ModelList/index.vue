@@ -326,7 +326,7 @@
     <!-- 模型构建 -->
     <ModelBuildModal @refreshModelList="loadModelsList" ref="modelBuildComp"/>
     <!--  数据分区设置 -->
-    <ModelPartitionModal/>
+    <ModelPartition/>
     <!-- 模型重命名 -->
     <ModelRenameModal/>
     <!-- 模型克隆 -->
@@ -363,7 +363,7 @@ import ModelCloneModal from './ModelCloneModal/clone.vue'
 import ModelAddModal from './ModelAddModal/addmodel.vue'
 import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ModelBuildModal from './ModelBuildModal/build.vue'
-import ModelPartitionModal from './ModelPartitionModal/index.vue'
+import ModelPartition from './ModelPartition/index.vue'
 import ModelJson from './ModelJson/modelJson.vue'
 import ModelSql from './ModelSql/ModelSql.vue'
 import ModelRecommendModal from './ModelRecommendModal/index.vue'
@@ -450,7 +450,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     ...mapActions('ModelBuildModal', {
       callModelBuildDialog: 'CALL_MODAL'
     }),
-    ...mapActions('ModelPartitionModal', {
+    ...mapActions('ModelPartition', {
       callModelPartitionDialog: 'CALL_MODAL'
     }),
     ...mapActions('ModelRecommendModal', {
@@ -480,7 +480,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     ModelAddModal,
     ModelCheckDataModal,
     ModelBuildModal,
-    ModelPartitionModal,
+    ModelPartition,
     ModelJson,
     ModelSql,
     ModelRecommendModal,
@@ -700,11 +700,6 @@ export default class ModelList extends Vue {
             let cloneModelDesc = objectClone(this.modelData)
             this.callModelPartitionDialog({
               modelDesc: cloneModelDesc
-            }).then((res) => {
-              if (res.isSubmit) {
-                modelDesc.project = this.currentSelectedProject
-                this.handleSaveModel(cloneModelDesc)
-              }
             })
           }
         })
