@@ -652,6 +652,7 @@ public class NModelController extends NBasicController {
             @RequestBody IncrementBuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         validateDataRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        modelService.validateCCType(modelId, buildSegmentsRequest.getProject());
         JobInfoResponse response = modelService.incrementBuildSegmentsManually(buildSegmentsRequest.getProject(),
                 modelId, buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd(),
                 buildSegmentsRequest.getPartitionDesc(), buildSegmentsRequest.getSegmentHoles());
