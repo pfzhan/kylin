@@ -35,6 +35,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -127,6 +128,36 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testTrashRecord() throws Exception {
+        val config = getTestConfig();
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        config.setProperty("kylin.storage.time-machine-enabled", "true");
+        val cleaner = new StorageCleaner();
+        val workingDir = config.getHdfsWorkingDirectory();
+        val beforeProtectionTime = System.currentTimeMillis() - config.getStorageResourceSurvivalTimeThreshold();
+        val keys = cleaner.getTrashRecord().keySet().stream().collect(Collectors.toSet());
+
+        keys.stream().forEach(k -> {
+            cleaner.getTrashRecord().remove(k);
+            // default/dict/global_dict/DEFAULT.TEST_KYLIN_FACT -> 1584689333538
+            if (k.equals("default/dict/global_dict/DEFAULT.TEST_KYLIN_FACT/invalid")) {
+                cleaner.getTrashRecord().put(new Path(workingDir, k).toString(), String.valueOf(beforeProtectionTime));
+            } else {
+                cleaner.getTrashRecord().put(new Path(workingDir, k).toString(),
+                        String.valueOf(System.currentTimeMillis()));
+            }
+        });
+        NTableMetadataManager.getInstance(config, "default").removeSourceTable("DEFAULT.TEST_KYLIN_FACT");
+        for (NDataflow dataflow : NDataflowManager.getInstance(config, "default").listAllDataflows()) {
+            NDataflowManager.getInstance(config, "default").dropDataflow(dataflow.getId());
+        }
+        cleaner.execute();
+        val files = FileUtils.listFiles(new File(config.getHdfsWorkingDirectory().replace("file://", "") + "/default"
+                + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT), null, true);
+        Assert.assertEquals(2, files.size());
+    }
+
+    @Test
     public void testCleanup_WithRunningJobs() throws Exception {
         val jobMgr = NExecutableManager.getInstance(getTestConfig(), "default");
         val job1 = new DefaultChainedExecutable();
@@ -162,8 +193,9 @@ public class StorageCleanerTest extends NLocalFileMetadataTestCase {
         }
 
         cleaner.execute();
-        Collection<File> files = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")
-                + "/default" + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT), null, true);
+        Collection<File> files = FileUtils
+                .listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "") + "/default"
+                        + HadoopUtil.GLOBAL_DICT_STORAGE_ROOT), null, true);
         Assert.assertEquals(0, files.size());
 
         files = FileUtils.listFiles(new File(getTestConfig().getHdfsWorkingDirectory().replace("file://", "")

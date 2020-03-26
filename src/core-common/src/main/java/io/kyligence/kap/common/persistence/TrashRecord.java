@@ -21,49 +21,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.metadata;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.persistence.AuditLog;
-import io.kyligence.kap.common.persistence.UnitMessages;
-import org.apache.kylin.common.persistence.ResourceStore;
+package io.kyligence.kap.common.persistence;
 
-import java.io.IOException;
-import java.util.List;
+import java.io.Serializable;
+import java.util.Map;
 
-public class NoopAuditLogStore implements AuditLogStore {
-    @Override
-    public void save(UnitMessages unitMessages) {
-        // just implement it
-    }
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-    @Override
-    public List<AuditLog> fetch(long currentId, long size) {
-        return Lists.newArrayList();
-    }
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    @Override
-    public long getMaxId() {
-        return 0;
-    }
-
-    @Override
-    public long getMinId() {
-        return 0;
-    }
-
-    @Override
-    public void restore(ResourceStore store, long currentId) {
-        // just implement it
-    }
-
-    @Override
-    public void rotate() {
-        // just implement it
-    }
-
-    @Override
-    public void close() throws IOException {
-        // just implement it
-    }
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class TrashRecord implements Serializable {
+    @JsonProperty("trash_record")
+    private Map<String, String> trashRecord;
 }

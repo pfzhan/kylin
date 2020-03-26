@@ -1835,6 +1835,15 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.job.notification-on-job-error", FALSE));
     }
 
+    public Long getStorageResourceSurvivalTimeThreshold() {
+        return TimeUtil.timeStringAs(this.getOptional("kylin.storage.resource-survival-time-threshold", "7d"),
+            TimeUnit.MILLISECONDS);
+    }
+
+    public Boolean getTimeMachineEnabled() {
+        return Boolean.valueOf(this.getOptional("kylin.storage.time-machine-enabled", "false"));
+    }
+
     public boolean getJobSourceRecordsChangeNotificationEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.job.notification-on-source-records-change", FALSE));
     }

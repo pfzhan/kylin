@@ -79,7 +79,6 @@ import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Getter;
 import lombok.val;
-
 /**
  * A general purpose resource store to persist small metadata, like JSON files.
  *
@@ -115,6 +114,7 @@ public abstract class ResourceStore implements AutoCloseable {
 
     public static final String METASTORE_IMAGE = "/_image";
     public static final String METASTORE_UUID_TAG = "/UUID";
+    public static final String METASTORE_TRASH_RECORD = GLOBAL_PROJECT + "/trash_record";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
     public static final String COMPRESSED_FILE = "/metadata.zip";

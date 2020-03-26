@@ -22,7 +22,9 @@
       "timeRange": null,
       "dictionaries": {
       },
-      "snapshots": null,
+      "snapshots" : {
+        "DEFAULT.TEST_KYLIN_FACT" : "table_index/table_snapshot/DEFAULT.TEST_KYLIN_FACT/4e64c021-066c-4d09-ab0c-c5e6a953ccb6"
+      },
       "column_stats": null,
       "last_build_time": 0,
       "last_build_job_id": 0,

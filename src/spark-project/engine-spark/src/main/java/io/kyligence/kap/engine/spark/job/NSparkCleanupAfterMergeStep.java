@@ -38,6 +38,7 @@ import org.apache.kylin.job.execution.ExecutableContext;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import lombok.val;
 
 public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
     public NSparkCleanupAfterMergeStep() {
@@ -51,12 +52,15 @@ public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(name);
 
+        val timeMachineEnabled = KylinConfig.getInstanceFromEnv().getTimeMachineEnabled();
         for (String segmentId : segmentIds) {
             String path = dataflow.getSegmentHdfsPath(segmentId);
-            try {
-                HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
-            } catch (IOException e) {
-                throw new ExecuteException("Can not delete segment: " + segmentId + ", in dataflow: " + name);
+            if (!timeMachineEnabled) {
+                try {
+                    HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
+                } catch (IOException e) {
+                    throw new ExecuteException("Can not delete segment: " + segmentId + ", in dataflow: " + name);
+                }
             }
         }
 

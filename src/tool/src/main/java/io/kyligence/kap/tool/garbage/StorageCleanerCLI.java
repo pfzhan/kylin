@@ -30,8 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 public class StorageCleanerCLI {
 
     public static void main(String[] args) {
-        val storageCleaner = new StorageCleaner();
         try {
+            val storageCleaner = new StorageCleaner();
             log.info("Start cleanup HDFS");
             storageCleaner.execute();
         } catch (Exception e) {

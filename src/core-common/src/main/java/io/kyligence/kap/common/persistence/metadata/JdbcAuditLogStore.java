@@ -84,6 +84,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
                     AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
             + " from %s where id > %d and id <= %d order by id";
     static final String SELECT_MAX_ID_SQL = "select max(id) from %s";
+    static final String SELECT_MIN_ID_SQL = "select min(id) from %s";
     static final String DELETE_ID_LESSTHAN_SQL = "delete from %s where id < ?";
     static final String SELECT_TS_RANGE = "select "
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
@@ -139,7 +140,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
                         }
                     } else if (e instanceof ResourceDeleteEvent) {
                         ResourceDeleteEvent deleteEvent = (ResourceDeleteEvent) e;
-                        return new Object[] { deleteEvent.getResPath(), null, null, null, unitId, operator };
+                        return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null, unitId, operator };
                     }
                     return null;
                 }).filter(Objects::nonNull).collect(Collectors.toList())));
@@ -173,6 +174,13 @@ public class JdbcAuditLogStore implements AuditLogStore {
         return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MAX_ID_SQL, table), Long.class))
                 .orElse(0L);
     }
+
+    @Override
+    public long getMinId() {
+        return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MIN_ID_SQL, table), Long.class))
+            .orElse(0L);
+    }
+
 
     @Override
     public void restore(ResourceStore store, long currentId) {

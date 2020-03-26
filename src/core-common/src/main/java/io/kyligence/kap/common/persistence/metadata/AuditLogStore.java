@@ -38,6 +38,8 @@ public interface AuditLogStore extends Closeable {
 
     long getMaxId();
 
+    long getMinId();
+
     void restore(ResourceStore store, long currentId);
 
     void rotate();

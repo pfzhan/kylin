@@ -48,9 +48,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -59,7 +61,10 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.TrashRecord;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -88,20 +93,32 @@ public class StorageCleaner {
     public static final String ANSI_RESET = "\u001B[0m";
 
     private final boolean cleanup;
+    private boolean timeMachineEnabled;
     private final Collection<String> projectNames;
     private long duration;
+    private KylinConfig kylinConfig;
 
-    public StorageCleaner() {
+    @Getter
+    private Map<String, String> trashRecord;
+    private ResourceStore resourceStore;
+
+    public StorageCleaner() throws Exception {
         this(true);
     }
 
-    public StorageCleaner(boolean cleanup) {
+    public StorageCleaner(boolean cleanup) throws Exception {
         this(cleanup, Collections.emptyList());
     }
 
-    public StorageCleaner(boolean cleanup, Collection<String> projects) {
+    public StorageCleaner(boolean cleanup, Collection<String> projects) throws Exception {
         this.cleanup = cleanup;
         this.projectNames = projects;
+        this.kylinConfig = KylinConfig.getInstanceFromEnv();
+        this.timeMachineEnabled = kylinConfig.getTimeMachineEnabled();
+        this.resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        val trashRecordResource = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
+        this.trashRecord = trashRecordResource == null ? Maps.newHashMap()
+                : JsonUtil.readValue(trashRecordResource.getByteSource().read(), TrashRecord.class).getTrashRecord();
     }
 
     @Getter
@@ -113,8 +130,9 @@ public class StorageCleaner {
         long start = System.currentTimeMillis();
         val config = KylinConfig.getInstanceFromEnv();
         long startTime = System.currentTimeMillis();
-        val projects = NProjectManager.getInstance(config).listAllProjects()
-                .stream().filter(projectInstance -> projectNames.isEmpty() || projectNames.contains(projectInstance.getName()))
+
+        val projects = NProjectManager.getInstance(config).listAllProjects().stream()
+                .filter(projectInstance -> projectNames.isEmpty() || projectNames.contains(projectInstance.getName()))
                 .collect(Collectors.toList());
 
         for (ProjectInstance project : projects) {
@@ -139,10 +157,16 @@ public class StorageCleaner {
             return null;
         }, true);
 
-        long protectionTime = startTime - config.getCuboidLayoutSurvivalTimeThreshold();
+        long configSurvivalTimeThreshold = timeMachineEnabled ? kylinConfig.getStorageResourceSurvivalTimeThreshold()
+                : config.getCuboidLayoutSurvivalTimeThreshold();
+        long protectionTime = startTime - configSurvivalTimeThreshold;
         for (StorageItem item : allFileSystems) {
             for (FileTreeNode node : item.getAllNodes()) {
                 val path = new Path(item.getPath(), node.getRelativePath());
+                if (timeMachineEnabled && trashRecord.get(path.toString()) == null) {
+                    trashRecord.put(path.toString(), String.valueOf(startTime));
+                    continue;
+                }
                 try {
                     addItem(item.getFs(), path, protectionTime);
                 } catch (FileNotFoundException e) {
@@ -175,12 +199,13 @@ public class StorageCleaner {
 
     }
 
-    public void collectDeletedProject() {
+    public void collectDeletedProject() throws IOException {
         val config = KylinConfig.getInstanceFromEnv();
         val projects = NProjectManager.getInstance(config).listAllProjects().stream().map(ProjectInstance::getName)
                 .collect(Collectors.toSet());
         for (StorageItem item : allFileSystems) {
             item.getProjectNodes().removeIf(node -> projects.contains(node.getName()));
+            log.info(String.valueOf(item.projectNodes.size()));
         }
     }
 
@@ -190,15 +215,15 @@ public class StorageCleaner {
         projectCleaner.execute();
     }
 
-    public boolean cleanup() {
+    public boolean cleanup() throws Exception {
         boolean success = true;
         if (cleanup) {
             Stats stats = new Stats() {
                 @Override
                 public void heartBeat() {
                     double percent = 100D * (successItems.size() + errorItems.size()) / allItems.size();
-                    String logInfo = String.format(
-                            "Progress: %2.1f%%, %d resource, %d error", percent, allItems.size(), errorItems.size());
+                    String logInfo = String.format("Progress: %2.1f%%, %d resource, %d error", percent, allItems.size(),
+                            errorItems.size());
                     System.out.println(logInfo);
                 }
             };
@@ -208,12 +233,25 @@ public class StorageCleaner {
                 try {
                     stats.onItemStart(item);
                     item.getFs().delete(new Path(item.getPath()), true);
+                    if (timeMachineEnabled) {
+                        trashRecord.remove(item.getPath());
+                    }
                     stats.onItemSuccess(item);
                 } catch (IOException e) {
                     log.error("delete file " + item.getPath() + " failed", e);
                     stats.onItemError(item);
                     success = false;
                 }
+            }
+            if (timeMachineEnabled) {
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    ResourceStore threadViewRS = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    RawResource raw = resourceStore.getResource(ResourceStore.METASTORE_TRASH_RECORD);
+                    long mvcc = raw == null ? -1 : raw.getMvcc();
+                    threadViewRS.checkAndPutResource(ResourceStore.METASTORE_TRASH_RECORD,
+                            ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new TrashRecord(trashRecord))), mvcc);
+                    return 0;
+                }, UnitOfWork.GLOBAL_UNIT, 1);
             }
         }
         return success;
@@ -290,9 +328,9 @@ public class StorageCleaner {
                     .map(RootPersistentEntity::getId).collect(Collectors.toSet());
             dataflowManager.listAllDataflows().forEach(dataflow -> dataflow.getSegments().stream() //
                     .flatMap(segment -> segment.getLayoutsMap().values().stream()) //
-                    .map(StorageCleaner.this::getDataLayoutDir)
-                    .forEach(activeIndexDataPath::add));
-            activeIndexDataPath.forEach(path -> activeFastBitmapIndexDataPath.add(path + HadoopUtil.FAST_BITMAP_SUFFIX));
+                    .map(StorageCleaner.this::getDataLayoutDir).forEach(activeIndexDataPath::add));
+            activeIndexDataPath
+                    .forEach(path -> activeFastBitmapIndexDataPath.add(path + HadoopUtil.FAST_BITMAP_SUFFIX));
             val activeSegmentPath = activeIndexDataPath.stream().map(s -> new File(s).getParent())
                     .collect(Collectors.toSet());
             for (StorageCleaner.StorageItem item : allFileSystems) {
@@ -300,8 +338,8 @@ public class StorageCleaner {
                 item.getProject(project).getSegments()
                         .removeIf(node -> activeSegmentPath.contains(node.getRelativePath()));
                 item.getProject(project).getLayouts()
-                        .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath()) ||
-                                activeFastBitmapIndexDataPath.contains(node.getRelativePath()));
+                        .removeIf(node -> activeIndexDataPath.contains(node.getRelativePath())
+                                || activeFastBitmapIndexDataPath.contains(node.getRelativePath()));
             }
         }
 
@@ -346,9 +384,13 @@ public class StorageCleaner {
         if (status.getPath().getName().startsWith(".")) {
             return;
         }
-        if (status.getModificationTime() > protectionTime) {
+        if (timeMachineEnabled && Long.parseLong(trashRecord.get(itemPath.toString())) > protectionTime) {
             return;
         }
+        if (!timeMachineEnabled && status.getModificationTime() > protectionTime) {
+            return;
+        }
+
         outdatedItems.add(new StorageCleaner.StorageItem(fs, status.getPath().toString()));
     }
 
@@ -502,11 +544,10 @@ public class StorageCleaner {
 
     public static class Stats {
 
-        public final  Set<StorageItem> allItems = Collections.synchronizedSet(new HashSet<>());
-        public final  Set<StorageItem> startItem = Collections.synchronizedSet(new HashSet<>());
-        public final  Set<StorageItem> successItems = Collections.synchronizedSet(new HashSet<>());
-        public final  Set<StorageItem> errorItems = Collections.synchronizedSet(new HashSet<>());
-
+        public final Set<StorageItem> allItems = Collections.synchronizedSet(new HashSet<>());
+        public final Set<StorageItem> startItem = Collections.synchronizedSet(new HashSet<>());
+        public final Set<StorageItem> successItems = Collections.synchronizedSet(new HashSet<>());
+        public final Set<StorageItem> errorItems = Collections.synchronizedSet(new HashSet<>());
 
         private void reset() {
             allItems.clear();
