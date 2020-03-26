@@ -92,6 +92,7 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     public RestTemplate restTemplate() {
         val restTemplate = new RestTemplate();
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+        restTemplate.setUriTemplateHandler(new ProxyUriTemplateHandler());
         return restTemplate;
     }
 
