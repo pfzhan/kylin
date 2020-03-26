@@ -153,7 +153,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          min-width="209px"
+          min-width="255px"
           prop="alias"
           :label="modelTableTitle">
           <template slot-scope="scope">
@@ -1210,7 +1210,8 @@ export default class ModelList extends Vue {
   .recommend-count {
     height: 18px;
     border-radius: 4px;
-    background-color: #E3F2FC;
+    background-color: @base-color-4;
+    color: white;
     padding: 1px 5px;
     line-height: 16px;
     font-weight: 500;
