@@ -73,7 +73,7 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
         //add illegal file,the verify result is not qualified
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalFile").toFile().createNewFile();
         val verifyResultWithIllegalFile = metadataChecker.verify();
-        Assertions.assertThat(verifyResultWithIllegalFile.illegalFiles).hasSize(1).contains("/IllegalFile");
+        Assertions.assertThat(verifyResultWithIllegalFile.getIllegalFiles()).hasSize(1).contains("/IllegalFile");
         assertFalse(verifyResultWithIllegalFile.isQualified());
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalFile").toFile().delete();
 
@@ -81,8 +81,8 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject").toFile().mkdir();
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject/test.json").toFile().createNewFile();
         val verifyResultWithIllegalProject = metadataChecker.verify();
-        Assertions.assertThat(verifyResultWithIllegalProject.illegalProjects).hasSize(1).contains("IllegalProject");
-        Assertions.assertThat(verifyResultWithIllegalProject.illegalFiles).hasSize(1)
+        Assertions.assertThat(verifyResultWithIllegalProject.getIllegalProjects()).hasSize(1).contains("IllegalProject");
+        Assertions.assertThat(verifyResultWithIllegalProject.getIllegalFiles()).hasSize(1)
                 .contains("/IllegalProject/test.json");
         assertFalse(verifyResultWithIllegalProject.isQualified());
         Paths.get(junitFolder.getAbsolutePath(), "/IllegalProject/test.json").toFile().delete();
@@ -92,8 +92,8 @@ public class MetadataStoreTest extends NLocalFileMetadataTestCase {
         Paths.get(junitFolder.getAbsolutePath(), "/legalProject").toFile().mkdir();
         Paths.get(junitFolder.getAbsolutePath(), "/_global/project/legalProject.json").toFile().createNewFile();
         val verifyResultWithLegalProject = metadataChecker.verify();
-        Assertions.assertThat(verifyResultWithLegalProject.illegalFiles).isEmpty();
-        Assertions.assertThat(verifyResultWithLegalProject.illegalProjects).isEmpty();
+        Assertions.assertThat(verifyResultWithLegalProject.getIllegalFiles()).isEmpty();
+        Assertions.assertThat(verifyResultWithLegalProject.getIllegalProjects()).isEmpty();
         assertTrue(verifyResultWithLegalProject.isQualified());
 
         //the metadata dir doesn't have uuid file

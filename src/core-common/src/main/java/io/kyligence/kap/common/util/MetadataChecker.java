@@ -56,8 +56,8 @@ public class MetadataChecker {
         boolean existModelDescFile = false;
         boolean existIndexPlanFile = false;
         boolean existTable = false;
-        public Set<String> illegalProjects = Sets.newHashSet();
-        public Set<String> illegalFiles = Sets.newHashSet();
+        private Set<String> illegalProjects = Sets.newHashSet();
+        private Set<String> illegalFiles = Sets.newHashSet();
 
         public boolean isQualified() {
             return illegalProjects.isEmpty() && illegalFiles.isEmpty();
