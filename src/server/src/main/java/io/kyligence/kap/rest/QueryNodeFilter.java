@@ -38,10 +38,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -70,6 +70,8 @@ public class QueryNodeFilter implements Filter {
 
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
+    private static Set<String> notRouteDeleteApiSet = Sets.newHashSet();
+
     static {
         // data source
         routeGetApiSet.add("/kylin/api/tables/reload_hive_table_name");
@@ -87,6 +89,8 @@ public class QueryNodeFilter implements Filter {
 
         //diag
         notRoutePostApiSet.add("/kylin/api/system/diag");
+        notRouteDeleteApiSet.add("/kylin/api/system/diag");
+
     }
 
     @Autowired
@@ -116,6 +120,11 @@ public class QueryNodeFilter implements Filter {
             }
             if (servletRequest.getMethod().equals("POST")
                     && notRoutePostApiSet.contains(servletRequest.getRequestURI())) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (servletRequest.getMethod().equals("DELETE")
+                    && notRouteDeleteApiSet.contains(servletRequest.getRequestURI())) {
                 chain.doFilter(request, response);
                 return;
             }
