@@ -23,7 +23,7 @@ function fetchKylinHadoopConf() {
 
     if [[ -d ${kylin_hadoop_conf_dir} ]]; then
         if [ -n "$FI_ENV_PLATFORM" ]; then
-            checkAndcopyFIHiveSite
+            checkAndCopyFIHiveSite
         fi
         return
     fi
@@ -36,7 +36,7 @@ function fetchKylinHadoopConf() {
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/hdfs-site.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/yarn-site.xml
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/mapred-site.xml
-        checkAndcopyFIHiveSite
+        checkAndCopyFIHiveSite
 
         # don't find topology.map in FI
         checkAndCopyFile $FI_ENV_PLATFORM/HDFS/hadoop/etc/hadoop/topology.py
@@ -91,13 +91,14 @@ function checkAndCopyFile() {
 }
 
 # KE-9142 FI hive-site.xml is lack of some configuration
-function checkAndcopyFIHiveSite() {
+function checkAndCopyFIHiveSite() {
 
     checkAndCopyFile $FI_ENV_PLATFORM/Hive/config/hive-site.xml
+    checkAndCopyFile $FI_ENV_PLATFORM/Hive/config/hivemetastore-site.xml
     hivesite_file=${kylin_hadoop_conf_dir}/hive-site.xml
-    hivemeta_file=$FI_ENV_PLATFORM/Hive/config/hivemetastore-site.xml
+    hivemeta_file=${kylin_hadoop_conf_dir}/hivemetastore-site.xml
 
-    command -v xmllint || echo "ERROR: Command 'xmllint' is not accessible. Please install xmllint."
+    command -v xmllint > /dev/null || echo "ERROR: Command 'xmllint' is not accessible. Please install xmllint."
     if [[ -f ${hivemeta_file} ]] && [[ -f ${hivesite_file} ]]; then
         formartXML $hivemeta_file
         formartXML $hivesite_file
