@@ -23,12 +23,15 @@
 package org.apache.spark.sql
 
 import java.io.File
+import java.net.URI
 import java.nio.file.Paths
 import java.sql.SQLException
 
 import io.kyligence.kap.metadata.project.NProjectManager
 import io.kyligence.kap.query.engine.QueryExec
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.security.UserGroupInformation
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.query.util.QueryUtil
 import org.apache.spark.internal.Logging
@@ -250,6 +253,16 @@ object KylinSession extends Logging {
         }
         sparkConf.set("spark.yarn.am.extraJavaOptions",
           s"$yarnAMJavaOptions $amKerberosConf")
+      }
+
+      val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", false)
+      val logDir = sparkConf.get("spark.eventLog.dir", "")
+      if (eventLogEnabled && !logDir.isEmpty) {
+        val logPath = new Path(new URI(logDir).getPath)
+        val fs = HadoopUtil.getWorkingFileSystem()
+        if (!fs.exists(logPath)) {
+          fs.mkdirs(logPath)
+        }
       }
 
       sparkConf

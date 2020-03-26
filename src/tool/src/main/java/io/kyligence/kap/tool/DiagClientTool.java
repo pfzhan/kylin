@@ -151,6 +151,76 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
         });
 
+        // export client
+        if (includeClient) {
+            executorService.execute(() -> {
+                logger.info("Start to extract client info.");
+                CommonInfoTool.exportClientInfo(exportDir);
+                DiagnosticFilesChecker.writeMsgToFile("CLIENT", System.currentTimeMillis() - start, recordTime);
+            });
+        }
+
+        // dump jstack
+        executorService.execute(() -> {
+            logger.info("Start to extract jstack info.");
+            JStackTool.extractJstack(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("JSTACK", System.currentTimeMillis() - start, recordTime);
+        });
+
+        exportFileInfo(includeConf, exportDir, startTime, endTime, start, recordTime);
+
+        exportInfluxDBMetrics(exportDir, startTime, endTime, start, recordTime);
+
+        exportSparkLog(exportDir, startTime, endTime, start, recordTime);
+
+        executorService.shutdown();
+        awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
+
+        // export logs
+        if (includeLog) {
+            long logStartTime = System.currentTimeMillis();
+            logger.info("Start to extract log files.");
+            KylinLogTool.extractKylinLog(exportDir, startTime, endTime);
+            KylinLogTool.extractOtherLogs(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
+        }
+
+        DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
+    }
+
+    private void exportSparkLog(File exportDir, long startTime, long endTime, long start, File recordTime){
+        // job spark log
+        executorService.execute(() -> {
+            logger.info("Start to extract spark logs.");
+            KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
+            DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
+        });
+
+        // sparder history rolling eventlog
+        executorService.execute(() -> {
+            logger.info("Start to extract sparder history logs.");
+            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(), getSparderAppId());
+            DiagnosticFilesChecker.writeMsgToFile("SPARDER_HISTORY", System.currentTimeMillis() - start, recordTime);
+        });
+    }
+
+    private void exportInfluxDBMetrics(File exportDir, long startTime, long endTime, long start, File recordTime){
+        // influxdb metrics
+        executorService.execute(() -> {
+            logger.info("Start to dump influxdb metrics.");
+            InfluxDBTool.dumpInfluxDBMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
+        });
+
+        // influxdb sla monitor metrics
+        executorService.execute(() -> {
+            logger.info("Start to dump influxdb sla monitor metrics.");
+            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
+            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
+        });
+    }
+
+    private void exportFileInfo(boolean includeConf, File exportDir, long startTime, long endTime, long start, File recordTime){
         // export conf
         if (includeConf) {
             executorService.execute(() -> {
@@ -174,15 +244,6 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             DiagnosticFilesChecker.writeMsgToFile("BIN", System.currentTimeMillis() - start, recordTime);
         });
 
-        // export client
-        if (includeClient) {
-            executorService.execute(() -> {
-                logger.info("Start to extract client info.");
-                CommonInfoTool.exportClientInfo(exportDir);
-                DiagnosticFilesChecker.writeMsgToFile("CLIENT", System.currentTimeMillis() - start, recordTime);
-            });
-        }
-
         // export hadoop env
         executorService.execute(() -> {
             logger.info("Start to extract hadoop env.");
@@ -196,48 +257,6 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             CommonInfoTool.exportKylinHomeDir(exportDir);
             DiagnosticFilesChecker.writeMsgToFile("CATALOG_INFO", System.currentTimeMillis() - start, recordTime);
         });
-
-        // dump jstack
-        executorService.execute(() -> {
-            logger.info("Start to extract jstack info.");
-            JStackTool.extractJstack(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("JSTACK", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // job spark log
-        executorService.execute(() -> {
-            logger.info("Start to extract spark logs.");
-            KylinLogTool.extractSparderLog(exportDir, startTime, endTime);
-            DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // influxdb metrics
-        executorService.execute(() -> {
-            logger.info("Start to dump influxdb metrics.");
-            InfluxDBTool.dumpInfluxDBMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("SYSTEM_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // influxdb sla monitor metrics
-        executorService.execute(() -> {
-            logger.info("Start to dump influxdb sla monitor metrics.");
-            InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-
-        executorService.shutdown();
-        awaitDiagPackageTermination(getKapConfig().getDiagPackageTimeout());
-
-        // export logs
-        if (includeLog) {
-            long logStartTime = System.currentTimeMillis();
-            logger.info("Start to extract log files.");
-            KylinLogTool.extractKylinLog(exportDir, startTime, endTime);
-            KylinLogTool.extractOtherLogs(exportDir);
-            DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
-        }
-
-        DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
     public long getDefaultStartTime() {

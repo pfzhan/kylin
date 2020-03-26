@@ -111,6 +111,10 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     private String packageType;
 
     @Getter
+    @Setter
+    private String sparderAppId;
+
+    @Getter
     private File exportDir;
     @Getter
     private KylinConfig kylinConfig;
