@@ -153,7 +153,7 @@
           </template>
         </el-table-column>
         <el-table-column
-          min-width="255px"
+          min-width="270px"
           prop="alias"
           :label="modelTableTitle">
           <template slot-scope="scope">
@@ -166,15 +166,15 @@
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
                 <div v-if="scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
-                <div v-if="scope.row.segment_holes.length">
+                <!-- <div v-if="scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
-                </div>
+                </div> -->
               </el-popover><!--
-              --><OverflowTextTooltip>
-                <span>{{scope.row.alias}}</span>
-              </OverflowTextTooltip>
+              --><div class="text-container">
+                <span class="text-sample">{{scope.row.alias}}</span>
+              </div>
             </div>
             <el-popover
               popper-class="last-modified-tooltip"
@@ -370,7 +370,6 @@ import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
-import OverflowTextTooltip from '../../../common/OverflowTextTooltip/OverflowTextTooltip.vue'
 
 function getDefaultFilters () {
   return {
@@ -486,8 +485,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     UploadSqlModel,
     DropdownFilter,
     AggregateModal,
-    TableIndexEdit,
-    OverflowTextTooltip
+    TableIndexEdit
   },
   locales
 })
@@ -1227,6 +1225,19 @@ export default class ModelList extends Vue {
     float: left;
     position: relative;
     top: 4px;
+  }
+  .text-container {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .text-sample {
+    // white-space: nowrap; 在safari浏览器上有问题
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    /*! autoprefixer: off */
+    -webkit-box-orient: vertical;
+    /* autoprefixer: on */
+    white-space: nowrap\0;
   }
 }
 .no-acl-model {

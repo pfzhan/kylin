@@ -39,6 +39,10 @@ export default class OverflowTextTooltip extends Vue {
     this.handleResizeWindow()
   }
 
+  updated () {
+    this.handleResizeWindow()
+  }
+
   beforeDestroy () {
     window.removeEventListener('resize', this.handleResizeWindow)
   }
@@ -51,7 +55,7 @@ export default class OverflowTextTooltip extends Vue {
   handleResizeWindow () {
     const { $container, $sample } = this.$refs
 
-    this.content = $sample.innerText
+    this.content = $sample.innerText || $sample.textContent
     this.sampleWidth = $sample.getBoundingClientRect().width
     this.containerWidth = $container.clientWidth
   }
@@ -67,13 +71,7 @@ export default class OverflowTextTooltip extends Vue {
     text-overflow: ellipsis;
   }
   .text-sample {
-    // white-space: nowrap; 在safari浏览器上有问题
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    /*! autoprefixer: off */
-    -webkit-box-orient: vertical;
-    /* autoprefixer: on */
-    white-space: nowrap\0;
+    white-space: nowrap;
   }
 }
 </style>

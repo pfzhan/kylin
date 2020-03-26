@@ -19,7 +19,6 @@
       </div>
       <el-tree
         highlight-current
-        default-expand-all
         check-strictly
         class="model-tree"
         ref="tree"
@@ -51,10 +50,14 @@ import { mapState, mapMutations, mapActions } from 'vuex'
 import vuex, { actionTypes } from '../../../store'
 import locales from './locales'
 import store from './store'
+import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
 
 vuex.registerModule(['modals', 'ModelsExportModal'], store)
 
 @Component({
+  components: {
+    OverflowTextTooltip
+  },
   computed: {
     ...mapState('ModelsExportModal', {
       project: state => state.project,
@@ -170,8 +173,10 @@ export default class ModelsExportModal extends Vue {
   renderContent (h, { node, data }) {
     return (
       <span class={['tree-item', data.nodeType]}>
-        {this.renderNodeIcon(h, { node, data })}
-        {this.renderNodeText(h, { node, data })}
+        <OverflowTextTooltip>
+          {this.renderNodeIcon(h, { node, data })}
+          {this.renderNodeText(h, { node, data })}
+        </OverflowTextTooltip>
       </span>
     )
   }
@@ -212,6 +217,20 @@ export default class ModelsExportModal extends Vue {
   }
   .tree-icon {
     margin-right: 5px;
+  }
+  .tree-item.model {
+    display: inline-block;
+    width: calc(~'100% - 24px - 22px');
+  }
+  .tree-item.table {
+    display: inline-block;
+    width: calc(~'100% - 18px - 24px - 5px');
+  }
+  .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content,
+  .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content:hover {
+    background-color: unset;
+    color: inherit;
+    cursor: unset;
   }
 }
 </style>

@@ -41,7 +41,9 @@
               v-for="noConflictModel in unConflictModels"
               :key="noConflictModel.id"
               :label="noConflictModel.id">
-              {{noConflictModel.name}}
+              <OverflowTextTooltip>
+                {{noConflictModel.name}}
+              </OverflowTextTooltip>
             </el-checkbox>
           </el-checkbox-group>
           <div class="empty-text" v-else>{{$t('unConflictModelsIsEmpty')}}</div>
@@ -60,7 +62,9 @@
                 <el-tooltip :content="getModelIconMessage(conflictModel.conflicts)" effect="dark" placement="top" >
                   <i :class="getModelIcon(conflictModel.conflicts)" />
                 </el-tooltip>
-                {{conflictModel.name}}
+                <OverflowTextTooltip>
+                  {{conflictModel.name}}
+                </OverflowTextTooltip>
               </div>
               <RenderModelConflicts :conflicts="conflictModel.conflicts" />
             </el-collapse-item>
@@ -94,12 +98,14 @@ import locales from './locales'
 import { conflictTypes } from './handler'
 import vuex, { actionTypes } from '../../../store'
 import RenderModelConflicts from './RenderModelConflicts'
+import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
 
 vuex.registerModule(['modals', 'ModelsImportModal'], store)
 
 @Component({
   components: {
-    RenderModelConflicts
+    RenderModelConflicts,
+    OverflowTextTooltip
   },
   computed: {
     ...mapState('ModelsImportModal', {
@@ -303,7 +309,19 @@ export default class ModelsImportModal extends Vue {
     margin-left: 0;
     font-weight: 500;
     .el-checkbox__label {
+      float: left;
       color: @text-normal-color;
+      width: calc(~'100% - 25px');
+      line-height: 26px;
+      height: 26px;
+    }
+    .el-checkbox__input {
+      float: left;
+      line-height: 26px;
+      height: 26px;
+    }
+    .el-checkbox__inner {
+      transform: translateY(2px);
     }
     &:not(:last-child) {
       border-bottom: 1px solid @background-disabled-color;
@@ -311,8 +329,15 @@ export default class ModelsImportModal extends Vue {
   }
   .model-name {
     font-weight: 500;
+    display: inline-block;
+    width: calc(~'100% - 25px');
+    white-space: nowrap;
     i {
+      float: left;
       font-size: 12px;
+      height: 25px;
+      line-height: 25px;
+      margin-right: 5px;
     }
   }
   .el-collapse-item__header {
