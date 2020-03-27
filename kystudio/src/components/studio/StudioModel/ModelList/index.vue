@@ -637,7 +637,7 @@ export default class ModelList extends Vue {
     const projectName = this.currentSelectedProject
     const modelName = modelDesc.uuid
     const res = await this.fetchSegments({ projectName, modelName })
-    const { total_size } = await handleSuccessAsync(res)
+    const { total_size, value } = await handleSuccessAsync(res)
     let type = 'incremental'
     if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) && total_size) {
       type = 'fullLoad'
@@ -645,7 +645,8 @@ export default class ModelList extends Vue {
     await this.callModelBuildDialog({
       modelDesc: modelDesc,
       type: type,
-      isHaveSegment: !!total_size
+      isHaveSegment: !!total_size,
+      disableFullLoad: type === 'fullLoad' && value[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
     })
     this.refreshSegment()
   }
@@ -1031,7 +1032,7 @@ export default class ModelList extends Vue {
     }
   }
   .model_list_table {
-    .el-icon-ksd-auto_model_ssistant.build-disabled {
+    .el-icon-ksd-icon_build-index.build-disabled {
       color: @color-text-disabled;
       &:hover {
         color: @color-text-disabled;

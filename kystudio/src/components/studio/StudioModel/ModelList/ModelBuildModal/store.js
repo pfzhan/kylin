@@ -11,6 +11,7 @@ const initialState = JSON.stringify({
   type: '',
   buildOrComp: 'build',
   isHaveSegment: false,
+  disableFullLoad: false,
   form: {
     modelDesc: ''
   },
@@ -33,6 +34,7 @@ export default {
       state.form.modelDesc = payload.modelDesc
       state.type = payload.type
       state.isHaveSegment = payload.isHaveSegment
+      state.disableFullLoad = payload.disableFullLoad
       state.callback = payload.callback
     },
     [types.RESET_MODAL_FORM]: (state) => {
@@ -40,9 +42,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { modelDesc, type, isHaveSegment }) {
+    [types.CALL_MODAL] ({ commit }, { modelDesc, type, isHaveSegment, disableFullLoad }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL_FORM, {modelDesc: modelDesc, type: type, isHaveSegment: isHaveSegment, callback: resolve})
+        commit(types.SET_MODAL_FORM, {modelDesc: modelDesc, type: type, isHaveSegment: isHaveSegment, disableFullLoad: disableFullLoad, callback: resolve})
         commit(types.SHOW_MODAL)
       })
     }
