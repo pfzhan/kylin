@@ -165,8 +165,13 @@ export default {
       return api.system.updateConfig(config)
     },
     [types.GET_ABOUTKAP]: function ({ commit }) {
-      return api.system.getAboutKap().then((response) => {
-        commit(types.GET_ABOUT, { list: response.data })
+      return new Promise((resolve, reject) => {
+        api.system.getAboutKap().then((response) => {
+          commit(types.GET_ABOUT, { list: response.data })
+          resolve()
+        }).catch((e) => {
+          reject(e)
+        })
       })
     },
     [types.GET_KYBOT_UPLOAD]: function ({ commit }, para) {

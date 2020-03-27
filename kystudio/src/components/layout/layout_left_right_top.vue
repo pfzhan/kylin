@@ -484,7 +484,13 @@ export default class LayoutLeftRightTop extends Vue {
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/dashboard'
-    this.getAboutKap(() => {}, (res) => {
+    // 获取许可证接口成功之后再弹无项目弹窗
+    this.getAboutKap().then(() => {
+      // 新手引导模式不用反复弹提示
+      if (!this.isGuideMode) {
+        this.noProjectTips()
+      }
+    }).catch((res) => {
       handleError(res)
     })
   }
@@ -776,10 +782,6 @@ export default class LayoutLeftRightTop extends Vue {
       // 获取加速信息
       this.loadSpeedInfo()
       this.circleLoadSpeedInfo()
-    }
-    // 新手引导模式不用反复弹提示
-    if (!this.isGuideMode) {
-      this.noProjectTips()
     }
   }
   destroyed () {
