@@ -33,3 +33,17 @@ export function formatConflictsGroupByName (conflicts = []) {
     .map(([type, conflictArray]) => ({ type, conflicts: conflictArray }))
   return result
 }
+
+export const validator = {
+  file (that) {
+    return (rule, value = null, callback) => {
+      if (!value) {
+        callback(new Error(that.$t('pleaseSelectFile')))
+      } else if (value.size >= 5 * 1024 * 1024) {
+        callback(new Error(that.$t('filesSizeError')))
+      } else {
+        callback()
+      }
+    }
+  }
+}

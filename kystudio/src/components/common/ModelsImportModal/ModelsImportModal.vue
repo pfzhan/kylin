@@ -95,7 +95,7 @@ import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 
 import store from './store'
 import locales from './locales'
-import { conflictTypes } from './handler'
+import { conflictTypes, validator } from './handler'
 import vuex, { actionTypes } from '../../../store'
 import RenderModelConflicts from './RenderModelConflicts'
 import OverflowTextTooltip from '../OverflowTextTooltip/OverflowTextTooltip.vue'
@@ -144,7 +144,7 @@ export default class ModelsImportModal extends Vue {
 
   get rules () {
     return {
-      file: [{ trigger: 'blur', required: true, message: this.$t('pleaseSelectFile') }]
+      file: [{ trigger: 'blur', required: true, validator: validator.file(this) }]
     }
   }
 
