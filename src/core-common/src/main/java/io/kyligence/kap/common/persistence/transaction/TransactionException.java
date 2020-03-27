@@ -23,15 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
-import org.apache.kylin.common.exceptions.KylinException;
-
-public class TransactionException extends KylinException {
+public class TransactionException extends RuntimeException {
 
     public TransactionException(String message, Throwable cause) {
-        super("KE-1033", message, cause);
+        super(message, cause);
     }
 
     public TransactionException(String message) {
-        super("KE-1033", message);
+        super(message);
     }
 }
