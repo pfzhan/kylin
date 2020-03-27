@@ -282,7 +282,11 @@ public class Message {
     }
 
     public String getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED() {
-        return "Model '%s' import failed: Computed column '%s' of this model has the same expression as computed column '%s' in model '%s'.";
+        return "Model '%s' import failed: Computed column '%s' of this model has the same expression as model '%s' computed column '%s'.";
+    }
+
+    public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
+        return "Model '%s' import failed: Computed column '%s' of this model has the same name as computed column in model '%s'.";
     }
 
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {

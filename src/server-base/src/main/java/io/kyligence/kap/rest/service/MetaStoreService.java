@@ -402,12 +402,20 @@ public class MetaStoreService extends BasicService {
             message = String.format(MsgPicker.getMsg().getFACT_TABLE_USED_AS_LOOK_UP_TABLE(), srcModelName);
             throw new KylinException("KE-1005", message, ResponseCode.CODE_UNDEFINED);
         }
-        if (exception instanceof BadModelException &&
-                Objects.equals(BadModelException.CauseType.SAME_EXPR_DIFF_NAME, ((BadModelException) exception).getCauseType())) {
+        if (exception instanceof BadModelException) {
             BadModelException badModelException = (BadModelException) exception;
-
-            message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED(),
-                    srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(), badModelException.getAdvise());
+            switch (badModelException.getCauseType()) {
+                case SAME_EXPR_DIFF_NAME:
+                    message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED(),
+                        srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(), badModelException.getAdvise());
+                    break;
+                case SAME_NAME_DIFF_EXPR:
+                    message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED(),
+                            srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(), badModelException.getAdvise());
+                    break;
+                default:
+                    throw new KylinException("KE-1005", message, ResponseCode.CODE_UNDEFINED, exception);
+            }
             throw new KylinException("KE-1021", message, ResponseCode.CODE_UNDEFINED);
         }
         throw new KylinException("KE-1005", message, ResponseCode.CODE_UNDEFINED, exception);

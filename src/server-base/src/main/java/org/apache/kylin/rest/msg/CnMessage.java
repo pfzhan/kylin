@@ -293,6 +293,10 @@ public class CnMessage extends Message {
         return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列 '%s' 表达式相同。";
     }
 
+    public String getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED() {
+        return "模型 '%s' 导入失败：该模型的可计算列 '%s' 与模型 '%s' 中的可计算列重名。";
+    }
+
     public String getFACT_TABLE_USED_AS_LOOK_UP_TABLE() {
         return "模型 '%s' 导入失败：模型中的事实表在其他模型中已经作为维度表存在。";
     }

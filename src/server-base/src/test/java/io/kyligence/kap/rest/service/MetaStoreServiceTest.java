@@ -63,6 +63,7 @@ import java.util.zip.ZipInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -70,7 +71,9 @@ import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -101,6 +104,9 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
 
     @Mock
     private ModelService modelService = Mockito.spy(ModelService.class);
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setup() {
@@ -196,5 +202,23 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
         metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(importedModelUuid));
         NModelDescResponse modelDescResponse = modelService.getModelDesc("warningmodel1", "default");
         Assert.assertNotNull(modelDescResponse);
+    }
+
+    @Test
+    public void testImportModelMetadataException() throws Exception {
+        // duplicated cc name
+        String duplicatedCcNameModelUuid = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+        File file = new File(
+                "src/test/resources/ut_model_metadata/ut_model_matadata.zip");
+        MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
+         thrown.expect(KylinException.class);
+        thrown.expectMessage("Model 'cc_name_existed' import failed: Computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT' of this model has the same name as computed column in model 'nmodel_basic_inner'.");
+        metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(duplicatedCcNameModelUuid));
+
+        // duplicated cc expression
+        String duplicatedCcExpressionModelUuid = "841ca86a-1f13-46da-a59f-95fb68615e3a";
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Model 'cc_expression_existed' import failed: Computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT_DUPLICATED' of this model has the same expression as model 'nmodel_basic_inner' computed column 'DEAL_AMOUNT'.");
+        metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(duplicatedCcExpressionModelUuid));
     }
 }
