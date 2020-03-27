@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 
 import javax.sql.DataSource;
 import java.util.Properties;
 
-public class JdbcDataSource {
+public class JdbcDataSource implements IKeep {
     private JdbcDataSource() {
     }
 
