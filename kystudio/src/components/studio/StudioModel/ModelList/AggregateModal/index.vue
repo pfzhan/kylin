@@ -288,7 +288,7 @@
           </div>
         </div>
         <div class="right">
-          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.submit')}}</el-button><el-button type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
+          <el-button plain size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button><el-button size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" v-guide.saveAggBtn :loading="isSubmit" @click="handleSubmit(false)">{{$t('kylinLang.common.save')}}</el-button><el-button type="primary" size="medium" class="ksd-ml-10" :disabled="isDisabledSaveBtn" v-if="isShow" :loading="isSubmit" @click="handleSubmit(true)">{{$t('saveAndBuild')}}</el-button>
         </div>
       </div>
     </div>
@@ -1313,7 +1313,7 @@ export default class AggregateModal extends Vue {
   .hierarchy,
   .joint {
     .el-tag {
-      background: @lighter-color-tip;
+      background: rgba(76, 176, 80, 0.1);
       border: 1px solid @color-success;
       border-radius: 2px;
       color: @color-success;
@@ -1331,7 +1331,7 @@ export default class AggregateModal extends Vue {
     color: @base-color;
     border: 1px solid @base-color;
     &[data-tag='used'] {
-      background: @lighter-color-tip;
+      background: rgba(76, 176, 80, 0.1);
       border: 1px solid @color-success;
       border-radius: 2px;
       color: @color-success;

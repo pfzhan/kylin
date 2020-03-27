@@ -50,7 +50,11 @@
             <span v-if="!aggregate.select_rule.dim_cap&&aggregationObj&&aggregationObj.global_dim_cap" class="global-dim">{{aggregationObj.global_dim_cap}}</span>
           </span>
           <span class="ksd-fright icon-group">
-            <i class="el-icon-ksd-table_edit" @click="editAggGroup(aggregateIdx)"></i><i class="el-icon-ksd-table_delete ksd-ml-10" @click="deleteAggGroup(aggregateIdx)"></i>
+            <common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit" @click="editAggGroup(aggregateIdx)"></i>
+            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
+              <i class="el-icon-ksd-table_delete ksd-ml-10" @click="deleteAggGroup(aggregateIdx)"></i>
+            </common-tip>
           </span>
         </div>
         <el-tabs v-model="aggregate.activeTab">
@@ -320,8 +324,11 @@ export default class AggregateView extends Vue {
     .content {
       color: @color-text-regular;
     }
+    .icon-group i:hover {
+      color: @base-color;
+    }
     .agg-detail {
-      padding: 10px;
+      padding: 15px;
       background-color: @fff;
       border: 1px solid @line-border-color4;
       .agg-content-title {

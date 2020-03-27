@@ -25,7 +25,7 @@
       </kap-nodata>
     </div>
     <div class="table-index-detail-block" v-if="indexDatas.length">
-      <div class="table-index-detail ksd-mb-30" v-for="index in indexDatas" :key="index.id">
+      <div class="table-index-detail ksd-mb-15" v-for="index in indexDatas" :key="index.id">
         <div class="table-index-content-title">
           <span class="ksd-fs-16">
             {{$t('tableIndexTitle', { indexId: index.id })}}
@@ -35,7 +35,11 @@
             {{index.last_modified_time | toServerGMTDate}}
           </span>
           <span class="ksd-fright icon-group">
-            <i class="el-icon-ksd-table_edit" @click="editTableIndex(index)"></i><i class="el-icon-ksd-table_delete ksd-ml-10" @click="removeIndex(index)"></i>
+            <common-tip :content="$t('kylinLang.common.edit')">
+              <i class="el-icon-ksd-table_edit" @click="editTableIndex(index)"></i>
+            </common-tip><common-tip :content="$t('kylinLang.common.delete')">
+              <i class="el-icon-ksd-table_delete ksd-ml-10" @click="removeIndex(index)"></i>
+            </common-tip>
           </span>
         </div>
         <div class="table-index-content">
@@ -246,8 +250,11 @@ export default class TableIndexView extends Vue {
     padding-bottom: 15px;
     overflow-y: auto;
     position: relative;
+    .icon-group i:hover {
+      color: @base-color;
+    }
     .table-index-detail {
-      padding: 10px;
+      padding: 15px;
       background-color: @fff;
       border: 1px solid @line-border-color4;
       .table-index-content-title {

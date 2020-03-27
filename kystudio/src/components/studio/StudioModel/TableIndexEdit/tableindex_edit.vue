@@ -42,7 +42,7 @@
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <!-- <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox> -->
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button :loading="btnLoading" size="medium" @click="submit(false)" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
         <el-button type="primary" :loading="btnLoading" size="medium" @click="submit(true)" :disabled="saveBtnDisable">{{$t('saveAndBuild')}}</el-button>
       </div>
   </el-dialog>

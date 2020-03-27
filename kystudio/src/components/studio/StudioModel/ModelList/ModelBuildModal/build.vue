@@ -169,8 +169,8 @@
       </div>
       <div slot="footer" class="dialog-footer ky-no-br-space">
         <el-button plain @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button :loading="btnLoading" v-if="buildOrComplete=='build'" v-guide.setbuildModelRange @click="setbuildModel" :disabled="incrementalDisabled" size="medium">{{$t(buildType)}}</el-button>
-        <el-button :loading="btnLoading" v-else v-guide.setbuildModelRange @click="completeBuildModel" size="medium">{{$t('complete')}}</el-button>
+        <el-button type="primary" :loading="btnLoading" v-if="buildOrComplete=='build'" v-guide.setbuildModelRange @click="setbuildModel" :disabled="incrementalDisabled" size="medium">{{$t(buildType)}}</el-button>
+        <el-button type="primary" :loading="btnLoading" v-else v-guide.setbuildModelRange @click="completeBuildModel" size="medium">{{$t('complete')}}</el-button>
       </div>
     </el-dialog>
 </template>

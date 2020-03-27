@@ -166,11 +166,11 @@
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
                 <div v-if="scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
-                <!-- <div v-if="scope.row.segment_holes.length">
+                <div v-if="scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
-                </div> -->
+                </div>
               </el-popover><!--
               --><div class="text-container">
                 <span class="text-sample">{{scope.row.alias}}</span>
