@@ -456,7 +456,8 @@ public class ModelService extends BasicService {
                     : getModelStatus(modelDesc.getUuid(), projectName);
             long emptyIndexCount = modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
                     : getEmptyIndexesCount(projectName, modelDesc.getId());
-            if (modelStatus == RealizationStatusEnum.ONLINE && emptyIndexCount > 0) {
+            val segmentHoles = dfManager.calculateSegHoles(modelDesc.getUuid());
+            if (modelStatus == RealizationStatusEnum.ONLINE && (emptyIndexCount > 0 || !segmentHoles.isEmpty())) {
                 modelStatus = RealizationStatusEnum.WARNING;
             }
             boolean isModelStatusMatch = isListContains(status, modelStatus);
@@ -466,7 +467,7 @@ public class ModelService extends BasicService {
                 nDataModelResponse.setStatus(modelStatus);
                 nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
                 nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
-                nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
+                nDataModelResponse.setSegmentHoles(segmentHoles);
                 nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
                         nDataModelResponse.getSource()));
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());

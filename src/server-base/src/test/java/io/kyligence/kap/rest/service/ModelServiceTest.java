@@ -291,6 +291,24 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testWarningStateOfModel() {
+        String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        val dsMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        val df = dsMgr.getDataflow(modelId);
+        // clean segment
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+
+        dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(20L, 30L));
+
+        val models = modelService.getModels(df.getModelAlias(), getProject(), true, "", null, "last_modify", true);
+        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(RealizationStatusEnum.WARNING, models.get(0).getStatus());
+    }
+
+    @Test
     public void testGetModelsWithRecommendationCount() {
         val models = modelService.getModels("nmodel_basic", "default", true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());

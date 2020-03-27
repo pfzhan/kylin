@@ -33,7 +33,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -101,13 +100,6 @@ public class AfterBuildResourceMerger extends SparkJobMetadataMerger {
                 .filter(c -> availableLayoutIds.contains(c.getLayoutId())).toArray(NDataLayout[]::new));
 
         localDataflowManager.updateDataflow(dfUpdate);
-        if (localDataflowManager.calculateSegHoles(flowName).size() > 0) {
-            localDataflowManager.updateDataflow(flowName,
-                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.WARNING));
-        } else {
-            localDataflowManager.updateDataflow(flowName,
-                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
-        }
         IndexPlan remoteIndexPlan = remoteDataflowManager.getDataflow(flowName).getIndexPlan();
         IndexPlan indexPlan = localDataflowManager.getDataflow(flowName).getIndexPlan();
         NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getConfig(), getProject());
