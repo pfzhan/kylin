@@ -33,9 +33,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutableOnModel;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,10 +147,27 @@ public class NSparkCubingJob extends DefaultChainedExecutableOnModel {
             return true;
         }
 
-        val execManager = NExecutableManager.getInstance(getConfig(), getProject());
-        val pendingJobsInModel = execManager.listExecByModelAndStatus(getSparkCubingStep().getDataflowId(),
-                state -> state == ExecutableState.READY, JobTypeEnum.INC_BUILD);
-        return pendingJobsInModel.stream().filter(job -> job.getJobType() == JobTypeEnum.INC_BUILD)
-                .allMatch(job -> job.getId().equals(getId()));
+        val dataflow = NDataflowManager.getInstance(getConfig(), getProject())
+                .getDataflow(getSparkCubingStep().getDataflowId());
+        val segs = dataflow.getSegments().stream()
+                .filter(nDataSegment -> !getTargetSegments().contains(nDataSegment.getId()))
+                .collect(Collectors.toList());
+        val toDeletedSeg = dataflow.getSegments().stream()
+                .filter(nDataSegment -> getTargetSegments().contains(nDataSegment.getId()))
+                .collect(Collectors.toList());
+        val segHoles = NDataflowManager.getInstance(getConfig(), getProject())
+                .calculateHoles(getSparkCubingStep().getDataflowId(), segs);
+
+        for (NDataSegment segHole : segHoles) {
+            for (NDataSegment deleteSeg : toDeletedSeg) {
+                if (segHole.getSegRange().overlaps(deleteSeg.getSegRange())
+                        || segHole.getSegRange().contains(deleteSeg.getSegRange())) {
+                    return false;
+                }
+
+            }
+        }
+
+        return true;
     }
 }

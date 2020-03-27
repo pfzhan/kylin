@@ -515,25 +515,31 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
         NSparkCubingJob job2 = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
                 "ADMIN", JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
-        NSparkCubingJob job3 = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
+        NSparkCubingJob refreshJob = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(round1),
                 "ADMIN", JobTypeEnum.INDEX_REFRESH, UUID.randomUUID().toString(), Sets.newHashSet());
         execMgr.addJob(job1);
         execMgr.addJob(job2);
-        execMgr.addJob(job3);
+        execMgr.addJob(refreshJob);
 
         execMgr.updateJobOutput(job1.getId(), ExecutableState.READY);
         execMgr.updateJobOutput(job2.getId(), ExecutableState.READY);
-        Assert.assertFalse(job1.safetyIfDiscard());
-
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING);
-        Assert.assertFalse(job1.safetyIfDiscard());
-        Assert.assertTrue(job2.safetyIfDiscard());
-
-        execMgr.updateJobOutput(job1.getId(), ExecutableState.SUCCEED);
         Assert.assertTrue(job1.safetyIfDiscard());
         Assert.assertTrue(job2.safetyIfDiscard());
 
+        NDataSegment thirdSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(20L, 22L));
+        NSparkCubingJob job3 = NSparkCubingJob.create(Sets.newHashSet(thirdSeg), Sets.newLinkedHashSet(round1), "ADMIN",
+                JobTypeEnum.INC_BUILD, UUID.randomUUID().toString(), Sets.newHashSet());
+        execMgr.addJob(job3);
+        execMgr.updateJobOutput(job1.getId(), ExecutableState.RUNNING);
+        Assert.assertTrue(job1.safetyIfDiscard());
+        Assert.assertFalse(job2.safetyIfDiscard());
         Assert.assertTrue(job3.safetyIfDiscard());
+
+        execMgr.updateJobOutput(job1.getId(), ExecutableState.SUCCEED);
+        Assert.assertTrue(job1.safetyIfDiscard());
+        Assert.assertFalse(job2.safetyIfDiscard());
+
+        Assert.assertTrue(refreshJob.safetyIfDiscard());
     }
 
     private void cleanupSegments(NDataflowManager dsMgr, String dfName) {
