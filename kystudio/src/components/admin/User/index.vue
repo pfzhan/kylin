@@ -21,6 +21,7 @@
         <div style="width:200px;" class="ksd-fright">
           <el-input class="show-search-btn"
             size="medium"
+            v-model="filterName"
             v-global-key-event.enter.debounce="inputFilter"
             @clear="inputFilter('')"
             prefix-icon="el-icon-search"
@@ -129,7 +130,18 @@ import { handleError, kapConfirm } from '../../../util'
       callUserEditModal: 'CALL_MODAL'
     })
   },
-  locales
+  locales,
+  beforeRouteEnter: (to, from, next) => {
+    if (from.name === 'GroupDetail') {
+      // 进入user页面清除filter，重刷列表
+      next(vm => {
+        vm.filterName = ''
+        vm.loadUsers()
+      })
+    } else {
+      next()
+    }
+  }
 })
 export default class SecurityUser extends Vue {
   userData = []
