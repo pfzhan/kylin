@@ -32,9 +32,9 @@
           </div>
           <CCEditForm v-if="showCC" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccDesc" :modelInstance="modelInstance"></CCEditForm>
         </el-form-item>
-        <el-form-item :label="$t('dimensionComment')" prop="comment">
+        <!-- <el-form-item :label="$t('dimensionComment')" prop="comment">
           <el-input type="textarea" v-model="dimensionInfo.comment"></el-input>
-        </el-form-item>
+        </el-form-item> -->
       </el-form>
     </div>
     <span slot="footer" class="dialog-footer ky-no-br-space">
