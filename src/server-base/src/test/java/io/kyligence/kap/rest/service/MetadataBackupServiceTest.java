@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.awaitility.Awaitility.await;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -49,8 +51,6 @@ import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStoreTool;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.tool.HDFSMetadataTool;
 import lombok.val;
-
-import static org.awaitility.Awaitility.await;
 
 public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
 
@@ -136,7 +136,6 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
     public void testAuditLogRotateWhenBackup() throws Exception {
         val junitFolder = temporaryFolder.getRoot();
         val kylinConfig = getTestConfig();
-
         System.setProperty("kylin.metadata.audit-log.max-size", "20");
         kylinConfig.setMetadataUrl(
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");

@@ -78,8 +78,8 @@ public class NProjectControllerTest extends AbstractMVCIntegrationTestCase {
                 .perform(MockMvcRequestBuilders.post("/api/projects").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
-                .andReturn();
+                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("999")).andReturn();
         Assert.assertTrue(
                 result.getResponse().getContentAsString().contains("The project named 'test_PROJECT' already exists."));
     }

@@ -23,11 +23,14 @@
  */
 package io.kyligence.kap.common.persistence.metadata;
 
-import io.kyligence.kap.common.obf.IKeep;
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
+import java.util.Properties;
 
 import javax.sql.DataSource;
-import java.util.Properties;
+
+import org.apache.commons.dbcp2.BasicDataSourceFactory;
+import org.apache.kylin.common.KylinConfig;
+
+import io.kyligence.kap.common.obf.IKeep;
 
 public class JdbcDataSource implements IKeep {
     private JdbcDataSource() {
@@ -36,6 +39,9 @@ public class JdbcDataSource implements IKeep {
     private static DataSource instance = null;
 
     public static synchronized DataSource getDataSource(Properties props) throws Exception {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return BasicDataSourceFactory.createDataSource(props);
+        }
         if (null == instance) {
             instance = BasicDataSourceFactory.createDataSource(props);
         }
