@@ -2888,10 +2888,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
         eventDao.deleteAllEvents();
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         val events = eventDao.getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
         Assert.assertEquals(2, events.size());
-        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent);
-        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
+        Assert.assertTrue(events.stream().anyMatch(e -> e instanceof RefreshSegmentEvent));
+        Assert.assertTrue(events.stream().anyMatch(e -> e instanceof AddCuboidEvent));
     }
 
     @Test
