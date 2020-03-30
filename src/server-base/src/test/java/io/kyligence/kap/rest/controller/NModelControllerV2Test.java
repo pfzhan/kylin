@@ -138,28 +138,11 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 modelService.getModels("model1", "default", true, "ADMIN", Arrays.asList("NEW"), "last_modify", false))
                 .thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
-                .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "NEW")
-                .param("sortBy", "last_modify").param("reverse", "true")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .param("pageOffset", "0").param("projectName", "default").param("modelName", "model1")
+                .param("pageSize", "10").param("exactMatch", "true").param("sortBy", "last_modify")
+                .param("reverse", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"), "", 0,
-                10, "last_modify", true);
-    }
-
-    @Test
-    public void testGetRelatedModels() throws Exception {
-
-        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1"))
-                .thenReturn(mockRelatedModels());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
-                .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
-                .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
-                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", "ADMIN", Arrays.asList("NEW"),
-                "TEST_KYLIN_FACT", 0, 10, "last_modify", true);
+        Mockito.verify(nModelControllerV2).getModels("model1", true, "default", 0, 10, "last_modify", true);
     }
 
     @Test
@@ -168,13 +151,11 @@ public class NModelControllerV2Test extends NLocalFileMetadataTestCase {
                 .thenReturn(mockModels());
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                        .param("offset", "0").param("project", "default").param("model", "").param("limit", "10")
-                        .param("exact", "true").param("owner", "ADMIN").param("status", "NEW")
-                        .param("sortBy", "last_modify").param("reverse", "true").param("table", "TEST_KYLIN_FACT")
-                        .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                        .param("pageOffset", "0").param("projectName", "default").param("modelName", "")
+                        .param("pageSize", "10").param("exactMatch", "true").param("sortBy", "last_modify")
+                        .param("reverse", "true").accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelControllerV2).getModels("", true, "default", "ADMIN", Arrays.asList("NEW"),
-                "TEST_KYLIN_FACT", 0, 10, "last_modify", true);
+        Mockito.verify(nModelControllerV2).getModels("", true, "default", 0, 10, "last_modify", true);
     }
 
 }

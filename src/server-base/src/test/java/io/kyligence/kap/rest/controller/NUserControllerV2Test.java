@@ -23,10 +23,16 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.v2.NUserControllerV2;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
 import org.junit.After;
@@ -38,6 +44,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -68,10 +75,17 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("passwordFilter",
+                SimpleBeanPropertyFilter.serializeAllExcept("password", "defaultPassword"));
+        ObjectMapper objectMapper = new ObjectMapper().setFilterProvider(filterProvider);
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objectMapper);
+
         MockitoAnnotations.initMocks(this);
         ContentNegotiationManager contentNegotiationManager = new ContentNegotiationManager();
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserControllerV2).setContentNegotiationManager(contentNegotiationManager)
-                .defaultRequest(MockMvcRequestBuilders.get("/")).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(nUserControllerV2).setMessageConverters(converter)
+                .setContentNegotiationManager(contentNegotiationManager).defaultRequest(MockMvcRequestBuilders.get("/"))
+                .build();
         List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
@@ -85,14 +99,20 @@ public class NUserControllerV2Test extends NLocalFileMetadataTestCase {
 
     @Test
     public void testListAllUsers() throws Exception {
-        Mockito.when(nUserController.listAllUsers(null, null, false, 0, 10))
-                .thenReturn(new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "testListAllUsers"));
+        ManagedUser user1 = new ManagedUser();
+        user1.setUsername("ADMIN");
+        user1.setPassword("KYLIN");
+        user1.setDefaultPassword(false);
+        List<ManagedUser> managedUsers = Lists.newArrayList(user1);
+        Mockito.when(nUserController.listAllUsers("default", "KYLIN", false, 0, 10)).thenReturn(new EnvelopeResponse<>(
+                ResponseCode.CODE_SUCCESS, DataResult.get(managedUsers, 0, 10), "testListAllUsers"));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/kap/user/users").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("name", "KYLIN")
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nUserControllerV2).listAllUsers(null, null, false, 0, 10);
+        Mockito.verify(nUserControllerV2).listAllUsers("default", "KYLIN", false, 0, 10);
     }
 
     @Test

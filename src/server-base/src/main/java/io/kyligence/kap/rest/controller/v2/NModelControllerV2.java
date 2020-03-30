@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
+import com.google.common.collect.Lists;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,24 +56,16 @@ public class NModelControllerV2 extends NBasicController {
     @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     public EnvelopeResponse<Map<String, Object>> getModels(
-            @RequestParam(value = "model", required = false) String modelAlias,
-            @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
-            @RequestParam(value = "project", required = false) String project,
-            @RequestParam(value = "owner", required = false) String owner,
-            @RequestParam(value = "status", required = false) List<String> status,
-            @RequestParam(value = "table", required = false) String table,
+            @RequestParam(value = "modelName", required = false) String modelAlias,
+            @RequestParam(value = "exactMatch", required = false, defaultValue = "true") boolean exactMatch,
+            @RequestParam(value = "projectName") String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
-        List<NDataModel> models = new ArrayList<>();
-        if (StringUtils.isEmpty(table)) {
-            models.addAll(modelService.getModels(modelAlias, project, exactMatch, owner, status, sortBy, reverse));
-        } else {
-            models.addAll(modelService.getRelateModels(project, table, modelAlias));
-        }
-
+        List<NDataModel> models = new ArrayList<>(
+                modelService.getModels(modelAlias, project, exactMatch, null, Lists.newArrayList(), sortBy, reverse));
         models = modelService.addOldParams(models);
 
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);

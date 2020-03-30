@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,10 +42,11 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -74,7 +76,7 @@ public class NCubesControllerV2 extends NBasicController {
     @Autowired
     private ModelSemanticHelper semanticService;
 
-    @RequestMapping(value = "", method = { RequestMethod.GET })
+    @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse getCubes(@RequestParam(value = "projectName") String project,
             @RequestParam(value = "modelName", required = false) String modelAlias,
@@ -87,7 +89,7 @@ public class NCubesControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
 
-    @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET })
+    @GetMapping(value = "/{cubeName}")
     @ResponseBody
     public EnvelopeResponse getCube(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project) {
@@ -99,7 +101,7 @@ public class NCubesControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataModelResponse, "");
     }
 
-    @RequestMapping(value = "/{cubeName}/rebuild", method = { RequestMethod.PUT })
+    @PutMapping(value = "/{cubeName}/rebuild")
     @ResponseBody
     public EnvelopeResponse rebuild(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project, @RequestBody CubeRebuildRequest request)
@@ -133,10 +135,10 @@ public class NCubesControllerV2 extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/{cubeName}/segments", method = { RequestMethod.PUT })
+    @PutMapping(value = "/{cubeName}/segments")
     @ResponseBody
     public EnvelopeResponse manageSegments(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project,
@@ -174,10 +176,10 @@ public class NCubesControllerV2 extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/{cubeName}/holes", method = { RequestMethod.GET })
+    @GetMapping(value = "/{cubeName}/holes")
     @ResponseBody
     public EnvelopeResponse getHoles(@PathVariable("cubeName") String modelAlias,
             @RequestParam(value = "project", required = false) String project) {
@@ -207,6 +209,21 @@ public class NCubesControllerV2 extends NBasicController {
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, holes, "");
+    }
+
+    @GetMapping(value = "/{cubeName}/sql")
+    @ResponseBody
+    public EnvelopeResponse getSql(@PathVariable("cubeName") String modelAlias,
+            @RequestParam(value = "project", required = false) String project) {
+        NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
+        if (Objects.isNull(dataModelResponse)) {
+            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
+        }
+
+        String sql = modelService.getModelSql(dataModelResponse.getId(), dataModelResponse.getProject());
+        Properties response = new Properties();
+        response.setProperty("sql", sql);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 
 }

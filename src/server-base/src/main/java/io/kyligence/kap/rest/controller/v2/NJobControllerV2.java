@@ -28,9 +28,10 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,24 +78,30 @@ public class NJobControllerV2 extends NBasicController {
     @GetMapping(value = "")
     @ResponseBody
     public EnvelopeResponse getJobList(
-            @RequestParam(value = "status", required = false, defaultValue = "") String status,
-            @RequestParam(value = "jobNames", required = false) List<String> jobNames,
+            @RequestParam(value = "status", required = false, defaultValue = "") Integer[] status,
             @RequestParam(value = "timeFilter") Integer timeFilter,
-            @RequestParam(value = "subject", required = false) String subject,
-            @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
-            @RequestParam(value = "project") String project,
+            @RequestParam(value = "jobName", required = false) String jobName,
+            @RequestParam(value = "projectName") String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
-        checkJobStatus(status);
-        List<String> statuses = StringUtils.isEmpty(status) ? Lists.newArrayList() : Lists.newArrayList(status);
-        JobFilter jobFilter = new JobFilter(statuses, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
-                reverse);
-        List<ExecutableResponse> executables;
-        executables = jobService.listJobs(jobFilter);
+        List<String> statuses = Lists.newArrayList();
+        for (Integer code : status) {
+            JobStatusEnum jobStatus = JobStatusEnum.getByCode(code);
+            if (Objects.isNull(jobStatus)) {
+                checkJobStatus(String.valueOf(code));
+                continue;
+            }
+            statuses.add(jobStatus.toString());
+        }
+
+        JobFilter jobFilter = new JobFilter(statuses,
+                Objects.isNull(jobName) ? Lists.newArrayList() : Lists.newArrayList(jobName), timeFilter, null, null,
+                project, sortBy, reverse);
+        List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         executables = jobService.addOldParams(executables);
-        Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
+        Map<String, Object> result = getDataResponse("jobs", executables, pageOffset, pageSize);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 }

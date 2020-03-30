@@ -83,23 +83,23 @@ public class NAccessControllerV2 extends NBasicController {
     /**
      * Get user's all granted projects and tables
      *
-     * @param userame
+     * @param username
      * @return
      * @throws IOException
      */
     @GetMapping(value = "/{userName:.+}")
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String userame) {
-        checkUserName(userame);
+    public EnvelopeResponse getAllAccessEntitiesOfUser(@PathVariable("userName") String username) {
+        checkUserName(username);
 
         List<Object> dataList = new ArrayList<>();
-        List<String> projectList = accessService.getGrantedProjectsOfUser(userame);
+        List<String> projectList = accessService.getGrantedProjectsOfUser(username);
 
         for (String project : projectList) {
             Map<String, Object> data = new HashMap<>();
             data.put(PROJECT_NAME, project);
-            List<String> tableList = aclTCRService.getAuthorizedTables(project, userame).stream()
+            List<String> tableList = aclTCRService.getAuthorizedTables(project, username).stream()
                     .map(TableDesc::getIdentity).collect(Collectors.toList());
             data.put(TABLE_NAME, tableList);
             dataList.add(data);
@@ -107,17 +107,16 @@ public class NAccessControllerV2 extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataList, "");
     }
 
-    @GetMapping(value = "/{type}/{uuid}", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
+    @GetMapping(value = "/{type}/{project}", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse<Map<String, Object>> getAccessEntities(@PathVariable("type") String type,
-            @PathVariable("uuid") String uuid, @RequestParam(value = "name", required = false) String nameSeg,
+            @PathVariable("project") String project, @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-
-        AclEntity ae = accessService.getAclEntity(type, uuid);
+        AclEntity ae = accessService.getAclEntity(type, getProject(project).getUuid());
         List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(ae,
                 nameSeg, isCaseSensitive);
         List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);

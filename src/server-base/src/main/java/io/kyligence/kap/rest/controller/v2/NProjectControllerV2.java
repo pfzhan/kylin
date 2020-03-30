@@ -51,10 +51,10 @@ public class NProjectControllerV2 extends NBasicController {
 
     @GetMapping(value = "", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
     @ResponseBody
-    public EnvelopeResponse getProjects(@RequestParam(value = "project", required = false) String project,
+    public EnvelopeResponse getProjects(@RequestParam(value = "projectName", required = false) String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size,
-            @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch) {
+            @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch) {
 
         List<ProjectInstance> readableProjects = projectService.getReadableProjects(project, exactMatch);
         HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, size);

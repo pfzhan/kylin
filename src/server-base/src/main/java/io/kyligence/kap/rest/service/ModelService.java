@@ -386,7 +386,7 @@ public class ModelService extends BasicService {
     public List<NDataModelResponse> getCubes0(String modelAlias, String project) {
         Preconditions.checkNotNull(project);
 
-        List<NDataModelResponse> modelResponseList = getModels(modelAlias, project, false, null, null, LAST_MODIFY,
+        List<NDataModelResponse> modelResponseList = getModels(modelAlias, project, true, null, null, LAST_MODIFY,
                 true);
 
         modelResponseList.forEach(modelResponse -> {

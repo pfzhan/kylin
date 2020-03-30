@@ -23,12 +23,15 @@
  */
 package io.kyligence.kap.rest.controller.v2;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.controller.NUserController;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.LicenseInfoService;
@@ -46,6 +49,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
 
@@ -68,7 +73,12 @@ public class NUserControllerV2 extends NBasicController {
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-        return nUserController.listAllUsers(project, nameSeg, isCaseSensitive, pageOffset, pageSize);
+
+        EnvelopeResponse<DataResult<List<ManagedUser>>> dataResult = nUserController.listAllUsers(project, nameSeg,
+                isCaseSensitive, pageOffset, pageSize);
+        Map<String, Object> result = Maps.newHashMap();
+        result.put("users", dataResult.getData().getValue());
+        return new EnvelopeResponse<>(dataResult.getCode(), result, dataResult.getMsg());
     }
 
     @PostMapping(value = "/user/authentication", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
