@@ -157,7 +157,7 @@
                   </span>
                   <el-dropdown-menu slot="dropdown">
                     <el-dropdown-item @click.native="discard([scope.row.id], scope.row.project, '', scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
-                    <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)" v-if="monitorActions.includes('diagnostic')">{{$t('jobDiagnosis')}}</el-dropdown-item>
+                    <el-dropdown-item @click.native="showDiagnosisDetail(scope.row.id)" v-if="monitorActions.includes('diagnostic')">{{$t('jobDiagnosis')}}</el-dropdown-item>
                   </el-dropdown-menu>
                 </el-dropdown>
               </common-tip>
