@@ -24,31 +24,254 @@
 
 package io.kyligence.kap.newten.auto;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.common.AccelerateInfo;
+import lombok.var;
 
 public class NReuseModelCcTest extends NAutoTestBase {
 
     @Override
     public String getProject() {
-        /**
-         * there are 2 online model in this project, AUTO_MODEL_TEST_KYLIN_FACT_1 and AUTO_MODEL_TEST_KYLIN_FACT_2.
-         * fact1 contain CC2 {item_count + price} and fact2 contains CC1( item_count * price )
-         *
-         */
-        return "smart_reuse_existed_models";
+        return "newten";
     }
 
+    @Before
+    public void setup() throws Exception {
+        super.setup();
+        prepareModels();
+    }
+
+    /**
+     * model1: AUTO_MODEL_TEST_KYLIN_FACT_1 contains a computed column { item_count + price }, left join
+     * model2: AUTO_MODEL_TEST_KYLIN_FACT_2 contains a computed column { item_count * price }, left join
+     * To be accelerated sql statements: 
+     *   sql1. select count(item_count + price) from test_kylin_fact group by cal_dt;
+     *   sql2. select count(item_count + price), count(item_count * price) from test_kylin_fact group by cal_dt;
+     *   sql3. select * from test_kylin_fact;
+     *   sql4. select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
+     *   sql5. select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
+     *
+     * expectation: all sql statements will success
+     */
     @Test
-    public void test_CcReplacedUsedModel_sameWith_reuseModelInModelProposal() {
-        String sql = "select count(item_count + price) from test_kylin_fact group by cal_dt";
+    public void testReuseModelOfSmartMode() {
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), getProject());
+        List<NDataModel> dataModels = modelManager.listAllModels();
+        Assert.assertEquals(2, dataModels.size());
+
+        String[] statements = { "select count(item_count + price) from test_kylin_fact group by cal_dt", // sql1
+                "select count(item_count + price), count(item_count * price) from test_kylin_fact group by cal_dt", // sql2
+                "select * from test_kylin_fact", // sql3
+                "select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt", // sql4
+                "select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" // sql5
+        };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), statements);
+        smartMaster.runAll();
+
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[0]).isNotSucceed());
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[1]).isNotSucceed());
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[2]).isNotSucceed());
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[3]).isNotSucceed());
+        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(statements[4]).isNotSucceed());
+        List<NDataModel> dataModelsAfterAutoModeling = modelManager.listAllModels();
+        Assert.assertEquals(3, dataModelsAfterAutoModeling.size());
+    }
+
+    /**
+     * model1: AUTO_MODEL_TEST_KYLIN_FACT_1 contains a computed column { item_count + price }, left join
+     * model2: AUTO_MODEL_TEST_KYLIN_FACT_2 contains a computed column { item_count * price }, left join
+     * To be accelerated sql statements: 
+     *   sql1. select count(item_count + price) from test_kylin_fact group by cal_dt;
+     *   sql2. select count(item_count + price), count(item_count * price) from test_kylin_fact group by cal_dt;
+     *   sql3. select * from test_kylin_fact;
+     *   sql4. select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
+     *   sql5. select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
+     *
+     * expectation: 
+     *   first round: sql1 and sql2 will success, sql3, sql4 and sql5 will pending.
+     *   second round: accelerate all pending sql statements, sql3 and sql4 will success, sql5 will pending
+     *   third round: accelerate sql5, sql5 still pending for semi-auto mode cannot create new model
+     */
+    @Test
+    public void testReuseModelOfSemiAutoMode() {
+        transferProjectToSemiAutoMode();
+        String[] statements = { "select count(item_count + price) from test_kylin_fact group by cal_dt", // sql1
+                "select count(item_count + price), count(item_count * price) from test_kylin_fact group by cal_dt", // sql2
+                "select * from test_kylin_fact", // sql3
+                "select * from test_kylin_fact left join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt", // sql4
+                "select * from test_kylin_fact inner join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt" // sql5
+        };
+
+        // first round
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), statements);
+        smartMaster.runAll();
+
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerateInfoMap.get(statements[0]).isNotSucceed());
+        Assert.assertFalse(accelerateInfoMap.get(statements[1]).isNotSucceed());
+        Assert.assertTrue(accelerateInfoMap.get(statements[2]).isPending());
+        Assert.assertEquals(NModelSelectProposer.CC_ACROSS_MODELS_PENDING_MSG,
+                accelerateInfoMap.get(statements[2]).getPendingMsg());
+        Assert.assertTrue(accelerateInfoMap.get(statements[3]).isPending());
+        Assert.assertEquals(NModelSelectProposer.CC_ACROSS_MODELS_PENDING_MSG,
+                accelerateInfoMap.get(statements[3]).getPendingMsg());
+        Assert.assertTrue(accelerateInfoMap.get(statements[4]).isPending());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
+                accelerateInfoMap.get(statements[4]).getPendingMsg());
+
+        // second round
+        smartMaster = new NSmartMaster(kylinConfig, getProject(),
+                new String[] { statements[2], statements[3], statements[4] });
+        smartMaster.runAll();
+
+        accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertFalse(accelerateInfoMap.get(statements[2]).isNotSucceed());
+        Assert.assertFalse(accelerateInfoMap.get(statements[3]).isNotSucceed());
+        Assert.assertTrue(accelerateInfoMap.get(statements[4]).isPending());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
+                accelerateInfoMap.get(statements[4]).getPendingMsg());
+
+        // third round
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { statements[4] });
+        smartMaster.runAll();
+
+        accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(statements[4]).isPending());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
+                accelerateInfoMap.get(statements[4]).getPendingMsg());
+    }
+
+    /**
+     * model1: AUTO_MODEL_TEST_KYLIN_FACT_1 contains a computed column { item_count + price }, left join
+     * model2: AUTO_MODEL_TEST_KYLIN_FACT_2 contains a computed column { item_count * price }, left join
+     * To be accelerated sql statements:
+     *   sql. select count(item_count + price), count(item_count * price) from test_kylin_fact join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt;
+     *
+     * expectation: pending
+     */
+    @Test
+    public void testCannotReuseModelOfSemiAutoMode() {
+        transferProjectToSemiAutoMode();
+        String sql = "select count(item_count + price), count(item_count * price) "
+                + "from test_kylin_fact join edw.test_cal_dt on test_kylin_fact.cal_dt = test_cal_dt.cal_dt";
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sql });
         smartMaster.runAll();
 
-        Assert.assertFalse(smartMaster.getContext().getAccelerateInfoMap().get(sql).isNotSucceed());
-        Assert.assertEquals("AUTO_MODEL_TEST_KYLIN_FACT_1",
-                smartMaster.getContext().getModelContexts().get(0).getTargetModel().getAlias());
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(sql).isPending());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
+                accelerateInfoMap.get(sql).getPendingMsg());
+    }
+
+    /**
+     * model1: AUTO_MODEL_TEST_KYLIN_FACT_1 contains a computed column { item_count + price }, left join
+     * model2: AUTO_MODEL_TEST_KYLIN_FACT_2 contains a computed column { item_count * price }, inner join
+     * To be accelerated sql statements: select * from test_kylin_fact;
+     *
+     * expectation: pending
+     */
+    @Test
+    public void testSelectStarReuseLeftJoinOfSemiAutoMode() {
+        transferProjectToSemiAutoMode();
+        NDataModelManager modelManager = NDataModelManager.getInstance(kylinConfig, getProject());
+        List<String> modelId = Lists.newArrayList();
+        modelManager.listAllModels().forEach(dataModel -> {
+            if (dataModel.getAlias().equals("AUTO_MODEL_TEST_KYLIN_FACT_2")
+                    && dataModel.getRootFactTable().getAlias().equals("TEST_KYLIN_FACT")) {
+                modelId.add(dataModel.getUuid());
+            }
+        });
+        Assert.assertEquals(1, modelId.size());
+        modelManager.updateDataModel(modelId.get(0), copyForWrite -> {
+            copyForWrite.getJoinTables().get(0).getJoin().setType("inner");
+        });
+
+        String sql = "select * from test_kylin_fact";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sql });
+        smartMaster.runAll();
+
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(sql).isNotSucceed());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
+                accelerateInfoMap.get(sql).getPendingMsg());
+    }
+
+    /**
+     * model1: Model3 contains a computed column {lineitem.l_extendedprice * lineitem.l_discount}, inner join
+     * model2: Model4 contains a computed column {lineitem.l_quantity * lineitem.l_extendedprice}, no join, share same fact table
+     * To be accelerated sql: select * from tpch.lineitem
+     *
+     * expectation: success
+     */
+    @Test
+    public void testSelectStarCheckInnerJoinOfSemiAutoMode() {
+        prepareMoreModels();
+        transferProjectToSemiAutoMode();
+        String sql = "select * from TPCH.LINEITEM";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sql });
+        smartMaster.runAll();
+
+        Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
+        Assert.assertTrue(accelerateInfoMap.get(sql).isNotSucceed());
+        Assert.assertEquals(NModelSelectProposer.NO_MODEL_MATCH_PENDING_MSG,
+                accelerateInfoMap.get(sql).getPendingMsg());
+    }
+
+    private void transferProjectToSemiAutoMode() {
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        projectManager.updateProject(getProject(), copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+            var properties = copyForWrite.getOverrideKylinProps();
+            if (properties == null) {
+                properties = Maps.newLinkedHashMap();
+            }
+            properties.put("kap.query.metadata.expose-computed-column", "true");
+            properties.put("kap.metadata.semi-automatic-mode", "true");
+            copyForWrite.setOverrideKylinProps(properties);
+        });
+    }
+
+    private void prepareModels() {
+        String[] sqls = {
+                "select count(item_count + price) from test_kylin_fact left join edw.test_cal_dt "
+                        + "on test_kylin_fact.cal_dt = test_cal_dt.cal_dt",
+                "select sum(item_count * price) from test_kylin_fact left join test_category_groupings "
+                        + "on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id "
+                        + "and test_kylin_fact.lstg_site_id = test_category_groupings.site_id" //
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[0] });
+        smartMaster.runAll();
+
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[1] });
+        smartMaster.runAll();
+    }
+
+    private void prepareMoreModels() {
+        String[] sqls = { //
+                "select count(l_extendedprice * l_discount) from tpch.lineitem "
+                        + "inner join tpch.part on lineitem.l_partkey = part.p_partkey",
+                "select sum(l_quantity * l_extendedprice) from tpch.lineitem" //
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[0] });
+        smartMaster.runAll();
+
+        smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { sqls[1] });
+        smartMaster.runAll();
     }
 }

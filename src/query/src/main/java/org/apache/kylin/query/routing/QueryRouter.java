@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -56,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
@@ -70,7 +72,8 @@ public class QueryRouter {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
-    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations, Map<String, String> aliasMap) {
+    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations,
+            Map<String, String> aliasMap) {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         IRealization readyReal = null;
@@ -84,9 +87,10 @@ public class QueryRouter {
             return null;
         }
 
-
         BiMap<String, String> aliasMapping = HashBiMap.create();
         aliasMapping.putAll(aliasMap);
+
+        OLAPContext preservedOLAPContext = preservePropsBeforeRewrite(olapContext);
         ComputedColumnRewriter.rewriteCcInnerCol(olapContext, readyReal.getModel(),
                 new QueryAliasMatchInfo(aliasMapping, null));
 
@@ -107,6 +111,8 @@ public class QueryRouter {
 
         collectIncapableReason(olapContext, originCandidates);
         if (candidates.isEmpty()) {
+            // discard the props of OLAPContext modified by rewriteCcInnerCol 
+            restoreOLAPContextProps(olapContext, preservedOLAPContext);
             return null;
         }
 
@@ -114,6 +120,31 @@ public class QueryRouter {
         logger.debug("The realizations remaining: {}, and the final chosen one for current olap context {} is {}",
                 RoutingRule.getPrintableText(candidates), olapContext.id, chosen.realization.getCanonicalName());
         return chosen;
+    }
+
+    private static OLAPContext preservePropsBeforeRewrite(OLAPContext oriOLAPContext) {
+        OLAPContext preserved = new OLAPContext(-1);
+        preserved.allColumns = Sets.newHashSet(oriOLAPContext.allColumns);
+        preserved.setSortColumns(Lists.newArrayList(oriOLAPContext.getSortColumns()));
+        preserved.setInnerGroupByColumns(Sets.newHashSet(oriOLAPContext.getInnerGroupByColumns()));
+        preserved.setGroupByColumns(Sets.newLinkedHashSet(oriOLAPContext.getGroupByColumns()));
+        preserved.setInnerFilterColumns(Sets.newHashSet(oriOLAPContext.getInnerFilterColumns()));
+        preserved.aggregations = Lists.newArrayList();
+        for (FunctionDesc agg : oriOLAPContext.aggregations) {
+            preserved.aggregations.add(//
+                    FunctionDesc.newInstance(agg.getExpression(), agg.getParameters(), agg.getReturnType()) //
+            );
+        }
+        return preserved;
+    }
+
+    private static void restoreOLAPContextProps(OLAPContext oriOLAPContext, OLAPContext preservedOLAPContext) {
+        oriOLAPContext.allColumns = preservedOLAPContext.allColumns;
+        oriOLAPContext.setSortColumns(preservedOLAPContext.getSortColumns());
+        oriOLAPContext.aggregations = preservedOLAPContext.aggregations;
+        oriOLAPContext.setGroupByColumns(preservedOLAPContext.getGroupByColumns());
+        oriOLAPContext.setInnerGroupByColumns(preservedOLAPContext.getInnerGroupByColumns());
+        oriOLAPContext.setInnerFilterColumns(preservedOLAPContext.getInnerFilterColumns());
     }
 
     private static void collectIncapableReason(OLAPContext olapContext, List<Candidate> candidates) {

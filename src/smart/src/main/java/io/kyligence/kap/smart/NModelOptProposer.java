@@ -31,6 +31,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.model.NModelMaster;
 
 class NModelOptProposer extends NAbstractProposer {
+    private static final String NO_COMPATIBLE_MODEL_MSG = "There is no compatible model to accelerate this sql.";
 
     NModelOptProposer(NSmartContext smartContext) {
         super(smartContext);
@@ -62,6 +63,10 @@ class NModelOptProposer extends NAbstractProposer {
                     model = modelMaster.proposeJoins(model);
                 } else if (model != null && modelCtx.getSmartContext().isCanModifyOriginModel()) {
                     model = modelMaster.proposeJoins(model);
+                }
+
+                if (model == null) {
+                    throw new IllegalStateException(NO_COMPATIBLE_MODEL_MSG);
                 }
                 model = modelMaster.proposePartition(model);
                 model = modelMaster.proposeComputedColumn(model);

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -54,14 +56,12 @@ import lombok.val;
 
 public class NModelSelectProposer extends NAbstractProposer {
 
-    private static final String EXCEPTION_MSG = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
-    private final NDataflowManager dataflowManager;
+    public static final String NO_MODEL_MATCH_PENDING_MSG = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
+    public static final String CC_ACROSS_MODELS_PENDING_MSG = "No model matches the SQL. Please add a model that contains all the computed columns used in the query.";
     private final NDataModelManager dataModelManager;
 
     NModelSelectProposer(NSmartContext smartContext) {
         super(smartContext);
-
-        dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
         dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
@@ -106,7 +106,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
                         AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(olapContext.sql);
-                        accelerateInfo.setPendingMsg(EXCEPTION_MSG);
+                        accelerateInfo.setPendingMsg(NO_MODEL_MATCH_PENDING_MSG);
                     });
                 }
             });
@@ -123,10 +123,22 @@ public class NModelSelectProposer extends NAbstractProposer {
                 .getProject(this.smartContext.getProject());
         List<NDataModel> originModels = getOriginModels();
         for (NDataModel model : originModels) {
-            if (!isContainAllCcColsInModel(model, modelTree))
+            List<OLAPContext> retainedOLAPContexts = retainCapableOLAPContexts(model,
+                    Lists.newArrayList(modelTree.getOlapContexts()));
+            if (retainedOLAPContexts.isEmpty()) {
                 continue;
+            }
 
             if (matchModelTree(model, modelTree, projectInstance.isSmartMode())) {
+                List<OLAPContext> disabledList = modelTree.getOlapContexts().stream()
+                        .filter(context -> !retainedOLAPContexts.contains(context)).collect(Collectors.toList());
+                disabledList.forEach(context -> {
+                    AccelerateInfo accelerateInfo = new AccelerateInfo();
+                    accelerateInfo.setPendingMsg(CC_ACROSS_MODELS_PENDING_MSG);
+                    smartContext.getAccelerateInfoMap().put(context.sql, accelerateInfo);
+                });
+                modelTree.getOlapContexts().clear();
+                modelTree.getOlapContexts().addAll(retainedOLAPContexts);
                 modelContext.setSnapshotSelected(false);
                 return model;
             }
@@ -139,21 +151,26 @@ public class NModelSelectProposer extends NAbstractProposer {
         return null;
     }
 
-    private boolean isContainAllCcColsInModel(NDataModel model, ModelTree modelTree) {
+    private List<OLAPContext> retainCapableOLAPContexts(NDataModel model, List<OLAPContext> olapContexts) {
         NDataModel targetModel = dataModelManager.copyForWrite(model);
         initModel(targetModel);
-        Set<ColumnDesc> ccColDesc = targetModel.getEffectiveCols().values().stream()
-                .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()).map(TblColRef::getColumnDesc)
-                .collect(Collectors.toSet());
-        for (OLAPContext context : modelTree.getOlapContexts()) {
-            Set<ColumnDesc> ccColDescInCtx = context.allColumns.stream()
-                    .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()).map(TblColRef::getColumnDesc)
-                    .collect(Collectors.toSet());
+        Set<ColumnDesc> ccColDesc = filterTblColRefOfCC(targetModel.getEffectiveCols().values());
+        Iterator<OLAPContext> iterator = olapContexts.iterator();
+        while (iterator.hasNext()) {
+            OLAPContext context = iterator.next();
+            Set<ColumnDesc> ccColDescInCtx = filterTblColRefOfCC(context.allColumns);
             if (!ccColDesc.containsAll(ccColDescInCtx)) {
-                return false;
+                iterator.remove();
             }
         }
-        return true;
+        return olapContexts;
+    }
+
+    private Set<ColumnDesc> filterTblColRefOfCC(Set<TblColRef> tableColRefSet) {
+        Preconditions.checkArgument(tableColRefSet != null);
+        return tableColRefSet.stream() //
+                .filter(tblColRef -> tblColRef.getColumnDesc().isComputedColumn()) //
+                .map(TblColRef::getColumnDesc).collect(Collectors.toSet());
     }
 
     public static boolean matchModelTree(NDataModel model, ModelTree modelTree, boolean couldModifyExistedModel) {
@@ -195,8 +212,8 @@ public class NModelSelectProposer extends NAbstractProposer {
             return false;
 
         val modelTreeRootTable = modelTree.getRootFactTable().getIdentity();
-        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                model.getProject()).getDataflow(model.getUuid());
+        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject())
+                .getDataflow(model.getUuid());
 
         if (dataflow == null || !dataflow.isReady() || dataflow.getLatestReadySegment() == null)
             return false;
