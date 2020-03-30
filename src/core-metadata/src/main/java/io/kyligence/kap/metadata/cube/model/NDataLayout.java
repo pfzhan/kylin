@@ -76,6 +76,9 @@ public class NDataLayout implements Serializable {
     @JsonProperty("partition_values")
     private List<String> partitionValues = new ArrayList<>();
 
+    @JsonProperty("is_ready")
+    private boolean isReady = false;
+
     @Getter
     @JsonProperty("create_time")
     private long createTime;
@@ -183,6 +186,14 @@ public class NDataLayout implements Serializable {
 
     public void setPartitionValues(List<String> partitionValues) {
         this.partitionValues = partitionValues;
+    }
+
+    public boolean isReady() {
+        return isReady;
+    }
+
+    public void setReady(boolean ready) {
+        isReady = ready;
     }
 
     // ============================================================================

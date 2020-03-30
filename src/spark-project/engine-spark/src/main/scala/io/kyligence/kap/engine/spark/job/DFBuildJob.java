@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -99,63 +100,65 @@ public class DFBuildJob extends SparkApplication {
         List<String> persistedViewFactTable = new ArrayList<>();
         Path shareDir = config.getJobTmpShareDir(project, jobId);
         checkDateFormatIfExist(project, dataflowId);
-        try {
-            IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
-            Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
-                    .filter(Objects::nonNull).collect(Collectors.toSet());
 
-            //TODO: what if a segment is deleted during building?
-            for (String segId : segmentIds) {
-                NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
-                NDataSegment seg = getSegment(segId);
-                if (seg == null || seg.getSegRange() == null || seg.getModel() == null || seg.getIndexPlan() == null) {  // vivo
-                    logger.info("Skip segment {}", segId);
-                    if (seg != null)
-                        logger.info("Args is {} {} {}", seg.getSegRange(), seg.getModel(), seg.getIndexPlan());
-                    continue;
-                }
-                if (seg.isEncodingDataSkew()) {
-                    logger.debug("Encoding data skew , set it to true");
-                    KylinBuildEnv.get().setEncodingDataSkew(true);
-                }
+        IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
+        Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream().filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-                // choose source
-                DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
-                datasetChooser.decideSources();
-                NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
-                Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
-                infos.clearCuboidsNumPerLayer(segId);
-                // build cuboids from flat table
-                if (buildFromFlatTable != null) {
-                    val path = datasetChooser.persistFlatTableIfNecessary();
-                    if (!path.isEmpty()) {
-                        persistedFlatTable.add(path);
-                    }
-                    if (!org.apache.commons.lang3.StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
-                        persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
-                    }
-                    build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
-                }
+        //TODO: what if a segment is deleted during building?
+        for (String segId : segmentIds) {
+            NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
+            NDataSegment seg = getSegment(segId);
+            if (seg == null || seg.getSegRange() == null || seg.getModel() == null || seg.getIndexPlan() == null) { // vivo
+                logger.info("Skip segment {}", segId);
+                if (seg != null)
+                    logger.info("Args is {} {} {}", seg.getSegRange(), seg.getModel(), seg.getIndexPlan());
+                continue;
+            }
+            if (seg.isEncodingDataSkew()) {
+                logger.debug("Encoding data skew , set it to true");
+                KylinBuildEnv.get().setEncodingDataSkew(true);
+            }
 
-                // build cuboids from reused layouts
-                if (!buildFromLayouts.isEmpty()) {
-                    build(buildFromLayouts.values(), segId, nSpanningTree);
+            // choose source
+            DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, true);
+            datasetChooser.decideSources();
+            NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
+            Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
+            infos.clearCuboidsNumPerLayer(segId);
+            // build cuboids from flat table
+            if (buildFromFlatTable != null) {
+                val path = datasetChooser.persistFlatTableIfNecessary();
+                if (!path.isEmpty()) {
+                    persistedFlatTable.add(path);
                 }
-                infos.recordSpanningTree(segId, nSpanningTree);
+                if (!org.apache.commons.lang3.StringUtils.isBlank(buildFromFlatTable.getViewFactTablePath())) {
+                    persistedViewFactTable.add(buildFromFlatTable.getViewFactTablePath());
+                }
+                build(Collections.singletonList(buildFromFlatTable), segId, nSpanningTree);
             }
-            Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(shareDir);
-            updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
-        } finally {
-            val fs = FileSystem.get(new Configuration());
-            for (String viewPath : persistedViewFactTable) {
-                fs.delete(new Path(viewPath), true);
-                logger.debug("Delete persisted view fact table: {}.", viewPath);
+
+            // build cuboids from reused layouts
+            if (!buildFromLayouts.isEmpty()) {
+                build(buildFromLayouts.values(), segId, nSpanningTree);
             }
-            for (String path : persistedFlatTable) {
-                fs.delete(new Path(path), true);
-                logger.debug("Delete persisted flat table: {}.", path);
-            }
+            infos.recordSpanningTree(segId, nSpanningTree);
         }
+        Map<String, Object> segmentSourceSize = ResourceDetectUtils.getSegmentSourceSize(shareDir);
+        updateSegmentSourceBytesSize(dataflowId, segmentSourceSize);
+        val fs = FileSystem.get(new Configuration());
+        for (String viewPath : persistedViewFactTable) {
+            fs.delete(new Path(viewPath), true);
+            logger.debug("Delete persisted view fact table: {}.", viewPath);
+        }
+        for (String path : persistedFlatTable) {
+            fs.delete(new Path(path), true);
+            logger.debug("Delete persisted flat table: {}.", path);
+        }
+
+        // reset flags in mem meta-store before being dumped to meta_out
+        // segment resumable flags shouldn't cross building jobs
+        resetSegmentMemOnly(segmentIds);
     }
 
     protected void updateSegmentSourceBytesSize(String dataflowId, Map<String, Object> toUpdateSegmentSourceSize) {
@@ -310,6 +313,10 @@ public class DFBuildJob extends SparkApplication {
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
+                if (seg.isAlreadyBuilt(layout.getId())) {
+                    logger.info("Skip already built layout:{}, in index:{}", layout.getId(), cuboid.getId());
+                    continue;
+                }
                 logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
                 ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
@@ -321,6 +328,10 @@ public class DFBuildJob extends SparkApplication {
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, cuboid.getEffectiveMeasures(), seg,
                     nSpanningTree);
             for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
+                if (seg.isAlreadyBuilt(layout.getId())) {
+                    logger.info("Skip already built layout:{}, in index:{}", layout.getId(), cuboid.getId());
+                    continue;
+                }
                 logger.info("Build layout:{}, in index:{}", layout.getId(), cuboid.getId());
                 ss.sparkContext().setJobDescription("build " + layout.getId() + " from parent " + parentName);
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
@@ -328,7 +339,6 @@ public class DFBuildJob extends SparkApplication {
                 Dataset<Row> afterSort = afterAgg
                         .select(NSparkCubingUtil.getColumns(rowKeys, layout.getOrderedMeasures().keySet()))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
-
                 layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
             }
         }
@@ -359,6 +369,7 @@ public class DFBuildJob extends SparkApplication {
         dataLayout.setPartitionValues(taskStats.partitionValues());
         dataLayout.setFileCount(taskStats.numFiles());
         dataLayout.setByteSize(taskStats.numBytes());
+        dataLayout.setReady(true);
         return dataLayout;
     }
 
@@ -406,5 +417,25 @@ public class DFBuildJob extends SparkApplication {
         } catch (ParseException | NoRetryException e) {
             throw new NoRetryException("date format not match");
         }
+    }
+
+    private void resetSegmentMemOnly(Set<String> segmentIds) {
+        Optional.ofNullable(segmentIds).orElseGet(Collections::emptySet).forEach(segId -> {
+            NDataSegment readOnlySeg = getSegment(segId);
+            NDataflow readOnlyDf = readOnlySeg.getDataflow();
+            NDataflow dfCopy = readOnlyDf.copy();
+            NDataSegment segCopy = dfCopy.getSegment(readOnlySeg.getId());
+
+            // reset
+            segCopy.setSnapshotReady(false);
+            segCopy.setDictReady(false);
+            segCopy.setFlatTableReady(false);
+            segCopy.setFactViewReady(false);
+
+            NDataflowUpdate dfUpdate = new NDataflowUpdate(readOnlyDf.getId());
+            dfUpdate.setToUpdateSegs(segCopy);
+
+            NDataflowManager.getInstance(config, project).updateDataflow(dfUpdate);
+        });
     }
 }

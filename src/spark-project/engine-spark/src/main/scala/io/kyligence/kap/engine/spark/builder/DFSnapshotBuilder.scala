@@ -32,12 +32,12 @@ import com.google.common.collect.Maps
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.KylinBuildEnv
 import io.kyligence.kap.engine.spark.utils.{FileNames, LogUtils}
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, FileSystem, Path, PathFilter}
-import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.common.util.HadoopUtil
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.internal.Logging
@@ -127,15 +127,13 @@ class DFSnapshotBuilder extends Logging {
           newSnapMap.put(tuple._1, tuple._2)
       }
     }
-    val dataflow = seg.getDataflow
+
+    // be careful
     // make a copy of the changing segment, avoid changing the cached object
-    val dfCopy = dataflow.copy
-    val segCopy = dfCopy.getSegment(seg.getId)
-    val update = new NDataflowUpdate(dataflow.getUuid)
-    segCopy.getSnapshots.putAll(newSnapMap)
-    update.setToUpdateSegs(segCopy)
-    val updatedDataflow = NDataflowManager.getInstance(seg.getConfig, seg.getProject).updateDataflow(update)
-    updatedDataflow.getSegment(seg.getId)
+    DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => {
+      copied.getSnapshots.putAll(newSnapMap)
+      copied.setSnapshotReady(true)
+    })
   }
 
   def distinctTableDesc(model: NDataModel): Set[TableDesc] = {

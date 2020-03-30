@@ -31,7 +31,9 @@ import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel
 import io.kyligence.kap.metadata.model.NDataModel.TableKind
 import org.apache.commons.lang3.StringUtils
+import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.datasource.storage.StorageStoreUtils
@@ -71,8 +73,12 @@ class DFChooser(toBuildTree: NSpanningTree,
         } else {
           if (flatTableSource == null) {
             if (needEncoding) {
-              val snapshotBuilder = new DFSnapshotBuilder(seg, ss)
-              seg = snapshotBuilder.buildSnapshot
+              if (seg.isSnapshotReady) {
+                logInfo(s"Skip already built snapshot, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
+              } else {
+                val snapshotBuilder = new DFSnapshotBuilder(seg, ss)
+                snapshotBuilder.buildSnapshot
+              }
             }
             flatTableSource = getFlatTable()
           }
@@ -105,9 +111,17 @@ class DFChooser(toBuildTree: NSpanningTree,
       df.select(columns.map(col): _*)
       if (df.schema.nonEmpty) {
         path = s"${config.getJobTmpFlatTableDir(seg.getProject, jobId)}"
-        ss.sparkContext.setJobDescription("Persist flat table.")
-        df.write.mode(SaveMode.Overwrite).parquet(path)
-        logInfo(s"Persist flat table into:$path. Selected cols in table are $columns.")
+
+        if (seg.isFlatTableReady && HadoopUtil.getWorkingFileSystem.exists(new Path(path))) {
+          logInfo(s"Skip already persisted flat table, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
+        } else {
+          ss.sparkContext.setJobDescription("Persist flat table.")
+          df.write.mode(SaveMode.Overwrite).parquet(path)
+          logInfo(s"Persist flat table into:$path. Selected cols in table are $columns.")
+
+          // checkpoint flat table
+          DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => copied.setFlatTableReady(true))
+        }
         flatTableSource.setParentStorageDF(ss.read.parquet(path))
       }
     }
@@ -126,9 +140,18 @@ class DFChooser(toBuildTree: NSpanningTree,
       if (fact.getTableDesc.isView && existsFactDictCol) {
         val viewDS = ss.table(fact.getTableDesc).alias(fact.getAlias)
         path = s"${config.getJobTmpViewFactTableDir(seg.getProject, jobId)}"
-        ss.sparkContext.setJobDescription("Persist view fact table.")
-        viewDS.write.mode(SaveMode.Overwrite).parquet(path)
-        logInfo(s"Persist view fact table into:$path.")
+
+        if (seg.isFactViewReady && HadoopUtil.getWorkingFileSystem.exists(new Path(path))) {
+          logInfo(s"Skip already persisted fact view, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
+        } else {
+          ss.sparkContext.setJobDescription("Persist view fact table.")
+          viewDS.write.mode(SaveMode.Overwrite).parquet(path)
+          logInfo(s"Persist view fact table into:$path.")
+
+          // checkpoint fact view
+          DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => copied.setFactViewReady(true))
+        }
+        // end of fact view persist
       }
     }
     path

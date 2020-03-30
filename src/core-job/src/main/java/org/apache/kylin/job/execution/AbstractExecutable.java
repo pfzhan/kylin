@@ -138,6 +138,10 @@ public abstract class AbstractExecutable implements Executable {
     @Setter
     private String id;
 
+    @Getter
+    @Setter
+    private boolean resumable = false;
+
     @Delegate
     private ExecutableParams executableParams = new ExecutableParams();
     protected String project;

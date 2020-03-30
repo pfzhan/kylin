@@ -193,11 +193,16 @@ public class NSparkExecutable extends AbstractExecutable {
             jars = kylinJobJar;
         }
 
-        deleteJobTmpDirectoryOnExists();
+        if(!isResumable()){
+            deleteJobTmpDirectoryOnExists();
+        }
+
         onExecuteStart();
 
         try {
-            attachMetadataAndKylinProps(config);
+            if(!isResumable()) {
+                attachMetadataAndKylinProps(config);
+            }
         } catch (IOException e) {
             throw new ExecuteException("meta dump failed", e);
         }

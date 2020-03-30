@@ -1274,7 +1274,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         assertMemoryRestore(currMem);
         assertTimeSucceed(createTime, job.getId());
         Assert.assertEquals(1, killProcessCount.get());
-
+        Assert.assertTrue(stopJob.isResumable());
     }
 
     @Test
@@ -1346,6 +1346,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertTimeSucceed(newCreateTime, job.getId());
         assertMemoryRestore(currMem);
+        Assert.assertFalse(stopJob.isResumable());
     }
 
     @Test
@@ -1610,6 +1611,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         assertTimeError(createTime, job.getId());
         assertMemoryRestore(currMem);
+        Assert.assertTrue(stopJob.isResumable());
     }
 
     @Repeat(3)

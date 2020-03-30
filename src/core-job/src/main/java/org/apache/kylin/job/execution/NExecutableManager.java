@@ -138,6 +138,7 @@ public class NExecutableManager {
         result.setJobType(executable.getJobType());
         result.setTargetModel(executable.getTargetSubject());
         result.setTargetSegments(executable.getTargetSegments());
+        result.getOutput().setResumable(executable.isResumable());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
             Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
@@ -329,7 +330,8 @@ public class NExecutableManager {
             resultExecutables.addAll(executables);
         }
         if (CollectionUtils.isNotEmpty(statuses)) {
-            return resultExecutables.stream().filter(t -> statuses.contains(t.getStatus())).collect(Collectors.toList());
+            return resultExecutables.stream().filter(t -> statuses.contains(t.getStatus()))
+                    .collect(Collectors.toList());
         } else {
             return resultExecutables;
         }
@@ -393,6 +395,7 @@ public class NExecutableManager {
             po.getOutput().setInfo(info);
             po.getOutput().setStatus(ExecutableState.READY.toString());
             po.getOutput().addEndTime(System.currentTimeMillis());
+            po.getOutput().setResumable(true);
             result = true;
         }
         for (ExecutablePO task : Optional.ofNullable(po.getTasks()).orElse(Lists.newArrayList())) {
@@ -406,17 +409,35 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
+
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus().isNotProgressing())
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
+
+        // to redesign: merge executableDao ops
+        executableDao.updateJob(jobId, executablePO -> {
+            executablePO.getOutput().setResumable(true);
+            executablePO.getTasks().forEach(task -> task.getOutput().setResumable(true));
+            return true;
+        });
+
         updateJobOutput(jobId, ExecutableState.READY);
     }
 
     public void restartJob(String jobId) {
+        // to redesign: merge executableDao ops
         updateJobReady(jobId);
-        resetJobTime(jobId);
+        executableDao.updateJob(jobId, job -> {
+            job.getOutput().setResumable(false);
+            job.getOutput().resetTime();
+            job.getTasks().forEach(task -> {
+                task.getOutput().setResumable(false);
+                task.getOutput().resetTime();
+            });
+            return true;
+        });
     }
 
     private void updateJobReady(String jobId) {
@@ -430,14 +451,6 @@ public class NExecutableManager {
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
         updateJobOutput(jobId, ExecutableState.READY);
-    }
-
-    private void resetJobTime(String jobId) {
-        executableDao.updateJob(jobId, job -> {
-            job.getOutput().resetTime();
-            job.getTasks().forEach(task -> task.getOutput().resetTime());
-            return true;
-        });
     }
 
     public long countCuttingInJobByModel(String model, AbstractExecutable job) {
@@ -623,6 +636,7 @@ public class NExecutableManager {
             result.setJobType(executablePO.getJobType());
             result.setTargetSubject(executablePO.getTargetModel());
             result.setTargetSegments(executablePO.getTargetSegments());
+            result.setResumable(executablePO.getOutput().isResumable());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);
@@ -640,9 +654,7 @@ public class NExecutableManager {
                                 ? result.getTargetSegments().get(0)
                                 : null;
                         ExecutableHandler executableHandler = hConstructor.newInstance(project,
-                                result.getTargetSubject(), result.getSubmitter(),
-                                segmentId,
-                                result.getId());
+                                result.getTargetSubject(), result.getSubmitter(), segmentId, result.getId());
                         ((DefaultChainedExecutableOnModel) result).setHandler(executableHandler);
                     }
                 }

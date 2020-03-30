@@ -22,36 +22,33 @@
 
 package io.kyligence.kap.engine.spark.builder
 
+import java.sql.Timestamp
 import java.util
 
 import com.google.common.collect.Sets
+import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder.DFBuilderHelper.{ENCODE_SUFFIX, _}
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
-import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
+import io.kyligence.kap.engine.spark.job.TableMetaManager
 import io.kyligence.kap.engine.spark.utils.SparkDataSource._
+import io.kyligence.kap.engine.spark.utils.{LogEx, LogUtils}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree
 import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.metadata.model._
 import org.apache.kylin.source.SourceFactory
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.parser.ParseException
 import org.apache.spark.sql.functions.{col, expr}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{AnalysisException, DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.storage.StorageLevel
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StructField, StructType}
-import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.types.TimestampType
-import java.sql.Timestamp
-
-import io.kyligence.kap.engine.spark.job.TableMetaManager
-import org.apache.spark.storage.StorageLevel
-
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
 
@@ -181,6 +178,11 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
       case _ =>
     }
 
+    if(needEncode) {
+      // checkpoint dict after all encodeWithCols actions done
+      DFBuilderHelper.checkPointSegment(seg, (copied: NDataSegment) => copied.setDictReady(true))
+    }
+
     rootFactDataset = applyFilterCondition(flatTable, rootFactDataset)
 
     flatTable match {
@@ -197,7 +199,11 @@ class CreateFlatTable(val flatTable: IJoinedFlatTableDesc,
                              dictCols: Set[TblColRef],
                              encodeCols: Set[TblColRef]): Dataset[Row] = {
     val ccDataset = withColumn(ds, ccCols)
-    buildDict(ccDataset, dictCols)
+    if(seg.isDictReady) {
+      logInfo(s"Skip already built dict, segment: ${seg.getId} of dataflow: ${seg.getDataflow.getId}")
+    } else {
+      buildDict(ccDataset, dictCols)
+    }
     encodeColumn(ccDataset, encodeCols)
   }
 

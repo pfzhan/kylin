@@ -200,13 +200,6 @@ public class UnitOfWork {
             return unitOfWork;
         }
 
-        //only for UT
-        if (KylinConfig.isKylinConfigThreadLocal() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
-            throw new IllegalStateException(
-                    "No thread local KylinConfig is expected when starting a UnitOfWork, current KylinConfig: "
-                            + KylinConfig.getInstanceFromEnv());
-        }
-
         //put a sandbox meta store on top of base meta store for isolation
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore underlying = ResourceStore.getKylinMetaStore(config);

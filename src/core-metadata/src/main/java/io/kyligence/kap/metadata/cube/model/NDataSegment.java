@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ISegment;
@@ -94,7 +95,25 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("is_encoding_data_skew")
     private boolean isEncodingDataSkew = false;
 
+    // resumable flag, donn't cross building jobs
+    // worked only in HDFSMeteStore
+    @JsonProperty("is_snapshot_ready")
+    private boolean isSnapshotReady = false;
 
+    // resumable flag, donn't cross building jobs
+    // worked only in HDFSMeteStore
+    @JsonProperty("is_dict_ready")
+    private boolean isDictReady = false;
+
+    // resumable flag, donn't cross building jobs
+    // worked only in HDFSMeteStore
+    @JsonProperty("is_flat_table_ready")
+    private boolean isFlatTableReady = false;
+
+    // resumable flag, donn't cross building jobs
+    // worked only in HDFSMeteStore
+    @JsonProperty("is_fact_view_ready")
+    private boolean isFactViewReady = false;
 
     // computed fields below
 
@@ -434,6 +453,45 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
             storageFileCount = fileCount;
         }
         return storageFileCount;
+    }
+
+    public boolean isAlreadyBuilt(long layoutId){
+        if (Objects.nonNull(layoutsMap) && layoutsMap.containsKey(layoutId)){
+            return layoutsMap.get(layoutId).isReady();
+        }
+        return false;
+    }
+
+    public boolean isSnapshotReady() {
+        return isSnapshotReady;
+    }
+
+    public void setSnapshotReady(boolean snapshotReady) {
+        isSnapshotReady = snapshotReady;
+    }
+
+    public boolean isDictReady() {
+        return isDictReady;
+    }
+
+    public void setDictReady(boolean dictReady) {
+        isDictReady = dictReady;
+    }
+
+    public boolean isFlatTableReady() {
+        return isFlatTableReady;
+    }
+
+    public void setFlatTableReady(boolean flatTableReady) {
+        isFlatTableReady = flatTableReady;
+    }
+
+    public boolean isFactViewReady() {
+        return isFactViewReady;
+    }
+
+    public void setFactViewReady(boolean factViewReady) {
+        isFactViewReady = factViewReady;
     }
 
     @Override

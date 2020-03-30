@@ -22,7 +22,10 @@
 
 package io.kyligence.kap.engine.spark.builder
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil._
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions.expr
@@ -62,5 +65,35 @@ object DFBuilderHelper extends Logging {
       .filter(ref => isValidExpr(ref.getExpressionInSourceDB, ds))
       .map(ref => expr(convertFromDot(ref.getExpressionInSourceDB)).alias(convertFromDot(ref.getIdentity)))
       .toSeq
+  }
+
+  def checkPointSegment(readOnlySeg: NDataSegment, checkpointOps: NDataSegment => Unit): NDataSegment = {
+    // read basic infos from the origin segment
+    val segId = readOnlySeg.getId
+    val dfId = readOnlySeg.getDataflow.getId
+    val project = readOnlySeg.getProject
+
+    // read the current config
+    // this config is initialized at SparkApplication in which the HDFSMetaStore has been specified
+    val config = KylinConfig.getInstanceFromEnv
+
+    // copy the latest df & seg
+    val dfCopy = NDataflowManager.getInstance(config, project).getDataflow(dfId).copy()
+    val segCopy = dfCopy.getSegment(segId)
+    val dfUpdate = new NDataflowUpdate(dfId)
+    checkpointOps(segCopy)
+    dfUpdate.setToUpdateSegs(segCopy)
+
+    // define the updating operations
+    class DataFlowUpdateOps extends UnitOfWork.Callback[NDataSegment] {
+      override def process(): NDataSegment = {
+        val updatedDf = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv, project).updateDataflow(dfUpdate)
+        updatedDf.getSegment(segId)
+      }
+    }
+
+    // temporarily for ut
+    // return the latest segment
+    UnitOfWork.doInTransactionWithRetry(new DataFlowUpdateOps, project)
   }
 }
