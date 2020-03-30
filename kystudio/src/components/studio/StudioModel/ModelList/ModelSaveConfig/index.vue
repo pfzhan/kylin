@@ -9,11 +9,23 @@
     @close="isShow && handleClose(false)"
     :close-on-press-escape="false"
     :close-on-click-modal="false">
-    <!-- <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div> -->
-    <!-- <div class="partition-set ksd-title-label ksd-mb-10" v-if="mode !== 'saveModel'">
-      <span>*</span>{{$t('modelPartitionSet')}}
+    <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div>
+    <div class="partition-set ksd-mb-10" v-if="mode === 'saveModel'">
+      <div class="ksd-title-label">{{$t('chooseBuildType')}}</div>
+      <el-select v-model="buildType" class="ksd-mtb-10" :disabled="!datasourceActions.includes('changeBuildType')">
+        <el-option :label="$t('incremental')" value="incremental"></el-option>
+        <el-option :label="$t('fullLoad')" value="fullLoad"></el-option>
+      </el-select>
+      <el-alert
+        class="ksd-pt-0"
+        :title="buildTips"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        show-icon>
+      </el-alert>
     </div>
-    <el-form v-if="mode !== 'saveModel'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
+    <el-form v-if="mode === 'saveModel'&&buildType=== 'incremental'" :model="partitionMeta" ref="partitionForm" :rules="partitionRules"  label-width="85px" label-position="top">
       <el-form-item  :label="$t('partitionDateColumn')" class="clearfix">
         <el-row :gutter="5">
           <el-col :span="12">
@@ -40,9 +52,9 @@
         <el-row :gutter="5">
           <el-col :span="12">
             <el-select :disabled="isLoadingFormat" v-guide.partitionColumnFormat style="width:100%" v-model="partitionMeta.format" :placeholder="$t('pleaseInputColumn')">
-              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option> -->
+              <el-option :label="f.label" :value="f.value" v-for="f in dateFormats" :key="f.label"></el-option>
               <!-- <el-option label="" value="" v-if="partitionMeta.column && timeDataType.indexOf(getColumnInfo(partitionMeta.column).datatype)===-1"></el-option> -->
-            <!-- </el-select>
+            </el-select>
           </el-col>
           <el-col :span="12">
             <el-tooltip effect="dark" :content="$t('detectFormat')" placement="top">
@@ -61,9 +73,9 @@
         </el-row>
         <span v-guide.checkPartitionColumnFormatHasData style="position:absolute;width:1px; height:0" v-if="partitionMeta.format"></span>
       </el-form-item>
-    </el-form> -->
+    </el-form>
     <template v-if="mode === 'saveModel'">
-      <!-- <div class="divider"></div> -->
+      <div class="divider"></div>
       <div class="ksd-title-label ksd-mb-10">
         {{$t('dataFilterCond')}}
         <el-tooltip effect="dark" :content="$t('dataFilterCondTips')" placement="right">
@@ -86,7 +98,7 @@
     </template>
     <div slot="footer" class="dialog-footer ky-no-br-space">
       <el-button plain size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange" :loading="isLoadingSave" v-guide.partitionSaveBtn @click="savePartitionConfirm" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" v-if="isShow" :disabled="isLoadingNewRange||disabledSave" :loading="isLoadingSave" v-guide.partitionSaveBtn @click="savePartitionConfirm" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -110,7 +122,8 @@ vuex.registerModule(['modals', 'ModelSaveConfig'], store)
 @Component({
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'datasourceActions'
     ]),
     // Store数据注入
     ...mapState('ModelSaveConfig', {
@@ -170,6 +183,21 @@ export default class ModelPartitionModal extends Vue {
     table: '',
     column: '',
     format: ''
+  }
+  buildType = 'incremental'
+  get disabledSave () {
+    if (this.buildType === 'incremental' && this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format || this.buildType === 'fullLoad') {
+      return false
+    } else {
+      return true
+    }
+  }
+  get buildTips () {
+    if (this.buildType === 'incremental') {
+      return this.$t('incrementalTips')
+    } else if (this.buildType === 'fullLoad') {
+      return this.$t('fullLoadTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
+    }
   }
   validateRange (rule, value, callback) {
     const [ startValue, endValue ] = value
@@ -387,8 +415,8 @@ export default class ModelPartitionModal extends Vue {
 
   savePartition () {
     this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
-    let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
-    if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
+    let hasSetDate = this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental'
+    if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column && this.buildType === 'incremental') {
       this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
     } else {
       this.modelDesc.partition_desc.partition_date_column = ''
@@ -404,7 +432,7 @@ export default class ModelPartitionModal extends Vue {
       this.isLoadingSave = true
       const checkData = objectClone(this.modelDesc)
       // 如果未选择partition 把partition desc 设置为null
-      if (!(checkData && checkData.partition_desc && checkData.partition_desc.partition_date_column)) {
+      if (!(checkData && checkData.partition_desc && checkData.partition_desc.partition_date_column) || this.buildType === 'fullLoad') {
         checkData.partition_desc = null
       }
       this.checkFilterConditon(checkData).then((res) => {
@@ -457,11 +485,6 @@ export default class ModelPartitionModal extends Vue {
     font-size: 12px;
     padding: 10px;
     .error-tag {
-      color: @error-color-1;
-    }
-  }
-  .partition-set {
-    span {
       color: @error-color-1;
     }
   }

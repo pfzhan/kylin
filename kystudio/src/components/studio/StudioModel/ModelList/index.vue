@@ -639,7 +639,7 @@ export default class ModelList extends Vue {
     const res = await this.fetchSegments({ projectName, modelName })
     const { total_size, value } = await handleSuccessAsync(res)
     let type = 'incremental'
-    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) && total_size) {
+    if (!(modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column)) {
       type = 'fullLoad'
     }
     await this.callModelBuildDialog({
@@ -698,6 +698,10 @@ export default class ModelList extends Vue {
             let cloneModelDesc = objectClone(this.modelData)
             this.callModelPartitionDialog({
               modelDesc: cloneModelDesc
+            }).then((res) => {
+              if (res.isSubmit) {
+                this.loadModelsList()
+              }
             })
           }
         })
