@@ -912,15 +912,15 @@ export default class JobsList extends Vue {
     }
   }
   handleSelectAll (val) {
-    if (this.jobTotal > 10 && this.filter.status !== '') {
+    if (this.jobTotal > this.filter.page_size && this.filter.status !== '') {
       this.isSelectAllShow = !this.isSelectAllShow
       this.isSelectAll = false
       this.selectedNumber = this.animatedNum(this.jobsList.length, 0)
     }
   }
   handleSelect (val) {
-    if (this.jobTotal > 10 && this.filter.status !== '') {
-      if (this.multipleSelection.length < 10) {
+    if (this.jobTotal > this.filter.page_size && this.filter.status !== '') {
+      if (this.multipleSelection.length < this.filter.page_size) {
         this.isSelectAllShow = false
       } else {
         this.isSelectAllShow = true
