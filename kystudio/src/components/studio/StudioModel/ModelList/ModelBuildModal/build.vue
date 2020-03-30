@@ -427,8 +427,10 @@
     validateRange (rule, value, callback) {
       const [ startValue, endValue ] = value
       const isLoadExisted = this.modelBuildMeta.isLoadExisted
-      if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
+      if ((!startValue || !endValue || transToUTCMs(startValue) > transToUTCMs(endValue)) && !isLoadExisted) {
         callback(new Error(this.$t('invaildDate')))
+      } else if (startValue && endValue && transToUTCMs(startValue) === transToUTCMs(endValue) && !isLoadExisted) {
+        callback(new Error(this.$t('invaildDateNoEqual')))
       } else {
         callback()
       }
