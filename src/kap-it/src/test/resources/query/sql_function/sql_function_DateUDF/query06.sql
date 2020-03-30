@@ -1,0 +1,11 @@
+select
+	   DATE_TRUNC('YEAR', "CAL_DT"),
+	   DATE_TRUNC('YYYY', "CAL_DT"),
+	   DATE_TRUNC('YY', "CAL_DT"),
+	   DATE_TRUNC('MM', "CAL_DT"),
+	   DATE_TRUNC('MONTH', "CAL_DT"),
+	   DATE_TRUNC('DAY', "CAL_DT"),
+	   DATE_TRUNC('DD', "CAL_DT"),
+	   DATE_TRUNC('HOUR', "CAL_DT"),
+	   DATE_TRUNC('WEEK', "CAL_DT")
+from TEST_KYLIN_FACT

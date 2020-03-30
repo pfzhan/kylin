@@ -316,7 +316,7 @@ object ExpressionConverter {
           case func if (varArgsFunc.contains(func)) => {
             callUDF(func, children.map(k_lit(_)): _*)
           }
-          case "date_part" | "date_trunc" =>
+          case "date_part"  =>
             var part = k_lit(children.head).toString().toUpperCase match {
               case "YEAR" =>
                 "y"
@@ -338,6 +338,8 @@ object ExpressionConverter {
                 k_lit(children.head).toString()
             }
             date_format(k_lit(children.apply(1)), part)
+          case "date_trunc" =>
+            date_trunc(children.head.toString, k_lit(children.apply(1)))
           case "datediff" =>
             datediff(k_lit(children.head), k_lit(children.apply(1)))
           case "initcap" =>

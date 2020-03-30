@@ -45,7 +45,6 @@ package org.apache.kylin.query.udf;
 import io.kyligence.kap.junit.TimeZoneTestRunner;
 import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
 import org.apache.kylin.query.udf.dateUdf.DatePartUDF;
-import org.apache.kylin.query.udf.dateUdf.DateTruncUDF;
 import org.apache.kylin.query.udf.dateUdf.DateDiffUDF;
 import org.apache.kylin.query.udf.dateUdf.AddMonthsUDF;
 import org.junit.Test;
@@ -137,19 +136,5 @@ public class DateUDFTest extends HotLoadKylinPropertiesTestCase {
         assertEquals(2019, datePartUDF.DATE_PART("year", Date.valueOf("2019-05-09")));
         assertEquals(5, datePartUDF.DATE_PART("month", Date.valueOf("2019-05-09")));
         assertEquals(9, datePartUDF.DATE_PART("day", Date.valueOf("2019-05-09")));
-    }
-
-    @Test
-    public void testDateTruncUDF() throws Exception {
-        DateTruncUDF dateTruncUDF = new DateTruncUDF();
-        assertEquals(2019, dateTruncUDF.DATE_TRUNC("year", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(5, dateTruncUDF.DATE_TRUNC("month", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(9, dateTruncUDF.DATE_TRUNC("day", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(11, dateTruncUDF.DATE_TRUNC("hour", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(49, dateTruncUDF.DATE_TRUNC("minute", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(45, dateTruncUDF.DATE_TRUNC("seconds", Timestamp.valueOf("2019-05-09 11:49:45")));
-        assertEquals(2019, dateTruncUDF.DATE_TRUNC("year", Date.valueOf("2019-05-09")));
-        assertEquals(5, dateTruncUDF.DATE_TRUNC("month", Date.valueOf("2019-05-09")));
-        assertEquals(9, dateTruncUDF.DATE_TRUNC("day", Date.valueOf("2019-05-09")));
     }
 }

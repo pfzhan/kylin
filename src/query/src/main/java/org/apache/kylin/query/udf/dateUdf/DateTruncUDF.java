@@ -43,42 +43,21 @@
 package org.apache.kylin.query.udf.dateUdf;
 
 import org.apache.calcite.linq4j.function.Parameter;
+import org.apache.calcite.sql.type.NotConstant;
+import org.apache.kylin.query.udf.CalciteNotSupportException;
 
 import java.sql.Timestamp;
 import java.sql.Date;
 
-public class DateTruncUDF {
+public class DateTruncUDF implements NotConstant {
 
-    public int DATE_TRUNC(@Parameter(name = "part") String part, @Parameter(name = "date") Timestamp date) {
-        String ret = null;
-        switch (part.toUpperCase()) {
-            case "YEAR":
-                ret = date.toString().substring(0, 4);
-                break;
-            case "MONTH":
-                ret = date.toString().substring(5, 7);
-                break;
-            case "DAY":
-                ret = date.toString().substring(8, 10);
-                break;
-            case "HOUR":
-                ret = date.toString().substring(11, 13);
-                break;
-            case "MINUTE":
-            case "MINUTES":
-                ret = date.toString().substring(14, 16);
-                break;
-            case "SECOND":
-            case "SECONDS":
-                ret = date.toString().substring(17, 19);
-                break;
-            default:
-                //throws
-        }
-        return Integer.valueOf(ret);
+    public Timestamp DATE_TRUNC(@Parameter(name = "part") String part, @Parameter(name = "date") Timestamp date)
+            throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 
-    public int DATE_TRUNC(@Parameter(name = "part") String part, @Parameter(name = "date") Date date) {
-        return DATE_TRUNC(part, new Timestamp(date.getTime()));
+    public Date DATE_TRUNC(@Parameter(name = "part") String part, @Parameter(name = "date") Date date)
+            throws CalciteNotSupportException {
+        throw new CalciteNotSupportException();
     }
 }

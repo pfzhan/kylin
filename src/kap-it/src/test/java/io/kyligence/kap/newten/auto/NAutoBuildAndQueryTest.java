@@ -82,19 +82,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_distinct_dim"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_except"),
                 new TestScenario(CompareLevel.SAME, "query/sql_extended_column"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_function"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_formatUDF"), //
-                // disabled, date_trunc def is incorrect
-//                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_OtherUDF"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_StringUDF"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_nullHandling"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_formatUDF"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_DateUDF"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_OtherUDF"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_expression"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_select_group_same_column"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_grouping"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_hive"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_inner_column"), //
@@ -148,6 +135,28 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 /* CompareLevel = NONE */
                 new TestScenario(CompareLevel.NONE, "query/sql_intersect_count"),
                 new TestScenario(CompareLevel.NONE, "query/sql_limit_offset"));
+    }
+
+    @Test
+    public void testUDFs() throws Exception {
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+
+        executeTestScenario(
+                new TestScenario(CompareLevel.SAME, "query/sql_function"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_nullHandling"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_formatUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_OtherUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_StringUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_nullHandling"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_formatUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_DateUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_OtherUDF"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_expression"), //
+                new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_select_group_same_column") //
+        );
     }
 
     @Test
