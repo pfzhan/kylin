@@ -1291,6 +1291,16 @@ public class ModelService extends BasicService {
         indexPlan.setUuid(model.getUuid());
         indexPlanManager.createIndexPlan(indexPlan);
         val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
+        SegmentRange range = null;
+        if (model.getPartitionDesc() == null
+                || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+            range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+        } else if (StringUtils.isNotEmpty(modelRequest.getStart()) && StringUtils.isNotEmpty(modelRequest.getEnd())) {
+            range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
+        }
+        if (range != null) {
+            dataflowManager.fillDfManually(df, Lists.newArrayList(range));
+        }
         UnitOfWorkContext context = UnitOfWork.get();
         context.doAfterUnit(() -> ModelDropAddListener.onAdd(project, model.getId(), model.getAlias()));
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
@@ -1625,6 +1635,7 @@ public class ModelService extends BasicService {
         if (modelDesc.getPartitionDesc() == null
                 || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())
                 || !modelDesc.getPartitionDesc().equals(partitionDesc)) {
+            aclEvaluate.checkProjectWritePermission(project);
             val request = convertToRequest(modelDesc);
             request.setPartitionDesc(partitionDesc);
             request.setProject(project);

@@ -77,7 +77,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
@@ -94,6 +93,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
@@ -130,7 +130,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
@@ -140,6 +139,7 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.junit.rule.TransactionExceptedException;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.cube.cuboid.CuboidStatus;
@@ -169,6 +169,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.exception.LookupTableException;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.InfluxDBQueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
@@ -220,7 +221,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Rule
-    public ExpectedException thrown = ExpectedException.none();
+    public TransactionExceptedException thrown = TransactionExceptedException.none();
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
@@ -1434,7 +1435,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertEquals("new_model", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(0, df.getSegments().size());
+        Assert.assertEquals(1, df.getSegments().size());
 
         modelManager.dropModel(newModel);
     }
@@ -1748,23 +1749,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
-        thrown.expect(TransactionException.class);
-        thrown.expect(new BaseMatcher() {
-            @Override
-            public void describeTo(Description description) {
-            }
-
-            @Override
-            public boolean matches(Object item) {
-                if (!(item instanceof TransactionException)) {
-                    return false;
-                }
-                TransactionException exception = (TransactionException) item;
-                return exception.getCause() instanceof KylinException && exception.getCause().getMessage()
-                        .contains("Table oriented model 'nmodel_basic' can not build segments manually!");
-
-            }
-        });
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction("Table oriented model 'nmodel_basic' can not build segments manually!");
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 
@@ -2838,6 +2824,43 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertNotNull(result);
     }
 
+    private void prepareModelToManually(String project, String modelId) {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
+        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(modelUpdate);
+    }
+
+    private void cleanSegment(String project, String modelId) {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
+        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
+        dataflow = dataflowManager.updateDataflow(dataflowUpdate);
+        Assert.assertEquals(0, dataflow.getSegments().size());
+
+    }
+
+    @Test
+    public void testBuildSegmentsManually_IncrementBuild_ChangePartition() throws Exception {
+        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String project = getProject();
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        modelManager.updateDataModel(modelId, copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+            copyForWrite.setPartitionDesc(null);
+        });
+        PartitionDesc partitionDesc = new PartitionDesc();
+        partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
+        partitionDesc.setPartitionDateFormat("yyyyMMdd");
+        modelService.incrementBuildSegmentsManually(project, modelId, "0", "100", partitionDesc, null);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        var dataflow = dataflowManager.getDataflow(modelId);
+        Assert.assertEquals(1, dataflow.getSegments().size());
+        Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
+    }
+
     @Test
     public void testBuildSegmentsManually_NoPartition_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -2861,7 +2884,15 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());
-
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), getProject());
+        var events = eventDao.getEventsOrdered();
+        Assert.assertEquals(1, events.size());
+        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        thrown.expectInTransaction(KylinException.class);
+        thrown.expectMessageInTransaction(String.format(
+                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING),
+                dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).getId()));
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
 
     @Test
