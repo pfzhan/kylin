@@ -79,6 +79,8 @@ public class JDBCResultMapper {
                     queryStatistics.setMeanDuration(((BigDecimal) rowMap.get("avg_duration")).longValue());
                 } else if (rowMap.get("avg_duration") instanceof Double) {
                     queryStatistics.setMeanDuration((Double) rowMap.get("avg_duration"));
+                } else if (rowMap.get("avg_duration") instanceof Long) {
+                    queryStatistics.setMeanDuration((Long) rowMap.get("avg_duration"));
                 }
             }
             if (rowMap.get(QueryHistory.MODEL) != null) {

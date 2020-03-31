@@ -24,17 +24,16 @@
 
 package io.kyligence.kap.rest.service;
 
+import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
+
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,10 +42,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.util.TimeUtil;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -65,9 +63,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import lombok.val;
@@ -203,37 +201,7 @@ public class QueryHistoryService extends BasicService {
         fillZeroForQueryStatistics(queryStatistics, startTime, endTime, dimension);
         return transformQueryStatisticsByTime(queryStatistics, "meanDuration", dimension);
     }
-    
-    private static void fillZeroForQueryStatistics(List<QueryStatistics> queryStatistics, long startTime, long endTime,
-            String dimension) {
-        if (!dimension.equals(DAY) && !dimension.equals(WEEK)) {
-            return;
-        }
-        if (dimension.equals(WEEK)) {
-            startTime = TimeUtil.getWeekStart(startTime);
-            endTime = TimeUtil.getWeekStart(endTime);
-        }
-        Set<Instant> instantSet = queryStatistics.stream().map(QueryStatistics::getTime).collect(Collectors.toSet());
-        int rawOffsetTime = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).getRawOffset();
 
-        long startOffSetTime = Instant.ofEpochMilli(startTime).plusMillis(rawOffsetTime).toEpochMilli();
-        Instant startInstant = Instant.ofEpochMilli(startOffSetTime - startOffSetTime % (1000 * 60 * 60 * 24));
-        long endOffSetTime = Instant.ofEpochMilli(endTime).plusMillis(rawOffsetTime).toEpochMilli();
-        Instant endInstant = Instant.ofEpochMilli(endOffSetTime - endOffSetTime % (1000 * 60 * 60 * 24));
-        while (!startInstant.isAfter(endInstant)) {
-            if (!instantSet.contains(startInstant)) {
-                QueryStatistics zeroStatistics = new QueryStatistics();
-                zeroStatistics.setCount(0);
-                zeroStatistics.setTime(startInstant);
-                queryStatistics.add(zeroStatistics);
-            }
-            if (dimension.equals(DAY)) {
-                startInstant = startInstant.plus(Duration.ofDays(1));
-            } else if (dimension.equals(WEEK)) {
-                startInstant = startInstant.plus(Duration.ofDays(7));
-            }
-        }
-    }
 
     private Map<String, Object> transformQueryStatisticsByModel(String project, List<QueryStatistics> statistics,
             String fieldName) {

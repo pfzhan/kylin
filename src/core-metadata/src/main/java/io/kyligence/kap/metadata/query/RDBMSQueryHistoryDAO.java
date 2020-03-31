@@ -24,8 +24,13 @@
 
 package io.kyligence.kap.metadata.query;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
@@ -34,6 +39,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,18 +52,21 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     private String realizationMetricMeasurement;
     private JdbcTemplate jdbcTemplate;
 
-    private static final String QUERY_COUNT_AND_AVG_DURATION_SQL_FORMAT = "SELECT COUNT(query_id) as count, avg(duration) as avg_duration FROM %s WHERE query_time>=? AND query_time <= ? AND project_name = ?";
-    private static final String QUERY_COUNT_BY_MODEL_SQL_FORMAT = "SELECT model,COUNT(query_id) as count FROM %s WHERE query_time>=? AND query_time <=? AND project_name = ? GROUP BY model";
-    private static final String AVG_DURATION_BY_MODEL_SQL_FORMAT = "SELECT model,avg(query_duration) as avg_duration FROM (select avg(duration) AS query_duration, model FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY model, query_id) as subquery GROUP BY model";
-    private static final String QUERY_COUNT_BY_TIME_SQL_FORMAT = "select %s as time,COUNT(id) as count FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY %s";
-    private static final String AVG_DURATION_BY_TIME_SQL_FORMAT = "select %s as time,avg(duration) as avg_duration FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY %s";
-    private static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
-    private static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
+    protected static final String QUERY_COUNT_AND_AVG_DURATION_SQL_FORMAT = "SELECT COUNT(query_id) as count, avg(duration) as avg_duration FROM %s WHERE query_time>=? AND query_time <= ? AND project_name = ?";
+    protected static final String QUERY_COUNT_BY_MODEL_SQL_FORMAT = "SELECT model,COUNT(query_id) as count FROM %s WHERE query_time>=? AND query_time <=? AND project_name = ? GROUP BY model";
+    protected static final String AVG_DURATION_BY_MODEL_SQL_FORMAT = "SELECT model,avg(query_duration) as avg_duration FROM (select avg(duration) AS query_duration, model FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY model, query_id) as subquery GROUP BY model";
+    protected static final String QUERY_COUNT_BY_TIME_SQL_FORMAT = "select %s as time,COUNT(id) as count FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY %s";
+    protected static final String AVG_DURATION_BY_TIME_SQL_FORMAT = "select %s as time,avg(duration) as avg_duration FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY %s";
+    protected static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
+    protected static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
 
     private static final int MAX_SIZE = 10000000;
     private static final long RETAIN_TIME = 30;
-    private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time, id FROM %s ORDER BY id DESC limit 1 OFFSET "
+    protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time, id FROM %s ORDER BY id DESC limit 1 OFFSET "
             + MAX_SIZE;
+
+    public static final String WEEK = "week";
+    public static final String DAY = "day";
 
     public static RDBMSQueryHistoryDAO getInstance(KylinConfig config, String project) {
         return config.getManager(project, RDBMSQueryHistoryDAO.class);
@@ -252,6 +261,37 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
                     QueryHistory.QUERY_FIRST_DAY_OF_WEEK);
         } else {
             return String.format(sqlPrefix, QueryHistory.QUERY_DAY, queryMetricMeasurement, QueryHistory.QUERY_DAY);
+        }
+    }
+
+    public static void fillZeroForQueryStatistics(List<QueryStatistics> queryStatistics, long startTime, long endTime,
+            String dimension) {
+        if (!dimension.equals(DAY) && !dimension.equals(WEEK)) {
+            return;
+        }
+        if (dimension.equals(WEEK)) {
+            startTime = TimeUtil.getWeekStart(startTime);
+            endTime = TimeUtil.getWeekStart(endTime);
+        }
+        Set<Instant> instantSet = queryStatistics.stream().map(QueryStatistics::getTime).collect(Collectors.toSet());
+        int rawOffsetTime = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).getRawOffset();
+
+        long startOffSetTime = Instant.ofEpochMilli(startTime).plusMillis(rawOffsetTime).toEpochMilli();
+        Instant startInstant = Instant.ofEpochMilli(startOffSetTime - startOffSetTime % (1000 * 60 * 60 * 24));
+        long endOffSetTime = Instant.ofEpochMilli(endTime).plusMillis(rawOffsetTime).toEpochMilli();
+        Instant endInstant = Instant.ofEpochMilli(endOffSetTime - endOffSetTime % (1000 * 60 * 60 * 24));
+        while (!startInstant.isAfter(endInstant)) {
+            if (!instantSet.contains(startInstant)) {
+                QueryStatistics zeroStatistics = new QueryStatistics();
+                zeroStatistics.setCount(0);
+                zeroStatistics.setTime(startInstant);
+                queryStatistics.add(zeroStatistics);
+            }
+            if (dimension.equals(DAY)) {
+                startInstant = startInstant.plus(Duration.ofDays(1));
+            } else if (dimension.equals(WEEK)) {
+                startInstant = startInstant.plus(Duration.ofDays(7));
+            }
         }
     }
 }
