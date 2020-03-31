@@ -646,7 +646,7 @@ export default class ModelList extends Vue {
       modelDesc: modelDesc,
       type: type,
       isHaveSegment: !!total_size,
-      disableFullLoad: type === 'fullLoad' && value[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
+      disableFullLoad: type === 'fullLoad' && value.length && value[0].status_to_display !== 'ONLINE' // 已存在全量加载任务时，屏蔽
     })
     this.refreshSegment()
   }

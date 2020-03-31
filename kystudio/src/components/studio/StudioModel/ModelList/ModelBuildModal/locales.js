@@ -36,9 +36,9 @@ export default {
     changeSegmentTip1: 'You have modified the partition column as {tableColumn}, time format {dateType}. After saving, all segments under the model {modelName} will be purged. You need to reload the data, the model cannot serve related queries during data loading. Please confirm whether to submit?',
     changeSegmentTip2: 'You have modified as no partition column. After saving, all segments under the model {modelName} will be purged . The system will automatically rebuild the index and full load the data. The model cannot serve related queries during index building. Please confirm whether to submit?',
     unableComplete: 'All indexes of this model are complete and do not need to be completed.',
-    changeBuildTypeTipsConfirm: 'You will modify the build method, this operation will clear all segments, please confirm',
-    partitionFirst: 'Please set the time partition column first',
-    invaildDateNoEqual: 'The start time (inclusive) cannot be equal to the end time (not included)'
+    invaildDateNoEqual: 'The start time (inclusive) cannot be equal to the end time (not included)',
+    changeBuildTypeTipsConfirm: 'You have modified as full load. After saving, all segments under the model {modelName} will be purged . The system will automatically rebuild the index and full load the data. The model cannot serve related queries during index building. Please confirm whether to submit?',
+    partitionFirst: 'Please set the time partition column first'
   },
   'zh-cn': {
     dataRangeValValid: '请输入构建日期范围',
@@ -77,8 +77,8 @@ export default {
     changeSegmentTip1: '您修改分区列为 {tableColumn}，格式为 {dateType}，保存后会导致模型 {modelName} 下的所有 Segments 被清空。您需要重新加载数据，数据加载期间该模型不能服务于相关的查询。请确认是否提交？',
     changeSegmentTip2: '您修改为无分区列，保存后会导致模型 {modelName} 下所有 Segments 被清空。系统将自动重新构建索引并全量加载数据，索引构建期间该模型不能服务于相关的查询。请确认是否提交？',
     unableComplete: '该模型所有的索引均完整，无需补全。',
-    changeBuildTypeTipsConfirm: '您将修改构建方式，该操作会清空所有 Segment，还请确认',
-    partitionFirst: '请您先设置分区列',
-    invaildDateNoEqual: '起始时间（包含）不能等于终止时间（不包含）'
+    invaildDateNoEqual: '起始时间（包含）不能等于终止时间（不包含）',
+    changeBuildTypeTipsConfirm: '您修改为全量构建，保存后会导致模型 {modelName} 下所有 Segments 被清空。系统将自动重新构建索引并全量加载数据，索引构建期间该模型不能服务于相关的查询。请确认是否提交？',
+    partitionFirst: '请您先设置分区列'
   }
 }
