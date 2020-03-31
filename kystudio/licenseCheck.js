@@ -1,6 +1,11 @@
 var fs = require("fs");
 var path = require("path"); //解析需要遍历的文件夹
 var filePath = path.resolve("./node_modules");
+
+// 如果checkresult.txt生成文件已存在先删除文件
+fs.existsSync(path.resolve('./checkresult.txt')) && fs.unlinkSync(path.resolve('./checkresult.txt'), function(err) {
+  if (err) throw err
+})
 //调用文件遍历方法
 fileDisplay(filePath);
 let result = {};
@@ -25,7 +30,6 @@ function fileDisplay(filePath) {
             var isDir = stats.isDirectory(); //是文件夹
             if (isFile) {
               if (filename === "package.json") {
-                // console.log(filename);
                 // 读取文件内容
                 var content = fs.readFileSync(filedir, "utf-8");
                 let s = JSON.parse(content);
@@ -34,12 +38,21 @@ function fileDisplay(filePath) {
                   count++;
                   let license;
                   let writeContent = (s._id || s.name) + ":";
-                  if (typeof s.license === "object") {
-                    license = s.license.type;
-                  } else if (s.licenses instanceof Array) {
-                    license = s.licenses[0].type;
+                  let packageLicense = s.license || s.licenses
+                  if (Object.prototype.toString.call(packageLicense) === '[object Object]') {
+                    license = packageLicense.type;
+                  } else if (Object.prototype.toString.call(packageLicense) === '[object Array]') {
+                    license = packageLicense[0].type;
+                  } else if (!packageLicense) {
+                    if (fs.existsSync(path.resolve(filePath + '/LICENSE'))) {
+                      let cont = fs.readFileSync(path.resolve(filePath + '/LICENSE'), 'utf-8')
+                      license = cont.split('\n')[0]
+                    }
                   } else {
-                    license = s.license;
+                    license = packageLicense;
+                  }
+                  if (license === 'GPL') {
+                    throw new Error("[三方依赖包license为 GPL]：", filedir)
                   }
                   writeContent += license;
                   writeContent += "\r";
