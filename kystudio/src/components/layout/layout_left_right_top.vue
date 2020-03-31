@@ -526,8 +526,13 @@ export default class LayoutLeftRightTop extends Vue {
   }
   _isAjaxProjectAcess (allProject, curProjectName, currentPathName, currentPath) {
     let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-    Promise.all([curProjectUserAccess]).then(() => {
+    Promise.all([curProjectUserAccess]).then((res) => {
       this._replaceRouter(currentPathName, currentPath)
+      this.$nextTick(() => {
+        if (!this.isSemiAutomatic) {
+          this.$router.push({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
+        }
+      })
     })
   }
   changeProject (val) {

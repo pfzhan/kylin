@@ -140,13 +140,13 @@ export default {
     "menu": {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
-        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic]", "value": "admin,project,user,group,groupDetail,diagnostic" },
+        { "key": "systemAdmin-*-[project,user,group,groupDetail,projectAuthority,diagnostic]", "value": "admin,project,user,group,groupDetail,diagnostic,projectAuthority" },
         { "key": "systemAdmin-*-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
-        { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin" },
+        { "key": "systemUser-admin-[project,user,group,groupDetail,projectAuthority]", "value": "project,admin,projectAuthority" },
         { "key": "systemUser-admin-[dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job,admin" },
         { "key": "systemUser-management-*", "value": "dashboard,query,insight,queryHistory,acceleration,studio,source,model,index,modelEdit,monitor,job" },
-        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit,monitor,job" },
-        { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,modelEdit" },
+        { "key": "systemUser-operation-*", "value": "dashboard,query,insight,queryHistory,studio,model,index,monitor,job" },
+        { "key": "systemUser-read-*", "value": "dashboard,query,insight,queryHistory,studio,model,index" },
         { "key": "systemUser-default-*", "value": "dashboard" }
       ]
     },

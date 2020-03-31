@@ -47,6 +47,11 @@ let routerOptions = {
         path: 'dashboard',
         component: dashboard
       }, {
+        // 无权限路由
+        name: 'noAuthority',
+        path: 'noAuthority',
+        component: () => import('../components/noAuthority/index.vue')
+      }, {
         name: 'Setting',
         path: '/setting',
         component: () => import('../components/setting/setting.vue')
