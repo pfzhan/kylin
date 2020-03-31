@@ -11,8 +11,16 @@
     :close-on-click-modal="false">
     <div class="ky-list-title" v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">{{$t('partitionSet')}}</div>
     <div class="partition-set ksd-mb-10" v-if="mode === 'saveModel'">
+      <el-alert
+        :title="$t('changeBuildTypeTips')"
+        type="warning"
+        :closable="false"
+        class="ksd-mb-10"
+        v-if="isShowWarning"
+        show-icon>
+      </el-alert>
       <div class="ksd-title-label">{{$t('chooseBuildType')}}</div>
-      <el-select v-model="buildType" class="ksd-mtb-10" :disabled="!datasourceActions.includes('changeBuildType')">
+      <el-select v-model="buildType" class="ksd-mtb-10" @change="handChangeBuildType" :disabled="!datasourceActions.includes('changeBuildType')">
         <el-option :label="$t('incremental')" value="incremental"></el-option>
         <el-option :label="$t('fullLoad')" value="fullLoad"></el-option>
       </el-select>
@@ -185,6 +193,7 @@ export default class ModelPartitionModal extends Vue {
     format: ''
   }
   buildType = 'incremental'
+  isShowWarning = false
   get disabledSave () {
     if (this.buildType === 'incremental' && this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format || this.buildType === 'fullLoad') {
       return false
@@ -197,6 +206,11 @@ export default class ModelPartitionModal extends Vue {
       return this.$t('incrementalTips')
     } else if (this.buildType === 'fullLoad') {
       return this.$t('fullLoadTips', {storageSize: Vue.filter('dataSize')(this.modelDesc.storage)})
+    }
+  }
+  handChangeBuildType () {
+    if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
+      this.isShowWarning = true
     }
   }
   validateRange (rule, value, callback) {
@@ -350,6 +364,9 @@ export default class ModelPartitionModal extends Vue {
       this.$nextTick(() => {
         this.$refs.partitionForm && this.$refs.partitionForm.validate()
       })
+      if (this.modelDesc.uuid && !(this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column)) {
+        this.buildType = 'fullLoad'
+      }
       if (this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
         let named = this.modelDesc.partition_desc.partition_date_column.split('.')
         this.partitionMeta.table = this.prevPartitionMeta.table = named[0]
@@ -389,23 +406,18 @@ export default class ModelPartitionModal extends Vue {
     this.filterCondition = ''
     this.isLoadingSave = false
     this.isLoadingFormat = false
+    this.isShowWarning = false
   }
 
   async savePartitionConfirm () {
     await (this.$refs.rangeForm && this.$refs.rangeForm.validate()) || Promise.resolve()
     await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
     if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
-      if (this.prevPartitionMeta.table && !this.partitionMeta.table) {
-        kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
-          this.savePartition()
-        })
-        return
+      if (this.prevPartitionMeta.table && this.buildType === 'fullLoad') {
+        await kapConfirm(this.$t('changeSegmentTip2', {modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
       }
-      if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
-        kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip')).then(() => {
-          this.savePartition()
-        })
-        return
+      if ((this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) && this.buildType === 'incremental') {
+        await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
       }
       this.savePartition()
     } else {

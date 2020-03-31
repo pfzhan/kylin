@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog class="model-build" :title="$t('build')" width="560px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+    <el-dialog class="model-build" :title="$t('buildIndex')" width="560px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-alert
           :title="$t('changeBuildTypeTips')"
