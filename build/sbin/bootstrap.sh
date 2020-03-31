@@ -244,13 +244,13 @@ function stopKE(){
 
            checkIfStopUserSameAsStartUser $PID
 
-           echo "Stopping Kylin: $PID"
+           echo `date '+%Y-%m-%d %H:%M:%S '`"Stopping Kylin: $PID"
            kill $PID
            for i in {1..10}; do
               sleep 3
               if ps -p $PID -f | grep kylin > /dev/null; then
                  if [ "$i" == "10" ]; then
-                    echo "Killing Kylin: $PID"
+                    echo `date '+%Y-%m-%d %H:%M:%S '`"Killing Kylin: $PID"
                     kill -9 $PID
                  fi
                  continue
@@ -280,7 +280,7 @@ elif [ "$1" == "start" ]; then
     startKE
 # stop command
 elif [ "$1" == "stop" ]; then
-    echo "Stopping Kylingence Enterprise..."
+    echo `date '+%Y-%m-%d %H:%M:%S '`"Stopping Kylingence Enterprise..."
     stopKE
     if [[ $? == 0 ]]; then
         exit 0
