@@ -46,10 +46,13 @@ package org.apache.kylin.metadata.querymeta;
 import java.io.Serializable;
 import java.util.HashSet;
 
+import lombok.NoArgsConstructor;
+
 /**
  * Created by luwei on 17-4-26.
  */
 @SuppressWarnings("serial")
+@NoArgsConstructor
 public class TableMetaWithType extends TableMeta {
     public static enum tableTypeEnum implements Serializable {
 

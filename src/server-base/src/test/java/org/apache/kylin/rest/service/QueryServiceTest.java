@@ -1029,6 +1029,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    //ref KE-12803
+    public void testDeepCopy() throws IOException {
+        final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+        tableMetas.stream()
+                .map(tableMetaWithType -> JsonUtil.deepCopyQuietly(tableMetaWithType, TableMetaWithType.class))
+                .collect(Collectors.toList());
+    }
+
+    @Test
     //reference KE-8052
     public void testQueryWithConstant() throws SQLException {
         doTestQueryWithConstant("select current_timestamp");
