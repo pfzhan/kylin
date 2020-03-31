@@ -283,7 +283,7 @@
                   v-model="buildVisible[scope.row.uuid]">
                   <div>{{$t('buildTips')}}</div>
                   <div style="text-align: right; margin: 0">
-                    <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(scope.row.uuid)">{{$t('iKown')}}</el-button>
+                    <el-button type="primary" size="mini" class="ksd-ptb-0" text @click="closeBuildTips(scope.row.uuid)">{{$t('iKnow')}}</el-button>
                   </div>
                 </el-popover>
                 <i class="el-icon-ksd-icon_build-index ksd-fs-14" :class="{'build-disabled':!scope.row.total_indexes}" v-popover:popoverBuild v-guide.setDataRangeBtn @click="setModelBuldRange(scope.row)"></i>
