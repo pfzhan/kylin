@@ -23,8 +23,9 @@
  */
 package io.kyligence.kap.tool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.tool.util.ToolUtil;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.joda.time.DateTime;
 import org.junit.After;
@@ -35,8 +36,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.tool.util.ToolUtil;
 
 public class KylinLogToolTest extends NLocalFileMetadataTestCase {
 
@@ -91,20 +92,24 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
 
-        File accessLog = new File(ToolUtil.getLogFolder(), "access_log.1");
+        File accessLog1 = new File(ToolUtil.getLogFolder(), "access_log.2020-01-01.log");
+        File accessLog2 = new File(ToolUtil.getLogFolder(), "access_log.2020-01-02.log");
         File gcLog = new File(ToolUtil.getLogFolder(), "kylin.gc.1");
         File shellLog = new File(ToolUtil.getLogFolder(), "shell.1");
 
-        FileUtils.writeStringToFile(accessLog, "111");
+        FileUtils.writeStringToFile(accessLog1, "111");
+        FileUtils.writeStringToFile(accessLog2, "111");
         FileUtils.writeStringToFile(gcLog, "111");
         FileUtils.writeStringToFile(shellLog, "111");
 
-        KylinLogTool.extractOtherLogs(mainDir);
+        KylinLogTool.extractOtherLogs(mainDir, 1577894400000L, 1577894400000L);
 
-        FileUtils.deleteQuietly(accessLog);
+        FileUtils.deleteQuietly(accessLog1);
+        FileUtils.deleteQuietly(accessLog2);
         FileUtils.deleteQuietly(gcLog);
         FileUtils.deleteQuietly(shellLog);
-        Assert.assertTrue(new File(mainDir, "logs/access_log.1").exists());
+        Assert.assertFalse(new File(mainDir, "logs/access_log.2020-01-01.log").exists());
+        Assert.assertTrue(new File(mainDir, "logs/access_log.2020-01-02.log").exists());
         Assert.assertTrue(new File(mainDir, "logs/kylin.gc.1").exists());
         Assert.assertTrue(new File(mainDir, "logs/shell.1").exists());
     }

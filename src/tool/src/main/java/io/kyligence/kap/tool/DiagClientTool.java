@@ -181,14 +181,14 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
             long logStartTime = System.currentTimeMillis();
             logger.info("Start to extract log files.");
             KylinLogTool.extractKylinLog(exportDir, startTime, endTime);
-            KylinLogTool.extractOtherLogs(exportDir);
+            KylinLogTool.extractOtherLogs(exportDir, startTime, endTime);
             DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
         }
 
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
-    private void exportSparkLog(File exportDir, long startTime, long endTime, long start, File recordTime){
+    private void exportSparkLog(File exportDir, long startTime, long endTime, long start, File recordTime) {
         // job spark log
         executorService.execute(() -> {
             logger.info("Start to extract spark logs.");
@@ -199,12 +199,13 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         // sparder history rolling eventlog
         executorService.execute(() -> {
             logger.info("Start to extract sparder history logs.");
-            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(), getSparderAppId());
+            KylinLogTool.extractSparderEventLog(exportDir, startTime, endTime, getKapConfig().getSparkConf(),
+                    getSparderAppId());
             DiagnosticFilesChecker.writeMsgToFile("SPARDER_HISTORY", System.currentTimeMillis() - start, recordTime);
         });
     }
 
-    private void exportInfluxDBMetrics(File exportDir, long startTime, long endTime, long start, File recordTime){
+    private void exportInfluxDBMetrics(File exportDir, long startTime, long endTime, long start, File recordTime) {
         // influxdb metrics
         executorService.execute(() -> {
             logger.info("Start to dump influxdb metrics.");
@@ -220,7 +221,8 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         });
     }
 
-    private void exportFileInfo(boolean includeConf, File exportDir, long startTime, long endTime, long start, File recordTime){
+    private void exportFileInfo(boolean includeConf, File exportDir, long startTime, long endTime, long start,
+            File recordTime) {
         // export conf
         if (includeConf) {
             executorService.execute(() -> {

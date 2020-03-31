@@ -29,7 +29,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,10 +69,9 @@ public class KylinLogTool {
 
     private static final int EXTRA_LINES = 100;
 
-    private static final String  ROLL_LOG_DIR_NAME_PREFIX = "eventlog_v2_";
+    private static final String ROLL_LOG_DIR_NAME_PREFIX = "eventlog_v2_";
 
-    private static final String  ROLL_LOG_FILE_NAME_PREFIX = "events";
-
+    private static final String ROLL_LOG_FILE_NAME_PREFIX = "events";
 
     // 2019-11-11 03:24:52,342 DEBUG [JobWorker(prj:doc_smart,jobid:8a13964c)-965] job.NSparkExecutable : Copied metadata to the target metaUrl, delete the temp dir: /tmp/kylin_job_meta204633716010108932
     private static String getJobLogPattern(String jobId) {
@@ -91,10 +92,16 @@ public class KylinLogTool {
      * extract the specified log from kylin logs dir.
      * @param exportDir
      */
-    public static void extractOtherLogs(File exportDir) {
-        File destDir = new File(exportDir, "logs");
 
-        String[] includeLogs = { "access_log.", "kylin.gc.", "shell.", "kylin.out", "diag.log" };
+    public static void extractOtherLogs(File exportDir, long start, long end) {
+
+        File destDir = new File(exportDir, "logs");
+        SimpleDateFormat logFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String startDate = logFormat.format(new Date(start));
+        String endDate = logFormat.format(new Date(end));
+        logger.debug("logs startDate : {}, endDate : {}", startDate, endDate);
+        String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
+        String[] partIncludeLog = { "access_log." };
         try {
             FileUtils.forceMkdir(destDir);
             File kylinLogDir = new File(ToolUtil.getLogFolder());
@@ -106,9 +113,17 @@ public class KylinLogTool {
                 }
 
                 for (File logFile : logFiles) {
-                    for (String includeLog : includeLogs) {
+                    for (String includeLog : allIncludeLogs) {
                         if (logFile.getName().startsWith(includeLog)) {
                             FileUtils.copyFileToDirectory(logFile, destDir);
+                        }
+                    }
+                    for (String includeLog : partIncludeLog) {
+                        if (logFile.getName().startsWith(includeLog)) {
+                            String date = logFile.getName().split("\\.")[1];
+                            if (date.compareTo(startDate) >= 0 && date.compareTo(endDate) <= 0) {
+                                FileUtils.copyFileToDirectory(logFile, destDir);
+                            }
                         }
                     }
                 }
@@ -362,8 +377,8 @@ public class KylinLogTool {
      * Extract the sparder history event log for job diagnosis. Sparder conf must set "spark.eventLog.rolling.enabled=true"
      * otherwise it always increases.
      */
-    public static void extractSparderEventLog(File exportDir, long  startTime, long endTime, Map<String, String> sparderConf,
-                                              String appId) {
+    public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
+            Map<String, String> sparderConf, String appId) {
         try {
             String logDir = sparderConf.get("spark.eventLog.dir");
             boolean rollEnabled = Boolean.parseBoolean(sparderConf.get("spark.eventLog.rolling.enabled").trim());
@@ -377,7 +392,7 @@ public class KylinLogTool {
                 return;
             }
 
-            if(!rollEnabled){
+            if (!rollEnabled) {
                 for (FileStatus fileStatus : fileStatuses) {
                     if (fileStatus.getPath().getName().contains(appId)) {
                         fs.copyToLocalFile(false, fileStatus.getPath(), new Path(sparkLogsDir.getAbsolutePath()), true);
@@ -401,29 +416,29 @@ public class KylinLogTool {
     }
 
     private static void copyValidLog(String appId, long startTime, long endTime, FileStatus fileStatus, FileSystem fs,
-                                    File localFile) throws IOException {
+            File localFile) throws IOException {
         FileStatus[] eventStatuses = fs.listStatus(new Path(fileStatus.getPath().toUri()));
-        for(FileStatus status : eventStatuses){
+        for (FileStatus status : eventStatuses) {
 
             boolean valid = false;
-            String[] att = status.getPath().getName().replace("_"+appId, "").split("_");
-            if(att.length >= 3 && ROLL_LOG_FILE_NAME_PREFIX.equals(att[0])){
+            String[] att = status.getPath().getName().replace("_" + appId, "").split("_");
+            if (att.length >= 3 && ROLL_LOG_FILE_NAME_PREFIX.equals(att[0])) {
 
                 long begin = Long.parseLong(att[2]);
                 long end = System.currentTimeMillis();
-                if(att.length == 4){
+                if (att.length == 4) {
                     end = Long.parseLong(att[3]);
                 }
 
                 boolean isTimeValid = begin <= endTime && end >= startTime;
                 boolean isFirstLogFile = "1".equals(att[1]);
-                if(isTimeValid || isFirstLogFile){
+                if (isTimeValid || isFirstLogFile) {
                     valid = true;
                 }
             }
 
-            if(valid){
-                if(!localFile.exists()){
+            if (valid) {
+                if (!localFile.exists()) {
                     FileUtils.forceMkdir(localFile);
                 }
                 fs.copyToLocalFile(false, status.getPath(), new Path(localFile.getAbsolutePath()), true);
@@ -431,7 +446,6 @@ public class KylinLogTool {
         }
 
     }
-
 
     /**
      * extract the job tmp by project and jobId.

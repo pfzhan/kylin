@@ -23,8 +23,9 @@
  */
 package io.kyligence.kap.tool;
 
-import com.google.common.io.ByteStreams;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -37,8 +38,10 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 
-import java.io.File;
-import java.io.IOException;
+import com.google.common.io.ByteStreams;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.val;
 
 public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
@@ -59,13 +62,11 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetProjectByJobId() {
-        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        resourceStore.putResourceWithoutCheck("/expert_01/execute/9462fee8-e6cd-4d18-a5fc-b598a3c5edb5",
-                ByteStreams.asByteSource("{1:1}".getBytes()), DateTime.now().getMillis(), 0);
-        String project = new JobDiagInfoTool().getProjectByJobId("9462fee8-e6cd-4d18-a5fc-b598a3c5edb5");
-        resourceStore.deleteResource("/expert_01/execute/9462fee8-e6cd-4d18-a5fc-b598a3c5edb5");
-        Assert.assertEquals("expert_01", project);
+    public void testGetJobByJobId() {
+        val job = new JobDiagInfoTool().getJobByJobId("dd5a6451-0743-4b32-b84d-2ddc8052429f");
+        Assert.assertEquals("newten", job.getProject());
+        Assert.assertEquals(1574130051721L, job.getCreateTime());
+        Assert.assertEquals(1574818631319L, job.getEndTime());
     }
 
     @Test
@@ -84,7 +85,7 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
         for (File file1 : mainDir.listFiles()) {
             for (File file2 : file1.listFiles()) {
-                if(!file2.getName().contains("job") || !file2.getName().endsWith(".zip")) {
+                if (!file2.getName().contains("job") || !file2.getName().endsWith(".zip")) {
                     Assert.fail();
                 }
             }

@@ -24,20 +24,24 @@
 package io.kyligence.kap.tool;
 
 import java.io.File;
-import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.tool.util.DiagnosticFilesChecker;
+import lombok.val;
 
 public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     private static final Logger logger = LoggerFactory.getLogger("diag");
@@ -98,11 +102,15 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
 
-        String project = getProjectByJobId(jobId);
-        if (null == project) {
+        val job = getJobByJobId(jobId);
+        if (null == job) {
             logger.error("Can not find the jobId: {}", jobId);
             return;
         }
+        String project = job.getProject();
+        long startTime = job.getCreateTime();
+        long endTime = job.getEndTime() != 0 ? job.getEndTime() : System.currentTimeMillis();
+        logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
         // dump job metadata
         executorService.execute(() -> {
@@ -224,43 +232,22 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         logger.info("Start to extract log files.");
         long logStartTime = System.currentTimeMillis();
         KylinLogTool.extractKylinLog(exportDir, jobId);
-        KylinLogTool.extractOtherLogs(exportDir);
+        KylinLogTool.extractOtherLogs(exportDir, startTime, endTime);
         DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
 
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
-    /**
-     * get project by jobId and check the jobId exists.
-     * @param jobId
-     * @return
-     */
     @VisibleForTesting
-    public String getProjectByJobId(String jobId) {
-        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(getKylinConfig());
-        Set<String> projects = resourceStore.listResources(SLASH);
-        if (null == projects) {
-            return null;
-        }
-
+    public AbstractExecutable getJobByJobId(String jobId) {
+        val projects = NProjectManager.getInstance(getKylinConfig()).listAllProjects().stream()
+                .map(ProjectInstance::getName).collect(Collectors.toList());
         for (String project : projects) {
-            if ("/UUID".equals(project) || "/_global".equals(project)) {
-                continue;
-            }
-
-            String resourceRootPath = project + ResourceStore.EXECUTE_RESOURCE_ROOT;
-            Set<String> jobs = resourceStore.listResources(resourceRootPath);
-            if (null == jobs) {
-                continue;
-            }
-
-            for (String job : jobs) {
-                if (job.equals(resourceRootPath + "/" + jobId)) {
-                    return project.substring(1);
-                }
+            AbstractExecutable job = NExecutableManager.getInstance(getKylinConfig(), project).getJob(jobId);
+            if (job != null) {
+                return job;
             }
         }
-
         return null;
     }
 }
