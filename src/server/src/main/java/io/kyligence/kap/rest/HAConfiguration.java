@@ -75,8 +75,8 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
 
         String sqlFile = "script/schema-session-pg.sql";
-        if (dataSource instanceof org.apache.tomcat.jdbc.pool.DataSource
-                && ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).getPoolProperties().getDriverClassName()
+        if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
+                && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
                         .equals("com.mysql.jdbc.Driver")) {
             sqlFile = "script/schema-session-mysql.sql";
         }
