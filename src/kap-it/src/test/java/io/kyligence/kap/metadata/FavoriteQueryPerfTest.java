@@ -103,7 +103,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
     private static final String SQL_DIR = "../kap-it/src/test/resources/query";
 
     @Test
-    public void prepareQueryHistories() throws Throwable {
+    public void prepareQueryHistories() throws IOException, InterruptedException {
         List<String> queries = getSqls();
         val projects = NProjectManager.getInstance(getTestConfig()).listAllProjects();
 
@@ -294,10 +294,14 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
         log.info("time to filter blacklist sql is {}", (System.currentTimeMillis() - startTime) / 1000.0);
     }
 
-    private void writeToInfluxDB(SQLRequest sqlRequest, long insertTime) throws Throwable {
-        MetricWriterFactory.getInstance(MetricWriter.Type.INFLUX.name()).write(QueryHistory.DB_NAME,
-                sqlRequest.getProject(), getInfluxdbTags(sqlRequest), getInfluxdbFields(sqlRequest, insertTime),
-                insertTime);
+    private void writeToInfluxDB(SQLRequest sqlRequest, long insertTime) {
+        try {
+            MetricWriterFactory.getInstance(MetricWriter.Type.INFLUX.name()).write(QueryHistory.DB_NAME,
+                    sqlRequest.getProject(), getInfluxdbTags(sqlRequest), getInfluxdbFields(sqlRequest, insertTime),
+                    insertTime);
+        } catch (Throwable th) {
+            log.info("error when write to InfluxDB", th.getMessage());
+        }
     }
 
     private Map<String, String> getInfluxdbTags(final SQLRequest sqlRequest) {

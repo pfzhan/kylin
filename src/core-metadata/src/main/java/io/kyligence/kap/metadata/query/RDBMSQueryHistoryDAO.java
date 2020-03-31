@@ -117,7 +117,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
         }
         String deleteQueryHistoryForProjectSql = "delete from %s where project_name = ?";
         jdbcTemplate.update(String.format(deleteQueryHistoryForProjectSql, queryMetricMeasurement), project);
-        jdbcTemplate.update(String.format(deleteQueryHistoryForProjectSql + realizationMetricMeasurement), project);
+        jdbcTemplate.update(String.format(deleteQueryHistoryForProjectSql, realizationMetricMeasurement), project);
     }
 
     public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime, String project) {
