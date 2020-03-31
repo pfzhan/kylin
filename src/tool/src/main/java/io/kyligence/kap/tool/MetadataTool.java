@@ -274,6 +274,8 @@ public class MetadataTool extends ExecutableApplication {
         log.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
 
         val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);
+
+
         val backupMetadataStore = backupResourceStore.getMetadataStore();
 
         if (StringUtils.isBlank(project)) {
@@ -321,6 +323,7 @@ public class MetadataTool extends ExecutableApplication {
             }
             log.info("start to backup project {}", project);
         }
+        backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
         backupMetadataStore.dump(backupResourceStore);
         log.info("backup successfully at {}", path);
     }

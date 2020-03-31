@@ -258,12 +258,11 @@ public class TimeMachineTool extends ExecutableApplication {
     }
 
     private boolean isPortAvailable(int port) {
-        try {
-            ServerSocket server = new ServerSocket(port);
+        try (ServerSocket server = new ServerSocket(port)) {
             log.info("The port : {} is available", port);
             return true;
         } catch (IOException e) {
-            log.info("The port : {} is occupied", port);
+            log.error("dectect port available failed: {}", e);
         }
         return false;
     }

@@ -55,6 +55,7 @@ import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
+import lombok.val;
 
 public abstract class SparkJobMetadataMerger extends MetadataMerger {
     private static final Logger log = LoggerFactory.getLogger(SparkJobMetadataMerger.class);
@@ -129,8 +130,12 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                     TableDesc copyDesc = manager.copyForWrite(tableDesc);
                     copyDesc.setLastSnapshotPath(entry.getValue());
                     needUpdateTableDescs.add(copyDesc);
+                    val timeMachineEnabled = segmentConf.getTimeMachineEnabled();
+                    long survivalTimeThreshold = timeMachineEnabled
+                            ? segmentConf.getStorageResourceSurvivalTimeThreshold()
+                            : segmentConf.getSnapshotVersionTTL();
                     snapshotCheckerMap.put(snapshotPath, new SnapshotChecker(segmentConf.getSnapshotMaxVersions(),
-                            segmentConf.getSnapshotVersionTTL(), segmentFile.getModificationTime()));
+                            survivalTimeThreshold, segmentFile.getModificationTime()));
                 } else {
                     log.info(
                             "Skip update snapshot table because current segment snapshot table is to old. Current segment snapshot table ts is: {}",
