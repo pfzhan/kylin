@@ -897,7 +897,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, response.size());
         Assert.assertTrue(ids.contains(20000010001L));
 
-        Mockito.doReturn(Sets.newHashSet(20000020001L)).when(indexPlanService).getLayoutsByRunningJobs(getProject());
+        Mockito.doReturn(Sets.newHashSet(20000020001L)).when(indexPlanService).getLayoutsByRunningJobs(getProject(), modelId);
         response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("BUILDING"), "data_size",
                 false, null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());

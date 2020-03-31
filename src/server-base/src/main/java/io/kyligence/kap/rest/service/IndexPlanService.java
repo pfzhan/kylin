@@ -482,7 +482,7 @@ public class IndexPlanService extends BasicService {
         if (StringUtils.isBlank(key)) {
             return sortAndFilterLayouts(layouts.stream()
                     .map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(),
-                            getLayoutsByRunningJobs(project)))
+                            getLayoutsByRunningJobs(project, modelId)))
                     .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())),
                     orderBy, desc, sources);
         }
@@ -507,7 +507,8 @@ public class IndexPlanService extends BasicService {
             return String.valueOf(index.getId()).equals(trimmedKey)
                     || !Sets.intersection(matchDimensions, cols).isEmpty()
                     || !Sets.intersection(matchMeasures, cols).isEmpty();
-        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(), getLayoutsByRunningJobs(project)))
+        }).map(layoutEntity -> convertToResponse(layoutEntity, indexPlan.getModel(),
+                getLayoutsByRunningJobs(project, modelId)))
                 .filter(indexResponse -> statusSet.isEmpty() || statusSet.contains(indexResponse.getStatus())), orderBy,
                 desc, sources);
     }
@@ -629,13 +630,14 @@ public class IndexPlanService extends BasicService {
     }
 
     @VisibleForTesting
-    public Set<Long> getLayoutsByRunningJobs(String project) {
+    public Set<Long> getLayoutsByRunningJobs(String project, String modelId) {
         List<AbstractExecutable> runningJobList = NExecutableManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project).getExecutablesByStatusList(Sets.newHashSet(
                         ExecutableState.READY, ExecutableState.RUNNING, ExecutableState.PAUSED, ExecutableState.ERROR));
 
-        return runningJobList.stream().map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream)
-                .collect(Collectors.toSet());
+        return runningJobList.stream()
+                .filter(abstractExecutable -> Objects.equals(modelId, abstractExecutable.getTargetSubject()))
+                .map(AbstractExecutable::getToBeDeletedLayoutIds).flatMap(Set::stream).collect(Collectors.toSet());
     }
 
     private IndexResponse convertToResponse(LayoutEntity layoutEntity, NDataModel model) {
