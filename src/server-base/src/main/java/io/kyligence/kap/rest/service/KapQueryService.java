@@ -48,13 +48,11 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.net.UnknownHostException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.metric.MetricWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -71,6 +69,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.metric.MetricWriter;
 import io.kyligence.kap.common.metric.MetricWriterFactory;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
