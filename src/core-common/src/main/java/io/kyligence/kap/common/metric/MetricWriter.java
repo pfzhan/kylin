@@ -26,32 +26,15 @@ package io.kyligence.kap.common.metric;
 
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
-
 public interface MetricWriter {
-    void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics, long timestamp)
-            throws Throwable;
-
-    String getType();
 
     enum Type {
         INFLUX, BLACK_HOLE, CONSOLE, RDBMS,
     }
 
-    class Factory {
-        public static MetricWriter getInstance(String type) throws Exception {
-            if (StringUtils.isBlank(type)) {
-                type = Type.BLACK_HOLE.name();
-            }
-            if (type.equalsIgnoreCase(Type.INFLUX.name())) {
-                return InfluxDBWriter.getInstance();
-            } else if (type.equalsIgnoreCase(Type.RDBMS.name())) {
-                return RDBMSWriter.getInstance();
-            } else if (type.equalsIgnoreCase(Type.CONSOLE.name())) {
-                return ConsoleWriter.INSTANCE;
-            } else {
-                return BlackHoleWriter.INSTANCE;
-            }
-        }
-    }
+    void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics, long timestamp)
+            throws Throwable;
+
+    String getType();
+
 }

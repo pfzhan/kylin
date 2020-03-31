@@ -36,6 +36,6 @@ public enum BlackHoleWriter implements MetricWriter {
 
     @Override
     public String getType() {
-        return "BLACK_HOLE";
+        return Type.BLACK_HOLE.name();
     }
 }

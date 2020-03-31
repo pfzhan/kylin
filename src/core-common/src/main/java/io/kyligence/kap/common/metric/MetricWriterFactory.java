@@ -24,27 +24,27 @@
 
 package io.kyligence.kap.common.metric;
 
-import java.util.Map;
-
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public enum MetricWriterStrategy {
-    INSTANCE;
-    public static final Logger logger = LoggerFactory.getLogger(MetricWriterStrategy.class);
+public class MetricWriterFactory {
+    public static final Logger logger = LoggerFactory
+            .getLogger(io.kyligence.kap.common.metric.MetricWriterFactory.class);
 
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics,
-            long timestamp) {
-        try {
-            MetricWriter writer = MetricWriter.Factory.getInstance(getType());
-            logger.trace("Use writer:" + writer.getType());
-            writer.write(dbName, measurement, tags, metrics, timestamp);
-        } catch (Throwable th) {
-            logger.error("Error when write query history into table {} of {}", measurement, getType());
+
+    public static MetricWriter getInstance(String type) throws Exception {
+        if (StringUtils.isBlank(type)) {
+            type = MetricWriter.Type.BLACK_HOLE.name();
         }
-    }
-
-    private String getType() {
-        return MetricWriter.Type.RDBMS.name();
+        if (type.equalsIgnoreCase(MetricWriter.Type.INFLUX.name())) {
+            return InfluxDBWriter.getInstance();
+        } else if (type.equalsIgnoreCase(MetricWriter.Type.RDBMS.name())) {
+            return RDBMSWriter.getInstance();
+        } else if (type.equalsIgnoreCase(MetricWriter.Type.CONSOLE.name())) {
+            return ConsoleWriter.INSTANCE;
+        } else {
+            return BlackHoleWriter.INSTANCE;
+        }
     }
 }

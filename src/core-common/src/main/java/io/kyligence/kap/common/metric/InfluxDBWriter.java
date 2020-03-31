@@ -83,6 +83,6 @@ public class InfluxDBWriter implements MetricWriter {
 
     @Override
     public String getType() {
-        return "INFLUX";
+        return Type.INFLUX.name();
     }
 }

@@ -43,6 +43,6 @@ public enum ConsoleWriter implements MetricWriter {
 
     @Override
     public String getType() {
-        return "CONSOLE";
+        return Type.CONSOLE.name();
     }
 }

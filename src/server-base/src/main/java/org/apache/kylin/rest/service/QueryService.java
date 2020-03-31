@@ -531,7 +531,7 @@ public class QueryService extends BasicService {
                 checkCondition(!BackdoorToggles.getDisableCache(), "query cache disabled in BackdoorToggles");
     }
 
-    protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws UnknownHostException {
+    protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws Throwable {
         //TODO: enable QueryMetricsFacade
     }
 

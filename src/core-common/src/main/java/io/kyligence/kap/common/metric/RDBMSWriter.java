@@ -34,11 +34,10 @@ import lombok.val;
 import lombok.var;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.google.common.base.Joiner;
-
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 
 public class RDBMSWriter implements MetricWriter {
     public static final String QUERY_ID = "query_id";
@@ -74,6 +73,10 @@ public class RDBMSWriter implements MetricWriter {
     public static final String BIGINT = " bigint";
     public static final String BOOLEAN = " boolean";
 
+    // table names
+    public static final String QUERY_MEASUREMENT_SURFIX = "query_history";
+    public static final String REALIZATION_MEASUREMENT_SURFIX = "query_history_realization";
+
     public static final String INSERT_HISTORY_SQL = "INSERT INTO %s ("
             + Joiner.on(",").join(QUERY_ID, SQL_TEXT, SQL_PATTERN, QUERY_DURATION, TOTAL_SCAN_BYTES, TOTAL_SCAN_COUNT,
                     RESULT_ROW_COUNT, SUBMITTER, REALIZATIONS, QUERY_SERVER, ERROR_TYPE, ENGINE_TYPE, IS_CACHE_HIT,
@@ -102,6 +105,15 @@ public class RDBMSWriter implements MetricWriter {
         return INSTANCE;
     }
 
+    private RDBMSWriter(KylinConfig kylinConfig) throws Exception {
+        val url = kylinConfig.getMetadataUrl();
+        val props = JdbcUtil.datasourceParameters(url);
+        val dataSource = JdbcDataSource.getDataSource(props);
+        jdbcTemplate = new JdbcTemplate(dataSource);
+        createQueryHistoryIfNotExist(kylinConfig);
+        createQueryHistoryRealizationIfNotExist(kylinConfig);
+    }
+
     @Override
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields,
             long timestamp) throws Throwable {
@@ -113,7 +125,6 @@ public class RDBMSWriter implements MetricWriter {
     }
 
     public void writeToQueryHistory(String dbName, String measurement, Map<String, Object> fieldsMap) throws Throwable {
-        createQueryHistoryIfNotExist(measurement);
         jdbcTemplate.update(String.format(INSERT_HISTORY_SQL, measurement), fieldsMap.get(QUERY_ID),
                 fieldsMap.get(SQL_TEXT), fieldsMap.get(SQL_PATTERN), fieldsMap.get(QUERY_DURATION),
                 fieldsMap.get(TOTAL_SCAN_BYTES), fieldsMap.get(TOTAL_SCAN_COUNT), fieldsMap.get(RESULT_ROW_COUNT),
@@ -127,52 +138,49 @@ public class RDBMSWriter implements MetricWriter {
 
     public void writeToQueryHistoryRealization(String dbName, String measurement, Map<String, Object> fieldsMap)
             throws Throwable {
-        createQueryHistoryRealizationIfNotExist(measurement);
-
         jdbcTemplate.update(String.format(INSERT_HISTORY_REALIZATION_SQL, measurement), fieldsMap.get(MODEL),
                 fieldsMap.get(LAYOUT_ID), fieldsMap.get(INDEX_TYPE), fieldsMap.get(QUERY_ID),
                 fieldsMap.get(QUERY_DURATION), fieldsMap.get(QUERY_TIME), fieldsMap.get(PROJECT_NAME));
     }
 
-    private RDBMSWriter(KylinConfig kylinConfig) throws Exception {
-        val url = kylinConfig.getMetadataUrl();
-        val props = JdbcUtil.datasourceParameters(url);
-        val dataSource = JdbcDataSource.getDataSource(props);
-        jdbcTemplate = new JdbcTemplate(dataSource);
-    }
+    void createQueryHistoryIfNotExist(KylinConfig kylinConfig) throws Exception {
+        String metadataIdentifier = StorageURL.replaceUrl(kylinConfig.getMetadataUrl());
+        String tableName = metadataIdentifier + "_" + QUERY_MEASUREMENT_SURFIX;
 
-    void createQueryHistoryIfNotExist(String measurement) throws Exception {
-        if (isTableExists(jdbcTemplate.getDataSource().getConnection(), measurement)) {
+        if (JdbcUtil.isTableExists(jdbcTemplate.getDataSource().getConnection(), tableName)) {
             return;
         }
+
         Properties properties = getProperties();
         var createQueryHistorSql = properties.getProperty("create.queryhistory.store.table");
-        jdbcTemplate.execute(String.format(createQueryHistorSql, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorSql, tableName));
 
         var createQueryHistorIndexSql1 = properties.getProperty("create.queryhistory.store.tableindex1");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql1, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql1, tableName));
         var createQueryHistorIndexSql2 = properties.getProperty("create.queryhistory.store.tableindex2");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql2, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql2, tableName));
         var createQueryHistorIndexSql3 = properties.getProperty("create.queryhistory.store.tableindex3");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql3, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql3, tableName));
         var createQueryHistorIndexSql4 = properties.getProperty("create.queryhistory.store.tableindex4");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql4, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql4, tableName));
         var createQueryHistorIndexSql5 = properties.getProperty("create.queryhistory.store.tableindex5");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql5, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql5, tableName));
     }
 
-    void createQueryHistoryRealizationIfNotExist(String measurement) throws Exception {
-        if (isTableExists(jdbcTemplate.getDataSource().getConnection(), measurement)) {
+    void createQueryHistoryRealizationIfNotExist(KylinConfig kylinConfig) throws Exception {
+        String metadataIdentifier = StorageURL.replaceUrl(kylinConfig.getMetadataUrl());
+        String tableName = metadataIdentifier + "_" + REALIZATION_MEASUREMENT_SURFIX;
+        if (JdbcUtil.isTableExists(jdbcTemplate.getDataSource().getConnection(), tableName)) {
             return;
         }
         Properties properties = getProperties();
         var queryHistorRealizationSql = properties.getProperty("create.queryhistoryrealization.store.table");
-        jdbcTemplate.execute(String.format(queryHistorRealizationSql, measurement));
+        jdbcTemplate.execute(String.format(queryHistorRealizationSql, tableName));
 
         var createQueryHistorIndexSql1 = properties.getProperty("create.queryhistoryrealization.store.tableindex1");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql1, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql1, tableName));
         var createQueryHistorIndexSql2 = properties.getProperty("create.queryhistoryrealization.store.tableindex2");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql2, measurement));
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql2, tableName));
     }
 
     private Properties getProperties() throws Exception {

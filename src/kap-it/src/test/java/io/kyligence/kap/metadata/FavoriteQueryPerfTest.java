@@ -27,7 +27,8 @@ package io.kyligence.kap.metadata;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.common.metric.MetricWriterStrategy;
+import io.kyligence.kap.common.metric.MetricWriter;
+import io.kyligence.kap.common.metric.MetricWriterFactory;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -102,7 +103,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
     private static final String SQL_DIR = "../kap-it/src/test/resources/query";
 
     @Test
-    public void prepareQueryHistories() throws IOException, InterruptedException {
+    public void prepareQueryHistories() throws Throwable {
         List<String> queries = getSqls();
         val projects = NProjectManager.getInstance(getTestConfig()).listAllProjects();
 
@@ -293,9 +294,10 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
         log.info("time to filter blacklist sql is {}", (System.currentTimeMillis() - startTime) / 1000.0);
     }
 
-    private void writeToInfluxDB(SQLRequest sqlRequest, long insertTime) {
-        MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, sqlRequest.getProject(), getInfluxdbTags(sqlRequest),
-                getInfluxdbFields(sqlRequest, insertTime), insertTime);
+    private void writeToInfluxDB(SQLRequest sqlRequest, long insertTime) throws Throwable {
+        MetricWriterFactory.getInstance(MetricWriter.Type.INFLUX.name()).write(QueryHistory.DB_NAME,
+                sqlRequest.getProject(), getInfluxdbTags(sqlRequest), getInfluxdbFields(sqlRequest, insertTime),
+                insertTime);
     }
 
     private Map<String, String> getInfluxdbTags(final SQLRequest sqlRequest) {

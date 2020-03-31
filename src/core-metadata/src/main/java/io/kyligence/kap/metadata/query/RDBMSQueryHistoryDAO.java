@@ -56,7 +56,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
 
     private static final int MAX_SIZE = 10000000;
     private static final long RETAIN_TIME = 30;
-    private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time, query_id FROM %s ORDER BY time DESC OFFSET "
+    private static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time, id FROM %s ORDER BY id DESC limit 1 OFFSET "
             + MAX_SIZE;
 
     public static RDBMSQueryHistoryDAO getInstance(KylinConfig config, String project) {

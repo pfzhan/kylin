@@ -58,8 +58,12 @@ public class JdbcUtil implements IKeep {
     }
 
     public static boolean isTableExists(Connection conn, String table) throws SQLException {
-        val resultSet = conn.getMetaData().getTables(null, null, table, null);
-        return resultSet.next();
+        try {
+            val resultSet = conn.getMetaData().getTables(null, null, table, null);
+            return resultSet.next();
+        } finally {
+            if (!conn.isClosed()) conn.close();
+        }
     }
 
     public static Properties datasourceParameters(StorageURL url) {

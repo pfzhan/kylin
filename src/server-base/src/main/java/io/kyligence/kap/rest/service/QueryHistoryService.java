@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -82,6 +83,9 @@ public class QueryHistoryService extends BasicService {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    public static final String WEEK = "week";
+    public static final String DAY = "day";
 
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
@@ -202,11 +206,16 @@ public class QueryHistoryService extends BasicService {
     
     private static void fillZeroForQueryStatistics(List<QueryStatistics> queryStatistics, long startTime, long endTime,
             String dimension) {
-        if (!dimension.equals("day") && !dimension.equals("week")) {
+        if (!dimension.equals(DAY) && !dimension.equals(WEEK)) {
             return;
+        }
+        if (dimension.equals(WEEK)) {
+            startTime = TimeUtil.getWeekStart(startTime);
+            endTime = TimeUtil.getWeekStart(endTime);
         }
         Set<Instant> instantSet = queryStatistics.stream().map(QueryStatistics::getTime).collect(Collectors.toSet());
         int rawOffsetTime = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).getRawOffset();
+
         long startOffSetTime = Instant.ofEpochMilli(startTime).plusMillis(rawOffsetTime).toEpochMilli();
         Instant startInstant = Instant.ofEpochMilli(startOffSetTime - startOffSetTime % (1000 * 60 * 60 * 24));
         long endOffSetTime = Instant.ofEpochMilli(endTime).plusMillis(rawOffsetTime).toEpochMilli();
@@ -218,9 +227,9 @@ public class QueryHistoryService extends BasicService {
                 zeroStatistics.setTime(startInstant);
                 queryStatistics.add(zeroStatistics);
             }
-            if (dimension.equals("day")) {
+            if (dimension.equals(DAY)) {
                 startInstant = startInstant.plus(Duration.ofDays(1));
-            } else if (dimension.equals("week")) {
+            } else if (dimension.equals(WEEK)) {
                 startInstant = startInstant.plus(Duration.ofDays(7));
             }
         }

@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.metric.MetricWriter;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -70,7 +71,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.metric.MetricWriterStrategy;
+import io.kyligence.kap.common.metric.MetricWriterFactory;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
@@ -105,7 +106,7 @@ public class KapQueryService extends QueryService {
     }
 
     @Override
-    protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws UnknownHostException {
+    protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws Throwable {
         if (sqlResponse.isPrepare()) {
             // preparing statement should not be recorded
             return;
@@ -115,7 +116,7 @@ public class KapQueryService extends QueryService {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
                     QueryContext.current());
 
-            MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME,
+            MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name()).write(QueryHistory.DB_NAME,
                     getQueryHistoryDao(sqlRequest.getProject()).getQueryMetricMeasurement(),
                     queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getQueryMetricFields(),
                     System.currentTimeMillis());
@@ -123,7 +124,7 @@ public class KapQueryService extends QueryService {
             for (final QueryMetricsContext.RealizationMetrics realizationMetrics : queryMetricsContext
                     .getRealizationMetrics()) {
 
-                MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME,
+                MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name()).write(QueryHistory.DB_NAME,
                         getQueryHistoryDao(sqlRequest.getProject()).getRealizationMetricMeasurement(),
                         realizationMetrics.getInfluxdbTags(), realizationMetrics.getRealizationMetricFields(),
                         System.currentTimeMillis());

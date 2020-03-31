@@ -250,7 +250,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryPushDown() throws Exception {
+    public void testQueryPushDown() throws Throwable {
 
         Assert.assertEquals(0, pushdownCount);
         final String sql = "select * from success_table_2";
@@ -444,7 +444,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testQueryWithCacheException() throws Exception {
+    public void testQueryWithCacheException() throws Throwable {
         final String sql = "select * from exception_table";
         final String project = "default";
         stubQueryConnection(sql, project);
