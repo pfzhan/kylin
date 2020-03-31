@@ -442,7 +442,11 @@ exports.default = {
     refresh: '刷新'
   },
   user: {
-    tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)'
+    tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)',
+    noStartWithPeriod: '用户名 / 用户组名不能以英文句号开头(.)',
+    noStartWithSpace: '用户名 / 用户组名不能以空格开头或结尾',
+    noChineseCharacters: '用户名 / 用户组中不能使用中文符号',
+    otherCharacters: '用户名 / 用户组名中不能包含如下符号: 反斜杠(\\) 斜杠(/) 冒号(:) 星号(*) 问号(?) 引号(“) 小于号(<) 大于号(>) 垂直线(|)'
   },
   system: {
     evaluationStatement: '您正在使用 Kyligence Enterprise 试用版。如果您对我们的产品满意，需要专业的产品、咨询或服务，欢迎<a href="mailto:g-ent-lic@kyligence.io">联系我们</a>。您将获得来自 Apache Kylin 核心小组的帮助。',

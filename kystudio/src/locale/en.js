@@ -446,7 +446,11 @@ exports.default = {
     refresh: 'Refresh'
   },
   user: {
-    tip_password_unsafe: 'The password should contain at least one number, letter and special character（~!@#$%^&*(){}|:"<>?[];\',./`).'
+    tip_password_unsafe: 'The password should contain at least one number, letter and special character（~!@#$%^&*(){}|:"<>?[];\',./`).',
+    noStartWithPeriod: 'The user / group names cannot start with a period (.).',
+    noStartWithSpace: 'User / group names cannot start or end with a space.',
+    noChineseCharacters: 'Chinese characters cannot be used in user / group names',
+    otherCharacters: 'The user / group names cannot contain the following symbols: backslash (\\) slash mark (/) colon (:) asterisk (*) question mark (?) quotation mark (") less than sign (<) greater than sign (>) vertical bar (|).'
   },
   system: {
     evaluationStatement: 'You are using Kyligence Enterprise with Evaluation License. For more product information, expert consulting and services, please <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We’ll get you the help you need from Apache Kylin core team.',

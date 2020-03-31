@@ -7,20 +7,32 @@ export const PROJECT_NAME = 'project-name'
 // TODO: 在this中解构$t，会造成$t方法中的this为undefined
 export default {
   [GROUP_NAME] (rule, value, callback) {
-    if (!value.trim()) {
-      callback(new Error(this.$t('kylinLang.common.userGroupNameEmpty')))
-    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9_\s]*$/.test(value)) {
-      callback(new Error(this.$t('kylinLang.common.userGroupNameFormatValidTip')))
+    if (!value) {
+      callback(new Error(this.$t('kylinLang.common.usernameEmpty')))
+    } else if (/^\./.test(value)) {  // 不能以.开头
+      callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
+    } else if (/^\s+|\s+$/.test(value)) {  // 首位不能有空字符
+      callback(new Error(this.$t('kylinLang.user.noStartWithSpace')))
+    } else if (/[\u4E00-\u9FA5]/g.test(value)) {  // 不能有中文字符
+      callback(new Error(this.$t('kylinLang.user.noChineseCharacters')))
+    } else if (/[\\\\/:*?><"\\|]/g.test(value)) {  // 不能有\/:*?"<>|等非法字符
+      callback(new Error(this.$t('kylinLang.user.otherCharacters')))
     } else {
       callback()
     }
   },
 
   [USERNAME] (rule, value, callback) {
-    if (!value.trim()) {
+    if (!value) {
       callback(new Error(this.$t('kylinLang.common.usernameEmpty')))
-    } else if (!/^[a-zA-Z0-9][a-zA-Z0-9_\s]*$/.test(value)) {
-      callback(new Error(this.$t('kylinLang.common.userNameFormatValidTip')))
+    } else if (/^\./.test(value)) {  // 不能以.开头
+      callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
+    } else if (/^\s+|\s+$/.test(value)) {  // 首位不能有空字符
+      callback(new Error(this.$t('kylinLang.user.noStartWithSpace')))
+    } else if (/[\u4E00-\u9FA5]/g.test(value)) {  // 不能有中文字符
+      callback(new Error(this.$t('kylinLang.user.noChineseCharacters')))
+    } else if (/[\\\\/:*?><"\\|]/g.test(value)) {  // 不能有\/:*?"<>|等非法字符
+      callback(new Error(this.$t('kylinLang.user.otherCharacters')))
     } else {
       callback()
     }

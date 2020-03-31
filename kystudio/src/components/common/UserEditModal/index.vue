@@ -16,7 +16,7 @@
         <el-input
           size="medium"
           :value="form.username"
-          @input="value => inputHandler('username', value.trim())"
+          @input="value => inputHandler('username', value)"
           :disabled="editType !== 'new'">
           </el-input>
       </el-form-item>
