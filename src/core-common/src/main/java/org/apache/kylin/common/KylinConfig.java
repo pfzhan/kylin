@@ -60,7 +60,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -72,6 +71,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import lombok.val;
 
 /**
  */
@@ -120,18 +121,23 @@ public class KylinConfig extends KylinConfigBase {
             }
 
             if (SYS_ENV_INSTANCE == null) {
-                try {
-                    config = new KylinConfig();
-                    config.reloadKylinConfig(buildSiteProperties());
-
-                    logger.trace("Created a new KylinConfig by getInstanceFromEnv, KylinConfig Id: {}",
-                            System.identityHashCode(config));
-                    SYS_ENV_INSTANCE = config;
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalStateException("Failed to find KylinConfig ", e);
-                }
+                SYS_ENV_INSTANCE = newKylinConfig();
+                logger.trace("Created a new KylinConfig by getInstanceFromEnv, KylinConfig Id: {}",
+                        System.identityHashCode(SYS_ENV_INSTANCE));
             }
             return SYS_ENV_INSTANCE;
+        }
+    }
+
+    public static KylinConfig newKylinConfig() {
+        try {
+            KylinConfig config = new KylinConfig();
+            config.reloadKylinConfig(buildSiteProperties());
+            logger.trace("Created a new KylinConfig by newKylinConfig, KylinConfig Id: {}",
+                    System.identityHashCode(config));
+            return config;
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Failed to find KylinConfig ", e);
         }
     }
 
@@ -454,7 +460,7 @@ public class KylinConfig extends KylinConfigBase {
         StorageURL url = StorageURL.valueOf(uri);
         String metaDir = url.getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
         Path path = new Path(metaDir);
-        try(InputStream is = path.getFileSystem(HadoopUtil.getCurrentConfiguration()).open(new Path(metaDir))) {
+        try (InputStream is = path.getFileSystem(HadoopUtil.getCurrentConfiguration()).open(new Path(metaDir))) {
             Properties prop = KylinConfig.streamToProps(is);
             return KylinConfig.createKylinConfig(prop);
         } catch (IOException e) {

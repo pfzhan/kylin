@@ -90,7 +90,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
     public void testDumpJobAuditLog() throws Exception {
         val job = NExecutableManager.getInstance(getTestConfig(), project).getJob(jobId);
         val junitFolder = temporaryFolder.getRoot();
-        val tool = new AuditLogTool();
+        val tool = new AuditLogTool(getTestConfig());
         tool.execute(new String[] { "-project", project, "-job", jobId, "-dir", junitFolder.getAbsolutePath() });
         checkJsonl(job.getStartTime(), job.getEndTime(), junitFolder);
     }
@@ -101,7 +101,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
         val start = job.getStartTime() + TimeUnit.HOURS.toMillis(-10);
         val end = job.getEndTime() + TimeUnit.HOURS.toMillis(10);
         val junitFolder = temporaryFolder.getRoot();
-        val tool = new AuditLogTool();
+        val tool = new AuditLogTool(getTestConfig());
         tool.execute(new String[] { "-startTime", String.valueOf(start), "-endTime", String.valueOf(end), "-dir",
                 junitFolder.getAbsolutePath() });
         checkJsonl(start, end, junitFolder);
@@ -110,7 +110,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRestoreAuditLog() throws Exception {
         val jdbcTemplate = getJdbcTemplate();
-        val tool = new AuditLogTool();
+        val tool = new AuditLogTool(getTestConfig());
         tool.execute(new String[] { "-restore", "-table", TEST_RESTORE_TABLE, "-dir", DATA_DIR });
 
         List<File> jsonls = Arrays.asList(Paths.get(DATA_DIR).toFile().listFiles()).stream()

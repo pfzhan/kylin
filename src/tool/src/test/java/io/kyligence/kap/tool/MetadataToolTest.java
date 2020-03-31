@@ -107,7 +107,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     }
 
     private MetadataTool tool(String path) {
-        val originTool = new MetadataTool();
+        val originTool = new MetadataTool(getTestConfig());
         val tool = Mockito.spy(originTool);
         Mockito.when(tool.getMetadataUrl(Mockito.anyString(), Mockito.anyBoolean()))
                 .thenReturn("kylin_metadata@hdfs,zip=1,path=file://" + path);
@@ -117,7 +117,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBackupProject() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
         tool.execute(new String[] { "-backup", "-project", "default", "-dir", junitFolder.getAbsolutePath(), "-folder",
                 "prj_bak" });
 
@@ -213,7 +213,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBackupAll() throws IOException {
         val junitFolder = temporaryFolder.getRoot();
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
         tool.execute(new String[] { "-backup", "-dir", junitFolder.getAbsolutePath() });
 
         Assertions.assertThat(junitFolder.listFiles()).hasSize(1);
@@ -248,7 +248,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNull();
         assertBeforeRestoreTest();
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
         tool.execute(new String[] { "-restore", "-dir", junitFolder.getAbsolutePath() });
         assertAfterRestoreTest();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNull();
@@ -307,7 +307,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("demo")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("default")).isNotNull();
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
         tool.execute(new String[] { "-restore", "-dir", emptyFolder.getAbsolutePath() });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).listAllProjects()).isEmpty();
 
@@ -376,7 +376,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         MetadataToolTestFixture.fixtureRestoreTest(getTestConfig(), junitFolder, "/");
 
         assertBeforeRestoreTest();
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
         tool.execute(new String[] { "-restore", "-project", "default", "-dir", junitFolder.getAbsolutePath() });
         assertAfterRestoreTest();
 
@@ -423,7 +423,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     public void testRestoreProjectWithSrcOrDestIsEmpty() throws Exception {
         val junitFolder = temporaryFolder.getRoot();
         ResourceTool.copy(getTestConfig(), KylinConfig.createInstanceFromUri(junitFolder.getAbsolutePath()), "/");
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
 
         //there is a project metadata that destResourceStore contains and srcResourceStore doesn't contain
         FileUtils.forceDelete(Paths.get(junitFolder.getAbsolutePath(), "demo").toFile());
@@ -525,7 +525,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         File test2 = new File(junitFolder, "exclude");
         FileUtils.forceMkdir(test1);
         FileUtils.forceMkdir(test2);
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(getTestConfig());
         tool.execute(new String[] { "-backup", "-project", "newten", "-dir", test1.getAbsolutePath() });
         var archiveFolder = test1.listFiles()[0];
         var projectFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("newten"));

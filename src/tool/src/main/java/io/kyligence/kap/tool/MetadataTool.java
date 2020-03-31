@@ -115,7 +115,7 @@ public class MetadataTool extends ExecutableApplication {
     private ResourceStore resourceStore;
 
     MetadataTool() {
-        kylinConfig = KylinConfig.getInstanceFromEnv();
+        kylinConfig = KylinConfig.newKylinConfig();
         this.options = new Options();
         initOptions();
     }
@@ -143,7 +143,7 @@ public class MetadataTool extends ExecutableApplication {
     public static void backup(KylinConfig kylinConfig) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig) };
-        val backupTool = new MetadataTool();
+        val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);
     }
 
@@ -151,12 +151,12 @@ public class MetadataTool extends ExecutableApplication {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
         String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig),
                 "-folder", folder };
-        val backupTool = new MetadataTool();
+        val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);
     }
 
     public static void restore(KylinConfig kylinConfig, String folder) throws IOException {
-        val tool = new MetadataTool();
+        val tool = new MetadataTool(kylinConfig);
         tool.execute(new String[] { "-restore", "-dir", folder });
     }
 

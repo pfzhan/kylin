@@ -90,7 +90,7 @@ public class AuditLogTool extends ExecutableApplication {
     private final KylinConfig kylinConfig;
 
     AuditLogTool() {
-        this(KylinConfig.getInstanceFromEnv());
+        this(KylinConfig.newKylinConfig());
     }
 
     public AuditLogTool(KylinConfig kylinConfig) {
