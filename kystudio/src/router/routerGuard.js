@@ -3,7 +3,7 @@ import { menusData } from '../config'
 import store from '../store'
 import ElementUI from 'kyligence-ui'
 import { getAvailableOptions } from '../util/specParser'
-var selectedProject = store.state.project.selected_project
+
 export function bindRouterGuard (router) {
   // 捕获在异步组件加载时出现过期组件的情况（服务端替换部署包等）
   router.onError((error) => {
@@ -31,21 +31,23 @@ export function bindRouterGuard (router) {
           })
         }
       })
-      let prepositionRequest = async () => {
-        try {
-          await store.dispatch(types.LOAD_AUTHENTICATION)
-          await store.dispatch(types.LOAD_ALL_PROJECT)
-          await store.dispatch(types.GET_INSTANCE_CONF)
-          await store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
-          await store.dispatch(types.GET_CONF, { projectName: selectedProject })
-
-          setTimeout(() => {
+      let prepositionRequest = () => {
+        Promise.all([
+          store.dispatch(types.LOAD_AUTHENTICATION)
+        ]).then(async () => {
+          store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
+          Promise.all([
+            store.dispatch(types.LOAD_ALL_PROJECT),
+            store.dispatch(types.GET_INSTANCE_CONF),
+            store.dispatch(types.GET_CONF) // 调用的action没有接收参数，因而这里把参数 selectedProject 去掉
+          ]).then(() => {
+            // 判断路由权限
             getRouteAuthority()
-          }, 100)
-        } catch (e) {
-          next()
-        }
+          })
+        }, (res) => {
+        })
       }
+
       // 判断用户是否有当前所要进入的页面权限
       let getRouteAuthority = (source) => {
         // 获取该用户所有有权限的菜单
@@ -54,9 +56,13 @@ export function bindRouterGuard (router) {
         let availableMenus = [...defaultMenus, ...adminMenus]
         let auth = to.name && availableMenus.includes(to.name.toLowerCase())
 
-        // 判断是否有路由权限，无权限跳至 /noAuthority 页面
+        // 判断是否有路由权限，无权限或没有打开智能推荐跳至 /noAuthority 页面
         if (!['noauthority', 'refresh'].includes(to.name.toLowerCase()) && !auth) {
           next('/noAuthority')
+        } else if (to.name.toLowerCase() === 'acceleration') {
+          if (!store.state.project.isSemiAutomatic) {
+            next({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
+          }
         } else {
           next()
         }
