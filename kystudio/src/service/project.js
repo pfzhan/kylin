@@ -103,5 +103,8 @@ export default {
   },
   getAclPermission (data) {
     return Vue.resource(apiUrl + 'acl/updatable').get(data)
+  },
+  updateKerberosConfig (data) {
+    return Vue.resource(apiUrl + 'projects/' + data.project + '/project_kerberos_info').update(data.body)
   }
 }

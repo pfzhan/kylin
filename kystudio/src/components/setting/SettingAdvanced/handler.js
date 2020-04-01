@@ -14,6 +14,13 @@ export const validate = {
     } else {
       callback()
     }
+  },
+  'principalName' (rule, value, callback) {
+    if (value === '' || value === undefined || value === null) {
+      callback(new Error(null))
+    } else {
+      callback()
+    }
   }
 }
 
@@ -58,5 +65,12 @@ export function _getExposeCCSetting (data) {
   return {
     project: data.project,
     expose_computed_column: data.expose_computed_column
+  }
+}
+
+export function _getKerberosSettings (data) {
+  return {
+    project: data.project,
+    principal: data.principal
   }
 }

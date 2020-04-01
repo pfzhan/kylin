@@ -113,6 +113,46 @@
         </div>
       </div>
     </EditableBlock>
+    <!-- Kerberos 账户设置 -->
+    <EditableBlock
+      class="kerberosAccBlock"
+      :header-content="$t('kerberosAcc')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'kerberos-acc') && form.fileList.length > 0"
+      v-if="kerberosEnabled==='true' && settingActions.includes('kerberosAcc')"
+      @submit="(scb, ecb) => handleSubmit('kerberos-acc', scb, ecb)"
+      @cancel="(scb, ecb) => handleResetForm('kerberos-acc', scb, ecb)">
+      <div class="setting-item">
+        <el-form ref="kerberos-setting-form" :model="form" :rules="kerberosRules" label-position="left">
+          <el-form-item prop="principal" :label="$t('principleName')" :show-message="false">
+            <el-input
+              size="small"
+              class="yarn-name-input"
+              v-model.trim="form.principal">
+            </el-input>
+          </el-form-item>          
+          <el-form-item prop="fileList" :label="$t('keytabFile')">
+            <!-- <input type="hidden" v-model="form.fileList" :show-message="false" /> -->
+            <el-upload
+              name="file"
+              ref="kerberosFileUpload"
+              :action="kerberosActionUrl"
+              :auto-upload="false"
+              :multiple="false"
+              :file-list="form.fileList"
+              :on-change="changeFile"
+              :on-remove="handleRemove"
+              :show-file-list="true">
+              <el-button size="small" type="primary">{{$t('selectFile')}}</el-button>
+              <span slot="tip" class="ksd-ml-10 ksd-fs-12">{{$t('uploadFileTips')}}</span>
+            </el-upload>
+          </el-form-item>
+          <div class="setting-desc">
+            <p>{{$t('kerberosTips')}}</p>
+          </div>
+        </el-form>
+      </div>
+    </EditableBlock>
     <!-- YARN 资源队列 -->
     <EditableBlock
       :header-content="$t('yarnQueue')"
@@ -168,7 +208,8 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import { handleError, handleSuccessAsync } from '../../../util'
 import { kapConfirm } from 'util/business'
-import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting } from './handler'
+import { apiUrl } from '../../../config'
+import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   props: {
@@ -185,7 +226,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       updateDefaultDBSettings: 'UPDATE_DEFAULT_DB_SETTINGS',
       fetchDatabases: 'FETCH_DATABASES',
       updateYarnQueue: 'UPDATE_YARN_QUEUE',
-      updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG'
+      updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG',
+      updateKerberosConfig: 'UPDATE_KERBEROS_CONFIG'
     })
   },
   components: {
@@ -199,7 +241,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       'settingActions'
     ]),
     ...mapState({
-      currentUser: state => state.user.currentUser
+      currentUser: state => state.user.currentUser,
+      kerberosEnabled: state => state.system.kerberosEnabled
     })
   },
   locales
@@ -215,7 +258,10 @@ export default class SettingAdvanced extends Vue {
     job_notification_emails: [],
     default_database: this.$store.state.project.projectDefaultDB || '',
     yarn_queue: this.$store.state.project.yarn_queue || '',
-    expose_computed_column: !this.isAutoProject
+    expose_computed_column: !this.isAutoProject,
+    principal: '',
+    fileList: [],
+    file: null
   }
   get accelerateRules () {
     return {
@@ -241,10 +287,18 @@ export default class SettingAdvanced extends Vue {
   get userType () {
     return this.currentUser.authorities.map(user => user.authority).some((u) => u === 'ROLE_ADMIN')
   }
+  get kerberosRules () {
+    return {
+      'principal': [{ validator: validate['principalName'], trigger: 'blur' }]
+    }
+  }
+  get kerberosActionUrl () {
+    return apiUrl + 'projects/' + this.currentSelectedProject + '/project_kerberos_info'
+  }
   @Watch('form', { deep: true })
   @Watch('project', { deep: true })
   onFormChange () {
-    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings') || this.isFormEdited(this.form, 'yarn-name')
+    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert') || this.isFormEdited(this.form, 'defaultDB-settings') || this.isFormEdited(this.form, 'yarn-name') || this.isFormEdited(this.form, 'kerberos-acc')
     this.$emit('form-changed', { advanceSetting })
   }
   async loadDataBases () {
@@ -270,6 +324,7 @@ export default class SettingAdvanced extends Vue {
     this.handleInit('defaultDB-settings')
     this.handleInit('yarn-name')
     this.handleInit('expose_computed_column')
+    this.handleInit('kerberos-acc')
   }
   handleInit (type) {
     switch (type) {
@@ -289,6 +344,13 @@ export default class SettingAdvanced extends Vue {
       }
       case 'expose_computed_column': {
         this.form = { ...this.form, ..._getExposeCCSetting(this.project) }; break
+      }
+      case 'kerberos-acc': {
+        this.form = { ...this.form, ..._getKerberosSettings(this.project) }
+        if (this.$refs['kerberos-setting-form']) {
+          this.$refs['kerberos-setting-form'].clearValidate()
+        }
+        break
       }
     }
   }
@@ -369,6 +431,34 @@ export default class SettingAdvanced extends Vue {
           }
           break
         }
+        case 'kerberos-acc': {
+          if (this.form.fileList.length === 0) {
+            this.$message({
+              type: 'error',
+              message: this.$t('kerberosFileRequied')
+            })
+            errorCallback()
+          } else {
+            // 利用H5 FORMDATA 同时传输多文件和数据
+            if (await this.$refs['kerberos-setting-form'].validate()) {
+              let formData = new FormData()   // 利用H5 FORMDATA 同时传输多文件和数据
+              formData.append('principal', this.form.principal)
+              formData.append('file', this.form.file)
+              let params = {
+                project: this.form.project,
+                body: formData
+              }
+              await this.updateKerberosConfig(params)
+              // 提交完成后，要重置上传组件
+              this.form.fileList = []
+              this.form.file = null
+              this.$refs['kerberos-setting-form'].clearValidate()
+            } else {
+              errorCallback()
+            }
+          }
+          break
+        }
       }
       // 设置默认参数的有二次确认，所以成功的反馈不能在结尾调
       if (type !== 'defaultDB-settings') {
@@ -413,6 +503,15 @@ export default class SettingAdvanced extends Vue {
         //   this.$refs['yarn-setting-form'].clearValidate()
         //   break
         // }
+        case 'kerberos-acc': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'kerberos_project_level_config'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getKerberosSettings(data, true) }
+          this.form.fileList = []
+          this.form.file = null
+          this.$refs['kerberos-setting-form'].clearValidate()
+          break
+        }
       }
       successCallback()
       this.$emit('reload-setting')
@@ -430,6 +529,43 @@ export default class SettingAdvanced extends Vue {
       this.form[key].splice(index, 1)
     }
   }
+  handleRemove () {
+    this.form.fileList = []
+  }
+  changeFile (file, fileList) {
+    // 多次上传后清理之前上传的内容
+    if (fileList.length > 1) {
+      fileList.splice(0, 1)
+    }
+    // 输入内容后重新触发校验
+    if (fileList.length > 0) {
+      if (!/.keytab$/.test(fileList[0].name)) {
+        this.$message({
+          type: 'error',
+          message: this.$t('fileTypeError')
+        })
+        // 清空列表
+        fileList.splice(0, 1)
+        this.form.fileList = []
+        this.form.file = null
+      } else if (fileList[0].size > 5 * 1024 * 1024) {
+        this.$message({
+          type: 'error',
+          message: this.$t('maxSizeLimit')
+        })
+        // 清空列表
+        fileList.splice(0, 1)
+        this.form.fileList = []
+        this.form.file = null
+      } else {
+        this.form.fileList = fileList
+        this.form.file = file.raw ? file.raw : file
+      }
+    } else {
+      this.form.fileList = []
+      this.form.file = null
+    }
+  }
   isFormEdited (form, type) {
     const project = { ...this.project, alias: this.project.alias || this.project.project }
     switch (type) {
@@ -441,6 +577,11 @@ export default class SettingAdvanced extends Vue {
         return JSON.stringify(_getJobAlertSettings(form, true)) !== JSON.stringify(_getJobAlertSettings(project, true))
       case 'yarn-name':
         return JSON.stringify(_getYarnNameSetting(form)) !== JSON.stringify(_getYarnNameSetting(project))
+      case 'kerberos-acc':
+        // 对比principal 或者有新上传的文件
+        let name = this.form.principal !== project.principal
+        let fileName = this.form.fileList.length > 0
+        return name || fileName
     }
   }
 }
@@ -497,6 +638,19 @@ export default class SettingAdvanced extends Vue {
   }
   .yarn-name-input {
     width: 120px;
+  }
+  .kerberosAccBlock{
+    .el-form-item {
+      margin-bottom: 15px;
+      display: block;
+    }
+    .file-error {
+      color: @error-color-1;
+      font-size: 12px;
+      height: 12px;
+      line-height: 12px;
+      margin-top: 5px;
+    }
   }
 }
 </style>

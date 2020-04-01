@@ -222,6 +222,9 @@ export default {
     },
     [types.GET_ACL_PERMISSION]: function (_, para) {
       return api.project.getAclPermission(para)
+    },
+    [types.UPDATE_KERBEROS_CONFIG]: function ({ commit }, para) {
+      return api.project.updateKerberosConfig(para)
     }
   },
   getters: {

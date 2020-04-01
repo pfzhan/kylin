@@ -130,7 +130,8 @@ export default {
       { "id": "updateLicense" }
     ],
     "settingActions": [
-      { "id": "yarnQueue" }
+      { "id": "yarnQueue" },
+      { "id": "kerberosAcc" }
     ]
   },
   "disableOptionMaps": {
@@ -237,7 +238,7 @@ export default {
     "settingActions": {
       "keyPattern": "groupRole",
       "entries": [
-        { "key": "systemAdmin", "value": "yarnQueue" },
+        { "key": "systemAdmin", "value": "yarnQueue,kerberosAcc" },
         { "key": "systemUser", "value": "none" }
       ]
     },

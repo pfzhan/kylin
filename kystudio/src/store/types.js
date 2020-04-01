@@ -41,6 +41,7 @@ export const GET_ACL_PERMISSION = 'GET_ACL_PERMISSION'
 export const CHECK_SSB = 'CHECK_SSB'
 export const IMPORT_SSB_DATABASE = 'IMPORT_SSB_DATABASE'
 export const UPDATE_EXPOSE_CC_CONFIG = 'UPDATE_EXPOSE_CC_CONFIG'
+export const UPDATE_KERBEROS_CONFIG = 'UPDATE_KERBEROS_CONFIG'
 // datasource actions mutations
 // csv 数据源
 export const VERIFY_CSV_CONN = 'VERIFY_CSV_CONN'
