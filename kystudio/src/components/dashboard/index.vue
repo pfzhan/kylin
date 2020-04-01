@@ -500,7 +500,8 @@ export default class Dashboard extends Vue {
           const start = new Date()
           const year = new Date().getFullYear()
           const month = new Date().getMonth()
-          start.setTime(new Date(start.setMonth(month - 1)).setDate(1))
+          // 月份默认 -1， 到 -1 时，Date方法会自动将年份-1
+          start.setTime(new Date(year, month - 1, 1))
           end.setTime(new Date(year, month, 0))
           picker.$emit('pick', [start, end])
         }
