@@ -181,12 +181,12 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void batchUpdate(UnitMessages unitMessages) throws Exception {
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog) throws Exception {
         if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
             return;
         }
         withTransaction(transactionManager, () -> {
-            super.batchUpdate(unitMessages);
+            super.batchUpdate(unitMessages, skipAuditLog);
             return null;
         });
     }

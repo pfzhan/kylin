@@ -83,10 +83,6 @@ public abstract class MetadataStore {
 
     public abstract RawResource load(String path) throws IOException;
 
-    public void batchUpdate(UnitMessages unitMessages) throws Exception {
-        batchUpdate(unitMessages, false);
-    }
-
     public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog) throws Exception {
         for (Event event : unitMessages.getMessages()) {
             if (event instanceof ResourceCreateOrUpdateEvent) {
