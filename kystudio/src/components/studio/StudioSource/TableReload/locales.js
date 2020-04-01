@@ -21,7 +21,7 @@ export default {
     invalidLarger: 'Input should be no larger than 20,000,000 rows',
     invalidSmaller: 'Input should be no less than 10,000 rows',
     modelchangeTip: '{modelCount} model(s) broken, edit the model(s) to add lost columns may fix;',
-    indexCountChangeTip: '{indexCount} index(es) would be emptied and would not be available for querying until being built;',
+    indexCountChangeTip: '{indexCount} index(es) would be refreshed and would not be available for querying until being built;',
     addIndexTip: ' while {addIndexCount} index(es) would be added and would not be available for querying until being built.',
     dimChangeTip: '{dimensionCount} dimension(s)',
     measureChangeTip: '{measureCount} measure(s)',
@@ -29,7 +29,7 @@ export default {
     dimAndMeasureAndIndexChangeTip: '{changeChar} would be deleted',
     reloadBtn: 'Reload',
     reloadAndRefresh: 'Reload and Build',
-    refreshIndexTip: ' and clear the data under the affected index'
+    refreshIndexTip: ' and refresh the affected index(es)'
   },
   'zh-cn': {
     dialogTitle: '重载表',
@@ -54,7 +54,7 @@ export default {
     invalidLarger: '输入的值应不大于 20,000,000 行 ',
     invalidSmaller: '输入的值不小于 10,000 行',
     modelchangeTip: '{modelCount} 个模型元数据破损，模型为 BROKEN 状态，请编辑模型尝试修复；',
-    indexCountChangeTip: '{indexCount} 个索引下的数据将被清空，构建后才可服务于查询；',
+    indexCountChangeTip: '{indexCount} 个索引将被刷新，构建后才可服务于查询；',
     addIndexTip: '{addIndexCount} 个索引将被添加，构建后才可服务于查询',
     measureChangeTip: '{measureCount} 个度量',
     dimChangeTip: '{dimensionCount} 个维度',
@@ -62,6 +62,6 @@ export default {
     dimAndMeasureAndIndexChangeTip: '共有 {changeChar} 被删除',
     reloadAndRefresh: '重载并构建索引',
     reloadBtn: '重载',
-    refreshIndexTip: '并清空受影响索引下的构建数据'
+    refreshIndexTip: '并刷新受影响索引'
   }
 }
