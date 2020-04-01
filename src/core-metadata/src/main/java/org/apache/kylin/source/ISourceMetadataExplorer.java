@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,6 +43,7 @@
 package org.apache.kylin.source;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -52,12 +52,14 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 public interface ISourceMetadataExplorer {
 
     List<String> listDatabases() throws Exception;
-    
+
     List<String> listTables(String database) throws Exception;
-    
+
     Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj) throws Exception;
-    
+
     List<String> getRelatedKylinResources(TableDesc table);
 
     boolean checkDatabaseAccess(String database) throws Exception;
+
+    boolean checkTablesAccess(Set<String> tables);
 }

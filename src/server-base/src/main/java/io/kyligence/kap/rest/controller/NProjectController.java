@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
+import java.io.File;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,11 +35,11 @@ import javax.validation.Valid;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -56,7 +57,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
+import io.kyligence.kap.common.util.FileUtils;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -65,6 +68,7 @@ import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
@@ -322,6 +326,18 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("queue_name", request.getQueueName());
 
         projectService.updateYarnQueue(project, request.getQueueName());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "updateProjectKerberosInfo (update)", notes = "Add URL: {project}; ")
+    @PutMapping(value = "/{project:.+}/project_kerberos_info")
+    @ResponseBody
+    public EnvelopeResponse<String> updateProjectKerberosInfo(@PathVariable("project") String project,
+            @RequestParam("file") MultipartFile keytabFile, ProjectKerberosInfoRequest projectKerberosInfoRequest)
+            throws Exception {
+        File file = projectService.generateTempKeytab(projectKerberosInfoRequest.getPrincipal(), keytabFile);
+        projectKerberosInfoRequest.setKeytab(FileUtils.encodeBase64File(file.getAbsolutePath()));
+        projectService.updateProjectKerberosInfo(project, projectKerberosInfoRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

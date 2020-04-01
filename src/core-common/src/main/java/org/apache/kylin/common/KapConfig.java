@@ -24,14 +24,16 @@
 
 package org.apache.kylin.common;
 
-import io.kyligence.kap.common.util.EncryptUtil;
-import io.kyligence.kap.common.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
+
+import io.kyligence.kap.common.util.EncryptUtil;
+import io.kyligence.kap.common.util.FileUtils;
 
 public class KapConfig {
 
@@ -56,6 +58,10 @@ public class KapConfig {
 
     public static String getKylinLogDirAtBestEffort() {
         return new File(getKylinHomeAtBestEffort(), "logs").getAbsolutePath();
+    }
+
+    public static String getKylinConfDirAtBestEffort() {
+        return new File(getKylinHomeAtBestEffort(), "conf").getAbsolutePath();
     }
 
     // ============================================================================

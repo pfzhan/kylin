@@ -803,12 +803,11 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testReloadHiveTablename() throws Exception {
-        Mockito.when(tableService.loadHiveTableNameToCache(false)).thenReturn(null);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/reload_hive_table_name") //
                 .contentType(MediaType.APPLICATION_JSON) //
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).reloadHiveTablename(false);
+        Mockito.verify(nTableController).reloadHiveTablename("", false);
     }
 
 }

@@ -23,15 +23,25 @@
  */
 package io.kyligence.kap.rest.source;
 
+import static io.kyligence.kap.rest.security.KerberosLoginManager.KEYTAB_SUFFIX;
+
+import java.io.File;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
@@ -39,17 +49,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.response.NHiveTableNameResponse;
+import io.kyligence.kap.rest.security.KerberosLoginManager;
+import lombok.val;
 
 public class NHiveTableName implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(NHiveTableName.class);
     private static final NHiveTableName instance = new NHiveTableName();
-    private Map<String, List<String>> tables;//Map<db,tables>
-    private volatile boolean isRunning;
-    private volatile long lastLoadTime;
+    private Map<String, NHiveSourceInfo> sourceInfos;//Map<UGI,NHiveSourceInfo>
+    private volatile Map<String, Boolean> isRunnings;
+    private volatile Map<String, Long> lastLoadTimes;
     private final ISourceMetadataExplorer explr;
-    private final ReentrantLock lock;
 
     public static NHiveTableName getInstance() {
         return instance;
@@ -60,15 +73,40 @@ public class NHiveTableName implements Runnable {
     }
 
     private NHiveTableName(ISourceMetadataExplorer explr) {
-        this.tables = null;
-        this.isRunning = false;
-        this.lastLoadTime = 0;
+        this.sourceInfos = new ConcurrentHashMap<>();
+        this.isRunnings = new ConcurrentHashMap<>();
+        this.lastLoadTimes = new ConcurrentHashMap<>();
         this.explr = explr;
-        this.lock = new ReentrantLock();
     }
 
-    public NHiveTableNameResponse loadHiveTableName(boolean force) throws Exception {
+    public void loadHiveTableName() throws Exception {
         logger.warn("Call loadHiveTableName");
+        checkIsAllNode();
+        logger.info("Now start load hive table name");
+        long now = System.currentTimeMillis();
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        Map<String, UserGroupInformation> ugiInfos = Maps.newHashMap();
+        ugiInfos.put(UserGroupInformation.getLoginUser().getUserName(), UserGroupInformation.getLoginUser());
+        projectManager.listAllProjects().stream().filter(p -> StringUtils.isNotBlank(p.getPrincipal()))
+                .forEach(project -> {
+                    try {
+                        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project.getName());
+                        ugiInfos.put(ugi.getUserName(), ugi);
+                    } catch (Exception e) {
+                        logger.error("The kerberos information of the project {} is incorrect.", project.getName());
+                    }
+                });
+
+        ugiInfos.entrySet().forEach(info -> {
+            NHiveSourceInfo hiveSourceInfo = fetchUGITables(info.getValue());
+            setAllTables(hiveSourceInfo, info.getKey());
+        });
+
+        long timeInterval = (System.currentTimeMillis() - now) / 1000;
+        logger.info(String.format("Load hive table name successful within %d second", timeInterval));
+    }
+
+    private void checkIsAllNode() {
         boolean isAllNode = KylinConfig.getInstanceFromEnv().getServerMode().equals(Constant.SERVER_MODE_ALL);
         if (!isAllNode) {
             throw new RuntimeException("Only all node can load hive table name");
@@ -77,38 +115,96 @@ public class NHiveTableName implements Runnable {
             throw new KylinException("KE-1005",
                     "This operator is not allowed , Please set kap.table.load-hive-tablename-cached.enabled=true and try again");
         }
-        if (force && !isRunning && lock.tryLock()) {
-            try {
-                if (!isRunning) {
-                    logger.info("Now start load hive table name");
-                    isRunning = true;
-                    long now = System.currentTimeMillis();
-                    try {
-                        List<String> dbs = explr.listDatabases().stream().map(String::toUpperCase)
-                                .collect(Collectors.toList());
-                        Map<String, List<String>> newTables = listTables(dbs);
-                        setAllTables(newTables);
-                        lastLoadTime = System.currentTimeMillis();
-                    } catch (Exception e) {
-                        logger.error("msg", e);
-                    } finally {
-                        isRunning = false;
-                    }
-                    long timeInterval = (System.currentTimeMillis() - now) / 1000;
-                    logger.info(String.format("Load hive table name successful within %d second", timeInterval));
-                } else {
-                    logger.warn("No need to load hive table name because another thread is loading now");
+    }
+
+    private void checkKerberosInfo(String project) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NProjectManager projectManager = NProjectManager.getInstance(config);
+        ProjectInstance projectInstance = projectManager.getProject(project);
+        String principal = projectInstance.getPrincipal();
+        String keytab = projectInstance.getKeytab();
+        try {
+            if (config.getKerberosProjectLevelEnable() && StringUtils.isNotBlank(principal)
+                    && StringUtils.isNotBlank(keytab)) {
+                String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
+                val keytabPath = new Path(kylinConfHome, principal + KEYTAB_SUFFIX).toString();
+                File kFile = new File(keytabPath);
+                if (!kFile.exists()) {
+                    FileUtils.writeStringToFile(kFile, keytab);
                 }
-            } finally {
-                lock.unlock();
+                UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
             }
-        } else {
-            logger.warn("No need to load hive table name because another thread is doing now or force = false");
+        } catch (Exception e) {
+            throw new KylinException("KE-1042", "The project " + project + " kerberos information has expired.");
         }
+    }
+
+    public NHiveTableNameResponse fetchTablesImmediately(UserGroupInformation ugi, String project, boolean force) {
+        logger.info("Load hive tables immediately {}, force: {}", project, force);
+        checkIsAllNode();
+        checkKerberosInfo(project);
         NHiveTableNameResponse response = new NHiveTableNameResponse();
-        response.setIsRunning(isRunning);
-        response.setTime(System.currentTimeMillis() - lastLoadTime);
+        String ugiName = ugi.getUserName();
+        if (isRunnings.get(ugiName) == null || lastLoadTimes.get(ugiName) == null) {
+            isRunnings.put(ugiName, false);
+            lastLoadTimes.put(ugiName, 0L);
+        }
+
+        if (force && !isRunnings.get(ugiName)) {
+            isRunnings.put(ugiName, true);
+            NHiveSourceInfo sourceInfo = fetchUGITables(ugi);
+            setAllTables(sourceInfo, ugiName);
+            isRunnings.put(ugiName, false);
+            lastLoadTimes.put(ugiName, System.currentTimeMillis());
+        }
+
+        response.setIsRunning(isRunnings.get(ugiName));
+        response.setTime(System.currentTimeMillis() - lastLoadTimes.get(ugiName));
+
         return response;
+    }
+
+    public NHiveSourceInfo fetchUGITables(UserGroupInformation ugi) {
+        logger.info("Load hive tables from ugi {}", ugi.getUserName());
+        NHiveSourceInfo sourceInfo = null;
+        if (UserGroupInformation.isSecurityEnabled()) {
+            sourceInfo = ugi.doAs(new PrivilegedAction<NHiveSourceInfo>() {
+                @Override
+                public NHiveSourceInfo run() {
+                    return fetchTables();
+                }
+            });
+
+        } else {
+            sourceInfo = fetchTables();
+        }
+
+        return sourceInfo;
+    }
+
+    public boolean checkExistsTablesAccess(UserGroupInformation ugi, String project) {
+        val kapConfig = KapConfig.getInstanceFromEnv();
+        val projectManager = NProjectManager.getInstance(kapConfig.getKylinConfig());
+        return ugi.doAs(new PrivilegedAction<Boolean>() {
+            @Override
+            public Boolean run() {
+                val tables = projectManager.getProject(project).getTables();
+                return explr.checkTablesAccess(tables);
+            }
+        });
+    }
+
+    public NHiveSourceInfo fetchTables() {
+        NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
+        try {
+            List<String> dbs = explr.listDatabases().stream().map(String::toUpperCase).collect(Collectors.toList());
+            Map<String, List<String>> newTables = listTables(dbs);
+            sourceInfo.setTables(newTables);
+        } catch (Exception e) {
+            logger.error("Load hive tables error.", e);
+        }
+
+        return sourceInfo;
     }
 
     private Map<String, List<String>> listTables(List<String> dbs) throws Exception {
@@ -116,8 +212,9 @@ public class NHiveTableName implements Runnable {
         for (String db : dbs) {
             if (explr.checkDatabaseAccess(db)) {
                 List<String> tbs = explr.listTables(db).stream().map(String::toUpperCase).collect(Collectors.toList());
-                newTables.put(db, tbs);
-
+                if (!tbs.isEmpty()) {
+                    newTables.put(db, tbs);
+                }
                 int currDBSize = newTables.keySet().size();
                 if (currDBSize % 20 == 0) {
                     logger.info("Foreach database curr pos {}, total num {}", currDBSize, dbs.size());
@@ -128,27 +225,28 @@ public class NHiveTableName implements Runnable {
         return newTables;
     }
 
-    public synchronized List<String> getTables(String db) {
+    public synchronized List<String> getTables(UserGroupInformation ugi, String currName, String db) {
         List<String> result = null;
-        if (tables != null) {
-            result = tables.get(db);
+        if (sourceInfos.get(ugi.getUserName()) != null) {
+            result = sourceInfos.get(ugi.getUserName()).getDatabaseInfo(db);
         }
+
         return result != null ? result : new ArrayList<>();
     }
 
-    private synchronized void setAllTables(Map<String, List<String>> newTables) {
-        tables = newTables;
+    public synchronized void setAllTables(NHiveSourceInfo sourceInfo, String currName) {
+        sourceInfos.put(currName, sourceInfo);
     }
 
     @VisibleForTesting
-    public synchronized void setAllTablesForTest(Map<String, List<String>> newTables) {
-        tables = newTables;
+    public synchronized void setAllTablesForTest(NHiveSourceInfo sourceInfo, String currName) {
+        sourceInfos.put(currName, sourceInfo);
     }
 
     @Override
     public void run() {
         try {
-            loadHiveTableName(true);
+            loadHiveTableName();
         } catch (Exception e) {
             logger.error("msg", e);
         }

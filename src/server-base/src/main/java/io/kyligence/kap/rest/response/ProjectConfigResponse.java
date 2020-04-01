@@ -89,6 +89,12 @@ public class ProjectConfigResponse {
     @JsonProperty("expose_computed_column")
     private boolean exposeComputedColumn;
 
+    @JsonProperty("kerberos_project_level_enabled")
+    private boolean kerberosProjectLevelEnabled;
+
+    @JsonProperty("principal")
+    private String principal;
+
     public void setFrequencyTimeWindow(int frequencyTimeWindow) {
         switch (frequencyTimeWindow) {
         case 1:

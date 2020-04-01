@@ -723,4 +723,13 @@ public class CnMessage extends Message {
     public String getSEGMENT_STATUS(SegmentStatusEnumToDisplay status) {
         return "由于 Segment [%s] 处于 " + status + " 状态，所以不能合并或者刷新该 Segment。";
     }
+
+    //Kerberos
+    public String getKERBEROS_INFO_ERROR() {
+        return "无效的 Principle 名称或者 Keytab 文件，请检查后重试.";
+    }
+
+    public String getPROJECT_HIVE_PERMISSION_ERROR() {
+        return "权限不足，请确保提交的 Kerberos 用户信息包含所有已加载表的访问权限.";
+    }
 }

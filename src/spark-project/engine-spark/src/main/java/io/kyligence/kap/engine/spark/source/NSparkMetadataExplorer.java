@@ -23,17 +23,22 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -46,10 +51,17 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.catalog.Database;
+import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation;
+import org.apache.spark.sql.catalyst.catalog.CatalogTableType;
+import org.apache.spark.sql.catalyst.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.clearspring.analytics.util.Lists;
+import com.google.common.collect.Sets;
+
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 
 public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleDataDeployer, Serializable {
 
@@ -67,12 +79,76 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
     @Override
     public List<String> listTables(String database) throws Exception {
-        String sql = "show tables";
-        if (StringUtils.isNotBlank(database)) {
-            sql = String.format(sql + " in %s", database);
+        val ugi = UserGroupInformation.getCurrentUser();
+        val config = KylinConfig.getInstanceFromEnv();
+        val spark = SparderEnv.getSparkSession();
+
+        List<String> tables = Lists.newArrayList();
+        try {
+            String sql = "show tables";
+            if (StringUtils.isNotBlank(database)) {
+                sql = String.format(sql + " in %s", database);
+            }
+            Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
+            tables = dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+
+            if (config.getKerberosProjectLevelEnable()) {
+                List<String> accessTables = Lists.newArrayList();
+                for (String table : tables) {
+                    val tableName = database + "." + table;
+                    if (checkTableAccess(tableName)) {
+                        accessTables.add(table);
+                    }
+                }
+                return accessTables;
+            }
+        } catch (Exception e) {
+            logger.error("List hive tables failed. user: {}, db: {}", ugi.getUserName(), database);
         }
-        Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
-        return dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+
+        return tables;
+    }
+
+    private boolean checkTableAccess(String tableName) {
+        boolean isAccess = true;
+        try {
+            val spark = SparderEnv.getSparkSession();
+            val sparkTable = spark.catalog().getTable(tableName);
+            Set<String> needCheckTables = Sets.newHashSet();
+            if (sparkTable.tableType().equals(CatalogTableType.VIEW().name())) {
+                needCheckTables = getViewTables(tableName);
+            } else {
+                needCheckTables.add(tableName);
+            }
+
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            for (String table : needCheckTables) {
+                String loc = spark.sql("desc formatted " + table).where("col_name == 'Location'").head().getString(1);
+                fs.listStatus(new Path(loc));
+            }
+        } catch (Exception e) {
+            isAccess = false;
+            try {
+                logger.error("Read hive table {} error, ugi name: {}.", tableName, UserGroupInformation.getCurrentUser().getUserName());
+            } catch (IOException ex) {
+                logger.error("fetch user curr ugi info error.", e);
+            }
+        }
+        return isAccess;
+    }
+
+    private Set<String> getViewTables(String viewName) throws ParseException {
+        val spark = SparderEnv.getSparkSession();
+        String viewText = spark.sql("desc formatted " + viewName).where("col_name = 'View Text'").head().getString(1);
+        val logicalPlan = spark.sessionState().sqlParser().parsePlan(viewText);
+        Set<String> viewTables = Sets.newHashSet();
+        scala.collection.JavaConverters.seqAsJavaListConverter(logicalPlan.collectLeaves()).asJava().stream()
+                .forEach(l -> {
+                    if (l instanceof UnresolvedRelation) {
+                        viewTables.add(((UnresolvedRelation) l).tableName());
+                    }
+                });
+        return viewTables;
     }
 
     @Override
@@ -164,6 +240,11 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         }
 
         return true;
+    }
+
+    @Override
+    public boolean checkTablesAccess(Set<String> tables) {
+        return tables.stream().allMatch(this::checkTableAccess);
     }
 
     @Override

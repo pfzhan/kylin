@@ -549,8 +549,9 @@ public class NTableController extends NBasicController {
     @GetMapping(value = "/reload_hive_table_name")
     @ResponseBody
     public EnvelopeResponse<NHiveTableNameResponse> reloadHiveTablename(
+            @RequestParam(value = "project", required = true, defaultValue = "") String project,
             @RequestParam(value = "force", required = false, defaultValue = "false") boolean force) throws Exception {
-        NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(force);
+        NHiveTableNameResponse response = tableService.loadProjectHiveTableNameToCacheImmediately(project, force);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
     }
 

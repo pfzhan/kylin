@@ -1837,7 +1837,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public Long getStorageResourceSurvivalTimeThreshold() {
         return TimeUtil.timeStringAs(this.getOptional("kylin.storage.resource-survival-time-threshold", "7d"),
-            TimeUnit.MILLISECONDS);
+                TimeUnit.MILLISECONDS);
     }
 
     public Boolean getTimeMachineEnabled() {
@@ -1938,6 +1938,11 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean getLoadHiveTablenameEnabled() {
         return Boolean.parseBoolean(getOptional("kap.table.load-hive-tablename-enabled", TRUE));
+    }
+
+    //Kerberos
+    public boolean getKerberosProjectLevelEnable() {
+        return Boolean.parseBoolean(getOptional("kylin.kerberos.project-level-enabled", "false"));
     }
 
     private double safeParseDouble(String value, double defaultValue) {

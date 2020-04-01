@@ -26,11 +26,16 @@ package io.kyligence.kap.common.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
 
 import org.apache.kylin.common.util.OrderedProperties;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
 
 public final class FileUtils {
     public static File findFile(String dir, String ptn) {
@@ -53,5 +58,21 @@ public final class FileUtils {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public static String encodeBase64File(String path) throws Exception {
+        File file = new File(path);
+        try (FileInputStream inputFile = new FileInputStream(file)) {
+            byte[] buffer = new byte[(int) file.length()];
+            inputFile.read(buffer);
+            return new BASE64Encoder().encode(buffer);
+        }
+    }
+
+    public static void decoderBase64File(String base64Code, String targetPath) throws Exception {
+        byte[] buffer = new BASE64Decoder().decodeBuffer(base64Code);
+        try (FileOutputStream out = new FileOutputStream(targetPath)) {
+            out.write(buffer);
+        }
     }
 }

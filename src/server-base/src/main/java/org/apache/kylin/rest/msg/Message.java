@@ -788,4 +788,13 @@ public class Message {
     public String getSEGMENT_STATUS(SegmentStatusEnumToDisplay status) {
         return "Can not refresh or merge segment [%s], because the segment is " + status + ".";
     }
+
+    //Kerberos
+    public String getKERBEROS_INFO_ERROR() {
+        return "Invalid principle name or keytab file, please check and submit again.";
+    }
+
+    public String getPROJECT_HIVE_PERMISSION_ERROR() {
+        return "Permission denied. Please confirm the Kerberos account can access all the loaded tables.";
+    }
 }

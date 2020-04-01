@@ -61,6 +61,7 @@ import java.util.TimeZone;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
@@ -106,11 +107,11 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.source.NHiveSourceInfo;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import lombok.val;
 import lombok.var;
@@ -1066,15 +1067,12 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testGetTableNameResponsesInCache() throws Exception {
         Map<String, List<String>> testData = new HashMap<>();
         testData.put("t", Arrays.asList("aa", "ab", "bc"));
-        NHiveTableName.getInstance().setAllTablesForTest(testData);
+        NHiveSourceInfo sourceInfo = new NHiveSourceInfo();
+        sourceInfo.setTables(testData);
+        UserGroupInformation ugi = UserGroupInformation.getLoginUser();
+        NHiveTableName.getInstance().setAllTablesForTest(sourceInfo, ugi.getUserName());
         List<?> tables = tableService.getTableNameResponsesInCache("default", "t", "a");
         Assert.assertEquals(tables.size(), 2);
-    }
-
-    @Test
-    public void testLoadHiveTableNameToCache() throws Exception {
-        NHiveTableNameResponse response = tableService.loadHiveTableNameToCache(false);
-        Assert.assertNotEquals(response, null);
     }
 
     @Test

@@ -138,10 +138,16 @@ public class NBasicController {
         logger.error("", ex);
         Message msg = MsgPicker.getMsg();
         Throwable cause = ex;
+        KylinException kylinException = null;
         while (cause != null && cause.getCause() != null) {
             cause = cause.getCause();
+            if (cause instanceof KylinException) {
+                kylinException = (KylinException) cause;
+            }
         }
-
+        if (kylinException != null) {
+            cause = kylinException;
+        }
         return new ErrorResponse(req.getRequestURL().toString(), cause);
     }
 

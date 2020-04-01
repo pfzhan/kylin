@@ -116,6 +116,16 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonProperty("description")
     private String description;
 
+    @JsonProperty("principal")
+    @Getter
+    @Setter
+    private String principal;
+
+    @JsonProperty("keytab")
+    @Getter
+    @Setter
+    private String keytab;
+
     @EqualsAndHashCode.Include
     @JsonProperty("maintain_model_type")
     private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
@@ -229,6 +239,11 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     public boolean isSmartMode() {
         return getMaintainModelType() == MaintainModelType.AUTO_MAINTAIN;
+    }
+
+    public boolean isProjectKerberosEnabled() {
+        return config.getKerberosProjectLevelEnable() && StringUtils.isNotBlank(principal)
+                && StringUtils.isNotBlank(keytab);
     }
 
     public ImmutableList<RealizationEntry> getRealizationEntries() {

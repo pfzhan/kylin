@@ -50,6 +50,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
@@ -335,4 +336,8 @@ public class JdbcExplorer implements ISourceMetadataExplorer, ISampleDataDeploye
         return true;
     }
 
+    @Override
+    public boolean checkTablesAccess(Set<String> tables) {
+        return true;
+    }
 }

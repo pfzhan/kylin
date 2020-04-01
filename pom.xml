@@ -130,7 +130,9 @@
             **/io/kyligence/kap/tool/common/HadoopConfExtractor.java,
             **/io/kyligence/kap/tool/hadoop/CheckHadoopConfDir.java,
             **/io/kyligence/kap/tool/hadoop/KapGetPathWithoutSchemeAndAuthorityCLI.java,
-            **/io/kyligence/kap/engine/spark/streaming/**/*
+            **/io/kyligence/kap/engine/spark/streaming/**/*,
+            **/io/kyligence/kap/rest/security/KerberosLoginManager.java,
+            **/io/kyligence/kap/engine/spark/source/NSparkMetadataExplorer.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
             **/io/kyligence/kap/rest/*Server.java,
@@ -164,7 +166,9 @@
             **/org/apache/spark/dict/NGlobalDictionaryV2.java,
             **/org/apache/spark/dict/NGlobalDictMetaInfo.java,
             **/org/apache/spark/dict/NHashPartitioner.java,
-            **/org/apache/kylin/rest/model/LicenseInfo.java
+            **/org/apache/kylin/rest/model/LicenseInfo.java,
+            **/io/kyligence/kap/rest/security/KerberosLoginManager.java,
+            **/io/kyligence/kap/engine/spark/source/NSparkMetadataExplorer.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 

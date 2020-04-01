@@ -45,6 +45,7 @@ package org.apache.kylin.source.hive;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
@@ -151,6 +152,11 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
 
     @Override
     public boolean checkDatabaseAccess(String database) throws Exception {
+        return true;
+    }
+
+    @Override
+    public boolean checkTablesAccess(Set<String> tables) {
         return true;
     }
 

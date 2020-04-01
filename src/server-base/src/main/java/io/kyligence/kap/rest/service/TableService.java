@@ -47,6 +47,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exceptions.KylinException;
@@ -130,6 +131,7 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
@@ -1455,7 +1457,8 @@ public class TableService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         List<TableNameResponse> responses = new ArrayList<>();
         NTableMetadataManager tableManager = getTableManager(project);
-        List<String> tables = NHiveTableName.getInstance().getTables(database);
+        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
+        List<String> tables = NHiveTableName.getInstance().getTables(ugi, project, database);
         for (String tableName : tables) {
             if (StringUtils.isEmpty(table) || tableName.toUpperCase().contains(table.toUpperCase())) {
                 TableNameResponse response = new TableNameResponse();
@@ -1467,9 +1470,15 @@ public class TableService extends BasicService {
         return filterAuthorizedTableNameResponses(project, database, responses);
     }
 
-    public NHiveTableNameResponse loadHiveTableNameToCache(boolean force) throws Exception {
+    public void loadHiveTableNameToCache() throws Exception {
+        NHiveTableName.getInstance().loadHiveTableName();
+    }
+
+    public NHiveTableNameResponse loadProjectHiveTableNameToCacheImmediately(String project, boolean force)
+            throws Exception {
         aclEvaluate.checkIsGlobalAdmin();
-        return NHiveTableName.getInstance().loadHiveTableName(force);
+        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
+        return NHiveTableName.getInstance().fetchTablesImmediately(ugi, project, force);
     }
 
     private static final String SSB_ERROR_MSG = "import ssb data error.";

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.File;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,7 +37,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -55,6 +58,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
@@ -74,12 +78,14 @@ import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.ShardNumConfigRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.source.file.CredentialOperator;
 import io.kyligence.kap.tool.garbage.GarbageCleaner;
@@ -379,6 +385,10 @@ public class ProjectService extends BasicService {
 
         response.setExposeComputedColumn(config.exposeComputedColumn());
 
+        response.setKerberosProjectLevelEnabled(config.getKerberosProjectLevelEnable());
+
+        response.setPrincipal(projectInstance.getPrincipal());
+
         return response;
     }
 
@@ -472,6 +482,20 @@ public class ProjectService extends BasicService {
         });
     }
 
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    @Transaction(project = 0)
+    public void updateProjectKerberosInfo(String project, ProjectKerberosInfoRequest projectKerberosInfoRequest)
+            throws Exception {
+        KerberosLoginManager.getInstance().checkAndReplaceProjectKerberosInfo(project,
+                projectKerberosInfoRequest.getPrincipal());
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.setPrincipal(projectKerberosInfoRequest.getPrincipal());
+            copyForWrite.setKeytab(projectKerberosInfoRequest.getKeytab());
+        });
+
+        backupAndDeleteKeytab(projectKerberosInfoRequest.getPrincipal());
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     @Transaction(project = 0)
     public void dropProject(String project) {
@@ -552,6 +576,8 @@ public class ProjectService extends BasicService {
             resetGarbageCleanupConfig(project);
         } else if ("segment_config".equals(resetItem)) {
             resetSegmentConfig(project);
+        } else if ("kerberos_project_level_config".equals(resetItem)) {
+            resetProjectKerberosConfig(project);
         } else {
             throw new KylinException("KE-1010", "No valid value for 'reset_item'. Please enter a project setting "
                     + "type which needs to be reset {'job_notification_config'，"
@@ -609,8 +635,38 @@ public class ProjectService extends BasicService {
         });
     }
 
+    private void resetProjectKerberosConfig(String project) {
+        val projectManager = getProjectManager();
+        val projectInstance = projectManager.getProject(project);
+        if (projectInstance == null) {
+            throw new KylinException("KE-1015", String.format("Project '%s' does not exist!", project));
+        }
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.setKeytab(null);
+            copyForWrite.setPrincipal(null);
+        });
+    }
+
     private List<ProjectInstance> getProjectsWithFilter(Predicate<ProjectInstance> filter) {
         val allProjects = getProjectManager().listAllProjects();
         return allProjects.stream().filter(filter).collect(Collectors.toList());
+    }
+
+    public File backupAndDeleteKeytab(String principal) throws Exception {
+        String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
+        File kTempFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);
+        File kFile = new File(kylinConfHome, principal + KerberosLoginManager.KEYTAB_SUFFIX);
+        if (kTempFile.exists()) {
+            FileUtils.copyFile(kTempFile, kFile);
+            FileUtils.forceDelete(kTempFile);
+        }
+        return kFile;
+    }
+
+    public File generateTempKeytab(String principal, MultipartFile keytabFile) throws Exception {
+        String kylinConfHome = KapConfig.getKylinConfDirAtBestEffort();
+        File kFile = new File(kylinConfHome, principal + KerberosLoginManager.TMP_KEYTAB_SUFFIX);
+        FileUtils.copyInputStreamToFile(keytabFile.getInputStream(), kFile);
+        return kFile;
     }
 }

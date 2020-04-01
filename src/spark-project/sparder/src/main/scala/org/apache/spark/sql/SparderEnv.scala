@@ -56,6 +56,12 @@ object SparderEnv extends Logging {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
       initSpark()
+      try {
+        spark.catalog.listDatabases().show()
+      } catch {
+        case throwable: Throwable =>
+          logError("Error for initializing connection with hive.", throwable)
+      }
     }
     spark
   }
@@ -131,7 +137,7 @@ object SparderEnv extends Logging {
                   SparkSession.builder
                     .master("local")
                     .appName("sparder-test-sql-context")
-                    .withExtensions{ ext =>
+                    .withExtensions { ext =>
                       ext.injectPlannerStrategy(_ => KylinSourceStrategy)
                       ext.injectPlannerStrategy(_ => LayoutFileSourceStrategy)
                     }

@@ -125,6 +125,11 @@ public class CsvSource implements ISource {
             public boolean checkDatabaseAccess(String database) throws Exception {
                 return true;
             }
+
+            @Override
+            public boolean checkTablesAccess(Set<String> tables) {
+                return true;
+            }
         };
     }
 
