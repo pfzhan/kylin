@@ -1,5 +1,5 @@
 <template>
-  <div class="mode-list" :class="{'full-cell': showFull}">
+  <div class="mode-list" :class="{'full-cell': showFull}" id="modelListPage">
     <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
     <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div>
@@ -293,7 +293,7 @@
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-14"></i>
                   </span>
-                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
+                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' :append-to-body="false" :popper-container="'modelListPage'" class="specialDropdown">
                     <!-- 数据检测移动至project 级别处理， -->
                     <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
                     <!-- 设置partition -->
@@ -981,6 +981,10 @@ export default class ModelList extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .mode-list{
+  position:relative;
+  .specialDropdown{
+    min-width:96px;
+  }
   .dropdown-filter + .dropdown-filter {
     margin-left: 5px;
   }

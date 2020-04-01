@@ -1,5 +1,5 @@
 <template>
-  <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen}">
+  <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen, 'isModelList': $route.name === 'ModelList'}">
     <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
       <el-col :span="24" class="panel-center">
         <aside class="left-menu">
@@ -842,11 +842,17 @@ export default class LayoutLeftRightTop extends Vue {
       background: #f9fafc;
       height: 54px;
     }
+    &:not(.isModelList){
+      .grid-content.bg-purple-light {
+        .main-content {
+          height: 100%;
+        }
+      }
+    }
     .grid-content.bg-purple-light {
       overflow: auto;
       height: 100%;
       .main-content {
-        height: 100%;
         box-sizing: border-box;
         background: white;
       }
@@ -890,7 +896,15 @@ export default class LayoutLeftRightTop extends Vue {
         left: 56px;
       }
     }
-
+    &:not(.isModelList){
+      .panel {
+        .panel-center {
+          .panel-content {
+            overflow-y: auto;
+          }
+        }
+      }
+    }
     .panel {
       position: absolute;
       top: 0px;
@@ -909,7 +923,6 @@ export default class LayoutLeftRightTop extends Vue {
           top: 52px;
           bottom: 0;
           left: 138px;
-          overflow-y: auto;
           overflow-x: hidden;
         }
         .left-menu {
