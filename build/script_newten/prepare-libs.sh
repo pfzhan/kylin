@@ -11,7 +11,6 @@ rm -rf build/lib build/tool
 mkdir build/lib build/tool
 cp src/assembly/target/kap-assembly-${kap_version}-job.jar build/lib/newten-job.jar
 cp src/tool-assembly/target/kap-tool-assembly-${kap_version}-assembly.jar build/tool/kap-tool-${release_version}.jar
-cp src/jdbc/target/kap-jdbc-${kap_version}.jar build/lib/kylin-jdbc-kap-${release_version}.jar
 cp src/spark-project/kylin-user-session-dep/target/kylin-user-session-dep-${kap_version}.jar build/lib/kylin-user-session-dep-${release_version}.jar
 
 # Copied file becomes 000 for some env (e.g. Cygwin)
