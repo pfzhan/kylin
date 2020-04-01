@@ -164,8 +164,8 @@ export default class ModelsExportModal extends Vue {
 
   renderNodeText (h, { node, data }) {
     switch (data.nodeType) {
-      case 'model': return <span>{node.label}</span>
-      case 'table': return <span>{node.label}</span>
+      case 'model': return <span v-custom-tooltip={{ text: node.label, w: 50 }}>{node.label}</span>
+      case 'table': return <span v-custom-tooltip={{ text: node.label, w: 100 }}>{node.label}</span>
       default: return null
     }
   }
@@ -218,19 +218,33 @@ export default class ModelsExportModal extends Vue {
   .tree-icon {
     margin-right: 5px;
   }
-  .tree-item.model {
-    display: inline-block;
-    width: calc(~'100% - 24px - 22px');
-  }
+  // .tree-item.model {
+  //   display: inline-block;
+  //   width: calc(~'100% - 24px - 22px');
+  // }
+  // .tree-item.table {
+  //   display: inline-block;
+  //   width: calc(~'100% - 18px - 24px - 5px');
+  // }
+  // .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content,
+  // .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content:hover {
+  //   background-color: unset;
+  //   color: inherit;
+  //   cursor: unset;
+  // }
   .tree-item.table {
-    display: inline-block;
-    width: calc(~'100% - 18px - 24px - 5px');
+    display: flex;
+    align-items: center;
+    width: 100%;
   }
-  .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content,
-  .model-tree > .el-tree-node > .el-tree-node__children > .el-tree-node > .el-tree-node__content:hover {
-    background-color: unset;
-    color: inherit;
-    cursor: unset;
+  .tree-item {
+    width: 100%;
+    .custom-tooltip-layout {
+      display: block;
+      .el-tooltip {
+        display: block;
+      }
+    }
   }
 }
 </style>

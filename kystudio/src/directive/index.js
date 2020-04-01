@@ -568,13 +568,13 @@ Vue.directive('scroll-shadow', {
 
         if (isScrollX && !x) {
           let dom = document.createElement('div')
-          dom.classList = 'scroll-shadow-layout scrolling-x'
+          dom.className = 'scroll-shadow-layout scrolling-x'
           el.appendChild(dom)
           wrapper.addEventListener('scroll', scrollEventX)
         }
         if (isScrollY && !y) {
           let dom = document.createElement('div')
-          dom.classList = 'scroll-shadow-layout scrolling-y'
+          dom.className = 'scroll-shadow-layout scrolling-y'
           el.appendChild(dom)
           wrapper.addEventListener('scroll', scrollEventY)
         }
@@ -585,15 +585,15 @@ Vue.directive('scroll-shadow', {
        * is-scrolling-left - 右侧阴影，is-scrolling-middle - 两侧阴影，is-scrolling-right - 左侧阴影
        */
       let scrollEventX = (e) => {
-        let targetElementClass = e.target.classList.value
+        let targetElementClass = e.target.classList.value || e.target.className
         const scrollLayout = el.getElementsByClassName('scroll-shadow-layout scrolling-x').length && el.getElementsByClassName('scroll-shadow-layout scrolling-x')[0]
         if (!scrollLayout) return
         if (targetElementClass.indexOf('is-scrolling-left') > -1) {
-          scrollLayout.classList = 'scroll-shadow-layout scrolling-x is-scrolling-left'
+          scrollLayout.className = 'scroll-shadow-layout scrolling-x is-scrolling-left'
         } else if (targetElementClass.indexOf('is-scrolling-middle') > -1) {
-          scrollLayout.classList = 'scroll-shadow-layout scrolling-x is-scrolling-middle'
+          scrollLayout.className = 'scroll-shadow-layout scrolling-x is-scrolling-middle'
         } else {
-          scrollLayout.classList = 'scroll-shadow-layout scrolling-x is-scrolling-right'
+          scrollLayout.className = 'scroll-shadow-layout scrolling-x is-scrolling-right'
         }
       }
 
@@ -605,11 +605,11 @@ Vue.directive('scroll-shadow', {
         let dom = el.getElementsByClassName('scroll-shadow-layout scrolling-y').length && el.getElementsByClassName('scroll-shadow-layout scrolling-y')[0]
 
         if (scrollT === 0) {
-          dom.classList = 'scroll-shadow-layout scrolling-y is-scrolling-top'
+          dom.className = 'scroll-shadow-layout scrolling-y is-scrolling-top'
         } else if (scrollT > 0 && scrollT + clientH !== scrollH) {
-          dom.classList = 'scroll-shadow-layout scrolling-y is-scrolling-middle'
+          dom.className = 'scroll-shadow-layout scrolling-y is-scrolling-middle'
         } else if (scrollT + clientH === scrollH) {
-          dom.classList = 'scroll-shadow-layout scrolling-y is-scrolling-bottom'
+          dom.className = 'scroll-shadow-layout scrolling-y is-scrolling-bottom'
         }
       }
 
@@ -645,31 +645,44 @@ let parentList = {}
 Vue.directive('custom-tooltip', {
   bind: (el) => {
     el.className += ' custom-tooltip-text'
-    el.style.cssText = 'white-space: nowrap;'
+    // el.style.cssText = 'white-space: nowrap'
   },
   inserted: (el, binding) => {
     if (!el || !el.parentElement) return
     const parent = el.parentElement
     let id = 'tooltip-' + new Date().getTime().toString(32)
+    el.dataset.id = id
     const nextElement = el.nextSibling
-    const currentElWidth = el.offsetWidth
-    const parentWidth = el.parentNode && el.parentNode.offsetWidth
+    const currentElWidth = getTextWidth(el, el.innerText)
     parentList[id] = {
       parent,
       nextElement,
+      textWidth: currentElWidth,
       binding,
-      [`resizeFn-${id}`]: () => {
-        if (!parent && !parent.querySelector('.custom-tooltip-text')) return
+      [`resizeFn-${id}`]: function () {
+        if (!parent) return
         let textNode = parent.querySelector('.custom-tooltip-text')
-        let cw = textNode.offsetWidth
-        let pw = parent && parent.offsetWidth
-        appendTipDom(textNode, cw, pw, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+        appendTipDom(textNode, getTextWidth(textNode, textNode.innerText), 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
       }
     }
-    el.dataset.id = id
-    appendTipDom(el, currentElWidth, parentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+
     setTimeout(() => {
-      window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
+      appendTipDom(el, currentElWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+    }, 0)
+
+    setTimeout(() => {
+      // 当元素在table中，使用 MutationObserver 方法监听 table 宽度 style 的改变（这里监听的是 el-table__body dom 的宽度）
+      if (binding.value.tableClassName) {
+        let element = document.querySelector(`.${binding.value.tableClassName}`).querySelector('.el-table__body')
+        let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver
+        let observer = new MutationObserver(parentList[id][`resizeFn-${id}`])
+        parentList[id].observer = observer
+        observer.observe(element, {
+          attributes: true  // 监听 table 的 attributes 的改变
+        })
+      } else {
+        window.addEventListener('resize', parentList[id][`resizeFn-${id}`])
+      }
     }, 500)
   },
   update: (el, binding, oldVnode) => {
@@ -678,15 +691,19 @@ Vue.directive('custom-tooltip', {
     let parent = parentList[el.dataset.id].parent
     let textNode = parent.querySelector('.custom-tooltip-text')
     parentList[el.dataset.id].binding = binding
-    el.innerText = binding.value.text
-    textNode.innerText = binding.value.text
-    appendTipDom(textNode, textNode.offsetWidth, parent.offsetWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0, el.dataset.id)
+    let currentWidth = parentList[el.dataset.id].textWidth = getTextWidth(textNode, binding.value.text)
+    textNode.textContent = binding.value.text
+    el.textContent = binding.value.text
+    appendTipDom(el, currentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
   },
   unbind: (el) => {
     if (!el.dataset.id) return
     let id = el.dataset.id
-    window.removeEventListener('resize', parentList[id][`resizeFn-${id}`])
-    delete parentList[el.dataset.id]
+
+    !('observer' in parentList[id]) && `resizeFn-${id}` in parentList[id] && window.removeEventListener('resize', parentList[id][`resizeFn-${id}`])
+    // 使用 MutationObserver 方法监听dom，需要用 disconnect 解绑
+    'observer' in parentList[id] && parentList[id].observer.disconnect()
+    delete parentList[id]
   }
 })
 
@@ -708,10 +725,12 @@ function createToolTipDom (el, binding, parentWidth) {
 }
 
 // 窗口resize以及更新数据时重新插入tooltip或去除tooltip
-function appendTipDom (el, currentW, parentW, w) {
+function appendTipDom (el, currentW, w) {
   if (!el.dataset.id || !(el.dataset.id in parentList)) return
   const { parent, nextElement, binding } = parentList[el.dataset.id]
+  const parentW = parent && parent.offsetWidth
   let comp = createToolTipDom(el, binding, parentW)
+
   // 当前el超过父节点的宽度时插入tooltip否者移出
   if (currentW + w >= parentW) {
     if (!parent.querySelector('.tip_box')) {
@@ -727,4 +746,16 @@ function appendTipDom (el, currentW, parentW, w) {
       parent.removeChild(parent.querySelector('.tip_box'))
     }
   }
+}
+
+// 获取文本的长度
+function getTextWidth (el, text) {
+  const dom = document.createElement('div')
+  const fontSize = window.getComputedStyle(el).fontSize || '14px'
+  dom.innerText = text
+  dom.style.cssText = `fontSize: ${fontSize}; display: inline-block;`
+  document.body.appendChild(dom)
+  const width = dom.offsetWidth
+  document.body.removeChild(dom)
+  return width
 }

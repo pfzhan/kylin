@@ -171,10 +171,8 @@
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
                 </div>
-              </el-popover><!--
-              --><div class="text-container">
-                <span class="text-sample">{{scope.row.alias}}</span>
-              </div>
+              </el-popover>
+              <span class="model-alias-title" v-custom-tooltip="{text: scope.row.alias, w: 50, tableClassName: 'model_list_table'}">{{scope.row.alias}}</span>
             </div>
             <el-popover
               popper-class="last-modified-tooltip"
@@ -1122,6 +1120,17 @@ export default class ModelList extends Vue {
     .el-icon-ksd-lock {
       color: @text-title-color;
     }
+    .model-alias-title {
+      display: -webkit-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal;
+      -webkit-line-clamp: 1;
+      /*! autoprefixer: off */
+      -webkit-box-orient: vertical;
+      /* autoprefixer: on */
+      white-space: nowrap\0 !important;
+    }
   }
   margin-left: 20px;
   margin-right: 20px;
@@ -1191,6 +1200,7 @@ export default class ModelList extends Vue {
     font-weight: 500;
     line-height: 20px;
     width: 100%;
+    height: 20px;
     margin-bottom: 5px;
     float: left;
   }

@@ -120,7 +120,7 @@
           <div class="dash-card" :class="{'isActive': showLatencyChart}" @click="loadLatencyChart">
             <div class="inner-card">
               <div class="cart-title">
-                <span v-custom-tooltip="{text: $t('avgQueryLatency'), w: 95}">{{$t('avgQueryLatency')}}</span>
+                <span v-custom-tooltip="{text: $t('avgQueryLatency'), w: 98}">{{$t('avgQueryLatency')}}</span>
                 <a class="ky-a-like ksd-fright ksd-fs-12" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</a>
               </div>
               <div class="content">
