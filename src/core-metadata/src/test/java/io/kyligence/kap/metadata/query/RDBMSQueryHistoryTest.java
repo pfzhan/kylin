@@ -293,6 +293,19 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1611933912000L, queryHistoryList.get(0).getQueryTime());
     }
 
+    @Test
+    public void testQueryTimeInMaxSize() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+        List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate().queryForList(
+                String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(0, statistics.size());
+
+        statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate()
+                .queryForList(String.format("SELECT query_time as time, id FROM %s ORDER BY id DESC limit 1 OFFSET 1",
+                        url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(1, statistics.size());
+    }
+
     JdbcTemplate getJdbcTemplate() throws Exception {
         val url = getTestConfig().getMetadataUrl();
         val props = datasourceParameters(url);

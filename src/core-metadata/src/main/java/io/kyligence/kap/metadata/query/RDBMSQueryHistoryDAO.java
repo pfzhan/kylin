@@ -62,7 +62,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
 
     private static final int MAX_SIZE = 10000000;
     private static final long RETAIN_TIME = 30;
-    protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time, id FROM %s ORDER BY id DESC limit 1 OFFSET "
+    protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time as time,id FROM %s ORDER BY id DESC limit 1 OFFSET "
             + MAX_SIZE;
 
     public static final String WEEK = "week";
@@ -102,8 +102,8 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     }
 
     public void deleteQueryHistoriesIfMaxSizeReached() {
-        List<QueryStatistics> statistics = JDBCResultMapper
-                .queryStatisticsResultMapper(jdbcTemplate.queryForList(QUERY_TIME_IN_MAX_SIZE, queryMetricMeasurement));
+        List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(
+                jdbcTemplate.queryForList(String.format(QUERY_TIME_IN_MAX_SIZE, queryMetricMeasurement)));
 
         if (CollectionUtils.isNotEmpty(statistics)) {
             long time = statistics.get(0).getTime().toEpochMilli();
