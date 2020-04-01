@@ -557,7 +557,7 @@
             await (this.$refs.partitionForm && this.$refs.partitionForm.validate()) || Promise.resolve()
             const partition_desc = {}
             if (typeof this.modelDesc.available_indexes_count === 'number' && this.modelDesc.available_indexes_count > 0) {
-              if (this.partitionMeta.table && this.partitionMeta.column && this.partitionMeta.format) {
+              if (this.prevPartitionMeta.table !== this.partitionMeta.table || this.prevPartitionMeta.column !== this.partitionMeta.column || this.prevPartitionMeta.format !== this.partitionMeta.format) {
                 await kapConfirm(this.$t('changeSegmentTip1', {tableColumn: `${this.partitionMeta.table}.${this.partitionMeta.column}`, dateType: this.partitionMeta.format, modelName: this.modelDesc.name}), '', this.$t('kylinLang.common.tip'))
               }
             }
