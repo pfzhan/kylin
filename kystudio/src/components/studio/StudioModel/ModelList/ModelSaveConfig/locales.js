@@ -33,7 +33,7 @@ export default {
     incremental: 'Incremental Load',
     fullLoad: 'Full Load',
     incrementalTips: 'The system can incrementally load data based on the partition column you choose.',
-    fullLoadTips: 'The load data job may reload its all data, which including {storageSize} storage.',
+    fullLoadTips: 'The system will load all data.',
     changeBuildTypeTips: 'Please note that modifying the load method will clear all segments'
   },
   'zh-cn': {
@@ -70,7 +70,7 @@ export default {
     incremental: '增量加载',
     fullLoad: '全量加载',
     incrementalTips: '系统可以根据您选择的分区列，增量加载数据。',
-    fullLoadTips: '本次数据加载将包括本模型下所有的数据，总存储为 {storageSize}。',
+    fullLoadTips: '系统会全量加载所有数据。',
     changeBuildTypeTips: '请注意，修改加载模式，会清空所有 Segment'
   }
 }
