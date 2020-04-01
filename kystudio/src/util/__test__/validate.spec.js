@@ -16,31 +16,43 @@ describe('validate', () => {
   const { GROUP_NAME, USERNAME, PASSWORD, CONFIRM_PASSWORD, PROJECT_NAME } = validateTypes
   it('validate-groupname', () => {
     validate[GROUP_NAME].bind(vm)(null, '', callback)
-    expect(callback.args[0][0].message).toBe(vm.$t('kylinLang.common.userGroupNameEmpty'))
-    validate[GROUP_NAME].bind(vm)(null, '_abc123', callback)
-    expect(callback.args[1][0].message).toBe(vm.$t('kylinLang.common.userGroupNameFormatValidTip'))
+    expect(callback.args[0][0].message).toBe(vm.$t('kylinLang.common.usernameEmpty'))
+    validate[GROUP_NAME].bind(vm)(null, '.abc123', callback)
+    expect(callback.args[1][0].message).toBe(vm.$t('kylinLang.user.noStartWithPeriod'))
+    validate[GROUP_NAME].bind(vm)(null, ' abc123 ', callback)
+    expect(callback.args[2][0].message).toBe(vm.$t('kylinLang.user.noStartWithSpace'))
+    validate[GROUP_NAME].bind(vm)(null, 'abc中文123', callback)
+    expect(callback.args[3][0].message).toBe(vm.$t('kylinLang.user.noChineseCharacters'))
+    validate[GROUP_NAME].bind(vm)(null, 'abc\\123', callback)
+    expect(callback.args[4][0].message).toBe(vm.$t('kylinLang.user.otherCharacters'))
     validate[GROUP_NAME].bind(vm)(null, 'abc123', callback)
-    expect(callback.args[2][0]).toBeUndefined()
+    expect(callback.args[5][0]).toBeUndefined()
   })
 
   it('validate-username', () => {
     validate[USERNAME].bind(vm)(null, '', callback)
-    expect(callback.args[3][0].message).toBe(vm.$t('kylinLang.common.usernameEmpty'))
-    validate[USERNAME].bind(vm)(null, '_abc123', callback)
-    expect(callback.args[4][0].message).toBe(vm.$t('kylinLang.common.userNameFormatValidTip'))
+    expect(callback.args[6][0].message).toBe(vm.$t('kylinLang.common.usernameEmpty'))
+    validate[USERNAME].bind(vm)(null, '.abc123', callback)
+    expect(callback.args[7][0].message).toBe(vm.$t('kylinLang.user.noStartWithPeriod'))
+    validate[USERNAME].bind(vm)(null, ' abc123 ', callback)
+    expect(callback.args[8][0].message).toBe(vm.$t('kylinLang.user.noStartWithSpace'))
+    validate[USERNAME].bind(vm)(null, 'abc中文123', callback)
+    expect(callback.args[9][0].message).toBe(vm.$t('kylinLang.user.noChineseCharacters'))
+    validate[USERNAME].bind(vm)(null, 'abc\\123', callback)
+    expect(callback.args[10][0].message).toBe(vm.$t('kylinLang.user.otherCharacters'))
     validate[USERNAME].bind(vm)(null, 'abc123', callback)
-    expect(callback.args[5][0]).toBeUndefined()
+    expect(callback.args[11][0]).toBeUndefined()
   })
 
   it('validate-password', () => {
     validate[PASSWORD].bind(vm)(null, '', callback)
-    expect(callback.args[6][0].message).toBe(vm.$t('kylinLang.common.passwordEmpty'))
+    expect(callback.args[12][0].message).toBe(vm.$t('kylinLang.common.passwordEmpty'))
     validate[PASSWORD].bind(vm)(null, 'abc123', callback)
-    expect(callback.args[7][0].message).toBe(vm.$t('kylinLang.common.passwordLength'))
+    expect(callback.args[13][0].message).toBe(vm.$t('kylinLang.common.passwordLength'))
     validate[PASSWORD].bind(vm)(null, 'abcd1234', callback)
-    expect(callback.args[8][0].message).toBe(vm.$t('kylinLang.user.tip_password_unsafe'))
+    expect(callback.args[14][0].message).toBe(vm.$t('kylinLang.user.tip_password_unsafe'))
     validate[PASSWORD].bind(vm)(null, 'kyligence@1', callback)
-    expect(callback.args[9][0]).toBeUndefined()
+    expect(callback.args[15][0]).toBeUndefined()
   })
 
   it('validate-confirm-password', () => {
@@ -49,25 +61,27 @@ describe('validate', () => {
       newPassword: 'kyligence@2'
     }
     validate[CONFIRM_PASSWORD].bind(vm)(null, '', callback)
-    expect(callback.args[10][0].message).toBe(vm.$t('kylinLang.common.passwordEmpty'))
+    expect(callback.args[16][0].message).toBe(vm.$t('kylinLang.common.passwordEmpty'))
     validate[CONFIRM_PASSWORD].bind(vm)(null, 'kyligence@2', callback)
-    expect(callback.args[11][0].message).toBe(vm.$t('kylinLang.common.passwordConfirm'))
+    expect(callback.args[17][0].message).toBe(vm.$t('kylinLang.common.passwordConfirm'))
     vm.form = {
       password: 'kyligence@1',
       newPassword: 'kyligence@1'
     }
     validate[CONFIRM_PASSWORD].bind(vm)(null, 'kyligence@1', callback)
-    expect(callback.args[12][0]).toBeUndefined()
+    expect(callback.args[18][0]).toBeUndefined()
   })
 
   it('validate-project-name', () => {
     validate[PROJECT_NAME].bind(vm)(null, '', callback)
-    expect(callback.args[13][0].message).toBe(vm.$t('kylinLang.common.noProject'))
+    expect(callback.args[19][0].message).toBe(vm.$t('kylinLang.common.noProject'))
     validate[PROJECT_NAME].bind(vm)(null, 'abc123@', callback)
-    expect(callback.args[14][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip'))
+    expect(callback.args[20][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip'))
     validate[PROJECT_NAME].bind(vm)(null, '_abcd1234', callback)
-    expect(callback.args[15][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip1'))
+    expect(callback.args[21][0].message).toBe(vm.$t('kylinLang.common.nameFormatValidTip1'))
+    validate[PROJECT_NAME].bind(vm)(null, 'project_test_project_test_project_test_project_test_project_test_project_test', callback)
+    expect(callback.args[22][0].message).toBe(vm.$t('kylinLang.common.overLengthTip'))
     validate[PROJECT_NAME].bind(vm)(null, 'abcd1234', callback)
-    expect(callback.args[16][0]).toBeUndefined()
+    expect(callback.args[23][0]).toBeUndefined()
   })
 })

@@ -11,7 +11,7 @@ export default {
       callback(new Error(this.$t('kylinLang.common.usernameEmpty')))
     } else if (/^\./.test(value)) {  // 不能以.开头
       callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
-    } else if (/^\s+|\s+$/.test(value)) {  // 首位不能有空字符
+    } else if (/^\s+|\s+$/.test(value)) {  // 首尾不能有空字符
       callback(new Error(this.$t('kylinLang.user.noStartWithSpace')))
     } else if (/[\u4E00-\u9FA5]/g.test(value)) {  // 不能有中文字符
       callback(new Error(this.$t('kylinLang.user.noChineseCharacters')))
@@ -27,7 +27,7 @@ export default {
       callback(new Error(this.$t('kylinLang.common.usernameEmpty')))
     } else if (/^\./.test(value)) {  // 不能以.开头
       callback(new Error(this.$t('kylinLang.user.noStartWithPeriod')))
-    } else if (/^\s+|\s+$/.test(value)) {  // 首位不能有空字符
+    } else if (/^\s+|\s+$/.test(value)) {  // 首尾不能有空字符
       callback(new Error(this.$t('kylinLang.user.noStartWithSpace')))
     } else if (/[\u4E00-\u9FA5]/g.test(value)) {  // 不能有中文字符
       callback(new Error(this.$t('kylinLang.user.noChineseCharacters')))
