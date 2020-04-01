@@ -651,7 +651,7 @@ Vue.directive('custom-tooltip', {
     if (!el || !el.parentElement) return
     const parent = el.parentElement
     let id = 'tooltip-' + new Date().getTime().toString(32)
-    el.dataset.id = id
+    el.setAttribute('data-id', id)
     const nextElement = el.nextSibling
     const currentElWidth = getTextWidth(el, el.innerText)
     parentList[id] = {
@@ -667,7 +667,8 @@ Vue.directive('custom-tooltip', {
     }
 
     setTimeout(() => {
-      appendTipDom(el, currentElWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+      let _el = el
+      appendTipDom(_el, currentElWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
     }, 0)
 
     setTimeout(() => {
@@ -687,19 +688,18 @@ Vue.directive('custom-tooltip', {
   },
   update: (el, binding, oldVnode) => {
     if (binding.value.text === binding.oldValue.text && binding.value.w === binding.oldValue.w) return
-    if (!el.dataset.id || !(el.dataset.id in parentList)) return
-    let parent = parentList[el.dataset.id].parent
+    let id = el.getAttribute('data-id')
+    if (!id || !(id in parentList)) return
+    let parent = parentList[id].parent
     let textNode = parent.querySelector('.custom-tooltip-text')
-    parentList[el.dataset.id].binding = binding
-    let currentWidth = parentList[el.dataset.id].textWidth = getTextWidth(textNode, binding.value.text)
+    parentList[id].binding = binding
+    let currentWidth = parentList[id].textWidth = getTextWidth(textNode, binding.value.text)
     textNode.textContent = binding.value.text
-    el.textContent = binding.value.text
-    appendTipDom(el, currentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
+    appendTipDom(textNode, currentWidth, 'value' in binding && typeof binding.value.w === 'number' ? binding.value.w : 0)
   },
   unbind: (el) => {
-    if (!el.dataset.id) return
-    let id = el.dataset.id
-
+    let id = el.getAttribute('data-id')
+    if (!id || !(id in parentList)) return
     !('observer' in parentList[id]) && `resizeFn-${id}` in parentList[id] && window.removeEventListener('resize', parentList[id][`resizeFn-${id}`])
     // 使用 MutationObserver 方法监听dom，需要用 disconnect 解绑
     'observer' in parentList[id] && parentList[id].observer.disconnect()
@@ -726,16 +726,18 @@ function createToolTipDom (el, binding, parentWidth) {
 
 // 窗口resize以及更新数据时重新插入tooltip或去除tooltip
 function appendTipDom (el, currentW, w) {
-  if (!el.dataset.id || !(el.dataset.id in parentList)) return
-  const { parent, nextElement, binding } = parentList[el.dataset.id]
+  let id = el.getAttribute('data-id')
+  if (!id || !(id in parentList)) return
+  const { parent, nextElement, binding } = parentList[id]
   const parentW = parent && parent.offsetWidth
   let comp = createToolTipDom(el, binding, parentW)
 
   // 当前el超过父节点的宽度时插入tooltip否者移出
   if (currentW + w >= parentW) {
     if (!parent.querySelector('.tip_box')) {
+      let _El = parent.querySelector('.custom-tooltip-text')
       nextElement ? parent.insertBefore(comp.$el, nextElement) : parent.appendChild(comp.$el)
-      parent.removeChild(el)
+      parent.removeChild(_El)
     } else {
       nextElement ? parent.insertBefore(comp.$el, nextElement) : parent.appendChild(comp.$el)
       parent.removeChild(parent.querySelector('.tip_box'))

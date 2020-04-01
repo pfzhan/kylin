@@ -95,9 +95,9 @@ export default class ModelsExportModal extends Vue {
   async handleOpen () {
     try {
       const { project } = this
-      this.isBodyShow = true
       this.isLoading = true
       await this.getModelsMetadataStructure({ project })
+      this.isBodyShow = true
       this.isLoading = false
     } catch (e) {
       this.handleClose()
@@ -123,6 +123,7 @@ export default class ModelsExportModal extends Vue {
   }
 
   handleFilter (value) {
+    if (!this.$refs.tree) return
     this.$refs.tree.filter(value)
     setTimeout(() => {
       const allNodes = this.$refs.tree.getAllNodes()
@@ -165,7 +166,7 @@ export default class ModelsExportModal extends Vue {
   renderNodeText (h, { node, data }) {
     switch (data.nodeType) {
       case 'model': return <span v-custom-tooltip={{ text: node.label, w: 50 }}>{node.label}</span>
-      case 'table': return <span v-custom-tooltip={{ text: node.label, w: 100 }}>{node.label}</span>
+      case 'table': return <span v-custom-tooltip={{ text: node.label, w: 80 }}>{node.label}</span>
       default: return null
     }
   }
@@ -173,10 +174,8 @@ export default class ModelsExportModal extends Vue {
   renderContent (h, { node, data }) {
     return (
       <span class={['tree-item', data.nodeType]}>
-        <OverflowTextTooltip>
-          {this.renderNodeIcon(h, { node, data })}
-          {this.renderNodeText(h, { node, data })}
-        </OverflowTextTooltip>
+        {this.renderNodeIcon(h, { node, data })}
+        {this.renderNodeText(h, { node, data })}
       </span>
     )
   }
