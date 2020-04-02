@@ -58,6 +58,7 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,19 +194,30 @@ public class NSparkExecutable extends AbstractExecutable {
             jars = kylinJobJar;
         }
 
-        if(!isResumable()){
+        if (!isResumable()) {
             deleteJobTmpDirectoryOnExists();
         }
 
         onExecuteStart();
 
         try {
-            if(!isResumable()) {
-                attachMetadataAndKylinProps(config);
-            }
+            // if building job is resumable,
+            // property value contains placeholder (eg. "kylin.engine.spark-conf.spark.yarn.dist.files") will be replaced with specified path.
+            // in case of ha, not every candidate node will have the same path
+            // upload kylin.properties only
+            attachMetadataAndKylinProps(config, isResumable());
         } catch (IOException e) {
             throw new ExecuteException("meta dump failed", e);
         }
+
+        if (!isResumable()) {
+            // set resumable when metadata and props attached
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
+                return 0;
+            }, project);
+        }
+
         String filePath = dumpArgs();
         if (config.isUTEnv()) {
             return runLocalMode(filePath);
@@ -418,22 +430,11 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
+        attachMetadataAndKylinProps(config, false);
+    }
 
-        // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-        Map dumpMap = UnitOfWork.doInTransactionWithRetry(
-                UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
-                    Map<String, RawResource> retMap = Maps.newHashMap();
-                    for (String resPath : getMetadataDumpList(config)) {
-                        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
-                        RawResource rawResource = resourceStore.getResource(resPath);
-                        retMap.put(resPath, rawResource);
-                    }
-                    return retMap;
-                }).build());
+    private void attachMetadataAndKylinProps(KylinConfig config, boolean kylinPropsOnly) throws IOException {
 
-        if (dumpMap.isEmpty()) {
-            return;
-        }
         String metaDumpUrl = getDistMetaUrl();
         if (StringUtils.isEmpty(metaDumpUrl)) {
             throw new RuntimeException("Missing metaUrl");
@@ -444,8 +445,28 @@ public class NSparkExecutable extends AbstractExecutable {
 
         Properties props = config.exportToProperties();
         props.setProperty("kylin.metadata.url", metaDumpUrl);
-        // dump metadata
-        ResourceStore.dumpResourceMaps(config, tmpDir, dumpMap, props);
+
+        if (kylinPropsOnly) {
+            ResourceStore.dumpKylinProps(tmpDir, props);
+        } else {
+            // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
+            Map dumpMap = UnitOfWork.doInTransactionWithRetry(
+                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
+                        Map<String, RawResource> retMap = Maps.newHashMap();
+                        for (String resPath : getMetadataDumpList(config)) {
+                            ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
+                            RawResource rawResource = resourceStore.getResource(resPath);
+                            retMap.put(resPath, rawResource);
+                        }
+                        return retMap;
+                    }).build());
+
+            if (Objects.isNull(dumpMap) || dumpMap.isEmpty()) {
+                return;
+            }
+            // dump metadata
+            ResourceStore.dumpResourceMaps(config, tmpDir, dumpMap, props);
+        }
 
         // copy metadata to target metaUrl
         KylinConfig dstConfig = KylinConfig.createKylinConfig(props);

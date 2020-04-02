@@ -395,7 +395,6 @@ public class NExecutableManager {
             po.getOutput().setInfo(info);
             po.getOutput().setStatus(ExecutableState.READY.toString());
             po.getOutput().addEndTime(System.currentTimeMillis());
-            po.getOutput().setResumable(true);
             result = true;
         }
         for (ExecutablePO task : Optional.ofNullable(po.getTasks()).orElse(Lists.newArrayList())) {
@@ -409,20 +408,11 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-
         if (job instanceof DefaultChainedExecutable) {
             List<? extends AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
             tasks.stream().filter(task -> task.getStatus().isNotProgressing())
                     .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY));
         }
-
-        // to redesign: merge executableDao ops
-        executableDao.updateJob(jobId, executablePO -> {
-            executablePO.getOutput().setResumable(true);
-            executablePO.getTasks().forEach(task -> task.getOutput().setResumable(true));
-            return true;
-        });
-
         updateJobOutput(jobId, ExecutableState.READY);
     }
 
@@ -438,6 +428,26 @@ public class NExecutableManager {
             });
             return true;
         });
+    }
+
+    public void setJobResumable(final String taskOrJobId) {
+        final String jobId = extractJobId(taskOrJobId);
+        AbstractExecutable job = getJob(jobId);
+        if (Objects.isNull(job)) {
+            return;
+        }
+        if (Objects.equals(taskOrJobId, jobId)) {
+            executableDao.updateJob(jobId, executablePO -> {
+                executablePO.getOutput().setResumable(true);
+                return true;
+            });
+        } else {
+            executableDao.updateJob(jobId, executablePO -> {
+                executablePO.getTasks().stream().filter(o -> Objects.equals(taskOrJobId, o.getId()))
+                        .forEach(t -> t.getOutput().setResumable(true));
+                return true;
+            });
+        }
     }
 
     private void updateJobReady(String jobId) {

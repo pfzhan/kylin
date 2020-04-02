@@ -55,6 +55,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
@@ -118,6 +119,8 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
     public static final String COMPRESSED_FILE = "/metadata.zip";
+
+    public static final String KYLIN_PROPS = "kylin.properties";
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
     @Getter
@@ -502,6 +505,24 @@ public abstract class ResourceStore implements AutoCloseable {
 
     public static void dumpResources(KylinConfig kylinConfig, String dumpDir) {
         dumpResources(kylinConfig, new File(dumpDir), null, null);
+    }
+
+    public static void dumpKylinProps(File metaDir, Properties props) {
+        if (Objects.isNull(metaDir)) {
+            return;
+        }
+        if (!metaDir.exists()) {
+            metaDir.mkdirs();
+        }
+        if (Objects.isNull(props)) {
+            return;
+        }
+        File propsFile = new File(metaDir, KYLIN_PROPS);
+        try (FileOutputStream os = new FileOutputStream(propsFile)) {
+            props.store(os, propsFile.getAbsolutePath());
+        } catch (Exception e) {
+            throw new IllegalStateException("dump kylin props failed", e);
+        }
     }
 
     public void copy(String resPath, ResourceStore destRS) {
