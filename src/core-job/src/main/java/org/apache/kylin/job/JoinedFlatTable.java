@@ -50,6 +50,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -69,7 +70,7 @@ public class JoinedFlatTable {
 
     private static final String DATABASE_AND_TABLE = "%s.%s";
 
-    private static final String QUOTE = "\"";
+    private static final String QUOTE = Quoting.DOUBLE_QUOTE.string;
     private static final String UNDER_LINE = "_";
     private static final String DOT = ".";
 
@@ -98,7 +99,7 @@ public class JoinedFlatTable {
         if (!col.getColumnDesc().isComputedColumn()) {
             return quote(col.getTableAlias()) + DOT + quote(col.getName());
         }
-        return quoteIdentifierInSqlExpr(modelDesc, ccMap.get(col.getName()).getExpression(), QUOTE);
+        return quoteIdentifierInSqlExpr(modelDesc, ccMap.get(col.getName()).getInnerExpression(), QUOTE);
     }
 
     private static String appendEffectiveColumnsStatement(NDataModel modelDesc, boolean singleLine) {
@@ -122,7 +123,7 @@ public class JoinedFlatTable {
         final String sep = getSepBySingleLineTag(singleLine);
 
         StringBuilder whereBuilder = new StringBuilder();
-        whereBuilder.append("1=1").append(sep);
+        whereBuilder.append("1 = 1").append(sep);
 
         if (StringUtils.isNotEmpty(modelDesc.getFilterCondition())) {
             String quotedFilterCondition = quoteIdentifierInSqlExpr(modelDesc, modelDesc.getFilterCondition(), QUOTE);
@@ -260,21 +261,26 @@ public class JoinedFlatTable {
     @VisibleForTesting
     static List<String> getTableNameOrAliasPatterns(String tableName) {
         Preconditions.checkNotNull(tableName);
-        // Pattern must contain three regex groups, and place identifier in sec group ($2)
+        // Pattern must contain these regex groups, and place identifier in sec group ($2)
         List<String> patterns = Lists.newArrayList();
         patterns.add("([+\\-*/%&|^=><\\s,(])(" + tableName.trim() + ")(\\.)");
+        patterns.add("([+\\-*/%&|^=><\\s,(])(`" + tableName.trim() + "`)(\\.)");
         patterns.add("([\\.\\s])(" + tableName.trim() + ")([,\\s)])");
+        patterns.add("([\\.\\s])(`" + tableName.trim() + "`)([,\\s)])");
         patterns.add("(^)(" + tableName.trim() + ")([\\.])");
+        patterns.add("(^)(`" + tableName.trim() + "`)([\\.])");
         return patterns;
     }
 
     @VisibleForTesting
     static List<String> getColumnNameOrAliasPatterns(String colName) {
         Preconditions.checkNotNull(colName);
-        // Pattern must contain three regex groups, and place identifier in sec group ($2)
+        // Pattern must contain these regex groups, and place identifier in sec group ($2)
         List<String> patterns = Lists.newArrayList();
         patterns.add("([\\.\\s(])(" + colName.trim() + ")([+\\-*/%&|^=><\\s,)]|$)");
+        patterns.add("([\\.\\s(])(`" + colName.trim() + "`)([+\\-*/%&|^=><\\s,)]|$)");
         patterns.add("(^)(" + colName.trim() + ")([+\\-*/%&|^=><\\s,)])");
+        patterns.add("(^)(`" + colName.trim() + "`)([+\\-*/%&|^=><\\s,)])");
         return patterns;
     }
 

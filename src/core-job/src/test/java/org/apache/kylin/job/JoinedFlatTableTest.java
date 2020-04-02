@@ -45,6 +45,7 @@ package org.apache.kylin.job;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.calcite.avatica.util.Quoting;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -64,6 +65,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 
 public class JoinedFlatTableTest {
 
+    private static final String QUOTE = Quoting.DOUBLE_QUOTE.string;
     private NDataModel dataModel = new NDataModel();
 
     @Before
@@ -99,7 +101,7 @@ public class JoinedFlatTableTest {
         loRevenueColDesc.setTable(lineOrderTableDesc);
 
         ColumnDesc cc = new ColumnDesc("4", "PROFIT", "bigint", null, null, null,
-                "LINEORDER.LO_REVENUE-LINEORDER.LO_TAX");
+                "case when `LINEORDER`.`LO_REVENUE` - `LINEORDER`.`LO_TAX` > 0 then 'LINEORDER' else null end");
         cc.setTable(lineOrderTableDesc);
 
         lineOrderTableDesc.setColumns(new ColumnDesc[] { loSuppkeyColDesc, loTaxColDesc, loRevenueColDesc, cc });
@@ -158,8 +160,10 @@ public class JoinedFlatTableTest {
         dataModel.setJoinTables(Lists.newArrayList(supplierJoinTableDesc));
         dataModel.setFilterCondition("SUPPLIER.S_CITY != 'beijing'");
         ComputedColumnDesc cc1 = new ComputedColumnDesc();
-        cc1.setExpression("LINEORDER.LO_REVENUE-LINEORDER.LO_TAX");
-        cc1.setInnerExpression("LINEORDER.LO_REVENUE-LINEORDER.LO_TAX");
+        cc1.setExpression(
+                "case when \"LINEORDER\".\"LO_REVENUE\" - \"LINEORDER\".\"LO_TAX\" > 0 then 'LINEORDER' else null end");
+        cc1.setInnerExpression(
+                "case when `LINEORDER`.`LO_REVENUE` - `LINEORDER`.`LO_TAX` > 0 then 'LINEORDER' else null end");
         cc1.setColumnName("PROFIT");
         cc1.setDatatype("bigint");
         dataModel.setComputedColumnDescs(Lists.newArrayList(cc1));
@@ -167,36 +171,36 @@ public class JoinedFlatTableTest {
 
     @Test
     public void testQuoteIdentifierInSqlExpr() {
-        String cc = JoinedFlatTable.quoteIdentifierInSqlExpr(dataModel, "LINEORDER.LO_REVENUE-LINEORDER.LO_TAX", "`");
-        Assert.assertEquals("`LINEORDER`.`LO_REVENUE`-`LINEORDER`.`LO_TAX`", cc);
+        String cc = JoinedFlatTable.quoteIdentifierInSqlExpr(dataModel, "LINEORDER.LO_REVENUE-LINEORDER.LO_TAX", QUOTE);
+        Assert.assertEquals("\"LINEORDER\".\"LO_REVENUE\"-\"LINEORDER\".\"LO_TAX\"", cc);
 
         String where1 = JoinedFlatTable.quoteIdentifierInSqlExpr(dataModel, "LINEORDER.LO_REVENUE-LINEORDER.LO_TAX>0",
-                "`");
-        Assert.assertEquals("`LINEORDER`.`LO_REVENUE`-`LINEORDER`.`LO_TAX`>0", where1);
+                QUOTE);
+        Assert.assertEquals("\"LINEORDER\".\"LO_REVENUE\"-\"LINEORDER\".\"LO_TAX\">0", where1);
 
         String where2 = JoinedFlatTable.quoteIdentifierInSqlExpr(dataModel,
-                "LINEORDER.LO_REVENUE>100 AND LINEORDER.LO_TAX>0", "`");
-        Assert.assertEquals("`LINEORDER`.`LO_REVENUE`>100 AND `LINEORDER`.`LO_TAX`>0", where2);
+                "LINEORDER.LO_REVENUE>100 AND LINEORDER.LO_TAX>0", QUOTE);
+        Assert.assertEquals("\"LINEORDER\".\"LO_REVENUE\">100 AND \"LINEORDER\".\"LO_TAX\">0", where2);
     }
 
     @Test
     public void testGenerateSelectDataStatement() {
         String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_CITY\" != 'beijing'"));
-        Assert.assertTrue(flatTableSql.contains("SELECT "));
-        Assert.assertTrue(flatTableSql.contains("FROM "));
-        Assert.assertTrue(flatTableSql.contains("WHERE "));
-        Assert.assertTrue(flatTableSql.contains("\"LINEORDER\".\"LO_SUPPKEY\" as \"LINEORDER_LO_SUPPKEY\","));
-        Assert.assertTrue(flatTableSql.contains("\"LINEORDER\".\"LO_REVENUE\" as \"LINEORDER_LO_REVENUE\","));
-        Assert.assertTrue(flatTableSql.contains("\"LINEORDER\".\"LO_TAX\" as \"LINEORDER_LO_TAX\","));
-        Assert.assertTrue(flatTableSql
-                .contains("\"LINEORDER\".\"LO_REVENUE\"-\"LINEORDER\".\"LO_TAX\" as \"LINEORDER_PROFIT\","));
-        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_SUPPKEY\" as \"SUPPLIER_S_SUPPKEY\","));
-        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_CITY\" as \"SUPPLIER_S_CITY\""));
-        Assert.assertTrue(flatTableSql.contains("\"SSB\".\"LINEORDER\" as \"LINEORDER\""));
-        Assert.assertTrue(flatTableSql.contains("LEFT JOIN \"SSB\".\"SUPPLIER\" as \"SUPPLIER\""));
-        Assert.assertTrue(flatTableSql.contains("ON \"SUPPLIER\".\"S_SUPPKEY\"=\"LINEORDER\".\"LO_SUPPKEY\""));
-        Assert.assertTrue(flatTableSql.contains("\"SUPPLIER\".\"S_CITY\" != 'beijing'"));
+        String expectedSql = "SELECT \n"
+                + "\"LINEORDER\".\"LO_SUPPKEY\" as \"LINEORDER_LO_SUPPKEY\",\n"
+                + "\"LINEORDER\".\"LO_REVENUE\" as \"LINEORDER_LO_REVENUE\",\n"
+                + "\"LINEORDER\".\"LO_TAX\" as \"LINEORDER_LO_TAX\",\n"
+                + "case when \"LINEORDER\".\"LO_REVENUE\" - \"LINEORDER\".\"LO_TAX\" > 0 then 'LINEORDER' else null end as \"LINEORDER_PROFIT\",\n"
+                + "\"SUPPLIER\".\"S_SUPPKEY\" as \"SUPPLIER_S_SUPPKEY\",\n"
+                + "\"SUPPLIER\".\"S_CITY\" as \"SUPPLIER_S_CITY\"\n"
+                + "FROM \n"
+                + "\"SSB\".\"LINEORDER\" as \"LINEORDER\" \n"
+                + "LEFT JOIN \"SSB\".\"SUPPLIER\" as \"SUPPLIER\"\n"
+                + "ON \"SUPPLIER\".\"S_SUPPKEY\"=\"LINEORDER\".\"LO_SUPPKEY\"\n"
+                + "WHERE \n"
+                + "1 = 1\n"
+                + " AND (\"SUPPLIER\".\"S_CITY\" != 'beijing')";
+        Assert.assertEquals(expectedSql, flatTableSql.trim());
 
         NonEquiJoinCondition nonEquiJoinCondition = new NonEquiJoinCondition();
         nonEquiJoinCondition.setExpr("SUPPLIER.S_SUPPKEY <> LINEORDER.LO_SUPPKEY AND LINEORDER.LO_SUPPKEY > 10");
@@ -211,49 +215,49 @@ public class JoinedFlatTableTest {
     public void testQuoteIdentifier() {
         List<String> tablePatterns = JoinedFlatTable.getTableNameOrAliasPatterns("KYLIN_SALES");
         String exprTable = "KYLIN_SALES.PRICE * KYLIN_SALES.COUNT";
-        String expectedExprTable = "`KYLIN_SALES`.PRICE * `KYLIN_SALES`.COUNT";
-        String quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, "`", "KYLIN_SALES", tablePatterns);
+        String expectedExprTable = "\"KYLIN_SALES\".PRICE * \"KYLIN_SALES\".COUNT";
+        String quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, QUOTE, "KYLIN_SALES", tablePatterns);
         Assert.assertEquals(expectedExprTable, quotedExprTable);
 
         exprTable = "`KYLIN_SALES`.PRICE * KYLIN_SALES.COUNT";
-        expectedExprTable = "`KYLIN_SALES`.PRICE * `KYLIN_SALES`.COUNT";
-        quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, "`", "KYLIN_SALES", tablePatterns);
+        expectedExprTable = "\"KYLIN_SALES\".PRICE * \"KYLIN_SALES\".COUNT";
+        quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, QUOTE, "KYLIN_SALES", tablePatterns);
         Assert.assertEquals(expectedExprTable, quotedExprTable);
 
         exprTable = "KYLIN_SALES.PRICE AS KYLIN_SALES_PRICE * KYLIN_SALES.COUNT AS KYLIN_SALES_COUNT";
-        expectedExprTable = "`KYLIN_SALES`.PRICE AS KYLIN_SALES_PRICE * `KYLIN_SALES`.COUNT AS KYLIN_SALES_COUNT";
-        quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, "`", "KYLIN_SALES", tablePatterns);
+        expectedExprTable = "\"KYLIN_SALES\".PRICE AS KYLIN_SALES_PRICE * \"KYLIN_SALES\".COUNT AS KYLIN_SALES_COUNT";
+        quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, QUOTE, "KYLIN_SALES", tablePatterns);
         Assert.assertEquals(expectedExprTable, quotedExprTable);
 
         exprTable = "(KYLIN_SALES.PRICE AS KYLIN_SALES_PRICE > 1 and KYLIN_SALES.COUNT AS KYLIN_SALES_COUNT > 50)";
-        expectedExprTable = "(`KYLIN_SALES`.PRICE AS KYLIN_SALES_PRICE > 1 and `KYLIN_SALES`.COUNT AS KYLIN_SALES_COUNT > 50)";
-        quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, "`", "KYLIN_SALES", tablePatterns);
+        expectedExprTable = "(\"KYLIN_SALES\".PRICE AS KYLIN_SALES_PRICE > 1 and \"KYLIN_SALES\".COUNT AS KYLIN_SALES_COUNT > 50)";
+        quotedExprTable = JoinedFlatTable.quoteIdentifier(exprTable, QUOTE, "KYLIN_SALES", tablePatterns);
         Assert.assertEquals(expectedExprTable, quotedExprTable);
 
         List<String> columnPatterns = JoinedFlatTable.getColumnNameOrAliasPatterns("PRICE");
         String expr = "KYLIN_SALES.PRICE * KYLIN_SALES.COUNT";
-        String expectedExpr = "KYLIN_SALES.`PRICE` * KYLIN_SALES.COUNT";
-        String quotedExpr = JoinedFlatTable.quoteIdentifier(expr, "`", "PRICE", columnPatterns);
+        String expectedExpr = "KYLIN_SALES.\"PRICE\" * KYLIN_SALES.COUNT";
+        String quotedExpr = JoinedFlatTable.quoteIdentifier(expr, QUOTE, "PRICE", columnPatterns);
         Assert.assertEquals(expectedExpr, quotedExpr);
 
-        expr = "KYLIN_SALES.PRICE/KYLIN_SALES.COUNT";
-        expectedExpr = "KYLIN_SALES.`PRICE`/KYLIN_SALES.COUNT";
-        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, "`", "PRICE", columnPatterns);
+        expr = "KYLIN_SALES.PRICE / KYLIN_SALES.COUNT";
+        expectedExpr = "KYLIN_SALES.\"PRICE\" / KYLIN_SALES.COUNT";
+        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, QUOTE, "PRICE", columnPatterns);
         Assert.assertEquals(expectedExpr, quotedExpr);
 
         expr = "KYLIN_SALES.PRICE AS KYLIN_SALES_PRICE * KYLIN_SALES.COUNT AS KYLIN_SALES_COUNT";
-        expectedExpr = "KYLIN_SALES.`PRICE` AS KYLIN_SALES_PRICE * KYLIN_SALES.COUNT AS KYLIN_SALES_COUNT";
-        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, "`", "PRICE", columnPatterns);
+        expectedExpr = "KYLIN_SALES.\"PRICE\" AS KYLIN_SALES_PRICE * KYLIN_SALES.COUNT AS KYLIN_SALES_COUNT";
+        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, QUOTE, "PRICE", columnPatterns);
         Assert.assertEquals(expectedExpr, quotedExpr);
 
         expr = "(PRICE > 1 AND COUNT > 50)";
-        expectedExpr = "(`PRICE` > 1 AND COUNT > 50)";
-        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, "`", "PRICE", columnPatterns);
+        expectedExpr = "(\"PRICE\" > 1 AND COUNT > 50)";
+        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, QUOTE, "PRICE", columnPatterns);
         Assert.assertEquals(expectedExpr, quotedExpr);
 
         expr = "PRICE>1 and `PRICE` < 15";
-        expectedExpr = "`PRICE`>1 and `PRICE` < 15";
-        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, "`", "PRICE", columnPatterns);
+        expectedExpr = "\"PRICE\">1 and \"PRICE\" < 15";
+        quotedExpr = JoinedFlatTable.quoteIdentifier(expr, QUOTE, "PRICE", columnPatterns);
         Assert.assertEquals(expectedExpr, quotedExpr);
     }
 }

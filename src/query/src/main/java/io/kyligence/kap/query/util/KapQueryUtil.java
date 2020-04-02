@@ -84,7 +84,9 @@ public class KapQueryUtil {
         Set<TableRef> dimTableCache = Sets.newHashSet();
 
         TableRef rootTable = model.getRootFactTable();
-        sql.append("FROM " + model.getRootFactTable().getTableIdentity() + " as " + rootTable.getAlias() + " " + sep);
+        sql.append(String.format("FROM \"%s\".\"%s\" as \"%s\"", rootTable.getTableDesc().getDatabase(),
+                rootTable.getTableDesc().getName(), rootTable.getAlias()));
+        sql.append(sep);
 
         for (JoinTableDesc lookupDesc : model.getJoinTables()) {
             JoinDesc join = lookupDesc.getJoin();
@@ -99,13 +101,17 @@ public class KapQueryUtil {
                 throw new IllegalArgumentException("Invalid join condition of lookup table:" + lookupDesc);
             }
             String joinType = join.getType().toUpperCase();
-            sql.append(joinType + " JOIN " + dimTable.getTableIdentity() + " as " + dimTable.getAlias() + sep);
+
+            sql.append(String.format("%s JOIN \"%s\".\"%s\" as \"%s\"", //
+                    joinType, dimTable.getTableDesc().getDatabase(), dimTable.getTableDesc().getName(),
+                    dimTable.getAlias()));
+            sql.append(sep);
             sql.append("ON ");
             for (int i = 0; i < pk.length; i++) {
                 if (i > 0) {
                     sql.append(" AND ");
                 }
-                sql.append(fk[i].getExpressionInSourceDB() + " = " + pk[i].getExpressionInSourceDB());
+                sql.append(String.format("%s = %s", fk[i].getExpressionInSourceDB(), pk[i].getExpressionInSourceDB()));
             }
             sql.append(sep);
 
