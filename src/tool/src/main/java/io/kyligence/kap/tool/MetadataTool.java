@@ -473,7 +473,7 @@ public class MetadataTool extends ExecutableApplication {
     }
 
     String getMetadataUrl(String rootPath, boolean compressed) {
-        if (rootPath.startsWith("hdfs://")) {
+        if (HadoopUtil.isHdfsCompatibleSchema(rootPath, kylinConfig)) {
             val url = String.format(HDFS_METADATA_URL_FORMATTER,
                     Path.getPathWithoutSchemeAndAuthority(new Path(rootPath)).toString() + "/");
             return compressed ? url + ",zip=1" : url;
@@ -487,5 +487,4 @@ public class MetadataTool extends ExecutableApplication {
 
         }
     }
-
 }

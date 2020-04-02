@@ -536,4 +536,51 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
         projectFolder = findFile(archiveFolder.listFiles(), f -> f.getName().equals("newten"));
         Assertions.assertThat(projectFolder.list()).doesNotContain("table_exd");
     }
+
+    @Test
+    public void testGetMetadataUrl() {
+        val tool = new MetadataTool();
+
+        var hdfsPath = "hdfs://host/path/to/hdfs/dir";
+        var hdfsMetadataUrl = tool.getMetadataUrl(hdfsPath, true);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/hdfs/dir/,zip=1", hdfsMetadataUrl);
+        hdfsMetadataUrl = tool.getMetadataUrl(hdfsPath, false);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/hdfs/dir/", hdfsMetadataUrl);
+
+        var maprfsPath = "maprfs://host/path/to/maprfs/dir";
+        var maprfsMetadataUrl = tool.getMetadataUrl(maprfsPath, true);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/maprfs/dir/,zip=1", maprfsMetadataUrl);
+        maprfsMetadataUrl = tool.getMetadataUrl(maprfsPath, false);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/maprfs/dir/", maprfsMetadataUrl);
+
+        var s3Path = "s3://host/path/to/s3/dir";
+        var s3MetadataUrl = tool.getMetadataUrl(s3Path, true);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/s3/dir/,zip=1", s3MetadataUrl);
+        s3MetadataUrl = tool.getMetadataUrl(s3Path, false);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/s3/dir/", s3MetadataUrl);
+
+        var s3aPath = "s3a://host/path/to/s3a/dir";
+        var s3aMetadataUrl = tool.getMetadataUrl(s3aPath, true);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/s3a/dir/,zip=1", s3aMetadataUrl);
+        s3aMetadataUrl = tool.getMetadataUrl(s3aPath, false);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/s3a/dir/", s3aMetadataUrl);
+
+        var wasbPath = "wasb://host/path/to/wasb/dir";
+        var wasbMetadataUrl = tool.getMetadataUrl(wasbPath, true);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/wasb/dir/,zip=1", wasbMetadataUrl);
+        wasbMetadataUrl = tool.getMetadataUrl(wasbPath, false);
+        Assert.assertEquals("kylin_metadata@hdfs,path=/path/to/wasb/dir/", wasbMetadataUrl);
+
+        var filePath = "file:///path/to/file/dir";
+        var fileMetadataUrl = tool.getMetadataUrl(filePath, true);
+        Assert.assertEquals("/path/to/file/dir/", fileMetadataUrl);
+        fileMetadataUrl = tool.getMetadataUrl(filePath, false);
+        Assert.assertEquals("/path/to/file/dir/", fileMetadataUrl);
+
+        var simplePath = "/just/a/path";
+        var simpleMetadataUrl = tool.getMetadataUrl(simplePath, true);
+        Assert.assertEquals("/just/a/path/", simpleMetadataUrl);
+        simpleMetadataUrl = tool.getMetadataUrl(simplePath, false);
+        Assert.assertEquals("/just/a/path/", simpleMetadataUrl);
+    }
 }

@@ -473,6 +473,12 @@ public abstract class KylinConfigBase implements Serializable {
         return r;
     }
 
+    public String[] getHdfsMetaStoreFileSystemSchemas() {
+        return getOptionalStringArray("kylin.metadata.hdfs-compatible-schemas", //
+                new String[] { "hdfs", "maprfs", "s3", "s3a", "wasb", "wasbs", "adl", "adls", "abfs", "abfss", "gs",
+                        "oss" });
+    }
+
     public String getSecurityProfile() {
         return getOptional("kylin.security.profile", "testing");
     }

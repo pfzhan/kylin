@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import java.util.Arrays;
+import lombok.var;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
@@ -235,6 +237,11 @@ public class HadoopUtil {
             path = Path.getPathWithoutSchemeAndAuthority(new Path(path)).toString() + "/";
         }
         return path;
+    }
+
+    public static boolean isHdfsCompatibleSchema(String path, KylinConfig kylinConfig){
+        var schemas = kylinConfig.getHdfsMetaStoreFileSystemSchemas();
+        return Arrays.stream(schemas).anyMatch(s -> path.startsWith(s + "://"));
     }
 
     public static ContentSummary getContentSummary(FileSystem fileSystem, Path path) throws IOException {
