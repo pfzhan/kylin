@@ -64,9 +64,9 @@ class KylinJoinSuite extends QueryTest with SharedSQLContext {
     sql("CACHE TABLE testData2")
 
     assertJoin(("SELECT * FROM testData LEFT JOIN testData2 ON key = a", classOf[BroadcastHashJoinExec]))
-    System.setProperty("kap.query.join-memory-fraction", "0")
+    System.setProperty("kylin.query.join-memory-fraction", "0")
     assertJoin(("SELECT * FROM testData LEFT JOIN testData2 ON key = a", classOf[SortMergeJoinExec]))
-    System.clearProperty("kap.query.join-memory-fraction")
+    System.clearProperty("kylin.query.join-memory-fraction")
   }
 
 

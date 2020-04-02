@@ -68,10 +68,10 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
         // first check should be GOOD
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 
-        // set kap.canary.sqlcontext-error-response-ms to 1
+        // set kylin.canary.sqlcontext-error-response-ms to 1
         // And SparkContextCanary numberCount will timeout
         Assert.assertEquals(0, SparkContextCanary.getErrorAccumulated());
-        System.setProperty("kap.canary.sqlcontext-error-response-ms", "1");
+        System.setProperty("kylin.canary.sqlcontext-error-response-ms", "1");
         SparkContextCanary.monitor();
 
         // errorAccumulated increase
@@ -85,7 +85,7 @@ public class SparkContextCanaryTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(SparderEnv.isSparkAvailable());
 
-        System.clearProperty("kap.canary.sqlcontext-error-response-ms");
+        System.clearProperty("kylin.canary.sqlcontext-error-response-ms");
 
     }
 }

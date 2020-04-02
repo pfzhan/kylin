@@ -236,7 +236,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         Arrays.asList("test_ck_1").forEach(name -> mockModel());
         NDataModelManager manager = Mockito.spy(NDataModelManager.getInstance(getTestConfig(), projectDefault));
 
-        getTestConfig().setProperty("kap.circuit-breaker.threshold.model", "1");
+        getTestConfig().setProperty("kylin.circuit-breaker.threshold.model", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             thrown.expect(CircuitBreakerException.class);

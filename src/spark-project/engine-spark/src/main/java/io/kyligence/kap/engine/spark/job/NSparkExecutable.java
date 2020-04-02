@@ -363,18 +363,18 @@ public class NSparkExecutable extends AbstractExecutable {
 
         String log4jConfiguration = "file:" + config.getLogSparkDriverPropertiesFile();
         sb.append(String.format(" -Dlog4j.configuration=%s ", log4jConfiguration));
-        sb.append(String.format(" -Dkap.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
+        sb.append(String.format(" -Dkylin.kerberos.enabled=%s ", kapConfig.isKerberosEnabled()));
 
         if (kapConfig.isKerberosEnabled()) {
-            sb.append(String.format(" -Dkap.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
-            sb.append(String.format(" -Dkap.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
+            sb.append(String.format(" -Dkylin.kerberos.principal=%s ", kapConfig.getKerberosPrincipal()));
+            sb.append(String.format(" -Dkylin.kerberos.keytab=%s", kapConfig.getKerberosKeytabPath()));
             if (kapConfig.getKerberosPlatform().equalsIgnoreCase(KapConfig.FI_PLATFORM)
                     || kapConfig.getPlatformZKEnable()) {
                 sb.append(String.format(" -Djava.security.auth.login.config=%s", kapConfig.getKerberosJaasConfPath()));
                 sb.append(String.format(" -Djava.security.krb5.conf=%s", kapConfig.getKerberosKrb5ConfPath()));
             }
         }
-        sb.append(String.format(" -Dkap.hdfs.working.dir=%s ", hdfsWorkingDir));
+        sb.append(String.format(" -Dkylin.hdfs.working.dir=%s ", hdfsWorkingDir));
         sb.append(String.format(" -Dspark.driver.log4j.appender.hdfs.File=%s ", sparkDriverHdfsLogPath));
         sb.append(String.format(" -Dspark.driver.rest.server.ip=%s ", serverIp));
         sb.append(String.format(" -Dspark.driver.rest.server.port=%s ", serverPort));

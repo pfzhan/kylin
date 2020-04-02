@@ -237,7 +237,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
         Boolean enableAutoModelingForNonEquiJoin = SmartConfig.wrap(getTestConfig()).enableAutoModelingForNonEquiJoin();
         KylinConfig conf = getTestConfig();
 
-        conf.setProperty("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         {
             NSmartMaster smartMaster = new NSmartMaster(conf, proj, sqls);
             smartMaster.analyzeSQLs();
@@ -246,7 +246,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(1, ctx.getModelContexts().size());
         }
 
-        conf.setProperty("kap.smart.conf.auto-modeling.non-equi-join.enabled", "FALSE");
+        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "FALSE");
         {
             NSmartMaster smartMaster = new NSmartMaster(conf, proj, sqls);
             smartMaster.analyzeSQLs();
@@ -255,7 +255,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertEquals(2, ctx.getModelContexts().size());
         }
 
-        conf.setProperty("kap.smart.conf.auto-modeling.non-equi-join.enabled", enableAutoModelingForNonEquiJoin.toString());
+        conf.setProperty("kylin.smart.conf.auto-modeling.non-equi-join.enabled", enableAutoModelingForNonEquiJoin.toString());
     }
 
 

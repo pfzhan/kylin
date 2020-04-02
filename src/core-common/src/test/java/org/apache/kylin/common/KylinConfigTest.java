@@ -79,8 +79,8 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
     @Test
     public void testBackwardCompatibility() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        final String oldk = "kylin.test.bcc.old.key";
-        final String newk = "kylin.test.bcc.new.key";
+        final String oldk = "kylin.test.bcc.old-key";
+        final String newk = "kylin.test.bcc.new-key";
 
         Assert.assertNull(config.getOptional(oldk));
         Assert.assertNotNull(config.getOptional(newk));

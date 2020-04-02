@@ -78,7 +78,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
-        getTestConfig().setProperty("kap.influxdb.address", "sandbox:8086");
+        getTestConfig().setProperty("kylin.influxdb.address", "sandbox:8086");
 
         int projectSize = 20;
         int modelSize = 100;

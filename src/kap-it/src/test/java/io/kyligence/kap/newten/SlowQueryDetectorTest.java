@@ -120,7 +120,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
         SparkSession ss = SparderEnv.getSparkSession();
         populateSSWithCSVData(config, getProject(), ss);
 
-        System.setProperty("kap.query.engine.spark-sql-shuffle-partitions", "10000");
+        System.setProperty("kylin.query.engine.spark-sql-shuffle-partitions", "10000");
         slowQueryDetector.queryStart();
         try {
             SparderEnv.cleanCompute();
@@ -140,7 +140,7 @@ public class SlowQueryDetectorTest extends NLocalWithSparkSessionTest {
             Thread.interrupted();
         }
         slowQueryDetector.queryEnd();
-        System.clearProperty("kap.query.engine.spark-sql-shuffle-partitions");
+        System.clearProperty("kylin.query.engine.spark-sql-shuffle-partitions");
 
         Thread.sleep(1000);
         JobData jobData = new InfoHelper(ss).getJobsByGroupId(Thread.currentThread().getName()).apply(0);

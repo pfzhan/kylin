@@ -117,7 +117,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("newten"));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
 
         String[] sql2 = new String[] { "select * from test_kylin_fact "
                 + "inner join TEST_ORDER on test_kylin_fact.ORDER_ID = TEST_ORDER.ORDER_ID " };
@@ -242,7 +242,7 @@ public class NModelSelectProposerTest extends NLocalWithSparkSessionTest {
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("default"));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
 
         val smartMaster = new NSmartMaster(getTestConfig(), "default", sqls);
         smartMaster.runAll();

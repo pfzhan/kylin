@@ -107,7 +107,7 @@ public class GreedyModelTreesBuilderTest extends NAutoTestOnLearnKylinData {
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject("newten"));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");// set model maintain type to semi-auto
 
         val smartMaster2 = new NSmartMaster(getTestConfig(), "newten", sqls);
         val recommMap = smartMaster2.selectAndGenRecommendation();

@@ -44,7 +44,7 @@ class TestIndexRTPCHQuery
 
   ignore("tpch query") {
     System.setProperty("spark.local", "true")
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
+    System.setProperty("kylin.query.engine.sparder-enabled", "true")
     // 22
     val sqlTime = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_tpch")
@@ -74,7 +74,7 @@ class TestIndexRTPCHQuery
 
   ignore("tpch build and query") {
     System.setProperty("spark.local", "true")
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
+    System.setProperty("kylin.query.engine.sparder-enabled", "true")
     buildCubes(
       List(
         "2d7c111d-9a8f-4941-89ba-6aee3081f288",

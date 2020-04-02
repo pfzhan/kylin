@@ -93,7 +93,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     public static final String DEFAULT_DATABASE = "DEFAULT";
 
-    public static final String EXPOSE_COMPUTED_COLUMN_CONF = "kap.query.metadata.expose-computed-column";
+    public static final String EXPOSE_COMPUTED_COLUMN_CONF = "kylin.query.metadata.expose-computed-column";
 
     private KylinConfigExt config;
 

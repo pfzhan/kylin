@@ -38,7 +38,7 @@ public class NAutoRelDataTypeTest extends NAutoTestBase {
 
     @Test
     public void testDecimalDefaultScale() throws Exception {
-        overwriteSystemProp("kap.query.engine.default-decimal-scale", "4");
+        overwriteSystemProp("kylin.query.engine.default-decimal-scale", "4");
         new TestScenario(CompareLevel.SAME, "query/sql_type", 0, 1).execute();
     }
 }

@@ -60,9 +60,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testAllQueries() throws Exception {
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
         executeTestScenario(
                 /* CompareLevel = SAME */
@@ -139,9 +139,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testUDFs() throws Exception {
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
         executeTestScenario(
                 new TestScenario(CompareLevel.SAME, "query/sql_function"), //
@@ -163,7 +163,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Ignore("For development")
     public void testTemp() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
-        overwriteSystemProp("kap.query.metadata.expose-computed-column", "FALSE");
+        overwriteSystemProp("kylin.query.metadata.expose-computed-column", "FALSE");
         Set<String> exclusionList = Sets.newHashSet();
         overwriteSystemProp("calcite.debug", "true");
         new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/temp").execute();
@@ -172,7 +172,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testGroupingSetsWithoutSplitGroupingSets() throws Exception {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.calcite.extras-props.conformance", "DEFAULT");
-        overwriteSystemProp("kap.query.engine.split-group-sets-into-union", "FALSE");
+        overwriteSystemProp("kylin.query.engine.split-group-sets-into-union", "FALSE");
         new TestScenario(CompareLevel.SAME, "query/sql_grouping").execute();
     }
 
@@ -192,13 +192,13 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         boolean exposeComputedColumnConfBefore = projectManager.getProject(getProject()).getConfig().exposeComputedColumn();
         projectManager.updateProject(getProject(), copyForWrite ->
-                copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", "TRUE"));
+                copyForWrite.getOverrideKylinProps().put("kylin.query.metadata.expose-computed-column", "TRUE"));
         try {
             new TestScenario(CompareLevel.SAME, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 0, 1).execute();
             new TestScenario(CompareLevel.NONE, "query/sql_computedcolumn/sql_computedcolumn_with_select_star", 1, 4).execute();
         } finally {
             projectManager.updateProject(getProject(), copyForWrite ->
-                    copyForWrite.getOverrideKylinProps().put("kap.query.metadata.expose-computed-column", String.valueOf(exposeComputedColumnConfBefore)));
+                    copyForWrite.getOverrideKylinProps().put("kylin.query.metadata.expose-computed-column", String.valueOf(exposeComputedColumnConfBefore)));
 
         }
     }

@@ -250,7 +250,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @After
     public void tearDown() {
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "false");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
         SchedulerEventBusFactory.getInstance(getTestConfig()).unRegister(modelBrokenListener);
         SchedulerEventBusFactory.restart();
         cleanupTestMetadata();
@@ -3470,7 +3470,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     }
 
     private ModelRequest prepare() throws IOException {
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         final String project = "default";
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
 

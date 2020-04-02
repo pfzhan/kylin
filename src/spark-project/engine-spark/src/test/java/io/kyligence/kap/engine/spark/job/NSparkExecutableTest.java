@@ -145,7 +145,7 @@ public class NSparkExecutableTest extends NLocalFileMetadataTestCase {
             Assert.assertTrue(cmd.contains("log4j.configuration=file:" + kylinConfig.getLogSparkDriverPropertiesFile()));
             Assert.assertTrue(cmd.contains("spark.executor.extraClassPath=job.jar"));
             Assert.assertTrue(cmd.contains("spark.driver.log4j.appender.hdfs.File="));
-            Assert.assertTrue(cmd.contains("kap.hdfs.working.dir="));
+            Assert.assertTrue(cmd.contains("kylin.hdfs.working.dir="));
         } finally {
             if (StringUtils.isEmpty(kylinHome)) {
                 System.clearProperty("KYLIN_HOME");

@@ -12,7 +12,7 @@
   "ext_filters" : [ ],
   "maintain_model_type" : "MANUAL_MAINTAIN",
   "override_kylin_properties" : {
-    "kap.metadata.semi-automatic-mode" : "true",
+    "kylin.metadata.semi-automatic-mode" : "true",
     "kylin.source.default" : "9"
   },
   "segment_config" : {

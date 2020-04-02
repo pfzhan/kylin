@@ -85,7 +85,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         val projects = Arrays.asList("test_ck__1", "test_ck_2", "test_ck_3");
         Mockito.doReturn(projects).when(manager).listAllProjects();
 
-        getTestConfig().setProperty("kap.circuit-breaker.threshold.project", "1");
+        getTestConfig().setProperty("kylin.circuit-breaker.threshold.project", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             thrown.expect(CircuitBreakerException.class);

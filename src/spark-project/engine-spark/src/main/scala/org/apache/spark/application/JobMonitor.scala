@@ -59,7 +59,7 @@ class JobMonitor(eventLoop: KylinJobEventLoop) extends Logging {
       val maxRetry = buildEnv.kylinConfig.getSparkEngineMaxRetryTime
       if (retryTimes <= maxRetry) {
         logError(s"Job failed $retryTimes time(s). Cause:", rl.throwable)
-        System.setProperty("kylin.spark-conf.auto.prior", "false")
+        System.setProperty("kylin.spark-conf.auto-prior", "false")
         ExceptionTerminator.resolveException(rl, eventLoop)
       } else {
         eventLoop.post(ExceedMaxRetry(rl.throwable))

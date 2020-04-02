@@ -119,7 +119,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       countDownLatch.await()
       assert(env.sparkConf.get(EXECUTOR_MEMORY) == memory)
       assert(env.sparkConf.get(EXECUTOR_CORES) == (cores.toInt - 1).toString)
-      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
       eventLoop.unregisterListener(listener)
     }
   }
@@ -178,7 +178,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       // receive ResourceLack and RunJob
       countDownLatch.await()
       assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(overhead) + "MB")
-      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
       eventLoop.unregisterListener(listener)
     }
   }
@@ -205,7 +205,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       // receive ResourceLack and RunJob
       countDownLatch.await()
       assert(env.sparkConf.get(EXECUTOR_MEMORY) == maxAllocation - Utils.byteStringAsMb(overhead) + "MB")
-      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
       eventLoop.unregisterListener(listener)
     }
   }
@@ -233,7 +233,7 @@ class TestJobMonitor extends SparderBaseFunSuite with BeforeAndAfterEach {
       // receive ResourceLack and RunJob
       countDownLatch.await()
       assert(env.sparkConf.get(EXECUTOR_MEMORY) == Math.ceil(Utils.byteStringAsMb(memory) * gradient).toInt + "MB")
-      assert(System.getProperty("kylin.spark-conf.auto.prior") == "false")
+      assert(System.getProperty("kylin.spark-conf.auto-prior") == "false")
       eventLoop.unregisterListener(listener)
     }
   }

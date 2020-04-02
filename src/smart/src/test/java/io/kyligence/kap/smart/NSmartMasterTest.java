@@ -126,7 +126,7 @@ public class NSmartMasterTest extends NAutoTestOnLearnKylinData {
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(proj));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
 
         // update existing model to offline
         NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();

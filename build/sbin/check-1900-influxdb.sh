@@ -10,9 +10,9 @@ initKerberosIfNeeded
 
 echo "Checking InfluxDB..."
 
-influxdb_address=`${KYLIN_HOME}/bin/get-properties.sh kap.influxdb.address`
-influxdb_username=`${KYLIN_HOME}/bin/get-properties.sh kap.influxdb.username`
-influxdb_password=`${KYLIN_HOME}/bin/get-properties.sh kap.influxdb.password DEC`
+influxdb_address=`${KYLIN_HOME}/bin/get-properties.sh kylin.influxdb.address`
+influxdb_username=`${KYLIN_HOME}/bin/get-properties.sh kylin.influxdb.username`
+influxdb_password=`${KYLIN_HOME}/bin/get-properties.sh kylin.influxdb.password DEC`
 connection=`curl -sL -I "http://${influxdb_address}/ping" | grep "204 No Content"`
 
 [[ -n ${connection} ]] || exit 3

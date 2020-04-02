@@ -8,7 +8,7 @@ source ${KYLIN_HOME}/sbin/init-kerberos.sh
 ## init Kerberos if needed
 initKerberosIfNeeded
 
-columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
+columnarEnabled=`${dir}/get-properties.sh kylin.storage.columnar.start-own-spark`
 [[ "${columnarEnabled}" == "true" ]] || exit 3
 
 serverMode=`${dir}/get-properties.sh kylin.server.mode`
@@ -35,9 +35,9 @@ if [ ! -f ${override_file} ]; then
     exit 1
 fi
 
-key_executor_cores="kap.storage.columnar.spark-conf.spark.executor.cores"
-key_executor_memory="kap.storage.columnar.spark-conf.spark.executor.memory"
-key_executor_instance="kap.storage.columnar.spark-conf.spark.executor.instances"
+key_executor_cores="kylin.storage.columnar.spark-conf.spark.executor.cores"
+key_executor_memory="kylin.storage.columnar.spark-conf.spark.executor.memory"
+key_executor_instance="kylin.storage.columnar.spark-conf.spark.executor.instances"
 
 mkdir -p ${KYLIN_HOME}/logs
 saveFileName=${KYLIN_HOME}/logs/cluster.info

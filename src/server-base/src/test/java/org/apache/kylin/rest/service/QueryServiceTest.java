@@ -511,7 +511,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         // expose computed column
         {
             projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
-                    .put("kap.query.metadata.expose-computed-column", "true"));
+                    .put("kylin.query.metadata.expose-computed-column", "true"));
             final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
 
             List<ColumnMeta> factColumns;
@@ -525,7 +525,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         // hide computed column
         {
             projectManager.updateProject("default", copyForWrite -> copyForWrite.getOverrideKylinProps()
-                    .put("kap.query.metadata.expose-computed-column", "false"));
+                    .put("kylin.query.metadata.expose-computed-column", "false"));
             final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
 
             List<ColumnMeta> factColumns;
@@ -915,7 +915,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         final SQLResponse response = Mockito.mock(SQLResponse.class);
         Mockito.doReturn(1L).when(response).getResultRowCount();
 
-        getTestConfig().setProperty("kap.circuit-breaker.threshold.query-result-row-count", "1");
+        getTestConfig().setProperty("kylin.circuit-breaker.threshold.query-result-row-count", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             Mockito.doReturn(response).when(queryService).queryAndUpdateCache(Mockito.any(SQLRequest.class),

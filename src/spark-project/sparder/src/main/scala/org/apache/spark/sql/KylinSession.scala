@@ -63,7 +63,7 @@ class KylinSession(
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
-    val prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE")
+    val prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
     try {
       val projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv).getProject(project).getConfig;
       val queryExec = new QueryExec(project, projectKylinConfig)
@@ -72,9 +72,9 @@ class KylinSession(
       queryExec.executeQuery(convertedSql)
     } finally {
       if (prevRunLocalConf == null) {
-        System.clearProperty("kap.query.engine.run-constant-query-locally")
+        System.clearProperty("kylin.query.engine.run-constant-query-locally")
       } else {
-        System.setProperty("kap.query.engine.run-constant-query-locally", prevRunLocalConf)
+        System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
       }
     }
     SparderEnv.getDF

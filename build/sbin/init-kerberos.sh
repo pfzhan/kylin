@@ -2,21 +2,21 @@
 # Kyligence Inc. License
 
 function exportKRB5CCNAME() {
-    KAP_KERBEROS_CACHE=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.cache`
+    KAP_KERBEROS_CACHE=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.cache`
     export KRB5CCNAME=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_CACHE}
 }
 
 function prepareKerberosOpts() {
     export KYLIN_KERBEROS_OPTS=""
-    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
+    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]];then
       KYLIN_KERBEROS_OPTS="-Djava.security.krb5.conf=${KYLIN_HOME}/conf/krb5.conf"
     fi
 }
 
 function initKerberos() {
-    KAP_KERBEROS_PRINCIPAL=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.principal`
-    KAP_KERBEROS_KEYTAB=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.keytab`
+    KAP_KERBEROS_PRINCIPAL=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.principal`
+    KAP_KERBEROS_KEYTAB=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.keytab`
     KAP_KERBEROS_KEYTAB_PATH=${KYLIN_HOME}"/conf/"${KAP_KERBEROS_KEYTAB}
     echo "Kerberos is enabled, init..."
     kinit -kt $KAP_KERBEROS_KEYTAB_PATH $KAP_KERBEROS_PRINCIPAL
@@ -46,11 +46,12 @@ function prepareZKPrincipal() {
         if [[ "$param" == zookeeper* ]];then
             infos=(${param//'zookeeper.server.principal='/ })
             envZKPrinciple=${infos[0]}
-            zkPrinciple=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.zookeeper.server.principal`
+            zkPrinciple=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.zookeeper-server-principal`
             if [ $zkPrinciple != $envZKPrinciple ]
             then
                 sed -i '/kap.kerberos.zookeeper.server.principal/d' ${KYLIN_CONFIG_FILE}
-                sed -i '$a\kap.kerberos.zookeeper.server.principal='$envZKPrinciple'' ${KYLIN_CONFIG_FILE}
+                sed -i '/kylin.kerberos.zookeeper-server-principal/d' ${KYLIN_CONFIG_FILE}
+                sed -i '$a\kylin.kerberos.zookeeper-server-principal='$envZKPrinciple'' ${KYLIN_CONFIG_FILE}
             fi
         fi
     done
@@ -58,7 +59,7 @@ function prepareZKPrincipal() {
 
 function prepareFIKerberosInfoIfNeeded() {
     prepareJaasConf
-    KERBEROS_PALTFORM=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.platform`
+    KERBEROS_PALTFORM=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.platform`
     if [[ "${KERBEROS_PALTFORM}" == "FI" ]]
     then
         prepareZKPrincipal
@@ -72,7 +73,7 @@ function initKerberosIfNeeded(){
 
     export SKIP_KERB=1
 
-    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
+    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
         if [[ -z "$(command -v klist)" ]]

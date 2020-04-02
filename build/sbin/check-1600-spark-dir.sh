@@ -60,7 +60,7 @@ fi
 
 # check hive-scratch directory
 engine_config_hive_scratch_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.engine.spark-conf.spark.hadoop.hive.exec.scratchdir`
-storage_config_hive_scratch_dir=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.spark.hadoop.hive.exec.scratchdir`
+storage_config_hive_scratch_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-conf.spark.hadoop.hive.exec.scratchdir`
 
 checkDirExistAndPermission ${engine_config_hive_scratch_dir} "hive-scratch"
 

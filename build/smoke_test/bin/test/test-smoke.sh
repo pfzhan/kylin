@@ -73,30 +73,30 @@ bash $dir/build/smoke_test/bin/env/prepare-python-env.sh
 cd $KYLIN_HOME/conf/
 
 sed -i "\$a kylin.env.zookeeper-connect-string=${ZK_STR}" kylin.properties
-sed -i "\$a kap.influxdb.address=${INFLUXDB_ADDRESS}" kylin.properties
-sed -i "\$a kap.metrics.influx.rpc-service.bind-address=${INFLUXDB_RPC_ADDRESS}" kylin.properties
+sed -i "\$a kylin.influxdb.address=${INFLUXDB_ADDRESS}" kylin.properties
+sed -i "\$a kylin.metrics.influx-rpc-service-bind-address=${INFLUXDB_RPC_ADDRESS}" kylin.properties
 sed -i "\$a server.port=17071" kylin.properties
 sed -i "\$a kylin.engine.spark-conf.spark.executor.instances=2" kylin.properties
-sed -i "\$a kap.storage.columnar.spark-conf.spark.executor.cores=2" kylin.properties
-sed -i "\$a kap.storage.columnar.spark-conf.spark.driver.memory=1024m" kylin.properties
-sed -i "\$a kap.storage.columnar.spark-conf.spark.executor.memory=1024m" kylin.properties
-sed -i "\$a kap.storage.columnar.spark-conf.spark.executor.instances=1" kylin.properties
-sed -i "\$a kap.storage.columnar.spark-conf.spark.yarn.executor.memoryOverhead=512" kylin.properties
+sed -i "\$a kylin.storage.columnar.spark-conf.spark.executor.cores=2" kylin.properties
+sed -i "\$a kylin.storage.columnar.spark-conf.spark.driver.memory=1024m" kylin.properties
+sed -i "\$a kylin.storage.columnar.spark-conf.spark.executor.memory=1024m" kylin.properties
+sed -i "\$a kylin.storage.columnar.spark-conf.spark.executor.instances=1" kylin.properties
+sed -i "\$a kylin.storage.columnar.spark-conf.spark.yarn.executor.memoryOverhead=512" kylin.properties
 if [[ $hadoop_distribution == "fi" ]]; then
     cp -f /root/user.keytab $KYLIN_HOME/conf
     cp -f /root/krb5.conf $KYLIN_HOME/conf
-    sed -i "\$a kap.kerberos.platform=FI" kylin.properties
-    sed -i "\$a kap.kerberos.principal=newten" kylin.properties
-    sed -i "\$a kap.kerberos.keytab=user.keytab" kylin.properties
-    sed -i "\$a kap.kerberos.enabled=true" kylin.properties
-    sed -i "\$a kap.kerberos.krb5.conf=krb5.conf" kylin.properties
-    sed -i "\$a kap.kerberos.cache=newten_cache" kylin.properties
-    sed -i "\$a kap.kerberos.zookeeper.server.principal=zookeeper/hadoop.hadoop.com" kylin.properties
+    sed -i "\$a kylin.kerberos.platform=FI" kylin.properties
+    sed -i "\$a kylin.kerberos.principal=newten" kylin.properties
+    sed -i "\$a kylin.kerberos.keytab=user.keytab" kylin.properties
+    sed -i "\$a kylin.kerberos.enabled=true" kylin.properties
+    sed -i "\$a kylin.kerberos.krb5-conf=krb5.conf" kylin.properties
+    sed -i "\$a kylin.kerberos.cache=newten_cache" kylin.properties
+    sed -i "\$a kylin.kerberos.zookeeper-server-principal=zookeeper/hadoop.hadoop.com" kylin.properties
     sed -i "\$a kylin.engine.spark-conf.spark.yarn.queue=smoke" kylin.properties
-    sed -i "\$a kap.storage.columnar.spark-conf.spark.yarn.queue=smoke" kylin.properties
+    sed -i "\$a kylin.storage.columnar.spark-conf.spark.yarn.queue=smoke" kylin.properties
     sed -i "\$a kylin.engine.spark-conf.spark.yarn.principal=newten" kylin.properties
     sed -i "\$a kylin.engine.spark-conf.spark.yarn.keytab=/etc/user.keytab" kylin.properties
-    sed -i "\$a kylin.engine.spark-conf.spark.executor.extraJavaOptions=-Djava.security.auth.login.config=/etc/jaas.conf -Djava.security.krb5.conf=/etc/krb5.conf -Dzookeeper.server.principal=zookeeper/hadoop.hadoop.com -Dhdp.version=current -Dlog4j.configuration=spark-executor-log4j.properties -Dlog4j.debug -Dkap.hdfs.working.dir=\${kylin.env.hdfs-working-dir} -Dkap.metadata.identifier=\${kylin.metadata.url.identifier} -Dkap.spark.category=job -Dkap.spark.project=\${job.project} -Dkap.spark.identifier=\${job.id} -Dkap.spark.jobName=\${job.stepId} -Duser.timezone=\${user.timezone}" kylin.properties
+    sed -i "\$a kylin.engine.spark-conf.spark.executor.extraJavaOptions=-Djava.security.auth.login.config=/etc/jaas.conf -Djava.security.krb5.conf=/etc/krb5.conf -Dzookeeper.server.principal=zookeeper/hadoop.hadoop.com -Dhdp.version=current -Dlog4j.configuration=spark-executor-log4j.properties -Dlog4j.debug -Dkylin.hdfs.working.dir=\${kylin.env.hdfs-working-dir} -Dkap.metadata.identifier=\${kylin.metadata.url.identifier} -Dkap.spark.category=job -Dkap.spark.project=\${job.project} -Dkap.spark.identifier=\${job.id} -Dkap.spark.jobName=\${job.stepId} -Duser.timezone=\${user.timezone}" kylin.properties
     sed -i "\$a kylin.engine.spark-conf.spark.driver.extraJavaOptions=-Djava.security.auth.login.config=/etc/jaas.conf -Djava.security.krb5.conf=/etc/krb5.conf" kylin.properties
 else
     sed -i "\$a kylin.engine.spark-conf.spark.yarn.queue=default" kylin.properties

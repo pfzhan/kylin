@@ -107,7 +107,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
 
     @After
     public void tearDown() {
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "false");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
         cleanupTestMetadata();
     }
 
@@ -121,7 +121,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     private AtomicBoolean prepare(String modelId) throws NoSuchFieldException, IllegalAccessException {
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);

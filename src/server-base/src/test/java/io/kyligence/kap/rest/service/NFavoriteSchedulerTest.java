@@ -91,13 +91,13 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
         ReflectionTestUtils.setField(favoriteScheduler, "queryHistoryAccessor", queryHistoryAccessor);
 
-        System.setProperty("kylin.favorite.query-history-scan-period.minutes", "1");
+        System.setProperty("kylin.favorite.query-history-scan-period-minutes", "1");
     }
 
     @After
     public void cleanUp() {
         cleanupTestMetadata();
-        System.clearProperty("kylin.favorite.query-history-scan-period.minutes");
+        System.clearProperty("kylin.favorite.query-history-scan-period-minutes");
     }
 
     private List<QueryHistory> queriesForTest() {
@@ -626,7 +626,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         // update project mode
         NProjectManager.getInstance(getTestConfig()).updateProject(PROJECT, copyForWrite -> {
             copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-            copyForWrite.getOverrideKylinProps().put("kap.metadata.semi-automatic-mode", "false");
+            copyForWrite.getOverrideKylinProps().put("kylin.metadata.semi-automatic-mode", "false");
         });
         Assert.assertTrue(NProjectManager.getInstance(getTestConfig()).getProject(PROJECT).isExpertMode());
 
@@ -744,7 +744,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testMergeLayoutFrequency() throws Exception {
-        System.setProperty("kylin.favorite.query-history-scan-period.minutes", "240");
+        System.setProperty("kylin.favorite.query-history-scan-period-minutes", "240");
 
         MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig());
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();

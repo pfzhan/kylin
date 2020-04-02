@@ -103,7 +103,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testShardJoinInOneSeg() throws Exception {
-        System.setProperty("kap.storage.columnar.shard-rowcount", "100");
+        System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
         try {
             fullBuildCube("8c670664-8d05-466a-802f-83c023b56c77", getProject());
             populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -123,7 +123,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
             testExchangePruningAfterAgg(sql2);
             testMultiShards(sql3);
         } finally {
-            System.clearProperty("kap.storage.columnar.shard-rowcount");
+            System.clearProperty("kylin.storage.columnar.shard-rowcount");
         }
     }
 
@@ -147,7 +147,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testShardJoinInMultiSeg() throws Exception {
-        System.setProperty("kap.storage.columnar.shard-rowcount", "100");
+        System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
         try {
             buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
             populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -161,7 +161,7 @@ public class NJoinOptTest extends NLocalWithSparkSessionTest {
             // assert exists sort
             assertPlan(sql, true, true);
         } finally {
-            System.clearProperty("kap.storage.columnar.shard-rowcount");
+            System.clearProperty("kylin.storage.columnar.shard-rowcount");
         }
     }
 

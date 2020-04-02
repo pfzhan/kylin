@@ -204,7 +204,7 @@ public class NAutoBasicTest extends NAutoTestBase {
                 .contains("Please add the above measure before attempting to accelerate this query."));
 
         // update model to semi-auto-mode
-        kylinConfig.setProperty("kap.metadata.semi-automatic-mode", "true");
+        kylinConfig.setProperty("kylin.metadata.semi-automatic-mode", "true");
         smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runOptRecommendation(null);
         accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
@@ -443,7 +443,7 @@ public class NAutoBasicTest extends NAutoTestBase {
         Assert.assertNotEquals(layoutForSql0, layoutForSql1);
 
         // set to semi-auto to check tailoring layouts
-        overwriteSystemProp("kap.metadata.semi-automatic-mode", "true");
+        overwriteSystemProp("kylin.metadata.semi-automatic-mode", "true");
         final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         NProjectManager.getInstance(kylinConfig).updateProject(projectInstance);

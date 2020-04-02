@@ -103,7 +103,7 @@ public class FavoriteQueryControllerTest extends NLocalFileMetadataTestCase {
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
             }
-            properties.put("kap.metadata.semi-automatic-mode", "false");
+            properties.put("kylin.metadata.semi-automatic-mode", "false");
             copyForWrite.setOverrideKylinProps(properties);
         });
     }

@@ -160,7 +160,7 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         FavoriteRule.SQLCondition condition = new FavoriteRule.SQLCondition("test_ck_sql1");
         manager.appendSqlPatternToBlacklist(condition);
 
-        getTestConfig().setProperty("kap.circuit-breaker.threshold.sql-pattern-to-blacklist", "1");
+        getTestConfig().setProperty("kylin.circuit-breaker.threshold.sql-pattern-to-blacklist", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             thrown.expect(CircuitBreakerException.class);

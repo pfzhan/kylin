@@ -115,7 +115,7 @@ public class AclTCRServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tables.contains("DEFAULT.TEST_ORDER"));
         Assert.assertTrue(tables.contains("DEFAULT.TEST_COUNTRY"));
 
-        getTestConfig().setProperty("kap.acl.project-internal-default-permission-granted", "false");
+        getTestConfig().setProperty("kylin.acl.project-internal-default-permission-granted", "false");
         ars = Lists.newArrayList();
         AccessRequest u2ar = new AccessRequest();
         u1ar.setSid(user2);

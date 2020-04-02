@@ -69,7 +69,7 @@ public class HotLoadKylinPropertiesTestCase {
         cleanMetadataHelper = new CleanMetadataHelper();
 
         List<String> properties = Lists.newArrayList(
-                "kylin.test.bcc.new.key=some-value",
+                "kylin.test.bcc.new-key=some-value",
                 "kylin.engine.mr.config-override.test1=test1",
                 "kylin.engine.mr.config-override.test2=test2",
                 "kylin.job.lock=org.apache.kylin.job.lock.MockJobLockDup",

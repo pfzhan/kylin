@@ -56,7 +56,7 @@ class TestTPCHQueryOnYarn
 
   ignore("tpch query") {
     //    System.setProperty("spark.local", "true")
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
+    System.setProperty("kylin.query.engine.sparder-enabled", "true")
     // 22
     try {
       buildAll()

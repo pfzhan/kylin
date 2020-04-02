@@ -728,7 +728,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
     private void prepareMeasModel(List<NDataModel.Measure> measureList) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataModelManager modelMgr = NDataModelManager.getInstance(config, getProject());
         NDataModel model = modelMgr.getDataModelDesc(DF_NAME);

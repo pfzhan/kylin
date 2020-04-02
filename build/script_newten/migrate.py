@@ -714,7 +714,7 @@ if __name__ == "__main__":
                         help='the folder of output metadata')
     parser.add_argument('-g', default=True,
                         help="please keep with "
-                             "'kap.acl.project-internal-default-permission-granted' in kylin.properties")
+                             "'kylin.acl.project-internal-default-permission-granted' in kylin.properties")
     args = parser.parse_args()
 
     print ('''

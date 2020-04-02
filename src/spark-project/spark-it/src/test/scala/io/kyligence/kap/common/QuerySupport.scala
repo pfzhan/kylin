@@ -38,12 +38,12 @@ trait QuerySupport
     with Logging
     with SharedSparkSession {
   self: Suite =>
-  val sparder = System.getProperty("kap.query.engine.sparder-enabled")
+  val sparder = System.getProperty("kylin.query.engine.sparder-enabled")
 
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
+    System.setProperty("kylin.query.engine.sparder-enabled", "true")
     UdfManager.create(spark)
 
   }
@@ -51,14 +51,14 @@ trait QuerySupport
   override def afterAll(): Unit = {
     super.afterAll()
     if (sparder != null) {
-      System.setProperty("kap.query.engine.sparder-enabled", sparder)
+      System.setProperty("kylin.query.engine.sparder-enabled", sparder)
     } else {
-      System.clearProperty("kap.query.engine.sparder-enabled")
+      System.clearProperty("kylin.query.engine.sparder-enabled")
     }
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
-    val prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE")
+    val prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE")
     try {
       val queryExec = new QueryExec(project, KylinConfig.getInstanceFromEnv)
       val convertedSql =
@@ -66,9 +66,9 @@ trait QuerySupport
       queryExec.executeQuery(convertedSql)
     } finally {
       if (prevRunLocalConf == null) {
-        System.clearProperty("kap.query.engine.run-constant-query-locally")
+        System.clearProperty("kylin.query.engine.run-constant-query-locally")
       } else {
-        System.setProperty("kap.query.engine.run-constant-query-locally", prevRunLocalConf)
+        System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf)
       }
     }
     SparderEnv.getDF

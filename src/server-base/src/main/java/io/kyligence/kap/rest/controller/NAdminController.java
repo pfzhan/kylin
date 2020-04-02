@@ -65,15 +65,8 @@ public class NAdminController extends NBasicController {
         }
 
         // add KAP specific
-        propertyKeys.add("kap.kyaccount.username");
-        propertyKeys.add("kap.license.statement");
-        propertyKeys.add("kap.web.hide-feature.raw-measure");
-        propertyKeys.add("kap.web.hide-feature.extendedcolumn-measure");
-        propertyKeys.add("kap.web.hide-feature.limited-lookup");
-        propertyKeys.add("kap.smart.conf.aggGroup.strategy");
-        propertyKeys.add("kap.canary.default-canaries-period-min");
         propertyKeys.add("kylin.env.smart-mode-enabled");
-        propertyKeys.add("kap.table.load-hive-tablename-enabled");
+        propertyKeys.add("kylin.source.load-hive-tablename-enabled");
         propertyKeys.add("kylin.kerberos.project-level-enabled");
 
         final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);

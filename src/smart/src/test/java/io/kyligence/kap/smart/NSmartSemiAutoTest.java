@@ -70,7 +70,7 @@ public class NSmartSemiAutoTest extends NLocalFileMetadataTestCase {
         ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
         projectUpdate.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectUpdate);
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
 
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
         val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), project);

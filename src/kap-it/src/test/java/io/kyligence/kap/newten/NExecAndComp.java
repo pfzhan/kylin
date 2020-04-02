@@ -563,7 +563,7 @@ public class NExecAndComp {
         SparderEnv.setDF(null); // clear last df
         // if this config is on
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
-        String prevRunLocalConf = System.setProperty("kap.query.engine.run-constant-query-locally", "FALSE");
+        String prevRunLocalConf = System.setProperty("kylin.query.engine.run-constant-query-locally", "FALSE");
         try {
             QueryExec queryExec = new QueryExec(prj, NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(prj).getConfig());
             if (parameters != null) {
@@ -574,9 +574,9 @@ public class NExecAndComp {
             queryExec.executeQuery(sql);
         } finally {
             if (prevRunLocalConf != null) {
-                System.setProperty("kap.query.engine.run-constant-query-locally", prevRunLocalConf);
+                System.setProperty("kylin.query.engine.run-constant-query-locally", prevRunLocalConf);
             } else {
-                System.clearProperty("kap.query.engine.run-constant-query-locally");
+                System.clearProperty("kylin.query.engine.run-constant-query-locally");
             }
         }
         return SparderEnv.getDF();

@@ -52,7 +52,7 @@ class TestTPCHQuery
 
   ignore("tpch query") {
     //    System.setProperty("spark.local", "true")
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
+    System.setProperty("kylin.query.engine.sparder-enabled", "true")
     // 22
     val sqlTime = QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_tpch")
@@ -85,7 +85,7 @@ class TestTPCHQuery
 
   ignore("tpch build and query") {
     System.setProperty("spark.local", "true")
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
+    System.setProperty("kylin.query.engine.sparder-enabled", "true")
     buildAll()
     QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_tpch")

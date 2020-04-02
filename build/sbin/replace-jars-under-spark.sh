@@ -8,7 +8,7 @@ checkAndCopyFIHiveSite
 BYPASS=${SPARK_HOME}/jars/replace-jars-bypass
 
 # only replace when has Kerberos
-kerberosEnabled=`${KYLIN_HOME}/bin/get-properties.sh kap.kerberos.enabled`
+kerberosEnabled=`${KYLIN_HOME}/bin/get-properties.sh kylin.kerberos.enabled`
 if [[ "${kerberosEnabled}" == "false" || -f ${BYPASS} ]]
 then
     return

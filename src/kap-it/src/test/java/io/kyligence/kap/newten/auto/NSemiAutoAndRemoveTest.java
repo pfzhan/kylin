@@ -72,8 +72,8 @@ public class NSemiAutoAndRemoveTest extends SemiAutoTestBase {
 
     @Test
     public void testAllQueries() throws Exception {
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kap.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         val testScenarios = new TestScenario[] { new TestScenario(NExecAndComp.CompareLevel.SAME, "semi_auto/remove") };
         prepareModels(getProject(), testScenarios);
         executeTestScenario(testScenarios);//

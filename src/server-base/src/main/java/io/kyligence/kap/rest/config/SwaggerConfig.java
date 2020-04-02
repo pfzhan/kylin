@@ -39,7 +39,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @EnableSwagger2
 @Configuration
-@ConditionalOnProperty(name = "kap.swagger.enable", havingValue = "true")
+@ConditionalOnProperty(name = "kylin.swagger.enabled", havingValue = "true")
 public class SwaggerConfig {
 
     public static final String LICENSE = "Apache 2.0";

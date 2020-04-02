@@ -53,7 +53,7 @@ public class HadoopConfExtractor {
             }
         }
 
-        logger.info("kylin.job.yarn.app.rest.check.status.url is not set, read from hadoop configuration");
+        logger.info("kylin.job.yarn-app-rest-check-status-url is not set, read from hadoop configuration");
 
         String webappConfKey;
         String defaultAddr;

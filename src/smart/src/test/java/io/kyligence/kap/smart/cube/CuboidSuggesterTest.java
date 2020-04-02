@@ -299,9 +299,9 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
 
     @Test
     public void testSuggestShardByInSemiMode() {
-        // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
+        // set 'kylin.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
         // currently, column part_dt's cardinality < 2000 && tans_id's > 2000
-        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "2000");
+        getTestConfig().setProperty("kylin.smart.conf.rowkey.uhc.min-cardinality", "2000");
 
         String[] sql1 = new String[] {
                 "select part_dt, lstg_format_name, trans_id from kylin_sales" };
@@ -366,15 +366,15 @@ public class CuboidSuggesterTest extends NAutoTestOnLearnKylinData {
         Assert.assertEquals(1, aggIndexLayouts.get(0).getShardByColumns().size());
         Assert.assertEquals(Lists.newArrayList(11), aggIndexLayouts.get(0).getShardByColumns());
 
-        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "1000000");
+        getTestConfig().setProperty("kylin.smart.conf.rowkey.uhc.min-cardinality", "1000000");
     }
 
     @Test
     public void testSuggestShardBy() {
 
-        // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
+        // set 'kylin.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
         // currently, column part_dt's cardinality < 2000 && tans_id's > 2000
-        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "2000");
+        getTestConfig().setProperty("kylin.smart.conf.rowkey.uhc.min-cardinality", "2000");
 
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, trans_id from kylin_sales where part_dt = '2012-01-01'",

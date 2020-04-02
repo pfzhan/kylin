@@ -241,8 +241,8 @@ public class NReuseModelCcTest extends NAutoTestBase {
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
             }
-            properties.put("kap.query.metadata.expose-computed-column", "true");
-            properties.put("kap.metadata.semi-automatic-mode", "true");
+            properties.put("kylin.query.metadata.expose-computed-column", "true");
+            properties.put("kylin.metadata.semi-automatic-mode", "true");
             copyForWrite.setOverrideKylinProps(properties);
         });
     }

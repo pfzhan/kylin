@@ -198,7 +198,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
     @Test
     public void testShardPruning() throws Exception {
         try {
-            System.setProperty("kap.storage.columnar.shard-rowcount", "100");
+            System.setProperty("kylin.storage.columnar.shard-rowcount", "100");
 
             buildMultiSegs("8c670664-8d05-466a-802f-83c023b56c77");
 
@@ -207,13 +207,13 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
             basicPruningScenario();
             pruningWithVariousTypesScenario();
         } finally {
-            System.clearProperty("kap.storage.columnar.shard-rowcount");
+            System.clearProperty("kylin.storage.columnar.shard-rowcount");
         }
     }
 
     @Test
     public void testPruningWithChineseCharacter() throws Exception {
-        System.setProperty("kap.storage.columnar.shard-rowcount", "1");
+        System.setProperty("kylin.storage.columnar.shard-rowcount", "1");
         try {
             fullBuildCube("9cde9d25-9334-4b92-b229-a00f49453757", getProject());
             populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
@@ -229,7 +229,7 @@ public class NFilePruningTest extends NLocalWithSparkSessionTest {
             query.add(Pair.newPair("", chinese1));
             NExecAndComp.execAndCompare(query, getProject(), NExecAndComp.CompareLevel.SAME, "left");
         } finally {
-            System.clearProperty("kap.storage.columnar.shard-rowcount");
+            System.clearProperty("kylin.storage.columnar.shard-rowcount");
         }
     }
 

@@ -176,15 +176,12 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
-            System.setProperty("kap.query.calcite-join-threshold", "0");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
             } catch (SQLException e) {
                 logger.debug("stacktrace for the SQLException: ", e);
                 Assert.assertEquals(RoutingIndicatorException.class, Throwables.getRootCause(e).getClass());
-            } finally {
-                System.clearProperty("kap.query.calcite-join-threshold");
             }
         }
     }

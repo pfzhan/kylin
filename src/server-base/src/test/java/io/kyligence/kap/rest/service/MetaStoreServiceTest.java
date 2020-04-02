@@ -120,7 +120,7 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
 
     @After
     public void tearDown() {
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "false");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "false");
         cleanupTestMetadata();
     }
 

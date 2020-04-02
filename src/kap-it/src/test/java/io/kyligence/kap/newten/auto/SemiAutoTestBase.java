@@ -98,7 +98,7 @@ public class SemiAutoTestBase extends NSuggestTestBase {
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
             }
-            properties.put("kap.metadata.semi-automatic-mode", "false");
+            properties.put("kylin.metadata.semi-automatic-mode", "false");
             copyForWrite.setOverrideKylinProps(properties);
         });
         val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
@@ -118,7 +118,7 @@ public class SemiAutoTestBase extends NSuggestTestBase {
             if (properties == null) {
                 properties = Maps.newLinkedHashMap();
             }
-            properties.put("kap.metadata.semi-automatic-mode", "true");
+            properties.put("kylin.metadata.semi-automatic-mode", "true");
             copyForWrite.setOverrideKylinProps(properties);
         });
         emptyModelAndIndexPlan(project, originModelIds, originModels, originIndexPlans);

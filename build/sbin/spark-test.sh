@@ -25,10 +25,9 @@ then
     export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/src/tool-assembly/target/kap-tool-assembly-*.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/build/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/build/bin/get-properties.sh kylin.metadata.url`
-    export SPARK_ENV_PROPS=`$KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-env.`
-    export SPARK_CONF_PROPS=`$KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-conf.`
+    export SPARK_ENV_PROPS=`$KYLIN_HOME/build/bin/get-properties.sh kylin.storage.columnar.spark-env.`
+    export SPARK_CONF_PROPS=`$KYLIN_HOME/build/bin/get-properties.sh kylin.storage.columnar.spark-conf.`
     export SPARK_ENGINE_CONF_PROPS=`$KYLIN_HOME/build/bin/get-properties.sh kylin.engine.spark-conf.`
-    export SPARK_DRIVER_PORT=`$KYLIN_HOME/build/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
 else
     verbose 'in normal mode'
     export KYLIN_HOME=${KYLIN_HOME:-"${dir}/../"}
@@ -38,10 +37,9 @@ else
     export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/tool/kap-tool-*.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
-    export SPARK_ENV_PROPS=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-env.`
-    export SPARK_CONF_PROPS=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.`
+    export SPARK_ENV_PROPS=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-env.`
+    export SPARK_CONF_PROPS=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.spark-conf.`
     export SPARK_ENGINE_CONF_PROPS=`$KYLIN_HOME/bin/get-properties.sh kylin.engine.spark-conf.`
-    export SPARK_DRIVER_PORT=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-driver-port`
 
     if [ ! -f ${KYLIN_HOME}/commit_SHA1 ]
     then
@@ -125,7 +123,7 @@ function retrieveSparkEnvProps()
 
     # spark conf
     confStr=`echo "$SPARK_CONF_PROPS" |  awk '{ print "--conf " "\"" $0 "\""}' | tr '\n' ' ' `
-    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kap.kerberos.enabled`
+    KAP_KERBEROS_ENABLED=`$KYLIN_HOME/bin/get-properties.sh kylin.kerberos.enabled`
     if [[ "${KAP_KERBEROS_ENABLED}" == "true" ]]
     then
         confStr=`echo ${confStr} --conf 'spark.hadoop.hive.metastore.sasl.enabled=true'`

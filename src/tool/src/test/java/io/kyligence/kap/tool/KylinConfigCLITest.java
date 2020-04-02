@@ -79,7 +79,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetEncryptProperty() throws IOException {
         final KylinConfig config = getTestConfig();
-        String property = "kap.influxdb.password";
+        String property = "kylin.influxdb.password";
         config.setProperty(property, "ENC('YeqVr9MakSFbgxEec9sBwg==')");
         PrintStream o = System.out;
         File f = File.createTempFile("cfg", ".tmp");
@@ -97,7 +97,7 @@ public class KylinConfigCLITest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetUnEncryptPropertyWithDECFlag() throws IOException {
         final KylinConfig config = getTestConfig();
-        String property = "kap.influxdb.password";
+        String property = "kylin.influxdb.password";
         config.setProperty(property, "kylin");
         PrintStream o = System.out;
         File f = File.createTempFile("cfg", ".tmp");

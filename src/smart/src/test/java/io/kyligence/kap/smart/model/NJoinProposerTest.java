@@ -101,7 +101,7 @@ public class NJoinProposerTest extends NLocalWithSparkSessionTest {
         // set this project to semi-auto-Mode, change the join alias. it will reuse this origin model and will not change this.
         val prjInstance = NProjectManager.getInstance(getTestConfig()).getProject(proj);
         prjInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        getTestConfig().setProperty("kap.metadata.semi-automatic-mode", "true");
+        getTestConfig().setProperty("kylin.metadata.semi-automatic-mode", "true");
         Assert.assertTrue(prjInstance.isSemiAutoMode());
 
         val originModels = NDataModelManager.getInstance(getTestConfig(), proj).listAllModels();

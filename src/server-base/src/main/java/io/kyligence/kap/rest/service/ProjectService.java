@@ -120,7 +120,7 @@ public class ProjectService extends BasicService {
             overrideProps = Maps.newLinkedHashMap();
         }
         if (newProject.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            overrideProps.put("kap.metadata.semi-automatic-mode", "true");
+            overrideProps.put("kylin.metadata.semi-automatic-mode", "true");
             overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, "true");
         } else {
             overrideProps.put(ProjectInstance.EXPOSE_COMPUTED_COLUMN_CONF, "false");
@@ -481,7 +481,7 @@ public class ProjectService extends BasicService {
         }
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
-            copyForWrite.getOverrideKylinProps().put("kap.metadata.semi-automatic-mode",
+            copyForWrite.getOverrideKylinProps().put("kylin.metadata.semi-automatic-mode",
                     String.valueOf(projectGeneralInfoRequest.isSemiAutoMode()));
         });
     }

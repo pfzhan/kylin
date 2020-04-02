@@ -337,7 +337,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateFQWithBreaker() {
         FavoriteQueryManager manager = Mockito.spy(FavoriteQueryManager.getInstance(getTestConfig(), PROJECT));
-        getTestConfig().setProperty("kap.circuit-breaker.threshold.fq", "1");
+        getTestConfig().setProperty("kylin.circuit-breaker.threshold.fq", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         try {
             thrown.expect(CircuitBreakerException.class);
@@ -350,7 +350,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateFQWithoutCheckWithBreaker() {
         FavoriteQueryManager manager = Mockito.spy(FavoriteQueryManager.getInstance(getTestConfig(), PROJECT));
-        getTestConfig().setProperty("kap.circuit-breaker.threshold.fq", "1");
+        getTestConfig().setProperty("kylin.circuit-breaker.threshold.fq", "1");
         NCircuitBreaker.start(KapConfig.wrap(getTestConfig()));
         thrown.expect(CircuitBreakerException.class);
         try {

@@ -64,7 +64,7 @@ public class NKapQueryTest extends NKylinTestBase {
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
         logger.info("setUp in NKapQueryTest");
         joinType = "left";
-        System.setProperty("kap.query.engine.sparder-enabled", "false");
+        System.setProperty("kylin.query.engine.sparder-enabled", "false");
         NKylinTestBase.setupAll();
     }
 
@@ -74,7 +74,7 @@ public class NKapQueryTest extends NKylinTestBase {
             System.clearProperty("org.xerial.snappy.lib.name");//reset
 
         logger.info("tearDown in NKapQueryTest");
-        System.clearProperty("kap.query.engine.sparder-enabled");
+        System.clearProperty("kylin.query.engine.sparder-enabled");
         NKylinTestBase.clean();
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
@@ -85,8 +85,7 @@ public class NKapQueryTest extends NKylinTestBase {
         thrown.expectMessage("No realization");
         String x = KylinConfig.getInstanceFromEnv().getPushDownRunnerClassName();
         try {
-            System.setProperty("kap.query.engine.sparder-enabled", "true");
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "true");
+            System.setProperty("kylin.query.engine.sparder-enabled", "true");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", "");
 
             File tempFile = File.createTempFile("testQuery_cubeNonAggDisabled_throwNoRealization", "sqlfile");
@@ -94,7 +93,6 @@ public class NKapQueryTest extends NKylinTestBase {
             FileUtils.writeStringToFile(tempFile, "select * from test_kylin_fact", false);
             runSQL(tempFile, false, false);
         } finally {
-            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "false");
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name", x);
         }
     }

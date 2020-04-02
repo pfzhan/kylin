@@ -88,7 +88,7 @@ public class ITKapSparderQueryTest extends KapTestBase {
 
     @Test
     public void testSparder() throws Exception {
-        System.setProperty("kap.query.engine.sparder-enabled", "true");
+        System.setProperty("kylin.query.engine.sparder-enabled", "true");
         System.setProperty("calcite.debug", "false");
         PRINT_RESULT = true;
 

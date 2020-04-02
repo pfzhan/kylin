@@ -57,8 +57,8 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Before
     public void setupCCConf() {
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
     }
 
     @Test
@@ -786,7 +786,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
     public void testDisableCCOnInnerFilterCol() {
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.enabled", "FALSE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "FALSE");
         String[] sqls = new String[] { "select count(1) as num from\n" //
                 + "(\n" //
                 + "select trans_id, cal_dt\n" //
@@ -823,7 +823,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "5000");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "5000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
@@ -848,7 +848,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "group by price, item_count" };
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "10000");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.minimum-cardinality", "10000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
@@ -902,7 +902,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
 
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "5000");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "5000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
@@ -929,7 +929,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
                 + "group by NEW_ID" };
         mockTableExtDesc("DEFAULT.TEST_KYLIN_FACT", "newten", new String[] { "TRANS_ID", "ORDER_ID" },
                 new int[] { 99, 77 });
-        overwriteSystemProp("kap.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "10000");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.group-key.minimum-cardinality", "10000");
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
         smartMaster.runAll();
 
