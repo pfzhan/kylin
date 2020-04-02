@@ -62,6 +62,8 @@ export function bindRouterGuard (router) {
         } else if (to.name.toLowerCase() === 'acceleration') {
           if (!store.state.project.isSemiAutomatic) {
             next({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
+          } else {
+            next()
           }
         } else {
           next()
