@@ -124,7 +124,7 @@ public class RDBMSWriter implements MetricWriter {
         }
     }
 
-    public void writeToQueryHistory(String dbName, String measurement, Map<String, Object> fieldsMap) throws Throwable {
+    public void writeToQueryHistory(String dbName, String measurement, Map<String, Object> fieldsMap) {
         jdbcTemplate.update(String.format(INSERT_HISTORY_SQL, measurement), fieldsMap.get(QUERY_ID),
                 fieldsMap.get(SQL_TEXT), fieldsMap.get(SQL_PATTERN), fieldsMap.get(QUERY_DURATION),
                 fieldsMap.get(TOTAL_SCAN_BYTES), fieldsMap.get(TOTAL_SCAN_COUNT), fieldsMap.get(RESULT_ROW_COUNT),
@@ -136,8 +136,7 @@ public class RDBMSWriter implements MetricWriter {
                 fieldsMap.get(IS_TABLE_SNAPSHOT_USED), fieldsMap.get(PROJECT_NAME));
     }
 
-    public void writeToQueryHistoryRealization(String dbName, String measurement, Map<String, Object> fieldsMap)
-            throws Throwable {
+    public void writeToQueryHistoryRealization(String dbName, String measurement, Map<String, Object> fieldsMap) {
         jdbcTemplate.update(String.format(INSERT_HISTORY_REALIZATION_SQL, measurement), fieldsMap.get(MODEL),
                 fieldsMap.get(LAYOUT_ID), fieldsMap.get(INDEX_TYPE), fieldsMap.get(QUERY_ID),
                 fieldsMap.get(QUERY_DURATION), fieldsMap.get(QUERY_TIME), fieldsMap.get(PROJECT_NAME));

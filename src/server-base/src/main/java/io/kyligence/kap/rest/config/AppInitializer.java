@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest.config;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.metric.InfluxDBWriter;
+import io.kyligence.kap.common.metric.RDBMSWriter;
 import io.kyligence.kap.common.metrics.NMetricsController;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
@@ -108,11 +108,11 @@ public class AppInitializer {
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
 
-        // init influxDB writer and create DB
+        // init RDBMS writer and create DB
         try {
-            InfluxDBWriter.getInstance();
+            RDBMSWriter.getInstance();
         } catch (Exception ex) {
-            log.error("InfluxDB writer has not initialized");
+            log.error("RDBMS writer has not initialized");
         }
     }
 
