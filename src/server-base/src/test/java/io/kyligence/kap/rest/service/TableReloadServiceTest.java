@@ -84,6 +84,7 @@ import io.kyligence.kap.metadata.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -211,6 +212,39 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
     private void dropModelWhen(Predicate<String> predicate) {
         modelService.listAllModelIdsInProject(PROJECT).stream().filter(predicate)
                 .forEach(id -> modelService.dropModel(id, PROJECT, true));
+    }
+
+    @Test
+    public void testReload_RemoveCC() throws Exception {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), PROJECT);
+        var originModel = modelManager.getDataModelDescByAlias("nmodel_basic");
+        val originSize = originModel.getComputedColumnDescs().size();
+        dropModelWhen(id -> !id.equals(originModel.getId()));
+        val request = modelService.convertToRequest(originModel);
+        request.setProject(PROJECT);
+        val cc1 = new ComputedColumnDesc();
+        cc1.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        cc1.setTableAlias("TEST_KYLIN_FACT");
+        cc1.setColumnName("RELOAD_CC1");
+        cc1.setExpression("\"TEST_KYLIN_FACT\".\"TRANS_ID\" + 1");
+        cc1.setDatatype("INTEGER");
+        val cc2 = new ComputedColumnDesc();
+        cc2.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        cc2.setTableAlias("TEST_KYLIN_FACT");
+        cc2.setColumnName("RELOAD_CC2");
+        cc2.setExpression("\"TEST_KYLIN_FACT\".\"RELOAD_CC1\" + 1");
+        cc2.setDatatype("INTEGER");
+        request.getComputedColumnDescs().add(cc1);
+        request.getComputedColumnDescs().add(cc2);
+        modelService.updateDataModelSemantic(PROJECT, request);
+        var modifiedModel = modelManager.getDataModelDesc(originModel.getId());
+        Assert.assertEquals(originSize + 2, modifiedModel.getComputedColumnDescs().size());
+        Assert.assertTrue(modifiedModel.getComputedColumnDescs().stream()
+                .anyMatch(cc -> cc.getColumnName().equals("RELOAD_CC2")));
+        removeColumn("DEFAULT.TEST_KYLIN_FACT", "TRANS_ID");
+        tableService.reloadTable(PROJECT, "DEFAULT.TEST_KYLIN_FACT", false, 0, false);
+        var reloadedModel = modelManager.getDataModelDesc(originModel.getId());
+        Assert.assertEquals(originSize, reloadedModel.getComputedColumnDescs().size());
     }
 
     @Test
@@ -942,7 +976,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 + "          \"hierarchy_dims\": [],\n" + "          \"mandatory_dims\": [],\n"
                 + "          \"joint_dims\": []\n" + "        }\n" + "}", NAggregationGroup.class);
         newRule.setAggregationGroups(Lists.newArrayList(group1));
-        group1.setMeasures(new Integer[]{100000, 100008});
+        group1.setMeasures(new Integer[] { 100000, 100008 });
         val indexManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
         var originIndexPlan = indexManager.getIndexPlanByModelAlias("nmodel_basic");
         val modelId = originIndexPlan.getId();

@@ -1652,7 +1652,7 @@ public class ModelService extends BasicService {
         return res;
     }
 
-    private ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {
+    ModelRequest convertToRequest(NDataModel modelDesc) throws IOException {
         val request = new ModelRequest(JsonUtil.deepCopy(modelDesc, NDataModel.class));
         request.setSimplifiedMeasures(modelDesc.getEffectiveMeasures().values().stream()
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));

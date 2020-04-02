@@ -105,7 +105,6 @@ class ModelEdgeCollector {
             val namedColumn = effectiveNamedColumns.get(id);
             val cc = ccs.get(tblColRef.getName());
             val ccNode = SchemaNode.ofModelCC(cc, model.getId());
-            collectExprWithModel(cc.getInnerExpression(), ccNode);
             collectExprWithModel(cc.getExpression(), ccNode);
             graph.putEdge(ccNode, SchemaNode.ofModelColumn(namedColumn, model.getId()));
         });
