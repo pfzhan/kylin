@@ -127,7 +127,7 @@ public class NUserController extends NBasicController {
     @EventListener(AfterMetadataReadyEvent.class)
     public void init() throws IOException {
         val config = KylinConfig.getInstanceFromEnv();
-        if (Constant.SERVER_MODE_QUERY.equals(config.getServerMode())) {
+        if (!config.isLeaderNode()) {
             return;
         }
         List<ManagedUser> all = userService.listUsers();

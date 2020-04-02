@@ -74,6 +74,15 @@
           </template>
 
           <ul class="top-ul ksd-fright">
+            <li>
+              <el-popover ref="activeNodes" width="290" popper-class="nodes-popover" v-model="showNodes">
+                <div class="nodes">
+                  <p class="error-text" v-if="showErrorMsg">{{$t('noNodesTip1')}}</p>
+                  <ul><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
+                </div>
+              </el-popover>
+              <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">{{$t('activeNodes')}}<span :class="[getNodesNumColor]">{{nodeList.length}}</span></p>
+            </li>
             <li v-if="showMenuByRole('admin')">
               <el-button
                 size="small"
@@ -172,7 +181,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
-import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
+import { handleError, handleSuccess, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { getQueryString, cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
 import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
@@ -201,7 +210,8 @@ let MessageBox = ElementUI.MessageBox
       getAboutKap: 'GET_ABOUTKAP',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
-      getSpeedInfo: 'GET_SPEED_INFO'
+      getSpeedInfo: 'GET_SPEED_INFO',
+      loadOnlineNodes: 'LOAD_ONLINE_QUERY_NODES'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -281,7 +291,9 @@ let MessageBox = ElementUI.MessageBox
       models: 'model(s)',
       holdNaviBar: 'Fold Navigation Bar',
       unholdNaviBar: 'Unfold Navigation Bar',
-      diagnosis: 'Diagnosis'
+      diagnosis: 'Diagnosis',
+      activeNodes: 'Active Instances：',
+      noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. '
     },
     'zh-cn': {
       resetPassword: '重置密码',
@@ -303,7 +315,9 @@ let MessageBox = ElementUI.MessageBox
       models: '模型',
       holdNaviBar: '收起导航栏',
       unholdNaviBar: '展开导航栏',
-      diagnosis: '诊断'
+      diagnosis: '诊断',
+      activeNodes: '活跃节点数：',
+      noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交'
     }
   }
 })
@@ -339,6 +353,10 @@ export default class LayoutLeftRightTop extends Vue {
   isAnimation = false
   isGlobalMaskShow = false
   showDiagnostic = false
+  nodeList = []
+  nodesTimer = null
+  showNodes = false
+  showErrorMsg = false
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -362,6 +380,35 @@ export default class LayoutLeftRightTop extends Vue {
     if (!this.isGuideMode) {
       this.noProjectTips()
     }
+  }
+  get getNodesNumColor () {
+    // all和query节点都有 @normal-color-1，节点数为0 @error-color-1
+    const alls = this.nodeList.filter(it => it.mode === 'all')
+    // const querys = this.nodeList.filter(it => it.mode === 'query')
+    if (!alls.length) {
+      this.showErrorMsg = true
+      this.showNodes = true
+      setTimeout(() => {
+        this.showNodes = false
+      }, 3000)
+      return 'error-text'
+    } else {
+      this.showErrorMsg = false
+      return 'success-text'
+    }
+  }
+  // 获取多活节点列表
+  getHANodes () {
+    this.loadOnlineNodes({ext: true}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.nodeList = data
+        this.nodesTimer = setTimeout(() => {
+          this.getHANodes()
+        }, 60000)
+      })
+    }).catch(e => {
+      handleError(e)
+    })
   }
   setGlobalMask (notifyContect) {
     this.isGlobalMaskShow = true
@@ -493,6 +540,7 @@ export default class LayoutLeftRightTop extends Vue {
     }).catch((res) => {
       handleError(res)
     })
+    this.getHANodes()
   }
   showMenuByRole (menuName) {
     let isSemiAutoModeShowAcce = true
@@ -786,6 +834,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   destroyed () {
     clearTimeout(this.ST)
+    clearTimeout(this.nodesTimer)
   }
   @Watch('currentPathNameGet')
   onCurrentPathNameGetChange (val) {
@@ -1006,6 +1055,18 @@ export default class LayoutLeftRightTop extends Vue {
               margin-right: 20px;
               cursor: pointer;
             }
+            .active-nodes {
+              font-size: 12px;
+              &:hover {
+                color: @base-color;
+              }
+              &:active {
+                background: #ffe7ef;
+              }
+              .success-text {
+                color: @normal-color-1;
+              }
+            }
             .el-dropdown-link {
               font-size:12px;
             }
@@ -1167,5 +1228,24 @@ export default class LayoutLeftRightTop extends Vue {
   }
   .diagnosis-tip {
     margin-left: 30px !important;
+  }
+  .error-text {
+    color: @error-color-1;
+    font-size: 12px;
+    margin-bottom: 13px;
+  }
+  .nodes-popover {
+    .nodes {
+      padding: 0 5px;
+      max-height: 170px;
+      overflow: auto;
+      .node-list {
+        color: @text-normal-color;
+        margin-top: 8px;
+        &:first-child {
+          margin-top: 0;
+        }
+      }
+    }
   }
 </style>

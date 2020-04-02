@@ -5,13 +5,14 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.streaming.common.MergeJobEntry;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -97,7 +98,7 @@ public class StreamingSegmentManager {
       val rangeToMerge = new SegmentRange.KafkaOffsetPartitionedSegmentRange(minTime, maxTime,
           sourcePartitionOffsetStart, sourcePartitionOffsetEnd);
 
-      val afterMergeSeg = UnitOfWork.doInTransactionWithRetry(() -> {
+      val afterMergeSeg = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
         NDataflowManager dfMgr = NDataflowManager
             .getInstance(KylinConfig.getInstanceFromEnv(), project);
         return dfMgr.mergeSegments(dfMgr.getDataflow(dataflowId), rangeToMerge, true);
@@ -125,7 +126,7 @@ public class StreamingSegmentManager {
       retainSegments = Lists.newArrayList();
     }
 
-    val newSegment = UnitOfWork.doInTransactionWithRetry(() -> {
+    val newSegment = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
       NDataflowManager dfMgr = NDataflowManager
           .getInstance(KylinConfig.getInstanceFromEnv(), project);
       return dfMgr.appendSegmentForStreaming(dfMgr.getDataflow(dataflowId), sr);

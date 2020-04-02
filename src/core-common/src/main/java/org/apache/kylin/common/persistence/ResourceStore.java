@@ -61,6 +61,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.common.persistence.UnitMessages;
+import lombok.Setter;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
@@ -112,6 +114,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String JOB_STATISTICS = "/job_stats";
     public static final String MODEL_OPTIMIZE_RECOMMENDATION = "/recommendation";
     public static final String EXECUTABLE_JOB = "/execute";
+    public static final String GLOBAL_EPOCH = GLOBAL_PROJECT + "/epoch";
 
     public static final String METASTORE_IMAGE = "/_image";
     public static final String METASTORE_UUID_TAG = "/UUID";
@@ -125,7 +128,11 @@ public abstract class ResourceStore implements AutoCloseable {
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
     @Getter
     protected MetadataStore metadataStore;
-
+    @Setter
+    long offset;
+    @Setter
+    @Getter
+    Callback<Boolean> checker;
     /**
      * Get a resource store for Kylin's metadata.
      */
@@ -393,6 +400,14 @@ public abstract class ResourceStore implements AutoCloseable {
         }
     }
 
+    public void leaderCatchup() {
+        val auditLogStore = getAuditLogStore();
+        try {
+            auditLogStore.restore(this, offset);
+        } catch (Throwable ignore) {
+        }
+    }
+
     public interface Visitor {
         void visit(String path);
     }
@@ -561,5 +576,12 @@ public abstract class ResourceStore implements AutoCloseable {
                 return null;
             }, "");
         }
+    }
+
+    public interface Callback<T> {
+        /**
+         * check metadata
+         */
+        T check(UnitMessages event);
     }
 }

@@ -36,6 +36,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -56,7 +57,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -81,7 +81,7 @@ public class AclTCRService extends BasicService {
     public void revokeAclTCR(String uuid, String sid, boolean principal) {
         // permission already has been checked in AccessService#revokeAcl
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
-                .ifPresent(prj -> UnitOfWork.doInTransactionWithRetry(() -> {
+                .ifPresent(prj -> EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     revokePrjAclTCR(prj.getName(), sid, principal);
                     return null;
                 }, prj.getName()));
@@ -129,7 +129,7 @@ public class AclTCRService extends BasicService {
 
     public void updateAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests) {
         aclEvaluate.checkProjectAdminPermission(project);
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             updateAclTCR(project, sid, principal, transformRequests(project, requests));
             return null;
         }, project);
@@ -139,7 +139,7 @@ public class AclTCRService extends BasicService {
         // permission already has been checked in AccessService#grant, batchGrant
         final boolean defaultAuthorized = KapConfig.getInstanceFromEnv().isProjectInternalDefaultPermissionGranted();
         getProjectManager().listAllProjects().stream().filter(p -> p.getUuid().equals(uuid)).findFirst()
-                .ifPresent(prj -> UnitOfWork.doInTransactionWithRetry(() -> {
+                .ifPresent(prj -> EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     requests.stream().filter(r -> StringUtils.isNotEmpty(r.getSid())).forEach(r -> {
                         AclTCR aclTCR = new AclTCR();
                         if (!defaultAuthorized) {

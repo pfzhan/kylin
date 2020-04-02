@@ -60,7 +60,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
@@ -569,9 +568,9 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         // change model version
         NDataModelManager modelManager = NDataModelManager.getInstance(config, PROJECT);
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        model.setSemanticVersion(2);
-        modelManager.updateDataModelDesc(model);
+        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", model -> {
+            model.setSemanticVersion(2);
+        });
 
         // run check, not accelerated
         favoriteQueryService.adjustFalseAcceleratedFQ();

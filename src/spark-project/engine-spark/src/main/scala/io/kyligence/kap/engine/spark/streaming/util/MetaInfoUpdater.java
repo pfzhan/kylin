@@ -24,18 +24,17 @@
 
 package io.kyligence.kap.engine.spark.streaming.util;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import lombok.val;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 
 public class MetaInfoUpdater {
 
   public static void update(String project, NDataSegment seg, NDataLayout layout) {
-    UnitOfWork.doInTransactionWithRetry(() -> {
+    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
       NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
       update.setToAddOrUpdateLayouts(layout);
       NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)

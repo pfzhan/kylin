@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 
@@ -37,7 +38,8 @@ public class MessageSynchronization {
 
     private final KylinConfig config;
     private final EventListenerRegistry eventListener;
-
+    @Setter
+    private ResourceStore.Callback<Boolean> checker;
     public static MessageSynchronization getInstance(KylinConfig config) {
         return config.getManager(MessageSynchronization.class);
     }
@@ -56,6 +58,9 @@ public class MessageSynchronization {
             return;
         }
         UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().processor(() -> {
+            if (checker != null && checker.check(event)) {
+                return null;
+            }
             replayInTransaction(event);
             return null;
         }).maxRetry(1).unitName(event.getKey()).useSandbox(false).build());
@@ -87,19 +92,13 @@ public class MessageSynchronization {
             event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         val oldRaw = resourceStore.getResource(raw.getResPath());
-        if (config.getStreamingChangeMeta()) {
-            // streaming change meta, skip check, just a workround way
+        if (!config.isLeaderNode()) {
             resourceStore.deleteResource(raw.getResPath());
             resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
                     raw.getMvcc());
             return;
         }
-        if (config.getServerMode().equals("query")) {
-            resourceStore.deleteResource(raw.getResPath());
-            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
-                    raw.getMvcc());
-            return;
-        }
+
         if (oldRaw == null) {
             resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getTimestamp(),
                     raw.getMvcc());

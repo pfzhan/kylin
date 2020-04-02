@@ -412,7 +412,7 @@ public class CodahaleMetrics implements Metrics {
     private boolean initCodahaleMetricsReporterClasses() {
 
         List<String> reporterClasses = Lists.newArrayList(Splitter.on(",").trimResults().omitEmptyStrings()
-                .split(KylinConfig.getInstanceFromEnv().getCoadhaleMetricsReportClassesNames()));
+                .split(KylinConfig.getInstanceFromEnv().getCodahaleMetricsReportClassesNames()));
         if (reporterClasses.isEmpty()) {
             return false;
         }
@@ -449,7 +449,7 @@ public class CodahaleMetrics implements Metrics {
     private boolean initMetricsReporter() {
 
         List<String> metricsReporterNames = Lists.newArrayList(Splitter.on(",").trimResults().omitEmptyStrings()
-                .split(KylinConfig.getInstanceFromEnv().getCoadhaleMetricsReportClassesNames()));
+                .split(KylinConfig.getInstanceFromEnv().getCodahaleMetricsReportClassesNames()));
         if (metricsReporterNames.isEmpty()) {
             return false;
         }

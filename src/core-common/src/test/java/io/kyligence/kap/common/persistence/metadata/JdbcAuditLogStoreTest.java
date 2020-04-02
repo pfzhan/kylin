@@ -56,6 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
 
+    private static final String LOCAL_INSTANCE = "127.0.0.1";
 
     @Before
     public void setup() {
@@ -128,22 +129,22 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
         val jdbcTemplate = getJdbcTemplate();
         String unitId = UUID.randomUUID().toString();
         jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                new Object[]{"/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                new Object[]{"/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null},
-                new Object[]{"/p1/abc", null, null, null, unitId, null}
+                new Object[]{"/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc", null, null, null, unitId, null, LOCAL_INSTANCE}
         ));
         workerStore.catchup();
-        Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
+        Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
 
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
             jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                    new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                    new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null},
+                    new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE},
                     new Object[]{"/" + projectName + "/abc", null, null, null, unitId, null}
             ));
         }
@@ -151,7 +152,7 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
         Awaitility.await().atMost(6, TimeUnit.SECONDS).until(() -> 2003 == workerStore.listResourcesRecursively("/").size());
         Assert.assertEquals(2003, workerStore.listResourcesRecursively("/").size());
 
-        ((JdbcAuditLogStore)workerStore.getAuditLogStore()).forceClose();
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
     @Test
@@ -170,9 +171,9 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
                 val projectName = "p0";
                 val unitId = UUID.randomUUID().toString();
                 jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
-                        new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null},
-                        new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null},
-                        new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null}
+                        new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE},
+                        new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE},
+                        new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), i, unitId, null, LOCAL_INSTANCE}
                 ));
                 i++;
             }
@@ -184,7 +185,7 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(4, workerStore.listResourcesRecursively("/").size());
         stopped.compareAndSet(false, true);
-        ((JdbcAuditLogStore)workerStore.getAuditLogStore()).forceClose();
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
     @Test
@@ -202,11 +203,11 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
             val projectName = "p" + (i + 1000);
             String unitId = UUID.randomUUID().toString();
             jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, "test_audit_log"), Arrays.asList(
-                    new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                    new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null},
-                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null},
-                    new Object[]{"/" + projectName + "/abc", null, null, null, unitId, null}
+                    new Object[]{"/" + projectName + "/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId, null, LOCAL_INSTANCE},
+                    new Object[]{"/" + projectName + "/abc", null, null, null, unitId, null, LOCAL_INSTANCE}
             ));
         }
         auditLogStore.rotate();

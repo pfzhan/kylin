@@ -177,7 +177,7 @@ public class AuditLogToolTest extends NLocalFileMetadataTestCase {
                         return new AuditLog(x.get("id").asLong(), x.get("meta_key").asText(),
                                 ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(x.get("meta_content"))),
                                 x.get("meta_ts").asLong(), x.get("meta_mvcc").asLong(), x.get("unit_id").asText(),
-                                x.get("operator").asText());
+                                x.get("operator").asText(), "");
                     } catch (IOException e) {
                         throw Throwables.propagate(e);
                     }

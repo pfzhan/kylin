@@ -164,13 +164,14 @@ public class MetadataTool extends ExecutableApplication {
         val tool = new MetadataTool();
 
         int retFlag = runWithCurator((isLocal, address) -> {
-            if (isLocal) {
-                tool.execute(args);
-                return 0;
-            }
             val optionsHelper = new OptionsHelper();
             optionsHelper.parseOptions(tool.getOptions(), args);
             boolean isBackup = optionsHelper.hasOption(OPERATE_BACKUP);
+            if (isLocal || isBackup) {
+                tool.execute(args);
+                return 0;
+            }
+
             if (!isBackup) {
                 log.warn("Fail to restore, please stop all job nodes first");
                 return 1;

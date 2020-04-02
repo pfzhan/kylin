@@ -145,7 +145,7 @@ public class JsonFileMetricsReporter implements CodahaleReporter {
                         return;
                     }
                 } catch (Throwable t) {
-                    // catch all errors (throwable and execptions to prevent subsequent tasks from being suppressed)
+                    // catch all errors (throwable and exceptions to prevent subsequent tasks from being suppressed)
                     LOGGER.error("Error executing scheduled task ", t);
                 }
             }

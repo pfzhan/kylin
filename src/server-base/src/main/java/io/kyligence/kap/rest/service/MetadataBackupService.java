@@ -44,7 +44,7 @@ public class MetadataBackupService {
 
     public void backupAll() throws Exception {
 
-        String oldTheadName = Thread.currentThread().getName();
+        String oldThreadName = Thread.currentThread().getName();
         try {
             Thread.currentThread().setName("MetadataBackupWorker");
 
@@ -52,7 +52,7 @@ public class MetadataBackupService {
             backup(args);
             executors.submit(this::rotateAuditLog);
         } finally {
-            Thread.currentThread().setName(oldTheadName);
+            Thread.currentThread().setName(oldThreadName);
         }
     }
 

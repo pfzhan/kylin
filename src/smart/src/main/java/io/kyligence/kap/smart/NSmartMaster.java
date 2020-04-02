@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.calcite.sql.parser.impl.ParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -255,7 +256,7 @@ public class NSmartMaster {
 
     @VisibleForTesting
     public void saveModelOnlyForTest() {
-        UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
             @Override
             public Object process() {
                 save();
@@ -272,7 +273,7 @@ public class NSmartMaster {
     public void runOptRecommendation(Consumer<NSmartContext> hook) {
         long start = System.currentTimeMillis();
         try {
-            UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
                 @Override
                 public Object process() {
                     selectAndOptimize();
@@ -297,7 +298,7 @@ public class NSmartMaster {
     public void runAllAndForContext(Consumer<NSmartContext> hook) {
         long start = System.currentTimeMillis();
         try {
-            UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
                 @Override
                 public Object process() {
                     selectAndOptimize();
@@ -321,7 +322,7 @@ public class NSmartMaster {
 
     private void saveAccelerationInfoInTransaction() {
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 genDiagnoseInfo();
                 saveAccelerateInfo();
                 return null;
@@ -382,7 +383,7 @@ public class NSmartMaster {
     private Map<NDataModel, Pair<OptimizeRecommendation, Long>> genOptRecommendations() {
         log.info("Semi-Auto-Mode project:{} start to generate optimized recommendations.", project);
 
-        return UnitOfWork.doInTransactionWithRetry(() -> {
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = Maps.newHashMap();
             OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);

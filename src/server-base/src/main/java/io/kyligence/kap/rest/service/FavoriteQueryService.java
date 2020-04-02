@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
@@ -59,7 +61,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventManager;
@@ -420,10 +421,12 @@ public class FavoriteQueryService extends BasicService {
      */
     public void generateRecommendation() {
         String oldThreadName = Thread.currentThread().getName();
+        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         try {
             Thread.currentThread().setName("AutoRecommendation");
             getProjectManager().listAllProjects().stream() //
-                    .filter(ProjectInstance::isSemiAutoMode) //
+                    .filter(ProjectInstance::isSemiAutoMode)
+                    .filter(p -> epochManager.checkEpochOwner(p.getName()))
                     .forEach(projectInstance -> {
                         try {
                             String projectName = projectInstance.getName();
@@ -649,6 +652,8 @@ public class FavoriteQueryService extends BasicService {
                     .filter(projectInstance -> !projectInstance.isExpertMode()) //
                     .collect(Collectors.toList());
             for (ProjectInstance project : nonExpertProjects) {
+                if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
+                    continue;
                 try {
                     adjustFQForProject(project.getName());
                 } catch (Exception e) {
@@ -685,7 +690,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private void checkAccelerateStatus(String project, String[] sqls) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
             NSmartMaster master = new NSmartMaster(config, project, sqls);

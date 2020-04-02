@@ -76,7 +76,7 @@ public class KapPasswordResetCLI {
         }
 
         metaStore.putResource(new RawResource(id, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(user)),
-                aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1));
+                aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1), null, 0L);
 
         logger.trace("update user : {}", user.getUsername());
         logger.info("User " + user.getUsername() + "'s password is set to default password.");

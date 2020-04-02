@@ -280,6 +280,17 @@ public class RestClient {
         return response;
     }
 
+    public HttpResponse updatePrjEpoch(String project) throws IOException {
+        String url = baseUrl + "/epoch";
+        HttpPost post = newPost(url);
+        HashMap<String, String> paraMap = new HashMap<String, String>();
+        paraMap.put("project", project);
+        String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
+        post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
+        HttpResponse response = client.execute(post);
+        return response;
+    }
+
     private HashMap dealResponse(HttpResponse response) throws IOException {
         if (response.getStatusLine().getStatusCode() != 200) {
             throw new IOException("Invalid response " + response.getStatusLine().getStatusCode());

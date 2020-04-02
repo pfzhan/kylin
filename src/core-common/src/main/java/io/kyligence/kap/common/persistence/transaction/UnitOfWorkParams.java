@@ -32,6 +32,9 @@ public class UnitOfWorkParams<T> {
 
     private UnitOfWork.Callback<T> processor;
 
+    private UnitOfWork.Callback<T> epochChecker;
+
+
     @Builder.Default
     private boolean all = false;
 

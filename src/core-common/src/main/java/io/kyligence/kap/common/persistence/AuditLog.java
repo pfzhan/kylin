@@ -62,6 +62,8 @@ public class AuditLog implements IKeep {
 
     private String operator;
 
+    private String instance;
+
     public static class ByteSourceSerializer extends JsonSerializer<ByteSource> {
 
         @Override

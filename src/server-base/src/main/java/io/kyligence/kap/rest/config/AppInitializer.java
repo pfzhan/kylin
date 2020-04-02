@@ -23,17 +23,30 @@
  */
 package io.kyligence.kap.rest.config;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
-import java.util.List;
-
+import io.kyligence.kap.common.hystrix.NCircuitBreaker;
+import io.kyligence.kap.common.metric.InfluxDBWriter;
+import io.kyligence.kap.common.metrics.NMetricsController;
+import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
+import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
+import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.rest.cache.QueryCacheManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.config.initialize.AclTCRListener;
+import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
+import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
+import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
+import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.config.initialize.NMetricsRegistry;
+import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
+import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
+import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
+import io.kyligence.kap.rest.source.NHiveTableName;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import io.kyligence.kap.rest.cache.QueryCacheManager;
-import org.apache.kylin.rest.constant.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -42,46 +55,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.scheduling.TaskScheduler;
 
-import com.codahale.metrics.RatioGauge;
-import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
-
-import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.metric.InfluxDBWriter;
-import io.kyligence.kap.common.metrics.NMetricsCategory;
-import io.kyligence.kap.common.metrics.NMetricsController;
-import io.kyligence.kap.common.metrics.NMetricsGroup;
-import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
-import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import io.kyligence.kap.metadata.user.NKylinUserManager;
-import io.kyligence.kap.rest.cluster.ClusterManager;
-import io.kyligence.kap.rest.config.initialize.AclTCRListener;
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
-import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
-import io.kyligence.kap.rest.config.initialize.FavoriteQueryUpdateListener;
-import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
-import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
-import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
-import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
-import io.kyligence.kap.rest.source.NHiveTableName;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Configuration
 @Order(1)
 public class AppInitializer {
 
-    private static final String GLOBAL = "global";
-
     @Autowired
     TaskScheduler taskScheduler;
-
-    @Autowired
-    BootstrapCommand bootstrapCommand;
 
     @Autowired
     ClusterManager clusterManager;
@@ -95,11 +75,12 @@ public class AppInitializer {
 
         NCircuitBreaker.start(KapConfig.wrap(kylinConfig));
 
-        boolean isLeader = !kylinConfig.getServerMode().equals("query");
+        boolean isLeader = kylinConfig.isLeaderNode();
 
         if (isLeader) {
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             resourceStore.createMetaStoreUuidIfNotExist();
+            new EpochOrchestrator(kylinConfig);
 
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
@@ -111,13 +92,13 @@ public class AppInitializer {
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(new EpochChangedListener());
 
-            //register all global metrics
-            registerGlobalMetrics(kylinConfig);
-            if (kylinConfig.getStreamingChangeMeta()) {
-                // streaming change meta, skip check, just a workround way
+            /*if (kylinConfig.getStreamingChangeMeta()) {
+                // streaming change meta, skip check, just a workaround way
                 resourceStore.catchup();
-            }
+            }*/
+
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
             kylinConfig.setProperty("kylin.metadata.url", kylinConfig.getMetadataUrlPrefix() + "@hdfs");
@@ -141,8 +122,7 @@ public class AppInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_ALL)) {
-            taskScheduler.scheduleWithFixedDelay(bootstrapCommand, 10000);
+        if (kylinConfig.isLeaderNode()) {
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
                         kylinConfig.getLoadHiveTablenameIntervals() * 1000);
@@ -151,66 +131,7 @@ public class AppInitializer {
 
         String host = clusterManager.getLocalServer();
         // register host metrics
-        registerHostMetrics(host);
+        NMetricsRegistry.registerHostMetrics(host);
     }
 
-    void registerGlobalMetrics(KylinConfig config) {
-
-        final NProjectManager projectManager = NProjectManager.getInstance(config);
-        NMetricsGroup.newGauge(NMetricsName.PROJECT_GAUGE, NMetricsCategory.GLOBAL, GLOBAL, () -> {
-            List<ProjectInstance> list = projectManager.listAllProjects();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
-        });
-
-        final NKylinUserManager userManager = NKylinUserManager.getInstance(config);
-        NMetricsGroup.newGauge(NMetricsName.USER_GAUGE, NMetricsCategory.GLOBAL, GLOBAL, () -> {
-            List<ManagedUser> list = userManager.list();
-            if (list == null) {
-                return 0;
-            }
-            return list.size();
-        });
-
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.STORAGE_CLEAN_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
-
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_BACKUP_FAILED, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, GLOBAL);
-
-        NMetricsGroup.newCounter(NMetricsName.SPARDER_RESTART, NMetricsCategory.GLOBAL, GLOBAL);
-
-        NMetricsGroup.newCounter(NMetricsName.TRANSACTION_RETRY_COUNTER, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newHistogram(NMetricsName.TRANSACTION_LATENCY, NMetricsCategory.GLOBAL, GLOBAL);
-
-        NMetricsGroup.newCounter(NMetricsName.BUILD_UNAVAILABLE_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-        NMetricsGroup.newCounter(NMetricsName.QUERY_UNAVAILABLE_DURATION, NMetricsCategory.GLOBAL, GLOBAL);
-    }
-
-    void registerHostMetrics(String host) {
-        NMetricsGroup.newCounter(NMetricsName.QUERY_HOST, NMetricsCategory.HOST, host);
-        NMetricsGroup.newCounter(NMetricsName.QUERY_SCAN_BYTES_HOST, NMetricsCategory.HOST, host);
-        NMetricsGroup.newHistogram(NMetricsName.QUERY_TIME_HOST, NMetricsCategory.HOST, host);
-
-        MemoryMXBean mxBean = ManagementFactory.getMemoryMXBean();
-        NMetricsGroup.newGauge(NMetricsName.HEAP_MAX, NMetricsCategory.HOST, host,
-                () -> mxBean.getHeapMemoryUsage().getMax());
-        NMetricsGroup.newGauge(NMetricsName.HEAP_USED, NMetricsCategory.HOST, host,
-                () -> mxBean.getHeapMemoryUsage().getUsed());
-        NMetricsGroup.newGauge(NMetricsName.HEAP_USAGE, NMetricsCategory.HOST, host, () -> {
-            final MemoryUsage usage = mxBean.getHeapMemoryUsage();
-            return RatioGauge.Ratio.of(usage.getUsed(), usage.getMax()).getValue();
-        });
-
-        NMetricsGroup.newMetricSet(NMetricsName.JVM_GC, NMetricsCategory.HOST, host, new GarbageCollectorMetricSet());
-        NMetricsGroup.newGauge(NMetricsName.JVM_AVAILABLE_CPU, NMetricsCategory.HOST, host,
-                () -> Runtime.getRuntime().availableProcessors());
-
-    }
 }

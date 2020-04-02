@@ -43,6 +43,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -90,7 +91,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.guava20.shaded.common.graph.Graphs;
@@ -660,7 +660,7 @@ public class TableService extends BasicService {
 
         String finalStart = start;
         String finalEnd = end;
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             saveDataRange(project, table, finalStart, finalEnd);
             return null;
         }, project);
@@ -720,7 +720,7 @@ public class TableService extends BasicService {
     private String setPartitionColumnFormat(String time, String project, String table) {
         String format = DateFormat.proposeDateFormat(time);
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
             NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
 
@@ -1081,7 +1081,7 @@ public class TableService extends BasicService {
     public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows,
             boolean needBuild) {
         aclEvaluate.checkProjectAdminPermission(projectName);
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             innerReloadTable(projectName, tableIdentity, needBuild);
             if (needSample && maxRows > 0) {
                 tableSamplingService.sampling(Sets.newHashSet(tableIdentity), projectName, maxRows);

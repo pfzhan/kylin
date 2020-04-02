@@ -56,7 +56,7 @@ public class EventOrchestratorManagerTest extends NLocalFileMetadataTestCase {
     public void testShutdown() throws Exception {
         EventOrchestratorManager.destroyInstance();
         EventOrchestratorManager eventOrchestratorManager = EventOrchestratorManager.getInstance(getTestConfig());
-
+        eventOrchestratorManager.addProject(EventManager.GLOBAL);
         Field x = EventOrchestratorManager.class.getDeclaredField("INSTANCE_MAP");
         x.setAccessible(true);
         Map<String, EventOrchestrator> map = (Map<String, EventOrchestrator>) x.get(null);

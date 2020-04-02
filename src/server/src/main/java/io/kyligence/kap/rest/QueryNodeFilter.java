@@ -36,15 +36,18 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpEntity;
@@ -54,19 +57,27 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
+import io.kyligence.kap.rest.cluster.ClusterManager;
+import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
 
 @Slf4j
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@ConditionalOnProperty(value = "kylin.server.mode", havingValue = "query")
 public class QueryNodeFilter implements Filter {
 
     private static final String API_PREFIX = "/kylin/api";
+    private static final String ROUTED = "routed";
+
 
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
@@ -96,6 +107,9 @@ public class QueryNodeFilter implements Filter {
     @Autowired
     RestTemplate restTemplate;
 
+    @Autowired
+    ClusterManager clusterManager;
+
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         log.info("init query request filter");
@@ -108,6 +122,7 @@ public class QueryNodeFilter implements Filter {
         if (request instanceof HttpServletRequest) {
             HttpServletRequest servletRequest = (HttpServletRequest) request;
             HttpServletResponse servletResponse = (HttpServletResponse) response;
+            String serverMode = KylinConfig.getInstanceFromEnv().getServerMode();
             // not start with /kylin/api
             if (!servletRequest.getRequestURI().startsWith(API_PREFIX)) {
                 chain.doFilter(request, response);
@@ -128,11 +143,42 @@ public class QueryNodeFilter implements Filter {
                 chain.doFilter(request, response);
                 return;
             }
-            log.debug("proxy {} {} to job", servletRequest.getMethod(), servletRequest.getRequestURI());
+
+            // no leaders
+            if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
+                Message msg = MsgPicker.getMsg();
+                throw new EpochNotMatchException(msg.getNO_ACTIVE_LEADERS(), null);
+            }
+
+            Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
+            String project = projectInfo.getFirst();
+            request = projectInfo.getSecond();
+            if (Constant.SERVER_MODE_JOB.equalsIgnoreCase(serverMode)
+                    || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode)) {
+                // process local
+                if (((HttpServletRequest) request).getRequestURI().contains("epoch")
+                        || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
+                    log.info("process local caused by project owner");
+                    chain.doFilter(request, response);
+                    return;
+                }
+            }
+
+            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED))) {
+                log.info("process local caused by routed once.");
+                chain.doFilter(request, response);
+                return;
+            }
+
+            ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);
+            RequestContextHolder.setRequestAttributes(attributes);
+
+            log.debug("proxy {} {} to all", servletRequest.getMethod(), servletRequest.getRequestURI());
             val body = IOUtils.toByteArray(request.getInputStream());
             HttpHeaders headers = new HttpHeaders();
             Collections.list(servletRequest.getHeaderNames())
                     .forEach(k -> headers.put(k, Collections.list(servletRequest.getHeaders(k))));
+            headers.add(ROUTED, "true");
             byte[] responseBody;
             int responseStatus;
             HttpHeaders responseHeaders;

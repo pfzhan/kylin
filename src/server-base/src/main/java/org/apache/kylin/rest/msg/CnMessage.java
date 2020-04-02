@@ -732,4 +732,13 @@ public class CnMessage extends Message {
     public String getPROJECT_HIVE_PERMISSION_ERROR() {
         return "权限不足，请确保提交的 Kerberos 用户信息包含所有已加载表的访问权限.";
     }
+
+    //HA
+    public String getNO_ACTIVE_LEADERS() {
+        return "系统中暂无活跃的任务节点，请联系您的系统管理员进行检查并修复。";
+    }
+
+    public String getLEADERS_HANDLE_OVER() {
+        return "系统正在尝试恢复服务，请稍后进行尝试。";
+    }
 }

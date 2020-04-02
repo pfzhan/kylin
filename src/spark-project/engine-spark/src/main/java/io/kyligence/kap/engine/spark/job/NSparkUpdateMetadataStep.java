@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -52,7 +52,7 @@ public class NSparkUpdateMetadataStep extends AbstractExecutable {
         Preconditions.checkArgument(parent instanceof DefaultChainedExecutableOnModel);
         val handler = ((DefaultChainedExecutableOnModel) parent).getHandler();
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 handler.handleFinished();
                 return null;
             }, handler.getProject());

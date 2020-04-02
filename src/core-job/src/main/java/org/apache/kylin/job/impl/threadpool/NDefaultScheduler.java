@@ -35,6 +35,8 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
@@ -89,6 +91,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private JobEngineConfig jobEngineConfig;
     private ProjectStorageInfoCollector collector;
     private static volatile Semaphore memoryRemaining = new Semaphore(Integer.MAX_VALUE);
+    private long epochId;
 
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -140,7 +143,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private boolean discardSuicidalJob(String jobId) {
         try {
             if (checkSuicide(jobId)) {
-                return UnitOfWork.doInTransactionWithRetry(() -> {
+                return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     if (checkSuicide(jobId)) {
                         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).cancelJob(jobId);
                         return true;
@@ -158,7 +161,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private boolean discardTimeoutJob(String jobId, Long startTime) {
         try {
             if (checkTimeoutIfNeeded(jobId, startTime)) {
-                return UnitOfWork.doInTransactionWithRetry(() -> {
+                return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     if (checkTimeoutIfNeeded(jobId, startTime)) {
                         logger.error("project {} job {} running timeout.", project, jobId);
                         NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).errorJob(jobId);
@@ -178,6 +181,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
         @Override
         public void run() {
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                forceShutdown();
+            }
             logger.info("start check project {}", project);
             isJobFull = isJobPoolFull();
             reachQuotaLimit = reachStorageQuota();
@@ -225,6 +231,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         @Override
         public synchronized void run() {
             try {
+                if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                    forceShutdown();
+                }
                 val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 Map<String, Executable> runningJobs = context.getRunningJobs();
 
@@ -253,32 +262,32 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
                     final Output output = executableManager.getOutput(id);
                     switch (output.getState()) {
-                    case READY:
-                        nReady++;
-                        if (!isJobFull && !reachQuotaLimit) {
-                            logger.info("fetcher schedule {} ", id);
+                        case READY:
+                            nReady++;
+                            if (!isJobFull && !reachQuotaLimit) {
+                                logger.info("fetcher schedule {} ", id);
 
-                            scheduleJob(id);
-                        }
-                        break;
-                    case DISCARDED:
-                        nDiscarded++;
-                        break;
-                    case ERROR:
-                        nError++;
-                        break;
-                    case SUCCEED:
-                        nSucceed++;
-                        break;
-                    case PAUSED:
-                        nStopped++;
-                        break;
-                    case SUICIDAL:
-                        nSuicidal++;
-                        break;
-                    default:
-                        nOthers++;
-                        break;
+                                scheduleJob(id);
+                            }
+                            break;
+                        case DISCARDED:
+                            nDiscarded++;
+                            break;
+                        case ERROR:
+                            nError++;
+                            break;
+                        case SUCCEED:
+                            nSucceed++;
+                            break;
+                        case PAUSED:
+                            nStopped++;
+                            break;
+                        case SUICIDAL:
+                            nSuicidal++;
+                            break;
+                        default:
+                            nOthers++;
+                            break;
                     }
                 }
 
@@ -336,6 +345,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
         @Override
         public void run() {
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                forceShutdown();
+            }
             //only the first 8 chars of the job uuid
             try (SetThreadName ignored = new SetThreadName("JobWorker(prj:%s,jobid:%s)", project,
                     executable.getId().substring(0, 8))) {
@@ -400,7 +412,11 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
     @Override
     public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) {
+
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        if (!config.isUTEnv()) {
+            this.epochId = EpochManager.getInstance(config).getEpochId(project);
+        }
         jobLock = lock;
 
         String serverMode = jobEngineConfig.getServerMode();

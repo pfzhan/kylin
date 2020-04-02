@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.tool.garbage;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
@@ -43,7 +43,7 @@ public class GarbageCleaner {
      * @param project
      */
     public static void cleanupMetadataManually(String project) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
             if (instance.isSmartMode()) {
                 new BrokenModelCleaner().cleanup(project);
@@ -65,7 +65,7 @@ public class GarbageCleaner {
      * @param project
      */
     public static void cleanupMetadataAtScheduledTime(String project) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val instance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
             if (instance.isSmartMode()) {
                 new BrokenModelCleaner().cleanup(project);

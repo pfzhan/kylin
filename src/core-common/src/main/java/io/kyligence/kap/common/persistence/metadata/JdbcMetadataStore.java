@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -57,6 +58,7 @@ import lombok.Getter;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.TransactionDefinition;
 
 @Slf4j
 public class JdbcMetadataStore extends MetadataStore {
@@ -110,10 +112,17 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc) throws Exception {
+    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc) throws Exception {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
             public Object handle() throws Exception {
+                if (StringUtils.isNotEmpty(unitPath)) {
+                    val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, unitPath, oriMvcc),
+                            RAW_RESOURCE_ROW_MAPPER);
+                    if (CollectionUtils.isEmpty(result)) {
+                        throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
+                    }
+                }
                 if (bs != null) {
                     val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
                             RAW_RESOURCE_ROW_MAPPER);
@@ -181,36 +190,42 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog) throws Exception {
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc) throws Exception {
         if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
             return;
         }
         withTransaction(transactionManager, () -> {
-            super.batchUpdate(unitMessages, skipAuditLog);
+            super.batchUpdate(unitMessages, skipAuditLog, unitPath, oriMvcc);
             return null;
         });
     }
 
     @Override
     public void restore(ResourceStore store) throws IOException {
-        restoreProject(store, "_global");
-        val projects = store.listResources("/_global/project");
-        Optional.ofNullable(projects).orElse(Sets.newTreeSet()).parallelStream().forEach(projectRes -> {
-            val words = projectRes.split("/");
-            val project = words[words.length - 1].replace(".json", "");
-            restoreProject(store, project);
-        });
-        try {
-            val uuidRaw = load(ResourceStore.METASTORE_UUID_TAG);
-            store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
-                    uuidRaw.getMvcc());
-        } catch (PersistException e) {
-            if (e.getCause() instanceof EmptyResultDataAccessException) {
-                log.info("Cannot find /UUID in metastore");
-            } else {
-                throw e;
+        withTransaction(transactionManager, () -> {
+            restoreProject(store, "_global");
+            val projects = store.listResources("/_global/project");
+            Optional.ofNullable(projects).orElse(Sets.newTreeSet()).parallelStream().forEach(projectRes -> {
+                val words = projectRes.split("/");
+                val project = words[words.length - 1].replace(".json", "");
+                restoreProject(store, project);
+            });
+            try {
+                val uuidRaw = jdbcTemplate
+                        .queryForObject(String.format(SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG), RAW_RESOURCE_ROW_MAPPER);
+                store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
+                        uuidRaw.getMvcc());
+            } catch (PersistException|EmptyResultDataAccessException e) {
+                if (e instanceof EmptyResultDataAccessException || e.getCause() instanceof EmptyResultDataAccessException) {
+                    log.info("Cannot find /UUID in metastore");
+                } else {
+                    throw e;
+                }
             }
-        }
+            store.setOffset(getAuditLogStore().getMaxId());
+            return null;
+        }, TransactionDefinition.ISOLATION_SERIALIZABLE);
+
     }
 
     @Override
@@ -231,16 +246,13 @@ public class JdbcMetadataStore extends MetadataStore {
 
     private void restoreProject(ResourceStore store, String project) {
         val rowMapper = new RawResourceRowMapper();
-        withTransaction(transactionManager, () -> {
-            var prevKey = "/" + project + "/";
-            val endKey = "/" + project + "/~";
-            val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
-            for (RawResource resource : resources) {
-                store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(),
-                        resource.getMvcc());
-            }
-            return null;
-        });
+        var prevKey = "/" + project + "/";
+        val endKey = "/" + project + "/~";
+        val resources = jdbcTemplate.query(String.format(SELECT_BY_RANGE_SQL, table, prevKey, endKey), rowMapper);
+        for (RawResource resource : resources) {
+            store.putResourceWithoutCheck(resource.getResPath(), resource.getByteSource(), resource.getTimestamp(),
+                    resource.getMvcc());
+        }
     }
 
     private void createIfNotExist() throws Exception {

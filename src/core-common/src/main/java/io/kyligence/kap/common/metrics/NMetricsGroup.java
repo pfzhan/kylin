@@ -145,6 +145,18 @@ public class NMetricsGroup {
         return false;
     }
 
+    public static boolean removeGlobalMetrics() {
+        try {
+            final String metricNameSuffix = metricNameSuffix(NMetricsCategory.GLOBAL.getVal(), "global", Collections.emptyMap());
+            final MetricRegistry registry = NMetricsController.getDefaultMetricRegistry();
+            removeMetrics(metricNameSuffix, registry);
+            return true;
+        } catch (Exception e) {
+            logger.error("ke.metrics removeGlobalMetrics", e);
+        }
+        return false;
+    }
+
     public static boolean removeProjectMetrics(final String projectName) {
         try {
             if (StringUtils.isEmpty(projectName)) {

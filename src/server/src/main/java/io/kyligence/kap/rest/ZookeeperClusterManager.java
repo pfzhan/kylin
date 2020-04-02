@@ -25,9 +25,13 @@ package io.kyligence.kap.rest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.zookeeper.ConditionalOnZookeeperEnabled;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperDiscoveryClient;
@@ -83,9 +87,17 @@ public class ZookeeperClusterManager implements ClusterManager {
     @Override
     public List<ServerInfoResponse> getJobServers() {
         List<ServerInfoResponse> servers = new ArrayList<>();
+        Set<String> hosts = Sets.newHashSet();
         for (val nodeType : Lists.newArrayList(ClusterConstant.ALL, ClusterConstant.JOB)) {
             for (val host : getQueryServers(nodeType)) {
+                hosts.add(host);
                 servers.add(new ServerInfoResponse(host, nodeType));
+            }
+        }
+        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        for (String leader : epochManager.getAllLeaders()) {
+            if (!hosts.contains(leader)) {
+                servers.add(new ServerInfoResponse(leader, ClusterConstant.ALL));
             }
         }
         return servers;

@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.transaction;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -51,7 +52,7 @@ public class TransactionAspect {
         if (transaction.project() != -1) {
             unitName = pjp.getArgs()[transaction.project()].toString();
         }
-        return UnitOfWork.doInTransactionWithRetry(UnitOfWorkParams.builder().unitName(unitName)
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(UnitOfWorkParams.builder().unitName(unitName)
                 .readonly(transaction.readonly()).maxRetry(transaction.retry()).processor(() -> {
                     try {
                         return pjp.proceed();

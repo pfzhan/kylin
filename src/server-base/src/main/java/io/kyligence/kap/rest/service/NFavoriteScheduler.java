@@ -54,6 +54,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -72,7 +74,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -111,6 +112,7 @@ public class NFavoriteScheduler {
     // handles the case when the actual time of inserting to influx database is later than recorded time
     private int backwardShiftTime;
     private boolean hasStarted;
+    private long epochId;
 
     private static final Map<String, NFavoriteScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -131,6 +133,9 @@ public class NFavoriteScheduler {
     public void init() {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
+        if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            this.epochId = projectInstance.getEpoch().getEpochId();
+        }
 
         // init schedulers
         autoFavoriteScheduler = Executors.newScheduledThreadPool(1,
@@ -204,7 +209,7 @@ public class NFavoriteScheduler {
     }
 
     void adjustTimeOffset() {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             QueryHistoryTimeOffsetManager timeOffsetManager = QueryHistoryTimeOffsetManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project);
             QueryHistoryTimeOffset queryHistoryTimeOffset = timeOffsetManager.get();
@@ -254,6 +259,9 @@ public class NFavoriteScheduler {
 
         @Override
         public void run() {
+            if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
+                shutdownByProject(project);
+            }
             if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
                 return;
             }
@@ -292,7 +300,7 @@ public class NFavoriteScheduler {
             candidates.addAll(getCandidatesByFrequencyRule());
 
             if (CollectionUtils.isNotEmpty(candidates)) {
-                UnitOfWork.doInTransactionWithRetry(() -> {
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     KylinConfig config = KylinConfig.getInstanceFromEnv();
                     FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
                     manager.create(candidates);
@@ -304,7 +312,7 @@ public class NFavoriteScheduler {
         private void updateRelatedMetadata(Set<FavoriteQuery> candidates, long autoFavoriteTimeOffset,
                 int numOfQueryHitIndex, int overallQueryNum) {
             // update related metadata
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 KylinConfig config = KylinConfig.getInstanceFromEnv();
                 FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
                 manager.create(candidates);

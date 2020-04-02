@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -38,7 +39,6 @@ import org.springframework.util.CollectionUtils;
 import com.google.common.collect.Lists;
 import com.google.common.eventbus.Subscribe;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
@@ -79,7 +79,7 @@ public class ModelBrokenListener {
             return;
         }
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
 
             if (!needHandleModelBroken(project, modelId)) {
                 return null;
@@ -144,7 +144,7 @@ public class ModelBrokenListener {
             return;
         }
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
 
             if (!needHandleModelRepair(project, modelId)) {
                 return null;

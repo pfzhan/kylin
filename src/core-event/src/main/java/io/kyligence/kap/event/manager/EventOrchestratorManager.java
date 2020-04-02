@@ -72,13 +72,15 @@ public class EventOrchestratorManager {
             return instance;
         }
         instance = new EventOrchestratorManager();
-        initEventOrchestrators(kylinConfig);
+        if (kylinConfig.isUTEnv()) {
+            initEventOrchestrators(kylinConfig);
+        }
         return instance;
     }
 
     private static void initEventOrchestrators(KylinConfig kylinConfig) {
         String serverMode = kylinConfig.getServerMode();
-        if (!("job".equals(serverMode.toLowerCase()) || "all".equals(serverMode.toLowerCase()))) {
+        if (!(kylinConfig.isLeaderNode())) {
             logger.info("server mode: " + serverMode + ", no need to initEventOrchestrators");
             return;
         } else {

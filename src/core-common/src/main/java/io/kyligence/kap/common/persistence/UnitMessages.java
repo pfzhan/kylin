@@ -59,6 +59,14 @@ public class UnitMessages {
         return ((StartUnit) messages.get(0)).getUnitId();
     }
 
+    @JsonIgnore
+    public String getInstance() {
+        if (isEmpty()) {
+            return null;
+        }
+        return messages.get(0).getInstance();
+    }
+
     public boolean isEmpty() {
         return CollectionUtils.isEmpty(messages);
     }

@@ -44,12 +44,10 @@ import org.springframework.security.util.InMemoryResource;
 import org.springframework.session.web.context.AbstractHttpSessionApplicationInitializer;
 import org.springframework.web.client.RestTemplate;
 
-import com.netflix.loadbalancer.Server;
-import com.netflix.loadbalancer.ServerListFilter;
-
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.context.request.RequestContextListener;
 
 @Slf4j
 @Configuration
@@ -97,7 +95,7 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     }
 
     @Bean
-    public ServerListFilter<Server> serverListFilter() {
-        return servers -> servers;
+    public RequestContextListener requestContextListener(){
+        return new RequestContextListener();
     }
 }

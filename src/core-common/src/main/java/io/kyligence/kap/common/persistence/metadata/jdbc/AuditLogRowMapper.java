@@ -47,7 +47,9 @@ public class AuditLogRowMapper implements RowMapper<AuditLog> {
         }
         val unitId = rs.getString(6);
         val operator = rs.getString(7);
+        val instance = rs.getString(8);
+
         return new AuditLog(id, resPath, content == null ? null : ByteStreams.asByteSource(content), ts, mvcc, unitId,
-                operator);
+                operator, instance);
     }
 }

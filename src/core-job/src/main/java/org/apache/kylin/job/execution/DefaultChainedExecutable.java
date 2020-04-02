@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.constant.JobIssueEnum;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -61,7 +62,6 @@ import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.metrics.NMetricsTag;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobFinishedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 
@@ -103,7 +103,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteStart() throws JobStoppedException {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
 
             if (isStoppedNonVoluntarily() && //
             !ExecutableState.READY.equals(getOutput().getState())) //onExecuteStart will turn READY to RUNNING
@@ -118,7 +118,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     protected void onExecuteError(ExecuteResult result) throws JobStoppedException {
         Preconditions.checkState(!result.succeed());
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
 
             if (isStoppedNonVoluntarily())
                 return null;
@@ -137,7 +137,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
         Preconditions.checkState(result.succeed());
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
 
             List<? extends Executable> jobs = getTasks();
             boolean allSucceed = true;

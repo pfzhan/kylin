@@ -8,6 +8,8 @@ import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import java.util.List;
+
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -40,7 +42,7 @@ class AsyncMerger extends Thread {
       logger.info("merge segment cost {}", System.currentTimeMillis() - start);
       logger.info("delete merged segment and change the status");
       mergeJobEntry.globalMergeTime().set(System.currentTimeMillis() - start);
-      UnitOfWork.doInTransactionWithRetry(() -> {
+      EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
         NDataflowManager dfMgr = NDataflowManager
             .getInstance(KylinConfig.getInstanceFromEnv(), mergeJobEntry.project());
         NDataflow copy = dfMgr.getDataflow(mergeJobEntry.dataflowId()).copy();

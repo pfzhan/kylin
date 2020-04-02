@@ -41,6 +41,8 @@ public class Event implements Serializable, IKeep {
 
     private String key;
 
+    private String instance;
+
     public static Event fromLog(AuditLog log) {
         Event event;
         if (log.getByteSource() == null) {
@@ -54,6 +56,7 @@ public class Event implements Serializable, IKeep {
         } else {
             event.setKey(log.getResPath().split("/")[1]);
         }
+        event.setInstance(log.getInstance());
         return event;
     }
 

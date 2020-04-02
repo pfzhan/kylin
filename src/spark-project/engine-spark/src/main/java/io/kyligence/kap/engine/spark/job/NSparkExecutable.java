@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -70,7 +71,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cluster.ClusterManagerFactory;
 import io.kyligence.kap.cluster.IClusterManager;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -212,7 +212,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         if (!isResumable()) {
             // set resumable when metadata and props attached
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).setJobResumable(getId());
                 return 0;
             }, project);
@@ -274,7 +274,7 @@ public class NSparkExecutable extends AbstractExecutable {
             kylinConfigExt = projectInstance.getConfig();
         }
 
-        val jobOverrides = Maps.<String, String> newHashMap();
+        val jobOverrides = Maps.<String, String>newHashMap();
         val parentId = getParentId();
         jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
         jobOverrides.put("job.project", project);
@@ -450,8 +450,8 @@ public class NSparkExecutable extends AbstractExecutable {
             ResourceStore.dumpKylinProps(tmpDir, props);
         } else {
             // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
-            Map dumpMap = UnitOfWork.doInTransactionWithRetry(
-                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
+            Map dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
+                    UnitOfWorkParams.<Map>builder().readonly(true).unitName(getProject()).processor(() -> {
                         Map<String, RawResource> retMap = Maps.newHashMap();
                         for (String resPath : getMetadataDumpList(config)) {
                             ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);

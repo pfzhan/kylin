@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,15 +57,18 @@ public class ScheduleService {
     @Scheduled(cron = "${kylin.metadata.ops-cron:0 0 0 * * *}")
     public void routineTask() throws Exception {
 
+        EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+
         NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON, NMetricsCategory.GLOBAL, "global");
 
-        String oldTheadName = Thread.currentThread().getName();
+        String oldThreadName = Thread.currentThread().getName();
         try {
             Thread.currentThread().setName("RoutineOpsWorker");
 
             logger.info("Start to work");
-
-            backupService.backupAll();
+            if (epochManager.checkEpochOwner(EpochManager.GLOBAL)) {
+                backupService.backupAll();
+            }
             projectService.garbageCleanup();
             favoriteQueryService.adjustFalseAcceleratedFQ();
             favoriteQueryService.generateRecommendation();
@@ -71,7 +76,7 @@ public class ScheduleService {
 
             logger.info("Finish to work");
         } finally {
-            Thread.currentThread().setName(oldTheadName);
+            Thread.currentThread().setName(oldThreadName);
         }
 
         NMetricsGroup.counterInc(NMetricsName.METADATA_OPS_CRON_SUCCESS, NMetricsCategory.GLOBAL, "global");

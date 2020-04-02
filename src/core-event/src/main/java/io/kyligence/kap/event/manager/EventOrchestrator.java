@@ -49,6 +49,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -86,6 +87,7 @@ public class EventOrchestrator {
     private EventDao eventDao;
     private ScheduledExecutorService checkerPool;
     private KylinConfig kylinConfig;
+    private long epochId;
 
     public EventOrchestrator(String project, KylinConfig kylinConfig) {
         if (!UnitOfWork.isAlreadyInTransaction())
@@ -102,7 +104,9 @@ public class EventOrchestrator {
             logger.info("server mode: " + serverMode + ", no need to run EventOrchestrator");
             return;
         }
-
+        if (!kylinConfig.isUTEnv()) {
+            this.epochId = EpochManager.getInstance(kylinConfig).getEpochId(project);
+        }
         eventDao = EventDao.getInstance(kylinConfig, project);
 
         int pollSecond = kylinConfig.getEventPollIntervalSecond();
@@ -117,7 +121,12 @@ public class EventOrchestrator {
 
         @Override
         synchronized public void run() {
-
+            if (!kylinConfig.isUTEnv()) {
+                if (!EpochManager.getInstance(kylinConfig).checkEpochId(epochId, project)) {
+                    logger.warn("Thread" + Thread.currentThread().getName() + " may belong to last version epoch:" + epochId);
+                    forceShutdown();
+                }
+            }
             List<Event> events = eventDao.getEvents();
             if (!UnitOfWork.GLOBAL_UNIT.equals(project))
                 logger.debug("project {} contains {} events", project, events.size());

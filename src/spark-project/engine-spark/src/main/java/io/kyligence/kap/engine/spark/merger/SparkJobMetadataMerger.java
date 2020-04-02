@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -47,7 +48,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.cleanup.SnapshotChecker;
 import io.kyligence.kap.engine.spark.utils.FileNames;
 import io.kyligence.kap.engine.spark.utils.HDFSUtils;
@@ -142,7 +142,7 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
                             segmentFile.getModificationTime());
                 }
             }
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NTableMetadataManager updateManager = NTableMetadataManager
                         .getInstance(KylinConfig.getInstanceFromEnv(), segment.getProject());
                 for (TableDesc tableDesc : needUpdateTableDescs) {

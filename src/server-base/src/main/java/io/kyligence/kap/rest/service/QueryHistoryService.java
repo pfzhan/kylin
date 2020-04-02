@@ -39,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
@@ -272,13 +273,15 @@ public class QueryHistoryService extends BasicService {
     }
 
     public void cleanQueryHistories() {
-        String oldTheadName = Thread.currentThread().getName();
+        String oldThreadName = Thread.currentThread().getName();
 
         try {
             Thread.currentThread().setName("QueryHistoryCleanWorker");
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
             for (ProjectInstance project : projectManager.listAllProjects()) {
+                if (!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
+                    continue;
                 try {
                     long startTime = System.currentTimeMillis();
                     logger.info("Start to delete query histories that are beyond max size for project<{}>",
@@ -292,7 +295,7 @@ public class QueryHistoryService extends BasicService {
             }
 
         } finally {
-            Thread.currentThread().setName(oldTheadName);
+            Thread.currentThread().setName(oldThreadName);
         }
 
     }

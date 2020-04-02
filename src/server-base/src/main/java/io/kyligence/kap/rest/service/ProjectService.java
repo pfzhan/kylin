@@ -36,6 +36,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -109,7 +111,7 @@ public class ProjectService extends BasicService {
     private static final String SPARK_YARN_QUEUE = "kylin.engine.spark-conf.spark.yarn.queue";
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    @Transaction(project = 0)
+    @Transaction(project = -1)
     public ProjectInstance createProject(String projectName, ProjectInstance newProject) {
         Message msg = MsgPicker.getMsg();
         String description = newProject.getDescription();
@@ -214,7 +216,7 @@ public class ProjectService extends BasicService {
     }
 
     public void garbageCleanup() {
-        String oldTheadName = Thread.currentThread().getName();
+        String oldThreadName = Thread.currentThread().getName();
 
         try {
             Thread.currentThread().setName("GarbageCleanupWorker");
@@ -222,7 +224,9 @@ public class ProjectService extends BasicService {
             cleanupAcl();
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
+            val epochMgr = EpochManager.getInstance(config);
             for (ProjectInstance project : projectManager.listAllProjects()) {
+                if (!config.isUTEnv() && !epochMgr.checkEpochOwner(project.getName())) continue;
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
                     updateProjectRegularRule(project.getName());
@@ -233,13 +237,13 @@ public class ProjectService extends BasicService {
                 logger.info("Garbage cleanup for project<{}> finished", project.getName());
             }
         } finally {
-            Thread.currentThread().setName(oldTheadName);
+            Thread.currentThread().setName(oldThreadName);
         }
 
     }
 
     private void cleanupAcl() {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val prjManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
             List<String> prjects = prjManager.listAllProjects().stream().map(ProjectInstance::getUuid)
                     .collect(Collectors.toList());

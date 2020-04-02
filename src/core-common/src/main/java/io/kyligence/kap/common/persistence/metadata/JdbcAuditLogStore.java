@@ -39,6 +39,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
@@ -74,27 +75,30 @@ public class JdbcAuditLogStore implements AuditLogStore {
     static final String AUDIT_LOG_TABLE_MVCC = "meta_mvcc";
     static final String AUDIT_LOG_TABLE_UNIT = "unit_id";
     static final String AUDIT_LOG_TABLE_OPERATOR = "operator";
+    static final String AUDIT_LOG_TABLE_INSTANCE = "instance";
 
     static final String INSERT_SQL = "insert into %s ("
             + Joiner.on(",").join(AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
-                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
-            + ") values (?, ?, ?, ?, ?, ?)";
+                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
+            + ") values (?, ?, ?, ?, ?, ?, ?)";
     static final String SELECT_BY_RANGE_SQL = "select "
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
-                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
+                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
             + " from %s where id > %d and id <= %d order by id";
     static final String SELECT_MAX_ID_SQL = "select max(id) from %s";
     static final String SELECT_MIN_ID_SQL = "select min(id) from %s";
     static final String DELETE_ID_LESSTHAN_SQL = "delete from %s where id < ?";
     static final String SELECT_TS_RANGE = "select "
             + Joiner.on(",").join(AUDIT_LOG_TABLE_ID, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
-                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR)
+                    AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_UNIT, AUDIT_LOG_TABLE_OPERATOR, AUDIT_LOG_TABLE_INSTANCE)
             + " from %s where id > %d and meta_ts between %d and %d order by id limit %d";
 
     private final KylinConfig config;
     @Getter
     private final JdbcTemplate jdbcTemplate;
+    @Getter
     private final String table;
+    private final String instance;
     @Getter
     private final DataSourceTransactionManager transactionManager;
     private ExecutorService consumeExecutor;
@@ -108,7 +112,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         table = url.getIdentifier() + AUDIT_LOG_SUFFIX;
-
+        instance = AddressUtil.getLocalInstance();
         createIfNotExist();
     }
 
@@ -118,6 +122,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         this.jdbcTemplate = jdbcTemplate;
         this.transactionManager = transactionManager;
         this.table = table;
+        instance = AddressUtil.getLocalInstance();
 
         createIfNotExist();
     }
@@ -134,13 +139,13 @@ public class JdbcAuditLogStore implements AuditLogStore {
                             return new Object[] { createEvent.getResPath(),
                                     createEvent.getCreatedOrUpdated().getByteSource().read(),
                                     createEvent.getCreatedOrUpdated().getTimestamp(),
-                                    createEvent.getCreatedOrUpdated().getMvcc(), unitId, operator };
+                                    createEvent.getCreatedOrUpdated().getMvcc(), unitId, operator, instance };
                         } catch (IOException ignore) {
                             return null;
                         }
                     } else if (e instanceof ResourceDeleteEvent) {
                         ResourceDeleteEvent deleteEvent = (ResourceDeleteEvent) e;
-                        return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null, unitId, operator };
+                        return new Object[] { deleteEvent.getResPath(), null, System.currentTimeMillis(), null, unitId, operator, instance };
                     }
                     return null;
                 }).filter(Objects::nonNull).collect(Collectors.toList())));
@@ -149,8 +154,8 @@ public class JdbcAuditLogStore implements AuditLogStore {
     public void batchInsert(List<AuditLog> auditLogs) {
         withTransaction(transactionManager, () -> jdbcTemplate.batchUpdate(String.format(INSERT_SQL, table), auditLogs.stream().map(x -> {
             try {
-                return new Object[] { x.getResPath(), x.getByteSource().read(), x.getTimestamp(), x.getMvcc(),
-                        x.getUnitId(), x.getOperator() };
+                return new Object[]{x.getResPath(), x.getByteSource().read(), x.getTimestamp(), x.getMvcc(),
+                        x.getUnitId(), x.getOperator(), x.getInstance()};
             } catch (IOException e) {
                 return null;
             }
@@ -175,6 +180,20 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 .orElse(0L);
     }
 
+    public void checkAndUpgrade(String checkSql, String upgradeSql) {
+        val list = jdbcTemplate.queryForList(checkSql, String.class);
+        if (CollectionUtils.isEmpty(list)) {
+            log.info("Result of {} is empty, will execute {}", checkSql, upgradeSql);
+            try {
+                jdbcTemplate.execute(upgradeSql);
+            } catch (Exception e) {
+                log.error("Failed to execute upgradeSql: {}", upgradeSql, e);
+            }
+        } else {
+            log.info("Result of {} is not empty, no need to upgrade.", checkSql);
+        }
+    }
+
     @Override
     public long getMinId() {
         return Optional.ofNullable(jdbcTemplate.queryForObject(String.format(SELECT_MIN_ID_SQL, table), Long.class))
@@ -186,11 +205,9 @@ public class JdbcAuditLogStore implements AuditLogStore {
     public void restore(ResourceStore store, long currentId) {
         val replayer = MessageSynchronization.getInstance(config);
         consumeExecutor = Executors.newSingleThreadExecutor();
-        if (config.getStreamingChangeMeta()) {
-            // streaming change meta, skip check, just a workround way
-            val maxId = getMaxId();
-            log.info("current maxId is {}", maxId);
-            consumeExecutor.submit(createFetcher(maxId));
+        if (config.isLeaderNode() && !config.isUTEnv()) {
+            log.info("current maxId is {}", currentId);
+            consumeExecutor.submit(createFetcher(currentId, store.getChecker()));
             return;
         }
         withTransaction(transactionManager, () -> {
@@ -205,7 +222,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
                 startId += step;
             }
             replayer.replay(messages);
-            consumeExecutor.submit(createFetcher(maxId));
+            consumeExecutor.submit(createFetcher(maxId, store.getChecker()));
             return null;
         });
     }
@@ -221,9 +238,10 @@ public class JdbcAuditLogStore implements AuditLogStore {
         });
     }
 
-    private Runnable createFetcher(long id) {
+    private Runnable createFetcher(long id, ResourceStore.Callback<Boolean> checker) {
         return () -> {
             val replayer = MessageSynchronization.getInstance(config);
+            replayer.setChecker(checker);
             long startId = id;
             while (!stop.get()) {
                 try {

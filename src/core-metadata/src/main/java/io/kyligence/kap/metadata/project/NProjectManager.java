@@ -92,6 +92,10 @@ public class NProjectManager {
         return crud.listAll();
     }
 
+    public void reloadAll() {
+        crud.reloadAll();
+    }
+
     public ProjectInstance getProject(String projectName) {
         return crud.get(projectName);
     }
@@ -117,7 +121,6 @@ public class NProjectManager {
             throw new IllegalStateException("The project named " + projectName + "already exists");
         }
         checkOverrideProps(currentProject);
-
         return save(currentProject);
     }
 

@@ -789,6 +789,11 @@ public class Message {
         return "Can not refresh or merge segment [%s], because the segment is " + status + ".";
     }
 
+    //HA
+    public String getNO_ACTIVE_LEADERS() {
+        return "There is no active All node, please contact to your administrator to check and fix.";
+    }
+
     //Kerberos
     public String getKERBEROS_INFO_ERROR() {
         return "Invalid principle name or keytab file, please check and submit again.";
@@ -796,5 +801,9 @@ public class Message {
 
     public String getPROJECT_HIVE_PERMISSION_ERROR() {
         return "Permission denied. Please confirm the Kerberos account can access all the loaded tables.";
+    }
+
+    public String getLEADERS_HANDLE_OVER() {
+        return "System is trying to recover, please try again later.";
     }
 }

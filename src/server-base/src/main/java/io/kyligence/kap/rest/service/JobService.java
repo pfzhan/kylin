@@ -149,7 +149,6 @@ public class JobService extends BasicService {
         Comparator<ExecutableSortBean> comparator = propertyComparator(
                 StringUtils.isEmpty(jobFilter.getSortBy()) ? "last_modified" : jobFilter.getSortBy(),
                 !jobFilter.isReverse());
-
         Set<JobStatusEnum> matchedJobStatusEnums = jobFilter.getStatuses().stream().map(JobStatusEnum::valueOf)
                 .collect(Collectors.toSet());
         Set<ExecutableState> matchedExecutableStates = matchedJobStatusEnums.stream().map(this::parseToExecutableState)

@@ -148,6 +148,16 @@ function runTool() {
     exit $?
 }
 
+function runToolInternal() {
+    prepareEnv
+    if [[ -f ${KYLIN_HOME}/conf/kylin-tools-log4j.properties ]]; then
+        kylin_tools_log4j="file:${KYLIN_HOME}/conf/kylin-tools-log4j.properties"
+    else
+        kylin_tools_log4j="file:${KYLIN_HOME}/tool/conf/kylin-tools-log4j.properties"
+    fi
+    java -Xms${JAVA_VM_XMS} -Xmx${JAVA_VM_XMX} ${KYLIN_KERBEROS_OPTS} -Dfile.encoding=UTF-8 -Dlog4j.configuration=${kylin_tools_log4j} -Dkylin.hadoop.conf.dir=${kylin_hadoop_conf_dir} -Dhdp.version=current -cp "${kylin_hadoop_conf_dir}:${KYLIN_HOME}/lib/ext/*:${KYLIN_HOME}/tool/kap-tool-$version.jar:${SPARK_HOME}/jars/*" $@
+}
+
 function killChildProcess {
     if [ -f "${KYLIN_HOME}/child_process" ]
     then
@@ -209,6 +219,8 @@ function startKE(){
     checkHiveDirAcl
 
     ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
+
+    runToolInternal io.kyligence.kap.tool.UpgradeCLI
 
     if [[ -f ${KYLIN_HOME}/conf/kylin-server-log4j.properties ]]; then
         kylin_server_log4j="file:${KYLIN_HOME}/conf/kylin-server-log4j.properties"

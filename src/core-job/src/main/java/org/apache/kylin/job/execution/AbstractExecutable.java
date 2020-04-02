@@ -57,6 +57,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -81,7 +82,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.ThrowableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
@@ -205,7 +205,7 @@ public abstract class AbstractExecutable implements Executable {
 
             tryAgain = false;
             try {
-                UnitOfWork.doInTransactionWithRetry(() -> {
+                EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                     checkNeedQuit(false);
                     f.process();
                     return null;
@@ -258,7 +258,7 @@ public abstract class AbstractExecutable implements Executable {
 
     public void updateJobOutput(String project, String jobId, ExecutableState newStatus, Map<String, String> info,
             String output, String logPath, Consumer<String> hook) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
             if (info != null) {

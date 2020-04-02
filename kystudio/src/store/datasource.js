@@ -147,8 +147,8 @@ export default {
     [types.SAVE_QUERY]: function ({commit}, para) {
       return api.datasource.saveQuery(para)
     },
-    [types.LOAD_ONLINE_QUERY_NODES]: function ({commit}) {
-      return api.datasource.loadOnlineQueryNodes()
+    [types.LOAD_ONLINE_QUERY_NODES]: function ({commit}, para) {
+      return api.datasource.loadOnlineQueryNodes(para)
     },
     [types.GET_SAVE_QUERIES]: function ({commit}, para) {
       return api.datasource.getSaveQueries(para)

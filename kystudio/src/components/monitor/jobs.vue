@@ -185,6 +185,12 @@
                   </td>
                 </tr>
                 <tr>
+                  <td>{{$t('jobNodes')}}</td>
+                  <td>
+                    <span class="job-nodes-msg">{{getJobNodes}}</span>
+                  </td>
+                </tr>
+                <tr>
                   <td>{{$t('kylinLang.common.status')}}</td>
                   <td>
                     <el-tag
@@ -443,7 +449,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       filter: 'Filter',
       refreshList: 'Refresh List',
       pleaseSearch: 'Search Target Subject or Job ID',
-      diagnosis: 'Diagnosis'
+      diagnosis: 'Diagnosis',
+      jobNodes: 'Job Nodes'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -522,7 +529,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       filter: '筛选',
       refreshList: '刷新列表',
       pleaseSearch: '搜索任务对象或任务 ID',
-      diagnosis: '诊断包'
+      diagnosis: '诊断包',
+      jobNodes: '节点信息'
     }
   }
 })
@@ -583,6 +591,12 @@ export default class JobsList extends Vue {
 
   get emptyText () {
     return this.filter.key || this.filter.job_names.length || this.filter.status.length ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+  }
+
+  get getJobNodes () {
+    const { details } = this.selectedJob
+    let nodes = details ? details.map(it => it.info.node_info || '').filter(item => item !== '') : []
+    return nodes.join(',')
   }
 
   @Watch('$store.state.project.isAllProject')
@@ -1440,6 +1454,16 @@ export default class JobsList extends Vue {
             color:@text-normal-color;
           }
         }
+      }
+      .job-nodes-msg {
+        width: calc(100%);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        /*! autoprefixer: off */
+        -webkit-box-orient: vertical;
+        /* autoprefixer: on */
       }
       .time-hd {
         height:20px;

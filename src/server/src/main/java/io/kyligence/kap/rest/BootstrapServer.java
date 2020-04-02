@@ -39,6 +39,7 @@ import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletCon
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.netflix.ribbon.RibbonClient;
 import org.springframework.cloud.zookeeper.discovery.ZookeeperInstance;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +58,7 @@ import lombok.val;
 @EnableAsync
 @EnableCaching
 @EnableDiscoveryClient
+@RibbonClient(name = "spring-boot-provider", configuration = io.kyligence.kap.rest.LoadBalanced.class)
 public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);

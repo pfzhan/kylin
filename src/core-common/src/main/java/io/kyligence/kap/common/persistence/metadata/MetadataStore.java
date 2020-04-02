@@ -77,22 +77,22 @@ public abstract class MetadataStore {
         auditLogStore = new NoopAuditLogStore();
     }
 
-    protected abstract void save(String path, ByteSource bs, long ts, long mvcc) throws Exception;
+    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc) throws Exception;
 
     public abstract NavigableSet<String> list(String rootPath);
 
     public abstract RawResource load(String path) throws IOException;
 
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog) throws Exception {
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc) throws Exception {
         for (Event event : unitMessages.getMessages()) {
             if (event instanceof ResourceCreateOrUpdateEvent) {
                 val rawResource = ((ResourceCreateOrUpdateEvent) event).getCreatedOrUpdated();
-                putResource(rawResource);
+                putResource(rawResource, unitPath, oriMvcc);
             } else if (event instanceof ResourceDeleteEvent) {
-                deleteResource(((ResourceDeleteEvent) event).getResPath());
+                deleteResource(((ResourceDeleteEvent) event).getResPath(), unitPath, oriMvcc);
             }
         }
-        if(!skipAuditLog) {
+        if (!skipAuditLog) {
             auditLogStore.save(unitMessages);
         }
     }
@@ -105,12 +105,12 @@ public abstract class MetadataStore {
         }
     }
 
-    public void putResource(RawResource res) throws Exception {
-        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc());
+    public void putResource(RawResource res, String unitPath, long oriMvcc) throws Exception {
+        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), unitPath, oriMvcc);
     }
 
-    public void deleteResource(String resPath) throws Exception {
-        save(resPath, null, 0, 0);
+    public void deleteResource(String resPath, String unitName, long oriMvcc) throws Exception {
+        save(resPath, null, 0, 0, unitName, oriMvcc);
     }
 
     public void dump(ResourceStore store) throws Exception {
@@ -125,7 +125,7 @@ public abstract class MetadataStore {
         }
         for (String resPath : resources) {
             val raw = store.getResource(resPath);
-            putResource(raw);
+            putResource(raw, null, 0L);
         }
     }
 
@@ -139,7 +139,7 @@ public abstract class MetadataStore {
                 if (IMMUTABLE_PREFIX.contains(res.getResPath())) {
                     return;
                 }
-                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc());
+                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc(), null, 0L);
             } catch (Exception e) {
                 throw new IllegalArgumentException("put resource " + res.getResPath() + " failed", e);
             }

@@ -98,6 +98,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     public static final String TRUE = "true";
     public static final String FALSE = "false";
+    public static final String QUERY_NODE = "query";
 
     /*
      * DON'T DEFINE CONSTANTS FOR PROPERTY KEYS!
@@ -1538,6 +1539,10 @@ public abstract class KylinConfigBase implements Serializable {
         return this.getOptional("kylin.server.mode", "all");
     }
 
+    public boolean isLeaderNode() {
+        return !QUERY_NODE.equals(getServerMode());
+    }
+
     public Boolean getStreamingChangeMeta() {
         return Boolean.parseBoolean(this.getOptional("kylin.server.streaming-change-meta", FALSE));
     }
@@ -1669,7 +1674,7 @@ public abstract class KylinConfigBase implements Serializable {
     /**
      * metric
      */
-    public String getCoadhaleMetricsReportClassesNames() {
+    public String getCodahaleMetricsReportClassesNames() {
         return getOptional("kylin.metrics.reporter-classes", "JsonFileMetricsReporter,JmxMetricsReporter");
     }
 
@@ -1996,5 +2001,13 @@ public abstract class KylinConfigBase implements Serializable {
 
     public boolean isTrackingUrlIpAddressEnabled() {
         return Boolean.valueOf(this.getOptional("kylin.job.tracking-url-ip-address-enabled", TRUE));
+    }
+
+    public long getEpochExpireTimeSecond() {
+        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beta-timeout", "120"));
+    }
+
+    public long getEpochCheckerIntervalSecond() {
+        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-interval", "60"));
     }
 }

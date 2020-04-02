@@ -178,7 +178,7 @@ public class ResourceTool {
                 try {
                     RawResource res = src.getResource(path);
                     if (res != null) {
-                        dst.getMetadataStore().putResource(res);
+                        dst.getMetadataStore().putResource(res, null, 0L);
                     } else {
                         System.out.println("Resource not exist for " + path);
                     }

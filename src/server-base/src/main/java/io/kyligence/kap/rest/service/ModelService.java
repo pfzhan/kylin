@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -1116,7 +1117,7 @@ public class ModelService extends BasicService {
             doCheckBeforeModelSave(project, modelRequest);
         }
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             for (ModelRequest modelRequest : modelRequests) {
                 if (modelRequest.getIndexPlan() != null) {
                     saveModelAndIndexInMem(modelRequest, modelRequest.getIndexPlan(), modelRequest.getProject());
@@ -1132,7 +1133,7 @@ public class ModelService extends BasicService {
 
         // for probing date-format is a time-costly action, it cannot be call in a transaction
         doCheckBeforeModelSave(project, modelRequest);
-        return UnitOfWork.doInTransactionWithRetry(() -> saveModel(project, modelRequest), project);
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> saveModel(project, modelRequest), project);
     }
 
     public Map<String, List<NDataModel>> answeredByExistedModels(String project, Set<String> sqls) {
@@ -1523,7 +1524,7 @@ public class ModelService extends BasicService {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         checkModelAndIndexManually(project, modelId);
         String format = probeDateFormatIfNotExist(project, modelDesc);
-        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(() -> {
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             List<JobInfoResponse.JobInfo> jobInfos = Lists.newArrayList();
             for (SegmentTimeRequest hole : segmentHoles) {
                 jobInfos.add(constructIncrementBuild(project, modelId, hole.getStart(), hole.getEnd(), format));
@@ -1551,8 +1552,8 @@ public class ModelService extends BasicService {
 
     public JobInfoResponse fullBuildSegmentsManually(String project, String modelId) {
         aclEvaluate.checkProjectOperationPermission(project);
-        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork
-                .doInTransactionWithRetry(() -> constructFullBuild(project, modelId), project);
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
+                .doInTransactionWithCheckAndRetry(() -> constructFullBuild(project, modelId), project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
@@ -1618,7 +1619,7 @@ public class ModelService extends BasicService {
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
         String format = probeDateFormatIfNotExist(project, copyModel);
-        List<JobInfoResponse.JobInfo> jobIds = UnitOfWork.doInTransactionWithRetry(
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
                 () -> innerIncrementBuild(project, modelId, start, end, partitionDesc, format, segmentHoles), project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
@@ -2213,7 +2214,7 @@ public class ModelService extends BasicService {
                 getDataflowManager(project).listUnderliningDataModels(), project);
         broken.setBrokenReason(NDataModel.BrokenReason.NULL);
         val format = probeDateFormatIfNotExist(project, broken);
-        return UnitOfWork.doInTransactionWithRetry(() -> {
+        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             semanticUpdater.updateModelColumns(broken, modelRequest, true);
             val model = getDataModelManager(project).updateDataModelDesc(broken);
             saveDateFormatIfNotExist(project, model.getUuid(), format);

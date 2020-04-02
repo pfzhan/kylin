@@ -28,12 +28,19 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 
 import javax.validation.Valid;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -144,6 +151,17 @@ public class NProjectController extends NBasicController {
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
+        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        List<String> list = Lists.newArrayList(epochMgr.getAllLeaders());
+        if (CollectionUtils.isNotEmpty(list)) {
+            String leader = list.get(new Random().nextInt(list.size()));
+            String[] hostAndPort = leader.split(":");
+            try {
+                EpochRestClientTool.transferUpdateEpochRequest(hostAndPort[0], Integer.parseInt(hostAndPort[1]), projectDesc.getName());
+            } catch (IOException e) {
+                logger.info("Transfer update epoch request failed, wait for schedule worker to update epoch.");
+            }
+        }
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createdProj, "");
     }
 

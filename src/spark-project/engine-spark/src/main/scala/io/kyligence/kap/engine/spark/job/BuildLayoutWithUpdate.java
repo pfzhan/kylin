@@ -35,14 +35,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 
 public class BuildLayoutWithUpdate {
@@ -84,7 +84,7 @@ public class BuildLayoutWithUpdate {
                 for (NDataLayout layout : result.getLayouts()) {
                     logger.info("Update layout {} in dataflow {}, segment {}", layout.getLayoutId(),
                             seg.getDataflow().getUuid(), seg.getId());
-                    UnitOfWork.doInTransactionWithRetry(() -> {
+                    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
                         update.setToAddOrUpdateLayouts(layout);
                         NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateDataflow(update);

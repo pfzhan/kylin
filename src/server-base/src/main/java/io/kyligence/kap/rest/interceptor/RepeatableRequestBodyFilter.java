@@ -23,33 +23,20 @@
  */
 package io.kyligence.kap.rest.interceptor;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
-import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.NProjectLoader;
-import lombok.Data;
-import lombok.Getter;
-import lombok.val;
 
 @Component
 @Order(2)
@@ -63,23 +50,11 @@ public class RepeatableRequestBodyFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         try {
-            String project = request.getParameter("project");
-            ServletRequest requestWrapper = request;
-            if (StringUtils.isEmpty(project) && request.getContentType() != null
-                    && request.getContentType().contains("json")) {
-                requestWrapper = new RepeatableBodyRequestWrapper((HttpServletRequest) request);
-                try {
-                    val projectRequest = JsonUtil.readValue(((RepeatableBodyRequestWrapper) requestWrapper).getBody(),
-                            ProjectRequest.class);
-                    if (projectRequest != null) {
-                        project = projectRequest.getProject();
-                    }
-                } catch (IOException ignored) {
-                    // ignore JSON exception
-                }
-            }
+            Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
+            String project = projectInfo.getFirst();
+            request = projectInfo.getSecond();
             NProjectLoader.updateCache(project);
-            chain.doFilter(requestWrapper, response);
+            chain.doFilter(request, response);
         } finally {
             NProjectLoader.removeCache();
         }
@@ -88,60 +63,5 @@ public class RepeatableRequestBodyFilter implements Filter {
     @Override
     public void destroy() {
         // just override it
-    }
-
-    public static class RepeatableBodyRequestWrapper extends HttpServletRequestWrapper {
-
-        @Getter
-        private final String body;
-
-        RepeatableBodyRequestWrapper(HttpServletRequest request) throws IOException {
-            super(request);
-            body = IOUtils.toString(request.getInputStream());
-        }
-
-        @Override
-        public ServletInputStream getInputStream() throws IOException {
-            final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(body.getBytes());
-            return new ServletInputStream() {
-
-                @Override
-                public boolean isFinished() {
-                    return isFinished;
-                }
-
-                @Override
-                public boolean isReady() {
-                    return true;
-                }
-
-                @Override
-                public void setReadListener(ReadListener readListener) {
-                    // Do not support it
-                }
-
-                private boolean isFinished;
-
-                public int read() throws IOException {
-                    int b = byteArrayInputStream.read();
-                    isFinished = b == -1;
-                    return b;
-                }
-
-            };
-        }
-
-        @Override
-        public BufferedReader getReader() throws IOException {
-            return new BufferedReader(new InputStreamReader(this.getInputStream()));
-        }
-
-    }
-
-    @Data
-    public static class ProjectRequest implements IKeep {
-
-        private String project;
-
     }
 }

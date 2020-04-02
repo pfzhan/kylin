@@ -41,8 +41,12 @@ import lombok.val;
 public class JdbcUtil implements IKeep {
 
     public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer) {
+        return withTransaction(transactionManager, consumer, TransactionDefinition.ISOLATION_REPEATABLE_READ);
+    }
+
+    public static <T> T withTransaction(DataSourceTransactionManager transactionManager, Callback<T> consumer, int isolationLevel) {
         val definition = new DefaultTransactionDefinition();
-        definition.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        definition.setIsolationLevel(isolationLevel);
         val status = transactionManager.getTransaction(definition);
         try {
             T result = consumer.handle();

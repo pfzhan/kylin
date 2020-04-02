@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
@@ -123,7 +124,7 @@ public class UnitOfWork {
             TransactionListenerRegistry.onStart(params.getUnitName());
             context = UnitOfWork.startTransaction(params);
             ret = params.getProcessor().process();
-            UnitOfWork.endTransaction(traceId);
+            UnitOfWork.endTransaction(traceId, params);
             long duration = System.currentTimeMillis() - startTime;
             if (duration > 3000) {
                 log.warn("UnitOfWork {} takes too long time {}ms to complete", traceId, duration);
@@ -183,6 +184,9 @@ public class UnitOfWork {
     static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
+        Callback<T> checker = params.getEpochChecker();
+        checkEpoch(checker);
+
         val lock = TransactionLock.getLock(project, readonly);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
@@ -214,6 +218,16 @@ public class UnitOfWork {
         return unitOfWork;
     }
 
+    private static <T> void checkEpoch(Callback<T> checker) {
+        if (checker != null) {
+            try {
+                checker.process();
+            } catch (Exception e) {
+                checker.onProcessError(e);
+            }
+        }
+    }
+
     public static UnitOfWorkContext get() {
         val temp = threadLocals.get();
         Preconditions.checkNotNull(temp, "current thread is not accompanied by a UnitOfWork");
@@ -221,12 +235,12 @@ public class UnitOfWork {
         return temp;
     }
 
-    static void endTransaction(String traceId) throws Exception {
+    static <T> UnitOfWorkContext endTransaction(String traceId, UnitOfWorkParams<T> params) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val work = get();
         if (work.isReadonly() || !work.isUseSandbox()) {
             work.cleanResource();
-            return;
+            return null;
         }
         val threadViewRS = (ThreadViewResourceStore) ResourceStore.getKylinMetaStore(config);
         List<RawResource> data = threadViewRS.getResources();
@@ -248,7 +262,19 @@ public class UnitOfWork {
         long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
                 .count();
         log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
-        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog());
+        val checker = params.getEpochChecker();
+        checkEpoch(checker);
+        val unitName = params.getUnitName();
+        long oriMvcc = -1;
+        String unitPath = null;
+        if (StringUtils.isNotEmpty(unitName) && checker != null) {
+            if (unitName.equals(GLOBAL_UNIT))
+                oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath = ResourceStore.GLOBAL_EPOCH).getMvcc();
+            else
+                oriMvcc = ResourceStore.getKylinMetaStore(originConfig).getResource(unitPath = ResourceStore.PROJECT_ROOT + "/" + unitName + ".json").getMvcc();
+
+        }
+        metadataStore.batchUpdate(unitMessages, get().getParams().isSkipAuditLog(), unitPath, oriMvcc);
 
         try {
             // replayInTransaction in leader before release lock
@@ -259,6 +285,7 @@ public class UnitOfWork {
             log.error("Unexpected error happened! Aborting right now.", e);
             System.exit(1);
         }
+        return null;
     }
 
     private static UnitMessages packageEvents(List<Event> events, String project, String uuid) {

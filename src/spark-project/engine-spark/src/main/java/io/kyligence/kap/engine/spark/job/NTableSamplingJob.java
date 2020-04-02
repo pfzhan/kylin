@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
@@ -43,7 +44,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -130,7 +130,7 @@ public class NTableSamplingJob extends DefaultChainedExecutable {
             if (!result.succeed()) {
                 return result;
             }
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 if (checkSuicide()) {
                         log.info(
                                 "This Table Sampling job seems meaningless now, quit before mergeRemoteMetaAfterSampling()");

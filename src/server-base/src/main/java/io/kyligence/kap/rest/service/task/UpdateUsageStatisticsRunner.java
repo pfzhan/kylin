@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service.task;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -37,7 +38,6 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
@@ -124,7 +124,7 @@ public class UpdateUsageStatisticsRunner implements Runnable {
             favoriteQueries.add(favoritesInProj.getValue());
         }
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             // update model usage
             incQueryHitCount(dfHitCountMap);

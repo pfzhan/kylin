@@ -120,7 +120,7 @@ public class MonitorService extends BasicService {
                 return queryMonitorMetric;
             }
         });
-        if (kylinConfig.getServerMode().equals(Constant.SERVER_MODE_QUERY)) {
+        if (!kylinConfig.isLeaderNode()) {
             return;
         }
         MonitorReporter.getInstance().submit(

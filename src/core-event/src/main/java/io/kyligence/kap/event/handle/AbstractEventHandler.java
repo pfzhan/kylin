@@ -44,6 +44,7 @@ package io.kyligence.kap.event.handle;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -51,7 +52,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.EventFinishedNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventDao;
@@ -83,7 +83,7 @@ public abstract class AbstractEventHandler implements EventHandler {
                 return;
             }
             incRunTimes(eventContext);
-            UnitOfWork.doInTransactionWithRetry(() -> {
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 if (!checkBeforeHandle(eventContext)) {
                     log.trace("handle event {} later", eventContext.getEvent());
                     return null;
@@ -103,7 +103,7 @@ public abstract class AbstractEventHandler implements EventHandler {
 
     public void incRunTimes(EventContext eventContext) {
         val event = eventContext.getEvent();
-        UnitOfWork.doInTransactionWithRetry(() -> {
+        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), eventContext.getProject());
             eventDao.incEventRunTimes(event);
             return null;

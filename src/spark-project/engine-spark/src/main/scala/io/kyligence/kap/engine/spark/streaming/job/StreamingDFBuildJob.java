@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.streaming.job;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
 import io.kyligence.kap.engine.spark.job.BuildJobInfos;
 import io.kyligence.kap.engine.spark.job.BuildLayoutWithUpdate;
@@ -48,6 +47,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -85,7 +86,7 @@ public class StreamingDFBuildJob extends DFBuildJob {
     StreamingCommitter.commit(ss, cuboidDatasetMap, buildJobEntry.batchSegment(), project);
 
     logger.info("start update segment");
-    UnitOfWork.doInTransactionWithRetry(() -> {
+    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
       NDataflowManager dfMgr = NDataflowManager
           .getInstance(KylinConfig.getInstanceFromEnv(), project);
       NDataflow newDF = dfMgr.getDataflow(buildJobEntry.dataflowId()).copy();
