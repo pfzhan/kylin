@@ -94,7 +94,7 @@ public class EpochManager implements IKeep {
     }
 
     private Epoch getGlobalEpoch() {
-        return ResourceStore.getKylinMetaStore(config).getResource(GLOBAL_EPOCH, EPOCH_SERIALIZER);
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(GLOBAL_EPOCH, EPOCH_SERIALIZER);
     }
 
     private boolean updateGlobalEpoch() {
@@ -129,7 +129,8 @@ public class EpochManager implements IKeep {
     public boolean updateProjectEpoch(ProjectInstance prj, CountDownLatch cdl) {
         try {
             return UnitOfWork.doInTransactionWithRetry(() -> {
-                ProjectInstance project = NProjectManager.getInstance(config).getProject(prj.getName());
+                val kylinConfig = KylinConfig.getInstanceFromEnv();
+                ProjectInstance project = NProjectManager.getInstance(kylinConfig).getProject(prj.getName());
                 if (project == null) {
                     return false;
                 }
@@ -137,7 +138,7 @@ public class EpochManager implements IKeep {
                 if (finalEpoch == null) {
                     return false;
                 }
-                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).updateProject(prj.getName(),
+                NProjectManager.getInstance(kylinConfig).updateProject(prj.getName(),
                         copyForWrite -> copyForWrite.setEpoch(finalEpoch));
                 return true;
             }, prj.getName(), 1);

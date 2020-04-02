@@ -30,6 +30,7 @@ import com.netflix.loadbalancer.Server;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -41,6 +42,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 
+@Slf4j
 public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
 
     public ProjectBasedRoundRobinRule() {}
@@ -66,6 +68,7 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
         }
         String[] host = owner.split(":");
         Server server = new Server(host[0], Integer.valueOf(host[1]));
+        log.info("Request {} is redirecting to {}.", request.getRequestURI(), server);
         return server;
     }
 

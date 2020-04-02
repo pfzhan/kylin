@@ -47,7 +47,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -560,7 +560,7 @@ public class NExecutableManager {
             if (ExecutableState.READY == newStatus) {
                 Optional.ofNullable(REMOVE_INFO).ifPresent(set -> set.forEach(info::remove));
             }
-            info.put("node_info", EpochOrchestrator.getOwnerIdentity());
+            info.put("node_info", AddressUtil.getLocalInstance());
             jobOutput.setInfo(info);
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
 

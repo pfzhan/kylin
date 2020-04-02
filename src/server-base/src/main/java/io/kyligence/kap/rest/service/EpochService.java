@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.service.BasicService;
@@ -38,13 +37,9 @@ public class EpochService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(EpochService.class);
 
     public void updateEpoch(String project) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
-                    EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-                    logger.info("update epoch " + project);
-                    epochMgr.updateEpoch(project);
-                    return null;
-                }, UnitOfWork.GLOBAL_UNIT, 1
-        );
+        EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
+        logger.info("update epoch {}", project);
+        epochMgr.updateEpoch(project);
     }
 
 }
