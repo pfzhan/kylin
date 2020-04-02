@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
 
@@ -37,6 +38,7 @@ import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.RateLimiter;
 
+@Slf4j
 public class SchedulerEventBusFactory {
     private KylinConfig kylinConfig;
     private static EventBus eventBus;
@@ -78,6 +80,7 @@ public class SchedulerEventBusFactory {
     }
 
     public void post(Object event) {
+        log.debug("Post event {}", event);
         eventBus.post(event);
     }
 
