@@ -71,6 +71,6 @@ export default {
     fullLoad: '全量加载',
     incrementalTips: '系统可以根据您选择的分区列，增量加载数据。',
     fullLoadTips: '系统会全量加载所有数据。',
-    changeBuildTypeTips: '请注意，修改加载模式，会清空所有 Segment'
+    changeBuildTypeTips: '请注意，修改加载方式，会清空所有 Segment'
   }
 }
