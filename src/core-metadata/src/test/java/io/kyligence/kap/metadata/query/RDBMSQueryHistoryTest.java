@@ -306,6 +306,14 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, statistics.size());
     }
 
+    @Test
+    public void testGetRetainTime() throws Exception {
+        long retainTime = RDBMSQueryHistoryDAO.getRetainTime();
+        long currentTime = System.currentTimeMillis();
+        Assert.assertEquals(30, (currentTime - retainTime) / (24 * 60 * 60 * 1000L));
+    }
+
+
     JdbcTemplate getJdbcTemplate() throws Exception {
         val url = getTestConfig().getMetadataUrl();
         val props = datasourceParameters(url);

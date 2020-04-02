@@ -117,7 +117,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     }
     
     public static long getRetainTime() {
-        return new Date(System.currentTimeMillis() - RETAIN_TIME * 86400000).getTime();
+        return new Date(System.currentTimeMillis() - RETAIN_TIME * 86400000L).getTime();
     }
 
     public void dropProjectMeasurement(String project) {
