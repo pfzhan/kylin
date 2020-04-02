@@ -19,7 +19,7 @@
             <div class="ky-line"></div>
             <ul>
               <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a href="http://kyligence.io/enterprise/#analytics" target="_blank">{{$t('introduction')}}</a></li>
-              <li><i class="el-icon-ksd-login_manual ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">{{$t('manual')}}</a></li>
+              <li><i class="el-icon-ksd-details ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">{{$t('manual')}}</a></li>
               <li><i class="el-icon-ksd-login_email ksd-fs-12"></i><a href="mailto:info@Kyligence.io">{{$t('contactUs')}}</a></li>
             </ul>
           </div>

@@ -185,12 +185,6 @@
                   </td>
                 </tr>
                 <tr>
-                  <td>{{$t('jobNodes')}}</td>
-                  <td>
-                    <span class="job-nodes-msg">{{getJobNodes}}</span>
-                  </td>
-                </tr>
-                <tr>
                   <td>{{$t('kylinLang.common.status')}}</td>
                   <td>
                     <el-tag
@@ -266,6 +260,10 @@
                     <span v-else>0
                       <!-- <img src="../../assets/img/dot.gif" height="12px" width="10px"/> -->
                     </span>
+                  </div>
+                  <div>
+                    <span class="active-nodes">{{$t('jobNodes')}}: </span>
+                    <span>{{step.info.node_info || $t('unknow')}}</span>
                     <br />
                   </div>
                 </div>
@@ -450,7 +448,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       refreshList: 'Refresh List',
       pleaseSearch: 'Search Target Subject or Job ID',
       diagnosis: 'Diagnosis',
-      jobNodes: 'Job Nodes'
+      jobNodes: 'Job Nodes',
+      unknow: 'Unknown'
     },
     'zh-cn': {
       dataRange: '数据范围',
@@ -530,7 +529,8 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       refreshList: '刷新列表',
       pleaseSearch: '搜索任务对象或任务 ID',
       diagnosis: '诊断包',
-      jobNodes: '节点信息'
+      jobNodes: '节点信息',
+      unknow: '未知'
     }
   }
 })

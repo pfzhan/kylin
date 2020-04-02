@@ -72,7 +72,7 @@
         <el-table-column align="left" class-name="ky-hover-icon" :label="$t('kylinLang.common.action')" width="83">
           <template slot-scope="scope">
             <common-tip :content="$t('showDetail')">
-              <i class="el-icon-ksd-type_date" @click="handleShowDetail(scope.row)"></i>
+              <i class="el-icon-ksd-details" @click="handleShowDetail(scope.row)"></i>
             </common-tip>
           </template>
         </el-table-column>

@@ -43,7 +43,7 @@
             </el-dropdown-menu>
           </el-dropdown>
           <common-tip :content="$t('noModelsExport')" v-if="metadataActions.includes('executeModelMetadata')" placement="top" :disabled="!!modelArray.length">
-            <el-button icon="el-icon-ksd-export_2" size="medium" plain class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
+            <el-button icon="el-icon-ksd-export" size="medium" plain class="ksd-mtb-10 ksd-ml-10" :disabled="!modelArray.length" @click="handleExportMetadatas">
               <span>{{$t('exportMetadatas')}}</span>
             </el-button>
           </common-tip>

@@ -1060,9 +1060,6 @@ export default class LayoutLeftRightTop extends Vue {
               &:hover {
                 color: @base-color;
               }
-              &:active {
-                background: #ffe7ef;
-              }
               .success-text {
                 color: @normal-color-1;
               }
