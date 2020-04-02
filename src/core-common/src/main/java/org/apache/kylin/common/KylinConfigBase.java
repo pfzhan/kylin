@@ -2016,4 +2016,16 @@ public abstract class KylinConfigBase implements Serializable {
     public long getEpochCheckerIntervalSecond() {
         return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-interval", "60"));
     }
+
+    public boolean getJStackDumpTaskEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.task.jstack-dump-enabled", "true"));
+    }
+
+    public long getJStackDumpTaskPeriod() {
+        return Long.parseLong(getOptional("kylin.task.jstack-dump-interval-minutes", "10"));
+    }
+
+    public long getJStackDumpTaskLogsMaxNum() {
+        return Math.max(1L, Long.parseLong(getOptional("kylin.task.jstack-dump-log-files-max-count", "20")));
+    }
 }

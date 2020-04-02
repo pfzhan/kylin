@@ -96,11 +96,15 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         File accessLog2 = new File(ToolUtil.getLogFolder(), "access_log.2020-01-02.log");
         File gcLog = new File(ToolUtil.getLogFolder(), "kylin.gc.1");
         File shellLog = new File(ToolUtil.getLogFolder(), "shell.1");
+        File jstackLog1 = new File(ToolUtil.getLogFolder(), "jstack.timed.log.1577894300000");
+        File jstackLog2 = new File(ToolUtil.getLogFolder(), "jstack.timed.log.1577894400000");
 
         FileUtils.writeStringToFile(accessLog1, "111");
         FileUtils.writeStringToFile(accessLog2, "111");
         FileUtils.writeStringToFile(gcLog, "111");
         FileUtils.writeStringToFile(shellLog, "111");
+        FileUtils.writeStringToFile(jstackLog1, "111");
+        FileUtils.writeStringToFile(jstackLog2, "111");
 
         KylinLogTool.extractOtherLogs(mainDir, 1577894400000L, 1577894400000L);
 
@@ -108,10 +112,15 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         FileUtils.deleteQuietly(accessLog2);
         FileUtils.deleteQuietly(gcLog);
         FileUtils.deleteQuietly(shellLog);
+        FileUtils.deleteQuietly(jstackLog1);
+        FileUtils.deleteQuietly(jstackLog2);
+        
         Assert.assertFalse(new File(mainDir, "logs/access_log.2020-01-01.log").exists());
         Assert.assertTrue(new File(mainDir, "logs/access_log.2020-01-02.log").exists());
         Assert.assertTrue(new File(mainDir, "logs/kylin.gc.1").exists());
         Assert.assertTrue(new File(mainDir, "logs/shell.1").exists());
+        Assert.assertFalse(new File(mainDir, "logs/jstack.timed.log.1577894300000").exists());
+        Assert.assertTrue(new File(mainDir, "logs/jstack.timed.log.1577894400000").exists());
     }
 
     @Test

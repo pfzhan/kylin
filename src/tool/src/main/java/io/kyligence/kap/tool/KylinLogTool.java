@@ -101,7 +101,8 @@ public class KylinLogTool {
         String endDate = logFormat.format(new Date(end));
         logger.debug("logs startDate : {}, endDate : {}", startDate, endDate);
         String[] allIncludeLogs = { "kylin.gc.", "shell.", "kylin.out", "diag.log" };
-        String[] partIncludeLog = { "access_log." };
+        String[] partIncludeLogByDay = { "access_log." };
+        String[] partIncludeLogByMs = { "jstack.timed.log" };
         try {
             FileUtils.forceMkdir(destDir);
             File kylinLogDir = new File(ToolUtil.getLogFolder());
@@ -118,10 +119,18 @@ public class KylinLogTool {
                             FileUtils.copyFileToDirectory(logFile, destDir);
                         }
                     }
-                    for (String includeLog : partIncludeLog) {
+                    for (String includeLog : partIncludeLogByDay) {
                         if (logFile.getName().startsWith(includeLog)) {
                             String date = logFile.getName().split("\\.")[1];
                             if (date.compareTo(startDate) >= 0 && date.compareTo(endDate) <= 0) {
+                                FileUtils.copyFileToDirectory(logFile, destDir);
+                            }
+                        }
+                    }
+                    for (String includeLog : partIncludeLogByMs) {
+                        if (logFile.getName().startsWith(includeLog)) {
+                            long time = Long.parseLong(logFile.getName().split("\\.")[3]);
+                            if (time >= start && time <= end) {
                                 FileUtils.copyFileToDirectory(logFile, destDir);
                             }
                         }

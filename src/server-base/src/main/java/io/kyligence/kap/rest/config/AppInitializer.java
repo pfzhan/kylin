@@ -23,6 +23,18 @@
  */
 package io.kyligence.kap.rest.config;
 
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationPreparedEvent;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.TaskScheduler;
+
+import io.kyligence.kap.common.date.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.metric.RDBMSWriter;
 import io.kyligence.kap.common.metrics.NMetricsController;
@@ -42,18 +54,9 @@ import io.kyligence.kap.rest.scheduler.EventSchedulerListener;
 import io.kyligence.kap.rest.scheduler.FavoriteSchedulerListener;
 import io.kyligence.kap.rest.scheduler.JobSchedulerListener;
 import io.kyligence.kap.rest.source.NHiveTableName;
-import lombok.extern.slf4j.Slf4j;
+import io.kyligence.kap.rest.util.JStackDumpTask;
 import lombok.val;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationPreparedEvent;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.EventListener;
-import org.springframework.core.annotation.Order;
-import org.springframework.scheduling.TaskScheduler;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
@@ -123,13 +126,18 @@ public class AppInitializer {
             new EpochOrchestrator(kylinConfig);
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
-                        kylinConfig.getLoadHiveTablenameIntervals() * 1000);
+                        kylinConfig.getLoadHiveTablenameIntervals() * Constant.SECOND);
             }
         }
 
         String host = clusterManager.getLocalServer();
         // register host metrics
         NMetricsRegistry.registerHostMetrics(host);
+
+        if (kylinConfig.getJStackDumpTaskEnabled()) {
+            taskScheduler.scheduleAtFixedRate(new JStackDumpTask(),
+                    kylinConfig.getJStackDumpTaskPeriod() * Constant.MINUTE);
+        }
     }
 
 }
