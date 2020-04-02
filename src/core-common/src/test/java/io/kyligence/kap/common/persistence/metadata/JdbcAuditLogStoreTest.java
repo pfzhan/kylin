@@ -136,7 +136,7 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
                 new Object[]{"/p1/abc", null, null, null, unitId, null, LOCAL_INSTANCE}
         ));
         workerStore.catchup();
-        Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
+        Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
 
         for (int i = 0; i < 1000; i++) {
             val projectName = "p" + (i + 1000);
