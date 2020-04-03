@@ -75,6 +75,9 @@ public class EpochChangedListener implements IKeep {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         logger.info("start thread of project: {}", project);
         if (!GLOBAL.equals(project)) {
+            if (NFavoriteScheduler.getInstance(project).hasStarted()) {
+                return;
+            }
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
                 scheduler.init(new JobEngineConfig(kylinConfig), new MockJobLock());

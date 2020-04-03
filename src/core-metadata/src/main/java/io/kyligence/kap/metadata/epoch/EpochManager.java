@@ -114,12 +114,12 @@ public class EpochManager implements IKeep {
     }
 
 
-    private CountDownLatch tryUpdatePrjEpochs() {
+    private CountDownLatch tryUpdatePrjEpochs(Set<String> newEpochs) {
         List<ProjectInstance> prjs = getProjectsToMarkOwner();
         val cdl = new CountDownLatch(prjs.size());
         for (ProjectInstance prj : prjs) {
             pool.execute(new Thread(() -> {
-                if (updateProjectEpoch(prj, cdl)) currentEpochs.add(prj.getName());
+                if (updateProjectEpoch(prj, cdl)) newEpochs.add(prj.getName());
             }));
         }
         return cdl;
@@ -152,10 +152,10 @@ public class EpochManager implements IKeep {
         }
     }
 
-    public void tryUpdateGlobalEpoch() {
+    public void tryUpdateGlobalEpoch(Set<String> newEpochs) {
         try {
             if (updateGlobalEpoch()) {
-                currentEpochs.add(GLOBAL);
+                newEpochs.add(GLOBAL);
             }
         } catch (Exception e) {
             logger.error("Try to update global epoch failed.", e);
@@ -178,18 +178,19 @@ public class EpochManager implements IKeep {
 
     public synchronized void updateAllEpochs() {
         logger.info("start updateAllEpochs.........");
+        logger.info("epoch manager is " + this);
         val oriEpochs = Sets.newHashSet(currentEpochs);
-        currentEpochs.clear();
-        tryUpdateGlobalEpoch();
-        CountDownLatch cdl = tryUpdatePrjEpochs();
+        Set<String> newEpochs = Sets.newCopyOnWriteArraySet();
+        tryUpdateGlobalEpoch(newEpochs);
+        CountDownLatch cdl = tryUpdatePrjEpochs(newEpochs);
         try {
             cdl.await();
         } catch (InterruptedException e) {
             logger.error("Unexpected things happened" + e);
         }
-        logger.info("Project {" + String.join(",", currentEpochs) + "} owned by " + identity);
-        Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, currentEpochs);
-        Collection<String> newProjects = CollectionUtils.removeAll(currentEpochs, retainPrjs);
+        logger.info("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
+        Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
+        Collection<String> newProjects = CollectionUtils.removeAll(newEpochs, retainPrjs);
         Collection<String> escapedProjects = CollectionUtils.removeAll(oriEpochs, retainPrjs);
         for (String prj : newProjects) {
             schedulerEventBusFactory.post(new ProjectControlledNotifier(prj));
@@ -204,6 +205,7 @@ public class EpochManager implements IKeep {
             schedulerEventBusFactory.post(new EpochStartedNotifier());
         }
         logger.info("end updateAllEpochs.........");
+        currentEpochs = newEpochs;
     }
 
     public boolean checkEpochOwner(String project) {
@@ -228,7 +230,7 @@ public class EpochManager implements IKeep {
         if (StringUtils.isEmpty(project))
             updateAllEpochs();
         if (project.equals(GLOBAL))
-            tryUpdateGlobalEpoch();
+            tryUpdateGlobalEpoch(Sets.newCopyOnWriteArraySet());
         ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
         if (prj == null) {
             throw new IllegalStateException("Project " + project + " does not exist");
