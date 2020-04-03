@@ -29,6 +29,7 @@ import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSour
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.metadata.realization.RealizationStatusEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.execution.{KylinFileSourceScanExec, LayoutFileSourceScanExec}
@@ -93,6 +94,10 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_computedcolumn"),
     FloderInfo("sql_computedcolumn/sql_computedcolumn_common"),
     FloderInfo("sql_computedcolumn/sql_computedcolumn_leftjoin")
+  )
+
+  val onlyInner = List(
+    FloderInfo("sql_join/sql_inner_join")
   )
 
   val noneCompare = List(
@@ -180,6 +185,18 @@ class TestQueryAndBuildFunSuite
       .filter(_ != null)
     print(result)
     assert(result.isEmpty)
+
+    try {
+      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.OFFLINE)
+      result = onlyInner
+        .flatMap { folder =>
+          queryFolder(folder, List("inner"))
+        }
+        .filter(_ != null)
+      assert(result.isEmpty)
+    } finally {
+      changeCubeStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", RealizationStatusEnum.ONLINE)
+    }
   }
 
   // for test scenario in timestamp type , see NSegPruningTest.testSegPruningWithTimeStamp()

@@ -26,10 +26,12 @@ package io.kyligence.kap.query.util;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.Project;
@@ -41,6 +43,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSlot;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 
 import io.kyligence.kap.query.relnode.KapAggregateRel;
@@ -195,10 +198,14 @@ public class RexUtils {
         Set<Integer> nextInputRefKeys = new HashSet<>();
         KapProjectRel project = rel;
         for (Integer columnIdx : columnIndexes) {
-            if (!(project.getProjects().get(columnIdx) instanceof RexInputRef)) {
+            RexNode projExp = project.getProjects().get(columnIdx);
+            if (projExp.getKind() == SqlKind.CAST) {
+                projExp = ((RexCall) projExp).getOperands().get(0);
+            }
+            if (!(projExp instanceof RexInputRef)) {
                 return false;
             }
-            nextInputRefKeys.add(((RexInputRef) project.getProjects().get(columnIdx)).getIndex());
+            nextInputRefKeys.add(((RexInputRef) projExp).getIndex());
         }
         return isMerelyTableColumnReference(project.getInput(), nextInputRefKeys);
     }
@@ -207,5 +214,51 @@ public class RexUtils {
         // since join rel's columns are just consist of the all the columns from all sub queries
         // we can simply use the input ref index extracted from the condition rex node as the column idx of the join rel
         return isMerelyTableColumnReference(rel, getAllInputRefs(condition).stream().map(RexSlot::getIndex).collect(Collectors.toSet()));
+    }
+
+    /**
+     * remove cast clause in a column equal predicate
+     * replace predicate of pattern cast(col1 as ...) = col2 with col1 = col2
+     * @param predicateNode
+     * @return
+     */
+    public static RexNode stripOffCastInColumnEqualPredicate(RexNode predicateNode) {
+        if (predicateNode == null || !(predicateNode instanceof RexCall)) {
+            return predicateNode;
+        }
+        RexCall predicate = (RexCall) predicateNode;
+        // search and replace rex node with exact pattern of cast(col1 as ...) = col2
+        if (predicate.getKind() == SqlKind.EQUALS) {
+            boolean colEqualPredWithCast = false;
+            for (RexNode predicateChild : predicate.getOperands()) {
+                // input ref
+                if (predicateChild instanceof RexInputRef) {
+                    continue;
+                }
+                // cast(col1 as ...)
+                if (predicateChild instanceof RexCall &&
+                        predicateChild.getKind() == SqlKind.CAST
+                        && ((RexCall) predicateChild).getOperands().get(0) instanceof RexInputRef) {
+                    colEqualPredWithCast = true;
+                    continue;
+                }
+                colEqualPredWithCast = false;
+                break;
+            }
+
+            if (colEqualPredWithCast) {
+                List<RexNode> predicateOperands = Lists.newArrayList(predicate.getOperands());
+                for (int predicateOpIdx = 0; predicateOpIdx < predicateOperands.size(); predicateOpIdx++) {
+                    // replace cast expr with the operand to be casted
+                    if (predicateOperands.get(predicateOpIdx).getKind() == SqlKind.CAST) {
+                        predicateOperands.set(predicateOpIdx, ((RexCall) predicateOperands.get(predicateOpIdx)).getOperands().get(0));
+                    }
+                }
+
+                return predicate.clone(predicate.getType(), predicateOperands);
+            }
+        }
+
+        return predicate;
     }
 }

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.util;
 
+import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -52,6 +53,7 @@ public class HepUtils {
             KapJoinProjectTransposeRule.RIGHT_PROJECT_INCLUDE_OUTER,
             KapJoinProjectTransposeRule.NON_EQUI_LEFT_PROJECT_INCLUDE_OUTER,
             KapJoinProjectTransposeRule.NON_EQUI_RIGHT_PROJECT_INCLUDE_OUTER,
+            KapEquiJoinConditionFixRule.INSTANCE,
             //                ProjectJoinTransposeRule.INSTANCE,
             KapProjectRule.INSTANCE, KapFilterRule.INSTANCE,
             //                AggregateJoinTransposeRule.EXTENDED,

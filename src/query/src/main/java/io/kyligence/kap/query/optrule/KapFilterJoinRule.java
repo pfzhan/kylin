@@ -27,9 +27,11 @@ package io.kyligence.kap.query.optrule;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.util.RexUtils;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
@@ -146,6 +148,9 @@ public class KapFilterJoinRule extends RelOptRule {
             }
     
             List<RexNode> aboveFilters = RelOptUtil.conjunctions(filterRel.getCondition());
+            // replace filters with pattern cast(col1 as ...) = col2 with col1 = col2
+            // to make such filters to be able to be pushed down to join conditions
+            aboveFilters = aboveFilters.stream().map(RexUtils::stripOffCastInColumnEqualPredicate).collect(Collectors.toList());
             final ImmutableList<RexNode> origAboveFilters = ImmutableList.copyOf(aboveFilters);
     
             JoinRelType joinType = topJoinRel.getJoinType();

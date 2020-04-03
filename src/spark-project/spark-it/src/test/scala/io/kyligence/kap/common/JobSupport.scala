@@ -44,6 +44,7 @@ import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, NExe
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.job.lock.MockJobLock
 import org.apache.kylin.metadata.model.SegmentRange
+import org.apache.kylin.metadata.realization.RealizationStatusEnum
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.common.SparderQueryTest
@@ -96,6 +97,18 @@ trait JobSupport
     restoreSparderEnv()
     super.afterAll()
 
+  }
+
+  @throws[Exception]
+  def changeCubeStatus(dfName: String,
+                       status: RealizationStatusEnum,
+                         prj: String = DEFAULT_PROJECT) : Unit = {
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
+    var df: NDataflow = dsMgr.getDataflow(dfName)
+    val update: NDataflowUpdate = new NDataflowUpdate(df.getUuid)
+    update.setStatus(status)
+    dsMgr.updateDataflow(update)
   }
 
   @throws[Exception]
