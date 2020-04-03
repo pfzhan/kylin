@@ -126,6 +126,7 @@ vuex.registerModule(['modals', 'ModelsImportModal'], store)
   methods: {
     ...mapMutations('ModelsImportModal', {
       setModalForm: actionTypes.SET_MODAL_FORM,
+      setModal: actionTypes.SET_MODAL,
       hideModal: actionTypes.HIDE_MODAL,
       initModal: actionTypes.INIT_MODAL
     }),
@@ -211,6 +212,8 @@ export default class ModelsImportModal extends Vue {
   }
 
   handlePrev () {
+    this.setModalForm({ ids: [] })
+    this.setModal({ models: [], conflicts: [], signature: '' })
     this.isFinishParse = false
   }
 
