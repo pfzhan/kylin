@@ -22,18 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.engine.exec;
+package io.kyligence.kap.query.engine.meta;
 
-import java.util.List;
+import org.apache.calcite.DataContext;
 
-import io.kyligence.kap.query.engine.meta.MutableDataContext;
-import org.apache.calcite.rel.RelNode;
+public interface MutableDataContext extends DataContext {
 
-/**
- * implement and execute a physical plan
- */
-public interface QueryPlanExec {
-
-    List<List<String>> execute(RelNode rel, MutableDataContext dataContext);
-
+    void putContextVar(String name, Object value);
 }

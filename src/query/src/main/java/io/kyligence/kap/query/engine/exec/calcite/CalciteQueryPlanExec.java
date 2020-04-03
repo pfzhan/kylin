@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpretable;
@@ -44,6 +45,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.DateFormat;
 
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
+import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import io.kyligence.kap.query.relnode.KapRel;
 
 /**
@@ -55,11 +57,19 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
     public static final List<Long> DEFAULT_SCANNED_DATA = Collections.emptyList();
 
     @Override
-    public List<List<String>> execute(RelNode rel, DataContext dataContext) {
+    public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
+        initContextVars(dataContext);
         // allocate the olapContext anyway since it's being checked by some unit tests
-        KapRel.OLAPContextImplementor contextImplementor = new KapRel.OLAPContextImplementor();
-        contextImplementor.allocateContext((KapRel) rel.getInput(0), rel);
+        new KapRel.OLAPContextImplementor().allocateContext((KapRel) rel.getInput(0), rel);
 
+        List<List<String>> result = doExecute(rel, dataContext);
+
+        updateQueryContext();
+
+        return result;
+    }
+
+    public List<List<String>> doExecute(RelNode rel, DataContext dataContext) {
         Bindable bindable = EnumerableInterpretable.toBindable(new HashMap<>(), new TrivialSparkHandler(),
                 (EnumerableRel) rel, EnumerableRel.Prefer.ARRAY);
 
@@ -79,9 +89,20 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
             result.add(row);
         }
 
-        updateQueryContext();
         return result;
     }
+
+    private void initContextVars(MutableDataContext dataContext) {
+        TimeZone timezone = DataContext.Variable.TIME_ZONE.get(dataContext);
+        final long time = System.currentTimeMillis();
+        final long localOffset = timezone.getOffset(System.currentTimeMillis());
+        dataContext.putContextVar(DataContext.Variable.UTC_TIMESTAMP.camelName, time);
+        // to align with calcite implementation, current_timestamp = local_timestamp
+        // see org.apache.calcite.jdbc.CalciteConnectionImpl.DataContextImpl.DataContextImpl
+        dataContext.putContextVar(DataContext.Variable.CURRENT_TIMESTAMP.camelName, time + localOffset);
+        dataContext.putContextVar(DataContext.Variable.LOCAL_TIMESTAMP.camelName, time + localOffset);
+    }
+
 
     private void updateQueryContext() {
         //constant query should fill empty list for scan data
@@ -93,9 +114,9 @@ public class CalciteQueryPlanExec implements QueryPlanExec {
         String value = String.valueOf(object);
         switch (dataType.getSqlTypeName()) {
             case DATE:
-                return DateFormat.formatDayToEpchoToDateStr(Long.parseLong(value));
+                return DateFormat.formatDayToEpchoToDateStr(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
             case TIMESTAMP:
-                return DateFormat.formatToTimeWithoutMilliStr(Long.parseLong(value));
+                return DateFormat.formatToTimeWithoutMilliStr(Long.parseLong(value), TimeZone.getTimeZone("GMT"));
             default:
                 return value;
         }

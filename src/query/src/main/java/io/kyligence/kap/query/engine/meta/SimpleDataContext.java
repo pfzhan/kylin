@@ -28,16 +28,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.QueryProvider;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.kylin.common.KylinConfig;
 
 /**
- * a simple data context holder
+ * a simple data context holder for schema, typeFactory, contextVariable, dynamicVariable
  */
-public class SimpleDataContext implements DataContext {
+public class SimpleDataContext implements MutableDataContext {
 
     private final SchemaPlus rootSchema;
     private final JavaTypeFactory javaTypeFactory;
@@ -52,12 +51,7 @@ public class SimpleDataContext implements DataContext {
     }
 
     private void initContextVars() {
-        putContextVar(Variable.UTC_TIMESTAMP.camelName, System.currentTimeMillis());
-        putContextVar(Variable.CURRENT_TIMESTAMP.camelName, System.currentTimeMillis());
-
-        TimeZone tz = TimeZone.getTimeZone(kylinConfig.getTimeZone());
-        putContextVar(Variable.LOCAL_TIMESTAMP.camelName, tz.getOffset(System.currentTimeMillis()) + System.currentTimeMillis());
-        putContextVar(Variable.TIME_ZONE.camelName, tz);
+        putContextVar(Variable.TIME_ZONE.camelName, TimeZone.getTimeZone(kylinConfig.getTimeZone()));
     }
 
     @Override
@@ -80,6 +74,7 @@ public class SimpleDataContext implements DataContext {
         return contextVars.get(name);
     }
 
+    @Override
     public void putContextVar(String name, Object value) {
         contextVars.put(name, value);
     }

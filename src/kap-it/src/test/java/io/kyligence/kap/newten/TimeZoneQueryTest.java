@@ -90,7 +90,6 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
                 + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
-
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
@@ -107,7 +106,6 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        ss.stop();
     }
 
     @Override
@@ -137,6 +135,48 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         System.out.println();
 
 
+    }
+
+    @Test
+    public void testConstantDate() throws Exception {
+        String sql = "select date'2020-01-01', current_date";
+        List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID()).getFirst();
+        List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
+        for (int i = 0; i < jdbc.size(); i++) {
+            Assert.assertEquals("Date literal doesn't match", pushDown.get(i), jdbc.get(i));
+        }
+    }
+
+
+    @Test
+    public void testConstantTimestamp() throws Exception {
+        {
+            String[] sqls = {
+                    "select current_timestamp",
+                    "select timestamp'2020-03-30 11:03:37'"
+            };
+            for (String sql : sqls) {
+                // try matching timestamp to minutes mutilple times
+                int max_try = 10;
+                while (max_try-- > 0) {
+                    List<List<String>> pushDown = SparkSqlClient.executeSql(ss, sql, UUID.randomUUID()).getFirst();
+                    List<List<String>> jdbc = NExecAndComp.queryCubeWithJDBC(getProject(), sql);
+
+                    // match timestamp to minute
+                    String pushdownTS = pushDown.get(0).get(0).substring(0, 16);
+                    String jdbcTS = jdbc.get(0).get(0).substring(0, 16);
+                    if (pushdownTS.equals(jdbcTS)) {
+                        return;
+                    }
+
+                    Thread.sleep(1000);
+
+                    if (max_try == 0) {
+                        Assert.assertEquals("Current timestamp doesn't match", pushdownTS, jdbcTS);
+                    }
+                }
+            }
+        }
     }
 
     private List<List<String>> transformToString(List<Row> rows) {

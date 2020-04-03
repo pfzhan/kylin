@@ -86,6 +86,10 @@ public class DateFormat {
         }
         return r;
     }
+
+    public static FastDateFormat getDateFormat(String datePattern, TimeZone timeZone) {
+        return FastDateFormat.getInstance(datePattern, timeZone);
+    }
     
     public static String formatToCompactDateStr(long millis) {
         return formatToDateStr(millis, COMPACT_DATE_PATTERN);
@@ -97,6 +101,10 @@ public class DateFormat {
 
     public static String formatToDateStr(long millis, String pattern) {
         return getDateFormat(pattern).format(new Date(millis));
+    }
+
+    public static String formatToDateStr(long millis, String pattern, TimeZone timeZone) {
+        return getDateFormat(pattern, timeZone).format(new Date(millis));
     }
 
     public static String formatToTimeStr(long millis) {
@@ -111,8 +119,20 @@ public class DateFormat {
         return getDateFormat(pattern).format(new Date(millis));
     }
 
+    public static String formatToTimeStr(long millis, String pattern, TimeZone timeZone) {
+        return getDateFormat(pattern, timeZone).format(new Date(millis));
+    }
+
     public static String formatDayToEpchoToDateStr(long daysToEpoch) {
         return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000);
+    }
+
+    public static String formatDayToEpchoToDateStr(long daysToEpoch, TimeZone timeZone) {
+        return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000, DEFAULT_DATE_PATTERN, timeZone);
+    }
+
+    public static String formatToTimeWithoutMilliStr(long millis, TimeZone timeZone) {
+        return formatToTimeStr(millis, DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS, timeZone);
     }
 
     public static String dateToString(Date date, String pattern) {

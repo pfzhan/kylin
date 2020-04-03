@@ -26,6 +26,7 @@ package io.kyligence.kap.query.engine.exec.sparder;
 
 import java.util.List;
 
+import io.kyligence.kap.query.engine.meta.MutableDataContext;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
@@ -44,7 +45,8 @@ import io.kyligence.kap.query.util.QueryContextCutter;
  */
 public class SparderQueryPlanExec implements QueryPlanExec {
 
-    public List<List<String>> execute(RelNode rel, DataContext dataContext) {
+    @Override
+    public List<List<String>> execute(RelNode rel, MutableDataContext dataContext) {
         selectRealizationAndRewrite(rel);
         return doExecute(rel, dataContext);
     }
