@@ -102,6 +102,9 @@ public class QueryNodeFilter implements Filter {
         notRoutePostApiSet.add("/kylin/api/system/diag");
         notRouteDeleteApiSet.add("/kylin/api/system/diag");
 
+        //download
+        notRoutePostApiSet.add("/kylin/api/metastore/backup/models");
+        notRoutePostApiSet.add("/kylin/api/query/format/csv");
     }
 
     @Autowired
