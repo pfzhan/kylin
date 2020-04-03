@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -133,7 +133,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
     }
 
     protected StageEnum stage = StageEnum.PREPARE;
-    protected ExecutorService executorService;
+    protected ScheduledExecutorService executorService;
     protected boolean mainTaskComplete;
 
     public AbstractInfoExtractorTool() {

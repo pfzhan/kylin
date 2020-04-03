@@ -153,7 +153,8 @@ public class YarnApplicationTool extends ExecutableApplication {
                     }
                 } catch (ShellException se) {
                     log.error("Failed to extract log by yarn job: {}", applicationId, se);
-                    FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), se.getMessage());
+                    String detailMessage = se.getMessage() + "\n For detailed error information, please see log/diag.log";
+                    FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), detailMessage);
                 }
             }
         } catch (Exception e) {

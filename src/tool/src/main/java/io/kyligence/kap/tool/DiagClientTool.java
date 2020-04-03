@@ -111,7 +111,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         logger.info("Time range: start={}, end={}", startTime, endTime);
 
         logger.info("Start diagnosis info extraction in {} threads.", threadsNum);
-        executorService = Executors.newFixedThreadPool(threadsNum);
+        executorService = Executors.newScheduledThreadPool(threadsNum);
 
         // calculate time used
         final long start = System.currentTimeMillis();

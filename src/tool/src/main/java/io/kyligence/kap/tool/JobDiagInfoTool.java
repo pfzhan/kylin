@@ -25,6 +25,8 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Option;
@@ -89,15 +91,13 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     @Override
     protected void executeExtract(OptionsHelper optionsHelper, File exportDir) throws Exception {
         final String jobId = optionsHelper.getOptionValue(OPTION_JOB_ID);
-
         final boolean includeYarnLogs = getBooleanOption(optionsHelper, OPTION_INCLUDE_YARN_LOGS, true);
         final boolean includeClient = getBooleanOption(optionsHelper, OPTION_INCLUDE_CLIENT, true);
         final boolean includeConf = getBooleanOption(optionsHelper, OPTION_INCLUDE_CONF, true);
-
         final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
 
         logger.info("Start diagnosis job info extraction in {} threads.", threadsNum);
-        executorService = Executors.newFixedThreadPool(threadsNum);
+        executorService = Executors.newScheduledThreadPool(threadsNum);
 
         final long start = System.currentTimeMillis();
         final File recordTime = new File(exportDir, "time_used_info");
@@ -118,7 +118,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             try {
                 File metaDir = new File(exportDir, "metadata");
                 FileUtils.forceMkdir(metaDir);
-
                 String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
                         "-excludeTableExd" };
                 new MetadataTool().execute(metaToolArgs);
@@ -127,7 +126,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             }
             DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
         });
-
         // dump audit log
         executorService.execute(() -> {
             logger.info("Start to dump audit log.");
@@ -143,14 +141,20 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             }
             DiagnosticFilesChecker.writeMsgToFile("AUDIT_LOG", System.currentTimeMillis() - start, recordTime);
         });
-
         // extract yarn log
         if (includeYarnLogs) {
-            executorService.execute(() -> {
+            Future future = executorService.submit(() -> {
                 logger.info("Start to dump yarn logs...");
                 new YarnApplicationTool().extractYarnLogs(exportDir, project, jobId);
                 DiagnosticFilesChecker.writeMsgToFile("YARN", System.currentTimeMillis() - start, recordTime);
             });
+
+            executorService.schedule(() -> {
+                if (future.cancel(true)) {
+                    logger.error("Failed to extract yarn job logs, yarn service may not be running");
+                }
+            }, 3, TimeUnit.MINUTES);
+
         }
 
         // export client info
@@ -205,7 +209,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             KylinLogTool.extractSparkLog(exportDir, project, jobId);
             DiagnosticFilesChecker.writeMsgToFile("SPARK_LOGS", System.currentTimeMillis() - start, recordTime);
         });
-
         // job tmp
         executorService.execute(() -> {
             logger.info("Start to extract job_tmp.");
@@ -234,7 +237,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         KylinLogTool.extractKylinLog(exportDir, jobId);
         KylinLogTool.extractOtherLogs(exportDir, startTime, endTime);
         DiagnosticFilesChecker.writeMsgToFile("LOG", System.currentTimeMillis() - logStartTime, recordTime);
-
         DiagnosticFilesChecker.writeMsgToFile("Total files", System.currentTimeMillis() - start, recordTime);
     }
 
