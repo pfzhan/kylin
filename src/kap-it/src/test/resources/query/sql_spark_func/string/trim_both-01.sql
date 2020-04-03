@@ -1,0 +1,1 @@
+select trim(both 'io' from 'iokyligenceio');

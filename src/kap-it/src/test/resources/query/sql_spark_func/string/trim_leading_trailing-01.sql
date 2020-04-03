@@ -1,0 +1,1 @@
+select trim(LEADING 'io' from 'iokyligenceio'),trim(TRAILING 'io' from 'iokyligenceio');

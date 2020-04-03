@@ -133,11 +133,11 @@ object ExpressionConverter {
         if (children.length == 3) {
           children.head match {
             case "TRAILING" =>
-              rtrim(k_lit(children.last))
+              rtrim(k_lit(children.apply(2)),children.apply(1).asInstanceOf[String])
             case "LEADING" =>
-              ltrim(k_lit(children.last))
+              ltrim(k_lit(children.apply(2)),children.apply(1).asInstanceOf[String])
             case "BOTH" =>
-              trim(k_lit(children.last))
+              trim(k_lit(children.apply(2)),children.apply(1).asInstanceOf[String])
           }
         } else {
           trim(k_lit(children.head))
