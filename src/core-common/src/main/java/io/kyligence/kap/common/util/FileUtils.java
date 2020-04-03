@@ -34,6 +34,8 @@ import java.util.Map;
 
 import org.apache.kylin.common.util.OrderedProperties;
 
+import com.google.common.base.Preconditions;
+
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
 
@@ -64,7 +66,8 @@ public final class FileUtils {
         File file = new File(path);
         try (FileInputStream inputFile = new FileInputStream(file)) {
             byte[] buffer = new byte[(int) file.length()];
-            inputFile.read(buffer);
+            final int read = inputFile.read(buffer);
+            Preconditions.checkState(read != -1);
             return new BASE64Encoder().encode(buffer);
         }
     }

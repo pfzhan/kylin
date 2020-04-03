@@ -92,7 +92,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
             Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql).select("tableName");
             tables = dataset.collectAsList().stream().map(row -> row.getString(0)).collect(Collectors.toList());
 
-            if (config.getKerberosProjectLevelEnable()) {
+            if (config.getKerberosProjectLevelEnable() && UserGroupInformation.isSecurityEnabled()) {
                 List<String> accessTables = Lists.newArrayList();
                 for (String table : tables) {
                     val tableName = database + "." + table;
@@ -129,7 +129,8 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         } catch (Exception e) {
             isAccess = false;
             try {
-                logger.error("Read hive table {} error, ugi name: {}.", tableName, UserGroupInformation.getCurrentUser().getUserName());
+                logger.error("Read hive table {} error, ugi name: {}.", tableName,
+                        UserGroupInformation.getCurrentUser().getUserName());
             } catch (IOException ex) {
                 logger.error("fetch user curr ugi info error.", e);
             }
