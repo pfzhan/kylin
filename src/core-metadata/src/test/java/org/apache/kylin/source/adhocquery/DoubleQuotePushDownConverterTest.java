@@ -32,30 +32,56 @@ import org.junit.Test;
 public class DoubleQuotePushDownConverterTest {
 
     @Test
-    public void testConvertDouleQuoteSuccess() {
+    public void testConvertDoubleQuoteSuccess() {
         List<List<String>> convertSuccessUTs = Arrays.asList(
                 //[0] is input,[1] is expect result
+
+                //test for blank space with Identifier
+                Arrays.asList("select atbale .a as \"ACOL\",atbale. b as Bcol,\"c\" as \"acol\" from atbale",
+                        "select \"ATBALE\".\"A\" as \"ACOL\",\"ATBALE\".\"B\" as \"BCOL\",\"c\" as \"acol\" from \"ATBALE\""),
+                Arrays.asList("select a as \"ACOL\",b as Bcol,\"c\" as \"acol\" from atbale",
+                        "select \"A\" as \"ACOL\",\"B\" as \"BCOL\",\"c\" as \"acol\" from \"ATBALE\""),
+                //test for with as...(select ....)
+                Arrays.asList(
+                        "WITH 中文tb AS (\n" + "\t\tSELECT *\n" + "\t\tFROM abc\n" + "\t)\n" + "SELECT *\n" + "FROM t1",
+                        "WITH \"中文TB\" AS (\n" + "\t\tSELECT *\n" + "\t\tFROM \"ABC\"\n" + "\t)\n" + "SELECT *\n"
+                                + "FROM \"T1\""),
+                //test for with as...(union all)
+                Arrays.asList(
+                        "WITH t1 AS (\n" + "\t\tSELECT *\n" + "\t\tFROM abc\n" + "\t\tUNION ALL\n" + "\t\tSELECT *\n"
+                                + "\t\tFROM dfs\n" + "\t)\n" + "SELECT *\n" + "FROM t1\n" + "LIMIT 500",
+                        "WITH \"T1\" AS (\n" + "\t\tSELECT *\n" + "\t\tFROM \"ABC\"\n" + "\t\tUNION ALL\n"
+                                + "\t\tSELECT *\n" + "\t\tFROM \"DFS\"\n" + "\t)\n" + "SELECT *\n" + "FROM \"T1\"\n"
+                                + "LIMIT 500"),
+
+                //test for select * ...
+                Arrays.asList("select a.* from a", "select \"A\".* from \"A\""),
+                Arrays.asList("select 中文表.* from 中文表", "select \"中文表\".* from \"中文表\""),
+                Arrays.asList("select 中文表 . * from 中文表", "select \"中文表\".* from \"中文表\""),
+
+                //test chinese column
+                Arrays.asList("select a.中文列 from a", "select \"A\".\"中文列\" from \"A\""),
                 //test for unquoted and limit
                 Arrays.asList(
-                        "Select ACCOUNT_ID as 中文id, ACCOUNT_COUNTRY as country from  \"DEFAULT\".TEST_ACCOUNT where ACCOUNT_COUNTRY='RU' LIMIT 500",
+                        "SELECT ACCOUNT_ID AS 中文id, ACCOUNT_COUNTRY AS country\n" + "FROM \"DEFAULT\".TEST_ACCOUNT\n"
+                                + "WHERE ACCOUNT_COUNTRY = 'RU'\n" + "LIMIT 500",
                         "SELECT \"ACCOUNT_ID\" AS \"中文ID\", \"ACCOUNT_COUNTRY\" AS \"COUNTRY\"\n"
                                 + "FROM \"DEFAULT\".\"TEST_ACCOUNT\"\n" + "WHERE \"ACCOUNT_COUNTRY\" = 'RU'\n"
                                 + "LIMIT 500"),
                 //test for quoted
                 Arrays.asList(
                         "select ACCOUNT_ID as \"中文id\", ACCOUNT_COUNTRY as \"country\" from  \"DEFAULT\".TEST_ACCOUNT where ACCOUNT_COUNTRY='RU'",
-                        "SELECT \"ACCOUNT_ID\" AS \"中文id\", \"ACCOUNT_COUNTRY\" AS \"country\"\n"
-                                + "FROM \"DEFAULT\".\"TEST_ACCOUNT\"\n" + "WHERE \"ACCOUNT_COUNTRY\" = 'RU'"),
-                //test for setAlwaysUseParentheses=false
-                Arrays.asList("select (a + b) * c", "SELECT (\"A\" + \"B\") * \"C\""),
-                //test for setAlwaysUseParentheses=false
-                Arrays.asList("select a + b * c", "SELECT \"A\" + \"B\" * \"C\""));
+                        "select \"ACCOUNT_ID\" as \"中文id\", \"ACCOUNT_COUNTRY\" as \"country\" from  \"DEFAULT\".\"TEST_ACCOUNT\" where \"ACCOUNT_COUNTRY\"='RU'"),
+                //test for unchanged for  all expressions
+                Arrays.asList("select (a + b) * c", "select (\"A\" + \"B\") * \"C\""),
+                Arrays.asList("select a + b * c", "select \"A\" + \"B\" * \"C\""),
+                Arrays.asList("select 1 + b * c", "select 1 + \"B\" * \"C\""));
         convertSuccessUTs.forEach(this::testConvertSuccess);
 
     }
 
     @Test
-    public void testConvertDouleQuoteFailure() {
+    public void testConvertDoubleQuoteFailure() {
         List<String> convertFailureUTs = Arrays.asList(
                 //quoted by `
                 "select ACCOUNT_ID as 中文id, ACCOUNT_COUNTRY as `country` from  `DEFAULT`.TEST_ACCOUNT where ACCOUNT_COUNTRY='RU'",

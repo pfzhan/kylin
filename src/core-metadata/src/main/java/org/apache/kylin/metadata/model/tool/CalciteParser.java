@@ -47,22 +47,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserPos;
-import org.apache.calcite.sql.pretty.SqlPrettyWriter;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.kylin.common.util.Pair;
@@ -266,24 +259,5 @@ public class CalciteParser {
         }
 
         return sql.substring(SQL_PREFIX.length(), sql.length() - SQL_SUFFIX.length());
-    }
-
-    public static String formatSqlStringWithDialect(@Nonnull String originSql, @Nullable SqlDialect sqlDialect)
-            throws SqlParseException {
-        Preconditions.checkNotNull(originSql, "origin sql is null");
-        SqlNode sqlNode = parse(originSql);
-
-        SqlDialect dialect = Optional.ofNullable(sqlDialect).orElse(CalciteSqlDialect.DEFAULT);
-
-        SqlPrettyWriter writer = new SqlPrettyWriter(dialect);
-        //convert keyword to  UpperCase
-        writer.setKeywordsLowerCase(false);
-        //quote all Identifier
-        writer.setQuoteAllIdentifiers(true);
-        //enclose all expressions in parentheses
-        writer.setAlwaysUseParentheses(false);
-
-        return writer.format(sqlNode);
-
     }
 }

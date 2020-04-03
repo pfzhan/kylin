@@ -23,17 +23,24 @@
  */
 package org.apache.kylin.source.adhocquery;
 
-import javax.annotation.Nonnull;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.sql.SqlDialect;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.CalciteSqlDialect;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 
@@ -45,51 +52,85 @@ import io.kyligence.kap.common.obf.IKeep;
  *
  * will be converted to:
  *
- *      SELECT "ACCOUNT_ID" AS "ID", "ACCOUNT_COUNTRY" AS "country"
- * FROM "DEFAULT"."TEST_ACCOUNT"
+ *      select "ACCOUNT_ID" as "ID", "ACCOUNT_COUNTRY" as "country" from "DEFAULT"."TEST_ACCOUNT"
  * </pre>
  *
- * <P>convert sql quote with
- * {@link org.apache.calcite.avatica.util.Quoting#DOUBLE_QUOTE}
- * </P>and SqlDialect with
- * {@link org.apache.kylin.source.adhocquery.DoubleQuotePushDownConverter.DoubleQuoteSqlDialect#DEFAULT}
+ * <P>if unquoted,quote all SqlIdentifier with {@link org.apache.calcite.avatica.util.Quoting#DOUBLE_QUOTE}
+ * <P>if already quoted, unchanged
+ * </P>and visit SqlIdentifier with
+ * {@link DoubleQuoteSqlIdentifierConvert}
  */
 public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
     private static final Logger LOGGER = LoggerFactory.getLogger(DoubleQuotePushDownConverter.class);
 
-    //inner static class for DoubleQuotePushDownConverter
-    private static class DoubleQuoteSqlDialect extends CalciteSqlDialect {
-        public static final SqlDialect DEFAULT = new DoubleQuotePushDownConverter.DoubleQuoteSqlDialect(emptyContext()
-                .withDatabaseProduct(DatabaseProduct.CALCITE).withIdentifierQuoteString(Quoting.DOUBLE_QUOTE.string));
+    //inner class for convert SqlIdentifier with DoubleQuote
+    private static class DoubleQuoteSqlIdentifierConvert {
 
-        /**
-         * Creates a DoubleQuoteSqlDialect.
-         */
-        public DoubleQuoteSqlDialect(SqlDialect.Context context) {
-            super(context);
+        private final String sql;
+
+        public DoubleQuoteSqlIdentifierConvert(String sql) {
+            this.sql = sql;
         }
 
-        @Override
-        public void unparseOffsetFetch(SqlWriter writer, SqlNode offset, SqlNode fetch) {
-            unparseFetchUsingLimit(writer, offset, fetch);
+        private SqlNode parse() throws SqlParseException {
+            return CalciteParser.parse(this.sql);
+        }
+
+        private Collection<SqlIdentifier> getAllSqlIdentifiers() throws SqlParseException {
+            Set<SqlIdentifier> allSqlIdentifier = Sets.newHashSet();
+            SqlVisitor<Void> sqlVisitor = new SqlBasicVisitor<Void>() {
+                @Override
+                public Void visit(SqlIdentifier id) {
+                    allSqlIdentifier.add(id);
+                    return null;
+                }
+            };
+
+            parse().accept(sqlVisitor);
+
+            return allSqlIdentifier;
+        }
+
+        public String convert() throws SqlParseException {
+            final StringBuilder sqlConvertedStringBuilder = new StringBuilder(sql);
+            List<SqlIdentifier> sqlIdentifierList = Lists.newArrayList(getAllSqlIdentifiers());
+            CalciteParser.descSortByPosition(sqlIdentifierList);
+            sqlIdentifierList.forEach(sqlIdentifier -> {
+                Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(sqlIdentifier, sql);
+                //* 'name is empty
+                List<String> toStarNames = SqlIdentifier.toStar(sqlIdentifier.names);
+                String newIdentifierStr = toStarNames.stream().map(this::convertIdentifier)
+                        .collect(Collectors.joining("."));
+                sqlConvertedStringBuilder.replace(replacePos.getFirst(), replacePos.getSecond(), newIdentifierStr);
+            });
+            return sqlConvertedStringBuilder.toString();
+        }
+
+        private String convertIdentifier(String identifierStr) {
+            if (identifierStr.equals("*")) {
+                return identifierStr;
+            } else {
+                return Quoting.DOUBLE_QUOTE.string + identifierStr + Quoting.DOUBLE_QUOTE.string;
+            }
+
         }
 
     }
-    //End DoubleQuoteSqlDialect.class
 
+    //End DoubleQuoteSqlIdentifierConvert.class
     @Override
     public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
 
         return convertDoubleQuote(originSql);
     }
 
-    public static String convertDoubleQuote(@Nonnull String originSql) {
+    public static String convertDoubleQuote(String originSql) {
         String sqlParsed = originSql;
 
         try {
-            sqlParsed = CalciteParser.formatSqlStringWithDialect(originSql,
-                    DoubleQuotePushDownConverter.DoubleQuoteSqlDialect.DEFAULT);
-        } catch (SqlParseException e) {
+            DoubleQuoteSqlIdentifierConvert sqlIdentifierConvert = new DoubleQuoteSqlIdentifierConvert(originSql);
+            sqlParsed = sqlIdentifierConvert.convert();
+        } catch (Exception e) {
             LOGGER.warn("convert sql:{} with double quoted with exception {} ", originSql, e);
         }
         return sqlParsed;
