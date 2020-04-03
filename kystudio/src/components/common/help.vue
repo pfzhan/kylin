@@ -8,8 +8,8 @@
         <el-dropdown-item command="kapmanual"><a class="ksd-block-a" target="_blank" :href="$t('manualUrl')">{{$t('Manual')}}</a></el-dropdown-item>
         <el-dropdown-item command="kybotservice"><a class="ksd-block-a" target="_blank" :href="supportUrl"> {{$t('keService')}}</a></el-dropdown-item>
         <!-- <el-dropdown-item command="guide" v-if="!isLogin&&systemActions.includes('userGuide')"><a class="ksd-block-a">{{$t('userGuide')}}</a></el-dropdown-item> -->
-        <el-dropdown-item command="updatelicense" v-if="systemActions.includes('updateLicense')" divided>{{$t('updateLicense')}}</el-dropdown-item>
-        <el-dropdown-item command="aboutkap" :divided="!systemActions.includes('updateLicense')">{{$t('aboutKap')}}</el-dropdown-item>
+        <el-dropdown-item command="updatelicense" divided>{{$t('updateLicense')}}</el-dropdown-item>
+        <el-dropdown-item command="aboutkap">{{$t('aboutKap')}}</el-dropdown-item>
       </el-dropdown-menu>
     </el-dropdown>
 
