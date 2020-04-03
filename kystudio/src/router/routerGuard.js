@@ -60,7 +60,7 @@ export function bindRouterGuard (router) {
         if (!['noauthority', 'refresh'].includes(to.name.toLowerCase()) && !auth) {
           next('/noAuthority')
         } else if (to.name.toLowerCase() === 'acceleration') {
-          if (!store.state.project.isSemiAutomatic) {
+          if (!store.getters.isAutoProject && !store.state.project.isSemiAutomatic) {
             next({path: '/noAuthority', query: {resouce: 'isNotSemiAuto'}})
           } else {
             next()

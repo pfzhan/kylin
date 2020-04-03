@@ -448,7 +448,7 @@ import Diagnostic from 'components/admin/Diagnostic/index'
       refreshList: 'Refresh List',
       pleaseSearch: 'Search Target Subject or Job ID',
       diagnosis: 'Diagnosis',
-      jobNodes: 'Job Nodes',
+      jobNodes: 'Job Node',
       unknow: 'Unknown'
     },
     'zh-cn': {

@@ -57,8 +57,9 @@ export default class NoAuthority extends Vue {
     this.timer = setInterval(() => {
       this.jumpTimer -= 1
       if (this.jumpTimer === 0) {
-        this.jumpToDashboard()
         clearInterval(this.timer)
+        if (this.$route.name !== 'noAuthority') return
+        this.jumpToDashboard()
       }
     }, 1000)
   }
