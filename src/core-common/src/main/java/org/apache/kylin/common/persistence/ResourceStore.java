@@ -61,8 +61,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.common.persistence.UnitMessages;
-import lombok.Setter;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
@@ -77,11 +75,14 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.ImageDesc;
+import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.metadata.AuditLogStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
+
 /**
  * A general purpose resource store to persist small metadata, like JSON files.
  *
@@ -133,6 +134,7 @@ public abstract class ResourceStore implements AutoCloseable {
     @Setter
     @Getter
     Callback<Boolean> checker;
+
     /**
      * Get a resource store for Kylin's metadata.
      */
@@ -567,11 +569,10 @@ public abstract class ResourceStore implements AutoCloseable {
         return getMetadataStore().getAuditLogStore();
     }
 
-    public void createMetaStoreUuidIfNotExist() {
+    public synchronized void createMetaStoreUuidIfNotExist() {
         if (!exists(METASTORE_UUID_TAG)) {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                store.checkAndPutResource(METASTORE_UUID_TAG, new StringEntity(UUID.randomUUID().toString()),
+                checkAndPutResource(METASTORE_UUID_TAG, new StringEntity(UUID.randomUUID().toString()),
                         StringEntity.serializer);
                 return null;
             }, "");
