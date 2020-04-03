@@ -69,6 +69,9 @@ public class AppInitializer {
     @Autowired
     QueryCacheManager queryCacheManager;
 
+    @Autowired
+    EpochChangedListener epochChangedListener;
+
     @EventListener(ApplicationPreparedEvent.class)
     public void init(ApplicationPreparedEvent event) throws Exception {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -80,7 +83,6 @@ public class AppInitializer {
         if (isLeader) {
             val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
             resourceStore.createMetaStoreUuidIfNotExist();
-            new EpochOrchestrator(kylinConfig);
 
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
@@ -92,12 +94,7 @@ public class AppInitializer {
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new FavoriteSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new JobSchedulerListener());
             SchedulerEventBusFactory.getInstance(kylinConfig).register(new ModelBrokenListener());
-            SchedulerEventBusFactory.getInstance(kylinConfig).register(new EpochChangedListener());
-
-            /*if (kylinConfig.getStreamingChangeMeta()) {
-                // streaming change meta, skip check, just a workaround way
-                resourceStore.catchup();
-            }*/
+            SchedulerEventBusFactory.getInstance(kylinConfig).register(epochChangedListener);
 
         } else {
             val auditLogStore = new JdbcAuditLogStore(kylinConfig);
@@ -123,6 +120,7 @@ public class AppInitializer {
     public void afterReady(ApplicationReadyEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         if (kylinConfig.isLeaderNode()) {
+            new EpochOrchestrator(kylinConfig);
             if (kylinConfig.getLoadHiveTablenameEnabled()) {
                 taskScheduler.scheduleWithFixedDelay(NHiveTableName.getInstance(),
                         kylinConfig.getLoadHiveTablenameIntervals() * 1000);

@@ -24,12 +24,14 @@
 package io.kyligence.kap.rest.config.initialize;
 
 import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
+import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,14 @@ import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+
+@Component
 @Slf4j
 public class EpochChangedListener implements IKeep {
 
@@ -53,8 +62,15 @@ public class EpochChangedListener implements IKeep {
 
     private static final String GLOBAL = "_global";
 
+    @Autowired
+    Environment env;
+
+    @Autowired
+    @Qualifier("userService")
+    UserService userService;
+
     @Subscribe
-    public void onProjectControlled(ProjectControlledNotifier notifier) {
+    public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
         String project = notifier.getProject();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         logger.info("start thread of project: {}", project);
@@ -78,6 +94,7 @@ public class EpochChangedListener implements IKeep {
             logger.info("Register project metrics for {}", project);
             NMetricsRegistry.registerProjectMetrics(kylinConfig, project);
         } else {
+            CreateAdminUserUtils.createAllAdmins(userService, env);
             logger.info("Register global metrics...");
             NMetricsRegistry.registerGlobalMetrics(kylinConfig);
         }

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -127,17 +128,10 @@ public class NUserController extends NBasicController {
     @EventListener(AfterMetadataReadyEvent.class)
     public void init() throws IOException {
         val config = KylinConfig.getInstanceFromEnv();
-        if (!config.isLeaderNode()) {
+        if (!config.isUTEnv()) {
             return;
         }
-        List<ManagedUser> all = userService.listUsers();
-        logger.info("All {} users", all.size());
-        if (all.isEmpty() && env.acceptsProfiles(PROFILE_DEFAULT)) {
-            createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, ROLE_ADMIN, Constant.GROUP_ALL_USERS));
-            createAdminUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
-            createAdminUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
-        }
-
+        CreateAdminUserUtils.createAllAdmins(userService, env);
     }
 
     @ApiOperation(value = "createUser (update)", notes = "Update Body: default_password, locked_time, wrong_time, first_login_failed_time")
