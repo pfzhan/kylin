@@ -33,7 +33,7 @@ import java.util.{GregorianCalendar, TimeZone}
 import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex.RexLiteral
-import org.apache.calcite.sql.`type`.{SqlTypeFamily, SqlTypeName}
+import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
@@ -225,11 +225,11 @@ object SparderTypeUtil extends Logging {
     case (value: Float, SqlTypeName.FLOAT | SqlTypeName.REAL) => value.toString
     case (value: Double, SqlTypeName.DOUBLE) => value.toString
     case (value: java.sql.Date, SqlTypeName.DATE) => value.toString
-    case (value: java.sql.Timestamp, SqlTypeName.TIMESTAMP) => DateFormat.formatToTimeWithoutMilliStr(value.getTime)
+    case (value: java.sql.Timestamp, SqlTypeName.TIMESTAMP) => DateFormat.castTimestampToString(value.getTime)
     case (value: java.sql.Time, SqlTypeName.TIME) => value.toString
     case (value: Boolean, SqlTypeName.BOOLEAN) => value.toString
     // handle cast to char/varchar
-    case (value: java.sql.Timestamp, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.formatToTimeWithoutMilliStr(value.getTime)
+    case (value: java.sql.Timestamp, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.castTimestampToString(value.getTime)
     case (value: java.sql.Date, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => DateFormat.formatToDateStr(value.getTime)
     case (value, SqlTypeName.CHAR | SqlTypeName.VARCHAR) => value.toString
     // cast type to align with relType
@@ -246,20 +246,16 @@ object SparderTypeUtil extends Logging {
       }
     case (value: Any, SqlTypeName.FLOAT | SqlTypeName.REAL) => java.lang.Float.parseFloat(value.toString).toString
     case (value: Any, SqlTypeName.DOUBLE) => java.lang.Double.parseDouble(value.toString).toString
-    case (value: Any, SqlTypeName.DATE | SqlTypeName.TIMESTAMP | SqlTypeName.TIME) =>
-      val valueString = value.toString
-      val millis = if (valueString.contains("-")) {
-        DateFormat.stringToDate(valueString).getTime
+    case (value: Any, SqlTypeName.TIME) => value.toString
+    case (value: Any, SqlTypeName.DATE | SqlTypeName.TIMESTAMP) =>
+      val millis = DateFormat.stringToMillis(value.toString)
+      if (relType.getSqlTypeName == SqlTypeName.TIMESTAMP) {
+        DateFormat.castTimestampToString(millis)
       } else {
-        DateFormat.stringToMillis(valueString)
-      }
-      if (relType.getSqlTypeName == SqlTypeName.DATE) {
-        DateFormat.formatToDateStr(millis)
-      } else {
-        DateFormat.formatToTimeWithoutMilliStr(millis)
+        DateFormat.formatToDateStr(new Date(millis).getTime)
       }
     // in case the type is not set
-    case (ts: java.sql.Timestamp, _) => DateFormat.formatToTimeWithoutMilliStr(ts.getTime)
+    case (ts: java.sql.Timestamp, _) => DateFormat.castTimestampToString(ts.getTime)
     case (dt: java.sql.Date, _) => DateFormat.formatToDateStr(dt.getTime)
     case (other, _) => other.toString
   }
@@ -332,7 +328,7 @@ object SparderTypeUtil extends Logging {
             var ts = s.asInstanceOf[Timestamp].toString
             if (toCalcite) {
               // current ts is local timezone ,org.apache.calcite.avatica.util.AbstractCursor.TimeFromNumberAccessor need to utc
-              DateTimeUtils.stringToTimestamp(UTF8String.fromString(ts),TimeZone.getTimeZone("UTC")).get / 1000
+              DateTimeUtils.stringToTimestamp(UTF8String.fromString(ts), TimeZone.getTimeZone("UTC")).get / 1000
             } else {
               // ms to s
               s.asInstanceOf[Timestamp].getTime / 1000

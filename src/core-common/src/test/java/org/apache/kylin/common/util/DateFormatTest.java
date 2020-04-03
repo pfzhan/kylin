@@ -73,6 +73,7 @@ public class DateFormatTest {
 
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01 01:01:01"));
         Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01 01:00:00.000"));
+        Assert.assertTrue(DateFormat.isSupportedDateFormat("2010-01-01 01:00:00.1"));
 
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-1-1"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010/1/1"));
@@ -82,7 +83,6 @@ public class DateFormatTest {
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-1-1 01:00:00.000"));
 
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-01-01 1:1:1"));
-        Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-01-01 01:00:00.1"));
 
         Assert.assertFalse(DateFormat.isSupportedDateFormat("2010-01"));
         Assert.assertFalse(DateFormat.isSupportedDateFormat("abc"));

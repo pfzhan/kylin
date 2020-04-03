@@ -153,7 +153,8 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         {
             String[] sqls = {
                     "select current_timestamp",
-                    "select timestamp'2020-03-30 11:03:37'"
+                    "select timestamp'2020-03-30 11:03:37'",
+                    "select timestamp'2012-02-09 11:23:23.21'"
             };
             for (String sql : sqls) {
                 // try matching timestamp to minutes mutilple times

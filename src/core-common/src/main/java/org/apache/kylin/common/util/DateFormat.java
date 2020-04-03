@@ -24,7 +24,6 @@
 
 package org.apache.kylin.common.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -37,10 +36,12 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 public class DateFormat {
 
@@ -73,9 +74,9 @@ public class DateFormat {
         dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN);
         dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN);
         dateFormatRegex.put("^\\d{8}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
-        dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}-\\d{2}-\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d+$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}/\\d{2}/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d+$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}\\.\\d{2}\\.\\d{2}\\s\\d{2}:\\d{2}:\\d{2}.\\d+$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
     }
 
     public static FastDateFormat getDateFormat(String datePattern) {
@@ -90,7 +91,7 @@ public class DateFormat {
     public static FastDateFormat getDateFormat(String datePattern, TimeZone timeZone) {
         return FastDateFormat.getInstance(datePattern, timeZone);
     }
-    
+
     public static String formatToCompactDateStr(long millis) {
         return formatToDateStr(millis, COMPACT_DATE_PATTERN);
     }
@@ -111,28 +112,35 @@ public class DateFormat {
         return formatToTimeStr(millis, DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS);
     }
 
+    public static String formatToTimeStr(long millis, String pattern, TimeZone timeZone) {
+        return getDateFormat(pattern, timeZone).format(new Date(millis));
+    }
+
+    @VisibleForTesting
     public static String formatToTimeWithoutMilliStr(long millis) {
         return formatToTimeStr(millis, DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS);
+    }
+
+    // consistent with Hive and Spark-SQL
+    public static String castTimestampToString(long millis, TimeZone timeZone) {
+        String formatted = formatToTimeStr(millis, DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS, timeZone);
+        while (formatted.endsWith("0")) {
+            formatted = StringUtils.removeEnd(formatted, "0");
+        }
+        formatted = StringUtils.removeEnd(formatted, ".");
+        return formatted;
+    }
+
+    public static String castTimestampToString(long millis) {
+        return castTimestampToString(millis, null);
     }
 
     public static String formatToTimeStr(long millis, String pattern) {
         return getDateFormat(pattern).format(new Date(millis));
     }
 
-    public static String formatToTimeStr(long millis, String pattern, TimeZone timeZone) {
-        return getDateFormat(pattern, timeZone).format(new Date(millis));
-    }
-
-    public static String formatDayToEpchoToDateStr(long daysToEpoch) {
-        return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000);
-    }
-
     public static String formatDayToEpchoToDateStr(long daysToEpoch, TimeZone timeZone) {
         return formatToDateStr(daysToEpoch * 24 * 60 * 60 * 1000, DEFAULT_DATE_PATTERN, timeZone);
-    }
-
-    public static String formatToTimeWithoutMilliStr(long millis, TimeZone timeZone) {
-        return formatToTimeStr(millis, DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS, timeZone);
     }
 
     public static String dateToString(Date date, String pattern) {
@@ -213,7 +221,7 @@ public class DateFormat {
     }
 
     @VisibleForTesting
-    public static void cleanCache(){
+    public static void cleanCache() {
         formatMap.clear();
     }
 }

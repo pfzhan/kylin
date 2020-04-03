@@ -24,27 +24,29 @@
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.stream.IntStream;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.utils.ResourceUtils;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
+import org.apache.spark.utils.ResourceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.application.SparkApplication;
+import io.kyligence.kap.engine.spark.job.SparkJobConstants;
 import io.kyligence.kap.engine.spark.job.TableAnalysisJob;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -106,7 +108,7 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
                     colStats.setMinValue(value);
                     break;
                 case "COUNT_DISTINCT":
-                    colStats.setCardinality(Long.valueOf(value));
+                    colStats.setCardinality(Long.parseLong(value));
                     break;
                 default:
                     throw new IllegalArgumentException(
@@ -118,13 +120,20 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         tableExt.setColumnStats(columnStatsList);
 
         List<String[]> sampleData = Lists.newArrayList();
-        for (int i = 1; i < row.length; i++) {
+        IntStream.range(1, row.length).forEach(i -> {
             String[] data = new String[row[i].length()];
-            for (int j = 0; j < row[i].length(); j++) {
-                data[j] = row[i].get(j) == null ? null : row[i].get(j).toString();
-            }
+            IntStream.range(0, row[i].length()).forEach(j -> {
+                final Object obj = row[i].get(j);
+                if (obj == null) {
+                    data[j] = null;
+                } else if (obj instanceof Timestamp) {
+                    data[j] = DateFormat.castTimestampToString(((Timestamp) obj).getTime());
+                } else {
+                    data[j] = obj.toString();
+                }
+            });
             sampleData.add(data);
-        }
+        });
         tableExt.setSampleRows(sampleData);
 
         tableMetadataManager.saveTableExt(tableExt);
@@ -137,14 +146,14 @@ public class TableAnalyzerJob extends SparkApplication implements Serializable {
         Long rowCount = Long.valueOf(getParam(NBatchConstants.P_SAMPLING_ROWS));
         if (config.getSparkEngineDataImpactInstanceEnabled()) {
             Path shareDir = config.getJobTmpShareDir(project, jobId);
-            val  child = tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix();
-            val  detectItems = ResourceDetectUtils.readDetectItems(new Path(shareDir,  child));
-            return ResourceUtils.caculateRequiredCores(config.getSparkEngineSampleSplitThreshold(), detectItems, rowCount);
+            val child = tableName + "_" + ResourceDetectUtils.samplingDetectItemFileSuffix();
+            val detectItems = ResourceDetectUtils.readDetectItems(new Path(shareDir, child));
+            return ResourceUtils.caculateRequiredCores(config.getSparkEngineSampleSplitThreshold(), detectItems,
+                    rowCount);
         } else {
             return SparkJobConstants.DEFAULT_REQUIRED_CORES;
         }
     }
-
 
     public static void main(String[] args) {
         TableAnalyzerJob job = new TableAnalyzerJob();

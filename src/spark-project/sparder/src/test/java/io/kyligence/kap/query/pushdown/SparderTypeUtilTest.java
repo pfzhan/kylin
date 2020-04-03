@@ -80,6 +80,12 @@ public class SparderTypeUtilTest {
         Assert.assertEquals("123.345", convertToStringWithDecimalType(new BigDecimal("123.345"), 29, 3));
         Assert.assertEquals("2012-01-01", convertToStringWithCalciteType(java.sql.Date.valueOf("2012-01-01"), SqlTypeName.DATE));
         Assert.assertEquals("2012-01-01 12:34:56", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:56"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01 12:34:45.01", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:45.01"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01 12:34:45.01", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:45.010"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01 12:34:45.01", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:45.010100"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01 12:34:45.1", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:45.1"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01 12:34:45", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:45.000101"), SqlTypeName.TIMESTAMP));
+        Assert.assertEquals("2012-01-01 12:34:45", convertToStringWithCalciteType(java.sql.Timestamp.valueOf("2012-01-01 12:34:45.0"), SqlTypeName.TIMESTAMP));
         // cast to char/varchar
         Assert.assertEquals("foo", convertToStringWithCalciteType("foo", SqlTypeName.VARCHAR));
         Assert.assertEquals("foo", convertToStringWithCalciteType("foo", SqlTypeName.CHAR));

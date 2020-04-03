@@ -24,19 +24,20 @@
 
 package io.kyligence.kap.query.pushdown
 
+import java.sql.Timestamp
 import java.util.{UUID, List => JList}
 
 import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
 import org.apache.kylin.common.exceptions.KylinTimeoutException
-import org.apache.kylin.common.util.{HadoopUtil, Pair}
+import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.network.util.JavaUtils
 import org.apache.spark.sql.hive.QueryMetricUtils
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils
-import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.util.SparderTypeUtil
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.JavaConverters._
@@ -87,10 +88,9 @@ object SparkSqlClient {
     ss.sparkContext.setJobGroup(jobGroup, s"Push down: $sql", interruptOnCancel = true)
     try {
       val rowList = df.collect().map(_.toSeq.map {
-        case null =>
-          null
-        case cell =>
-          cell.toString
+        case null => null
+        case value: Timestamp => DateFormat.castTimestampToString(value.getTime)
+        case value: Any => value.toString
       }.asJava).toSeq.asJava
       val fieldList = df.schema.map(field => SparderTypeUtil.convertSparkFieldToJavaField(field)).asJava
       val (scanRows, scanBytes) = QueryMetricUtils.collectScanMetrics(df.queryExecution.executedPlan)
