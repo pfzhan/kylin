@@ -2751,7 +2751,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.getPartitionDesc().setPartitionDateFormat("");
+        modelUpdate.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
 
@@ -2760,7 +2760,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
+        val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "1577811661000", "1609430400000");
 
         Assert.assertEquals(jobInfo.getJobs().size(), 2);
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), "INC_BUILD");
@@ -2778,8 +2778,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(100L, dataflow.getSegments().get(0).getSegRange().getEnd());
+        Assert.assertEquals(1577808000000L, dataflow.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(1609430400000L, dataflow.getSegments().get(0).getSegRange().getEnd());
 
         Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
     }
@@ -2854,11 +2854,11 @@ public class ModelServiceTest extends CSVSourceTestCase {
         PartitionDesc partitionDesc = new PartitionDesc();
         partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
         partitionDesc.setPartitionDateFormat("yyyyMMdd");
-        modelService.incrementBuildSegmentsManually(project, modelId, "0", "100", partitionDesc, null);
+        modelService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000", partitionDesc, null);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         var dataflow = dataflowManager.getDataflow(modelId);
         Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(1577808000000L, dataflow.getSegments().get(0).getSegRange().getStart());
     }
 
     @Test
