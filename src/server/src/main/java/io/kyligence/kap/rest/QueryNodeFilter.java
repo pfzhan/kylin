@@ -63,7 +63,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
@@ -150,7 +149,7 @@ public class QueryNodeFilter implements Filter {
             // no leaders
             if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                 Message msg = MsgPicker.getMsg();
-                throw new EpochNotMatchException(msg.getNO_ACTIVE_LEADERS(), null);
+                throw new KylinException("KE-4017", msg.getNO_ACTIVE_LEADERS());
             }
 
             Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
@@ -208,6 +207,9 @@ public class QueryNodeFilter implements Filter {
                 responseBody = e.getResponseBodyAsByteArray();
                 responseHeaders = e.getResponseHeaders();
                 log.warn("code {}, error {}", e.getStatusCode(), e.getMessage());
+            } catch (Exception e){
+                log.error("transfer failed", e);
+                throw new KylinException("KE-5005", MsgPicker.getMsg().getTRANSFER_FAILED());
             }
             servletResponse.setStatus(responseStatus);
             responseHeaders.forEach((k, v) -> {

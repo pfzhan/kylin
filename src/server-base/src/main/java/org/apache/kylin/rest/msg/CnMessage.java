@@ -741,4 +741,8 @@ public class CnMessage extends Message {
     public String getLEADERS_HANDLE_OVER() {
         return "系统正在尝试恢复服务，请稍后进行尝试。";
     }
+
+    public String getTRANSFER_FAILED() {
+        return "转发失败。";
+    }
 }

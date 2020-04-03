@@ -33,7 +33,7 @@ public class EpochNotMatchException extends KylinException {
     private String project;
 
     public EpochNotMatchException(String msg, String project) {
-        super("4099", msg);
+        super("KE-4015", msg);
         this.project = project;
     }
 }

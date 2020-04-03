@@ -806,4 +806,8 @@ public class Message {
     public String getLEADERS_HANDLE_OVER() {
         return "System is trying to recover, please try again later.";
     }
+
+    public String getTRANSFER_FAILED() {
+        return "Transfer failed.";
+    }
 }

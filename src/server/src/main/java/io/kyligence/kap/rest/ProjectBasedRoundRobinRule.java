@@ -28,11 +28,11 @@ import com.netflix.loadbalancer.AbstractLoadBalancerRule;
 import com.netflix.loadbalancer.ILoadBalancer;
 import com.netflix.loadbalancer.Server;
 import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -64,7 +64,7 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
         String owner = EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).getEpochOwner(project);
         if (StringUtils.isBlank(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new EpochNotMatchException(msg.getLEADERS_HANDLE_OVER(), project);
+            throw new KylinException("KE-4016", msg.getLEADERS_HANDLE_OVER());
         }
         String[] host = owner.split(":");
         Server server = new Server(host[0], Integer.valueOf(host[1]));
