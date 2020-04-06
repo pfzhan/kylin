@@ -119,14 +119,18 @@ public class EpochManager implements IKeep {
         val cdl = new CountDownLatch(prjs.size());
         for (ProjectInstance prj : prjs) {
             pool.execute(new Thread(() -> {
-                if (updateProjectEpoch(prj, cdl)) newEpochs.add(prj.getName());
+                try {
+                    if (updateProjectEpoch(prj)) newEpochs.add(prj.getName());
+                } finally {
+                    cdl.countDown();
+                }
             }));
         }
         return cdl;
     }
 
 
-    public boolean updateProjectEpoch(ProjectInstance prj, CountDownLatch cdl) {
+    public boolean updateProjectEpoch(ProjectInstance prj) {
         try {
             return UnitOfWork.doInTransactionWithRetry(() -> {
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -145,10 +149,6 @@ public class EpochManager implements IKeep {
         } catch (Exception e) {
             logger.error("update " + prj.getName() + " epoch failed.", e);
             return false;
-        } finally {
-            if (cdl != null) {
-                cdl.countDown();
-            }
         }
     }
 
@@ -178,7 +178,6 @@ public class EpochManager implements IKeep {
 
     public synchronized void updateAllEpochs() {
         logger.info("start updateAllEpochs.........");
-        logger.info("epoch manager is " + this);
         val oriEpochs = Sets.newHashSet(currentEpochs);
         Set<String> newEpochs = Sets.newCopyOnWriteArraySet();
         tryUpdateGlobalEpoch(newEpochs);
@@ -187,6 +186,7 @@ public class EpochManager implements IKeep {
             cdl.await();
         } catch (InterruptedException e) {
             logger.error("Unexpected things happened" + e);
+            return;
         }
         logger.info("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
         Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
@@ -235,7 +235,7 @@ public class EpochManager implements IKeep {
         if (prj == null) {
             throw new IllegalStateException("Project " + project + " does not exist");
         }
-        if (updateProjectEpoch(prj, null)) {
+        if (updateProjectEpoch(prj)) {
             schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
         }
     }
