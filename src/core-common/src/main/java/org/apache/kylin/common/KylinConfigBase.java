@@ -2010,7 +2010,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public long getEpochExpireTimeSecond() {
-        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beta-timeout", "120"));
+        return Long.parseLong(getOptional("kylin.server.leader-race.heart-beat-timeout", "120"));
     }
 
     public long getEpochCheckerIntervalSecond() {
