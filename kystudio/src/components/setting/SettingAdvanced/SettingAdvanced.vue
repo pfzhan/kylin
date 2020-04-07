@@ -227,7 +227,8 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       fetchDatabases: 'FETCH_DATABASES',
       updateYarnQueue: 'UPDATE_YARN_QUEUE',
       updateExposeCCConfig: 'UPDATE_EXPOSE_CC_CONFIG',
-      updateKerberosConfig: 'UPDATE_KERBEROS_CONFIG'
+      updateKerberosConfig: 'UPDATE_KERBEROS_CONFIG',
+      reloadHiveDBAndTables: 'RELOAD_HIVE_DB_TABLES'
     })
   },
   components: {
@@ -453,6 +454,16 @@ export default class SettingAdvanced extends Vue {
               this.form.fileList = []
               this.form.file = null
               this.$refs['kerberos-setting-form'].clearValidate()
+              // 刷新数据源确认弹窗
+              this.$confirm(this.$t('refreshContent'), this.$t('refreshTitle'), {
+                confirmButtonText: this.$t('refreshNow'),
+                cancelButtonText: this.$t('refreshLater'),
+                type: 'warning',
+                dangerouslyUseHTMLString: true
+              }).then(() => {
+                // 刷新数据源
+                this.reloadHiveDBAndTables({ force: true, project: this.currentSelectedProject })
+              })
             } else {
               errorCallback()
             }
@@ -464,6 +475,7 @@ export default class SettingAdvanced extends Vue {
       if (type !== 'defaultDB-settings') {
         successCallback()
         this.$emit('reload-setting')
+        if (type === 'kerberos-acc') return
         this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
       }
     } catch (e) {

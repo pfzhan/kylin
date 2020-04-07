@@ -36,7 +36,11 @@ export default {
     fileTypeError: 'Invalid file format.',
     uploadFileTips: 'Supported file formats is keytab. Supported file size is up to 5 MB.',
     selectFile: 'Select the file',
-    kerberosFileRequied: 'Please upload keytab file'
+    kerberosFileRequied: 'Please upload keytab file',
+    refreshTitle: 'Refresh DataSource',
+    refreshNow: 'Refresh Now',
+    refreshLater: 'Refresh Later',
+    refreshContent: 'Update successfully. The configuration will take effect after refreshing the datasource cache. Please confirm whether to refresh now. </br> Note: It will take a long time to refresh the cache. If you need to configure multiple projects, it is recommended to refresh when configuring the last project.'
   },
   'zh-cn': {
     acceThreshold: '加速提示',
@@ -75,6 +79,10 @@ export default {
     fileTypeError: '不支持的文件格式！',
     uploadFileTips: '支持的文件格式为 keytab，文件最大支持 5 MB。',
     selectFile: '选择文件',
-    kerberosFileRequied: '请上传 keytab 文件'
+    kerberosFileRequied: '请上传 keytab 文件',
+    refreshTitle: '刷新数据源',
+    refreshNow: '立即刷新',
+    refreshLater: '稍后刷新',
+    refreshContent: '更新成功。刷新数据源缓存后配置生效。请问是否刷新数据源缓存？</br> 提示：刷新缓存时间较长，如您需要配置多个项目，建议配置最后一个项目时进行刷新。'
   }
 }
