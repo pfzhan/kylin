@@ -90,6 +90,7 @@ public class QueryNodeFilter implements Filter {
 
         // jdbc, odbc, query
         notRoutePostApiSet.add("/kylin/api/query");
+        notRoutePostApiSet.add("/kylin/api/error");
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
 
@@ -149,7 +150,9 @@ public class QueryNodeFilter implements Filter {
             // no leaders
             if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                 Message msg = MsgPicker.getMsg();
-                throw new KylinException("KE-4017", msg.getNO_ACTIVE_LEADERS());
+                servletRequest.setAttribute("error", new KylinException("KE-4017", msg.getNO_ACTIVE_LEADERS()));
+                servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
+                return;
             }
 
             Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
@@ -207,9 +210,11 @@ public class QueryNodeFilter implements Filter {
                 responseBody = e.getResponseBodyAsByteArray();
                 responseHeaders = e.getResponseHeaders();
                 log.warn("code {}, error {}", e.getStatusCode(), e.getMessage());
-            } catch (Exception e){
+            } catch (Exception e) {
                 log.error("transfer failed", e);
-                throw new KylinException("KE-5005", MsgPicker.getMsg().getTRANSFER_FAILED());
+                servletRequest.setAttribute("error", new KylinException("KE-5005", MsgPicker.getMsg().getTRANSFER_FAILED()));
+                servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
+                return;
             }
             servletResponse.setStatus(responseStatus);
             responseHeaders.forEach((k, v) -> {
