@@ -31,15 +31,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component("epochService")
 public class EpochService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochService.class);
 
-    public void updateEpoch(String project) {
+    public void updateEpoch(List<String> projects, boolean force) {
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
-        logger.info("update epoch {}", project);
-        epochMgr.updateEpoch(project);
+        for (String project : projects) {
+            logger.info("update epoch {}", project);
+            if (force)
+                epochMgr.forceUpdateEpoch(project);
+            else
+                epochMgr.updateEpoch(project);
+        }
     }
 
 }

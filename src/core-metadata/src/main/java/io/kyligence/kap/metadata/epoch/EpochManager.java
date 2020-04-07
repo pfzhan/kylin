@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.epoch;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -129,8 +130,11 @@ public class EpochManager implements IKeep {
         return cdl;
     }
 
-
     public boolean updateProjectEpoch(ProjectInstance prj) {
+        return updateProjectEpoch(prj, false);
+    }
+
+    public boolean updateProjectEpoch(ProjectInstance prj, boolean force) {
         try {
             return UnitOfWork.doInTransactionWithRetry(() -> {
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -138,7 +142,7 @@ public class EpochManager implements IKeep {
                 if (project == null) {
                     return false;
                 }
-                Epoch finalEpoch = getNewEpoch(project.getEpoch());
+                Epoch finalEpoch = getNewEpoch(project.getEpoch(), force);
                 if (finalEpoch == null) {
                     return false;
                 }
@@ -163,11 +167,15 @@ public class EpochManager implements IKeep {
     }
 
     private Epoch getNewEpoch(Epoch epoch) {
+        return getNewEpoch(epoch, false);
+    }
+
+    private Epoch getNewEpoch(Epoch epoch, boolean force) {
         if (epoch == null) {
             epoch = new Epoch(1L, identity, System.currentTimeMillis());
         } else {
             if (!epoch.getCurrentEpochOwner().equals(identity)) {
-                if (isEpochLegal(epoch)) return null;
+                if (isEpochLegal(epoch) && !force) return null;
                 epoch.setEpochId(epoch.getEpochId() + 1);
             }
             epoch.setLastEpochRenewTime(System.currentTimeMillis());
@@ -299,5 +307,13 @@ public class EpochManager implements IKeep {
             throw new IllegalStateException("Epoch of project " + project + " does not exist");
         }
         return epoch.getEpochId();
+    }
+
+    public synchronized void forceUpdateEpoch(String project) {
+        ProjectInstance prj = NProjectManager.getInstance(config).getProject(project);
+        Preconditions.checkNotNull(prj);
+        if (updateProjectEpoch(prj, true)) {
+            schedulerEventBusFactory.post(new ProjectControlledNotifier(project));
+        }
     }
 }

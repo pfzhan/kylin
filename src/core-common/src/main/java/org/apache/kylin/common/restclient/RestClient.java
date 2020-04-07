@@ -54,6 +54,7 @@ import java.util.regex.Pattern;
 
 import javax.xml.bind.DatatypeConverter;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.commons.io.IOUtils;
@@ -283,8 +284,9 @@ public class RestClient {
     public HttpResponse updatePrjEpoch(String project) throws IOException {
         String url = baseUrl + "/epoch";
         HttpPost post = newPost(url);
-        HashMap<String, String> paraMap = new HashMap<String, String>();
-        paraMap.put("project", project);
+        HashMap<String, Object> paraMap = new HashMap<String, Object>();
+        paraMap.put("projects", Lists.newArrayList(project));
+        paraMap.put("force", "false");
         String jsonMsg = new ObjectMapper().writeValueAsString(paraMap);
         post.setEntity(new StringEntity(jsonMsg, "UTF-8"));
         HttpResponse response = client.execute(post);

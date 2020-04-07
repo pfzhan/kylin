@@ -29,10 +29,15 @@ import io.kyligence.kap.metadata.insensitive.ProjectInsensitiveRequest;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 public class EpochRequest implements ProjectInsensitiveRequest {
 
-    @JsonProperty("project")
-    private String project;
+    @JsonProperty("projects")
+    private List<String> projects;
+
+    @JsonProperty("force")
+    private boolean force;
 }
