@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SparkDriverHdfsLogAppenderTest extends AbstractHdfsLogAppenderTestBase {
@@ -54,6 +55,7 @@ public class SparkDriverHdfsLogAppenderTest extends AbstractHdfsLogAppenderTestB
     }
 
     @Test
+    @Ignore("Unstable case, depends on machine load")
     public void testErrorSparkDriverHdfsLogAppender() throws InterruptedException, IOException {
         if (!"true".equals(System.getProperty("runDailyUT"))) {
             return;

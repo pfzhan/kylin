@@ -39,6 +39,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.spi.LoggingEvent;
 import org.apache.spark.SparkEnv;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -187,6 +188,7 @@ public class SparkExecutorHdfsLogAppenderTest extends AbstractHdfsLogAppenderTes
     }
 
     @Test
+    @Ignore("Unstable case, depends on machine load")
     public void testErrorSparkExecutorHdfsLogAppender() throws InterruptedException, IOException {
         if (!"true".equals(System.getProperty("runDailyUT"))) {
             return;
