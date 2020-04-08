@@ -65,6 +65,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -72,6 +73,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.junit.After;
@@ -1093,4 +1095,31 @@ public class TableServiceTest extends CSVSourceTestCase {
                 tableService.isSqlContainsColumns("A.a  > 10 AND B.b < 1", "DB.A", Sets.newHashSet("a", "b", "c")));
 
     }
+
+    @Test
+    public void testRefreshSingleCatalogCache() {
+        HashMap request = mockRefreshTable("DEFAULT.TEST_KYLIN_FACT", "DEFAULT.TEST_KYLIN_FAKE");
+        TableRefresh tableRefresh = tableService.refreshSingleCatalogCache(request);
+        Assert.assertTrue(tableRefresh.getCode().equals(ResponseCode.CODE_UNDEFINED));
+        Assert.assertEquals(tableRefresh.getRefreshed().size(), 1);
+        Assert.assertEquals(tableRefresh.getFailed().size(), 1);
+    }
+
+    private HashMap mockRefreshTable(String... tables){
+        Mockito.doAnswer(invocation -> {
+            String table = invocation.getArgument(0);
+            List<String> refreshed = invocation.getArgument(1);
+            List<String> failed = invocation.getArgument(2);
+            if(table.equals("DEFAULT.TEST_KYLIN_FACT")){
+                refreshed.add("DEFAULT.TEST_KYLIN_FACT");
+            }else {
+                failed.add(table);
+            }
+            return null;
+        }).when(tableService).refreshTable(Mockito.any(), Mockito.any(), Mockito.any());
+        HashMap request = new HashMap();
+        request.put("tables", Arrays.asList(tables));
+        return request;
+    }
+
 }

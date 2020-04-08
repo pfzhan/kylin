@@ -42,16 +42,27 @@
 
 package org.apache.kylin.rest.service;
 
+import java.util.Collections;
 import java.util.Comparator;
 
 import io.kyligence.kap.common.metrics.service.MonitorDao;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO;
+import lombok.val;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.support.PropertyComparator;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.base.CaseFormat;
@@ -70,8 +81,17 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
+import org.springframework.web.client.RestTemplate;
+
+import javax.servlet.http.HttpServletRequest;
+
+import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
 
 public abstract class BasicService {
+
+    @Autowired
+    @Qualifier("normalRestTemplate")
+    private RestTemplate restTemplate;
 
     public KylinConfig getConfig() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -171,5 +191,22 @@ public abstract class BasicService {
         return new PropertyComparator<T>(CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, property), false,
                 ascending);
 
+    }
+
+    public <T> EnvelopeResponse<T> generateTaskForRemoteHost(final HttpServletRequest request, String url)
+            throws Exception {
+        val response = getHttpResponse(request, url);
+        return JsonUtil.readValue(response.getBody(), EnvelopeResponse.class);
+    }
+
+    private ResponseEntity<byte[]> getHttpResponse(final HttpServletRequest request, String url) throws Exception {
+        val body = IOUtils.toByteArray(request.getInputStream());
+        HttpHeaders headers = new HttpHeaders();
+        Collections.list(request.getHeaderNames())
+                .forEach(k -> headers.put(k, Collections.list(request.getHeaders(k))));
+        //remove gzip
+        headers.remove(ACCEPT_ENCODING);
+        return restTemplate.exchange(url, HttpMethod.valueOf(request.getMethod()), new HttpEntity<>(body, headers),
+                byte[].class);
     }
 }

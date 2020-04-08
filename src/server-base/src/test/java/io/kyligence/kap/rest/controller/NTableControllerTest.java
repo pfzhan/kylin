@@ -43,17 +43,21 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SamplingRequest;
+import org.apache.kylin.rest.response.TableRefresh;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -98,6 +102,8 @@ import lombok.val;
 public class NTableControllerTest extends NLocalFileMetadataTestCase {
 
     private static final String APPLICATION_JSON = HTTP_VND_APACHE_KYLIN_JSON;
+
+    private static final String APPLICATION_PUBLIC_JSON = HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
     private MockMvc mockMvc;
 
@@ -808,6 +814,37 @@ public class NTableControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(APPLICATION_JSON))) //
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).reloadHiveTablename("", false);
+    }
+
+    @Test
+    public void testRefreshSingleCatalogCache() throws Exception {
+        List<String> tables = Lists.newArrayList();
+        tables.add("DEFAULT.TEST_KYLIN_FACT");
+        HashMap request = new HashMap();
+        request.put("tables", tables);
+        TableRefresh tableRefresh = new TableRefresh();
+        tableRefresh.setCode(ResponseCode.CODE_SUCCESS);
+        Mockito.doReturn(tableRefresh).when(tableService).refreshSingleCatalogCache(Mockito.any());
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+    }
+
+    @Test
+    public void testRefreshSingleCatalogCacheError() throws Exception {
+        HashMap request = new HashMap();
+        request.put("tables", "DEFAULT.TEST_KYLIN_FACT");
+        String errorMsg = "Illegal parameters in the tables field, or the format of the parameters is incorrect";
+        MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/single_catalog_cache")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(APPLICATION_PUBLIC_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        JsonNode jsonNode = JsonUtil.readValueAsTree(mvcResult.getResponse().getContentAsString());
+        Assert.assertTrue(StringUtils.contains(jsonNode.get("exception").textValue(), errorMsg));
     }
 
 }

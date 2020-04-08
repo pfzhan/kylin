@@ -63,17 +63,20 @@ public class ErrorResponse extends EnvelopeResponse {
 
     public ErrorResponse(String url, Throwable exception) {
         super();
-
         this.url = url;
         this.exception = exception.getLocalizedMessage();
         this.msg = exception.getLocalizedMessage();
-        this.stacktrace = Throwables.getStackTraceAsString(exception);
         this.data = null;
 
         if (exception instanceof KylinException) {
-            this.code = ((KylinException) exception).getCode();
+            KylinException kylinException = (KylinException) exception;
+            this.code = kylinException.getCode();
+            if(kylinException.isThrowTrace()){
+                this.stacktrace = Throwables.getStackTraceAsString(exception);
+            }
         } else {
             this.code = ResponseCode.CODE_UNDEFINED;
+            this.stacktrace = Throwables.getStackTraceAsString(exception);
         }
     }
 }

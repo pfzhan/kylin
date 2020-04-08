@@ -249,6 +249,13 @@ public class PushDownUtil {
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
+    public static void trySimplePushDownExecute(String sql, String project) throws Exception {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        IPushDownRunner runner = (IPushDownRunner) ClassUtil.newInstance(kylinConfig.getPushDownRunnerClassName());
+        runner.init(kylinConfig);
+        runner.executeUpdate(sql, project);
+    }
+
     public static String getFormatIfNotExist(String table, String partitionColumn, String project) throws Exception {
         String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
                 partitionColumn);

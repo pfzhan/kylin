@@ -807,6 +807,27 @@ public class Message {
         return "System is trying to recover, please try again later.";
     }
 
+    public String getTABLE_REFRESH_ERROR() {
+        return "Refresh catalog cache error";
+    }
+
+    public String getTABLE_REFRESH_NOTFOUND() {
+        return "Table not found in cache: %s";
+    }
+
+    public String getTABLE_REFRESH_PARAM_INVALID() {
+        return "Illegal parameters in the tables field, or the format of the parameters is incorrect";
+    }
+
+    public String getTABLE_REFRESH_PARAM_NONE() {
+        return "The tables field was not included in the request. Please check the json and try again.";
+    }
+
+    public String getTABLE_REFRESH_PARAM_MORE() {
+        return "The requested json contains illegal fields other than the tables field. " +
+                "Please check the json and try again.";
+    }
+
     public String getTRANSFER_FAILED() {
         return "Transfer failed.";
     }

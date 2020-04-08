@@ -67,6 +67,7 @@ public class KylinException extends RuntimeException {
 
     private final String keCode;// for example KE-1001
     private final String code; //for example 999
+    private boolean throwTrace = true;
     static {
         try {
             URL resource = Thread.currentThread().getContextClassLoader().getResource(enErrorCodeFile);
@@ -99,6 +100,13 @@ public class KylinException extends RuntimeException {
         super(msg);
         this.keCode = keCode;
         this.code = ResponseCode.CODE_UNDEFINED;
+    }
+
+    public KylinException(@NotNull String keCode, String msg, boolean throwTrace) {
+        super(msg);
+        this.keCode = keCode;
+        this.code = ResponseCode.CODE_UNDEFINED;
+        this.throwTrace = throwTrace;
     }
 
     public KylinException(@NotNull String keCode, Throwable cause) {

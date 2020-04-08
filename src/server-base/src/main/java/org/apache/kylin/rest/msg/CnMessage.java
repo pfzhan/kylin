@@ -742,6 +742,26 @@ public class CnMessage extends Message {
         return "系统正在尝试恢复服务，请稍后进行尝试。";
     }
 
+    public String getTABLE_REFRESH_NOTFOUND() {
+        return "未找到缓存表: %s";
+    }
+
+    public String getTABLE_REFRESH_ERROR() {
+        return "刷新缓存表异常";
+    }
+
+    public String getTABLE_REFRESH_PARAM_INVALID() {
+        return "请求中tables字段非法，请检查后重试.";
+    }
+
+    public String getTABLE_REFRESH_PARAM_NONE() {
+        return "请求中未发现tables字段，请检查后重试.";
+    }
+
+    public String getTABLE_REFRESH_PARAM_MORE() {
+        return "请求中包含非tables的多余字段，请检查后重试.";
+    }
+
     public String getTRANSFER_FAILED() {
         return "转发失败。";
     }

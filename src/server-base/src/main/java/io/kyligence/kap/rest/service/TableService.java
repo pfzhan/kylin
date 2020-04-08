@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -52,6 +53,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -71,6 +73,9 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.TableRefresh;
+import org.apache.kylin.rest.response.TableRefreshAll;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -134,16 +139,20 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.var;
 
+import javax.servlet.http.HttpServletRequest;
+
 @Component("tableService")
 public class TableService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(TableService.class);
+    private static final String REFRESH_SINGLE_CATALOG_PATH = "/kylin/api/tables/single_catalog_cache";
 
     @Autowired
     private ModelService modelService;
@@ -163,6 +172,9 @@ public class TableService extends BasicService {
     @Autowired
     @Qualifier("aclTCRService")
     private AclTCRService aclTCRService;
+
+    @Autowired
+    private ClusterManager clusterManager;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) throws IOException {
@@ -1598,4 +1610,70 @@ public class TableService extends BasicService {
             return false;
         }
     }
+
+    public TableRefresh refreshSingleCatalogCache(Map refreshRequest) {
+        TableRefresh result = new TableRefresh();
+        val message = MsgPicker.getMsg();
+        List<String> tables = (List<String>) refreshRequest.get("tables");
+        List<String> refreshed = Lists.newArrayList();
+        List<String> failed = Lists.newArrayList();
+        tables.forEach(table -> refreshTable(table, refreshed, failed));
+
+        if(failed.isEmpty()){
+            result.setCode(ResponseCode.CODE_SUCCESS);
+        }else {
+            result.setCode(ResponseCode.CODE_UNDEFINED);
+            result.setMsg(String.format(message.getTABLE_REFRESH_NOTFOUND(), failed));
+        }
+        result.setRefreshed(refreshed);
+        result.setFailed(failed);
+        return result;
+    }
+
+    public void refreshTable(String table, List<String> refreshed, List<String> failed){
+        try {
+            PushDownUtil.trySimplePushDownExecute("REFRESH TABLE " + table, null);
+            refreshed.add(table);
+        } catch (Exception e) {
+            failed.add(table);
+            logger.error("fail to refresh spark cached table", e);
+        }
+    }
+
+    public TableRefreshAll refreshAllCatalogCache(final HttpServletRequest request) {
+
+        val message = MsgPicker.getMsg();
+        List<ServerInfoResponse> servers = clusterManager.getQueryServers();
+        TableRefreshAll result = new TableRefreshAll();
+        result.setCode(ResponseCode.CODE_SUCCESS);
+        StringBuilder msg = new StringBuilder();
+        List<TableRefresh> nodes = new ArrayList<>();
+
+        servers.forEach(server -> {
+            String host = server.getHost();
+            String url = "http://" + host + REFRESH_SINGLE_CATALOG_PATH;
+            try {
+                EnvelopeResponse response = generateTaskForRemoteHost(request, url);
+                if(StringUtils.isNotBlank(response.getMsg())){
+                    msg.append(host + ":" + response.getMsg() + ";");
+                }
+                if(response.getCode().equals(ResponseCode.CODE_UNDEFINED)){
+                    result.setCode(ResponseCode.CODE_UNDEFINED);
+                }
+                if(response.getData() != null){
+                    TableRefresh data = JsonUtil.convert(response.getData(), TableRefresh.class);
+                    data.setServer(host);
+                    nodes.add(data);
+                }
+            }catch (Exception e){
+                throw new KylinException("KE-1043", message.getTABLE_REFRESH_ERROR(), e);
+            }
+        });
+        if(!nodes.isEmpty()){
+            result.setNodes(nodes);
+        }
+        result.setMsg(msg.toString());
+        return result;
+    }
+
 }
