@@ -70,25 +70,6 @@ public class FileMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void move(String srcPath, String destPath) throws Exception {
-        File srcFilePath = file(srcPath);
-        if (!srcFilePath.exists()) {
-            return;
-        }
-
-        File destFilePath = file(destPath);
-        File parentFile = destFilePath.getParentFile();
-        if (!parentFile.exists()) {
-            parentFile.mkdirs();
-        }
-
-        boolean renameResult = srcFilePath.renameTo(destFilePath);
-        if (!renameResult) {
-            throw new RuntimeException(String.format("update path %s %s failed", srcFilePath, destFilePath));
-        }
-    }
-
-    @Override
     public NavigableSet<String> list(String subPath) {
         TreeSet<String> result = Sets.newTreeSet();
         val scanFolder = new File(root, subPath);

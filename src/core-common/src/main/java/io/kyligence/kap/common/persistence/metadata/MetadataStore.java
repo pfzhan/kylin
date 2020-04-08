@@ -77,17 +77,13 @@ public abstract class MetadataStore {
         auditLogStore = new NoopAuditLogStore();
     }
 
-    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc)
-            throws Exception;
-
-    public abstract void move(String srcPath, String destPath) throws Exception;
+    protected abstract void save(String path, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc) throws Exception;
 
     public abstract NavigableSet<String> list(String rootPath);
 
     public abstract RawResource load(String path) throws IOException;
 
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc)
-            throws Exception {
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc) throws Exception {
         for (Event event : unitMessages.getMessages()) {
             if (event instanceof ResourceCreateOrUpdateEvent) {
                 val rawResource = ((ResourceCreateOrUpdateEvent) event).getCreatedOrUpdated();
