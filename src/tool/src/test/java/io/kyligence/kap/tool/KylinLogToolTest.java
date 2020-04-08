@@ -31,6 +31,7 @@ import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -87,6 +88,7 @@ public class KylinLogToolTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
+    @Ignore("KE-13236, follow by this issue")
     @Test
     public void testExtractOtherLogs() throws IOException {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
