@@ -160,7 +160,7 @@
       :is-edited="isFormEdited(form, 'yarn-name')"
       :is-editable="userType"
       :is-reset="false"
-      v-if="settingActions.includes('yarnQueue')"
+      v-if="settingActions.includes('yarnQueue') && ifShowYarn"
       @submit="(scb, ecb) => handleSubmit('yarn-name', scb, ecb)">
       <el-form ref="yarn-setting-form" :model="form" :rules="yarnQueueRules" :inline-message="true">
         <div class="setting-item">
@@ -263,6 +263,14 @@ export default class SettingAdvanced extends Vue {
     principal: '',
     fileList: [],
     file: null
+  }
+  // 这里是为了适配lighting 嵌套的KE 要隐藏 yarn队列部分
+  get ifShowYarn () {
+    if (this.$store.state.config.platform === 'cloud' || this.$store.state.config.platform === 'iframe') {
+      return false
+    } else {
+      return true
+    }
   }
   get accelerateRules () {
     return {
