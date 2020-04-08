@@ -392,7 +392,7 @@ public class MetaStoreService extends BasicService {
             targetIndexPlanManager.createIndexPlan(srcIndexPlan);
 
             NDataflow dataFlow = targetDataFlowManager.createDataflow(srcIndexPlan, AclPermissionUtil.getCurrentUsername());
-            targetDataFlowManager.updateDataflow(dataFlow.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.WARNING));
+            targetDataFlowManager.updateDataflow(dataFlow.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
         }
     }
 
