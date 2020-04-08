@@ -52,12 +52,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
@@ -202,6 +202,24 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
         user.setPassword("p1234sgw$");
         thrown.expect(KylinException.class);
         thrown.expectMessage("Username should not be empty.");
+        nUserController.createUser(user);
+    }
+
+    @Test
+    public void testCreateUserWithNotEnglishUsername() {
+        val user = new ManagedUser();
+        user.setUsername("中文");
+        user.setPassword("p1234sgw$");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(Message.getInstance().getINVALID_NAME_CONTAINS_OTHET_CHARACTER());
+        nUserController.createUser(user);
+    }
+
+    @Test(expected = KylinException.class)
+    public void testCreateUserWithIlegalCharacter() {
+        val user = new ManagedUser();
+        user.setUsername("gggg?k");
+        user.setPassword("p1234sgw$");
         nUserController.createUser(user);
     }
 

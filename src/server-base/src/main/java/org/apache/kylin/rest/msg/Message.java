@@ -987,4 +987,22 @@ public class Message {
         return "Broken model [%s] can not online or offline!";
     }
 
+    public String getINVALID_NAME_START_WITH_DOT() {
+        return "The user / group names cannot start with a period (.).";
+    }
+
+    public String getINVALID_NAME_START_OR_END_WITH_BLANK() {
+        return "User / group names cannot start or end with a space.";
+    }
+
+    public String getINVALID_NAME_CONTAINS_OTHER_CHARACTER() {
+        return "Only alphanumeric characters can be used in user / group names";
+    }
+
+    public String getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER() {
+        return "The user / group names cannot contain the following symbols: backslash (\\), "
+                + " slash mark (/), colon (:), asterisk (*), question mark (?),  quotation mark (\"), less than sign (<), greater than sign (>), vertical bar (|).";
+
+    }
+
 }

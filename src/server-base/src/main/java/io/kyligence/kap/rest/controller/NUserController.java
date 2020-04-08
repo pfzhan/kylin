@@ -33,18 +33,17 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.UnauthorizedException;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.kylin.rest.service.UserService;
@@ -80,6 +79,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import io.kyligence.kap.rest.service.AclTCRService;
+import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -93,7 +93,6 @@ public class NUserController extends NBasicController {
 
     private static final String PROFILE_CUSTOM = "custom";
 
-    private static final Pattern sidPattern = Pattern.compile("^[a-zA-Z0-9_ ]*$");
     @Autowired
     @Qualifier("userService")
     private UserService userService;
@@ -367,8 +366,17 @@ public class NUserController extends NBasicController {
         if (StringUtils.isEmpty(username)) {
             throw new KylinException("KE-1001", msg.getEMPTY_USER_NAME());
         }
-        if (!sidPattern.matcher(username).matches()) {
-            throw new KylinException("KE-1016", MsgPicker.getMsg().getINVALID_SID());
+        if (username.startsWith(".")) {
+            throw new KylinException("KE-1016", msg.getINVALID_NAME_START_WITH_DOT());
+        }
+        if (!username.equals(username.trim())) {
+            throw new KylinException("KE-1016", msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+        }
+        if (Pattern.compile("[^x00-xff]").matcher(username).find()) {
+            throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+        }
+        if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(username).find()) {
+            throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
         }
     }
 

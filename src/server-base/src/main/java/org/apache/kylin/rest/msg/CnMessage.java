@@ -958,4 +958,19 @@ public class CnMessage extends Message {
         return "处于Broken状态的模型[%s]无法上线或下线";
     }
 
+    public String getINVALID_NAME_START_WITH_DOT() {
+        return "用户名/用户组名不能以英文句号开头(.)";
+    }
+
+    public String getINVALID_NAME_START_OR_END_WITH_BLANK() {
+        return "用户名/用户组名不能以空格开头或结尾";
+    }
+
+    public String getINVALID_NAME_CONTAINS_OTHER_CHARACTER() {
+        return "用户名/用户组中仅支持英文字符";
+    }
+
+    public String getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER() {
+        return "用户名/用户组名中不能包含如下符号: 反斜杠(\\), 斜杠(/), 冒号(:), 星号(*), 问号(?), 引号(“), 小于号(<), 大于号(>), 垂直线(|)";
+    }
 }

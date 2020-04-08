@@ -173,6 +173,11 @@ public class NUserGroupControllerTest {
         nUserGroupController.addUserGroup("");
     }
 
+    @Test(expected = KylinException.class)
+    public void testAddIllegalGroupName() throws Exception {
+        nUserGroupController.addUserGroup(".hhhh");
+    }
+
     @Test
     public void testDelGroup() throws Exception {
         Mockito.doNothing().when(userGroupService).deleteGroup("g1@.h");
