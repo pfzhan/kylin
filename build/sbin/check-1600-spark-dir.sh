@@ -49,6 +49,15 @@ if [[ ${spark_log_dir} != ${spark_eventlog_dir} ]]; then
     checkDirExistAndPermission ${spark_eventlog_dir} "spark history event log"
 fi
 
+sparder_log_dir=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.spark.history.fs.logDirectory`
+sparder_eventlog_dir=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.spark.eventLog.dir`
+
+checkDirExistAndPermission ${sparder_log_dir} "sparder history log"
+
+if [[ ${sparder_log_dir} != ${sparder_eventlog_dir} ]]; then
+    checkDirExistAndPermission ${sparder_eventlog_dir} "sparder history event log"
+fi
+
 # check hive-scratch directory
 engine_config_hive_scratch_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.engine.spark-conf.spark.hadoop.hive.exec.scratchdir`
 storage_config_hive_scratch_dir=`$KYLIN_HOME/bin/get-properties.sh kap.storage.columnar.spark-conf.spark.hadoop.hive.exec.scratchdir`
