@@ -90,6 +90,9 @@ public class JdbcMetadataStore extends MetadataStore {
             + META_TABLE_TS + "=? where " + META_TABLE_KEY + "=? and " + META_TABLE_MVCC + "=?";
     private static final String DELETE_SQL = "delete from %s where " + META_TABLE_KEY + "=?";
 
+    private static final String UPDATE_KEY_SQL = "update %s set " + META_TABLE_KEY + "='%s', " + META_TABLE_MVCC + "="
+            + META_TABLE_MVCC + 1 + ", " + META_TABLE_TS + "=? where " + META_TABLE_KEY + "=? ";
+
     @Getter
     private final DataSourceTransactionManager transactionManager;
     @Getter
@@ -143,6 +146,23 @@ public class JdbcMetadataStore extends MetadataStore {
                     log.warn("write {} {} {} failed", path, mvcc, bs == null ? null : new String(bs.read()));
                 } catch (IOException ignore) {
                 }
+            }
+        });
+    }
+
+    @Override
+    public void move(String srcPath, String destPath) throws Exception {
+        withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
+            @Override
+            public Object handle() throws Exception {
+                jdbcTemplate.update(String.format(UPDATE_KEY_SQL, table, destPath), System.currentTimeMillis(),
+                        srcPath);
+                return null;
+            }
+
+            @Override
+            public void onError() {
+                log.warn("move {} to {} failed", srcPath, destPath);
             }
         });
     }
