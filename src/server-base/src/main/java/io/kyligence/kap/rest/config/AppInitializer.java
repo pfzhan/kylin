@@ -84,9 +84,6 @@ public class AppInitializer {
         boolean isLeader = kylinConfig.isLeaderNode();
 
         if (isLeader) {
-            val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-            resourceStore.createMetaStoreUuidIfNotExist();
-
             //start the embedded metrics reporters
             NMetricsController.startReporters(KapConfig.wrap(kylinConfig));
 

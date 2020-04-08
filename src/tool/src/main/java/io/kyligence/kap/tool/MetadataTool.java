@@ -201,7 +201,6 @@ public class MetadataTool extends ExecutableApplication {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         log.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        resourceStore.createMetaStoreUuidIfNotExist();
 
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
             boolean isGlobal = null == optionsHelper.getOptionValue(OPTION_PROJECT);
@@ -276,7 +275,6 @@ public class MetadataTool extends ExecutableApplication {
 
         val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);
 
-
         val backupMetadataStore = backupResourceStore.getMetadataStore();
 
         if (StringUtils.isBlank(project)) {
@@ -303,8 +301,10 @@ public class MetadataTool extends ExecutableApplication {
                         ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(new ImageDesc(offset))),
                         System.currentTimeMillis(), -1);
                 val uuid = resourceStore.getResource(ResourceStore.METASTORE_UUID_TAG);
-                backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
-                        uuid.getTimestamp(), -1);
+                if (uuid != null) {
+                    backupResourceStore.putResourceWithoutCheck(uuid.getResPath(), uuid.getByteSource(),
+                            uuid.getTimestamp(), -1);
+                }
                 return null;
             }, true);
             log.info("start to backup all projects");

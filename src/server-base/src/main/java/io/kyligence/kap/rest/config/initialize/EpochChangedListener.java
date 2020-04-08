@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.rest.config.initialize;
 
-import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
-import io.kyligence.kap.rest.util.CreateAdminUserUtils;
+import java.io.IOException;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -34,6 +34,10 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
 import com.google.common.eventbus.Subscribe;
 
@@ -43,16 +47,12 @@ import io.kyligence.kap.common.scheduler.EpochStartedNotifier;
 import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
 import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.epoch.EpochOrchestrator;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
+import io.kyligence.kap.rest.util.CreateAdminUserUtils;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 
 @Component
 @Slf4j
@@ -89,8 +89,7 @@ public class EpochChangedListener implements IKeep {
                 favoriteScheduler.init();
 
                 if (!favoriteScheduler.hasStarted()) {
-                    throw new RuntimeException(
-                            "Auto favorite scheduler for " + project + " has not been started");
+                    throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
                 }
                 return 0;
             }, project, 1);
@@ -100,6 +99,10 @@ public class EpochChangedListener implements IKeep {
             CreateAdminUserUtils.createAllAdmins(userService, env);
             logger.info("Register global metrics...");
             NMetricsRegistry.registerGlobalMetrics(kylinConfig);
+            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();
+                return null;
+            }, "", 1);
         }
         EventOrchestratorManager.getInstance(kylinConfig).addProject(project);
     }
