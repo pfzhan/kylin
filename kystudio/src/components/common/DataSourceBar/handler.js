@@ -108,12 +108,15 @@ export const render = {
 }
 
 export function getDatasourceObj (that, sourceType) {
-  const { projectName } = that
+  const { projectName, customTreeTitle } = that
   const sourceName = sourceTypes[sourceType]
-  const sourceNameStr = sourceNameMapping[sourceName]
+  let sourceNameStr = sourceNameMapping[sourceName]
+  if (that.$store.state.config.platform === 'iframe' && sourceNameStr.toLocaleLowerCase() === 'hive') {
+    sourceNameStr = that.$t('cloudHive')
+  }
   return {
     id: sourceType,
-    label: `${that.$t('source')} : ${sourceNameStr}`,
+    label: customTreeTitle !== '' ? `${that.$t(customTreeTitle)}` : `${that.$t('source')} : ${sourceNameStr}`,
     render: render.datasource.render.bind(that),
     children: [],
     sourceType,

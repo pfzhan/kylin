@@ -11,7 +11,8 @@ export default {
     configCsvConn: 'Select CSV file',
     configCsvSetting: 'Setting CSV file',
     configCsvSturcture: 'Table Setting',
-    configCsvSql: 'Create table via SQL'
+    configCsvSql: 'Create table via SQL',
+    cloudHive: 'Object Storage'
   },
   'zh-cn': {
     selectSource: '添加新数据源',
@@ -25,6 +26,7 @@ export default {
     configCsvConn: '选择 CSV 文件',
     configCsvSetting: '设置 CSV 文件',
     configCsvSturcture: '表结构设置',
-    configCsvSql: '建表 SQL 输入'
+    configCsvSql: '建表 SQL 输入',
+    cloudHive: '文件数据源'
   }
 }

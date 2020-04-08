@@ -129,7 +129,14 @@ export default class DataSourceModal extends Vue {
   lockStep (status) {
     this.stepLocked = status
   }
-  get modalTitle () { return titleMaps[this.editType] }
+  get modalTitle () {
+    // 嵌套在iframe中的，需要特殊处理 hive 这种情况，显示为文件数据源
+    if (this.editType === editTypes.HIVE && this.$store.state.config.platform === 'iframe') {
+      return 'cloudHive'
+    } else {
+      return titleMaps[this.editType]
+    }
+  }
   get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : '780px' }
   get confirmText () { return this.$t(confirmMaps[this.editType]) }
   get cancelText () {

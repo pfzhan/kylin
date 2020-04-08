@@ -362,6 +362,9 @@ export default {
     },
     [types.IMPORT_SSB_DATABASE]: function ({ commit }) {
       return api.datasource.importSSBDatabase()
+    },
+    [types.EXPORT_CSV]: function ({commit}, data) {
+      return api.datasource.exportCSV(data)
     }
   }
 }

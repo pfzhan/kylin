@@ -84,7 +84,8 @@ export default {
     exportMetadataFailed: 'Export models failed. Please try again.',
     importModels: 'Import Models',
     emptyIndexTips: 'This model has unbuilt indexes. Please click the build index button to build the indexes.',
-    noIndexTips: 'You should add indexes first before building.'
+    noIndexTips: 'You should add indexes first before building.',
+    guideToAcceptRecom: 'You can click the icon beside the model name to optimize model by accepting recommendations based on your query history.'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -168,6 +169,7 @@ export default {
     exportMetadatas: '导出模型',
     exportMetadataSuccess: '正在生成模型元数据包。生成后将开始下载，请稍后。',
     exportMetadataFailed: '导出失败，请重试。',
-    importModels: '导入模型'
+    importModels: '导入模型',
+    guideToAcceptRecom: '您可以点击模型左侧的提示符来接受系统根据查询历史生成的模型优化建议。'
   }
 }

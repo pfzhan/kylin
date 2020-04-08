@@ -1,7 +1,10 @@
 <template>
   <div>
-    <el-alert show-icon :show-background="false" type="info" class="download-tips">
+    <el-alert show-icon :show-background="false" type="info" class="download-tips"  v-if="$store.state.config.platform !== 'iframe'">
       <span slot="title">{{$t('outputTips')}}<el-button type="primary" size="mini" text @click="downloadLogs">{{$t('download')}}</el-button>{{$t('end')}}</span>
+    </el-alert>
+    <el-alert show-icon :show-background="false" type="info" class="download-tips" v-else>
+      <span slot="title">{{$t('outputTipsKC')}}</span>
     </el-alert>
     <el-input
     type="textarea"
@@ -24,12 +27,14 @@ export default {
     'en': {
       outputTips: 'The output log shows the first and last 100 lines by default. To view all the output, please click to ',
       download: 'download the log file.',
-      end: '.'
+      end: '.',
+      outputTipsKC: 'The output log shows the first and last 100 lines by default. To view all the output, please download diagnosis package on Admin-Troubleshooting page.'
     },
     'zh-cn': {
       outputTips: '输出日志默认展示首尾各100行内容，如需查看所有内容，请点击',
       download: '下载全部日志',
-      end: '。'
+      end: '。',
+      outputTipsKC: '输出日志默认展示首尾各 100 行内容，如需查看所有内容，请进入管理 - 诊断运维页面下载诊断包。'
     }
   },
   computed: {
@@ -55,6 +60,9 @@ export default {
   .el-button {
     padding: 0;
     font-size: 14px;
+  }
+  .el-alert__closebtn{
+    top:3px;
   }
 }
 </style>

@@ -767,7 +767,8 @@ export default class LayoutLeftRightTop extends Vue {
         // var limittime = Math.round(Math.abs(days))
         if (days >= 0) {
           days = Math.ceil(Math.abs(days))
-          if (!this.$store.state.config.overLock) {
+          // 不是嵌套在其他项目中的，才出现这个弹窗提示
+          if (!this.$store.state.config.overLock && this.$store.state.config.platform !== 'iframe') {
             this.lisenceDialogVisible = true
             this.$store.state.config.overLock = true
           }

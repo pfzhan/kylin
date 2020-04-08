@@ -1,4 +1,4 @@
-import { utcToConfigTimeZone } from './index'
+import { utcToConfigTimeZone, getQueryString } from './index'
 import { permissionsMaps, NamedRegex, DatePartitionRule, TimePartitionRule } from 'config/index'
 import { MessageBox, Message } from 'kyligence-ui'
 import moment from 'moment-timezone'
@@ -410,3 +410,21 @@ export function getPrevTimeValue ({ date, m = 0 }) {
 
   return `${year}/${toDoubleNumber(month)}/${toDoubleNumber(day)} ${toDoubleNumber(hour)}:${toDoubleNumber(minutes)}:${toDoubleNumber(seconds)}`
 }
+
+function getPlainRouteObj (route) {
+  return {
+    name: route.name || '',
+    query: route.query || {},
+    params: route.params || {}
+  }
+}
+
+export function postCloudUrlMessage (fromRoute, toRoute) {
+  if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+    const from = getPlainRouteObj(fromRoute)
+    const to = getPlainRouteObj(toRoute)
+    const message = JSON.stringify({ from, to })
+    window.parent.postMessage(`changeUrl:${message}`, '*')
+  }
+}
+

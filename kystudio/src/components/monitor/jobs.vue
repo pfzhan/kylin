@@ -1,6 +1,6 @@
 <template>
   <div id="jobListPage">
-  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips&&isAdminRole" @close="closeTips" show-icon></el-alert>
+  <el-alert :title="$t('adminTips')" type="info" class="admin-tips" v-if="$store.state.user.isShowAdminTips&&isAdminRole&&$store.state.config.platform !== 'iframe'" @close="closeTips" show-icon></el-alert>
   <div class="jobs_list ksd-mrl-20">
     <div class="ksd-title-label ksd-mt-20">{{$t('jobsList')}}</div>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
@@ -332,8 +332,8 @@ import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
 import $ from 'jquery'
 import { pageCount } from '../../config'
-import { transToGmtTime, handleError, handleSuccess } from 'util/business'
-import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime } from 'util/index'
+import { transToGmtTime, handleError, handleSuccess, postCloudUrlMessage } from 'util/business'
+import { cacheLocalStorage, indexOfObjWithSomeKey, objectClone, transToServerGmtTime, getQueryString } from 'util/index'
 import Diagnostic from 'components/admin/Diagnostic/index'
 @Component({
   methods: {
@@ -657,7 +657,11 @@ export default class JobsList extends Vue {
     if (this.$store.state.project.isAllProject) {
       this.setProject(item.project)
     }
-    this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
+    if (getQueryString('from') === 'cloud' || getQueryString('from') === 'iframe') {
+      postCloudUrlMessage(this.$route, { name: 'ModelList', params: { item } })
+    } else {
+      this.$router.push({name: 'ModelList', params: { modelAlias: item.target_subject }})
+    }
   }
   renderColumn (h) {
     let items = []

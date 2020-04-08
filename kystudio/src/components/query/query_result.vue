@@ -51,7 +51,7 @@
       <div :class="['ksd-title-label-small', 'result-title', showExportCondition ? 'ksd-mt-20' : 'result-title-float', {'guide-queryResultBox': isWorkspace}]">{{$t('queryResults')}}</div>
       <div :class="['clearfix', {'ksd-mt-15': showExportCondition}]">
         <div class="ksd-fleft">
-          <el-button v-if="showExportCondition" type="primary" plain size="small" @click.native="exportData">
+          <el-button v-if="showExportCondition" :loading="hasClickExportBtn" type="primary" plain size="small" @click.native="exportData">
             {{$t('exportCSV')}}
           </el-button>
         </div>
@@ -94,12 +94,14 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { scToFloat, showNull } from '../../util/index'
 import { hasRole, transToGmtTime } from '../../util/business'
+import moment from 'moment'
 @Component({
   props: ['extraoption', 'isWorkspace', 'queryExportData'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      query: 'QUERY_BUILD_TABLES'
+      query: 'QUERY_BUILD_TABLES',
+      postToExportCSV: 'EXPORT_CSV'
     })
   },
   computed: {
@@ -166,13 +168,55 @@ export default class queryResult extends Vue {
   timer = null
   pageX = 0
   pageSizeX = 30
+  hasClickExportBtn = false
   exportData () {
     // 区别于3x中，导出所需的参数，存在props 传进来的 queryExportData 这个对象中，不再一起放在 extraoption 中
     this.sql = this.queryExportData.sql
     this.project = this.currentSelectedProject
     this.limit = this.queryExportData.limit
     this.$nextTick(() => {
-      this.$el.querySelectorAll('.exportTool')[0].submit()
+      if (this.$store.state.config.platform === 'iframe') {
+        try {
+          this.hasClickExportBtn = true
+          let params = {
+            sql: this.sql,
+            project: this.project
+          }
+          if (this.limit) {
+            params.limit = this.limit
+          }
+          this.postToExportCSV(params).then((res) => {
+            let file = res && res.headers && res.headers.map && res.headers.map['content-disposition'] && res.headers.map['content-disposition'][0] || ''
+            let fileNameStrArr = file.split(';')
+            let fileNameArr = fileNameStrArr[1] ? fileNameStrArr[1].split('=') : []
+            if (res && res.status === 200 && res.body) {
+              // 动态从header 里取文件名，如果没取到，就前端自己配
+              let fileName = fileNameArr[1].trim().replace(/"/g, '') || (moment().format('YYYYMMDDHHmmssSSS') + '.result.csv')
+              let data = res.body
+              const blob = new Blob([data], {type: 'text/csv;charset=utf-8'})
+              if (window.navigator.msSaveOrOpenBlob) {
+                navigator.msSaveBlob(blob, fileName)
+              } else {
+                var link = document.createElement('a')
+                link.href = window.URL.createObjectURL(blob)
+                link.download = fileName
+                link.click()
+                window.URL.revokeObjectURL(link.href)
+              }
+            }
+            this.hasClickExportBtn = false
+          }, (err) => {
+            this.hasClickExportBtn = false
+            console.log(err)
+          })
+        } catch (e) {
+          this.hasClickExportBtn = false
+          console.log(e)
+        }
+      } else {
+        this.hasClickExportBtn = false
+        this.$el.querySelectorAll('.exportTool')[0].submit()
+      }
     })
   }
   transDataForGrid (data) {

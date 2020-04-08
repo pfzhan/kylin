@@ -82,6 +82,14 @@
             @click="handleResetFilters">{{$t('reset')}}</el-button>
         </div>
       </div>
+      <p v-if="!isAutoProject && $store.state.config.platform === 'iframe'" class="ksd-mb-10">
+        <el-alert
+          :title="$t('guideToAcceptRecom')"
+          type="info"
+          show-icon
+          :closable="false">
+        </el-alert>
+      </p>
       <el-table class="model_list_table"
         v-guide.scrollModelTable
         v-scroll-shadow
@@ -396,6 +404,11 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       if (to.params.modelAlias) {
         // vm.currentEditModel = to.params.modelAlias
         vm.filterArgs.model_name = to.params.modelAlias
+        vm.filterArgs.exact = true
+      }
+      if (to.query.model_alias) {
+        vm.currentEditModel = to.query.model_alias
+        vm.filterArgs.model_name = to.query.model_alias
         vm.filterArgs.exact = true
       }
       // onSortChange 中project有值时会 loadmodellist, 达到初始化数据的目的

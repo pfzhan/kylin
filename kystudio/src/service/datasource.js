@@ -275,5 +275,8 @@ export default {
   },
   importSSBDatabase: () => {
     return Vue.resource(apiUrl + 'tables/import_ssb').save()
+  },
+  exportCSV (data) {
+    return Vue.http.post(apiUrl + 'query/format/csv', data, {emulateJSON: true})
   }
 }

@@ -55,6 +55,7 @@
             :ignore-node-types="['column']"
             v-guide.modelDataSourceTree
             class="tree-box"
+            :class="{'iframeTreeBox': $store.state.config.platform === 'iframe'}"
             ref="datasourceTree"
             :project-name="currentSelectedProject"
             :is-show-load-source="true"
@@ -2037,6 +2038,14 @@ export default class ModelEdit extends Vue {
     .panel-datasource {
       .tree-box {
         width:100%;
+        &.iframeTreeBox {
+          .el-tree > .el-tree-node > .el-tree-node__content{
+            display: none;
+          }
+          .el-tree > .el-tree-node > .el-tree-node__children > .el-tree-node{
+            border-top: none;
+          }
+        }
         .body{
           width:100%;
           padding:10px;

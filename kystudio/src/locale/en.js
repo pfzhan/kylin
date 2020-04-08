@@ -190,7 +190,8 @@ exports.default = {
     dot: '.',
     sqlLimitTip: 'Only the first 100 rows of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
     sqlPartLimitTip: 'Only parts of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
-    overLengthTip: 'No more than 50 characters'
+    overLengthTip: 'No more than 50 characters',
+    dataDirectory: 'Datasource'
   },
   model: {
     generateModel: 'Custom SQL',

@@ -1,7 +1,7 @@
 <template>
 <div style="height: 100%;" class="clearfix">
   <aside class="data-source-bar" :style="dataSourceStyle">
-    <section class="header clearfix" v-if="isShowActionGroup">
+    <section class="header clearfix" v-if="isShowActionGroup && !hideBarTitle">
       <div class="header-text font-medium">
         <span>{{$t('kylinLang.common.dataSource')}}</span>
       </div>
@@ -168,6 +168,14 @@ import { handleSuccessAsync, handleError } from '../../../util'
     isShowDragWidthBar: {
       type: Boolean,
       default: false
+    },
+    hideBarTitle: {
+      type: Boolean,
+      default: false
+    },
+    customTreeTitle: {
+      type: String,
+      default: ''
     }
   },
   components: {
@@ -592,7 +600,10 @@ export default class DataSourceBar extends Vue {
   freshDatasourceTitle () {
     this.datasources.forEach(datasource => {
       const sourceName = sourceTypes[datasource.sourceType]
-      const sourceNameStr = sourceNameMapping[sourceName]
+      let sourceNameStr = sourceNameMapping[sourceName]
+      if (this.$store.state.config.platform === 'iframe' && sourceNameStr.toLocaleLowerCase() === 'hive') {
+        sourceNameStr = this.$t('cloudHive')
+      }
       datasource.label = `${this.$t('source')} : ${sourceNameStr}`
     })
   }

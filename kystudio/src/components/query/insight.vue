@@ -5,10 +5,12 @@
         <DataSourceBar
           :project-name="currentSelectedProject"
           :is-show-load-source="false"
-          :is-show-load-table="datasourceActions.includes('loadSource')"
+          :is-show-load-table="datasourceActions.includes('loadSource') && $store.state.config.platform !== 'iframe'"
           :is-expand-on-click-node="false"
           :is-show-drag-width-bar="true"
           :expand-node-types="['datasource']"
+          :hide-bar-title="$store.state.config.platform === 'iframe'"
+          :custom-tree-title="$store.state.config.platform !== 'iframe' ? '' : 'kylinLang.common.dataDirectory'"
           @autoComplete="handleAutoComplete"
           @click="clickTable">
         </DataSourceBar>
