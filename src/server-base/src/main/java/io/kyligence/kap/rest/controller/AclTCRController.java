@@ -32,10 +32,10 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -137,10 +137,12 @@ public class AclTCRController extends NBasicController {
         }
 
         if (principal && !userService.userExists(sid)) {
-            throw new KylinException("KE-1005", "Operation failed, user:" + sid + " not exists, please add it first.");
+            throw new KylinException("KE-1005",
+                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
         }
         if (!principal && !userGroupService.exists(sid)) {
-            throw new KylinException("KE-1005", "Operation failed, group:" + sid + " not exists, please add it first.");
+            throw new KylinException("KE-1005",
+                    String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
         }
     }
 }

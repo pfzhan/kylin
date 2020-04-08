@@ -74,7 +74,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
         Assert.assertTrue(
-                result.getResponse().getContentAsString().contains("Model alias nmodel_basic already exists!"));
+                result.getResponse().getContentAsString().contains("Model alias [nmodel_basic] are duplicated!"));
     }
 
     @Test
@@ -96,8 +96,8 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest()).andExpect(jsonPath("$.code").value("999"))
                 .andReturn();
-        Assert.assertTrue(
-                result.getResponse().getContentAsString().contains("Model alias new_MOdel, new_model are duplicated!"));
+        Assert.assertTrue(result.getResponse().getContentAsString()
+                .contains("Model alias [new_MOdel, new_model] are duplicated!"));
     }
 
     @Test
@@ -127,7 +127,7 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
         Assert.assertTrue(result.getResponse().getContentAsString()
-                .contains("Model alias ut_inner_join_cube_partial already exists!"));
+                .contains("Model alias [ut_inner_join_cube_partial] are duplicated!"));
 
     }
 
@@ -144,6 +144,6 @@ public class NModelControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
         Assert.assertTrue(
-                result.getResponse().getContentAsString().contains("Model alias nmodel_basic already exists!"));
+                result.getResponse().getContentAsString().contains("Model alias [nmodel_basic] are duplicated!"));
     }
 }

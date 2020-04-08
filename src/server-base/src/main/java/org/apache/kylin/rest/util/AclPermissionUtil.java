@@ -53,6 +53,7 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
@@ -226,11 +227,9 @@ public class AclPermissionUtil {
     public static void checkAclUpdatable(String project) {
         if (!AclPermissionUtil.isAclUpdatable(project)) {
             if (KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()) {
-                throw new KylinException("KE-1005",
-                        "Access Denied, only system and project administrators can edit users' tables, columns, and rows permissions");
+                throw new KylinException("KE-1005", MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN());
             } else {
-                throw new KylinException("KE-1005",
-                        "Access Denied, only system administrators can edit users' tables, columns, and rows permissions");
+                throw new KylinException("KE-1005", MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN());
             }
         }
     }

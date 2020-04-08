@@ -563,7 +563,7 @@ public class NModelController extends NBasicController {
         if (purge) {
             modelService.purgeModelManually(model, project);
         } else if (ArrayUtils.isEmpty(ids)) {
-            throw new KylinException("KE-1010", "Segments id list can not empty!");
+            throw new KylinException("KE-1010", MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
         } else {
             modelService.deleteSegmentById(model, project, ids, force);
         }
@@ -607,12 +607,12 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
             if (ArrayUtils.isEmpty(request.getIds())) {
-                throw new KylinException("KE-1010", "You should choose at least one segment to refresh!");
+                throw new KylinException("KE-1010", MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
             modelService.refreshSegmentById(modelId, request.getProject(), request.getIds());
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
-                throw new KylinException("KE-1010", "You should choose at least two segments to merge!");
+                throw new KylinException("KE-1010", MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
             modelService.mergeSegmentsManually(modelId, request.getProject(), request.getIds());
         }
@@ -796,7 +796,7 @@ public class NModelController extends NBasicController {
 
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
         if (partitionDesc != null && StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
-            throw new KylinException("KE-1027", "Partition column does not exist!");
+            throw new KylinException("KE-1027", MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
         }
     }
 
@@ -806,7 +806,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse<String> checkFilterCondition(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         modelService.checkFilterCondition(modelRequest);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
 }

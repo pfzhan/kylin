@@ -103,7 +103,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
         Assert.assertTrue(result.getResponse().getContentAsString()
-                .contains("User creating is not allowed when username:test_user already exists."));
+                .contains("Username:[test_user] already exists"));
     }
 
     @Test

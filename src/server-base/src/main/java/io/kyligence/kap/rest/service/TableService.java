@@ -934,12 +934,12 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         SegmentRange readySegmentRange = dataLoadingRange.getCoveredRange();
         if (readySegmentRange == null) {
-            throw new KylinException("KE-1005", "There is no ready segment to refresh!");
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT());
         }
         SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
         if (!readySegmentRange.contains(segmentRangeRefresh)) {
-            throw new KylinException("KE-1005", "Data during refresh range must be ready!");
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NOT_READY());
         }
     }
 
@@ -1579,7 +1579,7 @@ public class TableService extends BasicService {
     private void checkFile(String fileName) {
         File file = new File(fileName);
         if (!file.exists() || !file.isFile()) {
-            throw new KylinException("KE-1034", "cannot find file " + fileName);
+            throw new KylinException("KE-1034", String.format(MsgPicker.getMsg().getFILE_NOT_EXIST(), fileName));
         }
     }
 

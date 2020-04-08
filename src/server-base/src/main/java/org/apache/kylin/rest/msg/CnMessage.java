@@ -242,7 +242,7 @@ public class CnMessage extends Message {
     }
 
     public String getEMPTY_PROJECT_NAME() {
-        return "没有项目信息。请指定一个项目";
+        return "没有项目信息，请指定一个项目。";
     }
 
     public String getPROJECT_UNMODIFIABLE_REASON() {
@@ -266,11 +266,11 @@ public class CnMessage extends Message {
     }
 
     public String getDUPLICATE_DIMENSION_NAME() {
-        return "维度名称 '%s' 已存在，不能被创建";
+        return "维度名称 '%s' 已存在";
     }
 
     public String getDUPLICATE_MEASURE_NAME() {
-        return "度量名称 '%s' 已存在，不能被创建";
+        return "度量名称 '%s' 已存在";
     }
 
     public String getDUPLICATE_MEASURE_DEFINITION() {
@@ -745,4 +745,217 @@ public class CnMessage extends Message {
     public String getTRANSFER_FAILED() {
         return "转发失败。";
     }
+
+    public String getUSER_EXISTS() {
+        return "用户名:[%s] 已存在。";
+    }
+
+    public String getOPERATION_FAILED_BY_USER_NOT_EXIST() {
+        return "操作失败，用户[%s]不存在，请先添加";
+    }
+
+    public String getOPERATION_FAILED_BY_GROUP_NOT_EXIST() {
+        return "操作失败，用户组[%s]不存在，请先添加";
+    }
+
+    public String getPERMISSION_DENIED() {
+        return "拒绝访问";
+    }
+
+    public String getCOLUMU_IS_NOT_DIMENSION() {
+        return "列[%s]不是一个维度";
+    }
+
+    public String getMODEL_CAN_NOT_PURGE() {
+        return "模型[%s]无法被清除";
+    }
+
+    public String getMODEL_SEGMENT_CAN_NOT_REMOVE() {
+        return "模型[%s]不能手动清除Segment";
+    }
+
+    public String getSEGMENT_CAN_NOT_REFRESH() {
+        return "由于您需要刷新的Segment中有部分Segment正在构建，您现在无法刷新。";
+    }
+
+    public String getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE() {
+        return "可用的Segment范围已更改，无法刷新，请重试。";
+    }
+
+    public String getCAN_NOT_BUILD_SEGMENT() {
+        return "无法构建Segment，请先定义聚合索引或者明细索引。";
+    }
+
+    public String getCAN_NOT_BUILD_SEGMENT_MANUALLY() {
+        return "模型[%s]不能手动构建Segment";
+    }
+
+    public String getCAN_NOT_BUILD_INDICES_MANUALLY() {
+        return "模型[%s]不能手动构建索引";
+    }
+
+    public String getINVALID_REMOVE_SEGMENT() {
+        return "只有头部或尾部的连续的Segment才能被移除！";
+    }
+
+    public String getINVALID_MERGE_SEGMENT() {
+        return "无法合并暂不可用的Segment";
+    }
+
+    public String getINVALID_SET_TABLE_INC_LOADING() {
+        return "无法设置表[％s]的增量加载，因为另一个模型[％s]将该表用作维表";
+    }
+
+    public String getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT() {
+        return "没有可用的Segment可以刷新";
+    }
+
+    public String getINVALID_REFRESH_SEGMENT_BY_NOT_READY() {
+        return "刷新范围内的数据必须就绪";
+    }
+
+    public String getINVALID_LOAD_HIVE_TABLE_NAME() {
+        return "不能执行该操作，请设置kap.table.load-hive-tablename-cached.enabled=true，然后重试";
+    }
+
+    public String getINVALID_REMOVE_USER_FROM_ALL_USER() {
+        return "无法从ALL USERS组中删除用户。";
+    }
+
+    public String getACCESS_DENY_ONLY_ADMIN() {
+        return "拒绝访问，只有系统和项目管理员才能编辑用户的表，列和行权限";
+    }
+
+    public String getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN() {
+        return "拒绝访问，只有系统管理员才能编辑用户的表，列和行权限";
+    }
+
+    public String getQUERY_TOO_MANY_RUNNING() {
+        return "并发查询请求太多。";
+    }
+
+    public String getSELF_DISABLE_FORBIDDEN() {
+        return "您不可以禁用您自己";
+    }
+
+    public String getSELF_DELETE_FORBIDDEN() {
+        return "您不可以删除您自己";
+    }
+
+    public String getOLD_PASSWORD_WRONG() {
+        return "原密码不正确";
+    }
+
+    public String getINVALID_PASSWORD() {
+        return "密码应至少包含一个数字，字母和特殊字符（〜！@＃$％^＆*（）{} |：\\“ <>？[]; \\'\\，。/`）。";
+    }
+
+    public String getSHORT_PASSWORD() {
+        return "密码应包含8个以上的字符！";
+    }
+
+    public String getSEGMENT_LIST_IS_EMPTY() {
+        return "Segments 列表为空";
+    }
+
+    public String getINVALID_REFRESH_SEGMENT() {
+        return "您应该至少选择一个Segment来刷新。";
+    }
+
+    public String getINVALID_MERGE_SEGMENT_BY_TOO_LESS() {
+        return "您应该至少选择两个Segment来合并。";
+    }
+
+    public String getCONTENT_IS_EMPTY() {
+        return "许可证内容为空";
+    }
+
+    public String getINLEGAL_EMAIL() {
+        return "不允许使用个人电子邮件或非法电子邮件";
+    }
+
+    public String getLICENSE_ERROR() {
+        return "获取许可证失败";
+    }
+
+    public String getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY() {
+        return "邮箱, 用户名, 公司不能为空";
+    }
+
+    public String getEMAIL_USERNAME_COMPANY_IS_ILLEGAL() {
+        return "邮箱, 用户名, 公司的长度要小于等于50";
+    }
+
+    public String getINVALID_COMPUTER_COLUMN_NAME() {
+        return "计算列[%s]的名称是 SQL 关键字，请使用其他名称。";
+    }
+
+    public String getMODEL_ALIAS_DUPLICATED() {
+        return "模型表名[%s]已存在";
+    }
+
+    public String getINVALID_RANGE_LESS_THAN_ZERO() {
+        return "起始时间和终止时间必须大于0";
+    }
+
+    public String getINVALID_RANGE_NOT_FORMAT() {
+        return "无效的起始时间或终止时间格式。仅支持时间戳类型，单位毫秒";
+    }
+
+    public String getINVALID_RANGE_END_LESSTHAN_START() {
+        return "终止时间必须大于起始时间";
+    }
+
+    public String getINVALID_RANGE_NOT_CONSISTENT() {
+        return "起始时间和终止时间必须同时存在或者同时不存在";
+    }
+
+    public String getID_CANNOT_EMPTY() {
+        return "ID不能为空";
+    }
+
+    public String getINVALID_CREATE_MODEL() {
+        return "无法在SQL加速项目中手动创建模型！";
+    }
+
+    public String getSEGMENT_INVALID_RANGE() {
+        return "要刷新的[%s] Segment 范围已经超出了加载数据的范围，加载数据的范围是[%s]";
+    }
+
+    public String getSEGMENT_RANGE_OVERLAP() {
+        return "将要构建的范围和以构建的范围重合从[%s]到[%s],请选择新的数据范围，然后重试";
+    }
+
+    public String getPARTITION_COLUMN_NOT_EXIST() {
+        return "分区列不存在";
+    }
+
+    public String getINVALID_PARTITION_COLUMN() {
+        return "时间分区列必须使用事实表上的原始列";
+    }
+
+    public String getTABLE_NAME_CANNOT_EMPTY() {
+        return "必须指定表名！";
+    }
+
+    public String getTABLE_NOT_FOUND() {
+        return "找不到表[%s]";
+    }
+
+    public String getILLEGAL_JOB_STATE() {
+        return "非法的任务状态:%s";
+    }
+
+    public String getFILE_NOT_EXIST() {
+        return "找不到文件[%s]";
+    }
+
+    public String getDATABASE_NOT_EXIST() {
+        return "数据库:[%s]不存在";
+    }
+
+    public String getBROKEN_MODEL_CANNOT_ONOFFLINE() {
+        return "处于Broken状态的模型[%s]无法上线或下线";
+    }
+
 }

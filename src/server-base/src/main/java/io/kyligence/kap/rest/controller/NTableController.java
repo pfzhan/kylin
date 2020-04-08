@@ -519,30 +519,22 @@ public class NTableController extends NBasicController {
     @GetMapping(value = "/prepare_reload")
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
-            @RequestParam(value = "table") String table) {
+            @RequestParam(value = "table") String table) throws Exception {
         checkProjectName(project);
-        try {
-            val result = tableService.preProcessBeforeReload(project, table);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
-        } catch (Exception e) {
-            throw new KylinException("KE-1030", "prepare reload table error", e);
-        }
+        val result = tableService.preProcessBeforeReload(project, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @PostMapping(value = "/reload", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
-    public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) {
+    public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) throws Exception {
         checkProjectName(request.getProject());
         if (StringUtils.isEmpty(request.getTable())) {
-            throw new KylinException("KE-1029", "table name must be specified!");
+            throw new KylinException("KE-1029", MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
         }
-        try {
-            tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
-                    request.getMaxRows(), request.isNeedBuild());
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
-        } catch (Exception e) {
-            throw new KylinException("KE-1030", "reload table error", e);
-        }
+        tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(), request.getMaxRows(),
+                request.isNeedBuild());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "reloadHiveTableName (update)", notes = "Update URL: table_name")

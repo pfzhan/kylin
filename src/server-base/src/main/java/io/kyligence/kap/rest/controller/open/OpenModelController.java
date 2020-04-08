@@ -34,6 +34,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -123,7 +124,7 @@ public class OpenModelController extends NBasicController {
         List<NDataModelResponse> responses = modelService.getModels(modelAlias, project, true, null, null,
                 "last_modify", true);
         if (CollectionUtils.isEmpty(responses)) {
-            throw new KylinException("KE-1037", String.format("Can not find the model_name '%s'!", modelAlias));
+            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         return responses.get(0);
     }
@@ -385,7 +386,7 @@ public class OpenModelController extends NBasicController {
         boolean filterByModels = request.isFilterByModelNames() && request.isFilterByModes();
         if (filterByModels) {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
-                throw new KylinException("KE-1010", "Model names should not be empty when filter by model names!");
+                throw new KylinException("KE-1010", MsgPicker.getMsg().getEMPTY_MODEL_NAME());
             }
             for (String modelName : request.getModelNames()) {
                 getModel(modelName, request.getProject());

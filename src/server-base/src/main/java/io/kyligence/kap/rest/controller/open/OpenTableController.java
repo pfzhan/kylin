@@ -32,6 +32,7 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -79,7 +80,7 @@ public class OpenTableController extends NBasicController {
     public TableDesc getTable(String project, String tableName) {
         TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
         if (null == table) {
-            throw new KylinException("KE-1029", String.format("Can not find the table with tableName: %s", tableName));
+            throw new KylinException("KE-1029", String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
         }
         return table;
     }

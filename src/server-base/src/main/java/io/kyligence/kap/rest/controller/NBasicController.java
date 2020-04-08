@@ -312,7 +312,7 @@ public class NBasicController {
 
     public void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
-            throw new KylinException("KE-1010", "Id cannot be empty");
+            throw new KylinException("KE-1010", MsgPicker.getMsg().getID_CANNOT_EMPTY());
         }
     }
 
@@ -322,10 +322,10 @@ public class NBasicController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new KylinException("KE-1017", "Start or end of range must be greater than 0!");
+            throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
         }
         if (start >= end) {
-            throw new KylinException("KE-1017", "End of range must be greater than start!");
+            throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
         }
     }
 
@@ -341,21 +341,17 @@ public class NBasicController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new KylinException("KE-1017",
-                        "No valid value for 'start' or 'end'. Only support timestamp type, unit: ms.");
+                throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
             }
 
-            if (startLong < 0)
-                throw new KylinException("KE-1017", "Start of range must be greater than 0!");
-
-            if (endLong < 0)
-                throw new KylinException("KE-1017", "End of range must be greater than 0!");
+            if (startLong < 0 || endLong < 0)
+                throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
 
             if (startLong >= endLong)
-                throw new KylinException("KE-1017", "End of range must be greater than start!");
+                throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
 
         } else {
-            throw new KylinException("KE-1017", "Start and end must exist or not at the same time!");
+            throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
         }
     }
 

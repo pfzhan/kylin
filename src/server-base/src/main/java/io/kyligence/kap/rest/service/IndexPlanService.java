@@ -428,7 +428,8 @@ public class IndexPlanService extends BasicService {
         val dimensions = model.getDimensionNameIdMap();
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
-                throw new KylinException("KE-1005", "Column " + shardByColumn + " is not dimension");
+                throw new KylinException("KE-1005",
+                        String.format(MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
             }
         }
 

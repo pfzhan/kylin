@@ -182,8 +182,6 @@ public class ModelService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelService.class);
 
-    private static final String MODEL = "Model '";
-
     private static final String SEGMENT_PATH = "segment_path";
 
     private static final String FILE_COUNT = "file_count";
@@ -751,7 +749,8 @@ public class ModelService extends BasicService {
 
     private void checkAliasExist(String modelId, String newAlias, String project) {
         if (!checkModelAliasUniqueness(modelId, newAlias, project)) {
-            throw new KylinException("KE-1023", "Model alias " + newAlias + " already exists!");
+            throw new KylinException("KE-1023",
+                    String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(), newAlias));
         }
     }
 
@@ -821,7 +820,7 @@ public class ModelService extends BasicService {
         NDataModel dataModelDesc = getModelById(modelId, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new KylinException("KE-1005",
-                    MODEL + dataModelDesc.getAlias() + "' is table oriented, can not purge the model!!");
+                    String.format(MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
         }
         purgeModel(modelId, project);
     }
@@ -947,7 +946,8 @@ public class ModelService extends BasicService {
 
     private void checkDataflowStatus(NDataflow dataflow, String modelId) {
         if (dataflow.getStatus().equals(RealizationStatusEnum.BROKEN)) {
-            throw new KylinException("KE-1038", "DescBroken model " + modelId + " can not online or offline!");
+            throw new KylinException("KE-1038",
+                    String.format(MsgPicker.getMsg().getBROKEN_MODEL_CANNOT_ONOFFLINE(), modelId));
         }
     }
 
@@ -1008,8 +1008,7 @@ public class ModelService extends BasicService {
                 }
 
                 if (CollectionUtils.isNotEmpty(segments.getBuildingSegments())) {
-                    throw new KylinException("KE-1005",
-                            "Can not refresh, some segments is building within the range you want to refresh!");
+                    throw new KylinException("KE-1005", MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
                 }
             } else {
                 checkSegRefreshingInLagBehindModel(segments);
@@ -1030,8 +1029,7 @@ public class ModelService extends BasicService {
     private void checkSegRefreshingInLagBehindModel(Segments<NDataSegment> segments) {
         for (val seg : segments) {
             if (segments.getSegmentStatusToDisplay(seg).equals(SegmentStatusEnumToDisplay.REFRESHING)) {
-                throw new KylinException("KE-1026",
-                        "Can not refresh, some segments is building within the range you want to refresh!");
+                throw new KylinException("KE-1026", MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
             }
         }
     }
@@ -1040,9 +1038,8 @@ public class ModelService extends BasicService {
             SegmentRange toBeRefreshSegmentRange) {
         SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
         if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
-            throw new KylinException("KE-1026", "ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
-                    + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is "
-                    + coveredReadySegmentRange);
+            throw new KylinException("KE-1026", String.format(MsgPicker.getMsg().getSEGMENT_INVALID_RANGE(),
+                    toBeRefreshSegmentRange, coveredReadySegmentRange));
         }
     }
 
@@ -1053,7 +1050,7 @@ public class ModelService extends BasicService {
         RefreshAffectedSegmentsResponse response = getRefreshAffectedSegmentsResponse(project, table, refreshStart,
                 refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
-            throw new KylinException("KE-1005", "Ready segments range has changed, can not refresh, please try again.");
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE());
         }
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
@@ -1255,7 +1252,7 @@ public class ModelService extends BasicService {
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
                 || dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException("KE-1018", "Can not create model manually in SQL acceleration project!");
+            throw new KylinException("KE-1018", MsgPicker.getMsg().getINVALID_CREATE_MODEL());
         }
 
         preProcessBeforeModelSave(dataModel, project);
@@ -1500,7 +1497,7 @@ public class ModelService extends BasicService {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new KylinException("KE-1005",
-                    MODEL + dataModel.getAlias() + "' is table oriented, can not remove segments manually!");
+                    String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExist(model, project, ids);
@@ -1567,7 +1564,7 @@ public class ModelService extends BasicService {
         if (model.getPartitionDesc() != null
                 && !StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             //increment build model
-            throw new IllegalArgumentException("Can not full build on increment model.");
+            throw new IllegalArgumentException(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
 
         }
         val dataflowManager = getDataflowManager(project);
@@ -1701,13 +1698,12 @@ public class ModelService extends BasicService {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new KylinException("KE-1005",
-                    "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
+                    String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT_MANUALLY(), modelDesc.getAlias()));
         }
 
         val indexPlan = getIndexPlan(modelId, project);
         if (indexPlan == null || indexPlan.getAllLayouts().isEmpty()) {
-            throw new KylinException("KE-1005",
-                    "Can not build segments, please define table index or aggregate index first!");
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
         }
     }
 
@@ -1740,10 +1736,9 @@ public class ModelService extends BasicService {
             for (NDataSegment existedSegment : segments) {
                 if (existedSegment.getSegRange().overlaps(segmentRangeToBuild)) {
                     throw new KylinException("KE-1026",
-                            "Segments to build overlaps built or building segment(from "
-                                    + existedSegment.getSegRange().getStart().toString() + " to "
-                                    + existedSegment.getSegRange().getEnd().toString()
-                                    + "), please select new data range and try again!");
+                            String.format(MsgPicker.getMsg().getSEGMENT_RANGE_OVERLAP(),
+                                    existedSegment.getSegRange().getStart().toString(),
+                                    existedSegment.getSegRange().getEnd().toString()));
                 }
             }
         }
@@ -1823,7 +1818,7 @@ public class ModelService extends BasicService {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
                 || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase())) {
             throw new KylinException("KE-1016",
-                    "The computed column's name:" + name + " is a sql keyword, please choose another name.");
+                    String.format(MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME(), name));
         }
     }
 
@@ -1914,7 +1909,7 @@ public class ModelService extends BasicService {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new KylinException("KE-1005",
-                    MODEL + dataModel.getAlias() + "' is table oriented, can not remove segments manually!");
+                    String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsExist(model, project, ids);
@@ -1996,7 +1991,7 @@ public class ModelService extends BasicService {
     private void checkNeighbouringSegmentsDeleted(List<String> idsToDelete, int i, Segments<NDataSegment> allSegments) {
         if (!idsToDelete.contains(allSegments.get(i - 1).getId())
                 || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
-            throw new KylinException("KE-1005", "Only consecutive segments in head or tail can be removed!");
+            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REMOVE_SEGMENT());
         }
     }
 
@@ -2041,7 +2036,7 @@ public class ModelService extends BasicService {
             }
 
             if (!segment.getStatus().equals(SegmentStatusEnum.READY)) {
-                throw new KylinException("KE-1005", "Cannot merge segments which are not ready");
+                throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_MERGE_SEGMENT());
             }
 
             val segmentStart = segment.getTSRange().getStart();
@@ -2286,8 +2281,7 @@ public class ModelService extends BasicService {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
                 Preconditions.checkState(getDataLoadingRangeManager(project).getDataLoadingRange(tableName) == null);
-                throw new KylinException("KE-1005", String.format(
-                        "Can not set table '%s' incremental loading, as another model '%s' uses it as a lookup table",
+                throw new KylinException("KE-1005", String.format(MsgPicker.getMsg().getINVALID_SET_TABLE_INC_LOADING(),
                         tableName, modelDesc.getAlias()));
             }
         }
@@ -2317,7 +2311,7 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val modelDesc = modelManager.getDataModelDesc(model);
         if (modelDesc == null) {
-            throw new KylinException("KE-1037", MODEL + model + "' does not exist!");
+            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), model));
         }
         val modelInfoResponse = new ModelInfoResponse();
         modelInfoResponse.setProject(project);
@@ -2415,7 +2409,7 @@ public class ModelService extends BasicService {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new KylinException("KE-1005",
-                    "Table oriented model '" + modelDesc.getAlias() + "' can not build indices manually!");
+                    String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_INDICES_MANUALLY(), modelDesc.getAlias()));
         }
 
         NDataflow df = getDataflowManager(project).getDataflow(modelId);
@@ -2559,7 +2553,7 @@ public class ModelService extends BasicService {
         if (partitionDesc != null) {
             String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
             if (!partitionDesc.getPartitionDateColumn().toUpperCase().startsWith(rootFactTable + ".")) {
-                throw new KylinException("KE-1027", "partition_date_column must use root fact table column");
+                throw new KylinException("KE-1027", MsgPicker.getMsg().getINVALID_PARTITION_COLUMN());
             }
         }
 
@@ -2649,9 +2643,8 @@ public class ModelService extends BasicService {
                 .collect(groupingBy(modelRequest -> modelRequest.getAlias().toLowerCase(), Collectors.toList()));
         aliasModelRequestMap.forEach((alias, requests) -> {
             if (requests.size() > 1) {
-                throw new KylinException("KE-1016",
-                        "Model alias " + requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))
-                                + " are duplicated!");
+                throw new KylinException("KE-1016", String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(),
+                        requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))));
             }
         });
     }

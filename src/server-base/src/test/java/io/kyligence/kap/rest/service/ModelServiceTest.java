@@ -716,7 +716,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model 'test_encoding' is table oriented, can not purge the model!");
+        thrown.expectMessage("Model [test_encoding] is table oriented, can not purge the model");
         modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
 
@@ -779,7 +779,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testCloneModelException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model alias nmodel_basic_inner already exists");
+        thrown.expectMessage("Model alias [nmodel_basic_inner] are duplicated!");
         modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner", "default");
     }
 
@@ -820,7 +820,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testRenameModelException2() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model alias nmodel_basic_inner already exists");
+        thrown.expectMessage("Model alias [nmodel_basic_inner] are duplicated");
         modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner");
     }
 
@@ -1173,7 +1173,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model 'nmodel_basic_inner' is table oriented, can not remove segments manually!");
+        thrown.expectMessage("Model [nmodel_basic_inner] is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment.getId() }, false);
     }
@@ -1392,7 +1392,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model alias nmodel_basic already exists!");
+        thrown.expectMessage("Model alias [nmodel_basic] are duplicated");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setUuid("new_model");
         modelRequest.setLastModified(0L);
@@ -1750,7 +1750,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Test
     public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
         thrown.expectInTransaction(KylinException.class);
-        thrown.expectMessageInTransaction("Table oriented model 'nmodel_basic' can not build segments manually!");
+        thrown.expectMessageInTransaction("Table oriented model [nmodel_basic] can not build segments manually!");
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 
@@ -2327,7 +2327,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             ModelService.checkCCName("LOCAL");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("The computed column's name:LOCAL is a sql keyword, please choose another name.",
+            Assert.assertEquals("The computed column's name:[LOCAL] is a sql keyword, please choose another name.",
                     e.getMessage());
         }
 
@@ -2336,7 +2336,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             ModelService.checkCCName("MSCK");
             Assert.fail();
         } catch (Exception e) {
-            Assert.assertEquals("The computed column's name:MSCK is a sql keyword, please choose another name.",
+            Assert.assertEquals("The computed column's name:[MSCK] is a sql keyword, please choose another name.",
                     e.getMessage());
         }
 
@@ -3062,7 +3062,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "Duplicate dimension name 'CAL_DT1'."));
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "Dimension name 'CAL_DT1' already exists."));
         }
 
         // invalid dimension name
@@ -3110,7 +3110,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
-            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Duplicate measure name 'count_1'."));
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Measure name 'count_1' already exists."));
         }
 
         // duplicate measure definitions
@@ -3120,7 +3120,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
-            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Duplicate measure definition 'count_2'."));
+            Assert.assertTrue(StringUtils.contains(e.getMessage(),
+                    "The measure definition is the same as the measure 'count_2'. So this measure cannot be created."));
         }
 
         measures.remove(measure2);
@@ -3151,7 +3152,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val project = "default";
         val modelId = "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96";
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Table oriented model 'all_fixed_length' can not build indices manually!");
+        thrown.expectMessage("Table oriented model [all_fixed_length] can not build indices manually!");
         modelService.buildIndicesManually(modelId, project);
     }
 

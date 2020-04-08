@@ -297,7 +297,7 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException("KE-1015", String.format("Project '%s' does not exist!", project));
+            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
@@ -526,8 +526,8 @@ public class ProjectService extends BasicService {
             projectInstance.setDefaultDatabase(uppderDB);
             prjManager.updateProject(projectInstance);
         } else {
-            throw new KylinException("KE-1036", String
-                    .format("Update default database failed, cause by database: %s is not found.", defaultDatabase));
+            throw new KylinException("KE-1036",
+                    String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(), defaultDatabase));
         }
     }
 
@@ -632,7 +632,7 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException("KE-1015", String.format("Project '%s' does not exist!", project));
+            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);

@@ -131,35 +131,35 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTimeRangeEndGreaterThanStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("End of range must be greater than start!");
+        thrown.expectMessage("The end time must be greater than the start time");
         nBasicController.validateDataRange("10", "1");
     }
 
     @Test
     public void testTimeRangeEndEqualToStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("End of range must be greater than start!");
+        thrown.expectMessage("The end time must be greater than the start time");
         nBasicController.validateDataRange("1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidStart() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Start of range must be greater than 0!");
+        thrown.expectMessage("Start or end of range must be greater than 0!");
         nBasicController.validateDataRange("-1", "1");
     }
 
     @Test
     public void testTimeRangeInvalidEnd() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("End of range must be greater than 0!");
+        thrown.expectMessage("Start or end of range must be greater than 0!");
         nBasicController.validateDataRange("2", "-1");
     }
 
     @Test
     public void testTimeRangeInvalidFormat() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("No valid value for 'start' or 'end'. Only support timestamp type, unit: ms.");
+        thrown.expectMessage("Invalid start or end time format. Only support timestamp type, unit ms");
         nBasicController.validateDataRange("start", "end");
     }
 

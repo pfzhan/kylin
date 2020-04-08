@@ -725,7 +725,7 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     public void testUpdateAggShard_WithInvalidColumn() {
         val wrongColumn = "TEST_CAL_DT.WEEK_BEG_DT";
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Column " + wrongColumn + " is not dimension");
+        thrown.expectMessage("Column [" + wrongColumn + "] is not dimension");
         val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
         val request = new AggShardByColumnsRequest();
         request.setModelId(modelId);

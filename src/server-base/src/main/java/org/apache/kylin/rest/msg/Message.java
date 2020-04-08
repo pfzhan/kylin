@@ -222,15 +222,15 @@ public class Message {
     }
 
     public String getDUPLICATE_DIMENSION_NAME() {
-        return "Duplicate dimension name '%s'.";
+        return "Dimension name '%s' already exists.";
     }
 
     public String getDUPLICATE_MEASURE_NAME() {
-        return "Duplicate measure name '%s'.";
+        return "Measure name '%s' already exists.";
     }
 
     public String getDUPLICATE_MEASURE_DEFINITION() {
-        return "Duplicate measure definition '%s'.";
+        return "The measure definition is the same as the measure '%s'. So this measure cannot be created.";
     }
 
     public String getDUPLICATE_JOIN_CONDITIONS() {
@@ -362,7 +362,7 @@ public class Message {
     }
 
     public String getUSER_EDIT_NOT_ALLOWED() {
-        return "User editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
+        return "User editing operations under the LDAP authentication mechanism are not supported at this time";
     }
 
     public String getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM() {
@@ -810,4 +810,181 @@ public class Message {
     public String getTRANSFER_FAILED() {
         return "Transfer failed.";
     }
+
+    public String getUSER_EXISTS() {
+        return "Username:[%s] already exists";
+    }
+
+    public String getOPERATION_FAILED_BY_USER_NOT_EXIST() {
+        return "Operation failed, user:[%s] not exists, please add it first";
+    }
+
+    public String getOPERATION_FAILED_BY_GROUP_NOT_EXIST() {
+        return "Operation failed, group:[%s] not exists, please add it first";
+    }
+
+    public String getCOLUMU_IS_NOT_DIMENSION() {
+        return "Column [%s] is not dimension";
+    }
+
+    public String getMODEL_CAN_NOT_PURGE() {
+        return "Model [%s] is table oriented, can not purge the model";
+    }
+
+    public String getMODEL_SEGMENT_CAN_NOT_REMOVE() {
+        return "Model [%s] is table oriented, can not remove segments manually!";
+    }
+
+    public String getSEGMENT_CAN_NOT_REFRESH() {
+        return "Can not refresh, some segments is building within the range you want to refresh!";
+    }
+
+    public String getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE() {
+        return "Ready segments range has changed, can not refresh, please try again.";
+    }
+
+    public String getCAN_NOT_BUILD_SEGMENT() {
+        return "Can not build segments, please define table index or aggregate index first!";
+    }
+
+    public String getCAN_NOT_BUILD_SEGMENT_MANUALLY() {
+        return "Table oriented model [%s] can not build segments manually!";
+    }
+
+    public String getCAN_NOT_BUILD_INDICES_MANUALLY() {
+        return "Table oriented model [%s] can not build indices manually!";
+    }
+
+    public String getINVALID_REMOVE_SEGMENT() {
+        return "Only consecutive segments in head or tail can be removed!";
+    }
+
+    public String getINVALID_MERGE_SEGMENT() {
+        return "Cannot merge segments which are not ready";
+    }
+
+    public String getINVALID_SET_TABLE_INC_LOADING() {
+        return "Can not set table '%s' incremental loading, as another model '%s' uses it as a lookup table";
+    }
+
+    public String getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT() {
+        return "There is no ready segment to refresh!";
+    }
+
+    public String getINVALID_REFRESH_SEGMENT_BY_NOT_READY() {
+        return "Data during refresh range must be ready!";
+    }
+
+    public String getINVALID_LOAD_HIVE_TABLE_NAME() {
+        return "This operator is not allowed , Please set kap.table.load-hive-tablename-cached.enabled=true and try again";
+    }
+
+    public String getINVALID_REMOVE_USER_FROM_ALL_USER() {
+        return "Can not remove user from ALL USERS group.";
+    }
+
+    public String getACCESS_DENY_ONLY_ADMIN() {
+        return "Access Denied, only system and project administrators can edit users' tables, columns, and rows permissions";
+    }
+
+    public String getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN() {
+        return "Access Denied, only system administrators can edit users' tables, columns, and rows permissions";
+    }
+
+    public String getSEGMENT_LIST_IS_EMPTY() {
+        return "Segments id list can not empty!";
+    }
+
+    public String getINVALID_REFRESH_SEGMENT() {
+        return "You should choose at least one segment to refresh!";
+    }
+
+    public String getINVALID_MERGE_SEGMENT_BY_TOO_LESS() {
+        return "You should choose at least two segment to merge!";
+    }
+
+    public String getCONTENT_IS_EMPTY() {
+        return "license content is empty";
+    }
+
+    public String getINLEGAL_EMAIL() {
+        return "A personal email or illegal email is not allowed";
+    }
+
+    public String getLICENSE_ERROR() {
+        return "Get license error";
+    }
+
+    public String getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY() {
+        return "Email, username, company can not be empty";
+    }
+
+    public String getEMAIL_USERNAME_COMPANY_IS_ILLEGAL() {
+        return "Email, username, company length should be less or equal than 50";
+    }
+
+    public String getINVALID_COMPUTER_COLUMN_NAME() {
+        return "The computed column's name:[%s] is a sql keyword, please choose another name.";
+    }
+
+    public String getMODEL_ALIAS_DUPLICATED() {
+        return "Model alias [%s] are duplicated!";
+    }
+
+    public String getINVALID_RANGE_LESS_THAN_ZERO() {
+        return "Start or end of range must be greater than 0!";
+    }
+
+    public String getINVALID_RANGE_NOT_FORMAT() {
+        return "Invalid start or end time format. Only support timestamp type, unit ms";
+    }
+
+    public String getINVALID_RANGE_END_LESSTHAN_START() {
+        return "The end time must be greater than the start time";
+    }
+
+    public String getINVALID_RANGE_NOT_CONSISTENT() {
+        return "Start and end must exist or not at the same time!";
+    }
+
+    public String getID_CANNOT_EMPTY() {
+        return "Id cannot be empty";
+    }
+
+    public String getINVALID_CREATE_MODEL() {
+        return "Can not create model manually in SQL acceleration project!";
+    }
+
+    public String getSEGMENT_INVALID_RANGE() {
+        return "ToBeRefreshSegmentRange [%s] is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is [%s]";
+    }
+
+    public String getSEGMENT_RANGE_OVERLAP() {
+        return "Segments to build overlaps built or building segment from %s to %s, please select new data range and try again!";
+    }
+
+    public String getPARTITION_COLUMN_NOT_EXIST() {
+        return "Partition column does not exist!";
+    }
+
+    public String getINVALID_PARTITION_COLUMN() {
+        return "Partition_date_column must use root fact table column";
+    }
+
+    public String getTABLE_NAME_CANNOT_EMPTY() {
+        return "Table name must be specified!";
+    }
+
+    public String getFILE_NOT_EXIST() {
+        return "Cannot find file [%s]";
+    }
+
+    public String getDATABASE_NOT_EXIST() {
+        return "Database:[%s] is not exist.";
+    }
+
+    public String getBROKEN_MODEL_CANNOT_ONOFFLINE() {
+        return "Broken model [%s] can not online or offline!";
+    }
+
 }

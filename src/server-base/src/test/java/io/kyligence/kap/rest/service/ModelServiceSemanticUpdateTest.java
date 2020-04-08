@@ -321,7 +321,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateMeasure_DuplicateParams_EmptyReturnType() throws Exception {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Duplicate measure definition 'TRANS_SUM2'");
+        thrown.expectMessage(
+                "The measure definition is the same as the measure 'TRANS_SUM2'. So this measure cannot be created.");
         val request = newSemanticRequest();
         val newMeasure1 = new SimplifiedMeasure();
         newMeasure1.setName("TRANS_SUM2");

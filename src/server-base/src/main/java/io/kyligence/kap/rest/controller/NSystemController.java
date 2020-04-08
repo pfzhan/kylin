@@ -40,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.parquet.Strings;
@@ -132,7 +133,7 @@ public class NSystemController extends NBasicController {
         }
 
         if (ArrayUtils.isEmpty(bytes))
-            throw new KylinException("KE-1012", "license content is empty");
+            throw new KylinException("KE-1012", MsgPicker.getMsg().getCONTENT_IS_EMPTY());
 
         licenseInfoService.updateLicense(bytes);
 
@@ -146,19 +147,19 @@ public class NSystemController extends NBasicController {
         if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
                 || Strings.isNullOrEmpty(licenseRequest.getUsername())
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
-            throw new KylinException("KE-1010", "email username company can not be empty");
+            throw new KylinException("KE-1010", MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY());
         }
         if (licenseRequest.getEmail().length() > 50 || licenseRequest.getUsername().length() > 50
                 || licenseRequest.getCompany().length() > 50) {
-            throw new KylinException("KE-1010", "email username company length should be less or equal than 50");
+            throw new KylinException("KE-1010", MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_IS_ILLEGAL());
         }
         if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
-            throw new KylinException("KE-1014", "personal email or illegal email is not allowed");
+            throw new KylinException("KE-1014", MsgPicker.getMsg().getINLEGAL_EMAIL());
         }
 
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
         if (trialLicense == null || !trialLicense.isSuccess()) {
-            throw new KylinException("KE-1040", "get license error");
+            throw new KylinException("KE-1040", MsgPicker.getMsg().getLICENSE_ERROR());
         }
         licenseInfoService.updateLicense(trialLicense.getData());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
@@ -209,7 +210,8 @@ public class NSystemController extends NBasicController {
             @RequestParam(value = "id") String id, final HttpServletRequest request, final HttpServletResponse response)
             throws Exception {
         if (StringUtils.isEmpty(host)) {
-            setDownloadResponse(systemService.getDiagPackagePath(id), MediaType.APPLICATION_OCTET_STREAM_VALUE, response);
+            setDownloadResponse(systemService.getDiagPackagePath(id), MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                    response);
         } else {
             String url = host + "/kylin/api/system/diag?id=" + id;
             downloadFromRemoteHost(request, url, response);
