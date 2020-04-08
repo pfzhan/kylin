@@ -81,6 +81,8 @@ public class QueryNodeFilter implements Filter {
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     private static Set<String> notRouteDeleteApiSet = Sets.newHashSet();
+    private static String ERROR_REQUEST_URL = "/kylin/api/error";
+
 
     static {
         // data source
@@ -90,7 +92,6 @@ public class QueryNodeFilter implements Filter {
 
         // jdbc, odbc, query
         notRoutePostApiSet.add("/kylin/api/query");
-        notRoutePostApiSet.add("/kylin/api/error");
         notRoutePostApiSet.add("/kylin/api/query/prestate");
         notRoutePostApiSet.add("/kylin/api/user/authentication");
 
@@ -128,6 +129,10 @@ public class QueryNodeFilter implements Filter {
             String serverMode = KylinConfig.getInstanceFromEnv().getServerMode();
             // not start with /kylin/api
             if (!servletRequest.getRequestURI().startsWith(API_PREFIX)) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (servletRequest.getRequestURI().startsWith(ERROR_REQUEST_URL)) {
                 chain.doFilter(request, response);
                 return;
             }
