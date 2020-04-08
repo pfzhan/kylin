@@ -437,7 +437,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateFavoriteQueryStatistics() throws Exception {
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig());
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         // already loaded three favorite queries whose sql patterns are "sql1", "sql2", "sql3"
         long systemTime = mockedQueryHistoryDao.getCurrentTime();
@@ -552,7 +552,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         The mocked query history service will be generating test data from 2018-01-02 00:00:00 to 2018-01-02 00:02:30 every 30 seconds,
         and the last auto mark time is 2018-01-01 23:59:00
          */
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig());
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         long systemTime = mockedQueryHistoryDao.getCurrentTime();
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
@@ -609,7 +609,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testExpertProjectWillNotAutoFavorite() throws Exception {
 
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig());
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         int originFavoriteQuerySize = favoriteQueryManager.getAll().size();
@@ -644,7 +644,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTimeOffsetIsOverMaxScanInterval() throws Exception {
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig());
         Mockito.doReturn(mockedQueryHistoryDao).when(favoriteScheduler).getQueryHistoryDao();
         // suppose current time is 2019-01-01
         Mockito.doReturn(1546272000000L).when(queryHistoryAccessor).getSystemTime();
@@ -658,7 +658,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testAutoFavoriteException() throws Exception {
-        MockedQueryHistoryDao queryHistoryDAO = Mockito.spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
+        MockedQueryHistoryDao queryHistoryDAO = Mockito.spy(new MockedQueryHistoryDao(getTestConfig()));
         long mockedCurrentTime = queryHistoryDAO.getCurrentTime();
         long scanGapTime = getTestConfig().getQueryHistoryScanPeriod();
         Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(queryHistoryAccessor).getSystemTime();
@@ -679,7 +679,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         // if everything goes right, each sql pattern will be having 2 frequency
         // at last minute, a RuntimeException will be thrown out, all frequency status will be rolled back to the last status
         MockedQueryHistoryDao queryHistoryDaoWithException = Mockito
-                .spy(new MockedQueryHistoryDao(getTestConfig(), PROJECT));
+                .spy(new MockedQueryHistoryDao(getTestConfig()));
         Mockito.doReturn(mockedCurrentTime + scanGapTime * 4).when(queryHistoryAccessor).getSystemTime();
         Mockito.doThrow(RuntimeException.class).when(queryHistoryDaoWithException)
                 .getQueryHistoriesByTime(mockedCurrentTime + scanGapTime * 2, mockedCurrentTime + scanGapTime * 3, "default");
@@ -746,7 +746,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     public void testMergeLayoutFrequency() throws Exception {
         System.setProperty("kylin.favorite.query-history-scan-period.minutes", "240");
 
-        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig(), PROJECT);
+        MockedQueryHistoryDao mockedQueryHistoryDao = new MockedQueryHistoryDao(getTestConfig());
         Mockito.doReturn(mockedQueryHistoryDao).when(queryHistoryAccessor).getQueryHistoryDao();
         // already loaded three favorite queries whose sql patterns are "sql1", "sql2", "sql3"
         long systemTime = mockedQueryHistoryDao.getCurrentTime();

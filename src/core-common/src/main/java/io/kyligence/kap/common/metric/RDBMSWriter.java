@@ -117,9 +117,9 @@ public class RDBMSWriter implements MetricWriter {
     @Override
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields,
             long timestamp) throws Throwable {
-        if (measurement.endsWith("query_history")) {
+        if (measurement.endsWith(QUERY_MEASUREMENT_SURFIX)) {
             writeToQueryHistory(dbName, measurement, fields);
-        } else if (measurement.endsWith("query_history_realization")) {
+        } else if (measurement.endsWith(REALIZATION_MEASUREMENT_SURFIX)) {
             writeToQueryHistoryRealization(dbName, measurement, fields);
         }
     }
@@ -154,16 +154,11 @@ public class RDBMSWriter implements MetricWriter {
         var createQueryHistorSql = properties.getProperty("create.queryhistory.store.table");
         jdbcTemplate.execute(String.format(createQueryHistorSql, tableName));
 
-        var createQueryHistorIndexSql1 = properties.getProperty("create.queryhistory.store.tableindex1");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql1, tableName));
-        var createQueryHistorIndexSql2 = properties.getProperty("create.queryhistory.store.tableindex2");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql2, tableName));
-        var createQueryHistorIndexSql3 = properties.getProperty("create.queryhistory.store.tableindex3");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql3, tableName));
-        var createQueryHistorIndexSql4 = properties.getProperty("create.queryhistory.store.tableindex4");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql4, tableName));
-        var createQueryHistorIndexSql5 = properties.getProperty("create.queryhistory.store.tableindex5");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql5, tableName));
+        createIndexForTable(properties, tableName, "create.queryhistory.store.tableindex1");
+        createIndexForTable(properties, tableName, "create.queryhistory.store.tableindex2");
+        createIndexForTable(properties, tableName, "create.queryhistory.store.tableindex3");
+        createIndexForTable(properties, tableName, "create.queryhistory.store.tableindex4");
+        createIndexForTable(properties, tableName, "create.queryhistory.store.tableindex5");
     }
 
     void createQueryHistoryRealizationIfNotExist(KylinConfig kylinConfig) throws Exception {
@@ -176,10 +171,13 @@ public class RDBMSWriter implements MetricWriter {
         var queryHistorRealizationSql = properties.getProperty("create.queryhistoryrealization.store.table");
         jdbcTemplate.execute(String.format(queryHistorRealizationSql, tableName));
 
-        var createQueryHistorIndexSql1 = properties.getProperty("create.queryhistoryrealization.store.tableindex1");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql1, tableName));
-        var createQueryHistorIndexSql2 = properties.getProperty("create.queryhistoryrealization.store.tableindex2");
-        jdbcTemplate.execute(String.format(createQueryHistorIndexSql2, tableName));
+        createIndexForTable(properties, tableName, "create.queryhistoryrealization.store.tableindex1");
+        createIndexForTable(properties, tableName, "create.queryhistoryrealization.store.tableindex2");
+    }
+    
+    void createIndexForTable(Properties properties, String tableName, String indexProperty) {
+        var createQueryHistorIndexSql = properties.getProperty(indexProperty);
+        jdbcTemplate.execute(String.format(createQueryHistorIndexSql, tableName, tableName));
     }
 
     private Properties getProperties() throws Exception {

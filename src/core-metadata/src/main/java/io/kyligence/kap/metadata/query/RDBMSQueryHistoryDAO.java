@@ -60,26 +60,24 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     protected static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
     protected static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
 
-    private static final int MAX_SIZE = 10000000;
     private static final long RETAIN_TIME = 30;
-    protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time as time,id FROM %s ORDER BY id DESC limit 1 OFFSET "
-            + MAX_SIZE;
+    protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time as time,id FROM %s ORDER BY id DESC limit 1 OFFSET %s";
+    protected static final String QUERY_TIME_IN_PROJECT_MAX_SIZE = "SELECT query_time as time,id FROM %s where project_name = ? ORDER BY id DESC limit 1 OFFSET %s";
 
     public static final String WEEK = "week";
     public static final String DAY = "day";
 
-    public static RDBMSQueryHistoryDAO getInstance(KylinConfig config, String project) {
-        return config.getManager(project, RDBMSQueryHistoryDAO.class);
+    public static RDBMSQueryHistoryDAO getInstance(KylinConfig config) {
+        return config.getManager(RDBMSQueryHistoryDAO.class);
     }
 
-    static RDBMSQueryHistoryDAO newInstance(KylinConfig kylinConfig, String project) throws Exception {
-        return new RDBMSQueryHistoryDAO(kylinConfig, project);
+    static RDBMSQueryHistoryDAO newInstance(KylinConfig kylinConfig) throws Exception {
+        return new RDBMSQueryHistoryDAO(kylinConfig);
     }
 
-    public RDBMSQueryHistoryDAO(KylinConfig config, String project) throws Exception {
+    public RDBMSQueryHistoryDAO(KylinConfig config) throws Exception {
         if (!UnitOfWork.isAlreadyInTransaction())
-            logger.info("Initializing RDBMSQueryHistoryDAO with KylinConfig Id: {} for project {}",
-                    System.identityHashCode(config), project);
+            logger.info("Initializing RDBMSQueryHistoryDAO with KylinConfig Id: {} ", System.identityHashCode(config));
         String metadataIdentifier = StorageURL.replaceUrl(config.getMetadataUrl());
         this.queryMetricMeasurement = metadataIdentifier + "_" + QueryHistory.QUERY_MEASUREMENT_SURFIX;
         this.realizationMetricMeasurement = metadataIdentifier + "_" + QueryHistory.REALIZATION_MEASUREMENT_SURFIX;
@@ -102,18 +100,39 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     }
 
     public void deleteQueryHistoriesIfMaxSizeReached() {
-        List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(
-                jdbcTemplate.queryForList(String.format(QUERY_TIME_IN_MAX_SIZE, queryMetricMeasurement)));
-
-        if (CollectionUtils.isNotEmpty(statistics)) {
-            long time = statistics.get(0).getTime().toEpochMilli();
-            long retainTime = getRetainTime();
-            jdbcTemplate.update(String.format("delete from %s where query_time < ? or query_time < ?",
-                    this.queryMetricMeasurement), time, retainTime);
-
-            jdbcTemplate.update(String.format("delete from %s where query_time < ? or query_time < ?",
-                    this.realizationMetricMeasurement), time, retainTime);
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        List<QueryStatistics> maxSizeStatistics = JDBCResultMapper
+                .queryStatisticsResultMapper(jdbcTemplate.queryForList(String.format(QUERY_TIME_IN_MAX_SIZE,
+                        queryMetricMeasurement, kylinConfig.getQueryHistoryMaxSize())));
+        if (CollectionUtils.isNotEmpty(maxSizeStatistics)) {
+            long time = maxSizeStatistics.get(0).getTime().toEpochMilli();
+            jdbcTemplate.update(String.format("delete from %s where query_time < ? ", this.queryMetricMeasurement),
+                    time);
+            jdbcTemplate.update(
+                    String.format("delete from %s where query_time < ? ", this.realizationMetricMeasurement), time);
         }
+    }
+
+    public void deleteQueryHistoriesIfProjectMaxSizeReached(String project) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        List<QueryStatistics> projectMaxSizeStatistics = JDBCResultMapper
+                .queryStatisticsResultMapper(jdbcTemplate.queryForList(String.format(QUERY_TIME_IN_PROJECT_MAX_SIZE,
+                        queryMetricMeasurement, kylinConfig.getQueryHistoryProjectMaxSize()), "'" + project + "'"));
+        if (CollectionUtils.isNotEmpty(projectMaxSizeStatistics)) {
+            long time = projectMaxSizeStatistics.get(0).getTime().toEpochMilli();
+            jdbcTemplate.update(String.format("delete from %s where project_name = ? and query_time < ? ",
+                    this.queryMetricMeasurement), "'" + project + "'", time);
+            jdbcTemplate.update(String.format("delete from %s where project_name = ? and query_time < ? ",
+                    this.realizationMetricMeasurement), "'" + project + "'", time);
+        }
+    }
+
+    public void deleteQueryHistoriesIfRetainTimeReached() {
+        long retainTime = getRetainTime();
+        jdbcTemplate.update(String.format("delete from %s where query_time < ? ",
+                this.queryMetricMeasurement), retainTime);
+        jdbcTemplate.update(String.format("delete from %s where query_time < ? ",
+                this.realizationMetricMeasurement), retainTime);
     }
     
     public static long getRetainTime() {

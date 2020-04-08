@@ -60,7 +60,7 @@ public class QueryHistoryAccessor {
     }
 
     public RDBMSQueryHistoryDAO getQueryHistoryDao() {
-        return RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        return RDBMSQueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     public long getSystemTime() {

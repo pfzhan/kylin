@@ -136,6 +136,13 @@ public class InfluxDBQueryHistoryDAO implements QueryHistoryDAO {
         }
     }
 
+    public void deleteQueryHistoriesIfProjectMaxSizeReached(String project) {
+
+    }
+
+    public void deleteQueryHistoriesIfRetainTimeReached() {
+    }
+
     public void dropProjectMeasurement() {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return;

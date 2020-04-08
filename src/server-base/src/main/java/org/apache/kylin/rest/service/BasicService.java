@@ -139,8 +139,8 @@ public abstract class BasicService {
         return username;
     }
 
-    public QueryHistoryDAO getQueryHistoryDao(String project) {
-        return RDBMSQueryHistoryDAO.getInstance(getConfig(), project);
+    public QueryHistoryDAO getQueryHistoryDao() {
+        return RDBMSQueryHistoryDAO.getInstance(getConfig());
     }
 
     public MonitorDao getMonitorDao() {

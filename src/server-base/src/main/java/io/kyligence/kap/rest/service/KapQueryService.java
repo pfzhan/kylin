@@ -116,7 +116,7 @@ public class KapQueryService extends QueryService {
                     QueryContext.current());
 
             MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name()).write(QueryHistory.DB_NAME,
-                    getQueryHistoryDao(sqlRequest.getProject()).getQueryMetricMeasurement(),
+                    getQueryHistoryDao().getQueryMetricMeasurement(),
                     queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getQueryMetricFields(),
                     System.currentTimeMillis());
 
@@ -124,7 +124,7 @@ public class KapQueryService extends QueryService {
                     .getRealizationMetrics()) {
 
                 MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name()).write(QueryHistory.DB_NAME,
-                        getQueryHistoryDao(sqlRequest.getProject()).getRealizationMetricMeasurement(),
+                        getQueryHistoryDao().getRealizationMetricMeasurement(),
                         realizationMetrics.getInfluxdbTags(), realizationMetrics.getRealizationMetricFields(),
                         System.currentTimeMillis());
             }

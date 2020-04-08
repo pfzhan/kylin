@@ -139,7 +139,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(Lists.newArrayList(pushdownQuery, failedQuery, acceleratedQuery)).when(queryHistoryDAO)
                 .getQueryHistoriesByConditions(Mockito.any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyString());
         Mockito.doReturn(10L).when(queryHistoryDAO).getQueryHistoriesSize(Mockito.any(), Mockito.anyString());
-        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
 
         Map<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
         List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
@@ -197,7 +197,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
 
         RDBMSQueryHistoryDAO queryHistoryDAO = Mockito.mock(RDBMSQueryHistoryDAO.class);
         Mockito.doReturn(queryStatistics).when(queryHistoryDAO).getQueryCountAndAvgDuration(0, Long.MAX_VALUE, "default");
-        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
 
         QueryStatisticsResponse result = queryHistoryService.getQueryStatistics(PROJECT, 0, Long.MAX_VALUE);
         Assert.assertEquals(100, result.getCount());
@@ -214,7 +214,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByModel(startTime, endTime, "default");
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByTime(Mockito.anyLong(),
                 Mockito.anyLong(), Mockito.anyString(), Mockito.anyString());
-        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
 
         // query count by model
         Map<String, Object> result = queryHistoryService.getQueryCount(PROJECT, startTime, endTime, "model");
@@ -253,7 +253,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByModel(startTime, endTime, "default");
         Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByTime(Mockito.anyLong(),
                 Mockito.anyLong(), Mockito.anyString(), Mockito.anyString());
-        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao();
 
         // avg duration by model
         Map<String, Object> result = queryHistoryService.getAvgDuration(PROJECT, startTime, endTime, "model");

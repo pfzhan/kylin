@@ -2028,4 +2028,12 @@ public abstract class KylinConfigBase implements Serializable {
     public long getJStackDumpTaskLogsMaxNum() {
         return Math.max(1L, Long.parseLong(getOptional("kylin.task.jstack-dump-log-files-max-count", "20")));
     }
+
+    public int getQueryHistoryMaxSize() {
+        return Integer.parseInt(getOptional("kylin.query.queryhistory.max-size", "10000000"));
+    }
+
+    public int getQueryHistoryProjectMaxSize() {
+        return Integer.parseInt(getOptional("kylin.query.queryhistory.project-max-size", "1000000"));
+    }
 }

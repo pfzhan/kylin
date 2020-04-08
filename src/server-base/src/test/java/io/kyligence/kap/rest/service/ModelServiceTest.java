@@ -238,7 +238,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
         InfluxDBQueryHistoryDAO influxDBQueryHistoryDAO = Mockito.mock(InfluxDBQueryHistoryDAO.class);
-        Mockito.doReturn(influxDBQueryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
+        Mockito.doReturn(influxDBQueryHistoryDAO).when(modelService).getQueryHistoryDao();
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);

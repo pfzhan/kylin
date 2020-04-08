@@ -36,6 +36,9 @@ import org.apache.kylin.common.KylinConfig;
 
 public class JDBCResultMapper {
 
+    public static final String COUNT = "count";
+    public static final String AVG_DURATION = "avg_duration";
+
     public static List<QueryHistory> queryHistoryResultMapper(List<Map<String, Object>> rdbmsResultBySql) {
         List<QueryHistory> queryHistoryList = Lists.newArrayList();
         for (Map<String, Object> rowMap : rdbmsResultBySql) {
@@ -66,21 +69,21 @@ public class JDBCResultMapper {
         List<QueryStatistics> queryStatisticsList = Lists.newArrayList();
         for (Map<String, Object> rowMap : rdbmsResultBySql) {
             QueryStatistics queryStatistics = new QueryStatistics();
-            if (rowMap.get("count") != null) {
-                queryStatistics.setCount((long) rowMap.get("count"));
+            if (rowMap.get(COUNT) != null) {
+                queryStatistics.setCount((long) rowMap.get(COUNT));
             }
             if (rowMap.get("time") != null) {
                 int offset = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone()).getRawOffset();
                 long offetTime = Instant.ofEpochMilli((Long) rowMap.get("time")).plusMillis(offset).toEpochMilli();
                 queryStatistics.setTime(Instant.ofEpochMilli(offetTime));
             }
-            if (rowMap.get("avg_duration") != null) {
-                if (rowMap.get("avg_duration") instanceof BigDecimal) {
-                    queryStatistics.setMeanDuration(((BigDecimal) rowMap.get("avg_duration")).longValue());
-                } else if (rowMap.get("avg_duration") instanceof Double) {
-                    queryStatistics.setMeanDuration((Double) rowMap.get("avg_duration"));
-                } else if (rowMap.get("avg_duration") instanceof Long) {
-                    queryStatistics.setMeanDuration((Long) rowMap.get("avg_duration"));
+            if (rowMap.get(AVG_DURATION) != null) {
+                if (rowMap.get(AVG_DURATION) instanceof BigDecimal) {
+                    queryStatistics.setMeanDuration(((BigDecimal) rowMap.get(AVG_DURATION)).longValue());
+                } else if (rowMap.get(AVG_DURATION) instanceof Double) {
+                    queryStatistics.setMeanDuration((Double) rowMap.get(AVG_DURATION));
+                } else if (rowMap.get(AVG_DURATION) instanceof Long) {
+                    queryStatistics.setMeanDuration((Long) rowMap.get(AVG_DURATION));
                 }
             }
             if (rowMap.get(QueryHistory.MODEL) != null) {
@@ -93,7 +96,7 @@ public class JDBCResultMapper {
 
     public static long queryHistoryCountResultMapper(List<Map<String, Object>> rdbmsResultBySql) {
         for (Map<String, Object> rowMap : rdbmsResultBySql) {
-            return (long) rowMap.get("count");
+            return (long) rowMap.get(COUNT);
         }
         return 0;
     }

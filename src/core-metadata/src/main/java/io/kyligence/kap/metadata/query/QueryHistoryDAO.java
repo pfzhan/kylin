@@ -44,6 +44,10 @@ public interface QueryHistoryDAO {
 
     public void deleteQueryHistoriesIfMaxSizeReached();
 
+    public void deleteQueryHistoriesIfProjectMaxSizeReached(String project);
+
+    public void deleteQueryHistoriesIfRetainTimeReached();
+
     public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime, String project);
 
     public long getQueryHistoriesSize(QueryHistoryRequest request, String project);

@@ -294,15 +294,51 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testDeleteQueryHistoriesIfProjectMaxSizeReached() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+
+        // before delete
+        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
+                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(4, queryHistoryList.size());
+
+        // delete before 2021-03-29 23:25:12 only for 'default' project
+        String deleteQueryHistoryForProjectSql = "delete from %s where project_name = 'default' and query_time < ?";
+        getJdbcTemplate().update(String.format(deleteQueryHistoryForProjectSql, url.getIdentifier() + "_query_history"),
+                1617031512000L);
+
+        // after delete, only 'default' project will be delete
+        queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
+                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(1, queryHistoryList.size());
+        Assert.assertEquals(1611933912000L, queryHistoryList.get(0).getQueryTime());
+    }
+
+    @Test
     public void testQueryTimeInMaxSize() throws Exception {
         val url = getTestConfig().getMetadataUrl();
         List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate().queryForList(
-                String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history")));
+                String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history",
+                        10000000)));
         Assert.assertEquals(0, statistics.size());
 
         statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate()
-                .queryForList(String.format("SELECT query_time as time, id FROM %s ORDER BY id DESC limit 1 OFFSET 1",
-                        url.getIdentifier() + "_query_history")));
+                .queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history",
+                        1)));
+        Assert.assertEquals(1, statistics.size());
+    }
+
+    @Test
+    public void testQueryTimeInProjectMaxSize() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+        List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(
+                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_PROJECT_MAX_SIZE,
+                        url.getIdentifier() + "_query_history", 10000000), PROJECT));
+        Assert.assertEquals(0, statistics.size());
+
+        statistics = JDBCResultMapper.queryStatisticsResultMapper(
+                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_PROJECT_MAX_SIZE,
+                        url.getIdentifier() + "_query_history", 1), PROJECT));
         Assert.assertEquals(1, statistics.size());
     }
 

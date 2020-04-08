@@ -89,7 +89,7 @@ public class QueryHistoryService extends BasicService {
     public Map<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(request.getProject()));
         aclEvaluate.checkProjectReadPermission(request.getProject());
-        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
         val dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
 
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
@@ -165,7 +165,7 @@ public class QueryHistoryService extends BasicService {
     public QueryStatisticsResponse getQueryStatistics(String project, long startTime, long endTime) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
-        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
 
         QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(startTime, endTime, project);
         return new QueryStatisticsResponse(queryStatistics.getCount(), queryStatistics.getMeanDuration());
@@ -174,7 +174,7 @@ public class QueryHistoryService extends BasicService {
     public Map<String, Object> getQueryCount(String project, long startTime, long endTime, String dimension) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
-        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
         List<QueryStatistics> queryStatistics;
 
         if (dimension.equals("model")) {
@@ -190,7 +190,7 @@ public class QueryHistoryService extends BasicService {
     public Map<String, Object> getAvgDuration(String project, long startTime, long endTime, String dimension) {
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         aclEvaluate.checkProjectReadPermission(project);
-        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(project);
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao();
         List<QueryStatistics> queryStatistics;
 
         if (dimension.equals("model")) {
@@ -266,7 +266,7 @@ public class QueryHistoryService extends BasicService {
             ProjectInstance projectInstance = getProjectManager().getProject(project);
             if (projectInstance == null)
                 throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
-            result.put(project, getQueryHistoryDao(project).getQueryMetricMeasurement());
+            result.put(project, getQueryHistoryDao().getQueryMetricMeasurement());
         }
 
         return result;
@@ -279,6 +279,8 @@ public class QueryHistoryService extends BasicService {
             Thread.currentThread().setName("QueryHistoryCleanWorker");
             val config = KylinConfig.getInstanceFromEnv();
             val projectManager = NProjectManager.getInstance(config);
+            getQueryHistoryDao().deleteQueryHistoriesIfMaxSizeReached();
+            getQueryHistoryDao().deleteQueryHistoriesIfRetainTimeReached();
             for (ProjectInstance project : projectManager.listAllProjects()) {
                 if (!EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
                     continue;
@@ -286,7 +288,7 @@ public class QueryHistoryService extends BasicService {
                     long startTime = System.currentTimeMillis();
                     logger.info("Start to delete query histories that are beyond max size for project<{}>",
                             project.getName());
-                    getQueryHistoryDao(project.getName()).deleteQueryHistoriesIfMaxSizeReached();
+                    getQueryHistoryDao().deleteQueryHistoriesIfProjectMaxSizeReached(project.getName());
                     logger.info("Query histories cleanup for project<{}> finished, it took {}ms", project.getName(),
                             System.currentTimeMillis() - startTime);
                 } catch (Exception e) {

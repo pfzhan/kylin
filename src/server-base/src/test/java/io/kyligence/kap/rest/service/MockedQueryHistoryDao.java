@@ -62,8 +62,8 @@ public class MockedQueryHistoryDao extends RDBMSQueryHistoryDAO {
     @Setter
     private List<QueryHistory> overallQueryHistories = Lists.newArrayList();
 
-    public MockedQueryHistoryDao(KylinConfig config, String project) throws Exception {
-        super(config, project);
+    public MockedQueryHistoryDao(KylinConfig config) throws Exception {
+        super(config);
         init();
     }
 
