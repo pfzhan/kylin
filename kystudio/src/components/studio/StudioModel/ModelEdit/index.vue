@@ -563,6 +563,9 @@ import { NamedRegex } from '../../../../config'
     }),
     ...mapActions('ShowCCDialogModal', {
       showCCDetailDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('DetailDialogModal', {
+      callGlobalDetailDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -1541,6 +1544,10 @@ export default class ModelEdit extends Vue {
       handleSuccess(res, (data) => {
         this.datasource = data
         this.initModelDesc((data) => { // 初始化模型数据
+          if ('visible' in this.modelData && this.modelData.visible) {
+            this.showNoAuthorityContent(this.modelData)
+            return
+          }
           try {
             this.modelInstance = new NModel(Object.assign(data, {
               project: this.currentSelectedProject,
@@ -1584,6 +1591,32 @@ export default class ModelEdit extends Vue {
     this.$on('saveModel', () => {
       this.generateModelData()
     })
+  }
+  // 展示model无权限的相关table和columns信息
+  async showNoAuthorityContent (row) {
+    const { unauthorized_tables, unauthorized_columns } = row
+    let details = []
+    if (unauthorized_tables && unauthorized_tables.length) {
+      details.push({title: `Table (${unauthorized_tables.length})`, list: unauthorized_tables})
+    }
+    if (unauthorized_columns && unauthorized_columns.length) {
+      details.push({title: `Columns (${unauthorized_columns.length})`, list: unauthorized_columns})
+    }
+    await this.callGlobalDetailDialog({
+      theme: 'plain-mult',
+      title: this.$t('kylinLang.model.authorityDetail'),
+      msg: this.$t('kylinLang.model.authorityMsg', {modelName: row.name}),
+      showCopyBtn: true,
+      showIcon: false,
+      showDetailDirect: true,
+      details,
+      showDetailBtn: false,
+      dialogType: 'error',
+      customClass: 'no-acl-model',
+      showCopyTextLeftBtn: true,
+      needCallbackWhenClose: true
+    })
+    this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
   }
   _tipNoDimension (data) {
     // 判断是 无dimension 和 measure 都无的情况 还是 只是没有dimension的情况
