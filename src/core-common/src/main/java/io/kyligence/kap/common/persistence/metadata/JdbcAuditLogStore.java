@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -39,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -215,13 +217,11 @@ public class JdbcAuditLogStore implements AuditLogStore {
             val maxId = getMaxId();
             log.debug("start restore, current max_id is {}", maxId);
             var startId = currentId;
-            UnitMessages messages = new UnitMessages();
             while (startId < maxId) {
                 val logs = fetch(startId, Math.min(step, maxId - startId));
-                messages = replayLogs(replayer, logs, messages);
+                replayLogs(replayer, logs);
                 startId += step;
             }
-            replayer.replay(messages);
             consumeExecutor.submit(createFetcher(maxId, store.getChecker()));
             return null;
         });
@@ -251,8 +251,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
                         if (CollectionUtils.isEmpty(logs)) {
                             return finalStartId;
                         }
-                        val messages = replayLogs(replayer, logs, new UnitMessages());
-                        replayer.replay(messages);
+                        replayLogs(replayer, logs);
                         return logs.get(logs.size() - 1).getId();
                     });
                     if (startId == finalStartId) {
@@ -272,20 +271,22 @@ public class JdbcAuditLogStore implements AuditLogStore {
         };
     }
 
-    private UnitMessages replayLogs(MessageSynchronization replayer, List<AuditLog> logs, UnitMessages messages) {
-        var currentUnitId = "";
+    private void replayLogs(MessageSynchronization replayer, List<AuditLog> logs) {
+        Map<String, UnitMessages> messagesMap = Maps.newLinkedHashMap();
         for (AuditLog log : logs) {
             val event = Event.fromLog(log);
-            if (Objects.equals(currentUnitId, log.getUnitId())) {
-                messages.getMessages().add(event);
+            String unitId = log.getUnitId();
+            if (messagesMap.get(unitId) == null) {
+                UnitMessages newMessages = new UnitMessages();
+                newMessages.getMessages().add(event);
+                messagesMap.put(unitId, newMessages);
             } else {
-                replayer.replay(messages);
-                messages = new UnitMessages();
-                currentUnitId = log.getUnitId();
-                messages.getMessages().add(event);
+                messagesMap.get(unitId).getMessages().add(event);
             }
         }
-        return messages;
+        for (UnitMessages message : messagesMap.values()) {
+            replayer.replay(message);
+        }
     }
 
     void createIfNotExist() throws Exception {
