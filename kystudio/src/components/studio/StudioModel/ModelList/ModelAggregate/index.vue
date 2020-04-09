@@ -388,6 +388,8 @@ export default class ModelAggregate extends Vue {
           const obj = {}
           obj['start'] = transToServerGmtTime(seg.date_range_start)
           obj['end'] = transToServerGmtTime(seg.date_range_end)
+          obj['date_range_start'] = seg.date_range_start
+          obj['date_range_end'] = seg.date_range_end
           tableData.push(obj)
         })
         await this.callGlobalDetailDialog({
@@ -406,7 +408,7 @@ export default class ModelAggregate extends Vue {
           submitText: this.$t('fixAndBuild'),
           customCallback: async (segments) => {
             selectSegmentHoles = segments.map((seg) => {
-              return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
+              return {start: seg.date_range_start, end: seg.date_range_end}
             })
             await this.autoFixSegmentHoles({project: this.projectName, model_id: this.model.uuid, segment_holes: selectSegmentHoles})
             this.confirmBuild()

@@ -782,6 +782,8 @@ export default class ModelList extends Vue {
         const obj = {}
         obj['start'] = transToServerGmtTime(seg.date_range_start)
         obj['end'] = transToServerGmtTime(seg.date_range_end)
+        obj['date_range_start'] = seg.date_range_start
+        obj['date_range_end'] = seg.date_range_end
         tableData.push(obj)
       })
       await this.callGlobalDetailDialog({
@@ -797,7 +799,7 @@ export default class ModelList extends Vue {
         showDetailBtn: false,
         customCallback: async (segments) => {
           selectSegmentHoles = segments.map((seg) => {
-            return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
+            return {start: seg.date_range_start, end: seg.date_range_end}
           })
           try {
             await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})

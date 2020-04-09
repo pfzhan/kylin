@@ -590,6 +590,8 @@
                   const obj = {}
                   obj['start'] = transToServerGmtTime(seg.start)
                   obj['end'] = transToServerGmtTime(seg.end)
+                  obj['date_range_start'] = seg.start
+                  obj['date_range_end'] = seg.end
                   tableData.push(obj)
                 })
                 await this.callGlobalDetailDialog({
@@ -608,7 +610,7 @@
                   submitText: this.$t('fixAndBuild'),
                   customCallback: async (segments) => {
                     selectSegmentHoles = segments.map((seg) => {
-                      return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
+                      return {start: seg.date_range_start, end: seg.date_range_end}
                     })
                     try {
                       this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid, partition_desc: partition_desc, segment_holes: selectSegmentHoles})
@@ -655,6 +657,8 @@
             const obj = {}
             obj['start'] = transToServerGmtTime(seg.date_range_start)
             obj['end'] = transToServerGmtTime(seg.date_range_end)
+            obj['date_range_start'] = seg.date_range_start
+            obj['date_range_end'] = seg.date_range_end
             tableData.push(obj)
           })
           await this.callGlobalDetailDialog({
@@ -673,7 +677,7 @@
             submitText: this.$t('fixAndBuild'),
             customCallback: async (segments) => {
               selectSegmentHoles = segments.map((seg) => {
-                return {start: new Date(seg.start.replace(/-/g, '/')).getTime(), end: new Date(seg.end.replace(/-/g, '/')).getTime()}
+                return {start: seg.date_range_start, end: seg.date_range_end}
               })
               try {
                 await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: this.modelDesc.uuid, segment_holes: selectSegmentHoles})
