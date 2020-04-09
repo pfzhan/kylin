@@ -255,6 +255,16 @@ object KylinSession extends Logging {
           s"$yarnAMJavaOptions $amKerberosConf")
       }
 
+      val eventLogEnabled = sparkConf.getBoolean("spark.eventLog.enabled", false)
+      val logDir = sparkConf.get("spark.eventLog.dir", "")
+      if (eventLogEnabled && !logDir.isEmpty) {
+        val logPath = new Path(new URI(logDir).getPath)
+        val fs = HadoopUtil.getWorkingFileSystem()
+        if (!fs.exists(logPath)) {
+          fs.mkdirs(logPath)
+        }
+      }
+
       sparkConf
     }
 
