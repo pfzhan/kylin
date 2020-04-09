@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -46,8 +45,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
-import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
-
 public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
 
     private static int index = 0;
@@ -61,9 +58,7 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
     }
 
     @After
-    public void destroy() throws Exception {
-        val jdbcTemplate = getJdbcTemplate();
-        jdbcTemplate.batchUpdate("DROP ALL OBJECTS");
+    public void destroy() {
         cleanupTestMetadata();
     }
 
@@ -159,10 +154,4 @@ public class JdbcMetadataStoreTest extends NLocalFileMetadataTestCase {
         }, "p1");
     }
 
-    JdbcTemplate getJdbcTemplate() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
-        val props = datasourceParameters(url);
-        val dataSource = BasicDataSourceFactory.createDataSource(props);
-        return new JdbcTemplate(dataSource);
-    }
 }
