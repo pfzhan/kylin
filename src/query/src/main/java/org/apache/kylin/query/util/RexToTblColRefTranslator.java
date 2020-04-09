@@ -456,9 +456,8 @@ public class RexToTblColRefTranslator {
         private void registerDivDate() {
             registerOp(SqlStdOperatorTable.DIVIDE_DATE, (RexToSqlNodeConverter converter, RexCall call) -> {
                 List<RexNode> rexNodes = call.getOperands();
-                if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.REINTERPRET)) {
-                    return converter.convertCall((RexCall) rexNodes.get(0));
-                } else if (rexNodes.size() == 2 && rexNodes.get(0).isA(SqlKind.DIVIDE)) {
+                if (rexNodes.size() == 2
+                        && (rexNodes.get(0).isA(SqlKind.REINTERPRET) || rexNodes.get(0).isA(SqlKind.DIVIDE))) {
                     SqlNode node = converter.convertCall((RexCall) rexNodes.get(0));
                     RexNode secRex = rexNodes.get(1);
                     if (node.getKind() == SqlKind.TIMESTAMP_DIFF && secRex instanceof RexLiteral) {
@@ -474,7 +473,9 @@ public class RexToTblColRefTranslator {
                                     Lists.newArrayList(quarter, diffCall.operand(1), diffCall.operand(2)));
                         }
                     }
+                    return converter.convertCall((RexCall) rexNodes.get(0));
                 }
+
                 return convertCall(converter, call);
             });
         }
