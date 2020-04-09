@@ -305,7 +305,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
         var sql = properties.getProperty("create.auditlog.store.table");
 
         jdbcTemplate.execute(String.format(sql, table, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_CONTENT, AUDIT_LOG_TABLE_TS,
-                AUDIT_LOG_TABLE_MVCC));
+                AUDIT_LOG_TABLE_MVCC, AUDIT_LOG_TABLE_KEY, AUDIT_LOG_TABLE_MVCC));
     }
 
     @Override

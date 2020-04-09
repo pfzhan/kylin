@@ -26,8 +26,6 @@ package io.kyligence.kap.metadata.project;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
-import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
-import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import lombok.val;
@@ -48,7 +46,6 @@ public class EnhancedUnitOfWork implements IKeep {
         if (!config.isUTEnv()) {
             params.setEpochChecker(() -> {
                 if (!EpochManager.getInstance(config).checkEpochOwner(params.getUnitName())) {
-                    SchedulerEventBusFactory.getInstance(config).post(new ProjectEscapedNotifier(params.getUnitName()));
                     throw new EpochNotMatchException("System is trying to recover, please try again later", params.getUnitName());
                 }
                 return null;
