@@ -51,6 +51,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPContextProp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +91,6 @@ public class QueryRouter {
         BiMap<String, String> aliasMapping = HashBiMap.create();
         aliasMapping.putAll(aliasMap);
 
-        OLAPContext preservedOLAPContext = preservePropsBeforeRewrite(olapContext);
         ComputedColumnRewriter.rewriteCcInnerCol(olapContext, readyReal.getModel(),
                 new QueryAliasMatchInfo(aliasMapping, null));
 
@@ -111,40 +111,50 @@ public class QueryRouter {
 
         collectIncapableReason(olapContext, originCandidates);
         if (candidates.isEmpty()) {
-            // discard the props of OLAPContext modified by rewriteCcInnerCol 
-            restoreOLAPContextProps(olapContext, preservedOLAPContext);
             return null;
         }
 
         Candidate chosen = candidates.get(0);
+        chosen.setRewrittenCtx(preserveRewriteProps(olapContext));
         logger.debug("The realizations remaining: {}, and the final chosen one for current olap context {} is {}",
                 RoutingRule.getPrintableText(candidates), olapContext.id, chosen.realization.getCanonicalName());
         return chosen;
     }
 
-    private static OLAPContext preservePropsBeforeRewrite(OLAPContext oriOLAPContext) {
-        OLAPContext preserved = new OLAPContext(-1);
+    static OLAPContextProp preserveRewriteProps(OLAPContext rewrittenOLAContext) {
+        return preservePropsBeforeRewrite(rewrittenOLAContext);
+    }
+
+    static OLAPContextProp preservePropsBeforeRewrite(OLAPContext oriOLAPContext) {
+        OLAPContextProp preserved = new OLAPContextProp(-1);
         preserved.allColumns = Sets.newHashSet(oriOLAPContext.allColumns);
         preserved.setSortColumns(Lists.newArrayList(oriOLAPContext.getSortColumns()));
         preserved.setInnerGroupByColumns(Sets.newHashSet(oriOLAPContext.getInnerGroupByColumns()));
         preserved.setGroupByColumns(Sets.newLinkedHashSet(oriOLAPContext.getGroupByColumns()));
         preserved.setInnerFilterColumns(Sets.newHashSet(oriOLAPContext.getInnerFilterColumns()));
-        preserved.aggregations = Lists.newArrayList();
         for (FunctionDesc agg : oriOLAPContext.aggregations) {
-            preserved.aggregations.add(//
-                    FunctionDesc.newInstance(agg.getExpression(), agg.getParameters(), agg.getReturnType()) //
-            );
+            preserved.reservedMap.put(agg,
+                    FunctionDesc.newInstance(agg.getExpression(), agg.getParameters(), agg.getReturnType()));
         }
+
         return preserved;
     }
 
-    private static void restoreOLAPContextProps(OLAPContext oriOLAPContext, OLAPContext preservedOLAPContext) {
+    static void restoreOLAPContextProps(OLAPContext oriOLAPContext, OLAPContextProp preservedOLAPContext) {
         oriOLAPContext.allColumns = preservedOLAPContext.allColumns;
         oriOLAPContext.setSortColumns(preservedOLAPContext.getSortColumns());
-        oriOLAPContext.aggregations = preservedOLAPContext.aggregations;
+        oriOLAPContext.aggregations.forEach(agg -> {
+            if (preservedOLAPContext.reservedMap.containsKey(agg)) {
+                final FunctionDesc functionDesc = preservedOLAPContext.reservedMap.get(agg);
+                agg.setExpression(functionDesc.getExpression());
+                agg.setParameters(functionDesc.getParameters());
+                agg.setReturnType(functionDesc.getReturnType());
+            }
+        });
         oriOLAPContext.setGroupByColumns(preservedOLAPContext.getGroupByColumns());
         oriOLAPContext.setInnerGroupByColumns(preservedOLAPContext.getInnerGroupByColumns());
         oriOLAPContext.setInnerFilterColumns(preservedOLAPContext.getInnerFilterColumns());
+        oriOLAPContext.resetSQLDigest();
     }
 
     private static void collectIncapableReason(OLAPContext olapContext, List<Candidate> candidates) {

@@ -66,6 +66,7 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPContextProp;
 import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,20 +119,27 @@ public class RealizationChooser {
         // Step 2.1 try to exactly match model
         logger.debug("Context join graph: {}", context.getJoinsGraph());
         for (NDataModel model : modelMap.keySet()) {
+            OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
             Candidate candidate = selectRealizationFromModel(model, context, false, modelMap, model2AliasMap);
+            logger.info("context & model({}, {}) match info: {}", model.getUuid(), model.getAlias(), candidate != null);
             if (candidate != null) {
                 candidates.add(candidate);
             }
+            // discard the props of OLAPContext modified by rewriteCcInnerCol
+            QueryRouter.restoreOLAPContextProps(context, preservedOLAPContext);
         }
 
         // Step 2.2 if no exactly model and user config to try partial model match, then try partial match model
         if (CollectionUtils.isEmpty(candidates)
                 && KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel()) {
             for (NDataModel model : modelMap.keySet()) {
+                OLAPContextProp preservedOLAPContext = QueryRouter.preservePropsBeforeRewrite(context);
                 Candidate candidate = selectRealizationFromModel(model, context, true, modelMap, model2AliasMap);
                 if (candidate != null) {
                     candidates.add(candidate);
                 }
+                // discard the props of OLAPContext modified by rewriteCcInnerCol
+                QueryRouter.restoreOLAPContextProps(context, preservedOLAPContext);
             }
             context.storageContext.setPartialMatchModel(CollectionUtils.isNotEmpty(candidates));
         }
@@ -141,6 +149,7 @@ public class RealizationChooser {
         logger.trace("Cost Sorted Realizations {}", candidates);
         if (!candidates.isEmpty()) {
             Candidate selectedCandidate = candidates.get(0);
+            QueryRouter.restoreOLAPContextProps(context, selectedCandidate.getRewrittenCtx());
             context.fixModel(selectedCandidate.getRealization().getModel(),
                     model2AliasMap.get(selectedCandidate.getRealization().getModel()));
             adjustForCapabilityInfluence(selectedCandidate, context);

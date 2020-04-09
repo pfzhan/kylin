@@ -46,8 +46,10 @@ import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPContextProp;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class Candidate implements Comparable<Candidate> {
 
@@ -58,6 +60,9 @@ public class Candidate implements Comparable<Candidate> {
     OLAPContext ctx;
     SQLDigest sqlDigest;
     CapabilityResult capability;
+    @Getter
+    @Setter
+    OLAPContextProp rewrittenCtx;
 
     public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx) {
         this.realization = realization;
