@@ -194,7 +194,7 @@ public class NUserGroupController extends NBasicController {
         if (!groupName.equals(groupName.trim())) {
             throw new KylinException("KE-1016", msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
         }
-        if (Pattern.compile("[^x00-xff]").matcher(groupName).find()) {
+        if (Pattern.compile("[^\\x00-\\xff]").matcher(groupName).find()) {
             throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(groupName).find()) {

@@ -184,7 +184,7 @@ public class NUserControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateUser() throws Exception {
         val user = new ManagedUser();
-        user.setUsername("u1");
+        user.setUsername("azAZ_#");
         user.setPassword("p14532522?");
         Mockito.doNothing().when(userService).createUser(Mockito.any(UserDetails.class));
         mockMvc.perform(MockMvcRequestBuilders.post("/api/user").contentType(MediaType.APPLICATION_JSON)

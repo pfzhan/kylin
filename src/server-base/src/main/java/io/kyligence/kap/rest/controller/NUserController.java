@@ -372,7 +372,7 @@ public class NUserController extends NBasicController {
         if (!username.equals(username.trim())) {
             throw new KylinException("KE-1016", msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
         }
-        if (Pattern.compile("[^x00-xff]").matcher(username).find()) {
+        if (Pattern.compile("[^\\x00-\\xff]").matcher(username).find()) {
             throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(username).find()) {
