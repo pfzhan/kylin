@@ -218,9 +218,9 @@ function startKE(){
 
     checkHiveDirAcl
 
-    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
-
     runToolInternal io.kyligence.kap.tool.UpgradeCLI
+
+    ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 
     if [[ -f ${KYLIN_HOME}/conf/kylin-server-log4j.properties ]]; then
         kylin_server_log4j="file:${KYLIN_HOME}/conf/kylin-server-log4j.properties"
