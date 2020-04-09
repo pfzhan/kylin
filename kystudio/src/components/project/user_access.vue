@@ -403,6 +403,7 @@ export default class UserAccess extends Vue {
         data.originTables.forEach((d) => {
           if (!d.isMore) {
             this.handleTableData(d, isChecked)
+            this.setCurrentTable(d, isChecked)
           }
         })
         this.setCurrentTable(data.children[0], isChecked)
