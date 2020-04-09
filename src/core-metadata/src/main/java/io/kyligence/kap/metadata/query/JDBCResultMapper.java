@@ -95,10 +95,11 @@ public class JDBCResultMapper {
     }
 
     public static long queryHistoryCountResultMapper(List<Map<String, Object>> rdbmsResultBySql) {
+        long countResult = 0L;
         for (Map<String, Object> rowMap : rdbmsResultBySql) {
-            return (long) rowMap.get(COUNT);
+            countResult = (long) rowMap.getOrDefault(COUNT, 0L);
         }
-        return 0;
+        return countResult;
     }
 
     public static List<QueryStatistics> firstQHResultMapper(List<Map<String, Object>> rdbmsResultBySql) {
