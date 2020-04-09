@@ -1544,7 +1544,7 @@ export default class ModelEdit extends Vue {
       handleSuccess(res, (data) => {
         this.datasource = data
         this.initModelDesc((data) => { // 初始化模型数据
-          if ('visible' in this.modelData && this.modelData.visible) {
+          if ('visible' in this.modelData && !this.modelData.visible) {
             this.showNoAuthorityContent(this.modelData)
             return
           }
