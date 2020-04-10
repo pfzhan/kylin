@@ -1,7 +1,7 @@
 export default {
   'en': {
-    'editAggregateGroup': 'Edit Aggregate Index',
-    'addAggregateGroup': 'Add Aggregate Index',
+    'editAggregateGroup': 'Edit Aggregate Group',
+    'addAggregateGroup': 'Add Aggregate Group',
     'hideDimensions': 'Hide Dimensions',
     'showDimensions': 'View All Dimensions',
     'aggregateGroupTitle': 'Aggregate-Group-{id}',
@@ -63,8 +63,8 @@ export default {
     colon: ': '
   },
   'zh-cn': {
-    'editAggregateGroup': '编辑聚合索引',
-    'addAggregateGroup': '添加聚合索引',
+    'editAggregateGroup': '编辑聚合组',
+    'addAggregateGroup': '添加聚合组',
     'hideDimensions': '隐藏维度',
     'showDimensions': '展示所有维度',
     'aggregateGroupTitle': '聚合组—{id}',

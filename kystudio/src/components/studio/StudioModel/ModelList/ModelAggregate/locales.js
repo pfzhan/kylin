@@ -1,6 +1,6 @@
 export default {
   'en': {
-    aggregateGroup: 'Aggregate Index',
+    aggregateGroup: 'Aggregate Group',
     aggregateAmount: 'Index Amount:',
     aggregateIndexTree: 'Index Treemap',
     aggregateDetail: 'Index List',
@@ -41,14 +41,14 @@ export default {
     BUILDING: 'BUILDING',
     clearAll: 'Clear All',
     bulidTips: 'Are you sure to build all indexes under the model {modelName}?',
-    segmentHoletips: 'There exists a hole in the segment range, and the model will not be able to server queries. Please confirm whether to add the following segments to fix.',
+    segmentHoletips: 'There exists a hole in the segment range, and the data of this period cannot be queried. Please confirm whether to add the following segments to fix.',
     fixSegmentTitle: 'Fix Segment',
     ignore: 'Ignore',
     fixAndBuild: 'Fix and Build',
     index: 'Index'
   },
   'zh-cn': {
-    aggregateGroup: '聚合索引',
+    aggregateGroup: '聚合组',
     aggregateAmount: '索引总数：',
     aggregateIndexTree: '索引展示图 ',
     aggregateDetail: '索引列表',
@@ -89,7 +89,7 @@ export default {
     BUILDING: '构建中',
     clearAll: '清除所有',
     bulidTips: '你确认要构建模型 {modelName} 下的所有索引吗？',
-    segmentHoletips: '当前 Segment 区间存在空洞，此时将无法服务于查询，是否需要补充以下 Segment 进行修复？',
+    segmentHoletips: '当前 Segment 区间存在空洞，此时将无法查询到该段时间的数据，是否需要补充以下 Segment 进行修复？',
     fixSegmentTitle: '修复 Segment',
     ignore: '忽略',
     fixAndBuild: '修复并构建',
