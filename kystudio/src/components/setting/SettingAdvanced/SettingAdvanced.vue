@@ -4,6 +4,7 @@
     <EditableBlock
       :header-content="$t('accePreference')"
       :is-keep-editing="true"
+      v-if="$store.state.project.isSemiAutomatic||isAutoProject"
       :is-edited="isFormEdited(form, 'accelerate-settings')"
       @submit="(scb, ecb) => handleSubmit('accelerate-settings', scb, ecb)"
       @cancel="(scb, ecb) => handleResetForm('accelerate-settings', scb, ecb)">
