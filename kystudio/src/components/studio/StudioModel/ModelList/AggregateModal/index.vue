@@ -668,6 +668,9 @@ export default class AggregateModal extends Vue {
     this.isWaitingCheckAllCuboids = true
     // this.calcCuboids()
   }
+  destroyed () {
+    this.handleClose(false)
+  }
   handleClose (isSubmit, isNeedBuildGuild) {
     this.hideModal()
     this.isEditGlobalDim = false
