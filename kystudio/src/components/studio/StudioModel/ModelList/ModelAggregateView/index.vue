@@ -46,7 +46,7 @@
             <span>{{$t('maxDimCom')}}<common-tip :content="$t('dimComTips')"><i class="el-icon-ksd-what ksd-mrl-2"></i></common-tip>{{$t('colon')}}
             </span>
             <span v-if="!aggregate.select_rule.dim_cap&&aggregationObj&&!aggregationObj.global_dim_cap" class="nolimit-dim">{{$t('noLimitation')}}</span>
-            <span v-if="aggregate.select_rule.dim_cap&&aggregationObj&&!aggregationObj.global_dim_cap">{{aggregate.select_rule.dim_cap}}</span>
+            <span v-if="aggregate.select_rule.dim_cap&&aggregationObj">{{aggregate.select_rule.dim_cap}}</span>
             <span v-if="!aggregate.select_rule.dim_cap&&aggregationObj&&aggregationObj.global_dim_cap" class="global-dim">{{aggregationObj.global_dim_cap}}</span>
           </span>
           <span class="ksd-fright icon-group">

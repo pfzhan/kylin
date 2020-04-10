@@ -252,7 +252,10 @@
             <span v-if="isWaitingCheckAllCuboids">{{$t('numTitle', {num: $t('needCheck')})}}</span>
             <!-- 正在检测的情况 -->
             <span v-if="!isWaitingCheckAllCuboids && renderCoboidTextCheck(cuboidsInfo.total_count) === 'loading'">{{$t('numTitle1')}}<i class="el-icon-loading"></i></span>
-            <i class="el-icon-ksd-table_refresh ksd-ml-10" :class="{'is-disabled': isDisabledSaveBtn}" @click="checkCuboids(true)"></i>
+            <common-tip :content="$t('includesEmpty')" v-if="isDisabledSaveBtn" >
+              <i class="el-icon-ksd-table_refresh ksd-ml-10 is-disabled"@click="checkCuboids(true)"></i>
+            </common-tip>
+            <i class="el-icon-ksd-table_refresh ksd-ml-10" v-else @click="checkCuboids(true)"></i>
           </span>
           <div class="dimCap-block ksd-ml-10">
             <span class="divide"></span>
@@ -604,9 +607,7 @@ export default class AggregateModal extends Vue {
     const aggregateArray = get(this.form, 'aggregateArray')
     aggregateArray[aggregateIdx].isEditDim = isEdit
     this.setModalForm({ aggregateArray })
-    if (!isEdit) {
-      this.groupsDim[aggregateIdx] = aggregateArray[aggregateIdx].dimCap
-    }
+    this.groupsDim[aggregateIdx] = aggregateArray[aggregateIdx].dimCap
   }
   saveDimCan (aggregateIdx) {
     const aggregateArray = get(this.form, 'aggregateArray')
@@ -671,12 +672,12 @@ export default class AggregateModal extends Vue {
   destroyed () {
     this.handleClose(false)
   }
-  handleClose (isSubmit, isNeedBuildGuild) {
+  handleClose (isSubmit) {
     this.hideModal()
     this.isEditGlobalDim = false
     setTimeout(() => {
       this.resetModalForm()
-      this.callback && this.callback({isSubmit, isNeedBuildGuild})
+      this.callback && this.callback({isSubmit})
     }, 200)
   }
   handleInput (key, value, id) {
