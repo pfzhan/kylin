@@ -45,25 +45,27 @@ import java.io.InputStreamReader;
 
 public class ProjectInfoParser implements IKeep{
 
-
     public static Pair<String, ServletRequest> parseProjectInfo(ServletRequest request) {
-        String project = request.getParameter("project");
         ServletRequest requestWrapper = request;
-        if (StringUtils.isEmpty(project) && request.getContentType() != null
-                && request.getContentType().contains("json")) {
-            try {
-                requestWrapper = new RepeatableBodyRequestWrapper((HttpServletRequest) request);
+        String project = null;
+        try {
+            requestWrapper = new RepeatableBodyRequestWrapper((HttpServletRequest) request);
+            project = requestWrapper.getParameter("project");
+            if (StringUtils.isEmpty(project) && request.getContentType() != null
+                    && request.getContentType().contains("json")) {
                 val projectRequest = JsonUtil.readValue(((RepeatableBodyRequestWrapper) requestWrapper).getBody(),
                         ProjectRequest.class);
                 if (projectRequest != null) {
                     project = projectRequest.getProject();
                 }
-            } catch (IOException ignored) {
-                // ignore JSON exception
+
             }
-        }
-        if (StringUtils.isEmpty(project)) {
-            project = UnitOfWork.GLOBAL_UNIT;
+
+            if (StringUtils.isEmpty(project)) {
+                project = UnitOfWork.GLOBAL_UNIT;
+            }
+        } catch (IOException e) {
+            // ignore JSON exception
         }
         return new Pair<>(project, requestWrapper);
     }
