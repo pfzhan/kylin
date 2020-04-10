@@ -33,6 +33,7 @@ import java.util.List;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -136,6 +137,13 @@ public class YarnApplicationTool extends ExecutableApplication {
             }
 
             List<String> applicationIdList = extract((ChainedExecutable) job);
+
+            if (CollectionUtils.isEmpty(applicationIdList)) {
+                String message = "Yarn task submission failed, please check whether yarn is running normally.";
+                log.error(message);
+                FileUtils.write(new File(yarnLogsDir, "failed_yarn_application.log"), message);
+                return;
+            }
 
             CliCommandExecutor cmdExecutor = new CliCommandExecutor();
             String cmd = "yarn logs -applicationId %s";
