@@ -48,6 +48,12 @@ INFLUXDB_RPC_ADDRESS=${3:-10.1.2.172:8083}
 METASTORE=${4:-postgresql}
 PYTEST_MARK=${5:-ALL}
 METADATA_NAME=${6:-$metadataName}
+PG_HOST=${7:-sandbox}
+PG_PORT=${8:-5432}
+METADATA_TABLE=${METADATA_NAME}
+AUDITLOG_TABLE=${METADATA_NAME}_audit_log
+SESSION_TABLE=${METADATA_NAME}_session
+SESSION_ATTRIBUTES_TABLE=${METADATA_NAME}_session_attributes
 
 echo "The metadata name is ${METADATA_NAME}"
 
@@ -105,7 +111,12 @@ fi
 
 sed -i "\$a kylin.metadata.url=${METADATA_NAME}@jdbc,driverClassName=org.postgresql.Driver,url=jdbc:postgresql://10.1.2.166:5433/kylin,username=postgres,password=kylin" kylin.properties
 export PGPASSWORD=kylin
-export METADATA_ERASE_CMD="/usr/pgsql-10/bin/psql -h 10.1.2.166 -p 5433 -U postgres -d kylin -c \"drop table if exists ${METADATA_NAME}\""
+export PSQL="/usr/pgsql-10/bin/psql"
+export DROP_TRABLE="${PSQL} -h ${PG_HOST} -p ${PG_PORT} -U postgres -d kylin -c \"drop table if exists"
+export METADATA_ERASE_CMD="${DROP_TRABLE} ${METADATA_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${AUDITLOG_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${SESSION_TABLE}\""
+export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${SESSION_ATTRIBUTES_TABLE}\""
 
 # clean metadata in metastore
 eval $METADATA_ERASE_CMD
