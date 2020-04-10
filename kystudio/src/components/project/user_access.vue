@@ -321,6 +321,7 @@ export default class UserAccess extends Vue {
         this.tables[i].originTables.forEach((d) => {
           if (!d.isMore) {
             this.handleTableData(d, val)
+            this.setCurrentTable(d, val)
           }
         })
       }
