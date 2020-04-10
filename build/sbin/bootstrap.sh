@@ -218,7 +218,7 @@ function startKE(){
 
     checkHiveDirAcl
 
-    runToolInternal io.kyligence.kap.tool.UpgradeCLI
+    runToolInternal io.kyligence.kap.tool.upgrade.AddInstanceColumnCLI
 
     ${KYLIN_HOME}/bin/check-env.sh "if-not-yet" || exit 1
 

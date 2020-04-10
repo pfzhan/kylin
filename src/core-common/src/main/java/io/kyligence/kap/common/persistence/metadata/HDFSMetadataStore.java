@@ -120,7 +120,8 @@ public class HDFSMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String resPath, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc) throws Exception {
+    protected void save(String resPath, ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc)
+            throws Exception {
         log.trace("res path : {}", resPath);
         Path p = getRealHDFSPath(resPath);
         if (bs == null) {
@@ -134,6 +135,24 @@ public class HDFSMetadataStore extends MetadataStore {
             fs.setTimes(p, ts, -1);
         } catch (Exception e) {
             throw new IOException("Put resource fail", e);
+        } finally {
+            IOUtils.closeQuietly(out);
+        }
+    }
+
+    @Override
+    public void move(String srcPath, String destPath) throws Exception {
+        log.trace("res path : {}", srcPath);
+        Path srcHDFSPath = getRealHDFSPath(srcPath);
+        if (!fs.exists(srcHDFSPath)) {
+            return;
+        }
+        Path destHDFSPath = getRealHDFSPath(destPath);
+        FSDataOutputStream out = null;
+        try {
+            fs.rename(srcHDFSPath, destHDFSPath);
+        } catch (Exception e) {
+            throw new IOException("rename resource fail", e);
         } finally {
             IOUtils.closeQuietly(out);
         }
