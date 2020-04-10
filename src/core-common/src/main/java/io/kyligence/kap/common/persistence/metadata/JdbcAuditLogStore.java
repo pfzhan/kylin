@@ -38,6 +38,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Maps;
@@ -243,6 +244,7 @@ public class JdbcAuditLogStore implements AuditLogStore {
             val replayer = MessageSynchronization.getInstance(config);
             replayer.setChecker(checker);
             long startId = id;
+            AtomicInteger reconsumeTimes = new AtomicInteger();
             while (!stop.get()) {
                 try {
                     long finalStartId = startId;
@@ -251,8 +253,14 @@ public class JdbcAuditLogStore implements AuditLogStore {
                         if (CollectionUtils.isEmpty(logs)) {
                             return finalStartId;
                         }
+                        long currentMaxId = logs.get(logs.size() - 1).getId();
+                        if (logs.size() < currentMaxId - finalStartId && reconsumeTimes.get() < 3) {
+                            reconsumeTimes.getAndIncrement();
+                            return finalStartId;
+                        }
+                        reconsumeTimes.set(0);
                         replayLogs(replayer, logs);
-                        return logs.get(logs.size() - 1).getId();
+                        return currentMaxId;
                     });
                     if (startId == finalStartId) {
                         Thread.sleep(1000);
