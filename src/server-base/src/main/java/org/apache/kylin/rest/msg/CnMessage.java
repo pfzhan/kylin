@@ -943,7 +943,7 @@ public class CnMessage extends Message {
     }
 
     public String getSEGMENT_RANGE_OVERLAP() {
-        return "将要构建的范围和以构建的范围重合从[%s]到[%s],请选择新的数据范围，然后重试";
+        return "将要构建的范围和已构建的范围重合，从[%s]到[%s]，请选择新的数据范围，然后重试";
     }
 
     public String getPARTITION_COLUMN_NOT_EXIST() {
