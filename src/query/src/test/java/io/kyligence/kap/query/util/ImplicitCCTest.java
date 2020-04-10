@@ -39,6 +39,7 @@ import org.mockito.stubbing.Answer;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -150,11 +151,11 @@ public class ImplicitCCTest {
         aliasMapping.put("T1", "TABLE1");
         aliasMapping.put("T2", "TABLE2");
 
-        ColumnRowType columnRowType1 = ColumnRowTypeMockUtil.mock("TABLE1", "T1", //
-                Pair.newPair("A", "integer"), //
-                Pair.newPair("B", "integer"), //
-                Pair.newPair("C", "integer"), //
-                Pair.newPair("D", "integer"));
+        ColumnRowType columnRowType1 = ColumnRowTypeMockUtil.mock("TABLE1", "T1",
+                ImmutableList.of(Pair.newPair("A", "integer"), //
+                        Pair.newPair("B", "integer"), //
+                        Pair.newPair("C", "integer"), //
+                        Pair.newPair("D", "integer")));
 
         LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
         mockQueryAlias.put("TABLE1", columnRowType1);
@@ -194,11 +195,11 @@ public class ImplicitCCTest {
         String sql2tables = "select t1.a + t1.b as aa, t2.c + t2.d as bb from table1 t1 inner join "
                 + "table2 t2 on t1.x = t2.y where t1.a + t1.b > t2.c + t2.d order by t1.a + t1.b";
 
-        ColumnRowType columnRowType2 = ColumnRowTypeMockUtil.mock("TABLE2", "T2", //
-                Pair.newPair("A", "integer"), //
-                Pair.newPair("B", "integer"), //
-                Pair.newPair("C", "integer"), //
-                Pair.newPair("D", "integer"));
+        ColumnRowType columnRowType2 = ColumnRowTypeMockUtil.mock("TABLE2", "T2",
+                ImmutableList.of(Pair.newPair("A", "integer"), //
+                        Pair.newPair("B", "integer"), //
+                        Pair.newPair("C", "integer"), //
+                        Pair.newPair("D", "integer")));
 
         mockQueryAlias.put("TABLE2", columnRowType2);
         queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
@@ -248,11 +249,11 @@ public class ImplicitCCTest {
         aliasMapping.put("T1", "TABLE1");
         aliasMapping.put("T2", "TABLE2");
 
-        ColumnRowType columnRowType1 = ColumnRowTypeMockUtil.mock("TABLE1", "T1", //
-                Pair.newPair("A", "integer"), //
-                Pair.newPair("B", "integer"), //
-                Pair.newPair("C", "integer"), //
-                Pair.newPair("D", "integer"));
+        ColumnRowType columnRowType1 = ColumnRowTypeMockUtil.mock("TABLE1", "T1",
+                ImmutableList.of(Pair.newPair("A", "integer"), //
+                        Pair.newPair("B", "integer"), //
+                        Pair.newPair("C", "integer"), //
+                        Pair.newPair("D", "integer")));
 
         LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
         mockQueryAlias.put("TABLE1", columnRowType1);

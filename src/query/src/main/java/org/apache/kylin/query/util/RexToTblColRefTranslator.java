@@ -583,7 +583,7 @@ public class RexToTblColRefTranslator {
 
     class ExtendedRexToSqlNodeConverter extends RexToSqlNodeConverterImpl {
 
-        ExtendedRexToSqlNodeConverter(RexSqlConvertletTable convertletTable) {
+        public ExtendedRexToSqlNodeConverter(RexSqlConvertletTable convertletTable) {
             super(convertletTable);
         }
 

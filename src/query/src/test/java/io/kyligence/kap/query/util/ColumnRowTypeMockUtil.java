@@ -24,8 +24,7 @@
 package io.kyligence.kap.query.util;
 
 import java.util.List;
-
-import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -34,29 +33,23 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 public class ColumnRowTypeMockUtil {
-    public static ColumnRowType mock(String tablename, String aliasname, Pair<String, String>... columnNamesAndTypes) {
-        TableDesc tableDesc = TableDesc.mockup(tablename);
+    public static ColumnRowType mock(String tableName, String tableAlias,
+            List<Pair<String, String>> columnNamesAndTypes) {
+        TableDesc tableDesc = TableDesc.mockup(tableName);
         List<ColumnDesc> columnDescList = Lists.newArrayList();
-        for (int i = 0; i < columnNamesAndTypes.length; i++) {
-            columnDescList.add(ColumnDesc.mockup(tableDesc, 0, columnNamesAndTypes[i].getFirst(),
-                    columnNamesAndTypes[i].getSecond()));
+        for (Pair<String, String> columnNamesAndType : columnNamesAndTypes) {
+            columnDescList.add(
+                    ColumnDesc.mockup(tableDesc, 0, columnNamesAndType.getFirst(), columnNamesAndType.getSecond()));
         }
         tableDesc.setColumns(columnDescList.toArray(new ColumnDesc[0]));
-        final TableRef tableRef = TblColRef.tableForUnknownModel(aliasname, tableDesc);
+        final TableRef tableRef = TblColRef.tableForUnknownModel(tableAlias, tableDesc);
 
-        List<TblColRef> tblColRefs = Lists.transform(columnDescList, new Function<ColumnDesc, TblColRef>() {
-            @Nullable
-            @Override
-            public TblColRef apply(@Nullable ColumnDesc input) {
-                return TblColRef.columnForUnknownModel(tableRef, input);
-            }
-        });
+        List<TblColRef> tblColRefs = columnDescList.stream()
+                .map(input -> TblColRef.columnForUnknownModel(tableRef, input)).collect(Collectors.toList());
 
-        ColumnRowType columnRowType = new ColumnRowType(tblColRefs);
-        return columnRowType;
+        return new ColumnRowType(tblColRefs);
     }
 }

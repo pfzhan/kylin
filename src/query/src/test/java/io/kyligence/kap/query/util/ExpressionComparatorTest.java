@@ -27,7 +27,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.LinkedHashMap;
 
-import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.Pair;
@@ -37,8 +36,10 @@ import org.junit.Test;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
 public class ExpressionComparatorTest {
@@ -79,11 +80,11 @@ public class ExpressionComparatorTest {
             BiMap<String, String> aliasMapping = HashBiMap.create();
             aliasMapping.put("B", "A");
 
-            ColumnRowType columnRowType = ColumnRowTypeMockUtil.mock("T", "B", //
-                    Pair.newPair("A", "integer"), //
-                    Pair.newPair("B", "integer"), //
-                    Pair.newPair("C", "integer"), //
-                    Pair.newPair("D", "integer"));
+            ColumnRowType columnRowType = ColumnRowTypeMockUtil.mock("T", "B",
+                    ImmutableList.of(Pair.newPair("A", "integer"), //
+                            Pair.newPair("B", "integer"), //
+                            Pair.newPair("C", "integer"), //
+                            Pair.newPair("D", "integer")));
 
             LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
             mockQueryAlias.put("B", columnRowType);
@@ -98,10 +99,10 @@ public class ExpressionComparatorTest {
             aliasMapping.put("T", "A");
 
             ColumnRowType columnRowType = ColumnRowTypeMockUtil.mock("T", "T", //
-                    Pair.newPair("A", "integer"), //
-                    Pair.newPair("B", "integer"), //
-                    Pair.newPair("C", "integer"), //
-                    Pair.newPair("D", "integer"));
+                    ImmutableList.of(Pair.newPair("A", "integer"), //
+                            Pair.newPair("B", "integer"), //
+                            Pair.newPair("C", "integer"), //
+                            Pair.newPair("D", "integer")));
 
             LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
             mockQueryAlias.put("T", columnRowType);
@@ -126,23 +127,27 @@ public class ExpressionComparatorTest {
         SqlNode sn3 = CalciteParser.getOnlySelectNode(sql3);
         {
             AliasMapping aliasMapping = null;
-            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(
+                    aliasMapping, null);
 
             assertEquals(false, matchInfo.isSqlNodeEqual(sn0, sn1));
         }
         {
             AliasMapping aliasMapping = new AliasMapping(null);
-            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(
+                    aliasMapping, null);
             assertEquals(false, matchInfo.isSqlNodeEqual(sn0, sn1));
         }
         {
             AliasMapping aliasMapping = null;
-            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(
+                    aliasMapping, null);
             assertEquals(true, matchInfo.isSqlNodeEqual(sn2, sn3));
         }
         {
             AliasMapping aliasMapping = new AliasMapping(null);
-            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(aliasMapping, null);
+            ExpressionComparator.AliasMachingSqlNodeComparator matchInfo = new ExpressionComparator.AliasMachingSqlNodeComparator(
+                    aliasMapping, null);
             assertEquals(true, matchInfo.isSqlNodeEqual(sn2, sn3));
         }
 
