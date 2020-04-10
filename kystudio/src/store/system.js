@@ -223,7 +223,7 @@ export default {
       return state.smartModeEnabled === 'true'
     },
     supportUrl: (state) => {
-      return process.qa ? 'http://supportqa.kyligence.io' : 'https://support.kyligence.io'
+      return process.qa ? 'http://supportqa.kyligence.io/#/?lang=' + state.lang : 'https://support.kyligence.io/#/?lang=' + state.lang
     }
   }
 }

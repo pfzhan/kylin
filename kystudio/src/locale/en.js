@@ -447,7 +447,7 @@ exports.default = {
     refresh: 'Refresh'
   },
   user: {
-    tip_password_unsafe: 'The password should contain at least one number, letter and special character（~!@#$%^&*(){}|:"<>?[];\',./`).',
+    tip_password_unsafe: 'The password should contain at least one number, letter and special character (~!@#$%^&*(){}|:"<>?[];\',./`).',
     noStartWithPeriod: 'The user / group names cannot start with a period (.).',
     noStartWithSpace: 'User / group names cannot start or end with a space.',
     noChineseCharacters: 'Chinese characters cannot be used in user / group names',

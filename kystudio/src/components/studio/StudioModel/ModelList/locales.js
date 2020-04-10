@@ -132,7 +132,7 @@ export default {
     fullLoadDataContent3: '您确认需要继续加载数据吗？',
     fullScreen: '全屏',
     exitFullScreen: '退出全屏',
-    usageTip: '查询击中该 {mode} 的次数',
+    usageTip: '查询击中该{mode}的次数',
     model: '模型',
     indexGroup: '索引组',
     expansionRate: '膨胀率',
