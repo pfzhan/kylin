@@ -24,22 +24,28 @@
 
 package io.kyligence.kap.common.metric;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.kylin.common.util.JsonUtil;
+
+import java.util.List;
 import java.util.Map;
 
 public enum ConsoleWriter implements MetricWriter {
     INSTANCE;
 
     @Override
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics, long timestamp) throws Throwable {
+    public void write(String measurement, QueryMetrics metrics, long timestamp) throws Throwable {
         System.out.println("=============:::" + measurement + ":::=============");
-        for (String id : tags.keySet()) {
-            System.out.println(id + ":" + tags.get(id));
-        }
-        for (String metric : metrics.keySet()) {
-            System.out.println("Metric:" + metric + ", value:" + metrics.get(metric));
+        Map<String, String> metricsMap = JsonUtil.convert(metrics, new TypeReference<Map<String, String>>() {
+        });
+        for (String metric : metricsMap.keySet()) {
+            System.out.println("Metric:" + metric + ", value:" + metricsMap.get(metric));
         }
         System.out.println("=============:::END:::=============");
     }
+
+    @Override
+    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){}
 
     @Override
     public String getType() {

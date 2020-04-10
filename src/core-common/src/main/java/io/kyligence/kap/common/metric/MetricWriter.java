@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.common.metric;
 
-import java.util.Map;
+import java.util.List;
 
 public interface MetricWriter {
 
@@ -32,8 +32,10 @@ public interface MetricWriter {
         INFLUX, BLACK_HOLE, CONSOLE, RDBMS,
     }
 
-    void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics, long timestamp)
+    void write(String measurement, QueryMetrics metrics, long timestamp)
             throws Throwable;
+
+    void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp);
 
     String getType();
 

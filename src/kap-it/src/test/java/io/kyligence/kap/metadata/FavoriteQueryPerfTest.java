@@ -25,10 +25,10 @@
 package io.kyligence.kap.metadata;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.metric.MetricWriter;
 import io.kyligence.kap.common.metric.MetricWriterFactory;
+import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -38,7 +38,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.newten.NExecAndComp;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -62,7 +61,6 @@ import java.io.IOException;
 import java.sql.Types;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -140,7 +138,7 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
                             var sqls = queries.subList(startIndex, endIndex);
                             for (int num = 0; num < queriesPerMinute; num++) {
                                 sqlRequest.setSql(sqls.get(num % sqls.size()));
-                                writeToInfluxDB(sqlRequest, initialTime + num * timeGap);
+                                writeToRDBMS(sqlRequest, initialTime + num * timeGap);
                             }
                             initialTime += 60 * 1000L;
                         }
@@ -294,38 +292,40 @@ public class FavoriteQueryPerfTest extends NLocalFileMetadataTestCase {
         log.info("time to filter blacklist sql is {}", (System.currentTimeMillis() - startTime) / 1000.0);
     }
 
-    private void writeToInfluxDB(SQLRequest sqlRequest, long insertTime) {
+    private void writeToRDBMS(SQLRequest sqlRequest, long insertTime) {
         try {
-            MetricWriterFactory.getInstance(MetricWriter.Type.INFLUX.name()).write(QueryHistory.DB_NAME,
-                    sqlRequest.getProject(), getInfluxdbTags(sqlRequest), getInfluxdbFields(sqlRequest, insertTime),
-                    insertTime);
+            QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
+            queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
+            queryMetrics.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
+            queryMetrics.setQueryDuration(5578L);
+            queryMetrics.setTotalScanBytes(863L);
+            queryMetrics.setTotalScanCount(4096L);
+            queryMetrics.setResultRowCount(500L);
+            queryMetrics.setSubmitter("ADMIN");
+            queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
+            queryMetrics.setErrorType("");
+            queryMetrics.setCacheHit(true);
+            queryMetrics.setIndexHit(true);
+            queryMetrics.setQueryTime(1584888338274L);
+            queryMetrics.setProjectName("default");
+
+            QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
+                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");
+            realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
+            realizationMetrics.setDuration(4591L);
+            realizationMetrics.setQueryTime(1586405449387L);
+            realizationMetrics.setProjectName("default");
+
+            List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
+            realizationMetricsList.add(realizationMetrics);
+            realizationMetricsList.add(realizationMetrics);
+            queryMetrics.setRealizationMetrics(realizationMetricsList);
+
+            MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name())
+                    .write(null, queryMetrics, insertTime);
         } catch (Throwable th) {
-            log.info("error when write to InfluxDB", th.getMessage());
+            log.info("error when write to RDBMS", th.getMessage());
         }
-    }
-
-    private Map<String, String> getInfluxdbTags(final SQLRequest sqlRequest) {
-        final ImmutableMap.Builder<String, String> tagBuilder = ImmutableMap.<String, String> builder() //
-                .put(QueryHistory.SUBMITTER, sqlRequest.getUsername()) //
-                .put(QueryHistory.SUITE, "Unknown") //
-                .put(QueryHistory.ENGINE_TYPE, "HIVE")
-                .put(QueryHistory.IS_INDEX_HIT, "false")
-                .put(QueryHistory.MONTH, "2019-02").put(QueryHistory.QUERY_SERVER, "192.168.0.1");
-
-        return tagBuilder.build();
-    }
-
-    private Map<String, Object> getInfluxdbFields(final SQLRequest sqlRequest, long insertTime) {
-        final ImmutableMap.Builder<String, Object> fieldBuilder = ImmutableMap.<String, Object> builder() //
-                .put(QueryHistory.SQL_TEXT, sqlRequest.getSql()) //
-                .put(QueryHistory.QUERY_ID, "eaca32a-a33e-4b69-83dd-0bb8b1f8c91b") //
-                .put(QueryHistory.QUERY_DURATION, 1000).put(QueryHistory.TOTAL_SCAN_BYTES, 100)
-                .put(QueryHistory.TOTAL_SCAN_COUNT, 100).put(QueryHistory.RESULT_ROW_COUNT, 100000)
-                .put(QueryHistory.IS_CACHE_HIT, false)
-                .put(QueryHistory.QUERY_STATUS, QueryHistory.QUERY_HISTORY_SUCCEEDED)
-                .put(QueryHistory.QUERY_TIME, insertTime).put(QueryHistory.SQL_PATTERN, sqlRequest.getSql());
-
-        return fieldBuilder.build();
     }
 
     private FavoriteQueryManager getFQManager(String project) {

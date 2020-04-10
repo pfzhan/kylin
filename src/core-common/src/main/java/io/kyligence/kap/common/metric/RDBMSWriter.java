@@ -25,9 +25,10 @@
 package io.kyligence.kap.common.metric;
 
 import java.io.InputStream;
-import java.util.Map;
+import java.util.List;
 import java.util.Properties;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
 import lombok.val;
@@ -115,32 +116,59 @@ public class RDBMSWriter implements MetricWriter {
     }
 
     @Override
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields,
-            long timestamp) throws Throwable {
-        if (measurement.endsWith(QUERY_MEASUREMENT_SURFIX)) {
-            writeToQueryHistory(dbName, measurement, fields);
-        } else if (measurement.endsWith(REALIZATION_MEASUREMENT_SURFIX)) {
-            writeToQueryHistoryRealization(dbName, measurement, fields);
+    public void write(String measurement, QueryMetrics metrics, long timestamp) {
+        // write to query history
+        jdbcTemplate.update(String.format(INSERT_HISTORY_SQL, getQueryHistoryTableName()), metrics.getQueryId(), metrics.getSql(),
+                metrics.getSqlPattern(), metrics.getQueryDuration(), metrics.getTotalScanBytes(),
+                metrics.getTotalScanCount(), metrics.getResultRowCount(), metrics.getSubmitter(),
+                metrics.getRealizations(), metrics.getServer(), metrics.getErrorType(), metrics.getEngineType(),
+                metrics.isCacheHit(), metrics.getQueryStatus(), metrics.isIndexHit(), metrics.getQueryTime(),
+                metrics.getMonth(), metrics.getQueryFirstDayOfMonth(), metrics.getQueryFirstDayOfWeek(),
+                metrics.getQueryDay(), metrics.isTableIndexUsed(), metrics.isAggIndexUsed(), metrics.isTableIndexUsed(),
+                metrics.getProjectName());
+
+        // write to query history realization
+        List<QueryMetrics.RealizationMetrics> realizationMetrics = metrics.getRealizationMetrics();
+        for (QueryMetrics.RealizationMetrics realizationMetric : realizationMetrics) {
+            jdbcTemplate.update(String.format(INSERT_HISTORY_REALIZATION_SQL, getQueryHistoryRealizationTableName()),
+                    realizationMetric.getModelId(), realizationMetric.getLayoutId(), realizationMetric.getIndexType(),
+                    realizationMetric.getQueryId(), realizationMetric.getDuration(), realizationMetric.getQueryTime(),
+                    realizationMetric.getProjectName());
         }
     }
 
-    public void writeToQueryHistory(String dbName, String measurement, Map<String, Object> fieldsMap) {
-        jdbcTemplate.update(String.format(INSERT_HISTORY_SQL, measurement), fieldsMap.get(QUERY_ID),
-                fieldsMap.get(SQL_TEXT), fieldsMap.get(SQL_PATTERN), fieldsMap.get(QUERY_DURATION),
-                fieldsMap.get(TOTAL_SCAN_BYTES), fieldsMap.get(TOTAL_SCAN_COUNT), fieldsMap.get(RESULT_ROW_COUNT),
-                fieldsMap.get(SUBMITTER), fieldsMap.get(REALIZATIONS), fieldsMap.get(QUERY_SERVER),
-                fieldsMap.get(ERROR_TYPE), fieldsMap.get(ENGINE_TYPE), fieldsMap.get(IS_CACHE_HIT),
-                fieldsMap.get(QUERY_STATUS), fieldsMap.get(IS_INDEX_HIT), fieldsMap.get(QUERY_TIME),
-                fieldsMap.get(MONTH), fieldsMap.get(QUERY_FIRST_DAY_OF_MONTH), fieldsMap.get(QUERY_FIRST_DAY_OF_WEEK),
-                fieldsMap.get(QUERY_DAY), fieldsMap.get(IS_TABLE_INDEX_USED), fieldsMap.get(IS_AGG_INDEX_USED),
-                fieldsMap.get(IS_TABLE_SNAPSHOT_USED), fieldsMap.get(PROJECT_NAME));
+    @Override
+    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp) {
+        // write to query history
+        List<Object[]> queryHistoryList = Lists.newArrayList();
+        for (QueryMetrics queryMetrics : metricsList) {
+            queryHistoryList.add(new Object[] { queryMetrics.getQueryId(), queryMetrics.getSql(),
+                    queryMetrics.getSqlPattern(), queryMetrics.getQueryDuration(), queryMetrics.getTotalScanBytes(),
+                    queryMetrics.getTotalScanCount(), queryMetrics.getResultRowCount(), queryMetrics.getSubmitter(),
+                    queryMetrics.getRealizations(), queryMetrics.getServer(), queryMetrics.getErrorType(),
+                    queryMetrics.getEngineType(), queryMetrics.isCacheHit(), queryMetrics.getQueryStatus(),
+                    queryMetrics.isIndexHit(), queryMetrics.getQueryTime(), queryMetrics.getMonth(),
+                    queryMetrics.getQueryFirstDayOfMonth(), queryMetrics.getQueryFirstDayOfWeek(),
+                    queryMetrics.getQueryDay(), queryMetrics.isTableIndexUsed(), queryMetrics.isAggIndexUsed(),
+                    queryMetrics.isTableIndexUsed(), queryMetrics.getProjectName() });
+        }
+        jdbcTemplate.batchUpdate(String.format(INSERT_HISTORY_SQL, getQueryHistoryTableName()), queryHistoryList);
+
+        // write to query history realization
+        List<Object[]> queryHistoryRealizationList = Lists.newArrayList();
+        for (QueryMetrics queryMetrics : metricsList) {
+            List<QueryMetrics.RealizationMetrics> realizationMetrics = queryMetrics.getRealizationMetrics();
+            for (QueryMetrics.RealizationMetrics realizationMetric : realizationMetrics) {
+                queryHistoryRealizationList.add(new Object[] { realizationMetric.getModelId(),
+                        realizationMetric.getLayoutId(), realizationMetric.getIndexType(),
+                        realizationMetric.getQueryId(), realizationMetric.getDuration(),
+                        realizationMetric.getQueryTime(), realizationMetric.getProjectName() });
+            }
+        }
+        jdbcTemplate.batchUpdate(String.format(INSERT_HISTORY_REALIZATION_SQL, getQueryHistoryRealizationTableName()),
+                queryHistoryRealizationList);
     }
 
-    public void writeToQueryHistoryRealization(String dbName, String measurement, Map<String, Object> fieldsMap) {
-        jdbcTemplate.update(String.format(INSERT_HISTORY_REALIZATION_SQL, measurement), fieldsMap.get(MODEL),
-                fieldsMap.get(LAYOUT_ID), fieldsMap.get(INDEX_TYPE), fieldsMap.get(QUERY_ID),
-                fieldsMap.get(QUERY_DURATION), fieldsMap.get(QUERY_TIME), fieldsMap.get(PROJECT_NAME));
-    }
 
     void createQueryHistoryIfNotExist(KylinConfig kylinConfig) throws Exception {
         String metadataIdentifier = StorageURL.replaceUrl(kylinConfig.getMetadataUrl());
@@ -187,11 +215,23 @@ public class RDBMSWriter implements MetricWriter {
         } else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName()
                 .equals("com.mysql.jdbc.Driver")) {
             fileName = "metadata-jdbc-mysql.properties";
+        } else if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("org.h2.Driver")){
+            fileName = "metadata-jdbc-h2.properties";
         }
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(fileName);
         Properties properties = new Properties();
         properties.load(is);
         return properties;
+    }
+
+    public static String getQueryHistoryTableName() {
+        String metadataIdentifier = StorageURL.replaceUrl(KylinConfig.getInstanceFromEnv().getMetadataUrl());
+        return metadataIdentifier + "_" + QUERY_MEASUREMENT_SURFIX;
+    }
+
+    public static String getQueryHistoryRealizationTableName() {
+        String metadataIdentifier = StorageURL.replaceUrl(KylinConfig.getInstanceFromEnv().getMetadataUrl());
+        return metadataIdentifier + "_" + REALIZATION_MEASUREMENT_SURFIX;
     }
 
     @Override

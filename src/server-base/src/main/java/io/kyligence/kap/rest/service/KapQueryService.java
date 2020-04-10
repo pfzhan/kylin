@@ -69,12 +69,9 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.metric.MetricWriter;
-import io.kyligence.kap.common.metric.MetricWriterFactory;
 import io.kyligence.kap.common.metrics.NMetricsCategory;
 import io.kyligence.kap.common.metrics.NMetricsGroup;
 import io.kyligence.kap.common.metrics.NMetricsName;
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import lombok.val;
 
@@ -114,20 +111,8 @@ public class KapQueryService extends QueryService {
         if (QueryMetricsContext.isStarted()) {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
                     QueryContext.current());
-
-            MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name()).write(QueryHistory.DB_NAME,
-                    getQueryHistoryDao().getQueryMetricMeasurement(),
-                    queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getQueryMetricFields(),
-                    System.currentTimeMillis());
-
-            for (final QueryMetricsContext.RealizationMetrics realizationMetrics : queryMetricsContext
-                    .getRealizationMetrics()) {
-
-                MetricWriterFactory.getInstance(MetricWriter.Type.RDBMS.name()).write(QueryHistory.DB_NAME,
-                        getQueryHistoryDao().getRealizationMetricMeasurement(),
-                        realizationMetrics.getInfluxdbTags(), realizationMetrics.getRealizationMetricFields(),
-                        System.currentTimeMillis());
-            }
+            NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+            queryHistoryScheduler.offerQueryHistoryQueue(queryMetricsContext);
         }
 
         long duration = TimeUnit.MILLISECONDS.toSeconds(sqlResponse.getDuration());

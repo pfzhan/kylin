@@ -24,15 +24,18 @@
 
 package io.kyligence.kap.common.metric;
 
-import java.util.Map;
+import java.util.List;
 
 public enum BlackHoleWriter implements MetricWriter {
     INSTANCE;
 
     @Override
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics,
+    public void write(String measurement, QueryMetrics metrics,
                       long timestamp) throws Throwable {
     }
+
+    @Override
+    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){}
 
     @Override
     public String getType() {

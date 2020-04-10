@@ -31,7 +31,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.metric.InfluxDBWriter;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,9 +42,10 @@ public class QueryHistory {
     public static final String ADJ_SLOW = "Slow";
     public static final String QUERY_HISTORY_SUCCEEDED = "SUCCEEDED";
     public static final String QUERY_HISTORY_FAILED = "FAILED";
+    public static final String DEFAULT_DATABASE = "KE_HISTORY";
 
     // database name
-    public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
+    public static final String DB_NAME = DEFAULT_DATABASE;
 
     // table names
     public static final String QUERY_MEASUREMENT_SURFIX = "query_history";

@@ -23,15 +23,13 @@
  */
 package io.kyligence.kap.rest.metrics;
 
-import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.query.engine.QueryExec;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -50,16 +48,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.metadata.query.NativeQueryRealization;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
-import lombok.Getter;
-import lombok.Setter;
 
-public class QueryMetricsContext {
+public class QueryMetricsContext extends QueryMetrics {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryMetricsContext.class);
 
@@ -72,50 +67,8 @@ public class QueryMetricsContext {
 
     private static final ThreadLocal<QueryMetricsContext> contexts = new ThreadLocal<>();
 
-    // fields below are columns in InfluxDB table which records down query history
-    private final String queryId;
-    private long queryTime;
-    private String projectName;
-
-    private String sql;
-    private String sqlPattern;
-
-    private String submitter;
-    private String server;
-    private String suite;
-
-    private long queryDuration;
-    private long totalScanBytes;
-    private long totalScanCount;
-    private long resultRowCount;
-
-    private String engineType;
-
-    private boolean isCacheHit;
-    private boolean isIndexHit;
-
-    private String errorType;
-    private String queryStatus;
-
-    private String month;
-    private long queryFirstDayOfMonth;
-    private long queryFirstDayOfWeek;
-    private long queryDay;
-
-    private String realizations;
-
-    private boolean tableIndexUsed;
-    private boolean aggIndexUsed;
-    private boolean tableSnapshotUsed;
-
-    private String defaultServer;
-
-    // not a column in InfluxDB table,
-    private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
-
     private QueryMetricsContext(String queryId, String defaultServer) {
-        this.queryId = queryId;
-        this.defaultServer = defaultServer;
+        super(queryId, defaultServer);
     }
 
     public static void start(final String queryId, final String defaultServer) {
@@ -241,9 +194,7 @@ public class QueryMetricsContext {
         }
     }
 
-    public List<RealizationMetrics> getRealizationMetrics() {
-        return ImmutableList.copyOf(realizationMetrics);
-    }
+
 
     private void collectRealizationMetrics(final SQLResponse response) {
         if (CollectionUtils.isEmpty(response.getNativeRealizations())) {
@@ -324,80 +275,5 @@ public class QueryMetricsContext {
         }
 
         return builder.build();
-    }
-
-    public Map<String, Object> getQueryMetricFields() {
-        final ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object> builder() //
-                .put(QueryHistory.SUBMITTER, submitter).put(QueryHistory.SUITE, suite)
-                .put(QueryHistory.IS_INDEX_HIT, isIndexHit)
-                .put(QueryHistory.MONTH, month)
-                .put(QueryHistory.QUERY_FIRST_DAY_OF_MONTH, queryFirstDayOfMonth)
-                .put(QueryHistory.QUERY_FIRST_DAY_OF_WEEK, queryFirstDayOfWeek)
-                .put(QueryHistory.QUERY_DAY, queryDay)
-                .put(QueryHistory.IS_TABLE_INDEX_USED, tableIndexUsed).put(QueryHistory.IS_AGG_INDEX_USED, aggIndexUsed)
-                .put(QueryHistory.IS_TABLE_SNAPSHOT_USED, tableSnapshotUsed)
-                .put(QueryHistory.QUERY_SERVER, StringUtils.isBlank(server) ? defaultServer : server)
-                .put(QueryHistory.ERROR_TYPE, StringUtils.isNotBlank(this.errorType) ? errorType : "")
-                .put(QueryHistory.ENGINE_TYPE, StringUtils.isNotBlank(this.engineType) ? this.engineType : "")
-                .put(QueryHistory.SQL_TEXT, sql).put(QueryHistory.QUERY_ID, queryId)
-                .put(QueryHistory.QUERY_DURATION, queryDuration).put(QueryHistory.TOTAL_SCAN_BYTES, totalScanBytes)
-                .put(QueryHistory.TOTAL_SCAN_COUNT, totalScanCount).put(QueryHistory.RESULT_ROW_COUNT, resultRowCount)
-                .put(QueryHistory.IS_CACHE_HIT, isCacheHit).put(QueryHistory.QUERY_STATUS, queryStatus)
-                .put(QueryHistory.QUERY_TIME, queryTime).put(QueryHistory.SQL_PATTERN, sqlPattern)
-                .put(QueryHistory.REALIZATIONS, StringUtils.isNotEmpty(this.realizations) ? this.realizations : "")
-                .put(QueryHistory.PROJECT_NAME, projectName);
-
-        return builder.build();
-    }
-
-    @Getter
-    @Setter
-    // fields in this class are columns in InfluxDB table which records down query history's realization info
-    public static class RealizationMetrics implements Serializable {
-
-        private String queryId;
-
-        private long duration;
-
-        private String suite;
-
-        private String layoutId;
-
-        private String indexType;
-
-        private String modelId;
-
-        private long queryTime;
-
-        private String projectName;
-
-        public RealizationMetrics(String layoutId, String indexType, String modelId) {
-            this.layoutId = layoutId;
-            this.indexType = indexType;
-            this.modelId = modelId;
-        }
-
-        public Map<String, String> getInfluxdbTags() {
-            return ImmutableMap.<String, String> builder() //
-                    .put(QueryHistory.SUITE, suite) //
-                    .put(QueryHistory.MODEL, modelId) //
-                    .put(QueryHistory.LAYOUT_ID, layoutId) //
-                    .put(QueryHistory.INDEX_TYPE, indexType) //
-                    .build();
-        }
-
-        public Map<String, Object> getInfluxdbFields() {
-            return ImmutableMap.<String, Object> builder().put(QueryHistory.QUERY_ID, queryId)
-                    .put(QueryHistory.QUERY_DURATION, duration)
-                    .put(QueryHistory.QUERY_TIME, queryTime).build();
-        }
-
-        public Map<String, Object> getRealizationMetricFields() {
-            return ImmutableMap.<String, Object> builder().put(QueryHistory.SUITE, suite)
-                    .put(QueryHistory.MODEL, modelId).put(QueryHistory.LAYOUT_ID, layoutId)
-                    .put(QueryHistory.INDEX_TYPE, indexType).put(QueryHistory.QUERY_ID, queryId)
-                    .put(QueryHistory.QUERY_DURATION, duration).put(QueryHistory.QUERY_TIME, queryTime)
-                    .put(QueryHistory.PROJECT_NAME, projectName).build();
-        }
     }
 }

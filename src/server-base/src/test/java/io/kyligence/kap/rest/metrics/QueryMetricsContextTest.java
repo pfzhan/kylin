@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.metrics;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.common.metric.QueryMetrics;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -229,7 +230,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(111L, response.getTotalScanRows());
 
         // assert realizations
-        final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
+        final List<QueryMetrics.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
         Assert.assertEquals(0, realizationMetrics.size());
     }
 
@@ -265,7 +266,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("select * from test_table where 1 <> 1", influxdbFields.get("sql_text"));
 
         // assert realizations
-        final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
+        final List<QueryMetrics.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
         Assert.assertEquals(0, realizationMetrics.size());
     }
 
@@ -306,19 +307,18 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
                 influxdbFields.get("realizations"));
 
         // assert realizations
-        final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
+        final List<QueryMetrics.RealizationMetrics> realizationMetrics = metricsContext.getRealizationMetrics();
         Assert.assertEquals(2, realizationMetrics.size());
-        final QueryMetricsContext.RealizationMetrics actual = realizationMetrics.get(0);
+        final QueryMetrics.RealizationMetrics actual = realizationMetrics.get(0);
 
         // assert realization metric fields
-        Assert.assertEquals(queryContext.getQueryId(), actual.getInfluxdbFields().get("query_id"));
+        Assert.assertEquals(queryContext.getQueryId(), actual.getQueryId());
 
         // assert realization metric tags
-        final Map<String, String> actualTags = actual.getInfluxdbTags();
-        Assert.assertEquals("Unknown", actualTags.get("suite"));
-        Assert.assertEquals("mocked_model_id", actualTags.get("model"));
-        Assert.assertEquals("1", actualTags.get("layout_id"));
-        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, actualTags.get("index_type"));
+        Assert.assertEquals("Unknown", actual.getSuite());
+        Assert.assertEquals("mocked_model_id", actual.getModelId());
+        Assert.assertEquals("1", actual.getLayoutId());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, actual.getIndexType());
     }
 
     @Test

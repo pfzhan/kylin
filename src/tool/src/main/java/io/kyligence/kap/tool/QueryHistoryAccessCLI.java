@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.tool;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.metric.QueryMetrics;
 import io.kyligence.kap.common.metric.RDBMSWriter;
 import lombok.val;
 import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.util.HashMap;
+import java.util.List;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.datasourceParameters;
 
@@ -45,27 +45,41 @@ public class QueryHistoryAccessCLI {
 
     public boolean testAccessQueryHistory() {
         try {
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            String metadataIdentifier = StorageURL.replaceUrl(kylinConfig.getMetadataUrl());
             RDBMSWriter rdbmsWriter = RDBMSWriter.getInstance();
 
-            HashMap<String, Object> queryHistoryHashMap = Maps.newHashMap();
-            queryHistoryHashMap.put(RDBMSWriter.PROJECT_NAME, PROJECT);
-            String queryHistoryTableName = metadataIdentifier + "_" + RDBMSWriter.QUERY_MEASUREMENT_SURFIX;
-            rdbmsWriter.writeToQueryHistory("", queryHistoryTableName, queryHistoryHashMap);
+            QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
+            queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
+            queryMetrics.setSqlPattern("SELECT \"LSTG_FORMAT_NAME\"\nFROM \"KYLIN_SALES\"\nLIMIT 1");
+            queryMetrics.setQueryDuration(5578L);
+            queryMetrics.setTotalScanBytes(863L);
+            queryMetrics.setTotalScanCount(4096L);
+            queryMetrics.setResultRowCount(500L);
+            queryMetrics.setSubmitter("ADMIN");
+            queryMetrics.setRealizations("0ad44339-f066-42e9-b6a0-ffdfa5aea48e#20000000001#Table Index");
+            queryMetrics.setErrorType("");
+            queryMetrics.setCacheHit(true);
+            queryMetrics.setIndexHit(true);
+            queryMetrics.setQueryTime(1584888338274L);
+            queryMetrics.setProjectName("default");
 
-            HashMap<String, Object> queryHistoryRealizationHashMap = Maps.newHashMap();
-            queryHistoryRealizationHashMap.put(RDBMSWriter.PROJECT_NAME, PROJECT);
-            String queryHistoryRealizationTableName = metadataIdentifier + "_"
-                    + RDBMSWriter.REALIZATION_MEASUREMENT_SURFIX;
-            rdbmsWriter.writeToQueryHistoryRealization("", queryHistoryRealizationTableName,
-                    queryHistoryRealizationHashMap);
+            QueryMetrics.RealizationMetrics realizationMetrics = new QueryMetrics.RealizationMetrics("20000000001L",
+                    "Table Index", "771157c2-e6e2-4072-80c4-8ec25e1a83ea");
+            realizationMetrics.setQueryId("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1");
+            realizationMetrics.setDuration(4591L);
+            realizationMetrics.setQueryTime(1586405449387L);
+            realizationMetrics.setProjectName("default");
+
+            List<QueryMetrics.RealizationMetrics> realizationMetricsList = Lists.newArrayList();
+            realizationMetricsList.add(realizationMetrics);
+            realizationMetricsList.add(realizationMetrics);
+            queryMetrics.setRealizationMetrics(realizationMetricsList);
+            rdbmsWriter.write(null, queryMetrics, 0L);
 
             // clean 
             getJdbcTemplate()
-                    .update("delete from " + queryHistoryTableName + " where project_name = '" + PROJECT + "'");
+                    .update("delete from " + RDBMSWriter.getQueryHistoryTableName() + " where project_name = '" + PROJECT + "'");
             getJdbcTemplate().update(
-                    "delete from " + queryHistoryRealizationTableName + " where project_name = '" + PROJECT + "'");
+                    "delete from " + RDBMSWriter.getQueryHistoryRealizationTableName() + " where project_name = '" + PROJECT + "'");
         } catch (Exception e) {
             logger.error("query history access test failed." + e.getMessage());
             return false;

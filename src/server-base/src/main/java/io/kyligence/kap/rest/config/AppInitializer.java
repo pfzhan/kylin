@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.config;
 
+import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -36,7 +37,6 @@ import org.springframework.scheduling.TaskScheduler;
 
 import io.kyligence.kap.common.date.Constant;
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
-import io.kyligence.kap.common.metric.RDBMSWriter;
 import io.kyligence.kap.common.metrics.NMetricsController;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
@@ -110,7 +110,9 @@ public class AppInitializer {
 
         // init RDBMS writer and create DB
         try {
-            RDBMSWriter.getInstance();
+            NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+            queryHistoryScheduler.init();
+
         } catch (Exception ex) {
             log.error("RDBMS writer has not initialized");
         }

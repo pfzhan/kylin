@@ -1780,4 +1780,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getQueryHistoryProjectMaxSize() {
         return Integer.parseInt(getOptional("kylin.query.queryhistory.project-max-size", "1000000"));
     }
+
+    public int getQueryHistoryBufferSize() {
+        return Integer.parseInt(getOptional("kylin.query.queryhistory.buffer-size", "1000"));
+    }
 }

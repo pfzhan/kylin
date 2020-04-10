@@ -37,9 +37,7 @@ public class MetricWriterFactory {
         if (StringUtils.isBlank(type)) {
             type = MetricWriter.Type.BLACK_HOLE.name();
         }
-        if (type.equalsIgnoreCase(MetricWriter.Type.INFLUX.name())) {
-            return InfluxDBWriter.getInstance();
-        } else if (type.equalsIgnoreCase(MetricWriter.Type.RDBMS.name())) {
+        if (type.equalsIgnoreCase(MetricWriter.Type.RDBMS.name())) {
             return RDBMSWriter.getInstance();
         } else if (type.equalsIgnoreCase(MetricWriter.Type.CONSOLE.name())) {
             return ConsoleWriter.INSTANCE;
