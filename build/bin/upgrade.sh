@@ -54,6 +54,8 @@ function prompt() {
 }
 
 function upgrade() {
+
+    # needed by km
     if [[ -f ${old_kylin_home}/pid ]]; then
         PID=`cat ${old_kylin_home}/pid`
         if ps -p $PID > /dev/null; then
@@ -167,7 +169,8 @@ PY
 
         # backup
         now=`date '+%Y%m%d%H%M'`
-        cd $install_dir && tar -zcvf ${home_name}_${now}.tar.gz ${home_name} >> $upgrade_log || fail
+        backup_file=${home_name}_${now}.tar.gz
+        cd $install_dir && tar -zcvf ${backup_file} ${home_name} >> $upgrade_log || fail
 
         # install
         rm -rfv ${old_kylin_home} >> $upgrade_log || fail
@@ -178,6 +181,8 @@ PY
     fi
 
     info "Upgrade finished!"
+    # needed by km
+    info "Backup location:${install_dir}/${backup_file}"
 
 }
 
