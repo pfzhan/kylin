@@ -43,7 +43,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-public class ProjectInfoParser implements IKeep{
+public class ProjectInfoParser implements IKeep {
 
     public static Pair<String, ServletRequest> parseProjectInfo(ServletRequest request) {
         ServletRequest requestWrapper = request;
@@ -60,12 +60,11 @@ public class ProjectInfoParser implements IKeep{
                 }
 
             }
-
-            if (StringUtils.isEmpty(project)) {
-                project = UnitOfWork.GLOBAL_UNIT;
-            }
         } catch (IOException e) {
             // ignore JSON exception
+        }
+        if (StringUtils.isEmpty(project)) {
+            project = UnitOfWork.GLOBAL_UNIT;
         }
         return new Pair<>(project, requestWrapper);
     }
