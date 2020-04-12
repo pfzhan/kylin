@@ -69,7 +69,8 @@ public class MigrateJobTool extends ExecutableApplication implements IKeep {
             .withDescription("Specify the directory to operator").isRequired(true).create("dir");
 
     private static final List<String> REMOVE_EVENTS = Arrays.asList("io.kyligence.kap.event.model.PostAddCuboidEvent",
-            "io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent");
+            "io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent",
+            "io.kyligence.kap.event.model.PostAddSegmentEvent");
 
     private static final Map<String, String> JOB_TYPE_HANDLER_MAP = new HashMap<>();
 
