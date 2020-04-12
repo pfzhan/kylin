@@ -112,7 +112,7 @@ public class ResourceStoreTestBase {
 
         //test mvcc inc and time range filter
         try {
-            Thread.sleep(10);
+            Thread.sleep(100);
         } catch (InterruptedException e) {
             throw Throwables.propagate(e);
         }
@@ -122,12 +122,12 @@ public class ResourceStoreTestBase {
 
         //test mvcc inc and time range filter
         try {
-            Thread.sleep(10);
+            Thread.sleep(100);
         } catch (InterruptedException e) {
             throw Throwables.propagate(e);
         }
 
-        result = store.getAllResources(folder, System.currentTimeMillis() - 15, System.currentTimeMillis() - 5,
+        result = store.getAllResources(folder, System.currentTimeMillis() - 150, System.currentTimeMillis() - 50,
                 StringEntity.serializer);
 
         assertEntity(result.get(0), "new_data2", 1);

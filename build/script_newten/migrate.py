@@ -23,20 +23,17 @@ model_raw_table_dict = {}
 PROJECT_TEMPALTE = '''
 {
     "uuid" : "",
-    "version" : "3.0.0.0",
-    "mvcc" : 2,
+    "version" : "4.0.0.0",
     "name" : "",
-    "owner" : "ADMIN",
     "status" : "ENABLED",
     "description" : "",
-    "ext_filters" : [ ],
     "maintain_model_type" : "MANUAL_MAINTAIN",
     "override_kylin_properties" : {
       "kylin.source.default" : "9"
     },
     "push_down_range_limited" : true,
     "segment_config" : {
-      "auto_merge_enabled" : true,
+      "auto_merge_enabled" : false,
       "auto_merge_time_ranges" : [ "WEEK", "MONTH", "YEAR" ],
       "volatile_range" : {
         "volatile_range_number" : 0,
@@ -57,17 +54,13 @@ DATAFLOW_TEMPLATE = '''
   "uuid" : "",
   "last_modified" : 1554807337998,
   "create_time" : 1554807337664,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
+  "version" : "4.0.0.0",
   "description" : null,
   "owner" : null,
   "create_time_utc" : 1554807337664,
   "status" : "ONLINE",
-  "cost" : 50,
   "query_hit_count" : 0,
-  "event_error" : false,
-  "segments" : [],
-  "storage_location_identifier" : null
+  "segments" : []
 }
 '''
 
@@ -76,8 +69,7 @@ INDEX_PLAN_TEMPLATE = '''
   "uuid" : "",
   "last_modified" : 1554879670503,
   "create_time" : 1554879670483,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
+  "version" : "4.0.0.0",
   "description" : null,
   "index_plan_override_encodings" : { },
   "rule_based_index" : {
@@ -85,18 +77,11 @@ INDEX_PLAN_TEMPLATE = '''
     "measures" : [],
     "aggregation_groups" : [],
     "index_black_list" : [ ],
-    "parent_forward" : 3,
     "layout_id_mapping" : [],
     "index_start_id" : 0
   },
   "indexes" : [ ],
   "override_properties" : { },
-  "segment_range_start" : 0,
-  "segment_range_end" : 9223372036854775807,
-  "auto_merge_time_ranges" : null,
-  "retention_range" : 0,
-  "notify_list" : [ ],
-  "status_need_notify" : [ ],
   "engine_type" : 80,
   "next_aggregation_index_id" : 0,
   "next_table_index_id" : 20000000000
@@ -122,7 +107,8 @@ def migrate_user():
     for user_name in os.listdir(INPUT_ROOT + '/user'):
         with open(INPUT_ROOT + '/user/' + user_name, 'r') as user_file:
             user_json = json.load(user_file)
-            user_json['create_time'] = user_json.get('create_time', user_json['last_modified'])
+            user_json['create_time'] = user_json.get(
+                'create_time', user_json['last_modified'])
             with open(OUTPUT_ROOT + '/_global/user/' + user_name, 'w') as new_user_file:
                 json.dump(user_json, new_user_file, indent=2)
 
@@ -134,7 +120,8 @@ def migrate_user_group():
         os.makedirs(OUTPUT_ROOT + '/_global')
     with open(INPUT_ROOT + '/user_group', 'r') as user_group_file:
         user_group_json = json.load(user_group_file)
-        user_group_json['create_time'] = user_group_json.get('create_time', user_group_json['last_modified'])
+        user_group_json['create_time'] = user_group_json.get(
+            'create_time', user_group_json['last_modified'])
         if not user_group_json['uuid']:
             user_group_json['uuid'] = str(uuid.uuid4())
         with open(OUTPUT_ROOT + '/_global/user_group', 'w') as new_user_group_file:
@@ -151,7 +138,8 @@ def migrate_role_permission():
             project_role_json = json.load(project_role_file)
             if not project_role_json['uuid']:
                 project_role_json['uuid'] = str(uuid.uuid4())
-            project_role_json['create_time'] = project_role_json.get('create_time', project_role_json['last_modified'])
+            project_role_json['create_time'] = project_role_json.get(
+                'create_time', project_role_json['last_modified'])
             with open(OUTPUT_ROOT + '/_global/acl/' + project_uuid, 'w') as new_project_role_file:
                 json.dump(project_role_json, new_project_role_file, indent=2)
 
@@ -173,7 +161,8 @@ def prepare_project():
             continue
         with open(INPUT_ROOT + '/table/' + table_name) as table_file:
             table_json = json.load(table_file)
-            table_json['columns'] = [col for col in table_json['columns'] if 'cc_expr' not in col]
+            table_json['columns'] = [
+                col for col in table_json['columns'] if 'cc_expr' not in col]
             table_content_dict[(plain_table_name, table_project)] = table_json
     if not os.path.exists(INPUT_ROOT + '/project'):
         return ret
@@ -186,9 +175,21 @@ def prepare_project():
             project_origin_json = json.load(project_file)
             project_json['uuid'] = project_origin_json['uuid']
             project_json['name'] = project_origin_json['name']
-            project_json['last_modified'] = project_origin_json.get('last_modified', 0)
-            project_json['create_time'] = project_origin_json.get('create_time_utc', 0)
-            project_json['create_time_utc'] = project_origin_json.get('create_time_utc', 0)
+            project_json['last_modified'] = project_origin_json.get(
+                'last_modified', 0)
+            project_json['create_time'] = project_origin_json.get(
+                'create_time_utc', 0)
+            project_json['create_time_utc'] = project_origin_json.get(
+                'create_time_utc', 0)
+            database_count = {}
+            for table_name in project_table_dict.get(project_json['name'], []):
+                db_name = table_name.split('.')[0]
+                if db_name not in database_count:
+                    database_count[db_name] = 0
+                database_count[db_name] += 1
+            if len(database_count) > 0:
+                project_json['default_database'] = max(
+                    database_count.items(), key=lambda x: x[1])[0]
 
             user_whole = []
             group_whole = []
@@ -214,77 +215,6 @@ def prepare_project():
         for sub in ['rule', 'dataflow', 'index_plan', 'model_desc', 'table']:
             if not os.path.exists(OUTPUT_ROOT + '/' + plain_project_name + '/' + sub):
                 os.makedirs(OUTPUT_ROOT + '/' + plain_project_name + '/' + sub)
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/3fcc884d-a4da-4afa-bba5-f22241b127d4.json', 'w') as f:
-            f.write('''{
-  "uuid" : "3fcc884d-a4da-4afa-bba5-f22241b127d4",
-  "last_modified" : 0,
-  "create_time" : 1554287746679,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
-  "conds" : [ {
-    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
-    "leftThreshold" : null,
-    "rightThreshold" : "ADMIN"
-  } ],
-  "name" : "submitter",
-  "enabled" : true
-}''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/744e60ef-4e14-4489-b87e-7ff2479ff813.json', 'w') as f:
-            f.write('''{
-  "uuid" : "744e60ef-4e14-4489-b87e-7ff2479ff813",
-  "last_modified" : 0,
-  "create_time" : 1554287746679,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
-  "conds" : [ {
-    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
-    "leftThreshold" : "0",
-    "rightThreshold" : "180"
-  } ],
-  "name" : "duration",
-  "enabled" : false
-}''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/71283af5-3b60-43e6-8539-ea46de9c707f.json', 'w') as f:
-            f.write('''{
-  "uuid" : "71283af5-3b60-43e6-8539-ea46de9c707f",
-  "last_modified" : 0,
-  "create_time" : 1554287746679,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
-  "conds" : [ {
-    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
-    "leftThreshold" : null,
-    "rightThreshold" : "ROLE_ADMIN"
-  } ],
-  "name" : "submitter_group",
-  "enabled" : true
-}''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/a0f6d6fb-f98f-4461-a107-69503c4a653d.json', 'w') as f:
-            f.write('''{
-  "uuid" : "a0f6d6fb-f98f-4461-a107-69503c4a653d",
-  "last_modified" : 0,
-  "create_time" : 1554287746678,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
-  "conds" : [ {
-    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
-    "leftThreshold" : null,
-    "rightThreshold" : "0.1"
-  } ],
-  "name" : "frequency",
-  "enabled" : true
-}''')
-        with open(OUTPUT_ROOT + '/' + plain_project_name + '/rule/a88950b9-6f9e-4d83-9982-01e18b8ef365.json', 'w') as f:
-            f.write('''{
-  "uuid" : "a88950b9-6f9e-4d83-9982-01e18b8ef365",
-  "last_modified" : 0,
-  "create_time" : 1554287746679,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
-  "conds" : [ ],
-  "name" : "blacklist",
-  "enabled" : false
-}''')
     return ret
 
 
@@ -302,85 +232,9 @@ def prepare_cube_model():
             raw_table_json = json.load(raw_table_file)
             model_name = raw_table_json['model_name']
             model_raw_table_dict[model_name] = [
-                                                   raw_table_json] + model_raw_table_dict[
-                                                   model_name] if model_name in model_raw_table_dict else [
+                raw_table_json] + model_raw_table_dict[
+                model_name] if model_name in model_raw_table_dict else [
                 raw_table_json]
-
-
-def model_all_named_columns(model_json, project_name):
-    tables = [{'table': model_json['fact_table']}] + \
-             [x for x in model_json['lookups']]
-    columns = []
-    for table_ref in tables:
-        x = table_ref['table']
-        t = table_content_dict[(x, project_name)]
-        cols = json.loads(json.dumps(t['columns']))
-        for col in cols:
-            if 'alias' in table_ref:
-                col['column'] = table_ref['alias'] + '.' + col['name']
-            else:
-                col['column'] = t['name'] + '.' + col['name']
-            if 'cc_expr' in col:
-                continue
-            col['name'] = col['column'].replace('.', '_')
-            columns.append(col)
-
-    dimensions = [x['table'].split('.')[-1] + '.' + y for x in model_json['dimensions']
-                  for y in x['columns']]
-    id_index = 0
-    for column in columns:
-        column['id'] = id_index
-        if column['column'] in dimensions:
-            column['status'] = 'DIMENSION'
-        id_index += 1
-
-    if 'computed_columns' in model_json:
-        for cc in model_json['computed_columns']:
-            col = {'id': id_index, 'status': 'DIMENSION',
-                   'name': cc['tableAlias'] + '_' + cc['columnName'],
-                   'column': cc['tableAlias'] + '.' + cc['columnName']}
-            columns.append(col)
-            id_index += 1
-    model_json['all_named_columns'] = columns
-
-
-def migrate_measure_parameter(measure, measure_id):
-    origin_param = measure['function']['parameter']
-
-    def recursive(p):
-        if 'next_parameter' in p and p['next_parameter'] is not None:
-            next_p = recursive(p['next_parameter'])
-            del p['next_parameter']
-            return [p] + next_p
-        return [p]
-
-    measure['function']['parameters'] = recursive(origin_param)
-    measure['id'] = measure_id
-    measure['name'] = measure['name'].replace('.', '_')
-    return measure
-
-
-def migrate_aggregation_groups(index_plan_json, model_json, aggregation_groups_json):
-    col_id_dict = {}
-    for col in model_json['all_named_columns']:
-        col_id_dict[col['column']] = col['id']
-
-    def _replace_id_list(olds):
-        return [col_id_dict[x] for x in olds]
-
-    def _replace_group(group):
-        ret = {'select_rule': {}}
-        ret['includes'] = [col_id_dict[x] for x in group['includes']]
-        ret['select_rule']['hierarchy_dims'] = [_replace_id_list(x)
-                                                for x in group['select_rule']['hierarchy_dims']]
-        ret['select_rule']['mandatory_dims'] = [col_id_dict[x]
-                                                for x in group['select_rule']['mandatory_dims']]
-        ret['select_rule']['joint_dims'] = [_replace_id_list(x)
-                                            for x in group['select_rule']['joint_dims']]
-        return ret
-
-    index_plan_json['rule_based_index']['aggregation_groups'] = [
-        _replace_group(x) for x in aggregation_groups_json['aggregation_groups']]
 
 
 def migrate_table_index(index_plan_json, model_json, raw_table_list):
@@ -534,7 +388,8 @@ def migrate_project_table_column_row_acl(project_name, user_whole, group_whole, 
         new_table_whole = table_whole
         if user_name in user_table_blacklist.keys():
             should_fill = 1
-            new_table_whole = [tbl for tbl in table_whole if tbl not in user_table_blacklist[user_name]]
+            new_table_whole = [
+                tbl for tbl in table_whole if tbl not in user_table_blacklist[user_name]]
 
         if should_fill:
             for table_name in new_table_whole:
@@ -582,7 +437,8 @@ def migrate_project_table_column_row_acl(project_name, user_whole, group_whole, 
         new_table_whole = table_whole
         if group_name in group_table_blacklist.keys():
             should_fill = 1
-            new_table_whole = [tbl for tbl in table_whole if tbl not in group_table_blacklist[group_name]]
+            new_table_whole = [
+                tbl for tbl in table_whole if tbl not in group_table_blacklist[group_name]]
 
         if should_fill:
             for table_name in new_table_whole:
@@ -673,9 +529,9 @@ class ProjectMigrator:
             model_json['uuid'] = uuid
             model_json['alias'] = cube_json['name']
             model_json['join_tables'] = model_json['lookups']
-            model_all_named_columns(model_json, self.project)
+            self.model_all_named_columns(model_json, self.project)
             model_json['all_measures'] = [
-                migrate_measure_parameter(x, 100000 + i) for i, x in enumerate(cube_json['measures'])]
+                self.migrate_measure_parameter(x, 100000 + i) for i, x in enumerate(cube_json['measures'])]
             model_json['management_type'] = 'MODEL_BASED'
             if 'partition_desc' in model_json:
                 model_json['partition_desc']['partition_type'] = 'APPEND'
@@ -689,10 +545,12 @@ class ProjectMigrator:
             index_plan_json['uuid'] = uuid
             index_plan_json['rule_based_index']['measures'] = [
                 x['id'] for x in model_json['all_measures']]
-            migrate_aggregation_groups(
+            self.migrate_aggregation_groups(
                 index_plan_json, model_json, cube_json)
             index_plan_json['rule_based_index']['dimensions'] = list(functools.reduce(lambda x, y: x | y, [set(
                 x['includes']) for x in index_plan_json['rule_based_index']['aggregation_groups']], set([])))
+            if 'global_dim_cap' in cube_json:
+                index_plan_json['rule_based_index']['global_dim_cap'] = cube_json['global_dim_cap']
             if model_name in model_raw_table_dict:
                 raw_table_list = model_raw_table_dict[model_name]
                 migrate_table_index(
@@ -702,6 +560,81 @@ class ProjectMigrator:
             dataflow_json = json.loads(DATAFLOW_TEMPLATE)
             dataflow_json['uuid'] = uuid
             json.dump(dataflow_json, new_cube_file, indent=2)
+
+    def migrate_aggregation_groups(self, index_plan_json, model_json, aggregation_groups_json):
+        col_id_dict = {}
+        for col in model_json['all_named_columns']:
+            col_id_dict[col['column']] = col['id']
+
+        def _replace_id_list(olds):
+            return [col_id_dict[x] for x in olds]
+
+        def _replace_group(group):
+            ret = {'select_rule': {}}
+            ret['includes'] = [col_id_dict[x] for x in group['includes']]
+            ret['select_rule']['hierarchy_dims'] = [_replace_id_list(x)
+                                                    for x in group['select_rule']['hierarchy_dims']]
+            ret['select_rule']['mandatory_dims'] = [col_id_dict[x]
+                                                    for x in group['select_rule']['mandatory_dims']]
+            ret['select_rule']['joint_dims'] = [_replace_id_list(x)
+                                                for x in group['select_rule']['joint_dims']]
+            if 'dim_cap' in group['select_rule']:
+                ret['select_rule']['dim_cap'] = group['select_rule']['dim_cap']
+            return ret
+
+        index_plan_json['rule_based_index']['aggregation_groups'] = [
+            _replace_group(x) for x in aggregation_groups_json['aggregation_groups']]
+
+    def migrate_measure_parameter(self, measure, measure_id):
+        origin_param = measure['function']['parameter']
+
+        def recursive(p):
+            if 'next_parameter' in p and p['next_parameter'] is not None:
+                next_p = recursive(p['next_parameter'])
+                del p['next_parameter']
+                return [p] + next_p
+            return [p]
+
+        measure['function']['parameters'] = recursive(origin_param)
+        measure['id'] = measure_id
+        measure['name'] = measure['name'].replace('.', '_')
+        return measure
+
+    def model_all_named_columns(self, model_json, project_name):
+        tables = [{'table': model_json['fact_table']}] + \
+            [x for x in model_json['lookups']]
+        columns = []
+        for table_ref in tables:
+            x = table_ref['table']
+            t = table_content_dict[(x, project_name)]
+            cols = json.loads(json.dumps(t['columns']))
+            for col in cols:
+                if 'alias' in table_ref:
+                    col['column'] = table_ref['alias'] + '.' + col['name']
+                else:
+                    col['column'] = t['name'] + '.' + col['name']
+                if 'cc_expr' in col:
+                    continue
+                col['name'] = col['column'].replace('.', '_')
+                columns.append(col)
+
+        dimensions = [x['table'].split('.')[-1] + '.' + y for x in model_json['dimensions']
+                      for y in x['columns']]
+        id_index = 0
+        for column in columns:
+            column['id'] = id_index
+            if column['column'] in dimensions:
+                column['status'] = 'DIMENSION'
+            id_index += 1
+
+        if 'computed_columns' in model_json:
+            for cc in model_json['computed_columns']:
+                col = {'id': id_index, 'status': 'DIMENSION',
+                       'name': cc['tableAlias'] + '_' + cc['columnName'],
+                       'column': cc['tableAlias'] + '.' + cc['columnName']}
+                columns.append(col)
+                id_index += 1
+        model_json['all_named_columns'] = columns
 
 
 if __name__ == "__main__":
@@ -717,7 +650,7 @@ if __name__ == "__main__":
                              "'kylin.acl.project-internal-default-permission-granted' in kylin.properties")
     args = parser.parse_args()
 
-    print ('''
+    print('''
     This tool is not responsible for the migration of user and user group information during user system integration when LDAP, AD and third-party permissions.
     ''')
 

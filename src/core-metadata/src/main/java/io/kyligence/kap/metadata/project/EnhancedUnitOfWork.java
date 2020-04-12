@@ -67,7 +67,7 @@ public class EnhancedUnitOfWork implements IKeep {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
-                // ignore it
+                Thread.currentThread().interrupt();
             }
         }
         return result;
