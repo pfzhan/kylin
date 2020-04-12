@@ -32,12 +32,14 @@ export function _getAccelerationSettings (data) {
   }
 }
 
-export function _getJobAlertSettings (data, isArrayDefaultValue) {
+export function _getJobAlertSettings (data, isArrayDefaultValue, isSort) {
   let jobEmails = [...data.job_notification_emails]
 
   if (isArrayDefaultValue) {
     !jobEmails.length && jobEmails.push('')
   }
+
+  isSort && jobEmails.sort()
 
   return {
     project: data.project,

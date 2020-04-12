@@ -595,7 +595,7 @@ export default class SettingAdvanced extends Vue {
       case 'defaultDB-settings':
         return JSON.stringify(_getDefaultDBSettings(form)) !== JSON.stringify(_getDefaultDBSettings(project))
       case 'job-alert':
-        return JSON.stringify(_getJobAlertSettings(form, true)) !== JSON.stringify(_getJobAlertSettings(project, true))
+        return JSON.stringify(_getJobAlertSettings(form, true, true)) !== JSON.stringify(_getJobAlertSettings(project, true, true))
       case 'yarn-name':
         return JSON.stringify(_getYarnNameSetting(form)) !== JSON.stringify(_getYarnNameSetting(project))
       case 'kerberos-acc':
