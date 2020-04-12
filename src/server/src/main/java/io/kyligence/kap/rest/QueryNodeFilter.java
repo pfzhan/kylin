@@ -81,6 +81,7 @@ public class QueryNodeFilter implements Filter {
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     private static Set<String> notRouteDeleteApiSet = Sets.newHashSet();
+    private static Set<String> notRoutePutApiSet = Sets.newHashSet();
     private static String ERROR_REQUEST_URL = "/kylin/api/error";
 
 
@@ -106,6 +107,10 @@ public class QueryNodeFilter implements Filter {
         //download
         notRoutePostApiSet.add("/kylin/api/metastore/backup/models");
         notRoutePostApiSet.add("/kylin/api/query/format/csv");
+
+        //refresh catalog
+        notRoutePutApiSet.add("/kylin/api/tables/catalog_cache");
+        notRoutePutApiSet.add("/kylin/api/tables/single_catalog_cache");
     }
 
     @Autowired
@@ -143,6 +148,11 @@ public class QueryNodeFilter implements Filter {
             }
             if (servletRequest.getMethod().equals("POST")
                     && notRoutePostApiSet.contains(servletRequest.getRequestURI())) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (servletRequest.getMethod().equals("PUT")
+                    && notRoutePutApiSet.contains(servletRequest.getRequestURI())) {
                 chain.doFilter(request, response);
                 return;
             }
