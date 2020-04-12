@@ -25,7 +25,6 @@ package io.kyligence.kap.query.engine;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
-import io.kyligence.kap.query.util.HepUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -41,6 +40,8 @@ import org.junit.Test;
 
 @Slf4j
 public class QueryExecTest extends NLocalFileMetadataTestCase {
+
+    final String project = "default";
 
     @Before
     public void setup() {
@@ -67,7 +68,7 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
         return dataset;
     }
     private RelNode toCalcitePlan(String SQL) throws SqlParseException {
-        ProjectSchemaFactory ps = new ProjectSchemaFactory("default", KylinConfig.getInstanceFromEnv());
+        ProjectSchemaFactory ps = new ProjectSchemaFactory(project, KylinConfig.getInstanceFromEnv());
         QueryExec qe = new QueryExec(KylinConfig.getInstanceFromEnv(), ps);
         return qe.parseAndOptimize(SQL);
     }
@@ -111,20 +112,5 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
                         "from TEST_KYLIN_FACT\n" +
                         "group by CAL_DT";
         check(SQLWithNull);
-    }
-
-    @Test
-    public void testUsingHEP() throws SqlParseException {
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "false");
-        String SQL =
-                "SELECT " +
-                        "SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 2 END) " +
-                "FROM TEST_KYLIN_FACT";
-
-        RelNode node = toCalcitePlan(SQL);
-        Assert.assertNotNull(node);
-        log.debug("old: {}", RelOptUtil.toString(node));
-        node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
-        log.debug("new: {}", RelOptUtil.toString(node));
     }
 }

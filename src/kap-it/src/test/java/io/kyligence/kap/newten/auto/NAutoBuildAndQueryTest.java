@@ -61,6 +61,18 @@ import lombok.extern.slf4j.Slf4j;
 public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
+    public void testSumExpr() throws Exception {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        overwriteSystemProp("kap.query.enable-convert-sum-expression", "TRUE");
+
+        executeTestScenario(
+                new TestScenario(CompareLevel.SAME, "query/sql_sum_expr")
+        );
+    }
+
+    @Test
     public void testAllQueries() throws Exception {
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
