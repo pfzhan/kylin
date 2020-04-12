@@ -1743,6 +1743,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         System.clearProperty("kylin.scheduler.schedule-job-timeout-minute");
     }
 
+    @Ignore("KE-13368")
     @Test
     public void testKillProcess() {
         val cmd = "nohup sleep 5 & sleep 5";
