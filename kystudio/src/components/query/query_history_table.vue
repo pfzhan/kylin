@@ -9,7 +9,7 @@
       </div>
     </div>
     <div class="filter-tags" v-show="filterTags.length">
-      <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：' + item.label}}</el-tag></div>
+      <div class="filter-tags-layout"><el-tag size="small" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{$t(item.source) + '：'}}{{['query_status', 'realization'].includes(item.key) ? $t(item.label) : item.label}}</el-tag></div>
       <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
     </div>
     <el-table
@@ -129,7 +129,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :filters="realFilteArr"
+        :filters="realFilteArr.map(item => ({text: $t(item), value: item}))"
         :filtered-value="filterData.realization"
         :label="$t('kylinLang.query.realization_th')"
         filter-icon="el-icon-ksd-filter"
@@ -149,7 +149,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :filters="statusList.map(item => ({text: item, value: item}))" :filtered-value="filterData.query_status" :label="$t('kylinLang.query.query_status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'query_status')" show-overflow-tooltip prop="query_status" width="130">
+      <el-table-column :filters="statusList.map(item => ({text: $t(item), value: item}))" :filtered-value="filterData.query_status" :label="$t('kylinLang.query.query_status')" filter-icon="el-icon-ksd-filter" :show-multiple-footer="false" :filter-change="(v) => filterContent(v, 'query_status')" show-overflow-tooltip prop="query_status" width="130">
         <template slot-scope="scope">
           {{$t('kylinLang.query.' + scope.row.query_status)}}
         </template>
@@ -200,7 +200,11 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       taskStatus: 'Task Status',
       realization: 'Query',
       clearAll: 'Clear All',
-      showDetail: 'More {count}'
+      showDetail: 'More {count}',
+      SUCCEEDED: 'SUCCEEDED',
+      FAILED: 'FAILED',
+      pushdown: 'Pushdown',
+      modelName: 'Model'
     },
     'zh-cn': {
       queryDetails: '查询执行详情',
@@ -212,7 +216,11 @@ import { sqlRowsLimit, sqlStrLenLimit } from '../../config/index'
       taskStatus: '任务状态',
       realization: '查询对象',
       clearAll: '清除所有',
-      showDetail: '更多 {count}'
+      showDetail: '更多 {count}',
+      SUCCEEDED: '成功',
+      FAILED: '失败',
+      pushdown: '查询下压',
+      modelName: '模型'
     }
   },
   filters: {
@@ -227,7 +235,7 @@ export default class QueryHistoryTable extends Vue {
   endSec = 10
   latencyFilterPopoverVisible = false
   statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED', status: 'fullyAcce'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED', status: 'partlyAcce'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED', status: 'unAcce1'}]
-  realFilteArr = [{text: 'Pushdown', value: 'pushdown'}, {text: 'Model Name', value: 'modelName'}]
+  realFilteArr = ['pushdown', 'modelName']
   filterData = {
     startTimeFrom: null,
     startTimeTo: null,
