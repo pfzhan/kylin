@@ -40,6 +40,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -126,16 +127,20 @@ public class JdbcMetadataStore extends MetadataStore {
                         throw new IllegalStateException("Epoch of key " + unitPath + " has been modified");
                     }
                 }
+                int affectedRow = 0;
                 if (bs != null) {
                     val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_MVCC_SQL, table, path, mvcc - 1),
                             RAW_RESOURCE_ROW_MAPPER);
                     if (CollectionUtils.isEmpty(result)) {
-                        insert(String.format(INSERT_SQL, table), path, bs, ts, mvcc);
+                        affectedRow = insert(String.format(INSERT_SQL, table), path, bs, ts, mvcc);
                     } else {
-                        update(String.format(UPDATE_SQL, table), bs, mvcc, ts, path, mvcc - 1);
+                        affectedRow = update(String.format(UPDATE_SQL, table), bs, mvcc, ts, path, mvcc - 1);
                     }
                 } else {
-                    jdbcTemplate.update(String.format(DELETE_SQL, table), path);
+                    affectedRow = jdbcTemplate.update(String.format(DELETE_SQL, table), path);
+                }
+                if (affectedRow == 0) {
+                    throw new KylinException("KE-4018", String.format("Failed to update or insert path: " + path + " ,mvcc:" + mvcc));
                 }
                 return null;
             }
@@ -167,8 +172,8 @@ public class JdbcMetadataStore extends MetadataStore {
         });
     }
 
-    private void insert(String sql, String path, ByteSource bs, long ts, long mvcc) {
-        jdbcTemplate.update(sql, ps -> {
+    private int insert(String sql, String path, ByteSource bs, long ts, long mvcc) {
+        return jdbcTemplate.update(sql, ps -> {
             ps.setString(1, path);
             try {
                 ps.setBytes(2, bs.read());
@@ -181,8 +186,8 @@ public class JdbcMetadataStore extends MetadataStore {
         });
     }
 
-    private void update(String sql, ByteSource bs, long ts, long mvcc, String path, long oldMvcc) {
-        jdbcTemplate.update(sql, ps -> {
+    private int update(String sql, ByteSource bs, long ts, long mvcc, String path, long oldMvcc) {
+        return jdbcTemplate.update(sql, ps -> {
             try {
                 ps.setBytes(1, bs.read());
             } catch (IOException e) {
