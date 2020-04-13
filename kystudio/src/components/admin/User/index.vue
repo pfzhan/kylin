@@ -216,7 +216,7 @@ export default class SecurityUser extends Vue {
 
   async editUser (editType, userDetail) {
     const isSubmit = await this.callUserEditModal({ editType, userDetail })
-    isSubmit && this.loadUsers(this.currentGroup)
+    isSubmit && this.loadUsers(this.filterName)
   }
 
   async dropUser (userDetail) {
