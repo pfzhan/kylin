@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
+import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
@@ -65,7 +66,8 @@ public class SegmentsTest {
     @Test
     public void testGetRetentionStart_ByHour() {
         Segments segments = new Segments();
-        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-10 02:03:00"), AutoMergeTimeEnum.HOUR, -1);
+        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-10 02:03:00"), AutoMergeTimeEnum.HOUR,
+                -1);
         Assert.assertEquals(DateFormat.stringToMillis("2012-02-10 01:03:00"), start);
 
         start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-10 03:00:00"), AutoMergeTimeEnum.HOUR, -1);
@@ -85,7 +87,8 @@ public class SegmentsTest {
     @Test
     public void testGetRetentionStart_ByDay() {
         Segments segments = new Segments();
-        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-10 02:03:00"), AutoMergeTimeEnum.DAY, -1);
+        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-10 02:03:00"), AutoMergeTimeEnum.DAY,
+                -1);
         Assert.assertEquals(DateFormat.stringToMillis("2012-02-09 02:03:00"), start);
 
         start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-01 11:00:00"), AutoMergeTimeEnum.DAY, -2);
@@ -108,7 +111,8 @@ public class SegmentsTest {
     @Test
     public void testGetRetentionStart_ByWeek_FirstDayOfWeekMonday() {
         Segments segments = new Segments();
-        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-05 09:00:00"), AutoMergeTimeEnum.WEEK, -1);
+        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-05 09:00:00"), AutoMergeTimeEnum.WEEK,
+                -1);
         Assert.assertEquals(DateFormat.stringToMillis("2012-01-29 09:00:00"), start);
     }
 
@@ -127,7 +131,6 @@ public class SegmentsTest {
         config.setProperty("kylin.metadata.first-day-of-week", "monday");
 
     }
-
 
     @Test
     public void testGetMergeEnd_ByWeek_AWeekOverlapTwoMonth() {
@@ -168,7 +171,8 @@ public class SegmentsTest {
     @Test
     public void testGetRetentionStart_ByMonth() {
         Segments segments = new Segments();
-        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-03-31 00:00:00"), AutoMergeTimeEnum.MONTH, -1);
+        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-03-31 00:00:00"), AutoMergeTimeEnum.MONTH,
+                -1);
         Assert.assertEquals(DateFormat.stringToMillis("2012-02-29 00:00:00"), start);
     }
 
@@ -186,7 +190,8 @@ public class SegmentsTest {
     @Test
     public void testGetRetentionStart_ByYear() {
         Segments segments = new Segments();
-        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-28 00:00:00"), AutoMergeTimeEnum.YEAR, -1);
+        long start = segments.getRetentionEnd(DateFormat.stringToMillis("2012-02-28 00:00:00"), AutoMergeTimeEnum.YEAR,
+                -1);
         Assert.assertEquals(DateFormat.stringToMillis("2011-02-28 00:00:00"), start);
     }
 
@@ -263,5 +268,86 @@ public class SegmentsTest {
         SegmentStatusEnumToDisplay status3 = segments.getSegmentStatusToDisplay(seg2);
         Assert.assertEquals(status3, SegmentStatusEnumToDisplay.LOCKED);
 
+    }
+
+    public NDataSegment newReadySegment(Long startTime, Long endTime) {
+        val seg = new NDataSegment();
+        seg.setId(UUID.randomUUID().toString());
+        seg.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(startTime, endTime));
+        seg.setStatus(SegmentStatusEnum.READY);
+        return seg;
+    }
+
+    @Test
+    public void testRemoveSegmentsByVolatileRange() {
+        Segments sourceSegments = new Segments();
+        sourceSegments.add(newReadySegment(1559232000000L, 1561824000000L));
+        sourceSegments.add(newReadySegment(1561824000000L, 1564502400000L));
+        sourceSegments.add(newReadySegment(1564502400000L, 1567180800000L));
+
+        Segments segmentsYear = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        VolatileRange volatileRange = new VolatileRange();
+        volatileRange.setVolatileRangeEnabled(true);
+        volatileRange.setVolatileRangeNumber(1);
+        volatileRange.setVolatileRangeType(AutoMergeTimeEnum.YEAR);
+        segmentsYear.removeSegmentsByVolatileRange(segmentsYear, volatileRange);
+        Assert.assertEquals(0, segmentsYear.size());
+
+        Segments segmentsMonth = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        VolatileRange volatileRangeMonth = new VolatileRange();
+        volatileRangeMonth.setVolatileRangeEnabled(true);
+        volatileRangeMonth.setVolatileRangeNumber(2);
+        volatileRangeMonth.setVolatileRangeType(AutoMergeTimeEnum.MONTH);
+        segmentsMonth.removeSegmentsByVolatileRange(segmentsMonth, volatileRangeMonth);
+        Assert.assertEquals(1, segmentsMonth.size());
+
+        Segments segmentsWeek = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        VolatileRange volatileRangeWeek = new VolatileRange();
+        volatileRangeWeek.setVolatileRangeEnabled(true);
+        volatileRangeWeek.setVolatileRangeNumber(3);
+        volatileRangeWeek.setVolatileRangeType(AutoMergeTimeEnum.WEEK);
+        segmentsWeek.removeSegmentsByVolatileRange(segmentsWeek, volatileRangeWeek);
+        Assert.assertEquals(2, segmentsWeek.size());
+
+        Segments segmentsDay = sourceSegments.getSegments(SegmentStatusEnum.READY);
+        VolatileRange volatileRangeDay = new VolatileRange();
+        volatileRangeDay.setVolatileRangeEnabled(true);
+        volatileRangeDay.setVolatileRangeNumber(3);
+        volatileRangeDay.setVolatileRangeType(AutoMergeTimeEnum.DAY);
+        segmentsDay.removeSegmentsByVolatileRange(segmentsDay, volatileRangeDay);
+        Assert.assertEquals(2, segmentsDay.size());
+    }
+
+    @Test
+    public void testSplitVolatileRanges() {
+        ISegment segment = newReadySegment(1527782400000L, 1577808000000L);
+
+        VolatileRange volatileRangeDay = new VolatileRange();
+        volatileRangeDay.setVolatileRangeEnabled(true);
+        volatileRangeDay.setVolatileRangeNumber(375);
+        volatileRangeDay.setVolatileRangeType(AutoMergeTimeEnum.DAY);
+        val resultDay = Segments.splitVolatileRanges(segment.getSegRange(), volatileRangeDay);
+        Assert.assertEquals(375, resultDay.getSecond().size());
+
+        VolatileRange volatileRangeWeek = new VolatileRange();
+        volatileRangeWeek.setVolatileRangeEnabled(true);
+        volatileRangeWeek.setVolatileRangeNumber(4);
+        volatileRangeWeek.setVolatileRangeType(AutoMergeTimeEnum.WEEK);
+        val resultWeek = Segments.splitVolatileRanges(segment.getSegRange(), volatileRangeWeek);
+        Assert.assertEquals(4, resultWeek.getSecond().size());
+
+        VolatileRange volatileRangeYear = new VolatileRange();
+        volatileRangeYear.setVolatileRangeEnabled(true);
+        volatileRangeYear.setVolatileRangeNumber(3);
+        volatileRangeYear.setVolatileRangeType(AutoMergeTimeEnum.YEAR);
+        val resultYear = Segments.splitVolatileRanges(segment.getSegRange(), volatileRangeYear);
+        Assert.assertEquals(2, resultYear.getSecond().size());
+
+        VolatileRange volatileRangeMonth = new VolatileRange();
+        volatileRangeMonth.setVolatileRangeEnabled(true);
+        volatileRangeMonth.setVolatileRangeNumber(6);
+        volatileRangeMonth.setVolatileRangeType(AutoMergeTimeEnum.MONTH);
+        val resultMonth = Segments.splitVolatileRanges(segment.getSegRange(), volatileRangeMonth);
+        Assert.assertEquals(6, resultMonth.getSecond().size());
     }
 }

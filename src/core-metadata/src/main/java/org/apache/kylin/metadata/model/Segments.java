@@ -53,6 +53,7 @@ import java.util.Objects;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -141,14 +142,18 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         return result;
     }
 
-    private static Pair<SegmentRange, List<SegmentRange>> splitVolatileRanges(SegmentRange rangeToSplit, VolatileRange volatileRange) {
+    @VisibleForTesting
+    public static Pair<SegmentRange, List<SegmentRange>> splitVolatileRanges(SegmentRange rangeToSplit, VolatileRange volatileRange) {
         val result = new Pair<SegmentRange, List<SegmentRange>>();
         List<SegmentRange> volatileRanges = Lists.newArrayList();
         if (!volatileRange.isVolatileRangeEnabled() || volatileRange.getVolatileRangeNumber() <= 0) {
             return null;
         }
-        long ms = getMillisecondByType(volatileRange.getVolatileRangeType());
+
         for (var i = 0; i < volatileRange.getVolatileRangeNumber(); i++) {
+            long ms = getMillisecondByType(Long.parseLong(rangeToSplit.getEnd().toString()),
+                    volatileRange.getVolatileRangeType(), -1);
+
             val rangeLength = Long.parseLong(rangeToSplit.getEnd().toString()) - Long.parseLong(rangeToSplit.getStart().toString());
             if (rangeLength <= ms) {
                 volatileRanges.add(rangeToSplit);
@@ -432,23 +437,40 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         }).collect(Collectors.toList());
     }
 
-    private static long getMillisecondByType(AutoMergeTimeEnum autoMergeTimeEnum) {
-        long time = 0;
+    /**
+     * offset is negative
+     * @param latestSegEnd
+     * @param autoMergeTimeEnum
+     * @param offset
+     * @return
+     */
+    @VisibleForTesting
+    public static long getMillisecondByType(long latestSegEnd, AutoMergeTimeEnum autoMergeTimeEnum, long offset) {
+        Calendar calendar = Calendar.getInstance();
+        TimeZone zone = TimeZone.getDefault();
+        calendar.setTimeZone(zone);
+        calendar.setTimeInMillis(latestSegEnd);
+        int plusNum = (int) offset;
         switch (autoMergeTimeEnum) {
-        case HOUR:
-            time = 3600000L;
-            break;
-        case DAY:
-            time = 86400000L;
-            break;
-        case WEEK:
-            time = 604800000L;
-            break;
-        default:
-            break;
-
+            case HOUR:
+                calendar.add(Calendar.HOUR_OF_DAY, plusNum);
+                break;
+            case DAY:
+                calendar.add(Calendar.DAY_OF_MONTH, plusNum);
+                break;
+            case WEEK:
+                calendar.add(Calendar.WEEK_OF_MONTH, plusNum);
+                break;
+            case MONTH:
+                calendar.add(Calendar.MONTH, plusNum);
+                break;
+            case YEAR:
+                calendar.add(Calendar.YEAR, plusNum);
+                break;
+            default:
+                break;
         }
-        return time;
+        return latestSegEnd - calendar.getTimeInMillis() > 0 ? latestSegEnd - calendar.getTimeInMillis() : 0;
     }
 
     public void removeSegmentsByVolatileRange(Segments<T> segs, VolatileRange volatileRange) {
@@ -458,11 +480,11 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         Long latestSegEnd = Long.parseLong(segs.getLast().getSegRange().getEnd().toString());
 
         Segments volatileSegs = new Segments();
-        long volatileTime = getMillisecondByType(volatileRange.getVolatileRangeType());
+        long volatileTime = getMillisecondByType(latestSegEnd, volatileRange.getVolatileRangeType(),
+                0 - volatileRange.getVolatileRangeNumber());
         if (volatileTime > 0) {
             for (T seg : segs) {
-                if (Long.parseLong(seg.getSegRange().getEnd().toString())
-                        + volatileTime * volatileRange.getVolatileRangeNumber() > latestSegEnd) {
+                if (Long.parseLong(seg.getSegRange().getEnd().toString()) + volatileTime > latestSegEnd) {
                     volatileSegs.add(seg);
                 }
             }
