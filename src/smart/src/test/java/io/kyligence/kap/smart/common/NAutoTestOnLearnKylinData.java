@@ -60,6 +60,7 @@ public abstract class NAutoTestOnLearnKylinData {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty("spark.local", "true");
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
         tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
@@ -84,6 +85,7 @@ public abstract class NAutoTestOnLearnKylinData {
             FileUtils.forceDelete(tmpMeta);
         ResourceStore.clearCache(localConfig.get());
         localConfig.close();
+        System.clearProperty("spark.local");
     }
 
     protected List<LayoutEntity> collectAllLayouts(List<IndexEntity> indexEntities) {
