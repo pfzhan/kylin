@@ -61,6 +61,4 @@ class MonitorExecutorExtension extends ExecutorPlugin with Logging {
     slaverEndpoint.registerMaster(env.executorId, workerRef)
   }
 
-  override def shutdown(): Unit = super.shutdown()
-
 }

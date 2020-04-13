@@ -35,7 +35,7 @@
         <hive-hcatalog.version>1.2.1</hive-hcatalog.version>
 
         <!-- Kafka versions -->
-        <kafka.version>1.1.0</kafka.version>
+        <kafka.version>2.1.1</kafka.version>
 
         <!-- Spark versions -->
         <spark.version>2.4.1-kylin-r27</spark.version>
@@ -51,7 +51,7 @@
         <avatica.version>1.10.0</avatica.version>
 
         <!-- Hadoop Common deps, keep compatible with hadoop2.version -->
-        <zookeeper.version>3.4.8</zookeeper.version>
+        <zookeeper.version>3.4.14</zookeeper.version>
         <curator.version>2.12.0-kylin-r1</curator.version>
         <jsr305.version>3.0.1</jsr305.version>
         <guava.version>14.0</guava.version>
@@ -90,7 +90,10 @@
         <xerces.version>2.11.0</xerces.version>
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
-        <apache-httpclient.version>4.3.5</apache-httpclient.version>
+        <apache-httpclient.version>4.5.3</apache-httpclient.version>
+        <beanutils.version>1.9.4</beanutils.version>
+        <snakeyaml.version>1.26</snakeyaml.version>
+        <xerces.version>2.12.0</xerces.version>
 
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
@@ -105,11 +108,11 @@
         <spring.cloud.version>Edgware.RELEASE</spring.cloud.version>
         <spring.boot.version>1.5.16.0-kylin-r2</spring.boot.version>
         <spring.session.version>1.3.5.RELEASE</spring.session.version>
-        <spring.framework.version>4.3.19.RELEASE</spring.framework.version>
-        <spring.framework.security.version>4.2.3.RELEASE</spring.framework.security.version>
-        <spring.framework.security.extensions.version>1.0.2.RELEASE</spring.framework.security.extensions.version>
-        <spring.ldap-test.version>2.3.1.RELEASE</spring.ldap-test.version>
-        <opensaml.version>2.6.4</opensaml.version>
+        <spring.framework.version>4.3.20.RELEASE</spring.framework.version>
+        <spring.framework.security.version>4.2.14.RELEASE</spring.framework.security.version>
+        <spring.framework.security.extensions.version>1.0.10.RELEASE</spring.framework.security.extensions.version>
+        <spring.ldap-test.version>2.3.2.RELEASE</spring.ldap-test.version>
+        <opensaml.version>2.6.6</opensaml.version>
         <aspectj.version>1.8.9</aspectj.version>
         <unboundid-ldapsdk.version>3.1.1</unboundid-ldapsdk.version>
 
@@ -191,10 +194,10 @@
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.language>java</sonar.language>
-        <scala.version>2.11.8</scala.version>
+        <scala.version>2.11.12</scala.version>
 
         <!-- swagger api-->
-        <swagger.version>1.5.20</swagger.version>
+        <swagger.version>1.5.24</swagger.version>
         <springfox.version>2.9.2</springfox.version>
         <swagger2markup.version>1.3.3</swagger2markup.version>
 
@@ -432,6 +435,10 @@
                     <exclusion>
                         <groupId>com.sun.jersey</groupId>
                         <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -1325,6 +1332,18 @@
             <id>spring-release</id>
             <url>https://repo.spring.io/libs-release</url>
             <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+
+        <repository>
+            <id>shibboleth</id>
+            <name>shibboleth repository</name>
+            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
 

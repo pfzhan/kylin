@@ -166,6 +166,16 @@
         <dependency>
             <groupId>org.springframework.security.extensions</groupId>
             <artifactId>spring-security-saml2-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-beanutils</groupId>
+                    <artifactId>commons-beanutils</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>xerces</groupId>
+                    <artifactId>xercesImpl</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -199,6 +209,18 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>${beanutils.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>xerces</groupId>
+            <artifactId>xercesImpl</artifactId>
+            <version>${xerces.version}</version>
         </dependency>
 
         <!-- Test & Env -->
@@ -262,11 +284,17 @@
         <dependency>
             <groupId>org.apache.calcite.avatica</groupId>
             <artifactId>avatica-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>4.3.10.RELEASE</version>
+            <version>4.3.20.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -277,6 +305,17 @@
         <dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.yaml</groupId>
+                    <artifactId>snakeyaml</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
