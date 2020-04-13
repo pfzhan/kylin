@@ -1,0 +1,1 @@
+select TIMESTAMPDIFF(day, date'2018-01-01', date'2018-10-10')
