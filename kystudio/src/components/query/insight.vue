@@ -322,6 +322,7 @@ export default class NewQuery extends Vue {
   }
   openSaveQueryListDialog () {
     this.savedQueryListVisible = true
+    this.queryCurrentPage = 1
     this.checkedQueryList = []
     this.savedList = []
     this.loadSavedQuery()
