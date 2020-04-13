@@ -28,7 +28,6 @@ function printBackupResult() {
         if [[ $local == 0 ]]; then
             echo -e "${YELLOW}Backup at local disk succeed. The backup path is ${path}.${RESTORE}"
         else
-            echo -e "${YELLOW}Notice: If Query node and All node are deploied in differents servers, the backup process will be delegated to the All node and the backup files will be saved under All node directory.${RESTORE}"
             echo -e "${YELLOW}Backup succeed. The backup path is ${path}.${RESTORE}"
         fi
     else

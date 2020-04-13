@@ -137,6 +137,11 @@ public class JdbcMetadataStore extends MetadataStore {
                         affectedRow = update(String.format(UPDATE_SQL, table), bs, mvcc, ts, path, mvcc - 1);
                     }
                 } else {
+                    val result = jdbcTemplate.query(String.format(SELECT_BY_KEY_SQL, table, path),
+                            RAW_RESOURCE_ROW_MAPPER);
+                    if (CollectionUtils.isEmpty(result)) {
+                        return null;
+                    }
                     affectedRow = jdbcTemplate.update(String.format(DELETE_SQL, table), path);
                 }
                 if (affectedRow == 0) {

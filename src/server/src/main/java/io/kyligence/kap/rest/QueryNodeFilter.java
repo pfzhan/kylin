@@ -43,7 +43,6 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.ErrorResponse;
@@ -170,25 +169,26 @@ public class QueryNodeFilter implements Filter {
                 return;
             }
 
+            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED))) {
+                log.info("process local caused by routed once.");
+                chain.doFilter(request, response);
+                return;
+            }
+            String contentType = request.getContentType();
             Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
             String project = projectInfo.getFirst();
             request = projectInfo.getSecond();
             if (Constant.SERVER_MODE_JOB.equalsIgnoreCase(serverMode)
                     || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode)) {
                 // process local
-                if (((HttpServletRequest) request).getRequestURI().contains("epoch")
-                        || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
+                if (!contentType.contains("multipart/form-data") && (((HttpServletRequest) request).getRequestURI().contains("epoch")
+                        || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project))) {
                     log.info("process local caused by project owner");
                     chain.doFilter(request, response);
                     return;
                 }
             }
 
-            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED))) {
-                log.info("process local caused by routed once.");
-                chain.doFilter(request, response);
-                return;
-            }
 
             ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);
             RequestContextHolder.setRequestAttributes(attributes);
@@ -215,7 +215,7 @@ public class QueryNodeFilter implements Filter {
                 responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
                 Message msg = MsgPicker.getMsg();
                 ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
-                        new InternalErrorException(msg.getNoJobNode(), e));
+                        new KylinException("KE-4016", msg.getLEADERS_HANDLE_OVER()));
                 responseBody = JsonUtil.writeValueAsBytes(errorResponse);
                 responseHeaders = new HttpHeaders();
                 responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
