@@ -38,6 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
@@ -181,11 +182,13 @@ public class QueryNodeFilter implements Filter {
             if (Constant.SERVER_MODE_JOB.equalsIgnoreCase(serverMode)
                     || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode)) {
                 // process local
-                if (!contentType.contains("multipart/form-data") && (((HttpServletRequest) request).getRequestURI().contains("epoch")
-                        || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project))) {
-                    log.info("process local caused by project owner");
-                    chain.doFilter(request, response);
-                    return;
+                if (((HttpServletRequest) request).getRequestURI().contains("epoch")
+                        || EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project)) {
+                    if (StringUtils.isEmpty(contentType) || !contentType.contains("multipart/form-data")) {
+                        log.info("process local caused by project owner");
+                        chain.doFilter(request, response);
+                        return;
+                    }
                 }
             }
 
