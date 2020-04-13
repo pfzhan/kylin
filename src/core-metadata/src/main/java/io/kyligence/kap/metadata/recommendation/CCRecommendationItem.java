@@ -122,7 +122,8 @@ public class CCRecommendationItem extends RecommendationItem<CCRecommendationIte
             if (!columnIdMap.containsKey(aliasDotColumn)
                     || real && OptimizeRecommendationManager.isVirtualColumnId(columnIdMap.get(aliasDotColumn))) {
                 throw new DependencyLostException(String
-                        .format("cc lost dependency: cc %s not exists, you may need pass it first", aliasDotColumn));
+                        .format("cc lost dependency: cc %s not exists, you may need pass it first", aliasDotColumn),
+                        DependencyLostException.LostType.CC_LOST_CC);
             }
             return false;
         }

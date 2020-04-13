@@ -54,6 +54,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
 
     public static final String QUERY_HISTORY = "query_history";
     public static final String IMPORTED = "imported";
+    public static final String NOT_EXISTS_MSG = "remove layouts not exists in index plan.";
 
     @Getter
     @Setter
@@ -95,7 +96,8 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             }
             if (!(idColumnMap.containsKey(id)) || real && OptimizeRecommendationManager.isVirtualColumnId(id)) {
                 throw new DependencyLostException(
-                        "table index lost dependency: column not exists, you may need pass it first");
+                        "table index lost dependency: column not exists, you may need pass it first",
+                        DependencyLostException.LostType.TABLE_INDEX_LOST_CC);
             }
         }
 
@@ -114,7 +116,8 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             if (!idColumnMap.containsKey(id) || !(idColumnMap.containsKey(id) && idColumnMap.get(id).isDimension())
                     || real && OptimizeRecommendationManager.isVirtualColumnId(id)) {
                 throw new DependencyLostException(
-                        "agg index lost dependency: dimension not exists, you may need pass it first");
+                        "agg index lost dependency: dimension not exists, you may need pass it first",
+                        DependencyLostException.LostType.AGG_INDEX_LOST_DIMENSION);
             }
         }
 
@@ -128,7 +131,8 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
 
             if (!measures.contains(id) || real && OptimizeRecommendationManager.isVirtualMeasureId(id)) {
                 throw new DependencyLostException(
-                        "agg index lost dependency: measure not exists, you may need pass it first");
+                        "agg index lost dependency: measure not exists, you may need pass it first",
+                        DependencyLostException.LostType.AGG_INDEX_LOST_MEASURE);
             }
         }
 
@@ -158,7 +162,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
         val identifier = item.createIndexIdentifier();
         if (!allIndexMap.containsKey(identifier)) {
             if (real) {
-                throw new DependencyLostException("cannot remove index because index has already removed.");
+                logger.warn(NOT_EXISTS_MSG);
             }
             context.getDeletedLayoutRecommendations().add(itemId);
             return;
@@ -167,7 +171,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             return;
         }
         if (real) {
-            throw new DependencyLostException("cannot remove index because index has already removed.");
+            logger.warn(NOT_EXISTS_MSG);
         }
         context.deleteLayoutRecommendationItem(itemId);
 
@@ -279,7 +283,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
                     .filter(indexEntityInIndexPlan -> indexEntityInIndexPlan.getId() == indexEntity.getId()).findFirst()
                     .ifPresent(indexEntityInIndexPlan -> indexEntityInIndexPlan.getLayouts().remove(layoutInIndexPlan));
         } else {
-            logger.warn("remove layouts not exists in index plan.");
+            logger.warn(NOT_EXISTS_MSG);
             if (!real) {
                 context.deleteLayoutRecommendationItem(itemId);
             }

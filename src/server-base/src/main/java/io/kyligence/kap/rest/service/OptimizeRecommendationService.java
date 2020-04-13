@@ -31,6 +31,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
@@ -47,6 +50,7 @@ import io.kyligence.kap.metadata.cube.optimization.FrequencyMap;
 import io.kyligence.kap.metadata.cube.optimization.IndexOptimizerFactory;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.recommendation.CCRecommendationItem;
+import io.kyligence.kap.metadata.recommendation.DependencyLostException;
 import io.kyligence.kap.metadata.recommendation.DimensionRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
@@ -92,26 +96,49 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 1)
     public void applyRecommendations(ApplyRecommendationsRequest request, String project) {
-        aclEvaluate.checkProjectWritePermission(project);
-        updateOptimizeRecom(request);
-        shiftLayoutHitCount(project, request.getModelId());
-        val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
-                request.getModelId());
-        val passCCItems = request.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
-                .collect(Collectors.toSet());
-        val passDimensionItems = request.getDimensionRecommendations().stream()
-                .map(DimensionRecommendationItem::getItemId).collect(Collectors.toSet());
-        val passMeasureItems = request.getMeasureRecommendations().stream().map(MeasureRecommendationItem::getItemId)
-                .collect(Collectors.toSet());
+        try {
+            aclEvaluate.checkProjectWritePermission(project);
+            updateOptimizeRecom(request);
+            shiftLayoutHitCount(project, request.getModelId());
+            val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
+                    request.getModelId());
+            val passCCItems = request.getCcRecommendations().stream().map(CCRecommendationItem::getItemId)
+                    .collect(Collectors.toSet());
+            val passDimensionItems = request.getDimensionRecommendations().stream()
+                    .map(DimensionRecommendationItem::getItemId).collect(Collectors.toSet());
+            val passMeasureItems = request.getMeasureRecommendations().stream()
+                    .map(MeasureRecommendationItem::getItemId).collect(Collectors.toSet());
 
-        val passIndexItems = Sets.<Long> newHashSet(request.getIndexRecommendationItemIds());
+            val passIndexItems = Sets.<Long> newHashSet(request.getIndexRecommendationItemIds());
 
-        verifier.setPassCCItems(passCCItems);
-        verifier.setPassDimensionItems(passDimensionItems);
-        verifier.setPassMeasureItems(passMeasureItems);
-        verifier.setPassLayoutItems(passIndexItems);
+            verifier.setPassCCItems(passCCItems);
+            verifier.setPassDimensionItems(passDimensionItems);
+            verifier.setPassMeasureItems(passMeasureItems);
+            verifier.setPassLayoutItems(passIndexItems);
 
-        verifier.verify();
+            verifier.verify();
+        } catch (DependencyLostException e) {
+            throw new KylinException("KE-1044", getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
+        }
+    }
+
+    private String getDependencyLostMessage(Message message, DependencyLostException.LostType type) {
+        switch (type) {
+        case AGG_INDEX_LOST_MEASURE:
+            return message.getAGG_INDEX_LOST_MEASURE();
+        case AGG_INDEX_LOST_DIMENSION:
+            return message.getAGG_INDEX_LOST_DIMENSION();
+        case TABLE_INDEX_LOST_CC:
+            return message.getTABLE_INDEX_LOST_CC();
+        case MEASURE_LOST_CC:
+            return message.getMEASURE_LOST_CC();
+        case CC_LOST_CC:
+            return message.getCC_LOST_CC();
+        case DIMENSION_LOST_CC:
+            return message.getDIMENSION_LOST_CC();
+        default:
+            return "";
+        }
     }
 
     @Transaction(project = 1)
@@ -276,19 +303,23 @@ public class OptimizeRecommendationService extends BasicService {
 
     @Transaction(project = 0)
     public void batchApplyRecommendations(String project, List<String> modelAlias) {
-        aclEvaluate.checkProjectWritePermission(project);
-        val models = getDataflowManager(project).listAllDataflows().stream()
-                .filter(df -> df.getStatus() == RealizationStatusEnum.ONLINE && !df.getModel().isBroken())
-                .map(NDataflow::getModel);
-        models.forEach(model -> {
-            if (CollectionUtils.isEmpty(modelAlias) || modelAlias.stream().map(String::toLowerCase)
-                    .collect(Collectors.toList()).contains(model.getAlias().toLowerCase())) {
-                shiftLayoutHitCount(project, model.getUuid());
-                val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
-                        model.getId());
-                verifier.verifyAll();
-            }
-        });
+        try {
+            aclEvaluate.checkProjectWritePermission(project);
+            val models = getDataflowManager(project).listAllDataflows().stream()
+                    .filter(df -> df.getStatus() == RealizationStatusEnum.ONLINE && !df.getModel().isBroken())
+                    .map(NDataflow::getModel);
+            models.forEach(model -> {
+                if (CollectionUtils.isEmpty(modelAlias) || modelAlias.stream().map(String::toLowerCase)
+                        .collect(Collectors.toList()).contains(model.getAlias().toLowerCase())) {
+                    shiftLayoutHitCount(project, model.getUuid());
+                    val verifier = new OptimizeRecommendationVerifier(KylinConfig.getInstanceFromEnv(), project,
+                            model.getId());
+                    verifier.verifyAll();
+                }
+            });
+        } catch (DependencyLostException e) {
+            throw new KylinException("KE-1044", getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
+        }
     }
 
     private void shiftLayoutHitCount(String project, String modelUuid) {

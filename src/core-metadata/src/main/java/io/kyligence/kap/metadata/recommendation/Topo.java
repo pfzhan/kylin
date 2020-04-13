@@ -66,7 +66,7 @@ public class Topo<T> {
         }
 
         if (!this.graph.vertexSet.isEmpty()) {
-            throw new DependencyLostException("CC dependency contains cycle");
+            throw new IllegalStateException("CC dependency contains cycle");
         }
     }
 

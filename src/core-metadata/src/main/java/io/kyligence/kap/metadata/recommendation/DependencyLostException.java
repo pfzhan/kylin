@@ -23,9 +23,20 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import lombok.Getter;
+
 public class DependencyLostException extends RuntimeException {
 
-    public DependencyLostException(String msg) {
+    public enum LostType {
+        AGG_INDEX_LOST_MEASURE, AGG_INDEX_LOST_DIMENSION, //
+        TABLE_INDEX_LOST_CC, MEASURE_LOST_CC, CC_LOST_CC, DIMENSION_LOST_CC //
+    }
+
+    @Getter
+    private LostType type;
+
+    public DependencyLostException(String msg, LostType type) {
         super(msg);
+        this.type = type;
     }
 }

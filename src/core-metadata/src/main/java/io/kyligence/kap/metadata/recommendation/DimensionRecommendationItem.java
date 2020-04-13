@@ -103,7 +103,8 @@ public class DimensionRecommendationItem extends RecommendationItem<DimensionRec
         if (!columns.containsKey(id) || (real && OptimizeRecommendationManager.isVirtualColumnId(id))) {
             throw new DependencyLostException(String.format(
                     "dimension lost dependency: column %s not exists in all columns, you may need pass it first",
-                    context.getDimensionRecommendationItem(itemId).getColumn().getName()));
+                    context.getDimensionRecommendationItem(itemId).getColumn().getName()),
+                    DependencyLostException.LostType.DIMENSION_LOST_CC);
         }
 
     }

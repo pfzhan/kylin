@@ -117,7 +117,7 @@ public class MeasureRecommendationItem extends RecommendationItem<MeasureRecomme
                         || real && OptimizeRecommendationManager.isVirtualColumnId(columns.get(value))) {
                     throw new DependencyLostException(String.format(
                             "measure lost dependency: column %s not exists in all columns, you may need pass it first",
-                            value));
+                            value), DependencyLostException.LostType.MEASURE_LOST_CC);
                 }
             }
         }

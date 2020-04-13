@@ -1039,4 +1039,28 @@ public class CnMessage extends Message {
     public String getQUERY_ROW_NUM_OVER_THRESHOLD() {
         return "查询失败。查询结果行数超过最大值:{%s}。请添加过滤条件或联系管理员调整最大查询结果行数";
     }
+
+    public String getAGG_INDEX_LOST_DIMENSION() {
+        return "聚合索引缺少依赖：缺少维度，您需要先通过对应维度的优化建议。";
+    }
+
+    public String getAGG_INDEX_LOST_MEASURE() {
+        return "聚合索引缺少依赖：缺少度量，您需要先通过对应度量的优化建议。";
+    }
+
+    public String getTABLE_INDEX_LOST_CC() {
+        return "明细索引缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
+    }
+
+    public String getMEASURE_LOST_CC() {
+        return "度量缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
+    }
+
+    public String getCC_LOST_CC() {
+        return "可计算列缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
+    }
+
+    public String getDIMENSION_LOST_CC() {
+        return "维度缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
+    }
 }

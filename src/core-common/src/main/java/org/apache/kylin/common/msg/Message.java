@@ -1060,4 +1060,27 @@ public class Message {
         return "Failed to get query result. The row number of query result exceeds the maximum: {%s}. Please add more filters or contact the administrator to adjust the maximum row number of query result.";
     }
 
+    public String getAGG_INDEX_LOST_DIMENSION() {
+        return "Aggregate index lacks dependency: missing dimensions, you need to pass the optimization suggestions of the corresponding dimensions first.";
+    }
+
+    public String getAGG_INDEX_LOST_MEASURE() {
+        return "Aggregate index lacks dependency: lack of metric, you need to pass the optimization suggestion of the corresponding measures first.";
+    }
+
+    public String getTABLE_INDEX_LOST_CC() {
+        return "The table index lacks dependencies: missing computed columns, you need to pass the optimization suggestions corresponding to computed columns first.";
+    }
+
+    public String getMEASURE_LOST_CC() {
+        return "The measure lacks dependency: missing computed columns, you need to first pass the optimization suggestions corresponding to computed columns.";
+    }
+
+    public String getCC_LOST_CC() {
+        return "Computed columns lack dependency: missing computed columns, you need to pass the optimization suggestion corresponding to computed columns first.";
+    }
+
+    public String getDIMENSION_LOST_CC() {
+        return "Dimension lacks dependency: missing computed columns, you need to pass the optimization suggestion corresponding to computed columns first.";
+    }
 }
