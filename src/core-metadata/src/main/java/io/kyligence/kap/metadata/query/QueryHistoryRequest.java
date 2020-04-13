@@ -26,6 +26,8 @@ package io.kyligence.kap.metadata.query;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -51,4 +53,8 @@ public class QueryHistoryRequest {
 
     List<String> realizations;
 
+    @JsonIgnore
+    private boolean isAdmin;
+    @JsonIgnore
+    private String username;
 }

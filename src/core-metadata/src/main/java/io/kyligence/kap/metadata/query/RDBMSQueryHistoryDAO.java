@@ -34,6 +34,8 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.metadata.JdbcDataSource;
 import io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -46,10 +48,13 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+@NoArgsConstructor
 public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     private static final Logger logger = LoggerFactory.getLogger(RDBMSQueryHistoryDAO.class);
+    @Setter
     private String queryMetricMeasurement;
     private String realizationMetricMeasurement;
+    @Setter
     private JdbcTemplate jdbcTemplate;
 
     protected static final String QUERY_COUNT_AND_AVG_DURATION_SQL_FORMAT = "SELECT COUNT(query_id) as count, avg(duration) as avg_duration FROM %s WHERE query_time>=? AND query_time <= ? AND project_name = ?";
@@ -267,6 +272,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
             sb.append(") ");
         }
         sb.append("AND project_name = ? ");
+
+        if (!request.isAdmin()) {
+            sb.append(String.format(" AND submitter = '%s' ", request.getUsername()));
+        }
 
         return sb.toString();
     }

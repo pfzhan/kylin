@@ -52,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -111,6 +112,12 @@ public class QueryHistoryService extends BasicService {
             data.put("query_histories", queryHistories);
             data.put("size", 0);
             return data;
+        }
+
+        request.setUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+        if (aclEvaluate.hasProjectAdminPermission(
+                NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(request.getProject()))) {
+            request.setAdmin(true);
         }
 
         queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset, request.getProject()).stream().forEach(query -> {

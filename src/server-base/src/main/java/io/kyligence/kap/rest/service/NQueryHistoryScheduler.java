@@ -118,7 +118,7 @@ public class NQueryHistoryScheduler {
             try {
                 List<QueryMetrics> queryHistoryList = Lists.newArrayList();
                 queryMetricsQueue.drainTo(queryHistoryList);
-                logger.info("write {} query hitory", queryHistoryList.size());
+                logger.info("write {} query history", queryHistoryList.size());
                 writer.batchWrite(null, queryHistoryList, 0);
             } catch (Throwable th) {
                 logger.error("Error when write query history", th);

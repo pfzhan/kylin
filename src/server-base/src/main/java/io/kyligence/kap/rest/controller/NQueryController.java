@@ -187,7 +187,7 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, server, queryStatus, realizations);
+                latencyTo, sql, server, queryStatus, realizations, false, null);
         checkGetQueryHistoriesParam(request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 queryHistoryService.getQueryHistories(request, limit, offset), "");

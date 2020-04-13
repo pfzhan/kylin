@@ -71,6 +71,8 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
     String PROJECT = "default";
     public static final String WEEK = "week";
     public static final String DAY = "day";
+    public static final String NORMAL_USER = "normal_user";
+    public static final String ADMIN = "ADMIN";
 
     @Before
     public void setup() throws Exception {
@@ -88,11 +90,11 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
     }
 
     private void writeToQueryHistory() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
+
         Properties properties = getProperties();
         var createQueryHistorSql = properties.getProperty("create.queryhistory.store.table");
-        getJdbcTemplate().execute(String.format(createQueryHistorSql, url.getIdentifier() + "_query_history"));
-        String sql = "INSERT INTO " + url.getIdentifier() + "_query_history" + " ("
+        getJdbcTemplate().execute(String.format(createQueryHistorSql, getQueryHistoryTableName()));
+        String sql = "INSERT INTO " + getQueryHistoryTableName() + " ("
                 + Joiner.on(",").join(QueryHistory.QUERY_ID, QueryHistory.SQL_TEXT, QueryHistory.SQL_PATTERN,
                         QueryHistory.QUERY_DURATION, QueryHistory.TOTAL_SCAN_BYTES, QueryHistory.TOTAL_SCAN_COUNT,
                         QueryHistory.RESULT_ROW_COUNT, QueryHistory.SUBMITTER, QueryHistory.REALIZATIONS,
@@ -111,21 +113,19 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         // 2021-01-29 23:25:12
         Long queryTime4 = 1611933912000L;
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930141", "select 1", "select 1", 1, 5045, 4096,
-                500, "ADMIN", "", "", "", "", false, "", true, queryTime1, "2020-03",
-                TimeUtil.getMonthStart(queryTime1), TimeUtil.getWeekStart(queryTime1), TimeUtil.getDayStart(queryTime1),
-                true, false, false, PROJECT);
+                500, ADMIN, "", "", "", "", false, "", true, queryTime1, "2020-03", TimeUtil.getMonthStart(queryTime1),
+                TimeUtil.getWeekStart(queryTime1), TimeUtil.getDayStart(queryTime1), true, false, false, PROJECT);
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930142", "select 2", "select 2", 2, 5045, 4096,
-                500, "ADMIN", "", "", "", "", false, "", true, queryTime2, "2020-03",
-                TimeUtil.getMonthStart(queryTime2), TimeUtil.getWeekStart(queryTime2), TimeUtil.getDayStart(queryTime2),
-                true, false, false, PROJECT);
+                500, ADMIN, "", "", "", "", false, "", true, queryTime2, "2020-03", TimeUtil.getMonthStart(queryTime2),
+                TimeUtil.getWeekStart(queryTime2), TimeUtil.getDayStart(queryTime2), true, false, false, PROJECT);
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930143", "select 3", "select 3", 3, 5045, 4096,
-                500, "ADMIN", "", "", "", "", false, "", false, queryTime3, "2020-03",
+                500, NORMAL_USER, "", "", "", "", false, "", false, queryTime3, "2020-03",
                 TimeUtil.getMonthStart(queryTime3), TimeUtil.getWeekStart(queryTime3), TimeUtil.getDayStart(queryTime3),
                 true, false, false, PROJECT);
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930144", "select 4", "select 4", 4, 5045, 4096,
-                500, "ADMIN", "", "", "", "", false, "", true, queryTime4, "2020-03",
-                TimeUtil.getMonthStart(queryTime4), TimeUtil.getWeekStart(queryTime4), TimeUtil.getDayStart(queryTime4),
-                true, false, false, "other_project");
+                500, ADMIN, "", "", "", "", false, "", true, queryTime4, "2020-03", TimeUtil.getMonthStart(queryTime4),
+                TimeUtil.getWeekStart(queryTime4), TimeUtil.getDayStart(queryTime4), true, false, false,
+                "other_project");
     }
 
     @Test
@@ -362,6 +362,31 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(30, (currentTime - retainTime) / (24 * 60 * 60 * 1000L));
     }
 
+    @Test
+    public void testNonAdminUserGetQueryHistories() throws Exception {
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+
+        // system-admin and project-admin can get all query history on current project
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+        List<QueryHistory> queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest,
+                10, 0, PROJECT);
+        Assert.assertEquals(3, queryHistoryList.size());
+
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(NORMAL_USER);
+        queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0, PROJECT);
+        Assert.assertEquals(3, queryHistoryList.size());
+
+        // non-admin can only get self query history on current project
+        queryHistoryRequest.setAdmin(false);
+        queryHistoryRequest.setUsername(NORMAL_USER);
+        queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest, 10, 0, PROJECT);
+        Assert.assertEquals(1, queryHistoryList.size());
+    }
 
     JdbcTemplate getJdbcTemplate() throws Exception {
         val url = getTestConfig().getMetadataUrl();
@@ -376,5 +401,10 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Properties properties = new Properties();
         properties.load(is);
         return properties;
+    }
+
+    private String getQueryHistoryTableName() {
+        val url = getTestConfig().getMetadataUrl();
+        return url.getIdentifier() + "_query_history";
     }
 }
