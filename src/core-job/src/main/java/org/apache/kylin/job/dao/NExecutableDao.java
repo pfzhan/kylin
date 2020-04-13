@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -112,7 +111,6 @@ public class NExecutableDao {
 
     public void updateJob(String uuid, Predicate<ExecutablePO> updater) {
         val job = getJobByUuid(uuid);
-        job.getOutput().getInfo().put("node_info", AddressUtil.getLocalInstance());
         Preconditions.checkNotNull(job);
         val copyForWrite = JsonUtil.copyBySerialization(job, JOB_SERIALIZER, null);
         if (updater.test(copyForWrite)) {
