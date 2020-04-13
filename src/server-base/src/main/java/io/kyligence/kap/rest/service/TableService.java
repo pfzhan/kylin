@@ -43,8 +43,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
-import io.kyligence.kap.rest.cluster.ClusterManager;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -124,7 +124,9 @@ import io.kyligence.kap.metadata.model.schema.ReloadTableContext;
 import io.kyligence.kap.metadata.model.schema.SchemaNode;
 import io.kyligence.kap.metadata.model.schema.SchemaNodeType;
 import io.kyligence.kap.metadata.model.schema.SchemaUtil;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -135,18 +137,16 @@ import io.kyligence.kap.rest.response.NHiveTableNameResponse;
 import io.kyligence.kap.rest.response.NInitTablesResponse;
 import io.kyligence.kap.rest.response.PreReloadTableResponse;
 import io.kyligence.kap.rest.response.PreUnloadTableResponse;
+import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import io.kyligence.kap.rest.response.ServerInfoResponse;
 import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.source.NHiveTableName;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.var;
-
-import javax.servlet.http.HttpServletRequest;
 
 @Component("tableService")
 public class TableService extends BasicService {
@@ -300,10 +300,12 @@ public class TableService extends BasicService {
         List<Pair<Map.Entry<String, String>, Object>> errorList = results.stream()
                 .filter(pair -> pair.getSecond() instanceof Throwable).collect(Collectors.toList());
         if (!errorList.isEmpty()) {
-            String errorMessage = StringUtils.join(errorList.stream()
-                    .map(error -> "table : " + error.getFirst().getKey() + "." + error.getFirst().getValue()
-                            + " load Metadata error: " + ((Throwable) error.getSecond()).getMessage())
-                    .collect(Collectors.toList()), "\n");
+            errorList.forEach(e -> logger.error(e.getFirst().getKey() + "." + e.getFirst().getValue(),
+                    (Throwable) (e.getSecond())));
+            String errorTables = StringUtils
+                    .join(errorList.stream().map(error -> error.getFirst().getKey() + "." + error.getFirst().getValue())
+                            .collect(Collectors.toList()), ",");
+            String errorMessage = String.format(MsgPicker.getMsg().getHIVETABLE_NOT_FOUND(), errorTables);
             throw new RuntimeException(errorMessage);
         }
         return results.stream().map(pair -> (Pair<TableDesc, TableExtDesc>) pair.getSecond())
@@ -1619,9 +1621,9 @@ public class TableService extends BasicService {
         List<String> failed = Lists.newArrayList();
         tables.forEach(table -> refreshTable(table, refreshed, failed));
 
-        if(failed.isEmpty()){
+        if (failed.isEmpty()) {
             result.setCode(ResponseCode.CODE_SUCCESS);
-        }else {
+        } else {
             result.setCode(ResponseCode.CODE_UNDEFINED);
             result.setMsg(String.format(message.getTABLE_REFRESH_NOTFOUND(), failed));
         }
@@ -1630,7 +1632,7 @@ public class TableService extends BasicService {
         return result;
     }
 
-    public void refreshTable(String table, List<String> refreshed, List<String> failed){
+    public void refreshTable(String table, List<String> refreshed, List<String> failed) {
         try {
             PushDownUtil.trySimplePushDownExecute("REFRESH TABLE " + table, null);
             refreshed.add(table);
@@ -1654,22 +1656,22 @@ public class TableService extends BasicService {
             String url = "http://" + host + REFRESH_SINGLE_CATALOG_PATH;
             try {
                 EnvelopeResponse response = generateTaskForRemoteHost(request, url);
-                if(StringUtils.isNotBlank(response.getMsg())){
+                if (StringUtils.isNotBlank(response.getMsg())) {
                     msg.append(host + ":" + response.getMsg() + ";");
                 }
-                if(response.getCode().equals(ResponseCode.CODE_UNDEFINED)){
+                if (response.getCode().equals(ResponseCode.CODE_UNDEFINED)) {
                     result.setCode(ResponseCode.CODE_UNDEFINED);
                 }
-                if(response.getData() != null){
+                if (response.getData() != null) {
                     TableRefresh data = JsonUtil.convert(response.getData(), TableRefresh.class);
                     data.setServer(host);
                     nodes.add(data);
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 throw new KylinException("KE-1043", message.getTABLE_REFRESH_ERROR(), e);
             }
         });
-        if(!nodes.isEmpty()){
+        if (!nodes.isEmpty()) {
             result.setNodes(nodes);
         }
         result.setMsg(msg.toString());

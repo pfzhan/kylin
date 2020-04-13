@@ -34,8 +34,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
@@ -45,6 +48,10 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.SamplingRequest;
+import org.apache.kylin.rest.response.DataResult;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.TableRefresh;
+import org.apache.kylin.rest.response.TableRefreshAll;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -80,19 +87,12 @@ import io.kyligence.kap.rest.response.PreUnloadTableResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import org.apache.kylin.rest.response.DataResult;
-import org.apache.kylin.rest.response.EnvelopeResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableSamplingService;
 import io.kyligence.kap.rest.service.TableService;
-import org.apache.kylin.rest.response.TableRefresh;
-import org.apache.kylin.rest.response.TableRefreshAll;
-
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
-
-import javax.servlet.http.HttpServletRequest;
 
 @Controller
 @RequestMapping(value = "/api/tables", produces = { HTTP_VND_APACHE_KYLIN_JSON })
@@ -117,7 +117,6 @@ public class NTableController extends NBasicController {
     @Autowired
     @Qualifier("tableSamplingService")
     private TableSamplingService tableSamplingService;
-
 
     @ApiOperation(value = "getTableDesc (update)", notes = "Update Param: is_fuzzy, page_offset, page_size; Update Response: no format!")
     @GetMapping(value = "")
@@ -528,21 +527,31 @@ public class NTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<PreReloadTableResponse> preReloadTable(@RequestParam(value = "project") String project,
             @RequestParam(value = "table") String table) throws Exception {
-        checkProjectName(project);
-        val result = tableService.preProcessBeforeReload(project, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        try {
+            checkProjectName(project);
+            val result = tableService.preProcessBeforeReload(project, table);
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+        } catch (Exception e) {
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            throw new KylinException("KE-1030", root.getMessage());
+        }
     }
 
     @PostMapping(value = "/reload", produces = { HTTP_VND_APACHE_KYLIN_JSON, HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> reloadTable(@RequestBody ReloadTableRequest request) throws Exception {
-        checkProjectName(request.getProject());
-        if (StringUtils.isEmpty(request.getTable())) {
-            throw new KylinException("KE-1029", MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+        try {
+            checkProjectName(request.getProject());
+            if (StringUtils.isEmpty(request.getTable())) {
+                throw new KylinException("KE-1029", MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+            }
+            tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
+                    request.getMaxRows(), request.isNeedBuild());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        } catch (Exception e) {
+            Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
+            throw new KylinException("KE-1030", root.getMessage());
         }
-        tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(), request.getMaxRows(),
-                request.isNeedBuild());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @ApiOperation(value = "reloadHiveTableName (update)", notes = "Update URL: table_name")
@@ -586,11 +595,11 @@ public class NTableController extends NBasicController {
     private void checkRefreshParam(Map refreshRequest) {
         val message = MsgPicker.getMsg();
         Object tables = refreshRequest.get("tables");
-        if(tables == null){
+        if (tables == null) {
             throw new KylinException("KE-1010", message.getTABLE_REFRESH_PARAM_INVALID(), false);
-        } else if(refreshRequest.keySet().size() > 1){
+        } else if (refreshRequest.keySet().size() > 1) {
             throw new KylinException("KE-1010", message.getTABLE_REFRESH_PARAM_MORE(), false);
-        } else if(!(tables instanceof List)){
+        } else if (!(tables instanceof List)) {
             throw new KylinException("KE-1010", message.getTABLE_REFRESH_PARAM_INVALID(), false);
         }
     }

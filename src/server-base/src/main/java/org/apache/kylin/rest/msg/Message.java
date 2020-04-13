@@ -824,8 +824,8 @@ public class Message {
     }
 
     public String getTABLE_REFRESH_PARAM_MORE() {
-        return "The requested json contains illegal fields other than the tables field. " +
-                "Please check the json and try again.";
+        return "The requested json contains illegal fields other than the tables field. "
+                + "Please check the json and try again.";
     }
 
     public String getTRANSFER_FAILED() {
@@ -1024,6 +1024,10 @@ public class Message {
         return "The user / group names cannot contain the following symbols: backslash (\\), "
                 + " slash mark (/), colon (:), asterisk (*), question mark (?),  quotation mark (\"), less than sign (<), greater than sign (>), vertical bar (|).";
 
+    }
+
+    public String getHIVETABLE_NOT_FOUND() {
+        return "The table cannot be loaded in the data source: {%s}. Please check the data source.";
     }
 
 }

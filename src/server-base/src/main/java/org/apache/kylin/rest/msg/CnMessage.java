@@ -993,4 +993,9 @@ public class CnMessage extends Message {
     public String getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER() {
         return "用户名/用户组名中不能包含如下符号: 反斜杠(\\), 斜杠(/), 冒号(:), 星号(*), 问号(?), 引号(“), 小于号(<), 大于号(>), 垂直线(|)";
     }
+
+    public String getHIVETABLE_NOT_FOUND() {
+        return "数据源中以下表加载失败：{%s}。请检查数据源。";
+    }
+
 }
