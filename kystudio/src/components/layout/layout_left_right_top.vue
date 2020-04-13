@@ -447,7 +447,7 @@ export default class LayoutLeftRightTop extends Vue {
       this[loadingName] = false
     }, (res) => {
       this[loadingName] = false
-      handleError(res)
+      // handleError(res)
     })
   }
   applySpeed (event) {
@@ -787,7 +787,7 @@ export default class LayoutLeftRightTop extends Vue {
       // 如果apply或者ignore接口或者立即加速的接口还在进行中，先暂停轮训的请求发送
       // 加速配置关闭时暂停轮询
       // 有加速引擎页面包括智能模式，AI增强模式开启智能推荐设置（且有ACL权限的用户）
-      if (!this.availableMenus.includes('acceleration') || this.applyBtnLoading || this.btnLoadingCancel || this.$store.state.model.circleSpeedInfoLock || !this.$store.state.project.projectAutoApplyConfig) {
+      if (!this.isStartCircleLoadSpeedInfo || this.applyBtnLoading || this.btnLoadingCancel || this.$store.state.model.circleSpeedInfoLock || !this.$store.state.project.projectAutoApplyConfig) {
         return new Promise((resolve) => {
           resolve()
         })
@@ -821,6 +821,9 @@ export default class LayoutLeftRightTop extends Vue {
       })
     }
   }
+  get isStartCircleLoadSpeedInfo () {
+    return this.availableMenus.includes('acceleration') && (this.isAutoProject || !this.isAutoProject && this.$store.state.project.isSemiAutomatic)
+  }
   mounted () {
     // 接受cloud的参数
     var from = getQueryString('from')
@@ -829,7 +832,7 @@ export default class LayoutLeftRightTop extends Vue {
       $('#fullBox').addClass('cloud-frame-page')
     }
     // 有加速引擎页面包括智能模式，AI增强模式开启智能推荐设置（且有ACL权限的用户）
-    if (this.availableMenus.includes('acceleration')) {
+    if (this.isStartCircleLoadSpeedInfo) {
       // 获取加速信息
       this.loadSpeedInfo()
       this.circleLoadSpeedInfo()
