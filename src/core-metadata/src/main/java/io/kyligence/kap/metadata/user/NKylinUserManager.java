@@ -94,6 +94,10 @@ public class NKylinUserManager {
         crud.reloadAll();
     }
 
+    public ManagedUser copyForWrite(ManagedUser user) {
+        return crud.copyForWrite(user);
+    }
+
     public KylinConfig getConfig() {
         return config;
     }
@@ -119,11 +123,12 @@ public class NKylinUserManager {
 
     public void update(ManagedUser user) {
         ManagedUser exist = crud.get(user.getUsername());
+        ManagedUser copy = copyForWrite(user);
         if (exist != null) {
-            user.setLastModified(exist.getLastModified());
-            user.setMvcc(exist.getMvcc());
+            copy.setLastModified(exist.getLastModified());
+            copy.setMvcc(exist.getMvcc());
         }
-        crud.save(user);
+        crud.save(copy);
     }
 
     public void delete(String username) {
