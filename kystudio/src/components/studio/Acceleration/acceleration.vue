@@ -1,16 +1,22 @@
 <template>
   <div id="favoriteQuery">
-    <div class="ksd-title-label ksd-mtb-20">
+    <div class="ksd-title-label ksd-mt-20">
       <span>{{$t('acceleration')}}</span>
     </div>
-    <div class="btn-groups ky-no-br-space ksd-mb-15" v-if="datasourceActions.includes('accelerationActions')">
+    <div class="ksd-mt-10" v-if="isSemiAutomatic&&!isAutoProject">
+      {{$t('accelerationDesc')}}
+    </div>
+    <div class="btn-groups ky-no-br-space ksd-mt-20 ksd-mb-15" v-if="datasourceActions.includes('accelerationActions')">
       <span class="guide-checkData" v-if="!waitingSQLSize"></span>
       <el-button type="primary" v-guide.speedSqlNowBtn plain :disabled="!waitingSQLSize" :loading="isAcceSubmit" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
       <el-button type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
     </div>
     <div class="img-groups" v-guide.speedProcess>
       <div class="label-groups">
-        <span>{{$t('kylinLang.query.canBeAcce')}}: {{waitingSQLSize}}</span>
+        <span>{{$t('kylinLang.query.canBeAcce')}}
+          <common-tip :content="$t('canBeAcceTips')">
+            <i class="el-icon-ksd-what"></i>
+          </common-tip> : {{waitingSQLSize}}</span>
         <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
         <div class="pattern-num">
           <p v-if="listSizes">{{listSizes.accelerated}}</p>
@@ -307,7 +313,10 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
       acceleratedSQL: 'Accelerated SQL',
       waitingList: 'Waiting List ({num})',
       not_accelerated: 'Not Accelerated ({num})',
-      accelerated: 'Accelerated ({num})'
+      accelerated: 'Accelerated ({num})',
+      accelerationDesc: 'Acceleration will convert queries to recommendations for corresponding models. Once accept recommendations and build indexes, acceleration will be effective.',
+      canBeAcceTips: 'Queries which can be accelerated refer to those in waiting and failure list',
+      applySuccessMsg: 'Request has been submitted successfully. Recommendations can be reviewed and accepted under the corresponding models in the model list.'
     },
     'zh-cn': {
       more: '更多',
@@ -341,7 +350,10 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
       acceleratedSQL: '已加速 SQL',
       waitingList: '未加速 ({num})',
       not_accelerated: '加速失败 ({num})',
-      accelerated: '加速完毕 ({num})'
+      accelerated: '加速完毕 ({num})',
+      accelerationDesc: '加速引擎可对查询进行加速，并在对应模型下生成优化建议。接受优化建议并构建索引后即可生效。',
+      canBeAcceTips: '可加速的查询包括未加速和加速失败的查询',
+      applySuccessMsg: '请求提交成功。加速完毕后可在对应模型下查看优化建议。'
     }
   }
 })
@@ -455,6 +467,9 @@ export default class FavoriteQuery extends Vue {
         this.getSQLSizes()
         this.showGif = true
         this.lockSpeedInfo({isLock: false})
+        if (this.isSemiAutomatic && !this.isAutoProject) {
+          this.$message.success(this.$t('applySuccessMsg'))
+        }
       })
     }, (res) => {
       handleError(res)

@@ -340,7 +340,7 @@ export default class SettingAdvanced extends Vue {
     switch (type) {
       case 'accelerate-settings': {
         this.form = { ...this.form, ..._getAccelerationSettings(this.project) }
-        this.$refs['accelerate-setting-form'].clearValidate()
+        this.$refs['accelerate-setting-form'] && this.$refs['accelerate-setting-form'].clearValidate()
         break
       }
       case 'job-alert': {
