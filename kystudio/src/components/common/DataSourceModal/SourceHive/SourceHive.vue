@@ -234,7 +234,7 @@ export default class SourceHive extends Vue {
   prevFilterText = ''
 
   get emptyText () {
-    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('kylinLang.common.noData')
+    return this.filterText ? this.$t('kylinLang.common.noResults') : this.$t('noSourceData')
   }
   get refreshBtnText () {
     return this.reloadHiveTablesStatus.isRunning || this.hasClickRefreshBtn ? this.$t('refreshIng') : this.$t('refreshNow')

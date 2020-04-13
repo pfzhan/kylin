@@ -32,7 +32,8 @@ export default {
     refreshText: 'Can\'t find what you\'re looking for?',
     refreshTips: 'The system caches the source table metadata periodically. If you can\'t find what you\'re looking for, you can refresh immediately or wait for the system to finish refreshing.',
     refreshSuccess: 'Data source refreshed Successfully.',
-    refreshError: 'Failed to refresh data source.'
+    refreshError: 'Failed to refresh data source.',
+    noSourceData: 'No data, please check the permission of current user and click "Refresh now" to try again.'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -67,6 +68,7 @@ export default {
     refreshText: '未找到想要搜索的内容？',
     refreshTips: '系统会定时缓存源表元数据。如果未找到搜索结果，可以立即刷新，或等待系统刷新完毕。',
     refreshSuccess: '数据源刷新成功',
-    refreshError: '数据源刷新失败'
+    refreshError: '数据源刷新失败',
+    noSourceData: '暂无数据，请检查当前用户权限并点击立即刷新进行重试。'
   }
 }
