@@ -1526,7 +1526,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
-    @Ignore("KE-13367")
     @Test
     public void testCreateModel_FullBuildLookupTableConflictIncrement() throws Exception {
         setupPushdownEnv();

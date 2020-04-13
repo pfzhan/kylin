@@ -81,6 +81,7 @@ public class CSVSourceTestCase extends ServiceTestBase {
     }
 
     protected void setupPushdownEnv() throws Exception {
+        Class.forName("org.h2.Driver");
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         // Load H2 Tables (inner join)
