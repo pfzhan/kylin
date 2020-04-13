@@ -120,6 +120,7 @@ public class DiagClientTool extends AbstractInfoExtractorTool {
         // export cube metadata
         if (includeMeta) {
             executorService.execute(() -> {
+                logger.info("Start to dump metadata.");
                 try {
                     File metaDir = new File(exportDir, "metadata");
                     FileUtils.forceMkdir(metaDir);

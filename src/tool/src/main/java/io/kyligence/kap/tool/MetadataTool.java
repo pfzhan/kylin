@@ -55,6 +55,8 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestTemplate;
@@ -74,10 +76,9 @@ import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.val;
 import lombok.var;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class MetadataTool extends ExecutableApplication {
+    private static final Logger logger = LoggerFactory.getLogger("diag");
 
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
@@ -172,19 +173,19 @@ public class MetadataTool extends ExecutableApplication {
             }
 
             if (!isBackup) {
-                log.warn("Fail to restore, please stop all job nodes first");
+                logger.warn("Fail to restore, please stop all job nodes first");
                 return 1;
             }
-            log.info(
+            logger.info(
                     "found a job node running, backup will be delegated to it at server: {}, this may be a remote server.",
                     address);
             val ret = tool.remoteBackup(address, optionsHelper.getOptionValue(OPTION_DIR),
                     optionsHelper.getOptionValue(OPTION_PROJECT), optionsHelper.hasOption(OPERATE_COMPRESS));
             if ("000".equals(ret.get("code"))) {
-                log.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
+                logger.info("backup successfully at {}", optionsHelper.getOptionValue(OPTION_DIR));
                 return 0;
             } else {
-                log.error("backup failed, response is {}", ret);
+                logger.error("backup failed, response is {}", ret);
                 return 1;
             }
         });
@@ -198,7 +199,7 @@ public class MetadataTool extends ExecutableApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        log.info("start to init ResourceStore");
+        logger.info("start to init ResourceStore");
         resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
 
         if (optionsHelper.hasOption(OPERATE_BACKUP)) {
@@ -238,17 +239,17 @@ public class MetadataTool extends ExecutableApplication {
     private void abortIfAlreadyExists(String path) throws IOException {
         URI uri = HadoopUtil.makeURI(path);
         if (!uri.isAbsolute()) {
-            log.info("no scheme specified for {}, try local file system file://", path);
+            logger.info("no scheme specified for {}, try local file system file://", path);
             File localFile = new File(path);
             if (localFile.exists()) {
-                log.error("[UNEXPECTED_THINGS_HAPPENED] local file {} already exists ", path);
+                logger.error("[UNEXPECTED_THINGS_HAPPENED] local file {} already exists ", path);
                 throw new KylinException("KE-5002", path);
             }
             return;
         }
         val fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(path))) {
-            log.error("[UNEXPECTED_THINGS_HAPPENED] specified file {} already exists ", path);
+            logger.error("[UNEXPECTED_THINGS_HAPPENED] specified file {} already exists ", path);
             throw new KylinException("KE-5002", path);
         }
     }
@@ -270,14 +271,14 @@ public class MetadataTool extends ExecutableApplication {
         val backupConfig = KylinConfig.createKylinConfig(kylinConfig);
         backupConfig.setMetadataUrl(backupMetadataUrl);
         abortIfAlreadyExists(backupPath);
-        log.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
+        logger.info("The backup metadataUrl is {} and backup path is {}", backupMetadataUrl, backupPath);
 
         val backupResourceStore = ResourceStore.getKylinMetaStore(backupConfig);
 
         val backupMetadataStore = backupResourceStore.getMetadataStore();
 
         if (StringUtils.isBlank(project)) {
-            log.info("start to copy all projects from ResourceStore.");
+            logger.info("start to copy all projects from ResourceStore.");
 
             UnitOfAllWorks.doInTransaction(() -> {
                 var projectFolders = resourceStore.listResources("/");
@@ -306,10 +307,10 @@ public class MetadataTool extends ExecutableApplication {
                 }
                 return null;
             }, true);
-            log.info("start to backup all projects");
+            logger.info("start to backup all projects");
 
         } else {
-            log.info("start to copy project {} from ResourceStore.", project);
+            logger.info("start to copy project {} from ResourceStore.", project);
             UnitOfWork.doInTransactionWithRetry(
                     UnitOfWorkParams.builder().readonly(true).unitName(project).processor(() -> {
                         copyResourceStore("/" + project, resourceStore, backupResourceStore, true, excludeTableExd);
@@ -321,11 +322,11 @@ public class MetadataTool extends ExecutableApplication {
             if (Thread.currentThread().isInterrupted()) {
                 throw new InterruptedException("metadata task is interrupt");
             }
-            log.info("start to backup project {}", project);
+            logger.info("start to backup project {}", project);
         }
         backupResourceStore.deleteResource(ResourceStore.METASTORE_TRASH_RECORD);
         backupMetadataStore.dump(backupResourceStore);
-        log.info("backup successfully at {}", path);
+        logger.info("backup successfully at {}", path);
     }
 
     private Map remoteBackup(String address, String backupPath, String project, boolean compress) throws Exception {
@@ -374,7 +375,7 @@ public class MetadataTool extends ExecutableApplication {
         val restoreMetadataUrl = getMetadataUrl(restorePath, false);
         val restoreConfig = KylinConfig.createKylinConfig(kylinConfig);
         restoreConfig.setMetadataUrl(restoreMetadataUrl);
-        log.info("The restore metadataUrl is {} and restore path is {} ", restoreMetadataUrl, restorePath);
+        logger.info("The restore metadataUrl is {} and restore path is {} ", restoreMetadataUrl, restorePath);
 
         val restoreResourceStore = ResourceStore.getKylinMetaStore(restoreConfig);
         val restoreMetadataStore = restoreResourceStore.getMetadataStore();
@@ -391,7 +392,7 @@ public class MetadataTool extends ExecutableApplication {
 
     public static void restore(ResourceStore currentResourceStore, ResourceStore restoreResourceStore, String project) {
         if (StringUtils.isBlank(project)) {
-            log.info("start to restore all projects");
+            logger.info("start to restore all projects");
             var srcProjectFolders = restoreResourceStore.listResources("/");
             var destProjectFolders = currentResourceStore.listResources("/");
             srcProjectFolders = srcProjectFolders == null ? Sets.newTreeSet() : srcProjectFolders;
@@ -412,7 +413,7 @@ public class MetadataTool extends ExecutableApplication {
             }
 
         } else {
-            log.info("start to restore project {}", project);
+            logger.info("start to restore project {}", project);
             val destGlobalProjectResources = currentResourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT);
 
             Set<String> globalDestResources = null;
@@ -440,7 +441,7 @@ public class MetadataTool extends ExecutableApplication {
                     1);
         }
 
-        log.info("restore successfully");
+        logger.info("restore successfully");
     }
 
     private static int doRestore(ResourceStore currentResourceStore, ResourceStore restoreResourceStore,

@@ -47,6 +47,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
@@ -55,10 +57,9 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import lombok.val;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class AuditLogTool extends ExecutableApplication {
+    private static final Logger logger = LoggerFactory.getLogger("diag");
 
     private static final Option OPTION_START_TIME = OptionBuilder.hasArg().withArgName("START_TIMESTAMP")
             .withDescription("Specify the start timestamp (sec) (optional)").isRequired(false).create("startTime");
@@ -197,7 +198,7 @@ public class AuditLogTool extends ExecutableApplication {
                         try {
                             auditLogs.add(JsonUtil.readValue(line, AuditLog.class));
                         } catch (Exception e) {
-                            log.error("audit log deserialize error >>> {}", line, e);
+                            logger.error("audit log deserialize error >>> {}", line, e);
                         }
                     }
                     auditLogStore.batchInsert(auditLogs);
@@ -214,7 +215,7 @@ public class AuditLogTool extends ExecutableApplication {
                     bw.write(JsonUtil.writeValueAsString(x));
                     bw.newLine();
                 } catch (Exception e) {
-                    log.error("audit log serialize error, id={}", x.getId(), e);
+                    logger.error("audit log serialize error, id={}", x.getId(), e);
                 }
             });
         }
