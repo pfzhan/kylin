@@ -41,7 +41,6 @@
  */
 package org.apache.kylin.query.schema;
 
-import io.kyligence.kap.query.engine.KECalciteConfig;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -51,6 +50,7 @@ import org.apache.calcite.sql.validate.SelectScope;
 import org.apache.calcite.sql.validate.SqlValidatorImpl;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.query.engine.KECalciteConfig;
 
 public class KylinSqlValidator extends SqlValidatorImpl implements IKeep {
 
@@ -69,7 +69,7 @@ public class KylinSqlValidator extends SqlValidatorImpl implements IKeep {
                         .getColumnType()) {
             return KECalciteConfig.current().exposeComputedColumn();
         }
-        return true;
+        return !field.getName().startsWith("_KY_");
     }
 
     @Override

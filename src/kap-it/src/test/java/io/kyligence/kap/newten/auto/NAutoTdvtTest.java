@@ -55,6 +55,11 @@ public class NAutoTdvtTest extends NAutoTestBase {
         new TestScenario(CompareLevel.SAME_WITH_DEVIATION_ALLOWED, "sql_tdvt/sql_datefamily").execute();
     }
 
+    @Test
+    public void testNestedSelectStar() throws Exception {
+        new TestScenario(CompareLevel.SAME, "sql_tdvt/nested_select_star").execute();
+    }
+
     @Ignore("for testing")
     @Test
     public void test() throws Exception {

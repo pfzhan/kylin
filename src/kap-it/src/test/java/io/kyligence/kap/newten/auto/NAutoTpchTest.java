@@ -26,6 +26,7 @@ package io.kyligence.kap.newten.auto;
 
 import java.util.HashMap;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -117,7 +118,9 @@ public class NAutoTpchTest extends NAutoTestBase {
         //1st round, propose initial model
         NSmartMaster smartMaster = proposeWithSmartMaster(getProject(),
                 new TestScenario(CompareLevel.SAME, "sql_tpch"));
-        NDataModel originModel = smartMaster.getContext().getModelContexts().get(8).getTargetModel();
+        NDataModel originModel = smartMaster.getContext().getModelContexts().stream()
+                .filter(ctx -> ctx.getTargetModel().getJoinTables().size() == 6).collect(Collectors.toList()).get(0)
+                .getTargetModel();
         JoinsGraph originJoinGragh = originModel.getJoinsGraph();
 
         NSmartMaster smartMaster1 = proposeWithSmartMaster(getProject(),

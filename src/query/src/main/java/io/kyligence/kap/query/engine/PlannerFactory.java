@@ -55,7 +55,9 @@ import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
 import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.ProjectJoinTransposeRule;
 import org.apache.calcite.rel.rules.ProjectMergeRule;
+import org.apache.calcite.rel.rules.ProjectRemoveRule;
 import org.apache.calcite.rel.rules.ProjectTableScanRule;
 import org.apache.calcite.rel.rules.ProjectWindowTransposeRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
@@ -262,6 +264,9 @@ public class PlannerFactory {
         // UnionMergeRule may slow volcano planner optimization on large number of union clause
         // see KAP#16036
         planner.removeRule(UnionMergeRule.INSTANCE);
+
+        planner.addRule(ProjectJoinTransposeRule.INSTANCE);
+        planner.removeRule(ProjectRemoveRule.INSTANCE);
     }
 
     protected void removeRules(final RelOptPlanner planner, List<String> rules) {
