@@ -221,7 +221,7 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
 
         for (Map.Entry<String, List<ManagedUser>> entry : duplicateUserMap.entrySet()) {
             List<ManagedUser> userList = entry.getValue().stream()
-                    .sorted(Comparator.comparingLong(ManagedUser::getLastModified)).collect(Collectors.toList());
+                    .sorted(Comparator.comparingLong(ManagedUser::getCreateTime)).collect(Collectors.toList());
             if (userList.size() == 1) {
                 continue;
             }

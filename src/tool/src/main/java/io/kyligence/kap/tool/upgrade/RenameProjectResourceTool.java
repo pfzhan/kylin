@@ -251,7 +251,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
 
         for (Map.Entry<String, List<ProjectInstance>> entry : duplicateProjectNameProjectMap.entrySet()) {
             List<ProjectInstance> projectInstances = entry.getValue().stream()
-                    .sorted(Comparator.comparingLong(ProjectInstance::getLastModified)).collect(Collectors.toList());
+                    .sorted(Comparator.comparingLong(ProjectInstance::getCreateTime)).collect(Collectors.toList());
 
             if (projectInstances.size() == 1) {
                 continue;
