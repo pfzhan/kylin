@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
@@ -35,6 +36,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapRel;
 
+@Slf4j
 public class FirstRoundContextCutStrategy implements ICutContextStrategy {
 
     @Override
@@ -49,7 +51,7 @@ public class FirstRoundContextCutStrategy implements ICutContextStrategy {
         }
         toLeafJoinForm();
 
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER HEP PLANNER", rootRel);
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER HEP PLANNER", rootRel, log);
         contextImplementor.optimizeContextCut();
         return Lists.newArrayList(rootRel);
     }

@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapRel;
 
+@Slf4j
 public class QueryContextCutter {
     private static final int MAX_RETRY_TIMES_OF_CONTEXT_CUT = 10;
 
@@ -83,8 +85,8 @@ public class QueryContextCutter {
             }
         }
 
-        ContextUtil.dumpCalcitePlan(
-                "cannot find proper realizations After re-cut " + MAX_RETRY_TIMES_OF_CONTEXT_CUT + " times", root);
+        ContextUtil.dumpCalcitePlan("cannot find proper realizations After re-cut " + MAX_RETRY_TIMES_OF_CONTEXT_CUT + " times",
+                root, log);
         logger.error("too many unmatched join in this query, please check it or create correspond realization");
         throw new NoRealizationFoundException(
                 "too many unmatched join in this query, please check it or create correspond realization");
@@ -118,9 +120,9 @@ public class QueryContextCutter {
             strategy.cutOffContext(rootOfSubCtxTree, queryRoot);
         }
         if (strategy instanceof FirstRoundContextCutStrategy) {
-            ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS SET IN FIRST ROUND", queryRoot);
+            ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS SET IN FIRST ROUND", queryRoot, log);
         } else {
-            ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS RE-CUT OFF ", queryRoot);
+            ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS RE-CUT OFF ", queryRoot, log);
         }
     }
 

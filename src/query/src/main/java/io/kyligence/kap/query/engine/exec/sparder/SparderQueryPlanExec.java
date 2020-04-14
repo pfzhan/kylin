@@ -27,11 +27,11 @@ package io.kyligence.kap.query.engine.exec.sparder;
 import java.util.List;
 
 import io.kyligence.kap.query.engine.meta.MutableDataContext;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
 import io.kyligence.kap.query.engine.exec.QueryPlanExec;
@@ -43,6 +43,7 @@ import io.kyligence.kap.query.util.QueryContextCutter;
 /**
  * implement and execute a physical plan with Sparder
  */
+@Slf4j
 public class SparderQueryPlanExec implements QueryPlanExec {
 
     @Override
@@ -75,19 +76,18 @@ public class SparderQueryPlanExec implements QueryPlanExec {
      * @param rel
      */
     private void selectRealizationAndRewrite(RelNode rel) {
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", rel);
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", rel, log);
         QueryContext.current().record("end_plan");
 
         QueryContext.current().setWithoutSyntaxError(true);
-        List<OLAPContext> contexts = QueryContextCutter.selectRealization(rel,
-                BackdoorToggles.getIsQueryFromAutoModeling());
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", rel);
+        QueryContextCutter.selectRealization(rel, BackdoorToggles.getIsQueryFromAutoModeling());
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", rel, log);
 
         // rewrite query if necessary
         OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
         rewriteImplementor.visitChild(rel, rel.getInput(0));
         QueryContext.current().setCalcitePlan(rel.copy(rel.getTraitSet(), rel.getInputs()));
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", rel);
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REWRITE", rel, log);
 
         QueryContext.current().setIsSparderUsed(true);
         KapContext.setKapRel((KapRel) rel.getInput(0));

@@ -40,8 +40,6 @@ import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSlot;
-import org.apache.calcite.sql.SqlExplainFormat;
-import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.calcite.sql.fun.SqlCountAggFunction;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -114,18 +112,10 @@ public class ContextUtil {
                 && derivedFromSameContext(new HashSet<>(), currentRel, subContext, false);
     }
 
-    public static void dumpCalcitePlan(String msg, RelNode relNode) {
-        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-            String dumpPlan = RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT,
-                    SqlExplainLevel.DIGEST_ATTRIBUTES);
-            System.out.println(msg);
-            System.out.println(dumpPlan);
-        }
-    }
-
     public static void dumpCalcitePlan(String msg, RelNode relNode, Logger logger) {
-        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-            logger.debug("{} : {}", msg, RelOptUtil.toString(relNode));
+        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value()) &&
+            logger.isDebugEnabled()) {
+            logger.debug("{} :{}{}", msg, System.getProperty("line.separator"), RelOptUtil.toString(relNode));
         }
     }
 
