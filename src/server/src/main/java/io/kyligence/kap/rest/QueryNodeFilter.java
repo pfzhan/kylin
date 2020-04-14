@@ -36,6 +36,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -170,7 +172,7 @@ public class QueryNodeFilter implements Filter {
                 return;
             }
 
-            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED))) {
+            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED)) || KylinConfig.getInstanceFromEnv().isUTEnv()) {
                 log.info("process local caused by routed once.");
                 chain.doFilter(request, response);
                 return;
@@ -178,6 +180,14 @@ public class QueryNodeFilter implements Filter {
             String contentType = request.getContentType();
             Pair<String, ServletRequest> projectInfo = ProjectInfoParser.parseProjectInfo(request);
             String project = projectInfo.getFirst();
+            if (!UnitOfWork.GLOBAL_UNIT.equals(project)) {
+                val prj = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+                if (prj == null) {
+                    servletRequest.setAttribute("error", new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                    servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
+                    return;
+                }
+            }
             request = projectInfo.getSecond();
             if (Constant.SERVER_MODE_JOB.equalsIgnoreCase(serverMode)
                     || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode)) {
