@@ -23,8 +23,9 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.awaitility.Awaitility.await;
+
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -41,8 +42,6 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
 
     NQueryHistoryScheduler queryHistoryScheduler;
 
-    private CountDownLatch countDown;
-
     @Before
     public void setup() throws Exception {
         createTestMetadata();
@@ -50,17 +49,18 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
                 "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         getTestConfig().setProperty("kylin.query.security.acl-tcr-enabled", "false");
         queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
+        queryHistoryScheduler.queryMetricsQueue.clear();
     }
 
     @After
     public void destroy() throws Exception {
         cleanupTestMetadata();
+        queryHistoryScheduler.queryMetricsQueue.clear();
         queryHistoryScheduler.shutdown();
     }
 
     @Test
     public void testWriteQueryHistoryAsynchronousNormal() throws Exception {
-        countDown = new CountDownLatch(1);
         // product
         QueryMetrics queryMetrics = new QueryMetrics("6a9a151f-f992-4d52-a8ec-8ff3fd3de6b1", "192.168.1.6:7070");
         queryMetrics.setSql("select LSTG_FORMAT_NAME from KYLIN_SALES\nLIMIT 500");
@@ -96,8 +96,9 @@ public class NQueryHistorySchedulerTest extends NLocalFileMetadataTestCase {
 
         // consume
         queryHistoryScheduler.init();
-        countDown.await(3000, TimeUnit.MILLISECONDS);
-        Assert.assertEquals(0, queryHistoryScheduler.queryMetricsQueue.size());
+        await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
+            Assert.assertEquals(0, queryHistoryScheduler.queryMetricsQueue.size());
+        });
     }
 
     @Test
