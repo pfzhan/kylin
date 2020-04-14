@@ -24,9 +24,9 @@
 
 package org.apache.kylin.query.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +49,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -86,16 +86,26 @@ public class RexToTblColRefTranslatorTest {
 
     private RexNode x, y, z;
     private RexNode literalOne, literalTwo, literalThree;
+    private List<String> properties = Lists.newArrayList();
 
     @Before
     public void setUp() throws IOException {
+        File tmpFile = File.createTempFile("RexToTblColRefTranslatorTest", "");
+        FileUtils.deleteQuietly(tmpFile);
+        FileUtils.forceMkdir(tmpFile);
+        File metadata = new File(tmpFile.getAbsolutePath() + "/metadata");
+        FileUtils.forceMkdir(metadata);
 
-        String kylinHome = System.getProperty("KYLIN_HOME");
-        if (StringUtils.isEmpty(kylinHome)) {
-            System.setProperty("KYLIN_HOME", Paths.get(this.getClass().getResource("/").getPath()).getParent()
-                    .getParent().getParent().getParent() + "/build");
+        File tempKylinProperties = new File(tmpFile, "kylin.properties");
+        tmpFile.deleteOnExit();
+        FileUtils.touch(tempKylinProperties);
+
+        if (properties != null) {
+            FileUtils.writeLines(tempKylinProperties, properties);
         }
-        KylinConfig.getInstanceFromEnv();
+
+        //implicitly set KYLIN_CONF
+        KylinConfig.setKylinConfigForLocalTest(tmpFile.getCanonicalPath());
 
         x = new RexInputRef(0, TYPE_FACTORY.createTypeWithNullability(boolRelDataType, true));
         y = new RexInputRef(1, TYPE_FACTORY.createTypeWithNullability(boolRelDataType, true));
