@@ -99,21 +99,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         //            if (CorrMeasureType.FUNC_CORR.equalsIgnoreCase(call.getAggregation().getUuid().toUpperCase())) {
         //                return planner.getCostFactory().makeCost(Double.MAX_VALUE, 0, 0);
         //            }
-        //
-        //       }
-        double factor = 1.0;
-        for (AggregateCall call : aggCalls) {
-            // if we rewrite this node by SumConstantConvertRule, we need decrease its cost
-           String aggName = call.getName();
-            if (SqlKind.COUNT.equals(call.getAggregation().getKind()) &&
-                aggName != null &&
-                aggName.startsWith("SUM_CONST")
-            ) {
-                factor = 0.5;
-                break;
-            }
-        }
-        return super.computeSelfCost(planner, mq).multiplyBy(factor);
+        //        }
+        return super.computeSelfCost(planner, mq);
     }
 
     @Override

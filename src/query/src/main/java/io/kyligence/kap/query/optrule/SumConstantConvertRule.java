@@ -58,8 +58,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
-
 /**
  * sql: select sum(3) from KYLIN_SALES;
  *
@@ -76,16 +74,16 @@ import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
  *
  */
 
-public class SumConstantConvertRuleNew extends RelOptRule {
+public class SumConstantConvertRule extends RelOptRule {
 
-    private static final Logger logger = LoggerFactory.getLogger(SumConstantConvertRuleNew.class);
+    private static final Logger logger = LoggerFactory.getLogger(SumConstantConvertRule.class);
 
-    public static final SumConstantConvertRuleNew INSTANCE = new SumConstantConvertRuleNew(
+    public static final SumConstantConvertRule INSTANCE = new SumConstantConvertRule(
             operand(LogicalAggregate.class, operand(LogicalProject.class, null,
                     input -> !SumExpressionUtil.hasAggInput(input), RelOptRule.any())),
             RelFactories.LOGICAL_BUILDER, "SumConstantConvertRule");
 
-    public SumConstantConvertRuleNew(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
+    public SumConstantConvertRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
         super(operand, relBuilderFactory, description);
     }
 
@@ -188,9 +186,6 @@ public class SumConstantConvertRuleNew extends RelOptRule {
                 bottomProjectList.add(aggExpression.getExpression());
             }
         }
-
-        bottomProjectList.add(relBuilder.getRexBuilder().makeCharLiteral(kySumExprFlag));
-
         return bottomProjectList;
     }
 
@@ -244,7 +239,6 @@ public class SumConstantConvertRuleNew extends RelOptRule {
             topProjectList.add(rexNode);
 
         }
-        topProjectList.add(relBuilder.getRexBuilder().makeCharLiteral(kySumExprFlag));
         return topProjectList;
     }
 

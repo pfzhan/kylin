@@ -29,9 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.util.HepUtils;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -61,7 +59,6 @@ import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
 /**
  * Entrance for query execution
  */
-@Slf4j
 public class QueryExec {
 
     private final KylinConfig kylinConfig;
@@ -99,7 +96,8 @@ public class QueryExec {
         try {
             beforeQuery();         
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-            return new QueryResult(executeQueryPlan(parseAndOptimize(sql)),
+            RelNode node = parseAndOptimize(sql);
+            return new QueryResult(executeQueryPlan(postOptimize(node)),
                     RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType));
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg
@@ -111,14 +109,19 @@ public class QueryExec {
         }
     }
 
+    /**
+     * Separating <code>parseAndOptimize</code> and <code>postOptimize</code> is only for UT test.
+     */
     @VisibleForTesting
     public RelNode parseAndOptimize(String sql) throws SqlParseException {
         RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-        RelNode node = queryOptimizer.optimize(relRoot).rel;
+        return  queryOptimizer.optimize(relRoot).rel;
+    }
+
+    @VisibleForTesting
+    public RelNode postOptimize(RelNode node) {
         if (kylinConfig.isConvertSumExpressionEnabled()) {
-            ContextUtil.dumpCalcitePlan("Before HEP", node, log);
             node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
-            ContextUtil.dumpCalcitePlan("After HEP", node, log);
         }
         return node;
     }

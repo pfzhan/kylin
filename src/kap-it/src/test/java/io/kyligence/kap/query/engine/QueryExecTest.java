@@ -24,10 +24,6 @@
 package io.kyligence.kap.query.engine;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
@@ -38,7 +34,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-@Slf4j
+import java.sql.SQLException;
+
 public class QueryExecTest extends NLocalFileMetadataTestCase {
 
     final String project = "default";
@@ -53,28 +50,18 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
         staticCleanupTestMetadata();
     }
 
-    private Dataset<Row> check(String SQL) throws SqlParseException {
-        RelNode node = toCalcitePlan(SQL);
-        log.debug(RelOptUtil.toString(node));
-        return toSparkPlan(node);
-    }
-
-    private Dataset<Row> toSparkPlan(RelNode node) {
+    private Dataset<Row> check(String SQL) throws SQLException {
         SparderEnv.skipCompute();
-        SparderQueryPlanExec planExec = new SparderQueryPlanExec();
-        planExec.execute(node, null);
+        QueryExec qe = new QueryExec(project, KylinConfig.getInstanceFromEnv());
+        qe.executeQuery(SQL);
         Dataset<Row> dataset = SparderEnv.getDF();
         Assert.assertNotNull(dataset);
         return dataset;
     }
-    private RelNode toCalcitePlan(String SQL) throws SqlParseException {
-        ProjectSchemaFactory ps = new ProjectSchemaFactory(project, KylinConfig.getInstanceFromEnv());
-        QueryExec qe = new QueryExec(KylinConfig.getInstanceFromEnv(), ps);
-        return qe.parseAndOptimize(SQL);
-    }
+
 
     @Test
-    public void test_15261() throws SqlParseException {
+    public void test_15261() throws SQLException {
 
         // Can not reproduce https://github.com/Kyligence/KAP/issues/15261 at 4.x
         // we needn't introduce KapAggregateReduceFunctionsRule as we did in 3.x
@@ -97,7 +84,7 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
      * @throws SqlParseException
      */
     @Test
-    public void test_sum_case_when_has_null() throws SqlParseException {
+    public void test_sum_case_when_has_null() throws SQLException {
 
         overwriteSystemProp("kap.query.enable-convert-sum-expression", "TRUE");
         String SQLWithZero =

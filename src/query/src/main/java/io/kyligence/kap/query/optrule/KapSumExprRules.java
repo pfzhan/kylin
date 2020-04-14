@@ -51,7 +51,7 @@ public class KapSumExprRules extends RelOptRule {
                     input -> !SumExpressionUtil.hasAggInput(input), RelOptRule.any())),
             RelFactories.LOGICAL_BUILDER, "SumBasicOperatorRule");
 
-    public static final SumConstantConvertRuleNew SUM_CONSTANT_CONVERT_RULE_NEW = new SumConstantConvertRuleNew(
+    public static final SumConstantConvertRule SUM_CONSTANT_CONVERT_RULE_NEW = new SumConstantConvertRule(
             operand(KapAggregateRel.class, operand(KapProjectRel.class, null,
                     input -> !SumExpressionUtil.hasAggInput(input), RelOptRule.any())),
             RelFactories.LOGICAL_BUILDER, "SumConstantConvertRule");

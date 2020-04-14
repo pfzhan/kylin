@@ -28,6 +28,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.optrule.SumConstantConvertRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -93,7 +94,6 @@ import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
 import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
-import io.kyligence.kap.query.optrule.SumConstantConvertRuleOld;
 
 /**
  * factory that create optimizers and register opt rules
@@ -213,7 +213,7 @@ public class PlannerFactory {
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
 
         if (!kylinConfig.isConvertSumExpressionEnabled()) {
-            planner.addRule(SumConstantConvertRuleOld.INSTANCE);
+            planner.addRule(SumConstantConvertRule.INSTANCE);
         }
 
         // CalcitePrepareImpl.CONSTANT_REDUCTION_RULES

@@ -102,7 +102,9 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
     static final String emptyLinePattern = "(?m)^[ \t]*\r?\n";
     @Before
     public void setup() {
-        overwriteSystemProp("kap.query.enable-convert-sum-expression", "false");
+        // we must make sure kap.query.enable-convert-sum-expression is TRUE to
+        // avoid adding SumConstantConvertRule in PlannerFactory
+        overwriteSystemProp("kap.query.enable-convert-sum-expression", "true");
         staticCreateTestMetadata();
     }
 
@@ -176,5 +178,4 @@ public class SumExprPlannerTest extends NLocalFileMetadataTestCase {
                 "FROM TEST_KYLIN_FACT";
          checkSQL(SQL, null, null);
     }
-
 }

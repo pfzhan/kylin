@@ -43,7 +43,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableBitSet;
-import org.apache.calcite.util.NlsString;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.Pair;
 
@@ -54,10 +53,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public class SumExpressionUtil {
-
-    // FIXME bad flag to forced lowest cost, should use normal cost calculation method
-    public static final NlsString kySumExprFlag = new NlsString("KY_SUM_EXPR_FLAG", null, null);
-    public static final NlsString kySumExprDone = new NlsString("KY_SUM_EXPR_DONE", null, null);
 
     private SumExpressionUtil() {
         throw new IllegalStateException("Utility class");

@@ -60,7 +60,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
 import static io.kyligence.kap.query.util.SumExpressionUtil.supportAggregateFunction;
 
 /**
@@ -220,10 +219,6 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
                 bottomProjectList.add(aggExpression.getExpression());
             }
         }
-
-        // TODO flag to minimize project rel cost, should be redesigned
-        bottomProjectList.add(rexBuilder.makeCharLiteral(kySumExprFlag));
-
         return bottomProjectList;
     }
 

@@ -60,7 +60,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
 
 /**
  * sql: select sum(price*3) from KYLIN_SALES;
@@ -208,9 +207,6 @@ public class SumBasicOperatorRule extends RelOptRule {
                 bottomProjectList.add(sumExpr.getExpression());
             }
         }
-
-        bottomProjectList.add(relBuilder.getRexBuilder().makeCharLiteral(kySumExprFlag));
-
         return bottomProjectList;
     }
 
