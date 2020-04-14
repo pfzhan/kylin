@@ -42,10 +42,6 @@
 
 package io.kyligence.kap.rest.security;
 
-import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,13 +51,10 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalNotification;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 
@@ -73,15 +66,6 @@ import io.kyligence.kap.rest.service.LdapUserService;
 public class LdapAuthenticationProvider implements AuthenticationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(LdapAuthenticationProvider.class);
-
-    private static final com.google.common.cache.Cache<String, Authentication> userCache = CacheBuilder.newBuilder()
-            .maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
-            .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
-            .removalListener(
-                    (RemovalNotification<String, Authentication> notification) -> LdapAuthenticationProvider.logger
-                            .debug("User cache {} is removed due to {}", notification.getKey(),
-                                    notification.getCause()))
-            .build();
 
     @Autowired
     @Qualifier("userService")
@@ -99,20 +83,7 @@ public class LdapAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) {
-        String userKey = Arrays
-                .toString(hf.hashString(authentication.getName() + authentication.getCredentials()).asBytes());
-
-        if (ldapUserService.isEvictCacheFlag()) {
-            userCache.invalidateAll();
-            ldapUserService.setEvictCacheFlag(false);
-        }
-        Authentication auth = userCache.getIfPresent(userKey);
-        if (auth != null) {
-            logger.info("find user {} in cache", authentication.getName());
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            return auth;
-        }
-
+        Authentication auth = null;
         try {
             auth = authenticationProvider.authenticate(authentication);
         } catch (BadCredentialsException e) {
@@ -131,7 +102,6 @@ public class LdapAuthenticationProvider implements AuthenticationProvider {
                 : authentication.getName();
 
         ldapUserService.onUserAuthenticated(userName);
-        userCache.put(userKey, auth);
         logger.debug("Authenticated userName: {}", userName);
         return auth;
     }

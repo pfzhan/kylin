@@ -34,18 +34,6 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 
 public abstract class OpenUserService implements UserService {
 
-    private boolean evictCacheFlag = false;
-
-    @Override
-    public boolean isEvictCacheFlag() {
-        return this.evictCacheFlag;
-    }
-
-    @Override
-    public void setEvictCacheFlag(boolean evictCacheFlag) {
-        this.evictCacheFlag = evictCacheFlag;
-    }
-
     @Override
     public abstract List<ManagedUser> listUsers();
 

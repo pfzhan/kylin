@@ -54,11 +54,6 @@ import org.springframework.security.provisioning.UserDetailsManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 
 public interface UserService extends UserDetailsManager {
-
-    boolean isEvictCacheFlag();
-
-    void setEvictCacheFlag(boolean evictCacheFlag);
-
     List<ManagedUser> listUsers() throws IOException;
 
     List<String> listAdminUsers() throws IOException;

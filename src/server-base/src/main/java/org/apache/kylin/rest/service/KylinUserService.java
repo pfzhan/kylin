@@ -76,18 +76,6 @@ public class KylinUserService implements UserService {
 
     public static final Serializer<ManagedUser> SERIALIZER = new JsonSerializer<>(ManagedUser.class);
 
-    private boolean evictCacheFlag = false;
-
-    @Override
-    public boolean isEvictCacheFlag() {
-        return evictCacheFlag;
-    }
-
-    @Override
-    public void setEvictCacheFlag(boolean evictCacheFlag) {
-        this.evictCacheFlag = evictCacheFlag;
-    }
-
     @Override
     @Transaction
     //@PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN) --- DON'T DO THIS, CAUSES CIRCULAR DEPENDENCY BETWEEN UserService & AclService
@@ -110,7 +98,6 @@ public class KylinUserService implements UserService {
         }
         getKylinUserManager().update(managedUser);
         logger.trace("update user : {}", user.getUsername());
-        setEvictCacheFlag(true);
     }
 
     @Override
@@ -122,7 +109,6 @@ public class KylinUserService implements UserService {
 
         getKylinUserManager().delete(userName);
         logger.trace("delete user : {}", userName);
-        setEvictCacheFlag(true);
     }
 
     @Override

@@ -76,18 +76,6 @@ public class LdapUserService implements UserService {
     @Qualifier("userGroupService")
     private LdapUserGroupService userGroupService;
 
-    private boolean evictCacheFlag = false;
-
-    @Override
-    public boolean isEvictCacheFlag() {
-        return this.evictCacheFlag;
-    }
-
-    @Override
-    public void setEvictCacheFlag(boolean evictCacheFlag) {
-        this.evictCacheFlag = evictCacheFlag;
-    }
-
     @Override
     public void createUser(UserDetails userDetails) {
         throw new UnsupportedOperationException(MsgPicker.getMsg().getUSER_EDIT_NOT_ALLOWED());

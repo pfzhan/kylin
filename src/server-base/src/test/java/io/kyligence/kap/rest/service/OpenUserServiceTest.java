@@ -136,14 +136,6 @@ public class OpenUserServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testEvictCache() {
-        userService.setEvictCacheFlag(true);
-        Assert.assertTrue(userService.isEvictCacheFlag());
-        userService.setEvictCacheFlag(false);
-        Assert.assertFalse(userService.isEvictCacheFlag());
-    }
-
-    @Test
     public void testCreateUser() {
         thrown.expect(UnsupportedOperationException.class);
         userService.createUser(null);
