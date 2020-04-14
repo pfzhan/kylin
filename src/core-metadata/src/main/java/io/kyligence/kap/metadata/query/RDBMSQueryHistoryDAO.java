@@ -250,9 +250,9 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
             boolean pushdown = request.getRealizations().contains("pushdown");
             boolean model = request.getRealizations().contains("modelName");
             if (pushdown && !model) {
-                sb.append(" AND (index_hit = 'false' ) ");
+                sb.append(" AND (index_hit = false ) ");
             } else if (!pushdown && model) {
-                sb.append(" AND (index_hit = 'true' ) ");
+                sb.append(" AND (index_hit = true ) ");
             } else if (!pushdown && !model) {
                 throw new IllegalArgumentException("Illegal realization type ");
             }

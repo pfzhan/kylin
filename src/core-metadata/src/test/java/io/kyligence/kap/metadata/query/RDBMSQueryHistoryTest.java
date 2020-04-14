@@ -119,13 +119,26 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
                 TimeUtil.getMonthStart(queryTime2), TimeUtil.getWeekStart(queryTime2), TimeUtil.getDayStart(queryTime2),
                 true, false, false, PROJECT);
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930143", "select 3", "select 3", 3, 5045, 4096,
-                500, "ADMIN", "", "", "", "", false, "", true, queryTime3, "2020-03",
+                500, "ADMIN", "", "", "", "", false, "", false, queryTime3, "2020-03",
                 TimeUtil.getMonthStart(queryTime3), TimeUtil.getWeekStart(queryTime3), TimeUtil.getDayStart(queryTime3),
                 true, false, false, PROJECT);
         getJdbcTemplate().update(sql, "121bbebf-3d82-4b18-8bae-a3b668930144", "select 4", "select 4", 4, 5045, 4096,
                 500, "ADMIN", "", "", "", "", false, "", true, queryTime4, "2020-03",
                 TimeUtil.getMonthStart(queryTime4), TimeUtil.getWeekStart(queryTime4), TimeUtil.getDayStart(queryTime4),
                 true, false, false, "other_project");
+    }
+
+    @Test
+    public void testGetQueryHistoriesfilterByIsIndexHit() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+
+        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(
+                getJdbcTemplate().queryForList(String.format("SELECT * FROM %s WHERE (1 = 1) AND (index_hit = false )",
+                        url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(1, queryHistoryList.size());
+        queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate().queryForList(String.format(
+                "SELECT * FROM %s WHERE (1 = 1) AND (index_hit = true )", url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(3, queryHistoryList.size());
     }
 
     @Test
