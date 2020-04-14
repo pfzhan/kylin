@@ -50,6 +50,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
@@ -124,7 +125,9 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private static final Option OPTION_HELP = OptionBuilder.hasArg(false).withDescription("print help message.")
             .isRequired(false).withLongOpt("help").create("h");
 
-    private KylinConfig config = KylinConfig.getInstanceFromEnv();
+    private KylinConfig fileSystemConfig = KylinConfig.getInstanceFromEnv();
+
+    private KylinConfig config = KylinConfig.newKylinConfig();
 
     private ResourceStore resourceStore;
 
@@ -174,11 +177,11 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
 
         String metadataUrl = getMetadataUrl(optionsHelper.getOptionValue(OPTION_DIR));
 
-        config.setMetadataUrl(metadataUrl);
+        fileSystemConfig.setMetadataUrl(metadataUrl);
 
-        resourceStore = ResourceStore.getKylinMetaStore(config);
+        resourceStore = ResourceStore.getKylinMetaStore(fileSystemConfig);
 
-        List<ProjectInstance> allProjectInstanceList = NProjectManager.getInstance(config).listAllProjects();
+        List<ProjectInstance> allProjectInstanceList = NProjectManager.getInstance(fileSystemConfig).listAllProjects();
         existsProjectNames
                 .addAll(allProjectInstanceList.stream().map(ProjectInstance::getName).collect(Collectors.toList()));
     }
@@ -201,15 +204,15 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
             String destProjectName;
             int index = originProjectName.indexOf(':');
             if (index > 0) {
-                originProjectName = originProjectName.substring(0, index);
                 destProjectName = originProjectName.substring(index + 1);
+                originProjectName = originProjectName.substring(0, index);
             } else {
                 destProjectName = generateAvailableProjectName(originProjectName);
             }
 
             renameProjectMap.put(originProjectName, destProjectName);
 
-            NProjectManager projectManager = NProjectManager.getInstance(config);
+            NProjectManager projectManager = NProjectManager.getInstance(fileSystemConfig);
             ProjectInstance projectInstance = projectManager.getProject(originProjectName);
             if (projectInstance == null) {
                 System.out.println(String.format("project %s does not exists", originProjectName));
@@ -242,7 +245,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     }
 
     private void collectDuplicateProject() {
-        List<ProjectInstance> allProjectInstanceList = NProjectManager.getInstance(config).listAllProjects();
+        List<ProjectInstance> allProjectInstanceList = NProjectManager.getInstance(fileSystemConfig).listAllProjects();
 
         ConcurrentSkipListMap<String, List<ProjectInstance>> duplicateProjectNameProjectMap = allProjectInstanceList
                 .stream().filter(projectInstance -> projects.isEmpty() || projects.contains(projectInstance.getName()))
@@ -325,7 +328,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateDataflow(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(config, originProjectName);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(fileSystemConfig, originProjectName);
         List<NDataflow> dataflows = dataflowManager.listAllDataflows(true);
         for (NDataflow dataflow : dataflows) {
             dataflow = dataflowManager.copy(dataflow);
@@ -369,7 +372,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateIndexPlan(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(config, originProjectName);
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(fileSystemConfig, originProjectName);
         List<IndexPlan> indexPlans = indexPlanManager.listAllIndexPlans(true);
         for (IndexPlan indexPlan : indexPlans) {
             String srcResourcePath = indexPlan.getResourcePath();
@@ -388,7 +391,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateJobStat(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, originProjectName);
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(fileSystemConfig, originProjectName);
         List<JobStatistics> jobStatistics = jobStatisticsManager.getAll();
         for (JobStatistics jobStatistic : jobStatistics) {
             String srcResourcePath = "/" + originProjectName + ResourceStore.JOB_STATISTICS + "/"
@@ -409,7 +412,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateModelDesc(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(config, originProjectName);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(fileSystemConfig, originProjectName);
         List<NDataModel> dataModels = dataModelManager.listAllModels();
         for (NDataModel dataModel : dataModels) {
             String srcResourcePath = NDataModel.concatResourcePath(dataModel.resourceName(), originProjectName);
@@ -449,7 +452,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateOptimizeRecommendation(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        OptimizeRecommendationManager optimizeRecommendationManager = OptimizeRecommendationManager.getInstance(config,
+        OptimizeRecommendationManager optimizeRecommendationManager = OptimizeRecommendationManager.getInstance(fileSystemConfig,
                 originProjectName);
         List<OptimizeRecommendation> optimizeRecommendations = optimizeRecommendationManager
                 .listAllOptimizeRecommendations();
@@ -475,7 +478,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateDataLoadingRange(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        NDataLoadingRangeManager dataLoadingRange = NDataLoadingRangeManager.getInstance(config, originProjectName);
+        NDataLoadingRangeManager dataLoadingRange = NDataLoadingRangeManager.getInstance(fileSystemConfig, originProjectName);
 
         List<NDataLoadingRange> dataLoadingRanges = dataLoadingRange.getDataLoadingRanges();
         for (NDataLoadingRange loadingRange : dataLoadingRanges) {
@@ -494,7 +497,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateFavoriteQuery(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, originProjectName);
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(fileSystemConfig, originProjectName);
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
         for (FavoriteQuery favoriteQuery : favoriteQueries) {
             String srcResourcePath = favoriteQuery.getResourcePath();
@@ -514,7 +517,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateQueryHistoryTimeOffset(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        QueryHistoryTimeOffsetManager queryHistoryTimeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(config,
+        QueryHistoryTimeOffsetManager queryHistoryTimeOffsetManager = QueryHistoryTimeOffsetManager.getInstance(fileSystemConfig,
                 originProjectName);
 
         QueryHistoryTimeOffset queryHistoryTimeOffset = queryHistoryTimeOffsetManager.get();
@@ -538,7 +541,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateAccelerateRatio(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(config, originProjectName);
+        AccelerateRatioManager accelerateRatioManager = AccelerateRatioManager.getInstance(fileSystemConfig, originProjectName);
         AccelerateRatio accelerateRatio = accelerateRatioManager.get();
         if (accelerateRatio != null) {
             String oriResourcePath = "/" + originProjectName + ResourceStore.ACCELERATE_RATIO_RESOURCE_ROOT + "/"
@@ -559,7 +562,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateTable(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
 
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, originProjectName);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(fileSystemConfig, originProjectName);
         List<TableDesc> tables = tableMetadataManager.listAllTables();
         for (TableDesc table : tables) {
             String srcTableResourcePath = table.getResourcePath();
@@ -671,7 +674,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
     private List<RenameEntity> updateEvent(String originProjectName, String destProjectName) {
         // event
         List<RenameEntity> results = new ArrayList<>();
-        EventDao eventDao = EventDao.getInstance(config, originProjectName);
+        EventDao eventDao = EventDao.getInstance(fileSystemConfig, originProjectName);
         List<Event> events = eventDao.getEvents();
         for (Event event : events) {
             String srcResourcePath = eventDao.pathOfEvent(event.getUuid());
@@ -690,7 +693,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private List<RenameEntity> updateExecute(String originProjectName, String destProjectName) {
         List<RenameEntity> results = new ArrayList<>();
-        NExecutableDao executableDao = NExecutableDao.getInstance(config, originProjectName);
+        NExecutableDao executableDao = NExecutableDao.getInstance(fileSystemConfig, originProjectName);
         List<ExecutablePO> jobs = executableDao.getJobs();
         for (ExecutablePO job : jobs) {
             String srcResourcePath = job.getResourcePath();
@@ -744,7 +747,7 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      * @return
      */
     public RenameEntity updateProject(String originProjectName, String destProjectName) {
-        NProjectManager projectManager = NProjectManager.getInstance(config);
+        NProjectManager projectManager = NProjectManager.getInstance(fileSystemConfig);
         ProjectInstance projectInstance = projectManager.getProject(originProjectName);
         String srcResourcePath = projectInstance.getResourcePath();
 
@@ -763,9 +766,24 @@ public class RenameProjectResourceTool extends ExecutableApplication implements 
      */
     private void updateHDFSMetadata(String originPath, String destPath) throws Exception {
         String hdfsWorkingDirectory = config.getHdfsWorkingDirectory();
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        Path src = new Path(hdfsWorkingDirectory, originPath);
+        if (!fs.exists(src)) {
+            System.out.println(String.format("src file %s not exists", src));
+            return;
+        }
+        Path dst = new Path(hdfsWorkingDirectory, destPath);
+        if (fs.exists(dst)) {
+            System.out.println(String.format("dst file %s already exists", dst));
+            return;
+        }
 
-        HadoopUtil.getWorkingFileSystem().rename(new Path(hdfsWorkingDirectory, originPath),
-                new Path(hdfsWorkingDirectory, destPath));
+        System.out.println(String.format("move file from  %s to %s", src, dst));
+        boolean success = HadoopUtil.getWorkingFileSystem().rename(src, dst);
+        if (!success) {
+            System.out.println(String.format("move file from  %s to %s failed", src, dst));
+            System.exit(1);
+        }
     }
 
     private String generateAvailableProjectName(String originProjectName) {

@@ -171,8 +171,8 @@ public class RenameUserResourceTool extends ExecutableApplication implements IKe
             String destUsername;
             int index = originUsername.indexOf(':');
             if (index > 0) {
-                originUsername = originUsername.substring(0, index);
                 destUsername = originUsername.substring(index + 1);
+                originUsername = originUsername.substring(0, index);
             } else {
                 destUsername = generateAvailableUsername(originUsername);
             }
