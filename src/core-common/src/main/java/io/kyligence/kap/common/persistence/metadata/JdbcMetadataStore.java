@@ -234,6 +234,8 @@ public class JdbcMetadataStore extends MetadataStore {
     public void restore(ResourceStore store) throws IOException {
         withTransaction(transactionManager, () -> {
             restoreProject(store, "_global");
+            //for lock meta store table
+            jdbcTemplate.queryForObject(String.format("select max(%s) from %s", META_TABLE_KEY, table), String.class);
             val projects = store.listResources("/_global/project");
             Optional.ofNullable(projects).orElse(Sets.newTreeSet()).parallelStream().forEach(projectRes -> {
                 val words = projectRes.split("/");
@@ -245,7 +247,7 @@ public class JdbcMetadataStore extends MetadataStore {
                         .queryForObject(String.format(SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG), RAW_RESOURCE_ROW_MAPPER);
                 store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
                         uuidRaw.getMvcc());
-            } catch (PersistException|EmptyResultDataAccessException e) {
+            } catch (PersistException | EmptyResultDataAccessException e) {
                 if (e instanceof EmptyResultDataAccessException || e.getCause() instanceof EmptyResultDataAccessException) {
                     log.info("Cannot find /UUID in metastore");
                 } else {
