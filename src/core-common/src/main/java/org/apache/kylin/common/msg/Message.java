@@ -259,6 +259,10 @@ public class Message {
         return "No valid project name. Please select one project.";
     }
 
+    public String getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION() {
+        return "Failed to add table-level permissions.  User  (group)  [%s] has no project [%s] permissions.  Please grant user (group) project-level permissions first.";
+    }
+
     public String getEMPTY_NEW_MODEL_NAME() {
         return "New model name should not be empty.";
     }

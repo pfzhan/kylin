@@ -31,6 +31,7 @@ import java.io.IOException;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
@@ -69,6 +70,9 @@ public class AclTCRControllerTest extends NLocalFileMetadataTestCase {
 
     @Mock
     private AclTCRService aclTCRService;
+
+    @Mock
+    private AccessService accessService;
 
     @InjectMocks
     private AclTCRController aclTCRController = Mockito.spy(new AclTCRController());
@@ -150,6 +154,7 @@ public class AclTCRControllerTest extends NLocalFileMetadataTestCase {
 
         Mockito.doReturn(true).when(userService).userExists(Mockito.anyString());
         Mockito.doReturn(true).when(userGroupService).exists(Mockito.anyString());
+        Mockito.doReturn(true).when(accessService).hasProjectPermission(Mockito.anyString(), Mockito.anyString(), Mockito.anyBoolean());
 
         Mockito.doNothing().when(aclTCRService).updateAclTCR(Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyBoolean(), Mockito.anyList());

@@ -447,11 +447,11 @@ public class AccessService extends BasicService {
         }
 
         // {user/group:permission}
-        Map<String, Integer> projectPermissions = getProjectPermission(project);
+        Map<Sid, Integer> projectPermissions = getProjectPermission(project);
         Integer greaterPermission = projectPermissions
-                .get(SecurityContextHolder.getContext().getAuthentication().getName());
+                .get(getSid(SecurityContextHolder.getContext().getAuthentication().getName(), true));
         for (String group : groups) {
-            Integer groupPerm = projectPermissions.get(group);
+            Integer groupPerm = projectPermissions.get(getSid(group, false));
             greaterPermission = Preconditions.checkNotNull(getGreaterPerm(groupPerm, greaterPermission));
         }
 
@@ -477,8 +477,8 @@ public class AccessService extends BasicService {
         return grantedPermission;
     }
 
-    private Map<String, Integer> getProjectPermission(String project) {
-        Map<String, Integer> SidWithPermission = new HashMap<>();
+    private Map<Sid, Integer> getProjectPermission(String project) {
+        Map<Sid, Integer> sidWithPermission = new HashMap<>();
 
         String uuid = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).getUuid();
         AclEntity ae = getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
@@ -487,17 +487,15 @@ public class AccessService extends BasicService {
             List<AccessControlEntry> aces = acl.getEntries();
             for (AccessControlEntry ace : aces) {
                 Sid sid = ace.getSid();
-                if (sid instanceof PrincipalSid) {
-                    String principal = ((PrincipalSid) sid).getPrincipal();
-                    SidWithPermission.put(principal, ace.getPermission().getMask());
-                }
-                if (sid instanceof GrantedAuthoritySid) {
-                    String grantedAuthority = ((GrantedAuthoritySid) sid).getGrantedAuthority();
-                    SidWithPermission.put(grantedAuthority, ace.getPermission().getMask());
-                }
+                sidWithPermission.put(sid, ace.getPermission().getMask());
             }
         }
-        return SidWithPermission;
+        return sidWithPermission;
+    }
+
+    public boolean hasProjectPermission(String project, String sid, boolean isPrincipal) {
+        Map<Sid, Integer> projectPermissionMap = getProjectPermission(project);
+        return projectPermissionMap.containsKey(getSid(sid, isPrincipal));
     }
 
     public List<String> getGrantedProjectsOfUser(String user) {
@@ -506,8 +504,8 @@ public class AccessService extends BasicService {
         List<String> grantedProjects = new ArrayList<>();
 
         for (ProjectInstance project : projects) {
-            Map<String, Integer> projectPermission = getProjectPermission(project.getName());
-            if (projectPermission.keySet().contains(user)) {
+            Map<Sid, Integer> projectPermission = getProjectPermission(project.getName());
+            if (projectPermission.containsKey(getSid(user, true))) {
                 grantedProjects.add(project.getName());
             }
         }

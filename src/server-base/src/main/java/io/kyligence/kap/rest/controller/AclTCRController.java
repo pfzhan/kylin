@@ -32,10 +32,12 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -73,6 +75,10 @@ public class AclTCRController extends NBasicController {
     @Autowired
     @Qualifier("userGroupService")
     private IUserGroupService userGroupService;
+
+    @Autowired
+    @Qualifier("accessService")
+    private AccessService accessService;
 
     @ApiOperation(value = "getProjectSidTCR (update)", notes = "Update URL: {project}; Update Param: project, authorized_only")
     @GetMapping(value = "/sid/{sid_type:.+}/{sid:.+}")
@@ -127,6 +133,13 @@ public class AclTCRController extends NBasicController {
     private void updateSidAclTCR(String project, String sid, boolean principal, List<AclTCRRequest> requests)
             throws IOException {
         checkSid(sid, principal);
+        boolean hasProjectPermission = accessService.hasProjectPermission(project, sid, principal);
+
+        if (!hasProjectPermission) {
+            Message msg = MsgPicker.getMsg();
+            throw new KylinException("KE-1039",
+                    String.format(msg.getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION(), sid, project));
+        }
         aclTCRService.updateAclTCR(project, sid, principal, requests);
     }
 

@@ -243,6 +243,10 @@ public class CnMessage extends Message {
         return "没有项目信息，请指定一个项目。";
     }
 
+    public String getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION() {
+        return "添加表级权限失败。用户（组） [%s] 无项目 [%s] 权限。请先授予用户（组）项目级权限。";
+    }
+
     public String getPROJECT_UNMODIFIABLE_REASON() {
         return "当前项目暂不支持模型推荐及优化，请在打开智能推荐开关后进行尝试。";
     }
