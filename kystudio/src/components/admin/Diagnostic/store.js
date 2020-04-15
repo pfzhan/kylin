@@ -180,7 +180,7 @@ export default {
       let dom = document.createElement('a')
       dom.download = true
       // 兼容IE 10以下 无origin属性问题，此处用protocol和host拼接
-      dom.href = `${location.protocol}//${location.host}${apiUrl}/system/diag?host=${host}&id=${id}`
+      dom.href = `${location.protocol}//${location.host}${apiUrl}system/diag?host=${host}&id=${id}`
       document.body.appendChild(dom)
       dom.click()
       document.body.removeChild(dom)
