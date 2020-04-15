@@ -86,6 +86,7 @@ public class RexToTblColRefTranslator {
 
     private Set<TblColRef> sourceColumnCollector;
     private Map<RexNode, TblColRef> nodeAndTblColMap;
+    private Map<String, SqlNode> rexToSqlMap = Maps.newHashMap();
 
     public RexToTblColRefTranslator() {
         this(new HashSet<>(), new HashMap<>());
@@ -223,11 +224,12 @@ public class RexToTblColRefTranslator {
     }
 
     private String createInnerColumn(RexCall call) {
-        final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable(call);
+        final RexSqlStandardConvertletTable convertletTable = new OLAPRexSqlStandardConvertletTable(call, rexToSqlMap);
         final RexToSqlNodeConverter rexNodeToSqlConverter = new ExtendedRexToSqlNodeConverter(convertletTable);
 
         try {
             SqlNode sqlCall = rexNodeToSqlConverter.convertCall(call);
+            rexToSqlMap.put(call.toString(), sqlCall);
             return sqlCall.toSqlString(SqlDialect.DatabaseProduct.HIVE.getDialect()).toString();
         } catch (Exception | Error e) {
             return call.toString();
@@ -288,8 +290,11 @@ public class RexToTblColRefTranslator {
         private static final BigDecimal MONTHS_OF_QUARTER = new BigDecimal(3); // a quarter equals 3 months
         final Map<TimeUnit, SqlDatePartFunction> timeUnitFunctions = initTimeUnitFunctionMap();
 
-        public OLAPRexSqlStandardConvertletTable(RexCall call) {
+        private Map<String, SqlNode> rexToSqlMap;
+
+        public OLAPRexSqlStandardConvertletTable(RexCall call, Map<String, SqlNode> rexToSqlMap) {
             super();
+            this.rexToSqlMap = rexToSqlMap;
             registerUdfOperator(call);
             registerCaseOpNew();
             registerReinterpret();
@@ -298,6 +303,7 @@ public class RexToTblColRefTranslator {
             registerExtract();
             registerTimestampAdd();
             registerTimestampDiff();
+            registerSign();
             registerOperatorIfHasNot(call);
         }
 
@@ -541,6 +547,14 @@ public class RexToTblColRefTranslator {
             });
         }
 
+        private void registerSign() {
+            registerOp(SqlStdOperatorTable.SIGN, (RexToSqlNodeConverter converter, RexCall call) -> {
+                RexNode operand = call.operands.get(0);
+                SqlNode node = doConvertExpression(converter, operand);
+                return SqlStdOperatorTable.SIGN.createCall(SqlParserPos.ZERO, node);
+            });
+        }
+
         /**
          * Translate EXTRACT RexCall to corresponding SqlCall. At present, we only handle following
          * functions:YEAR, QUARTER, MONTH, WEEK, DAY, HOUR, MINUTE, SECOND, DAYOFYEAR, DAYOFWEEK, DAYOFMONTH.
@@ -568,7 +582,7 @@ public class RexToTblColRefTranslator {
             final SqlNode[] exprs = new SqlNode[nodes.size()];
             for (int i = 0; i < nodes.size(); i++) {
                 RexNode node = nodes.get(i);
-                exprs[i] = converter.convertNode(node);
+                exprs[i] = doConvertExpression(converter, node);
                 if (exprs[i] == null) {
                     return null;
                 }
@@ -577,7 +591,12 @@ public class RexToTblColRefTranslator {
         }
 
         SqlNode doConvertExpression(RexToSqlNodeConverter converter, RexNode node) {
-            return converter.convertNode(node);
+            SqlNode sqlNode = rexToSqlMap.get(node.toString());
+            if (sqlNode == null) {
+                sqlNode = converter.convertNode(node);
+                rexToSqlMap.put(node.toString(), sqlNode);
+            }
+            return sqlNode;
         }
     }
 
