@@ -41,9 +41,11 @@
             class="saved_query_dialog"
             top="5vh"
             limited-area
+            ref="savedQueriesDialog"
+            v-if="savedQueryListVisible"
             :close-on-press-escape="false"
             :close-on-click-modal="false"
-            :visible.sync="savedQueryListVisible">
+            :visible="true">
             <kap-empty-data v-if="!savedSize" size="small">
             </kap-empty-data>
             <div class="list_block" v-scroll v-else>
