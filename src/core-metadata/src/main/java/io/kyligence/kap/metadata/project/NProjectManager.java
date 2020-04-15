@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.obf.IKeepNames;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -54,7 +55,7 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import lombok.val;
 
-public class NProjectManager {
+public class NProjectManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
 
     public static NProjectManager getInstance(KylinConfig config) {
