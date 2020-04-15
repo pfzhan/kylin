@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Throwables;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparderEnv;
@@ -40,9 +38,11 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import lombok.extern.slf4j.Slf4j;
@@ -224,6 +224,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         new TestScenario(CompareLevel.NONE, "query/tableau_probing").execute();
     }
 
+    @Ignore
     @Test
     public void testDynamicQuery() throws Exception {
         TestScenario testScenario = new TestScenario(CompareLevel.SAME, "query/sql_dynamic");
@@ -325,7 +326,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
         return result;
     }
-
 
     @Test
     //reference KE-11887

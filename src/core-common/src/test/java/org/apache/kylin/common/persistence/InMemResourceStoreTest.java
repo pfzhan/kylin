@@ -28,6 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class InMemResourceStoreTest {
@@ -47,6 +48,7 @@ public class InMemResourceStoreTest {
         System.clearProperty("kylin.env");
     }
 
+    @Ignore
     @Test
     public void testFileStore() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
