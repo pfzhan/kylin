@@ -66,8 +66,8 @@
           </div>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-            <common-tip :content="$t('kylinLang.project.addProject')" placement="bottom-start">
-              <el-button class="add-project-btn" v-guide.addProjectBtn :type="highlightType" plain @click="addProject" v-show="isAdmin" size="small">
+            <common-tip :content="canAddProject ? $t('kylinLang.project.addProject') : $t('disableAddProject')" placement="bottom-start">
+              <el-button class="add-project-btn" v-guide.addProjectBtn :type="highlightType" plain @click="addProject" v-show="isAdmin" size="small" :disabled="!canAddProject">
                 <i class="el-icon-ksd-add_2"></i>
               </el-button>
             </common-tip>
@@ -268,6 +268,10 @@ let MessageBox = ElementUI.MessageBox
       } else {
         return this.$t('models')
       }
+    },
+    canAddProject () {
+      // 模型编辑页面的时候，新增项目的按钮不可点
+      return this.$route.name !== 'ModelEdit'
     }
   },
   locales: {
@@ -293,7 +297,8 @@ let MessageBox = ElementUI.MessageBox
       unholdNaviBar: 'Unfold Navigation Bar',
       diagnosis: 'Diagnosis',
       activeNodes: 'Active Instances：',
-      noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. '
+      noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. ',
+      disableAddProject: 'Can not create project in edit mode'
     },
     'zh-cn': {
       resetPassword: '重置密码',
@@ -317,7 +322,8 @@ let MessageBox = ElementUI.MessageBox
       unholdNaviBar: '展开导航栏',
       diagnosis: '诊断',
       activeNodes: '活跃节点数：',
-      noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交'
+      noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交',
+      disableAddProject: '编辑模式下不可新建项目'
     }
   }
 })

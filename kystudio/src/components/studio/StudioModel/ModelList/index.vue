@@ -397,6 +397,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 @Component({
   beforeRouteEnter (to, from, next) {
     next(vm => {
+      // 从编辑页面过来，要默认选中在某个tab上，从这里取
       if (to.params.addIndex) {
         vm.currentEditModel = from.params.modelName
         // vm.showFull = true
@@ -852,7 +853,7 @@ export default class ModelList extends Vue {
       this.$set(item, 'showModelDetail', false)
       this.modelArray.push({
         ...item,
-        tabTypes: this.currentEditModel === item.alias ? 'second' : 'first'
+        tabTypes: this.currentEditModel === item.alias ? 'third' : 'first'
       })
     })
   }
