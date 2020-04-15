@@ -45,6 +45,7 @@
             v-if="savedQueryListVisible"
             :close-on-press-escape="false"
             :close-on-click-modal="false"
+            @close="savedQueryListVisible = false"
             :visible="true">
             <kap-empty-data v-if="!savedSize" size="small">
             </kap-empty-data>
