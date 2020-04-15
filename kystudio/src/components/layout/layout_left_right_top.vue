@@ -1,5 +1,5 @@
 <template>
-  <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen, 'isModelList': $route.name === 'ModelList'}">
+  <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen,isModelList:($route.name === 'ModelList'), 'cloud-frame-page': this.$store.state.config.platform === 'iframe'}">
     <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
       <el-col :span="24" class="panel-center">
         <aside class="left-menu">
@@ -182,7 +182,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, handleSuccess, kapConfirm, hasRole, hasPermission } from '../../util/business'
-import { getQueryString, cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
+import { cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
 import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
@@ -832,11 +832,11 @@ export default class LayoutLeftRightTop extends Vue {
   }
   mounted () {
     // 接受cloud的参数
-    var from = getQueryString('from')
+    /* var from = getQueryString('from')
     var uimode = getQueryString('uimode') // 界面展示模式
     if (from === 'cloud' || uimode === 'nomenu') { // 保留cloud，兼容云老参数
       $('#fullBox').addClass('cloud-frame-page')
-    }
+    } */
     // 有加速引擎页面包括智能模式，AI增强模式开启智能推荐设置（且有ACL权限的用户）
     if (this.isStartCircleLoadSpeedInfo) {
       // 获取加速信息

@@ -81,8 +81,9 @@ Vue.prototype.__KY_DIALOG_CLOSE_EVENT__ = () => {
   }
 }
 var from = getQueryString('from')
+var uimode = getQueryString('uimode')
 var token = getQueryString('token')
-store.state.config.platform = from
+store.state.config.platform = (from === 'cloud' || from === 'iframe' || uimode === 'nomenu') ? 'iframe' : ''
 if (token) {
   Vue.http.headers.common['Authorization'] = token
 }
