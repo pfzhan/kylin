@@ -66,12 +66,16 @@ public class KapPasswordResetCLI {
         NKylinUserManager userManager = NKylinUserManager.getInstance(config);
 
         val user = userManager.get("ADMIN");
+        if (user == null) {
+            logger.warn("The password cannot be reset because there is no ADMIN user.");
+            System.exit(1);
+        }
         user.setPassword(pwdEncoder.encode("KYLIN"));
 
         val res = aclStore.getResource(id);
 
         if (res == null) {
-            logger.warn("can not find admin user");
+            logger.warn("The password cannot be reset because there is no ADMIN user.");
             System.exit(1);
         }
 
