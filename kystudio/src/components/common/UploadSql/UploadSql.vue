@@ -15,6 +15,7 @@
         <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
         <el-upload
           ref="sqlUpload"
+          class="sql-upload"
           :headers="uploadHeader"
           action=""
           :on-remove="handleRemove"
@@ -399,6 +400,7 @@ export default class UploadSqlModel extends Vue {
       })
     } else {
       this.whiteSql = ''
+      this.$refs.whiteInputBox && this.$refs.whiteInputBox.$refs.kapEditor && this.$refs.whiteInputBox.$refs.kapEditor.editor.setValue('')
       this.activeSqlObj = null
       this.isEditSql = false
       this.whiteMessages = []
@@ -682,6 +684,7 @@ export default class UploadSqlModel extends Vue {
       return file.name.toLowerCase().indexOf('.txt') !== -1 || file.name.toLowerCase().indexOf('.sql') !== -1
     }).map((item) => {
       totalSize = totalSize + item.size
+      item.raw && (item.raw.status = item.status)
       return item.raw ? item.raw : item
     })
     if (totalSize > 5 * 1024 * 1024) { // 后端限制不能大于5M
@@ -780,3 +783,21 @@ export default class UploadSqlModel extends Vue {
   }
 }
 </script>
+<style lang="less">
+  @import '../../../assets/styles/variables.less';
+  .sql-upload {
+    .el-upload-list__item {
+      line-height: 2;
+      background: @regular-background-color;
+      .el-icon-document {
+        color: @text-disabled-color;
+      }
+      .el-icon-close {
+        color: @text-title-color;
+      }
+    }
+  }
+  .importSqlDialog .el-dialog__body .upload-block .sql-upload .el-upload-list .el-upload-list__item:hover {
+    background-color: @base-background-color-1;
+  }
+</style>
