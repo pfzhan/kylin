@@ -45,7 +45,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;

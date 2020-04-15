@@ -34,7 +34,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;

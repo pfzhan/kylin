@@ -54,7 +54,7 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.security.AclPermissionType;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;

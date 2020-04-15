@@ -36,7 +36,7 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;

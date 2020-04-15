@@ -40,9 +40,7 @@
  * limitations under the License.
 */
 
-package org.apache.kylin.rest.msg;
-
-import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
+package org.apache.kylin.common.msg;
 
 public class CnMessage extends Message {
 
@@ -699,6 +697,18 @@ public class CnMessage extends Message {
         return "获取超时，请手动选择数据范围";
     }
 
+    public String getAGGINDEX_DIMENSION_NOTFOUND() {
+        return "模型[%s]的聚合索引已经包含维度[%s]";
+    }
+
+    public String getTABLEINDEX_COLUMN_NOTFOUND() {
+        return "模型[%s]的明细索引已经包含列[%s]";
+    }
+
+    public String getAGGINDEX_MEASURE_NOTFOUND() {
+        return "模型[%s]的聚合索引已经包含度量[%s]";
+    }
+
     public String getCHANGE_GLOBALADMIN() {
         return "您不可以添加，修改，删除系统管理员的权限。";
     }
@@ -720,7 +730,7 @@ public class CnMessage extends Message {
         return "由于 Segment [%s]被锁定，所以不能删除或者刷新该 Segment。";
     }
 
-    public String getSEGMENT_STATUS(SegmentStatusEnumToDisplay status) {
+    public String getSEGMENT_STATUS(String status) {
         return "由于 Segment [%s] 处于 " + status + " 状态，所以不能合并或者刷新该 Segment。";
     }
 
@@ -767,7 +777,7 @@ public class CnMessage extends Message {
     }
 
     public String getUSER_EXISTS() {
-        return "用户名:[%s] 已存在。";
+        return "用户名:[%s] 已存在。";
     }
 
     public String getOPERATION_FAILED_BY_USER_NOT_EXIST() {
@@ -998,4 +1008,35 @@ public class CnMessage extends Message {
         return "数据源中以下表加载失败：{%s}。请检查数据源。";
     }
 
+    public String getDUPLICATEP_LAYOUT() {
+        return "已存在相同的索引。";
+    }
+
+    public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
+        return "没有找到表 '%s'。";
+    }
+
+    public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
+        return "请在数据源中导入表 '%s'。如果该表已经存在，请在查询中使用数据库名.表名的形式进行引用。";
+    }
+
+    public String getPROJECT_NUM_OVER_THRESHOLD() {
+        return "新建项目失败，项目数超过最大值：{%s}，请删除其他废弃项目后再尝试新建或联系管理员调整最大项目数。";
+    }
+
+    public String getMODEL_NUM_OVER_THRESHOLD() {
+        return "新建模型失败。模型超过最大值：{%s}。请删除其他废弃模型后再尝试新建或联系管理员调整最大模型数。";
+    }
+
+    public String getFQ_NUM_OVER_THRESHOLD() {
+        return "加速失败。待加速的查询超过最大值：{%s}。请删除其他查询后再尝试或联系管理员调整一次可以加速的查询最大数。";
+    }
+
+    public String getBLACK_LIST_OVER_THRESHOLD() {
+        return "添加 SQL 到加速禁用名单失败。超过禁用名单最大值：{%s}。请删除其他禁用名单 SQL 后再尝试或联系管理员调整黑名单最大数。";
+    }
+
+    public String getQUERY_ROW_NUM_OVER_THRESHOLD() {
+        return "查询失败。查询结果行数超过最大值:{%s}。请添加过滤条件或联系管理员调整最大查询结果行数";
+    }
 }

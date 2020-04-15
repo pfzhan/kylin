@@ -30,7 +30,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

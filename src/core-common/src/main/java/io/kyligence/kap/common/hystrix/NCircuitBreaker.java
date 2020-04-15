@@ -27,6 +27,7 @@ package io.kyligence.kap.common.hystrix;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,7 @@ public class NCircuitBreaker {
             return;
         }
 
-        throw new CircuitBreakerException("Project num exceeded, threshold: " + threshold);
+        throw new CircuitBreakerException(String.format(MsgPicker.getMsg().getPROJECT_NUM_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifyModelCreation(int current) {
@@ -90,7 +91,7 @@ public class NCircuitBreaker {
             return;
         }
 
-        throw new CircuitBreakerException("Model num exceeded, threshold: " + threshold);
+        throw new CircuitBreakerException(String.format(MsgPicker.getMsg().getMODEL_NUM_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifyFavoriteQueryCreation(int current) {
@@ -103,7 +104,7 @@ public class NCircuitBreaker {
             return;
         }
 
-        throw new CircuitBreakerException("FavoriteQuery num exceeded, threshold: " + threshold);
+        throw new CircuitBreakerException(String.format(MsgPicker.getMsg().getFQ_NUM_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifySqlPatternToBlacklist(int current) {
@@ -116,7 +117,7 @@ public class NCircuitBreaker {
             return;
         }
 
-        throw new CircuitBreakerException("SqlPatternToBlacklist num exceeded, threshold: " + threshold);
+        throw new CircuitBreakerException(String.format(MsgPicker.getMsg().getBLACK_LIST_OVER_THRESHOLD(), threshold));
     }
 
     public static void verifyQueryResultRowCount(long current) {
@@ -129,7 +130,8 @@ public class NCircuitBreaker {
             return;
         }
 
-        throw new CircuitBreakerException("QueryResultRowCount num exceeded, threshold: " + threshold);
+        throw new CircuitBreakerException(
+                String.format(MsgPicker.getMsg().getQUERY_ROW_NUM_OVER_THRESHOLD(), threshold));
     }
 
     private static boolean isEnabled() {

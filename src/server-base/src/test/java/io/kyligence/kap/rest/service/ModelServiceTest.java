@@ -83,6 +83,7 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
@@ -103,7 +104,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.BaseMatcher;
@@ -1284,8 +1284,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         dfManager.updateDataflow(update);
 
         thrown.expect(KylinException.class);
-        thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING),
-                dataSegment1.getId()));
+        thrown.expectMessage(String.format(
+                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()), dataSegment1.getId()));
         modelService.mergeSegmentsManually(dfId, "default",
                 new String[] { dataSegment1.getId(), dataSegment2.getId() });
 
@@ -2760,7 +2760,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "1577811661000", "1609430400000");
+        val jobInfo = modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "1577811661000", "1609430400000");
 
         Assert.assertEquals(jobInfo.getJobs().size(), 2);
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), "INC_BUILD");
@@ -2854,7 +2855,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         PartitionDesc partitionDesc = new PartitionDesc();
         partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
         partitionDesc.setPartitionDateFormat("yyyyMMdd");
-        modelService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000", partitionDesc, null);
+        modelService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000", partitionDesc,
+                null);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         var dataflow = dataflowManager.getDataflow(modelId);
         Assert.assertEquals(1, dataflow.getSegments().size());
@@ -2890,7 +2892,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         thrown.expectInTransaction(KylinException.class);
         thrown.expectMessageInTransaction(String.format(
-                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING),
+                MsgPicker.getMsg().getSEGMENT_STATUS(SegmentStatusEnumToDisplay.LOADING.name()),
                 dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().get(0).getId()));
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
     }
@@ -3062,7 +3064,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception ex) {
             Assert.assertEquals(KylinException.class, ex.getClass());
-            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "Dimension name 'CAL_DT1' already exists."));
+            Assert.assertTrue(StringUtils.contains(ex.getMessage(), "Dimension name 'CAL_DT1' already exists."));
         }
 
         // invalid dimension name
@@ -3110,7 +3112,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
             modelService.createModel(modelRequest.getProject(), modelRequest);
         } catch (Exception e) {
             Assert.assertEquals(KylinException.class, e.getClass());
-            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Measure name 'count_1' already exists."));
+            Assert.assertTrue(StringUtils.contains(e.getMessage(), "Measure name 'count_1' already exists."));
         }
 
         // duplicate measure definitions

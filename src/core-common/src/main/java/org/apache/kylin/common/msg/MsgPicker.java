@@ -40,7 +40,7 @@
  * limitations under the License.
 */
 
-package org.apache.kylin.rest.msg;
+package org.apache.kylin.common.msg;
 
 public class MsgPicker {
     private static ThreadLocal<Message> msg = new ThreadLocal<Message>();

@@ -31,7 +31,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.common.response.ResponseCode;

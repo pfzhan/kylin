@@ -30,7 +30,7 @@ import io.kyligence.kap.rest.controller.NUserController;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.common.response.ResponseCode;

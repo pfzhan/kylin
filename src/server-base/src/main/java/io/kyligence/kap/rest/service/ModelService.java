@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,9 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.Date;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.dialect.CalciteSqlDialect;
@@ -57,6 +56,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
@@ -80,8 +81,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -136,6 +135,7 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
@@ -1621,19 +1621,20 @@ public class ModelService extends BasicService {
         copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
                 project);
         String format = probeDateFormatIfNotExist(project, copyModel);
-        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                () -> innerIncrementBuild(project, modelId, startFormat, endFormat, partitionDesc, format, segmentHoles), project);
+        List<JobInfoResponse.JobInfo> jobIds = EnhancedUnitOfWork
+                .doInTransactionWithCheckAndRetry(() -> innerIncrementBuild(project, modelId, startFormat, endFormat,
+                        partitionDesc, format, segmentHoles), project);
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
     }
 
-    private String getFormatDate(String time, String pattern){
+    private String getFormatDate(String time, String pattern) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat(pattern);
             String timeFormat = sdf.format(new Date(Long.parseLong(time)));
             time = Long.toString(sdf.parse(timeFormat).getTime());
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.warn("format time error", e);
         }
         return time;
@@ -1960,7 +1961,7 @@ public class ModelService extends BasicService {
         NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Segments<NDataSegment> segments = dataflow.getSegments();
         String message = status.equals(SegmentStatusEnumToDisplay.LOCKED) ? MsgPicker.getMsg().getSEGMENT_LOCKED()
-                : MsgPicker.getMsg().getSEGMENT_STATUS(status);
+                : MsgPicker.getMsg().getSEGMENT_STATUS(status.name());
         for (String id : ids) {
             if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(status)) {
                 throw new KylinException("KE-1005", String.format(message, id));

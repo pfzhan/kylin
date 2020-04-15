@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 
@@ -112,8 +113,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             if (m.group(3) != null) {
                 tblName = m.group(3) + "." + tblName;
             }
-            return SQLAdvice.build(String.format(msg.getBadSqlTableNotFoundReason(), tblName),
-                    String.format(msg.getBadSqlTableNotFoundSuggest(), tblName));
+            return SQLAdvice.build(String.format(MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_REASON(), tblName),
+                    String.format(MsgPicker.getMsg().getBAD_SQL_TABLE_NOT_FOUND_SUGGEST(), tblName));
         }
 
         m = PTN_SYNTAX_COLUMN_MISSING.matcher(message);

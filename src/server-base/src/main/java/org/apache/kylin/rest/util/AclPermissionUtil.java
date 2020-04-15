@@ -53,7 +53,7 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;

@@ -33,7 +33,7 @@ import javax.validation.constraints.AssertTrue;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.validation.FieldError;
 
 import com.fasterxml.jackson.annotation.JsonProperty;

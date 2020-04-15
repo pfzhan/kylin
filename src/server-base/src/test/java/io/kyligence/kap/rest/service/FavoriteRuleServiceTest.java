@@ -34,7 +34,7 @@ import java.util.Map;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.NotFoundException;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;

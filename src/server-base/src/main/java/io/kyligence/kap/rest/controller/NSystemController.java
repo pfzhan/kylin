@@ -40,7 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.parquet.Strings;

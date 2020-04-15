@@ -95,7 +95,7 @@ public class UserServiceTest extends ServiceTestBase {
             Assert.fail();
         } catch (TransactionException e) {
             Assert.assertTrue(StringUtils.contains(e.getCause().getCause().getMessage(),
-                    "Username:[ADMIN] already exists"));
+                    "Username:[ADMIN] already exists"));
         }
     }
 

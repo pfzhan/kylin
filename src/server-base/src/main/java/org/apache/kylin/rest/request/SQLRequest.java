@@ -50,7 +50,7 @@ import java.util.Objects;
 import javax.validation.constraints.Size;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.validation.FieldError;
 
 import com.google.common.collect.Lists;

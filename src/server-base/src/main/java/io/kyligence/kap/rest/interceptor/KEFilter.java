@@ -35,7 +35,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 

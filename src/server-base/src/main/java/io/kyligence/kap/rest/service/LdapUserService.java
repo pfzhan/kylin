@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

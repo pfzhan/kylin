@@ -37,7 +37,7 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;

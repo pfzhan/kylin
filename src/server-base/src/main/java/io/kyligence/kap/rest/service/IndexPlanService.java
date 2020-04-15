@@ -47,7 +47,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -216,7 +216,7 @@ public class IndexPlanService extends BasicService {
         val newLayout = parseToLayout(project, request);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
-                throw new IllegalStateException("Already exists same layout");
+                throw new IllegalStateException(MsgPicker.getMsg().getDUPLICATEP_LAYOUT());
 
             }
         }

@@ -40,9 +40,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.rest.msg;
-
-import org.apache.kylin.metadata.model.SegmentStatusEnumToDisplay;
+package org.apache.kylin.common.msg;
 
 public class Message {
 
@@ -222,11 +220,11 @@ public class Message {
     }
 
     public String getDUPLICATE_DIMENSION_NAME() {
-        return "Dimension name '%s' already exists.";
+        return "Dimension name '%s' already exists.";
     }
 
     public String getDUPLICATE_MEASURE_NAME() {
-        return "Measure name '%s' already exists.";
+        return "Measure name '%s' already exists.";
     }
 
     public String getDUPLICATE_MEASURE_DEFINITION() {
@@ -785,7 +783,7 @@ public class Message {
         return "Can not remove or refresh or merge segment [%s], because the segment is LOCKED.";
     }
 
-    public String getSEGMENT_STATUS(SegmentStatusEnumToDisplay status) {
+    public String getSEGMENT_STATUS(String status) {
         return "Can not refresh or merge segment [%s], because the segment is " + status + ".";
     }
 
@@ -833,7 +831,7 @@ public class Message {
     }
 
     public String getUSER_EXISTS() {
-        return "Username:[%s] already exists";
+        return "Username:[%s] already exists";
     }
 
     public String getOPERATION_FAILED_BY_USER_NOT_EXIST() {
@@ -929,7 +927,7 @@ public class Message {
     }
 
     public String getINLEGAL_EMAIL() {
-        return "A personal email or illegal email is not allowed";
+        return "A personal email or illegal email is not allowed";
     }
 
     public String getLICENSE_ERROR() {
@@ -1005,7 +1003,7 @@ public class Message {
     }
 
     public String getBROKEN_MODEL_CANNOT_ONOFFLINE() {
-        return "Broken model [%s] can not online or offline!";
+        return "Broken model [%s] can not online or offline!";
     }
 
     public String getINVALID_NAME_START_WITH_DOT() {
@@ -1028,6 +1026,38 @@ public class Message {
 
     public String getHIVETABLE_NOT_FOUND() {
         return "The table cannot be loaded in the data source: {%s}. Please check the data source.";
+    }
+
+    public String getDUPLICATEP_LAYOUT() {
+        return "The same index already exists.";
+    }
+
+    public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
+        return "Table '%s' not found.";
+    }
+
+    public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
+        return "Please add table %s to data source. If this table does exist, mention it as DATABASE.TABLE.";
+    }
+
+    public String getPROJECT_NUM_OVER_THRESHOLD() {
+        return "Failed to create a new project. The number of projects exceeds the maximum: {%s}. Please delete other abandoned projects before trying to create new ones or contact the administrator to adjust the maximum number of projects.";
+    }
+
+    public String getMODEL_NUM_OVER_THRESHOLD() {
+        return "Failed to create a new model. The number of models exceeds the maximum: {%s}. Please delete other abandoned models before trying to create new ones or contact the administrator to adjust the maximum number of models.";
+    }
+
+    public String getFQ_NUM_OVER_THRESHOLD() {
+        return "Failed to accelerate sql. The number of FavoriteQuery exceeds the maximum: {%s}. Please delete other abandoned FavoriteQuery before trying to create new ones or contact the administrator to adjust the maximum number of FavoriteQuery.";
+    }
+
+    public String getBLACK_LIST_OVER_THRESHOLD() {
+        return "Failed to add sql to accelerating blacklist. The number of sql in blacklist exceeds the maximum: {%s}. Please delete other sqls before trying to add new ones or contact the administrator to adjust the maximum number of sql in blacklist.";
+    }
+
+    public String getQUERY_ROW_NUM_OVER_THRESHOLD() {
+        return "Failed to get query result. The row number of query result exceeds the maximum: {%s}. Please add more filters or contact the administrator to adjust the maximum row number of query result.";
     }
 
 }

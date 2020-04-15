@@ -37,7 +37,7 @@ import javax.naming.ldap.LdapName;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

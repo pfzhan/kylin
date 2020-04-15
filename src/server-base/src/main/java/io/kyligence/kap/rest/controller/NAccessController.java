@@ -42,7 +42,7 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;

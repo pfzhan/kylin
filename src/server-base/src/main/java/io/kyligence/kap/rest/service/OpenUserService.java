@@ -26,7 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 
-import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.security.core.userdetails.UserDetails;
 
