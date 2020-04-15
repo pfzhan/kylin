@@ -92,6 +92,7 @@
       <div class="clearfix ksd-mb-10 ksd-mt-20">
         <div class="ksd-fleft">
           <el-date-picker v-model="daterange"
+            @change="handleDaterangeChange"
             type="daterange"
             size="small"
             unlink-panels
@@ -201,7 +202,7 @@
 
 <script>
 import Vue from 'vue'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { handleSuccess } from '../../util/business'
 import { handleSuccessAsync, handleError } from '../../util/index'
@@ -304,7 +305,7 @@ import LineChart from './LineChart'
   }
 })
 export default class Dashboard extends Vue {
-  daterange = [new Date(new Date().getTime() - 3600 * 1000 * 24 * 7), new Date()]
+  daterange = []
   impactRatio = 0
   quotaInfo = {
     storage_quota_size: -1,
@@ -371,36 +372,40 @@ export default class Dashboard extends Vue {
       this.getJobBulidLineChartData()
     }
   }
-  @Watch('daterange')
-  onDatepickerChange () {
-    this.loadDashInfo()
-    if (this.showQueryChart) {
-      this.getQueryBarChartData()
-      this.getQueryLineChartData()
-    } else if (this.showLatencyChart) {
-      this.getQueryDuraBarChartData()
-      this.getQueryDuraLineChartData()
-    } else if (this.showJobChart) {
-      this.getJobBarChartData()
-      this.getJobLineChartData()
-    } else if (this.showBulidChart) {
-      this.getJobBulidBarChartData()
-      this.getJobBulidLineChartData()
-    }
-  }
   loadQueryChart () {
     this.resetShow()
     this.showQueryChart = true
     this.getQueryBarChartData()
     this.getQueryLineChartData()
   }
+  handleDaterangeChange (val) {
+    if (val) {
+      const startTime = this.daterange[0].getTime()
+      const endTime = this.daterange[1].getTime()
+      this.daterange = [startTime, endTime]
+      this.loadDashInfo()
+      if (this.showQueryChart) {
+        this.getQueryBarChartData()
+        this.getQueryLineChartData()
+      } else if (this.showLatencyChart) {
+        this.getQueryDuraBarChartData()
+        this.getQueryDuraLineChartData()
+      } else if (this.showJobChart) {
+        this.getJobBarChartData()
+        this.getJobLineChartData()
+      } else if (this.showBulidChart) {
+        this.getJobBulidBarChartData()
+        this.getJobBulidLineChartData()
+      }
+    }
+  }
   async getQueryBarChartData () {
-    const res = await this.loadQueryChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
+    const res = await this.loadQueryChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: 'model'})
     const resData = await handleSuccessAsync(res)
     this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getQueryLineChartData () {
-    const resLine = await this.loadQueryChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
+    const resLine = await this.loadQueryChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: this.dateUnit})
     const resDataLine = await handleSuccessAsync(resLine)
     this.lineChartDara = resDataLine
   }
@@ -411,7 +416,7 @@ export default class Dashboard extends Vue {
     this.getQueryDuraLineChartData()
   }
   async getQueryDuraBarChartData () {
-    const res = await this.loadQueryDuraChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
+    const res = await this.loadQueryDuraChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: 'model'})
     const resData = await handleSuccessAsync(res)
     Object.keys(resData).forEach(k => {
       resData[k] = resData[k] / 1000
@@ -419,7 +424,7 @@ export default class Dashboard extends Vue {
     this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getQueryDuraLineChartData () {
-    const resLine = await this.loadQueryDuraChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
+    const resLine = await this.loadQueryDuraChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: this.dateUnit})
     const resDataLine = await handleSuccessAsync(resLine)
     Object.keys(resDataLine).forEach(k => {
       resDataLine[k] = (resDataLine[k] / 1000).toFixed(2)
@@ -433,12 +438,12 @@ export default class Dashboard extends Vue {
     this.getJobLineChartData()
   }
   async getJobBarChartData () {
-    const res = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
+    const res = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: 'model'})
     const resData = await handleSuccessAsync(res)
     this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getJobLineChartData () {
-    const resLine = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
+    const resLine = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: this.dateUnit})
     const resDataLine = await handleSuccessAsync(resLine)
     this.lineChartDara = resDataLine
   }
@@ -449,7 +454,7 @@ export default class Dashboard extends Vue {
     this.getJobBulidLineChartData()
   }
   async getJobBulidBarChartData () {
-    const res = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
+    const res = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: 'model'})
     const resData = await handleSuccessAsync(res)
     Object.keys(resData).forEach(k => {
       resData[k] = resData[k] * 1024 * 1024 / 1000
@@ -457,7 +462,7 @@ export default class Dashboard extends Vue {
     this.barChartData = Object.entries(resData).map(([key, value]) => ({ label: key, value: value }))
   }
   async getJobBulidLineChartData () {
-    const resLine = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
+    const resLine = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1], dimension: this.dateUnit})
     const resDataLine = await handleSuccessAsync(resLine)
     Object.keys(resDataLine).forEach(k => {
       resDataLine[k] = (resDataLine[k] * 1024 * 1024 / 1000).toFixed(2)
@@ -600,6 +605,7 @@ export default class Dashboard extends Vue {
   }
   created () {
     if (this.currentSelectedProject) {
+      this.daterange = [new Date(new Date().getTime() - 3600 * 1000 * 24 * 7).getTime(), new Date().getTime()]
       this.loadRuleImpactRatio()
       this.loadQuotaInfo()
       this.loadDashInfo()
@@ -654,11 +660,11 @@ export default class Dashboard extends Vue {
     })
   }
   async loadDashInfo () {
-    const res = await this.loadDashboardQueryInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
+    const res = await this.loadDashboardQueryInfo({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1]})
     const resData = await handleSuccessAsync(res)
     this.queryCount = resData.count || 0
     this.queryMean = resData.mean ? (resData.mean / 1000).toFixed(2) : 0
-    const resJob = await this.loadDashboardJobInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
+    const resJob = await this.loadDashboardJobInfo({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1]})
     const resDataJob = await handleSuccessAsync(resJob)
     this.jobCount = resDataJob.count || 0
     this.avgBulidTime = resDataJob.total_duration && resDataJob.total_byte_size ? (resDataJob.total_duration * 1024 * 1024 / (resDataJob.total_byte_size * 1000)).toFixed(2) : 0

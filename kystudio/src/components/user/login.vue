@@ -18,8 +18,8 @@
             <p>{{$t('kapMsg')}}</p>
             <div class="ky-line"></div>
             <ul>
-              <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a href="http://kyligence.io/enterprise/#analytics" target="_blank">{{$t('introduction')}}</a></li>
-              <li><i class="el-icon-ksd-details ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">{{$t('manual')}}</a></li>
+              <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a :href="$t('introductionUrl')" target="_blank">{{$t('introduction')}}</a></li>
+              <li><i class="el-icon-ksd-details ksd-fs-12"></i><a :href="'http://docs.kyligence.io/?lang=' + $store.state.system.lang" target="_blank">{{$t('manual')}}</a></li>
               <li><i class="el-icon-ksd-login_email ksd-fs-12"></i><a href="mailto:info@Kyligence.io">{{$t('contactUs')}}</a></li>
             </ul>
           </div>
@@ -384,6 +384,7 @@ export default {
       yourName: 'Your Name',
       expiredOn: 'Expired On:',
       introduction: 'Introduction',
+      introductionUrl: 'http://kyligence.io/enterprise/#analytics',
       manual: 'Manual',
       contactUs: 'Contact Us',
       enterpriseName: 'Only Chinese characters, letters, digits and space are supported. The maximum is 50 characters.',
@@ -417,6 +418,7 @@ export default {
       yourName: '用户名称',
       expiredOn: '过期时间：',
       introduction: '产品介绍',
+      introductionUrl: 'http://kyligence.io/zh/kyligence-enterprise-zh/',
       manual: '用户手册',
       contactUs: '联系我们',
       enterpriseName: '支持中英文、数字、空格，最大值为 50 个字符',
