@@ -25,12 +25,15 @@
 package io.kyligence.kap.query.engine;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.prepare.CalciteCatalogReader;
 import org.apache.calcite.prepare.Prepare;
 import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
@@ -38,8 +41,10 @@ import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.logical.LogicalProject;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.runtime.GeoFunctions;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -58,45 +63,72 @@ import org.apache.kylin.query.schema.KylinSqlValidator;
 public class SQLConverter {
 
     private final SqlParser.Config parserConfig;
-    private final Prepare.CatalogReader catalogReader;
     private final SqlValidator validator;
+    private final SqlOperatorTable sqlOperatorTable;
     private final SqlToRelConverter sqlToRelConverter;
     private final CalciteConnectionConfig connectionConfig;
 
-    public SQLConverter(CalciteConnectionConfig connectionConfig, RelOptPlanner planner, Prepare.CatalogReader catalogReader) {
+    public SQLConverter(KECalciteConfig connectionConfig, RelOptPlanner planner, Prepare.CatalogReader catalogReader) {
         this.connectionConfig = connectionConfig;
-        this.catalogReader = catalogReader;
         parserConfig = SqlParser.configBuilder().setQuotedCasing(connectionConfig.quotedCasing())
                 .setUnquotedCasing(connectionConfig.unquotedCasing()).setQuoting(connectionConfig.quoting())
                 .setConformance(connectionConfig.conformance()).setCaseSensitive(connectionConfig.caseSensitive())
                 .build();
 
-        validator = createValidator(connectionConfig, catalogReader);
+        sqlOperatorTable = createOperatorTable(connectionConfig, catalogReader);
+        validator = createValidator(connectionConfig, catalogReader, sqlOperatorTable);
 
         sqlToRelConverter = createSqlToRelConverter(planner, validator, catalogReader);
     }
 
     private SqlValidator createValidator(CalciteConnectionConfig connectionConfig,
-            Prepare.CatalogReader catalogReader) {
-        final SqlOperatorTable opTab0 = connectionConfig.fun(SqlOperatorTable.class,
-                ChainedSqlOperatorTable.of(SqlStdOperatorTable.instance(), catalogReader));
-        SqlValidator sqlValidator = new KylinSqlValidator((SqlValidatorImpl) SqlValidatorUtil.newValidator(
-                opTab0,
-                catalogReader,
-                javaTypeFactory(),
-                connectionConfig.conformance()));
+            Prepare.CatalogReader catalogReader, SqlOperatorTable sqlOperatorTable) {
+        SqlValidator sqlValidator = new KylinSqlValidator((SqlValidatorImpl) SqlValidatorUtil.newValidator(sqlOperatorTable,
+                        catalogReader,
+                        javaTypeFactory(),
+                        connectionConfig.conformance()));
         sqlValidator.setIdentifierExpansion(true);
         sqlValidator.setDefaultNullCollation(connectionConfig.defaultNullCollation());
         return sqlValidator;
     }
 
-    private SqlToRelConverter createSqlToRelConverter(RelOptPlanner planner, SqlValidator sqlValidator, Prepare.CatalogReader catalogReader) {
+    private SqlOperatorTable createOperatorTable(KECalciteConfig connectionConfig,
+            Prepare.CatalogReader catalogReader) {
+        final Collection<SqlOperatorTable> tables = new LinkedHashSet<>();
+        for (String opTable : connectionConfig.operatorTables()) {
+            switch (opTable) {
+            case "standard":
+                tables.add(SqlStdOperatorTable.instance());
+                break;
+            case "oracle":
+                tables.add(OracleSqlOperatorTable.instance());
+                break;
+            case "spatial":
+                tables.add(CalciteCatalogReader.operatorTable(GeoFunctions.class.getName()));
+                break;
+            default:
+                throw new IllegalArgumentException(String.format(
+                        "Unknown operator table: '%s'. Check the kylin.query.calcite.extras-props.FUN config please",
+                        opTable));
+            }
+        }
+        tables.add(SqlStdOperatorTable.instance()); // make sure the standard optable is added
+        SqlOperatorTable composedOperatorTable = ChainedSqlOperatorTable.of(tables.toArray(new SqlOperatorTable[0]));
+        return ChainedSqlOperatorTable.of(
+                composedOperatorTable, // calcite optables
+                catalogReader // optable for udf
+        );
+    }
+
+    private SqlToRelConverter createSqlToRelConverter(RelOptPlanner planner, SqlValidator sqlValidator,
+            Prepare.CatalogReader catalogReader) {
         SqlToRelConverter.Config config = SqlToRelConverter.configBuilder().withTrimUnusedFields(true)
                 .withExpand(Prepare.THREAD_EXPAND.get()).withExplain(false).build();
 
         final RelOptCluster cluster = RelOptCluster.create(planner, new RexBuilder(javaTypeFactory()));
 
-        return new SqlToRelConverter(null, sqlValidator, catalogReader, cluster, StandardConvertletTable.INSTANCE, config);
+        return new SqlToRelConverter(null, sqlValidator, catalogReader, cluster, StandardConvertletTable.INSTANCE,
+                config);
     }
 
     public JavaTypeFactory javaTypeFactory() {
@@ -140,8 +172,7 @@ public class SQLConverter {
             //RelCollation must be cleared,
             //otherwise, relRoot's top rel will be reset to LogicalSort
             //in org.apache.calcite.tools.Programs#standard's program1
-            root = new RelRoot(project, root.validatedRowType,
-                    root.kind, root.fields,  RelCollations.EMPTY);
+            root = new RelRoot(project, root.validatedRowType, root.kind, root.fields, RelCollations.EMPTY);
         }
 
         return root;

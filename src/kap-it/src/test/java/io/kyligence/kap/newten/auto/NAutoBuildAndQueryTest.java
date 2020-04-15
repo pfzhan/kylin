@@ -233,10 +233,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
-    public void testExtraCalciteFunction() throws Exception {
-        // NVL
+    public void testCalciteOperatorTablesConfig() throws Exception {
         overwriteSystemProp("kylin.query.calcite.extras-props.FUN", "standard,oracle");
-        new TestScenario(CompareLevel.SAME, "query/sql_function/oracle_function").execute();
+        executeTestScenario(
+            new TestScenario(CompareLevel.SAME, "query/sql_function/oracle_function"), // NVL
+            new TestScenario(CompareLevel.SAME, "query/sql_function/sql_function_DateUDF") // make sure udfs are executed correctly
+        );
     }
 
     /**

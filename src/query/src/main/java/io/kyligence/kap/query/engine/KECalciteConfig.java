@@ -27,6 +27,7 @@ package io.kyligence.kap.query.engine;
 import java.util.Properties;
 
 import org.apache.calcite.config.CalciteConnectionConfigImpl;
+import org.apache.calcite.config.CalciteConnectionProperty;
 import org.apache.calcite.config.NullCollation;
 import org.apache.kylin.common.KylinConfig;
 
@@ -62,6 +63,10 @@ public class KECalciteConfig extends CalciteConnectionConfigImpl {
 
     public boolean exposeComputedColumn() {
         return kylinConfig.exposeComputedColumn();
+    }
+
+    public String[] operatorTables() {
+        return CalciteConnectionProperty.FUN.wrap(properties).getString("standard").toLowerCase().split(",");
     }
 
     public static KECalciteConfig current() {
