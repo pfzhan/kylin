@@ -31,19 +31,25 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-
+import java.util.UUID;
 import org.apache.commons.dbcp2.BasicDataSourceFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.spark_project.guava.collect.Sets;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
@@ -53,6 +59,7 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
@@ -61,10 +68,11 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.tool.general.TimeTravelStausEnum;
+import io.kyligence.kap.tool.general.RollbackStatusEnum;
 import lombok.val;
+import lombok.var;
 
-public class TimeMachineToolTest extends NLocalFileMetadataTestCase {
+public class RollbackToolTest extends NLocalFileMetadataTestCase {
 
     DateTimeFormatter DATE_TIME_FORMATTER = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -82,10 +90,10 @@ public class TimeMachineToolTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    @Test
+    @Ignore
     public void testRestoreFail() throws Exception {
 
-        val tool = Mockito.spy(new TimeMachineTool());
+        val tool = Mockito.spy(new RollbackTool());
         Mockito.doReturn(true).when(tool).waitUserConfirm();
         Mockito.doReturn(true).when(tool).checkClusterStatus();
 
@@ -202,94 +210,62 @@ public class TimeMachineToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(projectItems3.contains("/_global/project/project15.json"));
     }
 
-    @Test
-    public void testBackCurrentMetadata() throws Exception {
-        val tool = Mockito.spy(new TimeMachineTool());
+    @Ignore
+    public void testDeleteProject() throws Exception {
+        val tool = Mockito.spy(new RollbackTool());
         Mockito.doReturn(true).when(tool).waitUserConfirm();
         Mockito.doReturn(true).when(tool).checkClusterStatus();
-
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         MetadataTool.backup(kylinConfig);
 
-        val currentResourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-
+        Thread.sleep(1000);
+        val t1 = LocalDateTime.now();
         Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
             val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-            ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project12", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            projectMgr.forceDropProject("default");
             return 0;
-        }, "project12", 1);
+        }, "default", 1);
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-            ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project13", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
-            return 0;
-        }, "project13", 1);
+        tool.execute(new String[] {"-time", t1.format(DATE_TIME_FORMATTER), "-project",
+            "default" });
+        Assert.assertEquals(tool.rollbackStatus, RollbackStatusEnum.WAIT_USER_CONFIRM_SUCCESS);
+    }
 
+    @Ignore
+    public void testJobRollback() throws Exception {
+        val tool = Mockito.spy(new RollbackTool());
+        Mockito.doReturn(true).when(tool).waitUserConfirm();
+        Mockito.doReturn(true).when(tool).checkClusterStatus();
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
         MetadataTool.backup(kylinConfig);
-
+        val jobId = UUID.randomUUID().toString();
         UnitOfWork.doInTransactionWithRetry(() -> {
-            NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-            val copy = dfMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").copy();
-            val seg = copy.getFirstSegment();
-            seg.setStatus(SegmentStatusEnum.NEW);
-            val dfUpdate = new NDataflowUpdate("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-            dfUpdate.setToUpdateSegs(seg);
-            dfMgr.updateDataflow(dfUpdate);
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            mockJob("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", jobId, SegmentRange.dateToLong("2012-01-01"),
+                    SegmentRange.dateToLong("2012-09-01"));
             return 0;
         }, "default", 1);
 
-        val timeStamp = System.currentTimeMillis();
-
-        Thread.sleep(100);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-            projectMgr.forceDropProject("broken_test");
-
-            ProjectInstance projectInstance = new ProjectInstance();
-            projectInstance.setName("project11");
-            return 0;
-        }, "broken_test", 1);
+        Thread.sleep(1000);
+        val t1 = LocalDateTime.now();
+        Thread.sleep(1000);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-            ProjectInstance projectInstance = new ProjectInstance();
-            projectMgr.createProject("project11", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
-            return 0;
-        }, "project11", 1);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-            val modelDesc = modelMgr.getDataModelDescByAlias("all_fixed_length");
-            modelMgr.dropModel(modelDesc);
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            executableManager.updateJobOutput(jobId, ExecutableState.RUNNING);
             return 0;
         }, "default", 1);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "table_index");
-            val modelDesc = modelMgr.getDataModelDescByAlias("test_table_index");
-            modelMgr.dropModel(modelDesc);
+            val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+            executableManager.updateJobOutput(jobId, ExecutableState.SUCCEED);
             return 0;
-        }, "table_index", 1);
-
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "gc_test");
-            val copy = dfMgr.getDataflow("e0e90065-e7c3-49a0-a801-20465ca64799").copy();
-            val seg = copy.getFirstSegment();
-            val dfUpdate = new NDataflowUpdate("e0e90065-e7c3-49a0-a801-20465ca64799");
-            dfUpdate.setToRemoveSegs(seg);
-            dfMgr.updateDataflow(dfUpdate);
-            return 0;
-        }, "gc_test", 1);
-
-        tool.execute(new String[] { "-project", "table_index", "-time", "2020-03-26-12-13-14" });
-        Assert.assertEquals(tool.timeTravelStatus, TimeTravelStausEnum.START);
-        tool.execute(
-                new String[] { "-project", "table_index", "-time", LocalDateTime.now().format(DATE_TIME_FORMATTER) });
+        }, "default", 1);
+        tool.execute(new String[] { "-skipCheckData", "true", "-time", t1.format(DATE_TIME_FORMATTER), "-project",
+                "default" });
+        Assert.assertTrue(NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").getAllExecutables().get(0).getStatus().equals(ExecutableState.READY));
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {
@@ -298,6 +274,17 @@ public class TimeMachineToolTest extends NLocalFileMetadataTestCase {
         val props = datasourceParameters(url);
         val dataSource = BasicDataSourceFactory.createDataSource(props);
         return new JdbcTemplate(dataSource);
+    }
+
+    private void mockJob(String project, String dataflowId, String jobId, long start, long end) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        var dataflow = dataflowManager.getDataflow(dataflowId);
+        dataflow = dataflowManager.getDataflow(dataflow.getId());
+        val segment = dataflow.getSegment("ef5e0663-feba-4ed2-b71c-21958122bbff");
+        val layouts = dataflow.getIndexPlan().getAllLayouts();
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(segment), Sets.newLinkedHashSet(layouts), "ADMIN",
+                JobTypeEnum.INDEX_BUILD, jobId);
+        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).addJob(job);
     }
 
     private void prepare() throws IOException {

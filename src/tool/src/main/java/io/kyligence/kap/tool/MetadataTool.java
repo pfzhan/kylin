@@ -147,9 +147,9 @@ public class MetadataTool extends ExecutableApplication {
         backupTool.execute(args);
     }
 
-    public static void backup(KylinConfig kylinConfig, String folder) throws IOException {
+    public static void backup(KylinConfig kylinConfig, String dir, String folder) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        String[] args = new String[] { "-backup", "-compress", "-dir", HadoopUtil.getBackupFolder(kylinConfig),
+        String[] args = new String[] { "-backup", "-compress", "-dir", dir,
                 "-folder", folder };
         val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);

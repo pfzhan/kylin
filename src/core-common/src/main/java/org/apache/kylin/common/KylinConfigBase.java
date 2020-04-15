@@ -1591,7 +1591,7 @@ public abstract class KylinConfigBase implements Serializable {
     }
 
     public Boolean getTimeMachineEnabled() {
-        return Boolean.valueOf(this.getOptional("kylin.storage.time-machine-enabled", "false"));
+        return Boolean.valueOf(this.getOptional("kylin.storage.time-machine-enabled", FALSE));
     }
 
     public boolean getJobSourceRecordsChangeNotificationEnabled() {

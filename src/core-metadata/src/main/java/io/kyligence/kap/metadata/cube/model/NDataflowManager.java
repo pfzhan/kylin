@@ -259,7 +259,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (df.getModel().getManagementType() != ManagementType.TABLE_ORIENTED) {
             return;
         }
-        val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(config, project);
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
         val segmentRanges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(dataLoadingRange);

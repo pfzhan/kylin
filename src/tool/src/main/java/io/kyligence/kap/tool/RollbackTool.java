@@ -24,17 +24,16 @@
 
 package io.kyligence.kap.tool;
 
-import static org.apache.kylin.common.util.HadoopUtil.JOB_TMP_ROOT;
 import static org.apache.kylin.common.util.HadoopUtil.PARQUET_STORAGE_ROOT;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -76,13 +75,13 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
-import io.kyligence.kap.tool.general.TimeTravelStausEnum;
+import io.kyligence.kap.tool.general.RollbackStatusEnum;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TimeMachineTool extends ExecutableApplication {
+public class RollbackTool extends ExecutableApplication {
 
     @SuppressWarnings("static-access")
     private static final String HDFS_METADATA_URL_FORMATTER = "kylin_metadata@hdfs,path=%s";
@@ -102,9 +101,9 @@ public class TimeMachineTool extends ExecutableApplication {
     private ResourceStore currentResourceStore;
 
     @VisibleForTesting
-    public TimeTravelStausEnum timeTravelStatus;
+    public  RollbackStatusEnum rollbackStatus;
 
-    TimeMachineTool() {
+    RollbackTool() {
         kylinConfig = KylinConfig.getInstanceFromEnv();
         this.options = new Options();
         initOptions();
@@ -122,20 +121,31 @@ public class TimeMachineTool extends ExecutableApplication {
     }
 
     public static void main(String[] args) {
-        val tool = new TimeMachineTool();
-        tool.execute(args);
+        val tool = new RollbackTool();
+        try {
+            tool.execute(args);
+        } catch (Exception e) {
+            log.error("rollback error: {}", e);
+            System.exit(1);
+        }
+        if (tool.rollbackStatus.equals(RollbackStatusEnum.RESTORE_MIRROR_SUCCESS)) {
+            System.exit(0);
+        } else {
+            System.exit(1);
+        }
+
     }
 
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        log.info("start time travel");
+        log.info("start roll back");
         log.info("start to init ResourceStore");
         currentResourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        timeTravelStatus = TimeTravelStausEnum.START;
+        rollbackStatus = RollbackStatusEnum.START;
         if (!checkParam(optionsHelper)) {
             log.error("check param failed");
             return;
         }
-        timeTravelStatus = TimeTravelStausEnum.CHECK_PARAM_SUCCESS;
+        rollbackStatus = RollbackStatusEnum.CHECK_PARAM_SUCCESS;
         log.info("check param success");
 
         String currentBackupFolder;
@@ -147,7 +157,7 @@ public class TimeMachineTool extends ExecutableApplication {
             return;
         }
 
-        timeTravelStatus = TimeTravelStausEnum.BACKUP_CURRENT_METADATA_SUCCESS;
+        rollbackStatus = RollbackStatusEnum.BACKUP_CURRENT_METADATA_SUCCESS;
         log.info("backup current metadata success");
 
         // 2 Check whether the current cluster is stopped by checking the port
@@ -155,7 +165,7 @@ public class TimeMachineTool extends ExecutableApplication {
             log.error("check cluster status failed");
             return;
         }
-        timeTravelStatus = TimeTravelStausEnum.CHECK_CLUSTER_STATUS_SUCESS;
+        rollbackStatus = RollbackStatusEnum.CHECK_CLUSTER_STATUS_SUCESS;
         log.info("check cluster status success");
 
         // 3 Get the snapshot file from the backup directory to restore, then replay the auditlog to the user-specified timestamp
@@ -164,18 +174,18 @@ public class TimeMachineTool extends ExecutableApplication {
             log.error("forward to timestamp from snapshot failed");
             return;
         }
-        timeTravelStatus = TimeTravelStausEnum.FORWARD_TO_USER_TARGET_TIME_FROM_SNAPSHOT_SUCESS;
+        rollbackStatus = RollbackStatusEnum.FORWARD_TO_USER_TARGET_TIME_FROM_SNAPSHOT_SUCESS;
         log.info("forward to user target time success");
 
         // 4 Compare and print metadata differences，remind user
-        outputDiff(currentResourceStore, restoreResourceStore);
-        timeTravelStatus = TimeTravelStausEnum.OUTPUT_DIFF_SUCCESS;
+        outputDiff(optionsHelper, currentResourceStore, restoreResourceStore);
+        rollbackStatus = RollbackStatusEnum.OUTPUT_DIFF_SUCCESS;
         log.info("output diff success");
 
         // 5 Waiting for user confirmation
         waitUserConfirm();
 
-        timeTravelStatus = TimeTravelStausEnum.WAIT_USER_CONFIRM_SUCCESS;
+        rollbackStatus = RollbackStatusEnum.WAIT_USER_CONFIRM_SUCCESS;
         log.info("wait user confirm success");
 
         // 6 Check whether the storage data pointed to by the target metadata is available, including cube data, snapshot data, dictionary data, whether the metadata is damaged, etc.
@@ -184,7 +194,7 @@ public class TimeMachineTool extends ExecutableApplication {
             log.error("target snapshot storage data is unavailable");
             return;
         }
-        timeTravelStatus = TimeTravelStausEnum.CHECK_STORAGE_DATA_AVAILABLE_SUCCESS;
+        rollbackStatus = RollbackStatusEnum.CHECK_STORAGE_DATA_AVAILABLE_SUCCESS;
         log.info("check storage data available success");
 
         // 7 restore target metadata to a current table, if it fails, overwrite it with the current backup metadata
@@ -196,10 +206,10 @@ public class TimeMachineTool extends ExecutableApplication {
             }
             return;
         }
-        timeTravelStatus = TimeTravelStausEnum.RESTORE_MIRROR_SUCCESS;
+        rollbackStatus = RollbackStatusEnum.RESTORE_MIRROR_SUCCESS;
         log.info("restore mirror success");
 
-        log.info("time travel success");
+        log.info("roll back success");
     }
 
     private Boolean checkParam(OptionsHelper optionsHelper) {
@@ -270,7 +280,7 @@ public class TimeMachineTool extends ExecutableApplication {
     private void outputDiff(String tag, Set<String> origin, Set<String> target) {
         val willBeDeleted = Sets.difference(origin, target);
         if (!willBeDeleted.isEmpty()) {
-            log.info("{} {} will be deleted", tag, willBeDeleted);
+            log.info("{} {} will be deleted", tag, willBeDeleted.toString());
         }
         val willbeAdded = Sets.difference(target, origin);
         if (!willbeAdded.isEmpty()) {
@@ -278,33 +288,53 @@ public class TimeMachineTool extends ExecutableApplication {
         }
     }
 
-    private void outputDiff(ResourceStore currentResourceStore, ResourceStore restoreResourceStore) throws IOException {
+    private void outputDiff(OptionsHelper optionsHelper, ResourceStore currentResourceStore,
+            ResourceStore restoreResourceStore) throws IOException {
 
+        String targetProject = optionsHelper.getOptionValue(OPTION_PROJECT);
         KylinConfig currentConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
         ResourceStore.setRS(currentConfig, currentResourceStore);
 
         KylinConfig restoreConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
         ResourceStore.setRS(restoreConfig, restoreResourceStore);
 
-        val currentAclManager = NKylinUserManager.getInstance(currentConfig);
-        val restoreAclManager = NKylinUserManager.getInstance(restoreConfig);
-        val currentUsers = currentAclManager.list().stream().map(ManagedUser::getUsername).collect(Collectors.toSet());
-        val restoreUsers = restoreAclManager.list().stream().map(ManagedUser::getUsername).collect(Collectors.toSet());
-        outputDiff("user:", currentUsers, restoreUsers);
+        Set<String> updateProjects;
+        if (StringUtils.isBlank(targetProject)) {
+            val currentAclManager = NKylinUserManager.getInstance(currentConfig);
+            val restoreAclManager = NKylinUserManager.getInstance(restoreConfig);
+            val currentUsers = currentAclManager.list().stream().map(ManagedUser::getUsername)
+                    .collect(Collectors.toSet());
+            val restoreUsers = restoreAclManager.list().stream().map(ManagedUser::getUsername)
+                    .collect(Collectors.toSet());
+            outputDiff("user:", currentUsers, restoreUsers);
+            val currentProjectMgr = NProjectManager.getInstance(currentConfig);
+            val restoreProjectMgr = NProjectManager.getInstance(restoreConfig);
 
-        val currentProjectMgr = NProjectManager.getInstance(currentConfig);
-        val restoreProjectMgr = NProjectManager.getInstance(restoreConfig);
-
-        val currentProjects = currentProjectMgr.listAllProjects().stream().map(ProjectInstance::getName)
-                .collect(Collectors.toSet());
-        val restoreProjects = restoreProjectMgr.listAllProjects().stream().map(ProjectInstance::getName)
-                .collect(Collectors.toSet());
-
-        outputDiff("project: ", currentProjects, restoreProjects);
-
-        val updateProjects = Sets.intersection(currentProjects, restoreProjects);
+            val currentProjects = currentProjectMgr.listAllProjects().stream().map(ProjectInstance::getName)
+                    .collect(Collectors.toSet());
+            val restoreProjects = restoreProjectMgr.listAllProjects().stream().map(ProjectInstance::getName)
+                    .collect(Collectors.toSet());
+            outputDiff("project: ", currentProjects, restoreProjects);
+            updateProjects = Sets.intersection(currentProjects, restoreProjects);
+        } else {
+            updateProjects = Sets.newHashSet(targetProject);
+        }
 
         for (String project : updateProjects) {
+
+            val currentExecutableManager = NExecutableManager.getInstance(currentConfig, project);
+            val restoreExecutableManager = NExecutableManager.getInstance(restoreConfig, project);
+
+            restoreExecutableManager.getAllExecutables().stream().forEach(e -> {
+                if (currentExecutableManager.getJob(e.getId()) != null) {
+                    val currentStatus = currentExecutableManager.getOutput(e.getId()).getState();
+                    val restoreStatus = restoreExecutableManager.getOutput(e.getId()).getState();
+                    if (currentStatus.isFinalState() && restoreStatus.isProgressing()) {
+                        log.info("job : {} will be re-executed and will  affect segments: {}", e,
+                            Sets.newHashSet(e.getTargetSegments()).toString());
+                    }
+                }
+            });
 
             val currentDfMgr = NDataflowManager.getInstance(currentConfig, project);
             val restoreDfMgr = NDataflowManager.getInstance(restoreConfig, project);
@@ -351,9 +381,16 @@ public class TimeMachineTool extends ExecutableApplication {
         NProjectManager prMgr = NProjectManager.getInstance(configCopy);
 
         val projects = project == null ? prMgr.listAllProjects() : Lists.newArrayList(prMgr.getProject(project));
+        var status = true;
         for (ProjectInstance p : projects) {
             if (!checkProjectStorageDataAvailable(configCopy, fs, p.getName())) {
-                log.error("project {} check storage data available failed", p.getName());
+                log.info("project: {} check storage data available failed", p.getName());
+                status = false;
+            } else {
+                log.info("project: {} check storage data available success", p.getName());
+            }
+            if (!status) {
+                log.error("check check storage data available failed");
                 return false;
             }
         }
@@ -363,19 +400,6 @@ public class TimeMachineTool extends ExecutableApplication {
     private Boolean checkProjectStorageDataAvailable(KylinConfig config, FileSystem fs, String project) {
 
         val hdfsWorkingDir = KapConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory();
-        log.info("check project: {} storage data available", project);
-        if (!exists(fs, new Path(hdfsWorkingDir, project))) {
-            log.error("check  project: {} file exist failed", project);
-            return false;
-        }
-
-        val executableManager = NExecutableManager.getInstance(config, project);
-        if (!executableManager.getAllExecutables().stream()
-                .map(e -> new Path(hdfsWorkingDir, project + JOB_TMP_ROOT + "/" + e.getId()))
-                .allMatch(p -> exists(fs, p))) {
-            log.error("check all tmp job file exist failed");
-            return false;
-        }
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
         val activeIndexDataPath = Sets.<String> newHashSet();
@@ -421,6 +445,7 @@ public class TimeMachineTool extends ExecutableApplication {
             if (!verifyResult.isQualified()) {
                 log.error("{} \n the metadata dir is not qualified", verifyResult.getResultMessage());
             }
+
             MetadataTool.restore(currentResourceStore, restoreResourceStore, project);
         } catch (Exception e) {
             log.error("restore mirror resource store failed: {} ", e);
@@ -440,6 +465,11 @@ public class TimeMachineTool extends ExecutableApplication {
         val userTimeformatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
         val userTargetTime = userTimeformatter.parseDateTime(optionsHelper.getOptionValue(OPTION_TIMESTAMP))
                 .getMillis();
+
+        if (userTargetTime > System.currentTimeMillis()) {
+            log.error("User-specified time cannot be greater than the current time");
+            return null;
+        }
 
         // Select last folder less than user specified time
         val formatter = DateTimeFormat.forPattern("yyyy-MM-dd-HH-mm-ss");
@@ -511,22 +541,28 @@ public class TimeMachineTool extends ExecutableApplication {
             startId += step;
         }
         //If the recovered item does not exist in the shuttle version, fail
-        if (!StringUtils.isBlank(project) && restoreResourceStore.listResourcesRecursively("/" + project).isEmpty()) {
-            log.error("restore project: {} is have not exist in user specified time", project);
+        try {
+            if (!StringUtils.isBlank(project) && restoreResourceStore.listResourcesRecursively("/" + project) == null) {
+                log.error("restore project: {} is have not exist in user specified time", project);
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("list project: {} error: {}", project, e);
             return null;
         }
-
         return restoreResourceStore;
     }
 
     private String backupCurrentMetadata(KylinConfig kylinConfig) throws Exception {
-        val currentBackupFolder = String.format("current_%s_backup", UUID.randomUUID());
-        MetadataTool.backup(kylinConfig, currentBackupFolder);
+        val currentBackupFolder = LocalDateTime.now().format(MetadataTool.DATE_TIME_FORMATTER) + "_backup";
+        MetadataTool.backup(kylinConfig, kylinConfig.getHdfsWorkingDirectory() + "_current_backup",
+                currentBackupFolder);
         return currentBackupFolder;
     }
 
     private Boolean restoreCurrentMirror(KylinConfig kylinConfig, String currentBackupFolder) throws Exception {
-        val restoreFolder = HadoopUtil.getBackupFolder(kylinConfig) + File.separator + currentBackupFolder;
+        val restoreFolder = kylinConfig.getHdfsWorkingDirectory() + "_current_backup" + File.separator
+                + currentBackupFolder;
         try {
             MetadataTool.restore(kylinConfig, restoreFolder);
         } catch (Exception e) {

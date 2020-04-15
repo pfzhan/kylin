@@ -659,7 +659,7 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
             return true;
         }
 
-        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataflow(indexPlanId);
+        NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(indexPlanId);
         val readySegs = df.getSegments(SegmentStatusEnum.READY);
         NDataSegment lastReadySegment = readySegs.getLatestReadySegment();
         if (null == lastReadySegment) {

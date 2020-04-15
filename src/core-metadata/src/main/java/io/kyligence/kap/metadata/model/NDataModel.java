@@ -926,7 +926,7 @@ public class NDataModel extends RootPersistentEntity {
         checkSingleIncrementingLoadingTable();
         setDependencies(calcDependencies());
 
-        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject());
+        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(getProject());
         if (Objects.nonNull(projectInstance) && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             if (isIncrementBuildOnExpertMode()) {
                 val incrementLookupTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
@@ -972,7 +972,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public boolean isIncrementBuildOnExpertMode() {
-        if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(getProject())
+        if (NProjectManager.getInstance(this.config).getProject(getProject())
                 .getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             return getPartitionDesc() != null && !StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
                     && !StringUtils.isEmpty(partitionDesc.getPartitionDateFormat());

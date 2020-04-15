@@ -173,7 +173,7 @@ public class NDataModelManager {
 
     public NDataModel getDataModelDescWithoutInit(String modelId) {
         try {
-            val resource = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv())
+            val resource = ResourceStore.getKylinMetaStore(config)
                     .getResource(getDataModelDesc(modelId).getResourcePath());
             val modelDesc = JsonUtil.readValue(resource.getByteSource().read(), NDataModel.class);
             modelDesc.setMvcc(resource.getMvcc());
@@ -185,7 +185,7 @@ public class NDataModelManager {
     }
 
     public boolean isModelBroken(String modelId) {
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val dataflowManager = NDataflowManager.getInstance(config, project);
         val dataflow = dataflowManager.getDataflow(modelId);
         return dataflow == null || dataflow.checkBrokenWithRelatedInfo();
     }
