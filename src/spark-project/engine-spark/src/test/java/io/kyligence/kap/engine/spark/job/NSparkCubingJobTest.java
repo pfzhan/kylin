@@ -24,47 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
-import static org.awaitility.Awaitility.await;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.storage.IStorage;
-import org.apache.kylin.storage.IStorageQuery;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.plans.logical.Join;
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.spark_project.guava.collect.Sets;
-
 import com.google.common.collect.Maps;
-
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -89,8 +49,53 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.dao.JobStatistics;
+import org.apache.kylin.job.dao.JobStatisticsManager;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.storage.IStorage;
+import org.apache.kylin.storage.IStorageQuery;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.plans.logical.Join;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.spark_project.guava.collect.Sets;
 import scala.Option;
 import scala.runtime.AbstractFunction1;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
+import static org.awaitility.Awaitility.await;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
@@ -200,6 +205,18 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         val merger = new AfterBuildResourceMerger(config, getProject());
         merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                 ExecutableUtils.getRemoteStore(config, sparkStep));
+
+        long buildEndTime = sparkStep.getEndTime();
+        ZoneId zoneId = TimeZone.getTimeZone(config.getTimeZone()).toZoneId();
+        LocalDate localDate = Instant.ofEpochMilli(buildEndTime).atZone(zoneId).toLocalDate();
+        long startOfDay = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, sparkStep.getProject());
+        Pair<Integer, JobStatistics> overallJobStats = jobStatisticsManager.getOverallJobStats(startOfDay, buildEndTime);
+        JobStatistics jobStatistics = overallJobStats.getSecond();
+        // assert date is recorded correctly
+        Assert.assertEquals(startOfDay, jobStatistics.getDate());
+        Assert.assertEquals(1, jobStatistics.getCount());
 
         /**
          * Round2. Build new layouts, should reuse the data from already existing cuboid.

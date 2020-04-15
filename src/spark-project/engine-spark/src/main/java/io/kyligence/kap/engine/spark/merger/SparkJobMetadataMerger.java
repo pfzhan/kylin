@@ -73,9 +73,11 @@ public abstract class SparkJobMetadataMerger extends MetadataMerger {
         return new NDataLayout[0];
     }
 
-    protected void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
+    public void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
+        // make sure call this method in the last step, if 4th step is added, please modify the logic accordingly
         String model = buildTask.getTargetSubject();
-        long buildEndTime = buildTask.getParent().getEndTime();
+        // get end time from current task instead of parent job，since parent job is in running state at this time
+        long buildEndTime = buildTask.getEndTime();
         long duration = buildTask.getParent().getDuration();
         long byteSize = 0;
         for (NDataLayout dataCuboid : addOrUpdateCuboids) {
