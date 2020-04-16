@@ -49,6 +49,8 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.context.request.RequestContextListener;
 
+import java.io.IOException;
+
 @Slf4j
 @Configuration
 @Profile("!dev")
@@ -60,29 +62,40 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     @Autowired
     SessionProperties sessionProperties;
 
+    private void initSessionTable(String replaceName, String sqlFile) throws IOException {
+        ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+
+        var sessionScript = IOUtils.toString(getClass().getClassLoader().getResourceAsStream(sqlFile));
+        sessionScript = sessionScript.replaceAll("SPRING_SESSION", replaceName);
+        populator.addScript(new InMemoryResource(sessionScript));
+        populator.setContinueOnError(false);
+        DatabasePopulatorUtils.execute(populator, dataSource);
+    }
+
     @PostConstruct
     public void initSessionTables() throws Exception {
         if (sessionProperties.getStoreType() != StoreType.JDBC) {
             return;
         }
-        val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
-        if (isTableExists(dataSource.getConnection(), tableName)) {
-            log.info("Session table {} already exists", tableName);
-            return;
-        }
-        ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
 
-        String sqlFile = "script/schema-session-pg.sql";
+        String sessionFile = "script/schema-session-pg.sql";
+        String sessionAttributesFile = "script/schema-session-attributes-pg.sql";
         if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
                 && ((org.apache.commons.dbcp2.BasicDataSource) dataSource).getDriverClassName()
                         .equals("com.mysql.jdbc.Driver")) {
-            sqlFile = "script/schema-session-mysql.sql";
+            sessionFile = "script/schema-session-mysql.sql";
+            sessionAttributesFile = "script/schema-session-attributes-mysql.sql";
         }
-        var sessionScript = IOUtils.toString(getClass().getClassLoader().getResourceAsStream(sqlFile));
-        sessionScript = sessionScript.replaceAll("SPRING_SESSION", tableName);
-        populator.addScript(new InMemoryResource(sessionScript));
-        populator.setContinueOnError(false);
-        DatabasePopulatorUtils.execute(populator, dataSource);
+
+        val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
+        if (!isTableExists(dataSource.getConnection(), tableName)) {
+            initSessionTable(tableName, sessionFile);
+        }
+
+        val attributesTableName = tableName + "_attributes";
+        if (!isTableExists(dataSource.getConnection(), attributesTableName)) {
+            initSessionTable(tableName, sessionAttributesFile);
+        }
     }
 
     @Bean
@@ -95,7 +108,7 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
     }
 
     @Bean
-    public RequestContextListener requestContextListener(){
+    public RequestContextListener requestContextListener() {
         return new RequestContextListener();
     }
 }
