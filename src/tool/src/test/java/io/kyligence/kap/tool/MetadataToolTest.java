@@ -57,6 +57,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
@@ -76,7 +77,9 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.persistence.ImageDesc;
 import io.kyligence.kap.common.persistence.metadata.JdbcAuditLogStore;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -449,6 +452,31 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
         tool.execute(new String[] { "-restore", "-project", "ssb", "-dir", junitFolder.getAbsolutePath() });
         Assertions.assertThat(NProjectManager.getInstance(getTestConfig()).getProject("ssb")).isNotNull();
+    }
+
+    @Test
+    public void testProjectNameStartsWithSame() throws Exception {
+
+        val resourceStore = getStore();
+
+        val junitFolder = temporaryFolder.getRoot();
+        val tool = new MetadataTool(getTestConfig());
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val projectMgr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+            ProjectInstance projectInstance = new ProjectInstance();
+            val prj = projectMgr.getProject("default");
+            projectMgr.createProject("default1", "", "", Maps.newLinkedHashMap(), MaintainModelType.AUTO_MAINTAIN);
+            return 0;
+        }, "default1", 1);
+
+        tool.execute(new String[] { "-backup", "-project", "default", "-dir", junitFolder.getAbsolutePath(), "-folder",
+                "prj_bak" });
+        val tool1 = new MetadataTool(getTestConfig());
+        tool1.execute(new String[] { "-restore", "-project", "default", "-dir",
+                junitFolder.getAbsolutePath() + File.separator + "prj_bak" });
+
+        Assert.assertTrue(resourceStore.exists("/_global/project/default1.json"));
     }
 
     @Test

@@ -149,8 +149,7 @@ public class MetadataTool extends ExecutableApplication {
 
     public static void backup(KylinConfig kylinConfig, String dir, String folder) throws IOException {
         HDFSMetadataTool.cleanBeforeBackup(kylinConfig);
-        String[] args = new String[] { "-backup", "-compress", "-dir", dir,
-                "-folder", folder };
+        String[] args = new String[] { "-backup", "-compress", "-dir", dir, "-folder", folder };
         val backupTool = new MetadataTool(kylinConfig);
         backupTool.execute(args);
     }
@@ -419,12 +418,13 @@ public class MetadataTool extends ExecutableApplication {
             Set<String> globalDestResources = null;
             if (Objects.nonNull(destGlobalProjectResources)) {
                 globalDestResources = destGlobalProjectResources.stream()
-                        .filter(x -> Paths.get(x).getFileName().toString().startsWith(project))
+                        .filter(x -> Paths.get(x).getFileName().toString().equals(String.format("%s.json", project)))
                         .collect(Collectors.toSet());
             }
 
             val globalSrcResources = restoreResourceStore.listResourcesRecursively(ResourceStore.PROJECT_ROOT).stream()
-                    .filter(x -> Paths.get(x).getFileName().toString().startsWith(project)).collect(Collectors.toSet());
+                    .filter(x -> Paths.get(x).getFileName().toString().equals(String.format("%s.json", project)))
+                    .collect(Collectors.toSet());
 
             Set<String> finalGlobalDestResources = globalDestResources;
 
