@@ -43,7 +43,7 @@ import java.util.List;
  */
 public class KapEquiJoinConditionFixRule extends RelOptRule {
 
-    public static KapEquiJoinConditionFixRule INSTANCE = new KapEquiJoinConditionFixRule();
+    public static final KapEquiJoinConditionFixRule INSTANCE = new KapEquiJoinConditionFixRule();
 
     private KapEquiJoinConditionFixRule() {
         super(operand(KapJoinRel.class, any()), RelFactories.LOGICAL_BUILDER, "KapEquiJoinConditionFixRule:join");
