@@ -1,11 +1,11 @@
 <template>
   <div>
-    <el-alert show-icon :show-background="false" type="info" class="download-tips"  v-if="$store.state.config.platform !== 'iframe'">
+    <el-alert show-icon :show-background="false" type="info" class="download-tips">
       <span slot="title">{{$t('outputTips')}}<el-button type="primary" size="mini" text @click="downloadLogs">{{$t('download')}}</el-button>{{$t('end')}}</span>
     </el-alert>
-    <el-alert show-icon :show-background="false" type="info" class="download-tips" v-else>
+    <!-- <el-alert show-icon :show-background="false" type="info" class="download-tips" v-else>
       <span slot="title">{{$t('outputTipsKC')}}</span>
-    </el-alert>
+    </el-alert> -->
     <el-input
     type="textarea"
     :rows="14"
