@@ -45,6 +45,7 @@ public class AddInstanceColumnCLI {
             auditLogStore.checkAndUpgrade(checkSql, upgradeSql);
         }
         log.info("Add instance column finished!");
+        System.exit(0);
     }
 
 }
