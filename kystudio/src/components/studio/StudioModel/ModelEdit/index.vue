@@ -155,13 +155,13 @@
               <div class="content-scroll-layout" v-if="allDimension.length" v-scroll.observe>
                 <ul class="dimension-list">
                   <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
-                    <span class="ksd-nobr-text">
+                    <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowCheckbox}]">
                       <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
                       <span v-else :title="d.name">{{d.name}}</span>
                       <span class="icon-group">
                         <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
                         <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
-                        <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+                        <span class="li-type ky-option-sub-info">{{d.datatype && d.datatype.toLocaleLowerCase()}}</span>
                       </span>
                     </span>
                   </li>
@@ -232,13 +232,13 @@
               <div class="content-scroll-layout" v-if="allMeasure.length" v-scroll.observe>
                 <ul class="measure-list">
                   <li v-for="m in allMeasure" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
-                    <span class="ksd-nobr-text">
+                    <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowMeaCheckbox}]">
                       <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
                       <span v-else>{{m.name}}</span>
                       <span class="icon-group">
                         <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
                         <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
-                        <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                        <span class="li-type ky-option-sub-info">{{m.return_type && m.return_type.toLocaleLowerCase()}}</span>
                       </span>
                     </span>
                   </li>
@@ -304,13 +304,13 @@
             <div class="panel-main-content" v-scroll.obverse  v-if="modelRender.computed_columns.length">
               <ul class="cc-list">
                 <li v-for="m in modelRender.computed_columns" :key="m.name" :class="{'is-checked':ccSelectedList.indexOf(m.columnName)>-1}">
-                  <span class="ksd-nobr-text">
+                  <span :class="['ksd-nobr-text', {'checkbox-text-overflow': isShowCCCheckbox}]">
                     <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="m.columnName">{{m.columnName}}</el-checkbox>
                     <span v-else>{{m.columnName}}</span>
                     <span class="icon-group">
                       <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(m.columnName)"></i></span>
                       <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
-                      <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
+                      <span class="li-type ky-option-sub-info">{{m.datatype && m.datatype.toLocaleLowerCase()}}</span>
                     </span>
                   </span>
                 </li>
@@ -1925,6 +1925,18 @@ export default class ModelEdit extends Vue {
         .ksd-nobr-text {
           width: calc(~'100% - 80px');
           color:@text-title-color;
+          &.checkbox-text-overflow {
+            width: calc(~'100% - 90px');
+            .el-checkbox {
+              width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              display: inline-block;
+              .el-checkbox__label {
+                display: initial;
+              }
+            }
+          }
         }
         .content-scroll-layout {
           height: 100%;

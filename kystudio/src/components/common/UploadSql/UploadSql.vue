@@ -794,6 +794,7 @@ export default class UploadSqlModel extends Vue {
       }
       .el-icon-close {
         color: @text-title-color;
+        top: 8px;
       }
     }
   }
