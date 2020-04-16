@@ -53,6 +53,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -93,6 +94,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
         }
     }
 
+    @Ignore
     @Test
     public void testSaveUser() throws Exception {
         request.setUsername(username.toUpperCase());
