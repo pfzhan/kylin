@@ -108,13 +108,11 @@ public class AppInitializer {
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
 
-        // init RDBMS writer and create DB
         try {
             NQueryHistoryScheduler queryHistoryScheduler = NQueryHistoryScheduler.getInstance();
             queryHistoryScheduler.init();
-
         } catch (Exception ex) {
-            log.error("RDBMS writer has not initialized");
+            log.error("NQueryHistoryScheduler init fail");
         }
     }
 
