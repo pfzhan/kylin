@@ -42,6 +42,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -55,6 +56,7 @@ import io.kyligence.kap.tool.MetadataTool;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
+@Ignore
 @Slf4j
 public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
