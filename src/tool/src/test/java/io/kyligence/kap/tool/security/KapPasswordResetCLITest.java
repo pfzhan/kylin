@@ -30,6 +30,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -40,6 +41,7 @@ import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import lombok.val;
 
+@Ignore
 public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
 
     @Rule
