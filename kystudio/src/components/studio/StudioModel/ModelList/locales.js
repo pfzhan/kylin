@@ -162,7 +162,7 @@ export default {
     fixSegmentTitle: '修复 Segment',
     buildTips: '模型尚未构建索引，不可服务于查询分析。构建索引后可优化查询性能。',
     iKnow: '知道了',
-    emptyIndexTips: '该模型中存在未构建的索引。请点击加载数据按钮以构建索引。',
+    emptyIndexTips: '该模型中存在未构建的索引。请点击构建索引按钮以构建索引。',
     noIndexTips: '您需要先添加索引，才可以进行构建。',
     exportMetadata: '导出元数据',
     noModelsExport: '该项目中无任何模型,无法导出模型元数据。',
