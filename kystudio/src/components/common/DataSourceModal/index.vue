@@ -312,6 +312,7 @@ export default class DataSourceModal extends Vue {
 .data-srouce-modal {
   .el-dialog {
     margin-top:5vh!important;
+    max-width: none !important;
   }
   .el-dialog__body {
     padding: 0;
