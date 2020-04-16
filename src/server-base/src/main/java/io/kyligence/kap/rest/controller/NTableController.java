@@ -43,6 +43,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -161,7 +162,7 @@ public class NTableController extends NBasicController {
             HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON })
     @ResponseBody
     public EnvelopeResponse<String> unloadTable(@RequestParam(value = "project") String project,
-            @PathVariable(value = "database") String database, //
+            @PathVariable(value = "database") String database, // 
             @PathVariable(value = "table") String table,
             @RequestParam(value = "cascade", defaultValue = "false") Boolean cascade) {
 
@@ -221,13 +222,32 @@ public class NTableController extends NBasicController {
             throw new KylinException("KE-1010", "You should select at least one table or database to load!!");
         }
 
-        LoadTableResponse loadTableResponse = tableExtService.loadTables(tableLoadRequest);
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
+            Pair<String[], Set<String>> existsAndFails = tableService.classifyDbTables(tableLoadRequest.getProject(),
+                    tableLoadRequest.getTables());
+            LoadTableResponse loadByTable = tableExtService.loadTables(existsAndFails.getFirst(),
+                    tableLoadRequest.getProject());
+            loadTableResponse.getFailed().addAll(existsAndFails.getSecond());
+            loadTableResponse.getFailed().addAll(loadByTable.getFailed());
+            loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
+        }
+
+        if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
+            Pair<String[], Set<String>> existsAndFails = tableService.classifyDbTables(tableLoadRequest.getProject(),
+                    tableLoadRequest.getDatabases());
+            LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(),
+                    existsAndFails.getFirst());
+            loadTableResponse.getFailed().addAll(existsAndFails.getSecond());
+            loadTableResponse.getFailed().addAll(loadByDatabase.getFailed());
+            loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
+        }
+
         if (!loadTableResponse.getLoaded().isEmpty() && Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())) {
             checkSamplingRows(tableLoadRequest.getSamplingRows());
             tableSamplingService.sampling(loadTableResponse.getLoaded(), tableLoadRequest.getProject(),
                     tableLoadRequest.getSamplingRows());
         }
-
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
 

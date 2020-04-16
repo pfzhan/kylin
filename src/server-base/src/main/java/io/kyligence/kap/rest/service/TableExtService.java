@@ -25,13 +25,10 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -46,9 +43,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.transaction.Transaction;
 
 @Component("tableExtService")
@@ -58,10 +53,6 @@ public class TableExtService extends BasicService {
     @Autowired
     @Qualifier("tableService")
     private TableService tableService;
-
-    @Autowired
-    @Qualifier("tableSamplingService")
-    private TableSamplingService tableSamplingService;
 
     @Autowired
     private AclEvaluate aclEvaluate;
@@ -114,36 +105,6 @@ public class TableExtService extends BasicService {
         if (loaded.length == 0 || !loaded[0].equals(tableName))
             throw new IllegalStateException();
 
-    }
-
-    public LoadTableResponse loadTables(TableLoadRequest tableLoadRequest) throws IOException, InterruptedException {
-        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(tableLoadRequest.getProject());
-        return ugi.doAs(new PrivilegedExceptionAction<LoadTableResponse>() {
-            @Override
-            public LoadTableResponse run() throws Exception {
-                LoadTableResponse tableResponse = new LoadTableResponse();
-                if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
-                    Pair<String[], Set<String>> existsAndFails = tableService
-                            .classifyDbTables(tableLoadRequest.getProject(), tableLoadRequest.getTables());
-                    LoadTableResponse loadByTable = loadTables(existsAndFails.getFirst(),
-                            tableLoadRequest.getProject());
-                    tableResponse.getFailed().addAll(existsAndFails.getSecond());
-                    tableResponse.getFailed().addAll(loadByTable.getFailed());
-                    tableResponse.getLoaded().addAll(loadByTable.getLoaded());
-                }
-
-                if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
-                    Pair<String[], Set<String>> existsAndFails = tableService
-                            .classifyDbTables(tableLoadRequest.getProject(), tableLoadRequest.getDatabases());
-                    LoadTableResponse loadByDatabase = loadTablesByDatabase(tableLoadRequest.getProject(),
-                            existsAndFails.getFirst());
-                    tableResponse.getFailed().addAll(existsAndFails.getSecond());
-                    tableResponse.getFailed().addAll(loadByDatabase.getFailed());
-                    tableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
-                }
-                return tableResponse;
-            }
-        });
     }
 
     @Transaction(project = 1)
