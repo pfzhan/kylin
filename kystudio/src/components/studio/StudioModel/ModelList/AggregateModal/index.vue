@@ -671,9 +671,9 @@ export default class AggregateModal extends Vue {
   }
   beforeDestroy () {
     // 销毁组件前需要重置组件里的相关信息，以防切换模型，展开聚合组时，信息混乱
-    // this.handleClose(false)
     this.hideModal()
     this.isEditGlobalDim = false
+    this.resetModalForm()
     this.callback && this.callback(false)
   }
   handleClose (isSubmit) {
