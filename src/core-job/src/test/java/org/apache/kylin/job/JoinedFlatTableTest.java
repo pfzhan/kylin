@@ -186,19 +186,18 @@ public class JoinedFlatTableTest {
     @Test
     public void testGenerateSelectDataStatement() {
         String flatTableSql = JoinedFlatTable.generateSelectDataStatement(dataModel, false);
-        String expectedSql = "SELECT \n"
+        String expectedSql = "SELECT \n" //
                 + "\"LINEORDER\".\"LO_SUPPKEY\" as \"LINEORDER_LO_SUPPKEY\",\n"
                 + "\"LINEORDER\".\"LO_REVENUE\" as \"LINEORDER_LO_REVENUE\",\n"
                 + "\"LINEORDER\".\"LO_TAX\" as \"LINEORDER_LO_TAX\",\n"
-                + "case when \"LINEORDER\".\"LO_REVENUE\" - \"LINEORDER\".\"LO_TAX\" > 0 then 'LINEORDER' else null end as \"LINEORDER_PROFIT\",\n"
                 + "\"SUPPLIER\".\"S_SUPPKEY\" as \"SUPPLIER_S_SUPPKEY\",\n"
-                + "\"SUPPLIER\".\"S_CITY\" as \"SUPPLIER_S_CITY\"\n"
-                + "FROM \n"
-                + "\"SSB\".\"LINEORDER\" as \"LINEORDER\" \n"
-                + "LEFT JOIN \"SSB\".\"SUPPLIER\" as \"SUPPLIER\"\n"
-                + "ON \"SUPPLIER\".\"S_SUPPKEY\"=\"LINEORDER\".\"LO_SUPPKEY\"\n"
-                + "WHERE \n"
-                + "1 = 1\n"
+                + "\"SUPPLIER\".\"S_CITY\" as \"SUPPLIER_S_CITY\"\n" //
+                + "FROM \n" //
+                + "\"SSB\".\"LINEORDER\" as \"LINEORDER\" \n" //
+                + "LEFT JOIN \"SSB\".\"SUPPLIER\" as \"SUPPLIER\"\n" //
+                + "ON \"SUPPLIER\".\"S_SUPPKEY\"=\"LINEORDER\".\"LO_SUPPKEY\"\n" //
+                + "WHERE \n" //
+                + "1 = 1\n" //
                 + " AND (\"SUPPLIER\".\"S_CITY\" != 'beijing')";
         Assert.assertEquals(expectedSql, flatTableSql.trim());
 

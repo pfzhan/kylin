@@ -108,12 +108,14 @@ public class JoinedFlatTable {
         StringBuilder subSql = new StringBuilder();
         for (Map.Entry<Integer, TblColRef> tableRefEntry : modelDesc.getEffectiveCols().entrySet()) {
             TblColRef col = tableRefEntry.getValue();
-            if (subSql.length() > 0) {
-                subSql.append(",").append(sep);
-            }
+            if (!col.getColumnDesc().isComputedColumn()) {
+                if (subSql.length() > 0) {
+                    subSql.append(",").append(sep);
+                }
 
-            String colName = colName(col);
-            subSql.append(quotedColExpressionInSourceDB(modelDesc, col)).append(" as ").append(quote(colName));
+                String colName = colName(col);
+                subSql.append(quotedColExpressionInSourceDB(modelDesc, col)).append(" as ").append(quote(colName));
+            }
         }
 
         return subSql.toString();
