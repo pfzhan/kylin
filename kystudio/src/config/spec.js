@@ -97,6 +97,9 @@ export default {
       { "id": "jobActions" },
       { "id": "diagnostic" }
     ],
+    "insightActions": [
+      { "id": "viewAppMasterURL" }
+    ],
     "userActions": [
       { "id": "addUser" },
       { "id": "editUser" },
@@ -207,6 +210,17 @@ export default {
       "entries": [
         { "key": "systemAdmin-*", "value": "jobActions,diagnostic" },
         { "key": "systemUser-[admin,management,operation]", "value": "jobActions" },
+        { "key": "systemUser-read", "value": "none" }
+      ]
+    },
+    // 查询分析页面的操作权限
+    "insightActions": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "viewAppMasterURL" },
+        { "key": "systemUser-admin", "value": "viewAppMasterURL" },
+        { "key": "systemUser-management", "value": "viewAppMasterURL" },
+        { "key": "systemUser-operation", "value": "viewAppMasterURL" },
         { "key": "systemUser-read", "value": "none" }
       ]
     },

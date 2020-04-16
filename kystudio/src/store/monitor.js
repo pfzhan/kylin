@@ -57,6 +57,12 @@ export default {
       const projectRole = rootState.user.currentUserAccess
 
       return getAvailableOptions('monitorActions', { groupRole, projectRole })
+    },
+    insightActions (state, getters, rootState, rootGetters) {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+
+      return getAvailableOptions('insightActions', { groupRole, projectRole })
     }
   }
 }

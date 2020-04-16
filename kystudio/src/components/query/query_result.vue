@@ -6,7 +6,7 @@
         <p class="resultText">
           <span class="label">{{$t('kylinLang.query.query_id')}}: </span>
           <span class="text">{{extraoption.queryId}}</span>
-          <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL">
+          <common-tip :content="$t('linkToSpark')" v-if="extraoption.appMasterURL && insightActions.includes('viewAppMasterURL')">
             <a target="_blank" :href="extraoption.appMasterURL"><i class="el-icon-ksd-go"></i></a>
           </common-tip>
         </p>
@@ -106,7 +106,8 @@ import moment from 'moment'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'insightActions'
     ])
   },
   locales: {
