@@ -53,7 +53,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -94,7 +93,6 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
         }
     }
 
-    @Ignore
     @Test
     public void testSaveUser() throws Exception {
         request.setUsername(username.toUpperCase());
@@ -104,8 +102,7 @@ public class NUserControllerTest extends AbstractMVCIntegrationTestCase {
                         .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isInternalServerError())
                 .andExpect(jsonPath("$.code").value("999")).andReturn();
-        Assert.assertTrue(result.getResponse().getContentAsString()
-                .contains("Username:[test_user] already exists"));
+        Assert.assertTrue(result.getResponse().getContentAsString().contains("Username:[test_user] already exists"));
     }
 
     @Test
