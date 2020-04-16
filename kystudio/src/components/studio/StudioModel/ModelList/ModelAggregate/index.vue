@@ -50,7 +50,7 @@
                 {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
               </div>
               <div class="ksd-mb-5 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
-                {{$t('dataRange')}}: {{dataRange}}
+                {{$t('dataRange')}}: {{getDataRange}}
               </div>
               <div class="filter-tags-agg" v-show="filterTags.length">
                 <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
@@ -270,7 +270,7 @@ export default class ModelAggregate extends Vue {
   buildIndexLoading = false
   indexLoading = false
   indexDatas = []
-  dataRange = ''
+  dataRange = null
   totalSize = 0
   filterArgs = {
     page_offset: 0,
@@ -522,7 +522,7 @@ export default class ModelAggregate extends Vue {
         model: this.model.uuid
       })
       const data = await handleSuccessAsync(res)
-      this.dataRange = (data.start_time && data.end_time) ? transToServerGmtTime(data.start_time) + this.$t('to') + transToServerGmtTime(data.end_time) : undefined
+      this.dataRange = [data.start_time, data.end_time]
       this.isFullLoaded = data.is_full_loaded
       this.cuboids = formatGraphData(data)
       this.cuboidCount = data.total_indexes
@@ -530,6 +530,9 @@ export default class ModelAggregate extends Vue {
     } catch (e) {
       handleError(e)
     }
+  }
+  get getDataRange () {
+    return this.dataRange ? transToServerGmtTime(this.dataRange[0]) + this.$t('to') + transToServerGmtTime(this.dataRange[1]) : ''
   }
   get noDataNum () {
     let nodeNum = 0

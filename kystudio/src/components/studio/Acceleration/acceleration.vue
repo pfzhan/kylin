@@ -312,7 +312,7 @@ import UploadSqlModel from '../../common/UploadSql/UploadSql.vue'
       secondes: 'second(s)',
       acceleratedSQL: 'Accelerated SQL',
       waitingList: 'Waiting List ({num})',
-      not_accelerated: 'Not Accelerated ({num})',
+      not_accelerated: 'Failed ({num})',
       accelerated: 'Accelerated ({num})',
       accelerationDesc: 'Acceleration will convert queries to recommendations for corresponding models. Once accept recommendations and build indexes, acceleration will be effective.',
       canBeAcceTips: 'Queries which can be accelerated refer to those in waiting and failure list',
