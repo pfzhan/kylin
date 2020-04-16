@@ -1100,15 +1100,19 @@ public abstract class KylinConfigBase implements Serializable {
     // ============================================================================
 
     public boolean isUseTableIndexAnswerNonRawQuery() {
-        return Boolean.valueOf(getOptional("kylin.query.use-tableindex-answer-non-raw-query", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.query.use-tableindex-answer-non-raw-query", FALSE));
     }
 
     public boolean isTransactionEnabledInQuery() {
-        return Boolean.valueOf(getOptional("kylin.query.transaction-enable", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.query.transaction-enable", FALSE));
     }
 
     public boolean isConvertCreateTableToWith() {
-        return Boolean.valueOf(getOptional("kylin.query.convert-create-table-to-with", FALSE));
+        return Boolean.parseBoolean(getOptional("kylin.query.convert-create-table-to-with", FALSE));
+    }
+
+    public boolean isConvertSumExpressionEnabled() {
+        return Boolean.parseBoolean(getOptional("kap.query.enable-convert-sum-expression", FALSE));
     }
 
     /**

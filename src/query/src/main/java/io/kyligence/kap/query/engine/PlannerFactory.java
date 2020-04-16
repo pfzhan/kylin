@@ -28,6 +28,11 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.query.optrule.KapSumTransCastToThenRule;
+import io.kyligence.kap.query.optrule.SumBasicOperatorRule;
+import io.kyligence.kap.query.optrule.SumCaseWhenFunctionRule;
+import io.kyligence.kap.query.optrule.SumConstantConvertRuleNew;
+import io.kyligence.kap.query.optrule.SumExprFlagRule;
 import org.apache.calcite.adapter.enumerable.EnumerableInterpreterRule;
 import org.apache.calcite.adapter.enumerable.EnumerableRules;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -93,7 +98,7 @@ import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
 import io.kyligence.kap.query.optrule.RightJoinToLeftJoinRule;
-import io.kyligence.kap.query.optrule.SumConstantConvertRule;
+import io.kyligence.kap.query.optrule.SumConstantConvertRuleOld;
 
 /**
  * factory that create optimizers and register opt rules
@@ -211,7 +216,16 @@ public class PlannerFactory {
             planner.addRule(AggregateMultipleExpandRule.INSTANCE);
         }
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
-        planner.addRule(SumConstantConvertRule.INSTANCE);
+
+        if (kylinConfig.isConvertSumExpressionEnabled()) {
+            planner.addRule(SumConstantConvertRuleNew.INSTANCE);
+            planner.addRule(KapSumTransCastToThenRule.INSTANCE);
+            planner.addRule(SumCaseWhenFunctionRule.INSTANCE);
+            planner.addRule(SumBasicOperatorRule.INSTANCE);
+            planner.addRule(SumExprFlagRule.INSTANCE);
+        } else {
+            planner.addRule(SumConstantConvertRuleOld.INSTANCE);
+        }
 
         // CalcitePrepareImpl.CONSTANT_REDUCTION_RULES
         if (kylinConfig.isReduceExpressionsRulesEnabled()) {

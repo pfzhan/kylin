@@ -45,6 +45,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
 import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
@@ -61,6 +62,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
 import lombok.Setter;
+
+import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprDone;
 
 /**
  */
@@ -86,7 +89,20 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
 
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq);
+        boolean isSumExprDone = false;
+        for (RexNode exp : exps) {
+            if (exp instanceof RexLiteral
+                    && kySumExprDone.getValue().equals(((RexLiteral) exp).getValue2())) {
+                isSumExprDone = true;
+            }
+        }
+        RelOptCost cost;
+        if (isSumExprDone) {
+            cost = super.computeSelfCost(planner, mq).multiplyBy(0.000001);
+        } else {
+            cost = super.computeSelfCost(planner, mq);
+        }
+        return cost;
     }
 
     @Override

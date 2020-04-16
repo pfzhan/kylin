@@ -28,6 +28,8 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 
+import com.google.common.annotations.VisibleForTesting;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
@@ -55,8 +57,9 @@ import io.kyligence.kap.query.engine.meta.SimpleDataContext;
 import io.kyligence.kap.query.util.RexHasConstantUdfVisitor;
 
 /**
- * entrance for query execution
+ * Entrance for query execution
  */
+@Slf4j
 public class QueryExec {
 
     private final KylinConfig kylinConfig;
@@ -69,16 +72,21 @@ public class QueryExec {
     private final SimpleDataContext dataContext;
 
     public QueryExec(String project, KylinConfig kylinConfig) {
-        this.kylinConfig = kylinConfig;
-        config = KECalciteConfig.fromKapConfig(kylinConfig);
-        schemaFactory = new ProjectSchemaFactory(project, kylinConfig);
-        catalogReader = createCatalogReader(config, schemaFactory);
-        planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
-        sqlConverter = new SQLConverter(config, planner, catalogReader);
-        dataContext = createDataContext();
-        planner.setExecutor(new RexExecutorImpl(dataContext));
-        queryOptimizer = new QueryOptimizer(planner);
-    }
+        this(kylinConfig, new ProjectSchemaFactory(project, kylinConfig));
+     }
+
+     @VisibleForTesting
+     public QueryExec(KylinConfig kylinConfig, ProjectSchemaFactory projectSchemaFactory){
+         this.kylinConfig = kylinConfig;
+         config = KECalciteConfig.fromKapConfig(kylinConfig);
+         schemaFactory =  projectSchemaFactory;
+         catalogReader = createCatalogReader(config, schemaFactory);
+         planner = new PlannerFactory(kylinConfig).createVolcanoPlanner(config);
+         sqlConverter = new SQLConverter(config, planner, catalogReader);
+         dataContext = createDataContext();
+         planner.setExecutor(new RexExecutorImpl(dataContext));
+         queryOptimizer = new QueryOptimizer(planner);
+     }
 
     /**
      * parse, optimize sql and execute the sql physically
@@ -103,6 +111,12 @@ public class QueryExec {
         } finally {
             afterQuery();
         }
+    }
+
+    @VisibleForTesting
+    public RelRoot parseAndOptimize(String sql) throws SqlParseException {
+        RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
+        return queryOptimizer.optimize(relRoot);
     }
 
     /**

@@ -383,7 +383,7 @@ public abstract class NSuggestTestBase extends NLocalWithSparkSessionTest {
             // 2. execute cube building
             long startTime = System.currentTimeMillis();
             buildAllCubes(kylinConfig, getProject());
-            log.debug("build cube cost {} s", System.currentTimeMillis() - startTime);
+            log.debug("build cube cost {} ms", System.currentTimeMillis() - startTime);
 
             // dump metadata for debugging
             dumpMetadata();

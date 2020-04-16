@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.query.CalciteSystemProperty;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.AggregateCall;
@@ -113,7 +114,7 @@ public class ContextUtil {
     }
 
     public static void dumpCalcitePlan(String msg, RelNode relNode) {
-        if (System.getProperty("calcite.debug") != null) {
+        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
             String dumpPlan = RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT,
                     SqlExplainLevel.DIGEST_ATTRIBUTES);
             System.out.println(msg);

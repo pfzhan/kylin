@@ -61,16 +61,16 @@ import com.google.common.collect.Lists;
  *     OLAPProjectRel(ctx=[0@null])
  *
  */
+@Deprecated
+public class SumConstantConvertRuleOld extends RelOptRule {
 
-public class SumConstantConvertRule extends RelOptRule {
+    private static Logger logger = LoggerFactory.getLogger(SumConstantConvertRuleOld.class);
 
-    private static Logger logger = LoggerFactory.getLogger(SumConstantConvertRule.class);
-
-    public static final SumConstantConvertRule INSTANCE = new SumConstantConvertRule(
+    public static final SumConstantConvertRuleOld INSTANCE = new SumConstantConvertRuleOld(
             operand(LogicalAggregate.class, operand(LogicalProject.class, null, RelOptRule.any())),
             RelFactories.LOGICAL_BUILDER, "SumConstantConvertRule");
 
-    public SumConstantConvertRule(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
+    public SumConstantConvertRuleOld(RelOptRuleOperand operand, RelBuilderFactory relBuilderFactory, String description) {
         super(operand, relBuilderFactory, description);
     }
 
