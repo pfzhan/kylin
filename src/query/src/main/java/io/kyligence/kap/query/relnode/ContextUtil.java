@@ -51,6 +51,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.RexUtils;
+import org.slf4j.Logger;
 
 public class ContextUtil {
     /**
@@ -119,6 +120,12 @@ public class ContextUtil {
                     SqlExplainLevel.DIGEST_ATTRIBUTES);
             System.out.println(msg);
             System.out.println(dumpPlan);
+        }
+    }
+
+    public static void dumpCalcitePlan(String msg, RelNode relNode, Logger logger) {
+        if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
+            logger.debug("{} : {}", msg, RelOptUtil.toString(relNode));
         }
     }
 

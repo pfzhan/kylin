@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.query.util;
 
+import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapEquiJoinConditionFixRule;
+import io.kyligence.kap.query.optrule.KapSumExprRules;
 import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.hep.HepPlanner;
@@ -63,6 +65,14 @@ public class HepUtils {
             // Merge Rule
             ProjectMergeRule.INSTANCE, FilterMergeRule.INSTANCE, ProjectRemoveRule.INSTANCE);
 
+    public static final ImmutableList<RelOptRule> SumExprRule = ImmutableList.of(
+            KapSumExprRules.CASE_WHEN_FUNCTION_RULE,
+            KapSumExprRules.SUM_BASIC_OPERATOR_RULE,
+            KapSumExprRules.SUM_CONSTANT_CONVERT_RULE_NEW,
+            KapSumExprRules.SUM_TRANS_CAST_TO_THEN_RULE,
+            KapProjectRule.INSTANCE,
+            KapAggregateRule.INSTANCE
+    );
     private HepUtils() {
     }
 

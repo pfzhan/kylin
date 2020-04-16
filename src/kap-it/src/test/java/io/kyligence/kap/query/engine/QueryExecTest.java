@@ -25,9 +25,10 @@ package io.kyligence.kap.query.engine;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.query.engine.exec.sparder.SparderQueryPlanExec;
+import io.kyligence.kap.query.util.HepUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelRoot;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.spark.sql.Dataset;
@@ -36,7 +37,6 @@ import org.apache.spark.sql.SparderEnv;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 @Slf4j
@@ -53,20 +53,20 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
     }
 
     private Dataset<Row> check(String SQL) throws SqlParseException {
-        RelRoot r = toCalcitePlan(SQL);
-        log.debug(RelOptUtil.toString(r.rel));
-        return toSparkPlan(r);
+        RelNode node = toCalcitePlan(SQL);
+        log.debug(RelOptUtil.toString(node));
+        return toSparkPlan(node);
     }
 
-    private Dataset<Row> toSparkPlan(RelRoot r) {
+    private Dataset<Row> toSparkPlan(RelNode node) {
         SparderEnv.skipCompute();
         SparderQueryPlanExec planExec = new SparderQueryPlanExec();
-        planExec.execute(r.rel, null);
+        planExec.execute(node, null);
         Dataset<Row> dataset = SparderEnv.getDF();
         Assert.assertNotNull(dataset);
         return dataset;
     }
-    private RelRoot toCalcitePlan(String SQL) throws SqlParseException {
+    private RelNode toCalcitePlan(String SQL) throws SqlParseException {
         ProjectSchemaFactory ps = new ProjectSchemaFactory("default", KylinConfig.getInstanceFromEnv());
         QueryExec qe = new QueryExec(KylinConfig.getInstanceFromEnv(), ps);
         return qe.parseAndOptimize(SQL);
@@ -113,18 +113,18 @@ public class QueryExecTest extends NLocalFileMetadataTestCase {
         check(SQLWithNull);
     }
 
-    @Ignore
+    @Test
     public void testUsingHEP() throws SqlParseException {
         overwriteSystemProp("kap.query.enable-convert-sum-expression", "false");
         String SQL =
                 "SELECT " +
                         "SUM(CASE WHEN LSTG_FORMAT_NAME='FP-non GTC' THEN PRICE ELSE 2 END) " +
-                        "FROM TEST_KYLIN_FACT";
+                "FROM TEST_KYLIN_FACT";
 
-        RelRoot r = toCalcitePlan(SQL);
-        Assert.assertNotNull(r);
-        //- log.debug("old: {}", RelOptUtil.toString(r.rel));
-        //- RelNode node = HepUtils.runRuleCollection(r.rel, HepUtils.SumExprRule);
-        //- log.debug("new: {}", RelOptUtil.toString(node));
+        RelNode node = toCalcitePlan(SQL);
+        Assert.assertNotNull(node);
+        log.debug("old: {}", RelOptUtil.toString(node));
+        node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
+        log.debug("new: {}", RelOptUtil.toString(node));
     }
 }

@@ -26,7 +26,7 @@ package io.kyligence.kap.query.optrule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.query.CalciteSystemProperty;
+import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.util.SumExpressionUtil;
 import io.kyligence.kap.query.util.SumExpressionUtil.AggExpression;
 import io.kyligence.kap.query.util.SumExpressionUtil.GroupExpression;
@@ -35,10 +35,12 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -59,6 +61,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
+import static io.kyligence.kap.query.util.SumExpressionUtil.supportAggregateFunction;
 
 /**
  * sql: select sum(case when LSTG_FORMAT_NAME='ABIN' then price else null end) from KYLIN_SALES;
@@ -83,7 +86,7 @@ import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
 
 public class SumCaseWhenFunctionRule extends RelOptRule {
 
-    private static Logger logger = LoggerFactory.getLogger(SumCaseWhenFunctionRule.class);
+    private static final Logger logger = LoggerFactory.getLogger(SumCaseWhenFunctionRule.class);
 
     public static final SumCaseWhenFunctionRule INSTANCE = new SumCaseWhenFunctionRule(
             operand(LogicalAggregate.class, operand(LogicalProject.class, null,
@@ -96,8 +99,8 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
 
     @Override
     public boolean matches(RelOptRuleCall ruleCall) {
-        LogicalAggregate oldAgg = ruleCall.rel(0);
-        LogicalProject oldProject = ruleCall.rel(1);
+        Aggregate oldAgg = ruleCall.rel(0);
+        Project oldProject = ruleCall.rel(1);
         return checkSumCaseExpression(oldAgg, oldProject);
     }
 
@@ -105,12 +108,10 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
     public void onMatch(RelOptRuleCall ruleCall) {
         try {
             RelBuilder relBuilder = ruleCall.builder();
-            LogicalAggregate oldAgg = ruleCall.rel(0);
-            LogicalProject oldProject = ruleCall.rel(1);
+            Aggregate oldAgg = ruleCall.rel(0);
+            Project oldProject = ruleCall.rel(1);
 
-            if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-                logger.debug("old plan : {}", RelOptUtil.toString(oldAgg));
-            }
+            ContextUtil.dumpCalcitePlan("old plan", oldAgg, logger);
 
             // #0 Set base input
             relBuilder.push(oldProject.getInput());
@@ -174,16 +175,14 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             RelBuilder.GroupKey topGroupKey = relBuilder.groupKey(topGroupSet, newGroupSets);
             relBuilder.aggregate(topGroupKey, topAggregates);
             RelNode relNode = relBuilder.build();
-            if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-                logger.debug("new plan : {}", RelOptUtil.toString(relNode));
-            }
+            ContextUtil.dumpCalcitePlan("new plan", relNode, logger);
             ruleCall.transformTo(relNode);
         } catch (Exception | Error e) {
             logger.error("sql cannot apply sum case when rule ", e);
         }
     }
 
-    private List<RexNode> buildBottomProject(RelBuilder relBuilder, LogicalProject oldProject,
+    private List<RexNode> buildBottomProject(RelBuilder relBuilder, Project oldProject,
                                              List<GroupExpression> groupExpressions,
                                              List<AggExpression> aggExpressions) {
         List<RexNode> bottomProjectList = Lists.newArrayList();
@@ -266,7 +265,7 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
         return !(node instanceof RexLiteral && ((RexLiteral) node).isNull());
     }
 
-    private List<RexNode> buildTopProject(RelBuilder relBuilder, LogicalProject oldProject,
+    private List<RexNode> buildTopProject(RelBuilder relBuilder, Project oldProject,
                                           List<AggExpression> aggExpressions, List<GroupExpression> groupExpressions) {
         List<RexNode> topProjectList = Lists.newArrayList();
 
@@ -334,7 +333,7 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
         return topAggregates;
     }
 
-    public static boolean checkSumCaseExpression(LogicalAggregate oldAgg, LogicalProject oldProject) {
+    public static boolean checkSumCaseExpression(Aggregate oldAgg, Project oldProject) {
         boolean hasSumCaseExpression = false;
         for (AggregateCall call : oldAgg.getAggCallList()) {
             if (call.getArgList().size() > 1) {
@@ -343,17 +342,16 @@ public class SumCaseWhenFunctionRule extends RelOptRule {
             if (call.getArgList().isEmpty()) {
                 continue;
             }
-            if (!SqlKind.SUM.equals(call.getAggregation().getKind())
-                    && !(SqlKind.COUNT.equals(call.getAggregation().getKind()) && !call.isDistinct())
-                    && !SqlKind.MAX.equals(call.getAggregation().getKind())
-                    && !SqlKind.MIN.equals(call.getAggregation().getKind())) {
+            if (!supportAggregateFunction(call)) {
                 return false;
             }
+
+            if (hasSumCaseExpression)
+                continue;
+
             int input = call.getArgList().get(0);
             RexNode expression = oldProject.getChildExps().get(input);
-            if (SqlKind.SUM.equals(call.getAggregation().getKind()) && expression.getKind().equals(SqlKind.CASE)) {
-                hasSumCaseExpression = true;
-            }
+            hasSumCaseExpression = SumExpressionUtil.hasSumCaseWhen(call, expression);
         }
         return hasSumCaseExpression;
     }

@@ -26,8 +26,8 @@ package io.kyligence.kap.query.optrule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.query.CalciteSystemProperty;
 import io.kyligence.kap.query.exception.SumExprUnSupportException;
+import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.util.SumExpressionUtil;
 import io.kyligence.kap.query.util.SumExpressionUtil.AggExpression;
 import io.kyligence.kap.query.util.SumExpressionUtil.GroupExpression;
@@ -36,10 +36,12 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlAggFunction;
@@ -76,7 +78,7 @@ import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
 
 public class SumConstantConvertRuleNew extends RelOptRule {
 
-    private static Logger logger = LoggerFactory.getLogger(SumConstantConvertRuleNew.class);
+    private static final Logger logger = LoggerFactory.getLogger(SumConstantConvertRuleNew.class);
 
     public static final SumConstantConvertRuleNew INSTANCE = new SumConstantConvertRuleNew(
             operand(LogicalAggregate.class, operand(LogicalProject.class, null,
@@ -89,8 +91,8 @@ public class SumConstantConvertRuleNew extends RelOptRule {
 
     @Override
     public boolean matches(RelOptRuleCall ruleCall) {
-        LogicalAggregate oldAgg = ruleCall.rel(0);
-        LogicalProject oldProject = ruleCall.rel(1);
+        Aggregate oldAgg = ruleCall.rel(0);
+        Project oldProject = ruleCall.rel(1);
         try {
             boolean matches = false;
             for (AggExpression sumExpr : SumExpressionUtil.collectSumExpressions(oldAgg, oldProject)) {
@@ -109,12 +111,10 @@ public class SumConstantConvertRuleNew extends RelOptRule {
     public void onMatch(RelOptRuleCall ruleCall) {
         try {
             RelBuilder relBuilder = ruleCall.builder();
-            LogicalAggregate oldAgg = ruleCall.rel(0);
-            LogicalProject oldProject = ruleCall.rel(1);
+            Aggregate oldAgg = ruleCall.rel(0);
+            Project oldProject = ruleCall.rel(1);
 
-            if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-                logger.debug("old plan : {}", RelOptUtil.toString(oldAgg));
-            }
+            ContextUtil.dumpCalcitePlan("old plan", oldAgg, logger);
 
             List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(oldAgg, oldProject);
             Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups =
@@ -161,16 +161,14 @@ public class SumConstantConvertRuleNew extends RelOptRule {
             relBuilder.aggregate(topGroupKey, topAggregates);
 
             RelNode relNode = relBuilder.build();
-            if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-                logger.debug("new plan : {}", RelOptUtil.toString(relNode));
-            }
+            ContextUtil.dumpCalcitePlan("new plan", relNode, logger);
             ruleCall.transformTo(relNode);
         } catch (Exception e) {
             logger.error("sql cannot apply sum constant rule ", e);
         }
     }
 
-    private List<RexNode> buildBottomProject(RelBuilder relBuilder, LogicalProject oldProject,
+    private List<RexNode> buildBottomProject(RelBuilder relBuilder, Project oldProject,
                                              List<GroupExpression> groupExpressions,
                                              List<AggExpression> aggExpressions) {
         List<RexNode> bottomProjectList = Lists.newArrayList();
@@ -219,7 +217,7 @@ public class SumConstantConvertRuleNew extends RelOptRule {
         return aggCalls;
     }
 
-    private List<RexNode> buildTopProject(RelBuilder relBuilder, LogicalProject oldProject,
+    private List<RexNode> buildTopProject(RelBuilder relBuilder, Project oldProject,
                                           List<GroupExpression> groupExpressions,
                                           List<AggExpression> aggExpressions) {
         List<RexNode> topProjectList = Lists.newArrayList();

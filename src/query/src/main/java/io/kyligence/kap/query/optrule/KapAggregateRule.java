@@ -26,6 +26,7 @@ package io.kyligence.kap.query.optrule;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -35,7 +36,8 @@ import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlAvgAggFunction;
 
 import io.kyligence.kap.query.relnode.KapAggregateRel;
-import io.kyligence.kap.query.relnode.KapRel;
+
+import static org.apache.kylin.query.relnode.OLAPRel.CONVENTION;
 
 /**
  */
@@ -44,7 +46,7 @@ public class KapAggregateRule extends ConverterRule {
     public static final ConverterRule INSTANCE = new KapAggregateRule();
 
     public KapAggregateRule() {
-        super(LogicalAggregate.class, Convention.NONE, KapRel.CONVENTION, "KapAggregateRule");
+        super(LogicalAggregate.class, Convention.NONE, CONVENTION, "KapAggregateRule");
     }
 
     @Override
@@ -57,10 +59,18 @@ public class KapAggregateRule extends ConverterRule {
             return null;
         }
 
-        RelTraitSet traitSet = agg.getTraitSet().replace(KapRel.CONVENTION);
+        RelTraitSet traitSet = agg.getTraitSet().replace(CONVENTION).simplify();
+        RelNode convertedInput = agg.getInput() instanceof HepRelVertex ? agg.getInput()
+                : convert(agg.getInput(), CONVENTION);
         try {
-            return new KapAggregateRel(agg.getCluster(), traitSet, convert(agg.getInput(), KapRel.CONVENTION),
-                    agg.indicator, agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
+            return new KapAggregateRel(
+                    agg.getCluster(),
+                    traitSet,
+                    convertedInput,
+                    agg.indicator,
+                    agg.getGroupSet(),
+                    agg.getGroupSets(),
+                    agg.getAggCallList());
         } catch (InvalidRelException e) {
             throw new IllegalStateException("Can't create OLAPAggregateRel!", e);
         }

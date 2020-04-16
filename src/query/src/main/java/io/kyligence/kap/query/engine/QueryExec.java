@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.kyligence.kap.query.relnode.ContextUtil;
+import io.kyligence.kap.query.util.HepUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -95,13 +97,9 @@ public class QueryExec {
      */
     public QueryResult executeQuery(String sql) throws SQLException {
         try {
-            beforeQuery();
-
+            beforeQuery();         
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-
-            RelRoot optimizedRelRoot = queryOptimizer.optimize(relRoot);
-
-            return new QueryResult(executeQueryPlan(optimizedRelRoot.rel),
+            return new QueryResult(executeQueryPlan(parseAndOptimize(sql)),
                     RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType));
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg
@@ -114,9 +112,15 @@ public class QueryExec {
     }
 
     @VisibleForTesting
-    public RelRoot parseAndOptimize(String sql) throws SqlParseException {
+    public RelNode parseAndOptimize(String sql) throws SqlParseException {
         RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
-        return queryOptimizer.optimize(relRoot);
+        RelNode node = queryOptimizer.optimize(relRoot).rel;
+        if (kylinConfig.isConvertSumExpressionEnabled()) {
+            ContextUtil.dumpCalcitePlan("Before HEP", node, log);
+            node = HepUtils.runRuleCollection(node, HepUtils.SumExprRule);
+            ContextUtil.dumpCalcitePlan("After HEP", node, log);
+        }
+        return node;
     }
 
     /**

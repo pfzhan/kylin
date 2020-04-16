@@ -30,12 +30,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.query.exception.SumExprUnSupportException;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
-import org.apache.calcite.rel.logical.LogicalAggregate;
-import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -71,6 +71,11 @@ public class SumExpressionUtil {
         RelNode input = current.getInput(0);
         if (input == null)
             return false;
+
+        if (input instanceof HepRelVertex) {
+            input = ((HepRelVertex) input).getCurrentRel();
+        }
+
         if (input instanceof Aggregate)
             return true;
 
@@ -266,7 +271,30 @@ public class SumExpressionUtil {
         }
     }
 
-    public static List<AggExpression> collectSumExpressions(LogicalAggregate oldAgg, LogicalProject oldProject) {
+    public static boolean supportAggregateFunction(AggregateCall call) {
+        if (call.isDistinct())
+            return false;
+        SqlKind kind = call.getAggregation().getKind();
+
+        return  SqlKind.SUM.equals(kind)
+                || SqlKind.SUM0.equals(kind)
+                || SqlKind.COUNT.equals(kind)
+                || SqlKind.MAX.equals(kind)
+                || SqlKind.MIN.equals(kind);
+    }
+
+    public static boolean hasSumCaseWhen(AggregateCall call, RexNode expression) {
+        if (isSum(call.getAggregation().getKind())) {
+            return expression.getKind().equals(SqlKind.CASE);
+        }
+        return false;
+    }
+
+    public static  boolean isSum(SqlKind kind){
+        return SqlKind.SUM.equals(kind) || SqlKind.SUM0.equals(kind);
+    }
+
+    public static List<AggExpression> collectSumExpressions(Aggregate oldAgg, Project oldProject) {
         List<AggExpression> aggExpressions = Lists.newArrayList();
         for (AggregateCall call : oldAgg.getAggCallList()) {
             assertCondition(call.getArgList().size() <= 1, "Only support aggregate with 0 or 1 argument");
@@ -288,7 +316,7 @@ public class SumExpressionUtil {
             RexNode expression = oldProject.getChildExps().get(input);
             int[] sourceInput = RelOptUtil.InputFinder.bits(expression).toArray();
             aggExpression.setExpression(expression);
-            if (SqlKind.SUM.equals(call.getAggregation().getKind()) && expression.getKind().equals(SqlKind.CASE)) {
+            if (hasSumCaseWhen(call, expression)) {
                 aggExpression.setSumCase();
                 List<RexNode> conditions = extractCaseWhenConditions(expression);
                 aggExpression.setConditionsList(conditions);
@@ -299,7 +327,7 @@ public class SumExpressionUtil {
                 aggExpression.bottomAggInput = newArray(1);
                 aggExpression.topProjInput = newArray(1);
                 aggExpression.topAggInput = newArray(1);
-            } else if (SqlKind.SUM.equals(call.getAggregation().getKind()) && sourceInput.length == 0) {
+            } else if (isSum(call.getAggregation().getKind()) && sourceInput.length == 0) {
                 aggExpression.setSumConst();
                 aggExpression.bottomProjInput = newArray(0);
                 aggExpression.bottomAggInput = newArray(1);
@@ -372,7 +400,7 @@ public class SumExpressionUtil {
     }
 
     public static Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>>
-    collectGroupExprAndGroup(LogicalAggregate oldAgg, LogicalProject oldProject) {
+    collectGroupExprAndGroup(Aggregate oldAgg, Project oldProject) {
         List<GroupExpression> groupExpressions = Lists.newArrayListWithCapacity(oldAgg.getGroupCount());
         Map<Integer, Integer> old2new = Maps.newHashMap();
         for (int groupBy : oldAgg.getGroupSet()) {

@@ -26,8 +26,8 @@ package io.kyligence.kap.query.optrule;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.query.CalciteSystemProperty;
 import io.kyligence.kap.query.exception.SumExprUnSupportException;
+import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.util.SumExpressionUtil;
 import io.kyligence.kap.query.util.SumExpressionUtil.AggExpression;
 import io.kyligence.kap.query.util.SumExpressionUtil.GroupExpression;
@@ -36,10 +36,12 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -84,7 +86,7 @@ import static io.kyligence.kap.query.util.SumExpressionUtil.kySumExprFlag;
 
 public class SumBasicOperatorRule extends RelOptRule {
 
-    private static Logger logger = LoggerFactory.getLogger(SumBasicOperatorRule.class);
+    private static final Logger logger = LoggerFactory.getLogger(SumBasicOperatorRule.class);
 
     public static final SumBasicOperatorRule INSTANCE = new SumBasicOperatorRule(
             operand(LogicalAggregate.class, operand(LogicalProject.class, null,
@@ -97,8 +99,8 @@ public class SumBasicOperatorRule extends RelOptRule {
 
     @Override
     public boolean matches(RelOptRuleCall ruleCall) {
-        LogicalAggregate oldAgg = ruleCall.rel(0);
-        LogicalProject oldProject = ruleCall.rel(1);
+        Aggregate oldAgg = ruleCall.rel(0);
+        Project oldProject = ruleCall.rel(1);
         try {
             boolean matches = false;
             for (AggExpression sumExpr : SumExpressionUtil.collectSumExpressions(oldAgg, oldProject)) {
@@ -116,14 +118,12 @@ public class SumBasicOperatorRule extends RelOptRule {
     @Override
     public void onMatch(RelOptRuleCall ruleCall) {
         try {
-            LogicalAggregate oldAgg = ruleCall.rel(0);
-            LogicalProject oldProject = ruleCall.rel(1);
+            Aggregate oldAgg = ruleCall.rel(0);
+            Project oldProject = ruleCall.rel(1);
             RelBuilder relBuilder = ruleCall.builder();
             relBuilder.push(oldProject.getInput());
 
-            if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-                logger.debug("old plan : {}", RelOptUtil.toString(oldAgg));
-            }
+            ContextUtil.dumpCalcitePlan("old plan", oldAgg, logger);
 
             List<AggExpression> aggExpressions = SumExpressionUtil.collectSumExpressions(oldAgg, oldProject);
             Pair<List<GroupExpression>, ImmutableList<ImmutableBitSet>> groups =
@@ -174,16 +174,14 @@ public class SumBasicOperatorRule extends RelOptRule {
             relBuilder.aggregate(topGroupKey, topAggregates);
 
             RelNode relNode = relBuilder.build();
-            if (Boolean.TRUE.equals(CalciteSystemProperty.DEBUG.value())) {
-                logger.debug("new plan : {}", RelOptUtil.toString(relNode));
-            }
+            ContextUtil.dumpCalcitePlan("new plan", relNode, logger);
             ruleCall.transformTo(relNode);
         } catch (Exception e) {
             logger.error("sql cannot apply sum multiply rule ", e);
         }
     }
 
-    private List<RexNode> buildBottomProject(RelBuilder relBuilder, LogicalProject oldProject,
+    private List<RexNode> buildBottomProject(RelBuilder relBuilder, Project oldProject,
                                              List<GroupExpression> groupExpressions,
                                              List<AggExpression> aggExpressions) {
         List<RexNode> bottomProjectList = Lists.newArrayList();
@@ -243,7 +241,7 @@ public class SumBasicOperatorRule extends RelOptRule {
         return bottomAggregates;
     }
 
-    private List<RexNode> buildTopProjectList(RelBuilder relBuilder, LogicalProject oldProject,
+    private List<RexNode> buildTopProjectList(RelBuilder relBuilder, Project oldProject,
                                               List<AggExpression> aggExpressions, List<GroupExpression> groupExpressions) {
         List<RexNode> topProjectList = Lists.newArrayList();
 
@@ -296,7 +294,7 @@ public class SumBasicOperatorRule extends RelOptRule {
         AggregateCall aggCall = aggExpression.getAggCall();
         RexNode expr = aggExpression.getExpression();
         SqlKind aggType = aggCall.getAggregation().getKind();
-        if (!SqlKind.SUM.equals(aggType)) {
+        if (!SumExpressionUtil.isSum(aggType)) {
             return false;
         }
 
