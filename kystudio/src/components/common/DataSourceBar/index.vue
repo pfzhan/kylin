@@ -20,7 +20,7 @@
       <div v-if="showTreeFilter" class="ksd-mb-10">
         <el-input :placeholder="$t('searchTable')"  prefix-icon="el-icon-search" v-global-key-event.enter.debounce="handleFilter" @clear="handleFilter()"></el-input>
       </div>
-      <div v-scroll style="height:calc(100%)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
+      <div v-scroll style="height:calc(100% - 25px)" v-guide.dataSourceScroll v-loading="isLoadingTreeData">
         <TreeList
           :tree-key="treeKey"
           ref="treeList"
