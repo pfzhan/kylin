@@ -72,16 +72,17 @@ public class ProjectInfoParser implements IKeep {
     public static class RepeatableBodyRequestWrapper extends HttpServletRequestWrapper {
 
         @Getter
-        private final String body;
+        private final byte[] body;
+
 
         public RepeatableBodyRequestWrapper(HttpServletRequest request) throws IOException {
             super(request);
-            body = IOUtils.toString(request.getInputStream());
+            body = IOUtils.toByteArray(request.getInputStream());
         }
 
         @Override
         public ServletInputStream getInputStream() throws IOException {
-            final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(body.getBytes());
+            final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(body);
             return new ServletInputStream() {
 
                 @Override
