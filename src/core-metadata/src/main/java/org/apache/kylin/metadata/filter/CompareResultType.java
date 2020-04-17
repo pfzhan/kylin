@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,8 +39,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.kylin.metadata.filter;
 
-public interface IOptimizeableTupleFilter {
-    TupleFilter acceptOptimizeTransformer(FilterOptimizeTransformer transformer);
+public enum CompareResultType {
+    AlwaysTrue, AlwaysFalse, Unknown
 }

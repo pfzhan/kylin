@@ -66,7 +66,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
+import org.apache.kylin.metadata.filter.CompareResultType;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.ColumnRowType;
@@ -244,10 +244,10 @@ public class RexToTblColRefTranslator {
             for (int i = 0; i < children.size() - 1; i += 2) {
                 if (children.get(i) instanceof RexCall) {
                     RexCall whenCall = (RexCall) children.get(i);
-                    CompareTupleFilter.CompareResultType compareResultType = getCompareResultType(whenCall);
-                    if (compareResultType == CompareTupleFilter.CompareResultType.AlwaysTrue) {
+                    CompareResultType compareResultType = getCompareResultType(whenCall);
+                    if (compareResultType == CompareResultType.AlwaysTrue) {
                         return Lists.newArrayList(children.get(i), children.get(i + 1));
-                    } else if (compareResultType == CompareTupleFilter.CompareResultType.Unknown) {
+                    } else if (compareResultType == CompareResultType.Unknown) {
                         unknownWhenCalls++;
                     }
                 }
@@ -261,18 +261,18 @@ public class RexToTblColRefTranslator {
         return children;
     }
 
-    CompareTupleFilter.CompareResultType getCompareResultType(RexCall whenCall) {
+    CompareResultType getCompareResultType(RexCall whenCall) {
         List<RexNode> operands = whenCall.getOperands();
         if (SqlKind.EQUALS == whenCall.getKind() && operands != null && operands.size() == 2) {
             if (operands.get(0).equals(operands.get(1))) {
-                return CompareTupleFilter.CompareResultType.AlwaysTrue;
+                return CompareResultType.AlwaysTrue;
             }
 
             if (isConstant(operands.get(0)) && isConstant(operands.get(1))) {
-                return CompareTupleFilter.CompareResultType.AlwaysFalse;
+                return CompareResultType.AlwaysFalse;
             }
         }
-        return CompareTupleFilter.CompareResultType.Unknown;
+        return CompareResultType.Unknown;
     }
 
     boolean isConstant(RexNode rexNode) {

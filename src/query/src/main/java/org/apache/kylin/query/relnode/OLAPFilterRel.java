@@ -42,18 +42,14 @@
 
 package org.apache.kylin.query.relnode;
 
-import java.math.BigDecimal;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 
 import org.apache.calcite.adapter.enumerable.EnumerableCalc;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
-import org.apache.calcite.avatica.util.TimeUnitRange;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -66,290 +62,133 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
-import org.apache.calcite.rex.RexDynamicParam;
 import org.apache.calcite.rex.RexInputRef;
-import org.apache.calcite.rex.RexLiteral;
-import org.apache.calcite.rex.RexLocalRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.rex.RexProgramBuilder;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.type.SqlTypeFamily;
-import org.apache.calcite.util.NlsString;
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.metadata.filter.CaseTupleFilter;
-import org.apache.kylin.metadata.filter.ColumnTupleFilter;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import org.apache.kylin.metadata.filter.DynamicTupleFilter;
-import org.apache.kylin.metadata.filter.ExtractTupleFilter;
-import org.apache.kylin.metadata.filter.FilterOptimizeTransformer;
-import org.apache.kylin.metadata.filter.InnerColumnTupleFilter;
-import org.apache.kylin.metadata.filter.LogicalTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter.FilterOperatorEnum;
-import org.apache.kylin.metadata.filter.UnsupportedTupleFilter;
-import org.apache.kylin.metadata.filter.function.Functions;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
  */
 public class OLAPFilterRel extends Filter implements OLAPRel {
 
-    protected static class TupleFilterVisitor extends RexVisitorImpl<TupleFilter> {
+    static final Map<SqlKind, SqlKind> REVERSE_OP_MAP = Maps.newHashMap();
+
+    static {
+        REVERSE_OP_MAP.put(SqlKind.EQUALS, SqlKind.NOT_EQUALS);
+        REVERSE_OP_MAP.put(SqlKind.NOT_EQUALS, SqlKind.EQUALS);
+        REVERSE_OP_MAP.put(SqlKind.GREATER_THAN, SqlKind.LESS_THAN_OR_EQUAL);
+        REVERSE_OP_MAP.put(SqlKind.LESS_THAN_OR_EQUAL, SqlKind.GREATER_THAN);
+        REVERSE_OP_MAP.put(SqlKind.LESS_THAN, SqlKind.GREATER_THAN_OR_EQUAL);
+        REVERSE_OP_MAP.put(SqlKind.GREATER_THAN_OR_EQUAL, SqlKind.LESS_THAN);
+        REVERSE_OP_MAP.put(SqlKind.IS_NULL, SqlKind.IS_NOT_NULL);
+        REVERSE_OP_MAP.put(SqlKind.IS_NOT_NULL, SqlKind.IS_NULL);
+        REVERSE_OP_MAP.put(SqlKind.AND, SqlKind.OR);
+        REVERSE_OP_MAP.put(SqlKind.OR, SqlKind.AND);
+    }
+
+    protected static class FilterVisitor extends RexVisitorImpl<Void> {
 
         final ColumnRowType inputRowType;
+        final Set<TblColRef> filterColumns;
+        final Stack<TblColRef.FilterColEnum> tmpLevels;
+        final Stack<Boolean> reverses;
 
-        public TupleFilterVisitor(ColumnRowType inputRowType) {
+        public FilterVisitor(ColumnRowType inputRowType, Set<TblColRef> filterColumns) {
             super(true);
             this.inputRowType = inputRowType;
+            this.filterColumns = filterColumns;
+            this.tmpLevels = new Stack<>();
+            this.tmpLevels.add(TblColRef.FilterColEnum.NONE);
+            this.reverses = new Stack<>();
+            this.reverses.add(false);
         }
 
         @Override
-        public TupleFilter visitCall(RexCall call) {
-            TupleFilter filter = null;
+        public Void visitCall(RexCall call) {
             SqlOperator op = call.getOperator();
-            switch (op.getKind()) {
-            case AND:
-                filter = new LogicalTupleFilter(FilterOperatorEnum.AND);
-                break;
-            case OR:
-                filter = new LogicalTupleFilter(FilterOperatorEnum.OR);
-                break;
-            case NOT:
-                filter = new LogicalTupleFilter(FilterOperatorEnum.NOT);
-                break;
-            case EQUALS:
-                filter = new CompareTupleFilter(FilterOperatorEnum.EQ);
-                break;
-            case GREATER_THAN:
-                filter = new CompareTupleFilter(FilterOperatorEnum.GT);
-                break;
-            case LESS_THAN:
-                filter = new CompareTupleFilter(FilterOperatorEnum.LT);
-                break;
-            case GREATER_THAN_OR_EQUAL:
-                filter = new CompareTupleFilter(FilterOperatorEnum.GTE);
-                break;
-            case LESS_THAN_OR_EQUAL:
-                filter = new CompareTupleFilter(FilterOperatorEnum.LTE);
-                break;
-            case NOT_EQUALS:
-                filter = new CompareTupleFilter(FilterOperatorEnum.NEQ);
-                break;
-            case IS_NULL:
-                filter = new CompareTupleFilter(FilterOperatorEnum.ISNULL);
-                break;
-            case IS_NOT_NULL:
-                filter = new CompareTupleFilter(FilterOperatorEnum.ISNOTNULL);
-                break;
-            case CAST:
-            case REINTERPRET:
-                // NOTE: use child directly
-                break;
-            case CASE:
-                filter = new CaseTupleFilter();
-                break;
-            case OTHER:
-                if (op.getName().equalsIgnoreCase("extract_date")) {
-                    filter = new ExtractTupleFilter(FilterOperatorEnum.EXTRACT);
-                } else {
-                    filter = Functions.getFunctionTupleFilter(op.getName());
+            SqlKind kind = op.getKind();
+            if (kind == SqlKind.CAST || kind == SqlKind.REINTERPRET) {
+                for (RexNode operand : call.operands) {
+                    operand.accept(this);
                 }
-                break;
-            case LIKE:
-            case OTHER_FUNCTION:
-                filter = Functions.getFunctionTupleFilter(op.getName());
-                break;
-            case PLUS:
-            case MINUS:
-            case TIMES:
-            case DIVIDE:
-                TupleFilter f = dealWithTrivialExpr(call);
-                if (f != null) {
-                    // is a trivial expr
-                    return f;
-                }
-                //else go to default
-            default:
-                filter = new UnsupportedTupleFilter(FilterOperatorEnum.UNSUPPORTED);
-                break;
+                return null;
             }
-
+            if (op.getKind() == SqlKind.NOT) {
+                reverses.add(!reverses.peek());
+            } else {
+                if (reverses.peek()) {
+                    kind = REVERSE_OP_MAP.get(kind);
+                    if (kind == SqlKind.AND || kind == SqlKind.OR) {
+                        reverses.add(true);
+                    } else {
+                        reverses.add(false);
+                    }
+                } else {
+                    reverses.add(false);
+                }
+            }
+            TblColRef.FilterColEnum tmpLevel = TblColRef.FilterColEnum.NONE;
+            if (kind == SqlKind.EQUALS) {
+                tmpLevel = TblColRef.FilterColEnum.EQUAL_FILTER;
+            } else if (kind == SqlKind.IS_NULL) {
+                tmpLevel = TblColRef.FilterColEnum.INFERIOR_EQUAL_FILTER;
+            } else if (isRangeFilter(kind)) {
+                tmpLevel = TblColRef.FilterColEnum.RANGE_FILTER;
+            } else if (kind == SqlKind.LIKE) {
+                tmpLevel = TblColRef.FilterColEnum.LIKE_FILTER;
+            } else {
+                tmpLevel = TblColRef.FilterColEnum.OTHER_FILTER;
+            }
+            tmpLevels.add(tmpLevel);
             for (RexNode operand : call.operands) {
-                TupleFilter childFilter = operand.accept(this);
-                if (filter == null) {
-                    filter = cast(childFilter, call.type);
-                } else {
-                    filter.addChild(childFilter);
-                }
+                operand.accept(this);
             }
-
-            if (op.getKind() == SqlKind.OR) {
-                CompareTupleFilter inFilter = mergeToInClause(filter);
-                if (inFilter != null) {
-                    filter = inFilter;
-                }
-            } else if (op.getKind() == SqlKind.NOT) {
-                assert (filter != null && filter.getChildren().size() == 1);
-                filter = filter.getChildren().get(0).reverse();
-            }
-            return filter;
+            tmpLevels.pop();
+            reverses.pop();
+            return null;
         }
 
-        //KYLIN-2597 - Deal with trivial expression in filters like x = 1 + 2
-        TupleFilter dealWithTrivialExpr(RexCall call) {
-            ImmutableList<RexNode> operators = call.operands;
-            if (operators.size() != 2) {
-                return null;
-            }
-
-            BigDecimal left = null;
-            BigDecimal right = null;
-            for (RexNode rexNode : operators) {
-                if (!(rexNode instanceof RexLiteral)) {
-                    return null;// only trivial expr with constants
-                }
-
-                RexLiteral temp = (RexLiteral) rexNode;
-                if (temp.getType().getFamily() != SqlTypeFamily.NUMERIC || !(temp.getValue() instanceof BigDecimal)) {
-                    return null;// only numeric constants now
-                }
-
-                if (left == null) {
-                    left = (BigDecimal) temp.getValue();
-                } else {
-                    right = (BigDecimal) temp.getValue();
-                }
-            }
-
-            Preconditions.checkNotNull(left);
-            Preconditions.checkNotNull(right);
-
-            switch (call.op.getKind()) {
-            case PLUS:
-                return new ConstantTupleFilter(left.add(right).toString());
-            case MINUS:
-                return new ConstantTupleFilter(left.subtract(right).toString());
-            case TIMES:
-                return new ConstantTupleFilter(left.multiply(right).toString());
-            case DIVIDE:
-                return new ConstantTupleFilter(left.divide(right).toString());
-            default:
-                return null;
-            }
-        }
-
-        TupleFilter cast(TupleFilter filter, RelDataType type) {
-            if ((filter instanceof ConstantTupleFilter) == false) {
-                return filter;
-            }
-
-            ConstantTupleFilter constFilter = (ConstantTupleFilter) filter;
-
-            if (type.getFamily() == SqlTypeFamily.DATE || type.getFamily() == SqlTypeFamily.DATETIME
-                    || type.getFamily() == SqlTypeFamily.TIMESTAMP) {
-                List<String> newValues = Lists.newArrayList();
-                for (Object v : constFilter.getValues()) {
-                    if (v == null)
-                        newValues.add(null);
-                    else
-                        newValues.add(String.valueOf(DateFormat.stringToMillis(v.toString())));
-                }
-                constFilter = new ConstantTupleFilter(newValues);
-            }
-            return constFilter;
-        }
-
-        CompareTupleFilter mergeToInClause(TupleFilter filter) {
-            List<? extends TupleFilter> children = filter.getChildren();
-            TblColRef inColumn = null;
-            List<Object> inValues = new LinkedList<Object>();
-            Map<String, Object> dynamicVariables = new HashMap<>();
-            for (TupleFilter child : children) {
-                if (child.getOperator() == FilterOperatorEnum.EQ) {
-                    CompareTupleFilter compFilter = (CompareTupleFilter) child;
-                    TblColRef column = compFilter.getColumn();
-                    if (inColumn == null) {
-                        inColumn = column;
-                    }
-
-                    if (column == null || !column.equals(inColumn)) {
-                        return null;
-                    }
-                    inValues.addAll(compFilter.getValues());
-                    dynamicVariables.putAll(compFilter.getVariables());
-                } else {
-                    return null;
-                }
-            }
-
-            children.clear();
-
-            CompareTupleFilter inFilter = new CompareTupleFilter(FilterOperatorEnum.IN);
-            inFilter.addChild(new ColumnTupleFilter(inColumn));
-            inFilter.addChild(new ConstantTupleFilter(inValues));
-            inFilter.getVariables().putAll(dynamicVariables);
-            return inFilter;
+        boolean isRangeFilter(SqlKind sqlKind) {
+            return sqlKind == SqlKind.NOT_EQUALS || sqlKind == SqlKind.GREATER_THAN || sqlKind == SqlKind.LESS_THAN
+                    || sqlKind == SqlKind.GREATER_THAN_OR_EQUAL || sqlKind == SqlKind.LESS_THAN_OR_EQUAL
+                    || sqlKind == SqlKind.IS_NOT_NULL;
         }
 
         @Override
-        public TupleFilter visitLocalRef(RexLocalRef localRef) {
-            throw new UnsupportedOperationException("local ref:" + localRef);
-        }
-
-        @Override
-        public TupleFilter visitInputRef(RexInputRef inputRef) {
+        public Void visitInputRef(RexInputRef inputRef) {
             TblColRef column = inputRowType.getColumnByIndex(inputRef.getIndex());
-            if (column.isInnerColumn()) {
-                return new InnerColumnTupleFilter(column);
-            } else {
-                return new ColumnTupleFilter(column);
+            TblColRef.FilterColEnum tmpLevel = tmpLevels.peek();
+            collect(column, tmpLevel);
+            return null;
+        }
+
+        private void collect(TblColRef column, TblColRef.FilterColEnum tmpLevel) {
+            if (!column.isInnerColumn()) {
+                filterColumns.add(column);
+                if (tmpLevel.getPriority() > column.getFilterLevel().getPriority()) {
+                    column.setFilterLevel(tmpLevel);
+                }
+                return;
             }
-        }
-
-        @SuppressWarnings("unused")
-        String normToTwoDigits(int i) {
-            if (i < 10)
-                return "0" + i;
-            else
-                return "" + i;
-        }
-
-        @Override
-        public TupleFilter visitLiteral(RexLiteral literal) {
-            String strValue = null;
-            Object literalValue = literal.getValue();
-            if (literalValue instanceof NlsString) {
-                strValue = ((NlsString) literalValue).getValue();
-            } else if (literalValue instanceof GregorianCalendar) {
-                GregorianCalendar g = (GregorianCalendar) literalValue;
-                //strValue = "" + g.get(Calendar.YEAR) + "-" + normToTwoDigits(g.get(Calendar.MONTH) + 1) + "-" + normToTwoDigits(g.get(Calendar.DAY_OF_MONTH));
-                strValue = Long.toString(g.getTimeInMillis());
-            } else if (literalValue instanceof TimeUnitRange) {
-                // Extract(x from y) in where clause
-                strValue = ((TimeUnitRange) literalValue).name();
-            } else if (literalValue == null) {
-                strValue = null;
-            } else {
-                strValue = literalValue.toString();
+            if (column.isAggregationColumn()) {
+                return;
             }
-            TupleFilter filter = new ConstantTupleFilter(strValue);
-            return filter;
-        }
+            List<TblColRef> children = column.getOperands();
+            if (children == null) {
+                return;
+            }
+            for (TblColRef child : children) {
+                collect(child, tmpLevel);
+            }
 
-        @Override
-        public TupleFilter visitDynamicParam(RexDynamicParam dynamicParam) {
-            String name = dynamicParam.getName();
-            TupleFilter filter = new DynamicTupleFilter(name);
-            return filter;
         }
     }
 
@@ -386,11 +225,6 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
             translateFilter(context);
         } else {
             context.afterHavingClauseFilter = true;
-
-            TupleFilterVisitor visitor = new TupleFilterVisitor(this.columnRowType);
-            TupleFilter havingFilter = this.condition.accept(visitor);
-            if (context.havingFilter == null)
-                context.havingFilter = havingFilter;
         }
     }
 
@@ -404,23 +238,15 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
         if (this.condition == null) {
             return;
         }
-
-        TupleFilterVisitor visitor = new TupleFilterVisitor(this.columnRowType);
-        TupleFilter filter = this.condition.accept(visitor);
-
-        // optimize the filter, the optimization has to be segment-irrelevant
-        filter = new FilterOptimizeTransformer().transform(filter);
-
         Set<TblColRef> filterColumns = Sets.newHashSet();
-        TupleFilter.collectColumns(filter, filterColumns);
+        FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
+        this.condition.accept(visitor);
         for (TblColRef tblColRef : filterColumns) {
             if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
                 context.allColumns.add(tblColRef);
                 context.filterColumns.add(tblColRef);
             }
         }
-
-        context.filter = TupleFilter.and(context.filter, filter);
     }
 
     @Override

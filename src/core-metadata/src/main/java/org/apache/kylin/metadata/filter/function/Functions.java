@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,12 +42,7 @@
 
 package org.apache.kylin.metadata.filter.function;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
-
-import org.apache.kylin.metadata.filter.BuiltInFunctionTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
 
 import com.google.common.collect.Maps;
 
@@ -60,26 +54,4 @@ public class Functions {
 
     private static Map<String, Class> SUPPORTED_UDF = Maps.newHashMap();
 
-    static {
-        SUPPORTED_UDF.put("MASSIN", MassInTupleFilter.class);
-    }
-
-    public static TupleFilter getFunctionTupleFilter(String name) {
-        if (name == null) {
-            throw new IllegalStateException("Function name cannot be null");
-        }
-
-        name = name.toUpperCase();
-
-        if (SUPPORTED_UDF.containsKey(name)) {
-            try {
-                return (TupleFilter) SUPPORTED_UDF.get(name).getConstructor().newInstance();
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException("Failed to on constructing FunctionTupleFilter for " + name);
-            }
-        }
-
-        return new BuiltInFunctionTupleFilter(name);
-
-    }
 }

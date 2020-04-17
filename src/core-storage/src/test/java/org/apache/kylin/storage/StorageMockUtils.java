@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,13 +44,6 @@ package org.apache.kylin.storage;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.NDataModel;
-import org.apache.kylin.metadata.filter.ColumnTupleFilter;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import org.apache.kylin.metadata.filter.LogicalTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -59,16 +51,20 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.tuple.TupleInfo;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+
 /**
  */
 public class StorageMockUtils {
-    
+
     final NDataModel model;
-    
+
     public StorageMockUtils(NDataModel model) {
         this.model = model;
     }
-    
+
     public TupleInfo newTupleInfo(List<TblColRef> groups, List<FunctionDesc> aggregations) {
         TupleInfo info = new TupleInfo();
         int idx = 0;
@@ -126,68 +122,5 @@ public class StorageMockUtils {
         functions.add(f2);
 
         return functions;
-    }
-
-    public CompareTupleFilter buildTs2010Filter(TblColRef column) {
-        CompareTupleFilter compareFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GT);
-        ColumnTupleFilter columnFilter1 = new ColumnTupleFilter(column);
-        compareFilter.addChild(columnFilter1);
-        ConstantTupleFilter constantFilter1 = new ConstantTupleFilter("2010-01-01");
-        compareFilter.addChild(constantFilter1);
-        return compareFilter;
-    }
-
-    public CompareTupleFilter buildTs2011Filter(TblColRef column) {
-        CompareTupleFilter compareFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.GT);
-        ColumnTupleFilter columnFilter1 = new ColumnTupleFilter(column);
-        compareFilter.addChild(columnFilter1);
-        ConstantTupleFilter constantFilter1 = new ConstantTupleFilter("2011-01-01");
-        compareFilter.addChild(constantFilter1);
-        return compareFilter;
-    }
-
-    public CompareTupleFilter buildFilter1(TblColRef column) {
-        CompareTupleFilter compareFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.LTE);
-        ColumnTupleFilter columnFilter1 = new ColumnTupleFilter(column);
-        compareFilter.addChild(columnFilter1);
-        ConstantTupleFilter constantFilter1 = new ConstantTupleFilter("2012-05-23");
-        compareFilter.addChild(constantFilter1);
-        return compareFilter;
-    }
-
-    public CompareTupleFilter buildFilter2(TblColRef column) {
-        CompareTupleFilter compareFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
-        ColumnTupleFilter columnFilter2 = new ColumnTupleFilter(column);
-        compareFilter.addChild(columnFilter2);
-        ConstantTupleFilter constantFilter2 = new ConstantTupleFilter("ClothinShoes & Accessories");
-        compareFilter.addChild(constantFilter2);
-        return compareFilter;
-    }
-
-    public CompareTupleFilter buildFilter3(TblColRef column) {
-        CompareTupleFilter compareFilter = new CompareTupleFilter(TupleFilter.FilterOperatorEnum.EQ);
-        ColumnTupleFilter columnFilter1 = new ColumnTupleFilter(column);
-        compareFilter.addChild(columnFilter1);
-        ConstantTupleFilter constantFilter1 = new ConstantTupleFilter("2012-05-23");
-        compareFilter.addChild(constantFilter1);
-        return compareFilter;
-    }
-
-    public TupleFilter buildAndFilter(List<TblColRef> columns) {
-        CompareTupleFilter compareFilter1 = buildFilter1(columns.get(0));
-        CompareTupleFilter compareFilter2 = buildFilter2(columns.get(1));
-        LogicalTupleFilter andFilter = new LogicalTupleFilter(TupleFilter.FilterOperatorEnum.AND);
-        andFilter.addChild(compareFilter1);
-        andFilter.addChild(compareFilter2);
-        return andFilter;
-    }
-
-    public TupleFilter buildOrFilter(List<TblColRef> columns) {
-        CompareTupleFilter compareFilter1 = buildFilter1(columns.get(0));
-        CompareTupleFilter compareFilter2 = buildFilter2(columns.get(1));
-        LogicalTupleFilter logicFilter = new LogicalTupleFilter(TupleFilter.FilterOperatorEnum.OR);
-        logicFilter.addChild(compareFilter1);
-        logicFilter.addChild(compareFilter2);
-        return logicFilter;
     }
 }

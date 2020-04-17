@@ -46,7 +46,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -75,8 +74,6 @@ public class SQLDigest {
 
     // filter
     public Set<TblColRef> filterColumns;
-    public TupleFilter filter;
-    public TupleFilter havingFilter;
 
     // sort & limit
     public List<TblColRef> sortColumns;
@@ -90,7 +87,7 @@ public class SQLDigest {
     public SQLDigest(String factTable, Set<TblColRef> allColumns, List<JoinDesc> joinDescs, // model
             List<TblColRef> groupbyColumns, Set<TblColRef> subqueryJoinParticipants, // group by
             Set<TblColRef> metricColumns, List<FunctionDesc> aggregations, // aggregation
-            Set<TblColRef> filterColumns, TupleFilter filter, TupleFilter havingFilter, // filter
+            Set<TblColRef> filterColumns, // filter
             List<TblColRef> sortColumns, List<OrderEnum> sortOrders, int limit, boolean limitPrecedesAggr, // sort & limit
             Set<MeasureDesc> involvedMeasure) {
         this.factTable = factTable;
@@ -104,8 +101,6 @@ public class SQLDigest {
         this.aggregations = aggregations;
 
         this.filterColumns = filterColumns;
-        this.filter = filter;
-        this.havingFilter = havingFilter;
 
         this.sortColumns = sortColumns;
         this.sortOrders = sortOrders;
@@ -132,11 +127,6 @@ public class SQLDigest {
             this.groupbyColumns.addAll(this.subqueryJoinParticipants);
             this.allColumns.addAll(this.subqueryJoinParticipants);
         }
-    }
-
-    public SQLDigest updateDigestFilter(TupleFilter filter) {
-        this.filter = filter;
-        return this;
     }
 
     @Override

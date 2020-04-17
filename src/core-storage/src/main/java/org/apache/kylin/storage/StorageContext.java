@@ -47,7 +47,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -124,10 +123,6 @@ public class StorageContext {
     @Getter
     @Setter
     private NLayoutCandidate candidate;
-
-    @Getter
-    @Setter
-    private TupleFilter filter;
 
     @Getter
     @Setter

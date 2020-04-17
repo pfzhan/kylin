@@ -132,8 +132,7 @@ public class OLAPEnumerator implements Enumerator<Object[]> {
 
             logger.debug("query storage...");
             // bind dynamic variables and update filter info in OLAPContext
-            olapContext.bindVariable(optiqContext);
-            SQLDigest sqlDigest = olapContext.getSQLDigest().updateDigestFilter(olapContext.filter);
+            SQLDigest sqlDigest = olapContext.getSQLDigest();
 
             // query storage engine
             IStorageQuery storageEngine = StorageFactory.createQuery(olapContext.realization);

@@ -68,7 +68,6 @@ object TableScanPlan extends LogEx {
 
     val session: SparkSession = SparderEnv.getSparkSession
     val olapContext = rel.getContext
-    rel.getContext.bindVariable(dataContext)
     val dataflow = olapContext.realization.asInstanceOf[NDataflow]
     val cuboidDF = {
       val segments = dataflow.getQueryableSegments

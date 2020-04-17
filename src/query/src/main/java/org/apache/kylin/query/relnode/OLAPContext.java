@@ -52,14 +52,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -208,8 +204,6 @@ public class OLAPContext {
     @Getter
     private List<FunctionDesc> constantAggregations = new ArrayList<>(); // agg like min(2),max(2),avg(2), not including count(1)
     public Set<TblColRef> filterColumns = new LinkedHashSet<>();
-    public TupleFilter filter;
-    public TupleFilter havingFilter;
     public List<JoinDesc> joins = new LinkedList<>();
     @Getter
     @Setter
@@ -258,7 +252,6 @@ public class OLAPContext {
         hasBitmapMeasure = bitmapMeasure;
     }
 
-
     public boolean isSimpleQuery() {
         return (joins.isEmpty()) && (groupByColumns.isEmpty()) && (aggregations.isEmpty());
     }
@@ -285,7 +278,7 @@ public class OLAPContext {
                     Lists.newLinkedList(joins), // model
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
                     Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), // aggregation
-                    Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
+                    Sets.newLinkedHashSet(filterColumns), // filter
                     Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limit, limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
         }
@@ -386,8 +379,6 @@ public class OLAPContext {
         this.allOlapJoins.clear();
         this.joins.clear();
         this.allTableScans.clear();
-        this.filter = null;
-        this.havingFilter = null;
         this.filterColumns.clear();
 
         this.aggregations.clear();
@@ -400,37 +391,6 @@ public class OLAPContext {
         this.sqlDigest = null;
         this.getConstantAggregations().clear();
     }
-
-    public void bindVariable(DataContext dataContext) {
-        bindVariable(this.filter, dataContext);
-    }
-
-    private void bindVariable(TupleFilter filter, DataContext dataContext) {
-        if (filter == null) {
-            return;
-        }
-
-        for (TupleFilter childFilter : filter.getChildren()) {
-            bindVariable(childFilter, dataContext);
-        }
-
-        if (filter instanceof CompareTupleFilter && dataContext != null) {
-            CompareTupleFilter compFilter = (CompareTupleFilter) filter;
-            for (Map.Entry<String, Object> entry : compFilter.getVariables().entrySet()) {
-                String variable = entry.getKey();
-                Object value = dataContext.get(variable);
-                if (value != null) {
-                    String str = value.toString();
-                    if (compFilter.getColumn().getType().isDateTimeFamily())
-                        str = String.valueOf(DateFormat.stringToMillis(str));
-
-                    compFilter.bindVariable(variable, str);
-                }
-
-            }
-        }
-    }
-    // ============================================================================
 
     public interface IAccessController {
         void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config);

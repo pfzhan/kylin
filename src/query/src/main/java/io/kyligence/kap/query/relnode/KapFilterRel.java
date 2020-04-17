@@ -40,8 +40,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.metadata.filter.FilterOptimizeTransformer;
-import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPFilterRel;
@@ -119,7 +117,6 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
                 updateContextFilter();
             } else {
                 context.afterHavingClauseFilter = true;
-                context.havingFilter = convertAndGetTupleFilter();
             }
             if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
@@ -128,24 +125,17 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         }
     }
 
-    private TupleFilter convertAndGetTupleFilter() {
-        TupleFilterVisitor visitor = new TupleFilterVisitor(this.columnRowType);
-        return this.condition.accept(visitor);
-    }
-
     private void updateContextFilter() {
         // optimize the filter, the optimization has to be segment-irrelevant
-        TupleFilter tupleFilter = new FilterOptimizeTransformer().transform(convertAndGetTupleFilter());
         Set<TblColRef> filterColumns = Sets.newHashSet();
-        TupleFilter.collectColumns(tupleFilter, filterColumns);
+        FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
+        this.condition.accept(visitor);
         for (TblColRef tblColRef : filterColumns) {
             if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
                 context.allColumns.add(tblColRef);
                 context.filterColumns.add(tblColRef);
             }
         }
-        context.filter = TupleFilter.and(context.filter, tupleFilter);
-
         // collect inner col condition
         context.getInnerFilterColumns().addAll(collectInnerColumnInFilter());
     }
@@ -169,8 +159,8 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
             SqlKind sqlKind = rexCall.getOperator().kind;
             if (sqlKind == SqlKind.AND || sqlKind == SqlKind.OR || // AND, OR
                     SqlKind.COMPARISON.contains(sqlKind) || sqlKind == SqlKind.NOT_IN || // COMPARISON
-                    sqlKind == SqlKind.LIKE || sqlKind == SqlKind.SIMILAR || sqlKind == SqlKind.BETWEEN ||
-                    sqlKind.name().startsWith("IS_") // IS_TRUE, IS_FALSE, iS_NOT_TRUE...
+                    sqlKind == SqlKind.LIKE || sqlKind == SqlKind.SIMILAR || sqlKind == SqlKind.BETWEEN
+                    || sqlKind.name().startsWith("IS_") // IS_TRUE, IS_FALSE, iS_NOT_TRUE...
             ) {
                 rexCall.getOperands().forEach(childRexNode -> doCollectInnerColumnInFilter(childRexNode, resultSet));
             } else {
@@ -203,12 +193,10 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
         for (OLAPContext context : subContexts) {
             if (this.condition == null)
                 return;
-            TupleFilterVisitor visitor = new TupleFilterVisitor(this.columnRowType);
-            TupleFilter filter = this.condition.accept(visitor);
-            // optimize the filter, the optimization has to be segment-irrelevant
-            filter = new FilterOptimizeTransformer().transform(filter);
             Set<TblColRef> filterColumns = Sets.newHashSet();
-            TupleFilter.collectColumns(filter, filterColumns);
+            FilterVisitor visitor = new FilterVisitor(this.columnRowType, filterColumns);
+            this.condition.accept(visitor);
+            // optimize the filter, the optimization has to be segment-irrelevant
 
             for (TblColRef tblColRef : filterColumns) {
                 if (!tblColRef.isInnerColumn() && context.belongToContextTables(tblColRef)) {
