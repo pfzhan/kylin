@@ -78,10 +78,12 @@
               <el-popover ref="activeNodes" width="290" popper-class="nodes-popover" v-model="showNodes">
                 <div class="nodes">
                   <p class="error-text" v-if="showErrorMsg">{{$t('noNodesTip1')}}</p>
-                  <ul><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
+                  <p class="default-tip-text" v-else-if="isNodeLoading">{{$t('loadingNodes')}}</p>
+                  <p class="default-tip-text" v-else-if="!isNodeLoadingSuccess">{{$t('getNodesFailed')}}</p>
+                  <ul v-if="isNodeLoadingSuccess && !isNodeLoading" class="node-details"><li class="node-list" v-for="(node, index) in nodeList.map(item => `${item.host}(${item.mode})`)" :key="index">{{node}}</li></ul>
                 </div>
               </el-popover>
-              <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">{{$t('activeNodes')}}<span :class="[getNodesNumColor]">{{nodeList.length}}</span></p>
+              <p class="active-nodes" v-popover:activeNodes @click="showNodes = !showNodes">{{$t('activeNodes')}}<i v-if="isNodeLoading" class="el-icon-loading"></i><span v-else :class="[getNodesNumColor]">{{isNodeLoadingSuccess ? nodeList.length || '/' : '/'}}</span></p>
             </li>
             <li v-if="showMenuByRole('admin')">
               <el-button
@@ -298,6 +300,8 @@ let MessageBox = ElementUI.MessageBox
       diagnosis: 'Diagnosis',
       activeNodes: 'Active Instances：',
       noNodesTip1: 'There is no active All node. The build jobs and metadata operations cannot be submitted temporarily. ',
+      getNodesFailed: 'Failed to get, please wait 5 minutes.',
+      loadingNodes: 'loading...',
       disableAddProject: 'Can not create project in edit mode'
     },
     'zh-cn': {
@@ -323,6 +327,8 @@ let MessageBox = ElementUI.MessageBox
       diagnosis: '诊断',
       activeNodes: '活跃节点数：',
       noNodesTip1: '暂无活跃的 All 节点，构建任务与元数据操作将暂时无法提交',
+      getNodesFailed: '获取失败，请等待 5 分钟',
+      loadingNodes: '加载中...',
       disableAddProject: '编辑模式下不可新建项目'
     }
   }
@@ -363,6 +369,8 @@ export default class LayoutLeftRightTop extends Vue {
   nodesTimer = null
   showNodes = false
   showErrorMsg = false
+  isNodeLoading = false
+  isNodeLoadingSuccess = false
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -405,15 +413,24 @@ export default class LayoutLeftRightTop extends Vue {
   }
   // 获取多活节点列表
   getHANodes () {
+    this.isNodeLoading = true
     this.loadOnlineNodes({ext: true}).then((res) => {
       handleSuccess(res, (data) => {
+        this.isNodeLoadingSuccess = true
         this.nodeList = data
+        this.isNodeLoading = false
+        clearTimeout(this.nodesTimer)
         this.nodesTimer = setTimeout(() => {
           this.getHANodes()
-        }, 60000)
+        }, 300000)
       })
     }).catch(e => {
-      handleError(e)
+      this.isNodeLoadingSuccess = false
+      this.isNodeLoading = false
+      clearTimeout(this.nodesTimer)
+      this.nodesTimer = setTimeout(() => {
+        this.getHANodes()
+      }, 300000)
     })
   }
   setGlobalMask (notifyContect) {
@@ -1243,11 +1260,18 @@ export default class LayoutLeftRightTop extends Vue {
     font-size: 12px;
     margin-bottom: 13px;
   }
+  .default-tip-text {
+    color: @text-normal-color;
+  }
   .nodes-popover {
     .nodes {
       padding: 0 5px;
       max-height: 170px;
       overflow: auto;
+      text-align: center;
+      .node-details {
+        text-align: left;
+      }
       .node-list {
         color: @text-normal-color;
         margin-top: 8px;
