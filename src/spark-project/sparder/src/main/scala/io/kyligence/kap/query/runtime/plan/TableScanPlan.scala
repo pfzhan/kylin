@@ -99,6 +99,7 @@ object TableScanPlan extends LogEx {
         import io.kyligence.kap.query.implicits._
         val d = session.kylin
           .format("parquet")
+          .option("parquet.filter.columnindex.enabled", "false")
           .isFastBitmapEnabled(olapContext.isFastBitmapEnabled)
           .cuboidTable(dataflow, cuboidLayout)
           .toDF(columnNames: _*)
