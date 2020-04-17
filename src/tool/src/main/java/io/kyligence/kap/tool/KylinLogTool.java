@@ -389,6 +389,10 @@ public class KylinLogTool {
     public static void extractSparderEventLog(File exportDir, long startTime, long endTime,
             Map<String, String> sparderConf, String appId) {
         try {
+            if(StringUtils.isBlank(appId)){
+                logger.warn("Failed to extract sparder eventLog because sparder Appid is empty.");
+                return;
+            }
             String logDir = sparderConf.get("spark.eventLog.dir");
             boolean rollEnabled = Boolean.parseBoolean(sparderConf.get("spark.eventLog.rolling.enabled").trim());
 

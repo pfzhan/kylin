@@ -25,6 +25,7 @@
 package org.apache.kylin.common.util;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -42,6 +43,8 @@ import org.apache.commons.lang3.time.FastDateFormat;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DateFormat {
 
@@ -59,6 +62,8 @@ public class DateFormat {
     static final private Map<String, FastDateFormat> formatMap = new ConcurrentHashMap<String, FastDateFormat>();
 
     private static final Map<String, String> dateFormatRegex = Maps.newHashMap();
+
+    private static final Logger logger = LoggerFactory.getLogger(DateFormat.class);
 
     static {
         dateFormatRegex.put("^\\d{8}$", COMPACT_DATE_PATTERN);
@@ -223,5 +228,19 @@ public class DateFormat {
     @VisibleForTesting
     public static void cleanCache() {
         formatMap.clear();
+    }
+
+    public static Long getFormatTimeStamp(String time, String pattern) {
+        try {
+            if (StringUtils.isNotBlank(time) && StringUtils.isNotBlank(pattern)) {
+                SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+                sdf.setTimeZone(TimeZone.getDefault());
+                String timeFormat = sdf.format(new Date(Long.parseLong(time)));
+                time = Long.toString(sdf.parse(timeFormat).getTime());
+            }
+        } catch (Exception e) {
+            logger.warn("format time error", e);
+        }
+        return Long.parseLong(time);
     }
 }

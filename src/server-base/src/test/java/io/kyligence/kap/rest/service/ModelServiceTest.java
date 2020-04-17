@@ -225,6 +225,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     private final ModelBrokenListener modelBrokenListener = new ModelBrokenListener();
 
+    private static String[] timeZones = { "GMT+8", "CST", "PST", "UTC" };
+
     @Before
     public void setup() {
         super.setup();
@@ -2775,12 +2777,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
 
+        String pattern = "yyyy-MM-dd";
         val events = eventDao.getEventsOrdered();
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
         dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals(1577808000000L, dataflow.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(1609430400000L, dataflow.getSegments().get(0).getSegRange().getEnd());
+        Assert.assertEquals(DateFormat.getFormatTimeStamp("1577808000000", pattern), dataflow.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(DateFormat.getFormatTimeStamp("1609430400000", pattern), dataflow.getSegments().get(0).getSegRange().getEnd());
 
         Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
     }
@@ -2845,23 +2848,31 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
     @Test
     public void testBuildSegmentsManually_IncrementBuild_ChangePartition() throws Exception {
-        String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
-        String project = getProject();
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        modelManager.updateDataModel(modelId, copyForWrite -> {
-            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
-            copyForWrite.setPartitionDesc(null);
-        });
-        PartitionDesc partitionDesc = new PartitionDesc();
-        partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
-        partitionDesc.setPartitionDateFormat("yyyyMMdd");
-        modelService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000", partitionDesc,
-                null);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        var dataflow = dataflowManager.getDataflow(modelId);
-        Assert.assertEquals(1, dataflow.getSegments().size());
-        Assert.assertEquals(1577808000000L, dataflow.getSegments().get(0).getSegRange().getStart());
+        for (String timeZone : timeZones) {
+            TimeZone.setDefault(TimeZone.getTimeZone(timeZone));
+            DateFormat.cleanCache();
+
+            String modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+            String project = getProject();
+            NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            modelManager.updateDataModel(modelId, copyForWrite -> {
+                copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+                copyForWrite.setPartitionDesc(null);
+            });
+            String pattern = "yyyyMMdd";
+            PartitionDesc partitionDesc = new PartitionDesc();
+            partitionDesc.setPartitionDateColumn("TEST_KYLIN_FACT.CAL_DT");
+            partitionDesc.setPartitionDateFormat(pattern);
+            modelService.incrementBuildSegmentsManually(project, modelId, "1577811661000", "1609430400000", partitionDesc,
+                    null);
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            var dataflow = dataflowManager.getDataflow(modelId);
+            Assert.assertEquals(1, dataflow.getSegments().size());
+            Assert.assertEquals(DateFormat.getFormatTimeStamp("1577808000000", pattern), dataflow.getSegments().get(0).getSegRange().getStart());
+        }
     }
+
+
 
     @Test
     public void testBuildSegmentsManually_NoPartition_Exception() throws Exception {

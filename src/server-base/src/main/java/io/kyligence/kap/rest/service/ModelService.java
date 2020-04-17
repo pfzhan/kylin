@@ -29,13 +29,11 @@ import static java.util.stream.Collectors.groupingBy;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.MessageFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1611,8 +1609,8 @@ public class ModelService extends BasicService {
             throw new KylinException("KE-1010", "Partition column is null.'");
         }
 
-        String startFormat = getFormatDate(start, partitionDesc.getPartitionDateFormat());
-        String endFormat = getFormatDate(end, partitionDesc.getPartitionDateFormat());
+        String startFormat = DateFormat.getFormatTimeStamp(start, partitionDesc.getPartitionDateFormat()).toString();
+        String endFormat = DateFormat.getFormatTimeStamp(end, partitionDesc.getPartitionDateFormat()).toString();
 
         NDataModel copyModel = modelManager.copyForWrite(modelManager.getDataModelDesc(modelId));
         copyModel.setPartitionDesc(partitionDesc);
@@ -1626,17 +1624,6 @@ public class ModelService extends BasicService {
         JobInfoResponse jobInfoResponse = new JobInfoResponse();
         jobInfoResponse.setJobs(jobIds);
         return jobInfoResponse;
-    }
-
-    private String getFormatDate(String time, String pattern) {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat(pattern);
-            String timeFormat = sdf.format(new Date(Long.parseLong(time)));
-            time = Long.toString(sdf.parse(timeFormat).getTime());
-        } catch (Exception e) {
-            logger.warn("format time error", e);
-        }
-        return time;
     }
 
     private List<JobInfoResponse.JobInfo> innerIncrementBuild(String project, String modelId, String start, String end,

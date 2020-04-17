@@ -39,7 +39,6 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{AnalysisException, SparkSession}
 import org.apache.spark.util.collection.BitSet
-
 import scala.collection.JavaConverters._
 
 case class SegmentDirectory(segmentID: String, files: Seq[FileStatus])
@@ -283,7 +282,9 @@ class FilePruner(val session: SparkSession,
             }
           } else {
             val tsRange = dataflow.getSegment(e.segmentID).getTSRange
-            SegFilters(tsRange.getStart, tsRange.getEnd, pattern).foldFilter(reducedFilter) match {
+            val start = DateFormat.getFormatTimeStamp(tsRange.getStart.toString, pattern)
+            val end = DateFormat.getFormatTimeStamp(tsRange.getEnd.toString, pattern)
+            SegFilters(start, end, pattern).foldFilter(reducedFilter) match {
               case Trivial(true) => true
               case Trivial(false) => false
             }
