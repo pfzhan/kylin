@@ -1,6 +1,7 @@
 # coding:utf-8
 
 import os
+import shutil
 import time
 
 import pytest
@@ -136,7 +137,7 @@ class TestSmoke:
         kylin_home = os.environ.get('KYLIN_HOME')
         full_diagnosis_dir = os.path.join(kylin_home, TEST_FULL_DIAGNOSIS)
         if os.path.exists(full_diagnosis_dir):
-            os.rmdir(full_diagnosis_dir)
+            shutil.rmtree(full_diagnosis_dir)
         os.mkdir(full_diagnosis_dir)
         os.system('bash -vx ' + os.path.join(kylin_home, 'bin/diag.sh') + 
                   ' -destDir ' + full_diagnosis_dir)

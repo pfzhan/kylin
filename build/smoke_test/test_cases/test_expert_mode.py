@@ -1,6 +1,7 @@
 # coding:utf-8
 
 import os
+import shutil
 import time
 from random import randint
 
@@ -50,6 +51,7 @@ class TestExpertMode:
                 break
             time.sleep(10)
             try_time -= 1
+        time.sleep(120)
         activate_cmd = 'source ' + os.path.join(os.environ.get('PYTHON_VENV_HOME'), 'bin/activate')
         os.system(activate_cmd)
 
@@ -314,7 +316,7 @@ class TestExpertMode:
         assert job_desc is not None
         job_diagnosis_dir = os.path.join(TEST_JOB_DIAGNOSIS, '')
         if os.path.exists(job_diagnosis_dir):
-            os.rmdir(job_diagnosis_dir)
+            shutil.rmtree(job_diagnosis_dir)
         os.mkdir(job_diagnosis_dir)
         kylin_home = os.environ.get('KYLIN_HOME')
         assert kylin_home
@@ -335,7 +337,7 @@ class TestExpertMode:
     def test_metadata_backup_restore(self, config):
         metadata_backup_dir = os.path.join(TEST_METADATA_BACKUP, '')
         if os.path.exists(metadata_backup_dir):
-            os.rmdir(metadata_backup_dir)
+            shutil.rmtree(metadata_backup_dir)
         os.mkdir(metadata_backup_dir)
         kylin_home = os.environ.get('KYLIN_HOME')
         assert kylin_home

@@ -109,7 +109,7 @@ else
 fi
 
 
-sed -i "\$a kylin.metadata.url=${METADATA_NAME}@jdbc,driverClassName=org.postgresql.Driver,url=jdbc:postgresql://10.1.2.166:5433/kylin,username=postgres,password=kylin" kylin.properties
+sed -i "\$a kylin.metadata.url=${METADATA_NAME}@jdbc,driverClassName=org.postgresql.Driver,url=jdbc:postgresql://${PG_HOST}:${PG_PORT}/kylin,username=postgres,password=kylin" kylin.properties
 export PGPASSWORD=kylin
 export PSQL="/usr/pgsql-10/bin/psql"
 export DROP_TRABLE="${PSQL} -h ${PG_HOST} -p ${PG_PORT} -U postgres -d kylin -c \"drop table if exists"
@@ -119,6 +119,7 @@ export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${SESSION_TAB
 export METADATA_ERASE_CMD=${METADATA_ERASE_CMD}" && ${DROP_TRABLE} ${SESSION_ATTRIBUTES_TABLE}\""
 
 # clean metadata in metastore
+echo "Start erase metadata"
 eval $METADATA_ERASE_CMD
 if [[ $? -ne 0 ]]; then
     echo "Failed to erase metadata"
@@ -140,7 +141,7 @@ sleep 2m
 cd -
 
 # run pytest
-export PYTHON_VENV_HOME=$dir/venv
+export PYTHON_VENV_HOME=$dir/build/smoke_test/venv
 allure_report=$dir/Report
 runTest
 
