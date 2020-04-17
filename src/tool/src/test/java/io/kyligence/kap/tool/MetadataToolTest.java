@@ -62,7 +62,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -85,7 +84,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
 
-@Ignore
 public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(MetadataToolTest.class);
