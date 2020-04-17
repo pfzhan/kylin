@@ -80,6 +80,10 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 ResourceDetectUtils.findCountDistinctMeasure(cuboids));
         for (String segId : segmentIds) {
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
+            if(Objects.isNull(seg)) {
+                logger.info("Skip empty segment {}", segId);
+                continue;
+            }
             DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, jobId, ss, config, false);
             datasetChooser.decideSources();
             NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();

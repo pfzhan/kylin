@@ -78,6 +78,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.spark_project.guava.collect.Sets;
 import scala.Option;
 import scala.runtime.AbstractFunction1;
@@ -90,6 +91,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -470,11 +472,12 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testLayoutIdMoreThan10000() throws ExecuteException, IOException {
         String path = null;
         try {
-            NSparkExecutable executable = new NSparkExecutable();
+            NSparkExecutable executable = Mockito.spy(NSparkExecutable.class);
             Set<Long> randomLayouts = Sets.newHashSet();
             for (int i = 0; i < 100000; i++) {
                 randomLayouts.add(RandomUtils.nextLong(1, 100000));
             }
+            Mockito.doReturn(executable.getParams()).when(executable).filterEmptySegments(Mockito.anyMap());
             executable.setParam(P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(randomLayouts));
             executable.dumpArgs();
             Set<Long> layouts = NSparkCubingUtil.str2Longs(executable.getParam(P_LAYOUT_IDS));
@@ -488,6 +491,23 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 }
             }
         }
+    }
+
+    @Test
+    public void testFilterEmptySegments() {
+
+        String project = getProject();
+        String dfId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        String segmentId = "ef5e0663-feba-4ed2-b71c-21958122bbff";
+
+        NSparkExecutable executable = Mockito.spy(NSparkExecutable.class);
+        Map<String, String> originParams = Maps.newHashMap();
+        originParams.put(NBatchConstants.P_SEGMENT_IDS, "s1,s2," + segmentId);
+
+        Mockito.doReturn(dfId).when(executable).getDataflowId();
+        executable.setProject(project);
+
+        Assert.assertEquals(executable.filterEmptySegments(originParams).get(NBatchConstants.P_SEGMENT_IDS), segmentId);
     }
 
     @Test

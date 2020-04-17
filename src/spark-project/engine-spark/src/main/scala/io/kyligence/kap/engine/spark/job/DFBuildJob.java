@@ -168,6 +168,10 @@ public class DFBuildJob extends SparkApplication {
         List<NDataSegment> nDataSegments = Lists.newArrayList();
         for (Map.Entry<String, Object> entry : toUpdateSegmentSourceSize.entrySet()) {
             NDataSegment segment = newDF.getSegment(entry.getKey());
+            if(Objects.isNull(segment)) {
+                logger.info("Skip empty segment {} when updating segment source", entry.getKey());
+                continue;
+            }
             segment.setSourceBytesSize((Long) entry.getValue());
             segment.setLastBuildTime(System.currentTimeMillis());
             if (KylinBuildEnv.get().encodingDataSkew()) {

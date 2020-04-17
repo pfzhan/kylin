@@ -37,8 +37,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -63,6 +64,7 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -74,7 +76,9 @@ import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.engine.spark.merger.MetadataMerger;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
@@ -84,6 +88,8 @@ import lombok.val;
 public class NSparkExecutable extends AbstractExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
+
+    private static final String COMMA = ",";
 
     void setDataflowId(String dataflowId) {
         this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
@@ -98,11 +104,11 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     void setSegmentIds(Set<String> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(COMMA).join(segmentIds));
     }
 
     public Set<String> getSegmentIds() {
-        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS), ","));
+        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS), COMMA));
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {
@@ -231,10 +237,11 @@ public class NSparkExecutable extends AbstractExecutable {
     String dumpArgs() throws ExecuteException {
         File tmpDir = null;
         try {
+            val params = filterEmptySegments(getParams());
             tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
-            FileUtils.writeByteArrayToFile(tmpDir, JsonUtil.writeValueAsBytes(getParams()));
-
-            logger.info("Spark job args json is : {}.", JsonUtil.writeValueAsString(getParams()));
+            FileUtils.writeByteArrayToFile(tmpDir, JsonUtil.writeValueAsBytes(params));
+            String paramsToLog = JsonUtil.writeValueAsString(params);
+            logger.info("Spark job args json is : {}.", paramsToLog);
             return tmpDir.getCanonicalPath();
         } catch (IOException e) {
             if (tmpDir != null && tmpDir.exists()) {
@@ -247,6 +254,26 @@ public class NSparkExecutable extends AbstractExecutable {
             }
             throw new ExecuteException("Write cuboidLayoutIds failed: ", e);
         }
+    }
+
+    /**
+     * segments may have been deleted after job created
+     * @param originParams
+     * @return
+     */
+    @VisibleForTesting
+    Map<String, String> filterEmptySegments(final Map<String, String> originParams) {
+        Map<String, String> copied = Maps.newHashMap(originParams);
+        String originSegments = copied.get(NBatchConstants.P_SEGMENT_IDS);
+        String dfId = getDataflowId();
+        final NDataflow dataFlow = NDataflowManager.getInstance(getConfig(), getProject()).getDataflow(dfId);
+        if (Objects.isNull(dataFlow) || StringUtils.isBlank(originSegments)) {
+            return copied;
+        }
+        String newSegments = Stream.of(StringUtils.split(originSegments, COMMA))
+                .filter(id -> Objects.nonNull(dataFlow.getSegment(id))).collect(Collectors.joining(COMMA));
+        copied.put(NBatchConstants.P_SEGMENT_IDS, newSegments);
+        return copied;
     }
 
     /**
@@ -274,7 +301,7 @@ public class NSparkExecutable extends AbstractExecutable {
             kylinConfigExt = projectInstance.getConfig();
         }
 
-        val jobOverrides = Maps.<String, String>newHashMap();
+        val jobOverrides = Maps.<String, String> newHashMap();
         val parentId = getParentId();
         jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
         jobOverrides.put("job.project", project);
@@ -399,7 +426,7 @@ public class NSparkExecutable extends AbstractExecutable {
         appendSparkConf(sb, "spark.driver.extraClassPath", kylinJobJar);
 
         if (sparkConfs.containsKey("spark.sql.hive.metastore.jars")) {
-            jars = jars + "," + sparkConfs.get("spark.sql.hive.metastore.jars");
+            jars = jars + COMMA + sparkConfs.get("spark.sql.hive.metastore.jars");
         }
 
         sb.append("--name job_step_%s ");
@@ -451,7 +478,7 @@ public class NSparkExecutable extends AbstractExecutable {
         } else {
             // The way of Updating metadata is CopyOnWrite. So it is safe to use Reference in the value.
             Map dumpMap = EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(
-                    UnitOfWorkParams.<Map>builder().readonly(true).unitName(getProject()).processor(() -> {
+                    UnitOfWorkParams.<Map> builder().readonly(true).unitName(getProject()).processor(() -> {
                         Map<String, RawResource> retMap = Maps.newHashMap();
                         for (String resPath : getMetadataDumpList(config)) {
                             ResourceStore resourceStore = ResourceStore.getKylinMetaStore(config);
