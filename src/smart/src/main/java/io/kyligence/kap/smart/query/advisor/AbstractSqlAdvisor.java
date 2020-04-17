@@ -33,16 +33,11 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.query.SQLResult;
 
 public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
-
-    private static final Cache<String, SQLAdvice> CACHE = CacheBuilder.newBuilder().maximumSize(10).build();
-
     private static final String MSG_UNSUPPORTED_SQL = "Not Supported SQL.";
     private static final String MSG_UNSUPPORTED_SQL2 = "Non-query expression encountered in illegal context";
 
@@ -56,7 +51,6 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
     private static final Pattern PTN_SYNTAX_UNEXPECTED_TOKEN = Pattern.compile(
             "Encountered \"(.*)\" at line (\\d+), column (\\d+). Was expecting one of: .*",
             Pattern.MULTILINE | Pattern.DOTALL);
-    protected AdviceMessage msg = AdviceMsgPicker.getMsg();
 
     @Override
     public SQLAdvice propose(SQLResult sqlResult) {
@@ -65,14 +59,7 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
         }
 
         String message = sqlResult.getMessage();
-        SQLAdvice result = CACHE.getIfPresent(message);
-        if (result != null) {
-            return result;
-        }
-
-        result = proposeWithMessage(message);
-        CACHE.put(message, result);
-        return result;
+        return proposeWithMessage(message);
     }
 
     @Override
@@ -83,9 +70,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
     private SQLAdvice proposeWithMessage(String message) {
         switch (message) {
         case MSG_UNSUPPORTED_SQL:
-            return SQLAdvice.build(MSG_UNSUPPORTED_SQL, msg.getBadSqlSuggest());
         case MSG_UNSUPPORTED_SQL2:
-            return SQLAdvice.build(MSG_UNSUPPORTED_SQL, msg.getBadSqlSuggest());
+            return SQLAdvice.build(MSG_UNSUPPORTED_SQL, MsgPicker.getMsg().getBAD_SQL_SUGGEST());
         default:
             break;
         }
@@ -93,8 +79,9 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
         // parse error from calcite
         Matcher m = PTN_SYNTAX_UNEXPECTED_TOKEN.matcher(message);
         if (m.matches()) {
-            return SQLAdvice.build(String.format(msg.getUnexpectedToken(), m.group(1), m.group(2), m.group(3)),
-                    msg.getBadSqlSuggest());
+            return SQLAdvice.build(
+                    String.format(MsgPicker.getMsg().getUNEXPECTED_TOKEN(), m.group(1), m.group(2), m.group(3)),
+                    MsgPicker.getMsg().getBAD_SQL_SUGGEST());
         }
 
         // syntax error from calcite
@@ -103,7 +90,8 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             return proposeSyntaxError(m.group(1));
         }
 
-        return SQLAdvice.build(String.format(msg.getDefaultReason(), message), msg.getDefaultSuggest());
+        return SQLAdvice.build(String.format(MsgPicker.getMsg().getDEFAULT_REASON(), message),
+                MsgPicker.getMsg().getDEFAULT_SUGGEST());
     }
 
     private SQLAdvice proposeSyntaxError(String message) {
@@ -122,15 +110,19 @@ public abstract class AbstractSqlAdvisor implements ISqlAdvisor {
             String colName = m.group(1);
             String tblName = m.group(2);
             if (tblName == null) {
-                return SQLAdvice.build(String.format(msg.getBadSqlColumnNotFoundReason(), colName),
-                        String.format(msg.getBadSqlColumnNotFoundSuggest(), colName));
+                return SQLAdvice.build(String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_REASON(), colName),
+                        String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(), colName));
             } else {
-                return SQLAdvice.build(String.format(msg.getBadSqlColumnNotFoundInTableReason(), colName, tblName),
-                        String.format(msg.getBadSqlColumnNotFoundInTableSuggest(), colName, tblName));
+                return SQLAdvice.build(
+                        String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(), colName,
+                                tblName),
+                        String.format(MsgPicker.getMsg().getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST(), colName,
+                                tblName));
             }
         }
 
-        return SQLAdvice.build(String.format(msg.getBadSqlReason(), message), msg.getBadSqlSuggest());
+        return SQLAdvice.build(String.format(MsgPicker.getMsg().getBAD_SQL_REASON(), message),
+                MsgPicker.getMsg().getBAD_SQL_SUGGEST());
     }
 
     SQLAdvice adviseSyntaxError(SQLResult sqlResult) {

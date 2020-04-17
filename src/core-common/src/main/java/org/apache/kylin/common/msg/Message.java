@@ -1036,12 +1036,48 @@ public class Message {
         return "The same index already exists.";
     }
 
+    public String getDEFAULT_REASON() {
+        return "Something went wrong. %s";
+    }
+
+    public String getDEFAULT_SUGGEST() {
+        return "Please contact Kyligence technical support for more details.";
+    }
+
+    public String getUNEXPECTED_TOKEN() {
+        return "Syntax error: encountered unexpected token:\" %s\". At line %s, column %s.";
+    }
+
+    public String getBAD_SQL_REASON() {
+        return "Syntax error:\"%s\".";
+    }
+
+    public String getBAD_SQL_SUGGEST() {
+        return "Please correct the SQL.";
+    }
+
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
         return "Table '%s' not found.";
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
         return "Please add table %s to data source. If this table does exist, mention it as DATABASE.TABLE.";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_REASON() {
+        return "Column '%s' not found in any table.";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST() {
+        return "Please add column %s to data source.";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
+        return "Column '%s' not found in table '%s'.";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
+        return "Please add column %s to table %s in data source.";
     }
 
     public String getPROJECT_NUM_OVER_THRESHOLD() {

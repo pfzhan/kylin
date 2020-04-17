@@ -1016,12 +1016,48 @@ public class CnMessage extends Message {
         return "已存在相同的索引。";
     }
 
+    public String getDEFAULT_REASON() {
+        return "出现错误。%s。";
+    }
+
+    public String getDEFAULT_SUGGEST() {
+        return "更多详情请联系 Kyligence 技术支持。";
+    }
+
+    public String getUNEXPECTED_TOKEN() {
+        return "语法错误：在 '%s' 列，'%s' 行出现无法辨识的 token：\" %s\"。";
+    }
+
+    public String getBAD_SQL_REASON() {
+        return "语法错误：\"%s\"。";
+    }
+
+    public String getBAD_SQL_SUGGEST() {
+        return "请修正 SQL。";
+    }
+
     public String getBAD_SQL_TABLE_NOT_FOUND_REASON() {
         return "没有找到表 '%s'。";
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
         return "请在数据源中导入表 '%s'。如果该表已经存在，请在查询中使用数据库名.表名的形式进行引用。";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_REASON() {
+        return "列 '%s' 不存在。";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST() {
+        return "请在数据源中添加列 '%s'。";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
+        return "在表 '%s' 中没有找到列 '%s'。";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
+        return "请在数据源表 '%s' 中添加列 '%s'。";
     }
 
     public String getPROJECT_NUM_OVER_THRESHOLD() {

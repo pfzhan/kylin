@@ -171,7 +171,6 @@ import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.rest.util.ModelUtils;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.query.advisor.AdviceMessage;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
@@ -1078,7 +1077,7 @@ public class ModelService extends BasicService {
                 throw new KylinException("KE-1024", error);
             } else {
                 String errorMsg = String.format("model [%s], %s", dataModel.getAlias(),
-                        String.format(AdviceMessage.getInstance().getDefaultReason(),
+                        String.format(MsgPicker.getMsg().getDEFAULT_REASON(),
                                 null != e.getMessage() ? e.getMessage() : "null"));
                 throw new KylinException("KE-1024", errorMsg);
             }
