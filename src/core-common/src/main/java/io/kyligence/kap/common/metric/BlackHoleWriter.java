@@ -32,10 +32,13 @@ public enum BlackHoleWriter implements MetricWriter {
     @Override
     public void write(String measurement, QueryMetrics metrics,
                       long timestamp) throws Throwable {
+        // TODO
     }
 
     @Override
-    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){}
+    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){
+        // TODO
+    }
 
     @Override
     public String getType() {

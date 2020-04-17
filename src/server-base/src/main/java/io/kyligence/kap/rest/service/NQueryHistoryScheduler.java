@@ -95,7 +95,10 @@ public class NQueryHistoryScheduler {
     }
 
     public void offerQueryHistoryQueue(QueryMetrics queryMetrics) {
-        queryMetricsQueue.offer(queryMetrics);
+        boolean offer = queryMetricsQueue.offer(queryMetrics);
+        if (!offer) {
+            logger.info("queryMetricsQueue is full");
+        }
     }
 
     synchronized void shutdown() {

@@ -137,10 +137,11 @@ public class InfluxDBQueryHistoryDAO implements QueryHistoryDAO {
     }
 
     public void deleteQueryHistoriesIfProjectMaxSizeReached(String project) {
-
+        // TODO
     }
 
     public void deleteQueryHistoriesIfRetainTimeReached() {
+        // TODO
     }
 
     public void dropProjectMeasurement() {

@@ -64,6 +64,7 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
     protected static final String AVG_DURATION_BY_TIME_SQL_FORMAT = "select %s as time,avg(duration) as avg_duration FROM %s WHERE query_time>=? AND query_time<=? AND project_name = ? GROUP BY %s";
     protected static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ?";
     protected static final String FIRST_QUERY_HISTORY_SQL_FORMAT = "SELECT query_id,query_time FROM %s WHERE query_time >= ? AND query_time < ? AND project_name = ? order by query_id limit 1";
+    protected static final String DELETE_QUERY_HISTORY_SQL_FORMAT = "delete from %s where query_time < ? ";
 
     private static final long RETAIN_TIME = 30;
     protected static final String QUERY_TIME_IN_MAX_SIZE = "SELECT query_time as time,id FROM %s ORDER BY id DESC limit 1 OFFSET %s";
@@ -111,10 +112,10 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
                         queryMetricMeasurement, kylinConfig.getQueryHistoryMaxSize())));
         if (CollectionUtils.isNotEmpty(maxSizeStatistics)) {
             long time = maxSizeStatistics.get(0).getTime().toEpochMilli();
-            jdbcTemplate.update(String.format("delete from %s where query_time < ? ", this.queryMetricMeasurement),
+            jdbcTemplate.update(String.format(DELETE_QUERY_HISTORY_SQL_FORMAT, this.queryMetricMeasurement),
                     time);
             jdbcTemplate.update(
-                    String.format("delete from %s where query_time < ? ", this.realizationMetricMeasurement), time);
+                    String.format(DELETE_QUERY_HISTORY_SQL_FORMAT, this.realizationMetricMeasurement), time);
         }
     }
 
@@ -134,9 +135,9 @@ public class RDBMSQueryHistoryDAO implements QueryHistoryDAO {
 
     public void deleteQueryHistoriesIfRetainTimeReached() {
         long retainTime = getRetainTime();
-        jdbcTemplate.update(String.format("delete from %s where query_time < ? ",
+        jdbcTemplate.update(String.format(DELETE_QUERY_HISTORY_SQL_FORMAT,
                 this.queryMetricMeasurement), retainTime);
-        jdbcTemplate.update(String.format("delete from %s where query_time < ? ",
+        jdbcTemplate.update(String.format(DELETE_QUERY_HISTORY_SQL_FORMAT,
                 this.realizationMetricMeasurement), retainTime);
     }
     

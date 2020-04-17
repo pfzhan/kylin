@@ -45,7 +45,9 @@ public enum ConsoleWriter implements MetricWriter {
     }
 
     @Override
-    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){}
+    public void batchWrite(String measurement, List<QueryMetrics> metricsList, long timestamp){
+        // TODO
+    }
 
     @Override
     public String getType() {
