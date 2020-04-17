@@ -51,9 +51,21 @@ public class RelColumnMetaDataExtractor {
                 fieldName,
                 relDataType.getSqlTypeName().getJdbcOrdinal(),
                 relDataType.getFullTypeString(),
-                relDataType.getPrecision(),
-                relDataType.getScale(),
+                getPrecision(relDataType),
+                getScale(relDataType),
                 relDataType.isNullable());
+    }
+
+    private static int getScale(RelDataType type) {
+        return type.getScale() == RelDataType.SCALE_NOT_SPECIFIED
+                ? 0
+                : type.getScale();
+    }
+
+    private static int getPrecision(RelDataType type) {
+        return type.getPrecision() == RelDataType.PRECISION_NOT_SPECIFIED
+                ? 0
+                : type.getPrecision();
     }
 
 }

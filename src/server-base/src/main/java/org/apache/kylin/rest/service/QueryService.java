@@ -804,7 +804,8 @@ public class QueryService extends BasicService {
                 -1, // BUFFER_LENGTH
                 decimalDigit, // DECIMAL_DIGIT
                 NUM_PREC_RADIX, // NUM_PREC_RADIX
-                nullable, null, null, -1, -1, // REMAKRS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB
+                nullable, // NULLABLE
+                null, null, -1, -1, // REMAKRS, COLUMN_DEF, SQL_DATA_TYPE, SQL_DATETIME_SUB
                 charOctetLength, // CHAR_OCTET_LENGTH
                 columnOrdinal, isNullable, null, null, null, sourceDataType, "");
     }
@@ -926,7 +927,7 @@ public class QueryService extends BasicService {
             // fill in selected column meta
             for (int i = 0; i < columnCount; ++i) {
                 int nullable = fieldList.get(i).isNullable() ? 1 : 0;
-                columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, Integer.MAX_VALUE,
+                columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, fieldList.get(i).getPrecision(),
                         fieldList.get(i).getName(), fieldList.get(i).getName(), null, null, null,
                         fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
                         fieldList.get(i).getDataTypeName(), false, false, false));
