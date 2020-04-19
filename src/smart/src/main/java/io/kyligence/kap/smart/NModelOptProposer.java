@@ -71,6 +71,8 @@ class NModelOptProposer extends NAbstractProposer {
                 model = modelMaster.proposePartition(model);
                 model = modelMaster.proposeComputedColumn(model);
                 model = modelMaster.proposeScope(model);
+                model = modelMaster.shrinkComputedColumn(model);
+
                 modelCtx.setTargetModel(model);
             } catch (Exception e) {
                 logger.error("Unexpected exception occurs in initialize target model.", e);

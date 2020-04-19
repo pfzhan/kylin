@@ -126,6 +126,10 @@ public class NModelMaster {
         return dataModel;
     }
 
+    public NDataModel shrinkComputedColumn(NDataModel dataModel) {
+      return  proposerProvider.getShrinkComputedColumnProposer().propose(dataModel);
+    }
+
     private void updateContextWithCC(NDataModel dataModel) {
         List<String> originQueryList = Lists.newArrayList();
         modelContext.getModelTree().getOlapContexts().stream() //

@@ -52,4 +52,9 @@ public class NProposerProvider {
     public NAbstractModelProposer getComputedColumnProposer() {
         return new NComputedColumnProposer(modelContext);
     }
-}
+
+    public NAbstractModelProposer getShrinkComputedColumnProposer() {
+        return new NShrinkComputedColumnProposer(modelContext);
+    }
+
+    }
