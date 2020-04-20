@@ -46,7 +46,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.spark_project.guava.collect.Sets;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -87,7 +87,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         cleanupTestMetadata();
     }
 
-    @Ignore
+    @Test
     public void testRestoreFail() throws Exception {
 
         val tool = Mockito.spy(new RollbackTool());
@@ -207,7 +207,7 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(projectItems3.contains("/_global/project/project15.json"));
     }
 
-    @Ignore
+    @Test
     public void testDeleteProject() throws Exception {
         val tool = Mockito.spy(new RollbackTool());
         Mockito.doReturn(true).when(tool).waitUserConfirm();
@@ -225,12 +225,11 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
             return 0;
         }, "default", 1);
 
-        tool.execute(new String[] {"-time", t1.format(DATE_TIME_FORMATTER), "-project",
-            "default" });
+        tool.execute(new String[] { "-time", t1.format(DATE_TIME_FORMATTER), "-project", "default" });
         Assert.assertEquals(tool.rollbackStatus, RollbackStatusEnum.WAIT_USER_CONFIRM_SUCCESS);
     }
 
-    @Ignore
+    @Test
     public void testJobRollback() throws Exception {
         val tool = Mockito.spy(new RollbackTool());
         Mockito.doReturn(true).when(tool).waitUserConfirm();
@@ -262,7 +261,8 @@ public class RollbackToolTest extends NLocalFileMetadataTestCase {
         }, "default", 1);
         tool.execute(new String[] { "-skipCheckData", "true", "-time", t1.format(DATE_TIME_FORMATTER), "-project",
                 "default" });
-        Assert.assertTrue(NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").getAllExecutables().get(0).getStatus().equals(ExecutableState.READY));
+        Assert.assertTrue(NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getAllExecutables().get(0).getStatus().equals(ExecutableState.READY));
     }
 
     JdbcTemplate getJdbcTemplate() throws Exception {
