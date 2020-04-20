@@ -54,7 +54,6 @@ import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -229,8 +228,9 @@ public class NSparkExecutable extends AbstractExecutable {
             return runLocalMode(filePath);
         } else {
             killOrphanApplicationIfExists(getId());
-            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
+            val result = runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
                     "-className " + getSparkSubmitClassName() + " " + filePath, getParent().getId());
+            return result;
         }
     }
 
@@ -322,7 +322,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String appArgs, String jobId) {
+                                         String kylinJobJar, String appArgs, String jobId) {
         PatternedLogger patternedLogger;
         if (config.isJobLogPrintEnabled()) {
             patternedLogger = new PatternedLogger(logger);
@@ -334,10 +334,22 @@ public class NSparkExecutable extends AbstractExecutable {
             String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
 
             CliCommandExecutor exec = new CliCommandExecutor();
-            Pair<Integer, String> result = exec.execute(cmd, patternedLogger, jobId);
+            CliCommandExecutor.CliCmdExecResult r = exec.execute(cmd, patternedLogger, jobId);
+            if (StringUtils.isNotEmpty(r.getProcessId())) {
+                try {
+                    Map<String, String> updateInfo = Maps.newHashMap();
+                    updateInfo.put("process_id", r.getProcessId());
+                    EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+                        NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).updateJobOutput(jobId, this.getStatus(), updateInfo, null, null);
+                        return null;
+                    }, project);
+                } catch (Exception e) {
+                    logger.warn("failed to record process id.");
+                }
+            }
 
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond());
+            val ret = ExecuteResult.createSucceed(r.getCmd());
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {

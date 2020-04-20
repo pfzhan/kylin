@@ -52,6 +52,10 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
@@ -116,26 +120,28 @@ public class CliCommandExecutor {
         }
     }
 
-    public Pair<Integer, String> execute(String command, Logger logAppender) throws ShellException {
+    public CliCmdExecResult execute(String command, Logger logAppender) throws ShellException {
         return execute(command, logAppender, null);
     }
 
-    public Pair<Integer, String> execute(String command, Logger logAppender, String jobId) throws ShellException {
-        Pair<Integer, String> r;
+    public CliCmdExecResult execute(String command, Logger logAppender, String jobId) throws ShellException {
+        CliCmdExecResult r;
         if (remoteHost == null) {
             r = runNativeCommand(command, logAppender, jobId);
         } else {
-            r = runRemoteCommand(command, logAppender);
+            val remoteResult = runRemoteCommand(command, logAppender);
+            r = new CliCmdExecResult(remoteResult.getFirst(), remoteResult.getSecond(), null);
         }
 
-        if (r.getFirst() != 0)
-            throw new ShellException("OS command error exit with return code: " + r.getFirst() //
-                    + ", error message: " + r.getSecond() + "The command is: \n" + command
+        if (r.getCode() != 0)
+            throw new ShellException("OS command error exit with return code: " + r.getCode() //
+                    + ", error message: " + r.getCmd() + "The command is: \n" + command
                     + (remoteHost == null ? "" : " (remoteHost:" + remoteHost + ")") //
             );
 
         return r;
     }
+
 
     private Pair<Integer, String> runRemoteCommand(String command, Logger logAppender) throws ShellException {
         try {
@@ -151,7 +157,7 @@ public class CliCommandExecutor {
         }
     }
 
-    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender, String jobId)
+    private CliCmdExecResult runNativeCommand(String command, Logger logAppender, String jobId)
             throws ShellException {
         String pid = "";
 
@@ -201,7 +207,8 @@ public class CliCommandExecutor {
                 if (b.length() > (100 << 20)) {
                     logger.info("[LESS_LIKELY_THINGS_HAPPENED]Sub process log larger than 100M");
                 }
-                return Pair.newPair(exitCode, b);
+                return new CliCmdExecResult(exitCode, b, pid);
+
             } catch (InterruptedException e) {
                 logger.warn("thread is interrupt", e);
                 Thread.currentThread().interrupt();
@@ -260,5 +267,20 @@ public class CliCommandExecutor {
         Field f = process.getClass().getDeclaredField("pid");
         f.setAccessible(true);
         return String.valueOf(f.getInt(process));
+    }
+
+    @AllArgsConstructor
+    public static class CliCmdExecResult {
+        @Getter
+        @Setter
+        int code;
+
+        @Getter
+        @Setter
+        String cmd;
+
+        @Getter
+        @Setter
+        String processId;
     }
 }

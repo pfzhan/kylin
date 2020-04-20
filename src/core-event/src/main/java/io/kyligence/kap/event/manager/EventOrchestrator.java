@@ -125,6 +125,7 @@ public class EventOrchestrator {
                 if (!EpochManager.getInstance(kylinConfig).checkEpochId(epochId, project)) {
                     logger.warn("Thread" + Thread.currentThread().getName() + " may belong to last version epoch:" + epochId);
                     forceShutdown();
+                    return;
                 }
             }
             List<Event> events = eventDao.getEvents();

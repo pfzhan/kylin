@@ -44,7 +44,6 @@ package org.apache.kylin.job.common;
 
 import java.util.Map;
 
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -71,12 +70,12 @@ public class ShellExecutable extends AbstractExecutable {
         try {
             logger.info("executing:{}", getCmd());
             final PatternedLogger patternedLogger = new PatternedLogger(logger);
-            final Pair<Integer, String> result = context.getConfig().getCliCommandExecutor().execute(getCmd(),
+            final val result = context.getConfig().getCliCommandExecutor().execute(getCmd(),
                     patternedLogger);
 
-            Preconditions.checkState(result.getFirst() == 0);
+            Preconditions.checkState(result.getCode() == 0);
             Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond());
+            val ret = ExecuteResult.createSucceed(result.getCmd());
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {

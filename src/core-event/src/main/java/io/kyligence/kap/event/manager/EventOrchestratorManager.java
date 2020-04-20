@@ -122,8 +122,8 @@ public class EventOrchestratorManager {
     public synchronized void shutdownByProject(String project) {
         val eventOrchestrator = getEventOrchestratorByProject(project);
         if (eventOrchestrator != null) {
-            eventOrchestrator.forceShutdown();
             INSTANCE_MAP.remove(project);
+            eventOrchestrator.forceShutdown();
         }
     }
 
@@ -132,5 +132,9 @@ public class EventOrchestratorManager {
         if (eventOrchestrator != null) {
             eventOrchestrator.fetchEventsImmediately();
         }
+    }
+
+    public boolean hasProjectEventCheckerStarted(String project) {
+        return INSTANCE_MAP.containsKey(project);
     }
 }

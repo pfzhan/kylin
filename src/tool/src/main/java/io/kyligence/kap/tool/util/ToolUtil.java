@@ -29,12 +29,12 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import com.google.common.base.Preconditions;
+import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 
 public class ToolUtil {
@@ -44,8 +44,8 @@ public class ToolUtil {
 
     public static void dumpKylinJStack(File outputFile) throws IOException, ShellException {
         String jstackDumpCmd = String.format("jstack -l %s", getKylinPid());
-        Pair<Integer, String> result = new CliCommandExecutor().execute(jstackDumpCmd, null);
-        FileUtils.writeStringToFile(outputFile, result.getSecond());
+        val result = new CliCommandExecutor().execute(jstackDumpCmd, null);
+        FileUtils.writeStringToFile(outputFile, result.getCmd());
     }
 
     public static String getKylinPid() {

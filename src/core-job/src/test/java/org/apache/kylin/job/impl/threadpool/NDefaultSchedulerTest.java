@@ -42,7 +42,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -1760,7 +1759,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 public void run() {
                     CliCommandExecutor exec = new CliCommandExecutor();
                     try {
-                        Pair<Integer, String> result = exec.execute(cmd, null, jobId);
+                        exec.execute(cmd, null, jobId);
                     } catch (ShellException e) {
                         // do nothing
                         e.printStackTrace();

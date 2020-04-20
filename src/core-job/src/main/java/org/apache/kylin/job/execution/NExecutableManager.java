@@ -32,7 +32,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -58,8 +57,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -380,9 +381,40 @@ public class NExecutableManager {
 
     public void resumeAllRunningJobs() {
         val jobs = executableDao.getJobs();
+        CliCommandExecutor exe = getCliCommandExecutor();
         for (ExecutablePO executablePO : jobs) {
             executableDao.updateJob(executablePO.getUuid(), this::resumeRunningJob);
+            killRemoteProcess(executablePO, exe);
         }
+    }
+
+    private void killRemoteProcess(ExecutablePO executablePO, CliCommandExecutor exe) {
+        val info = executablePO.getOutput().getInfo();
+        val pid = info.get("process_id");
+        if (StringUtils.isNotEmpty(pid)) {
+            String nodeInfo = info.get("node_info");
+            String ip = nodeInfo.split(":")[0];
+            if (!ip.equals(AddressUtil.getLocalInstance().split(":")[0])) {
+                exe.setRunAtRemote(ip, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
+                        config.getRemoteSSHPassword());
+            } else {
+                exe.setRunAtRemote(null, config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
+                        config.getRemoteSSHPassword());
+            }
+            try {
+                exe.execute("kill -9 " + pid, null);
+            } catch (ShellException e) {
+                logger.warn("failed to kill remote driver {} on {}", nodeInfo, pid);
+            }
+        }
+    }
+
+    public CliCommandExecutor getCliCommandExecutor() {
+        CliCommandExecutor exec = new CliCommandExecutor();
+        val config = KylinConfig.getInstanceFromEnv();
+        exec.setRunAtRemote(config.getRemoteHadoopCliHostname(), config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
+                config.getRemoteSSHPassword());
+        return exec;
     }
 
     private boolean resumeRunningJob(ExecutablePO po) {
@@ -594,7 +626,7 @@ public class NExecutableManager {
         Process originProc = JobProcessContext.getProcess(jobId);
         if (Objects.nonNull(originProc) && originProc.isAlive()) {
             try {
-                final int ppid = getPid(originProc);
+                final int ppid = JobProcessContext.getPid(originProc);
                 logger.info("start to destroy process {} of job {}", ppid, jobId);
                 //build cmd template
                 StringBuilder cmdBuilder = new StringBuilder("bash ");
@@ -621,13 +653,7 @@ public class NExecutableManager {
         }
     }
 
-    private int getPid(Process process) throws IllegalAccessException, NoSuchFieldException {
-        String className = process.getClass().getName();
-        Preconditions.checkState(className.equals("java.lang.UNIXProcess"));
-        Field f = process.getClass().getDeclaredField("pid");
-        f.setAccessible(true);
-        return f.getInt(process);
-    }
+
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {
         if (executablePO == null) {

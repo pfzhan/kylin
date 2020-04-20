@@ -79,6 +79,7 @@ public class UnitOfWork {
             val unitOfWork = UnitOfWork.get();
             unitOfWork.checkReentrant(params);
             try {
+                checkEpoch(params.getEpochChecker());
                 return f.process();
             } catch (Throwable throwable) {
                 f.onProcessError(throwable);
@@ -181,7 +182,7 @@ public class UnitOfWork {
         return result;
     }
 
-    static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) {
+    static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) throws Exception {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
         Callback<T> checker = params.getEpochChecker();
@@ -218,13 +219,9 @@ public class UnitOfWork {
         return unitOfWork;
     }
 
-    private static <T> void checkEpoch(Callback<T> checker) {
+    private static <T> void checkEpoch(Callback<T> checker) throws Exception {
         if (checker != null) {
-            try {
-                checker.process();
-            } catch (Exception e) {
-                checker.onProcessError(e);
-            }
+            checker.process();
         }
     }
 

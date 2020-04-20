@@ -48,7 +48,6 @@ import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.TimeZoneUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -348,9 +347,7 @@ public abstract class AbstractInfoExtractorTool extends ExecutableApplication {
             }
 
             FileUtils.forceMkdir(destDir);
-
-            Pair<Integer, String> result = cmdExecutor.execute(cmd, null);
-            String output = result.getSecond();
+            String output = cmdExecutor.execute(cmd, null).getCmd();
 
             FileUtils.writeStringToFile(new File(destDir, filename), output, append);
         } catch (Exception e) {

@@ -58,7 +58,6 @@ import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.rest.model.LicenseInfo;
 import org.apache.kylin.common.msg.Message;
@@ -267,11 +266,11 @@ public class LicenseInfoService extends BasicService {
     private void gatherEnv(UUID prefix) {
         CliCommandExecutor cmd = new CliCommandExecutor();
         try {
-            Pair<Integer, String> r = cmd.execute(HOSTNAME, null);
-            if (r.getFirst() != 0) {
-                log.error("Failed to get hostname, rc=" + r.getFirst());
+            val r = cmd.execute(HOSTNAME, null);
+            if (r.getCode() != 0) {
+                log.error("Failed to get hostname, rc=" + r.getCode());
             } else {
-                String s = r.getSecond().trim();
+                String s = r.getCmd().trim();
                 log.info("hostname=" + s);
                 setProperty(HOSTNAME, prefix, s);
             }

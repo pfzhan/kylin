@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.config.initialize;
 
 import java.io.IOException;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -73,11 +74,12 @@ public class EpochChangedListener implements IKeep {
     public void onProjectControlled(ProjectControlledNotifier notifier) throws IOException {
         String project = notifier.getProject();
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        logger.info("start thread of project: {}", project);
+        val eventMgr = EventOrchestratorManager.getInstance(kylinConfig);
         if (!GLOBAL.equals(project)) {
-            if (NFavoriteScheduler.getInstance(project).hasStarted()) {
+            if (NDefaultScheduler.getInstance(project).hasStarted()) {
                 return;
             }
+            logger.info("start thread of project: {}", project);
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
                 NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
                 scheduler.init(new JobEngineConfig(kylinConfig), new MockJobLock());
@@ -96,15 +98,17 @@ public class EpochChangedListener implements IKeep {
             logger.info("Register project metrics for {}", project);
             NMetricsRegistry.registerProjectMetrics(kylinConfig, project);
         } else {
+            if (eventMgr.hasProjectEventCheckerStarted(GLOBAL))
+                return;
             CreateAdminUserUtils.createAllAdmins(userService, env);
             logger.info("Register global metrics...");
             NMetricsRegistry.registerGlobalMetrics(kylinConfig);
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
+            UnitOfWork.doInTransactionWithRetry(() -> {
                 ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).createMetaStoreUuidIfNotExist();
                 return null;
             }, "", 1);
         }
-        EventOrchestratorManager.getInstance(kylinConfig).addProject(project);
+        eventMgr.addProject(project);
     }
 
     @Subscribe

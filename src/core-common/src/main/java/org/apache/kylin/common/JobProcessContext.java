@@ -23,23 +23,34 @@
  */
 package org.apache.kylin.common;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 
 public class JobProcessContext {
 
     static Map<String, Process> runningProcess = Maps.newConcurrentMap();
 
-    public static void registerProcess(String jobId, Process process){
+    public static void registerProcess(String jobId, Process process) {
         runningProcess.put(jobId, process);
     }
 
-    public static Process getProcess(String jobId){
+    public static Process getProcess(String jobId) {
         return runningProcess.get(jobId);
     }
 
-    public static void removeProcess(String jobId){
+    public static void removeProcess(String jobId) {
         runningProcess.remove(jobId);
     }
+
+    public static int getPid(Process process) throws IllegalAccessException, NoSuchFieldException {
+        String className = process.getClass().getName();
+        Preconditions.checkState(className.equals("java.lang.UNIXProcess"));
+        Field f = process.getClass().getDeclaredField("pid");
+        f.setAccessible(true);
+        return f.getInt(process);
+    }
+    
 }

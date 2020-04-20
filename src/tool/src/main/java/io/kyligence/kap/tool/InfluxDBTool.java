@@ -25,11 +25,11 @@ package io.kyligence.kap.tool;
 
 import io.kyligence.kap.common.metrics.service.InfluxDBInstance;
 import io.kyligence.kap.tool.util.ToolUtil;
+import lombok.val;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,9 +72,9 @@ public class InfluxDBTool {
 
             FileUtils.forceMkdir(destDir);
 
-            Pair<Integer, String> result = new CliCommandExecutor().execute(cmd, null);
-            if (null != result.getSecond()) {
-                logger.debug("dump InfluxDB, database: {}, info: {}", database, result.getSecond());
+            val result = new CliCommandExecutor().execute(cmd, null);
+            if (null != result.getCmd()) {
+                logger.debug("dump InfluxDB, database: {}, info: {}", database, result.getCmd());
             }
         } catch (Exception e) {
             logger.debug("Failed to dump influxdb by database: {} ", database, e);

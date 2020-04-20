@@ -40,7 +40,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.ShellException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -151,15 +150,15 @@ public class YarnApplicationTool extends ExecutableApplication {
             String cmd = "yarn logs -applicationId %s";
             for (String applicationId : applicationIdList) {
                 try {
-                    Pair<Integer, String> result = cmdExecutor.execute(String.format(cmd, applicationId),
+                   val result = cmdExecutor.execute(String.format(cmd, applicationId),
                             null);
 
-                    if (result.getFirst() != 0) {
+                    if (result.getCode() != 0) {
                         logger.error("Failed to execute the yarn cmd: {}", cmd);
                     }
 
-                    if (null != result.getSecond()) {
-                        FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), result.getSecond());
+                    if (null != result.getCmd()) {
+                        FileUtils.write(new File(yarnLogsDir, applicationId + ".log"), result.getCmd());
                     }
                 } catch (ShellException se) {
                     logger.error("Failed to extract log by yarn job: {}", applicationId, se);

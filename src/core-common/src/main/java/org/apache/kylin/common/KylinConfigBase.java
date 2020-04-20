@@ -698,6 +698,21 @@ public abstract class KylinConfigBase implements Serializable {
         return getOptional("kylin.job.remote-cli-password");
     }
 
+
+    public int getRemoteSSHPort() {
+        return Integer.parseInt(getOptional("kylin.job.remote-ssh-port", "22"));
+    }
+
+    public String getRemoteSSHUsername() {
+        return getOptional("kylin.job.ssh-username");
+    }
+
+    public String getRemoteSSHPassword() {
+        return getOptional("kylin.job.ssh-password");
+    }
+
+
+
     public String getCliWorkingDir() {
         return getOptional("kylin.job.remote-cli-working-dir");
     }

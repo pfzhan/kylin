@@ -38,9 +38,6 @@ import java.util.concurrent.TimeUnit;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.lang3.RandomUtils;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
@@ -72,7 +69,7 @@ import lombok.val;
 
 /**
  */
-public class NDefaultScheduler implements Scheduler<AbstractExecutable>, ConnectionStateListener {
+public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
     private static final Logger logger = LoggerFactory.getLogger(NDefaultScheduler.class);
 
     @Getter
@@ -92,7 +89,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private ProjectStorageInfoCollector collector;
     private static volatile Semaphore memoryRemaining = new Semaphore(Integer.MAX_VALUE);
     private long epochId;
-
+    private int currentPrjUsingMemory;
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
     public NDefaultScheduler() {
@@ -183,6 +180,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         public void run() {
             if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
                 forceShutdown();
+                return;
             }
             logger.info("start check project {}", project);
             isJobFull = isJobPoolFull();
@@ -313,6 +311,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 useMemoryCapacity = executable.computeStepDriverMemory();
 
                 memoryLock = memoryRemaining.tryAcquire(useMemoryCapacity);
+                currentPrjUsingMemory += useMemoryCapacity;
                 if (memoryLock) {
                     jobDesc = executable.toString();
                     logger.info("{} prepare to schedule", jobDesc);
@@ -328,6 +327,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     if (memoryLock) {
                         // may release twice when exception raise after jobPool execute executable
                         memoryRemaining.release(useMemoryCapacity);
+                        currentPrjUsingMemory -= useMemoryCapacity;
                     }
                 }
                 logger.warn(jobDesc + " fail to schedule", ex);
@@ -364,16 +364,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             } finally {
                 threadToInterrupt.remove(executable.getId());
                 context.removeRunningJob(executable);
-                memoryRemaining.release(executable.computeStepDriverMemory());
+                val usingMemory = executable.computeStepDriverMemory();
+                memoryRemaining.release(usingMemory);
+                currentPrjUsingMemory -= usingMemory;
             }
-        }
-    }
-
-    @Override
-    public void stateChanged(CuratorFramework client, ConnectionState newState) {
-        if ((newState == ConnectionState.SUSPENDED) || (newState == ConnectionState.LOST)) {
-            logger.info("ZK Connection state change to {}, shutdown default scheduler.", newState);
-            shutdown();
         }
     }
 
@@ -400,9 +394,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     public static synchronized void shutdownByProject(String project) {
         val instance = getInstanceByProject(project);
         if (instance != null) {
-            instance.forceShutdown();
             INSTANCE_MAP.remove(project);
-
+            instance.forceShutdown();
         }
     }
 
@@ -492,6 +485,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         initialized = false;
         hasStarted = false;
         jobLock.unlockJobEngine();
+        memoryRemaining.release(currentPrjUsingMemory);
     }
 
     @Override

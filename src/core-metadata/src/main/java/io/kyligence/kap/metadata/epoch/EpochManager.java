@@ -25,6 +25,7 @@
 package io.kyligence.kap.metadata.epoch;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
@@ -47,9 +48,11 @@ import static org.apache.kylin.common.persistence.ResourceStore.GLOBAL_EPOCH;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -87,11 +90,14 @@ public class EpochManager implements IKeep {
     private String identity;
     private SchedulerEventBusFactory schedulerEventBusFactory;
 
+    static {
+        pool = new ThreadPoolExecutor(5, 10, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>());
+    }
+
     private EpochManager(KylinConfig cfg) {
         this.config = cfg;
         this.identity = EpochOrchestrator.getOwnerIdentity();
         schedulerEventBusFactory = SchedulerEventBusFactory.getInstance(config);
-        pool = new ThreadPoolExecutor(5, 10, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>());
     }
 
     private Epoch getGlobalEpoch() {
@@ -115,19 +121,28 @@ public class EpochManager implements IKeep {
     }
 
 
-    private CountDownLatch tryUpdatePrjEpochs(Set<String> newEpochs) {
+    private void tryUpdatePrjEpochs(Set<String> newEpochs) throws Exception {
         List<ProjectInstance> prjs = getProjectsToMarkOwner();
-        val cdl = new CountDownLatch(prjs.size());
+        Map<String, FutureTask<Boolean>> fts = Maps.newHashMap();
         for (ProjectInstance prj : prjs) {
-            pool.execute(new Thread(() -> {
-                try {
-                    if (updateProjectEpoch(prj)) newEpochs.add(prj.getName());
-                } finally {
-                    cdl.countDown();
+            FutureTask<Boolean> ft = new FutureTask<Boolean>(new Callable<Boolean>() {
+                @Override
+                public Boolean call() {
+                    return updateProjectEpoch(prj);
                 }
-            }));
+            });
+            pool.submit(ft);
+            fts.put(prj.getName(), ft);
         }
-        return cdl;
+        for (val entry : fts.entrySet()) {
+            try {
+                if (entry.getValue().get(10, TimeUnit.SECONDS)) {
+                    newEpochs.add(entry.getKey());
+                }
+            } catch (Exception e) {
+                logger.error("failed to update {}", entry.getKey());
+            }
+        }
     }
 
     public boolean updateProjectEpoch(ProjectInstance prj) {
@@ -156,13 +171,19 @@ public class EpochManager implements IKeep {
         }
     }
 
-    public void tryUpdateGlobalEpoch(Set<String> newEpochs) {
-        try {
-            if (updateGlobalEpoch()) {
-                newEpochs.add(GLOBAL);
+    public void tryUpdateGlobalEpoch(Set<String> newEpochs) throws Exception {
+        val ft = new FutureTask<Boolean>(new Callable<Boolean>() {
+            @Override
+            public Boolean call() {
+                return updateGlobalEpoch();
             }
+        });
+        pool.submit(ft);
+        try {
+            if (ft.get(10, TimeUnit.SECONDS))
+                newEpochs.add(GLOBAL);
         } catch (Exception e) {
-            logger.error("Try to update global epoch failed.", e);
+            logger.error("failed to update epoch {}", GLOBAL, e);
         }
     }
 
@@ -184,29 +205,23 @@ public class EpochManager implements IKeep {
         return epoch;
     }
 
-    public synchronized void updateAllEpochs() {
+    public synchronized void updateAllEpochs() throws Exception {
         logger.info("start updateAllEpochs.........");
         val oriEpochs = Sets.newHashSet(currentEpochs);
         Set<String> newEpochs = Sets.newCopyOnWriteArraySet();
         tryUpdateGlobalEpoch(newEpochs);
-        CountDownLatch cdl = tryUpdatePrjEpochs(newEpochs);
-        try {
-            cdl.await();
-        } catch (InterruptedException e) {
-            logger.error("Unexpected things happened" + e);
-            return;
-        }
+        tryUpdatePrjEpochs(newEpochs);
         logger.info("Project [" + String.join(",", newEpochs) + "] owned by " + identity);
         Collection<String> retainPrjs = CollectionUtils.retainAll(oriEpochs, newEpochs);
-        Collection<String> newProjects = CollectionUtils.removeAll(newEpochs, retainPrjs);
         Collection<String> escapedProjects = CollectionUtils.removeAll(oriEpochs, retainPrjs);
-        for (String prj : newProjects) {
+        for (String prj : newEpochs) {
             schedulerEventBusFactory.post(new ProjectControlledNotifier(prj));
         }
 
         for (String prj : escapedProjects) {
             schedulerEventBusFactory.post(new ProjectEscapedNotifier(prj));
         }
+
 
         if (!started) {
             started = true;
@@ -234,7 +249,7 @@ public class EpochManager implements IKeep {
     }
 
     //when create a project, mark now
-    public synchronized void updateEpoch(String project) {
+    public synchronized void updateEpoch(String project) throws Exception {
         if (StringUtils.isEmpty(project))
             updateAllEpochs();
         if (project.equals(GLOBAL))

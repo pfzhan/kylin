@@ -84,7 +84,7 @@ public class KapGetClusterInfo {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         PatternedLogger patternedLogger = new PatternedLogger(logger);
 
-        val response = config.getCliCommandExecutor().execute(command, patternedLogger).getSecond();
+        val response = config.getCliCommandExecutor().execute(command, patternedLogger).getCmd();
         if (response == null) {
             throw new IllegalStateException("Cannot get yarn metrics with url: " + yarnMasterUrlBase + YARN_METRICS_SUFFIX);
         }

@@ -261,6 +261,7 @@ public class NFavoriteScheduler {
         public void run() {
             if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
                 shutdownByProject(project);
+                return;
             }
             if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
                 return;
@@ -559,8 +560,8 @@ public class NFavoriteScheduler {
     public static synchronized void shutdownByProject(String project) {
         val instance = getInstanceByProject(project);
         if (instance != null) {
-            instance.shutdown();
             INSTANCE_MAP.remove(project);
+            instance.shutdown();
         }
     }
 

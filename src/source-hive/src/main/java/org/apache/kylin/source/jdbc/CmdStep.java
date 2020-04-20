@@ -44,7 +44,6 @@ package org.apache.kylin.source.jdbc;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecuteResult;
@@ -74,11 +73,11 @@ public class CmdStep extends AbstractExecutable {
         try {
             String cmd = getParam("cmd");
             stepLogger.log(String.format("exe cmd:%s", cmd));
-            Pair<Integer, String> result = config.getCliCommandExecutor().execute(cmd, stepLogger);
+           val result = config.getCliCommandExecutor().execute(cmd, stepLogger);
 
-            Preconditions.checkState(result.getFirst() == 0);
+            Preconditions.checkState(result.getCode() == 0);
             Map<String, String> extraInfo = makeExtraInfo(stepLogger.getInfo());
-            val ret = ExecuteResult.createSucceed(result.getSecond());
+            val ret = ExecuteResult.createSucceed(result.getCmd());
             ret.getExtraInfo().putAll(extraInfo);
             return ret;
         } catch (Exception e) {

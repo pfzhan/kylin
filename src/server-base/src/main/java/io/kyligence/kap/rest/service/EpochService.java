@@ -38,7 +38,7 @@ public class EpochService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(EpochService.class);
 
-    public void updateEpoch(List<String> projects, boolean force) {
+    public void updateEpoch(List<String> projects, boolean force) throws Exception {
         EpochManager epochMgr = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (String project : projects) {
             logger.info("update epoch {}", project);

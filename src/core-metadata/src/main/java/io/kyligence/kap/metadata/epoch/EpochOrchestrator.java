@@ -98,7 +98,11 @@ public class EpochOrchestrator implements IKeep {
 
         @Override
         public synchronized void run() {
-            epochMgr.updateAllEpochs();
+            try {
+                epochMgr.updateAllEpochs();
+            } catch (Exception e) {
+                logger.error("Failed to update epochs");
+            }
         }
     }
 
