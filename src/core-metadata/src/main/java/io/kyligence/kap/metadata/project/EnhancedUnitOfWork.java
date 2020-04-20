@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.metadata.project;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
@@ -31,8 +34,6 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import lombok.val;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 
 public class EnhancedUnitOfWork implements IKeep {
 
@@ -55,6 +56,20 @@ public class EnhancedUnitOfWork implements IKeep {
                 return null;
             });
         }
-        return UnitOfWork.doInTransactionWithRetry(params);
+        val result = UnitOfWork.doInTransactionWithRetry(params);
+        if (config.isUTEnv()) {
+            return result;
+        }
+        if (UnitOfWork.isAlreadyInTransaction()) {
+            return result;
+        }
+        if (config.isMetadataWaitSyncEnabled()) {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                // ignore it
+            }
+        }
+        return result;
     }
 }

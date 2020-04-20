@@ -44,7 +44,6 @@ package org.apache.kylin.job.impl.threadpool;
 
 import static org.awaitility.Awaitility.await;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,7 +60,6 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
@@ -89,7 +87,6 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        System.setProperty("kylin.metadata.mq-url", "topic@mock");
         staticCreateTestMetadata();
         killProcessCount = new AtomicInteger();
         val originExecutableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
@@ -102,12 +99,6 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         }).when(executableManager).destroyProcess(Mockito.anyString());
         executableDao = NExecutableDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
         startScheduler();
-
-        val clazz = MessageQueue.class;
-        val field = clazz.getDeclaredField("MQ_PROVIDERS");
-        field.setAccessible(true);
-        val providers = (Map<String, String>) field.get(null);
-        providers.put("mock", "org.apache.kylin.job.impl.threadpool.MockMQ2");
     }
 
     void startScheduler() {

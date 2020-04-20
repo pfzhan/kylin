@@ -62,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
@@ -446,11 +447,12 @@ public abstract class KylinConfigBase implements Serializable {
         return Long.valueOf(getOptional("kylin.metadata.audit-log.max-size", "3000000"));
     }
 
-    public StorageURL getMetadataMQUrl() {
-        return StorageURL.valueOf(getOptional("kylin.metadata.mq-url", ""));
+    public boolean isMetadataWaitSyncEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.wait-sync-enabled", TRUE));
     }
 
     // for test only
+    @VisibleForTesting
     public void setMetadataUrl(String metadataUrl) {
         setProperty("kylin.metadata.url", metadataUrl);
     }

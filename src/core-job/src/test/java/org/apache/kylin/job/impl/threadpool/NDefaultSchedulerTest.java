@@ -31,7 +31,6 @@ import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,7 +78,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.junit.rule.Repeat;
 import io.kyligence.kap.junit.rule.RepeatRule;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
@@ -993,70 +991,6 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
         assertMemoryRestore(currMem);
         Assert.assertEquals(1, killProcessCount.get());
-    }
-
-    @Test
-    @Ignore("reopen it after #10272")
-    public void testFinishJob_EventStoreDownAndUp() throws Exception {
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
-        NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
-        job.setProject("default");
-        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
-        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetSubject());
-        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        val task = new FiveSecondSucceedTestExecutable(2);
-        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task);
-        executableManager.addJob(job);
-
-        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
-
-        val mq = (MockMQ2) MessageQueue.getInstance(getTestConfig());
-        val clazz = mq.getClass();
-        val field = clazz.getDeclaredField("inmemQueue");
-        field.setAccessible(true);
-        field.set(mq, null);
-
-        await().atMost(3000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
-        });
-
-        field.set(mq, new ArrayBlockingQueue<>(100));
-
-        waitForJobFinish(job.getId());
-        val output = executableManager.getOutput(job.getId());
-        Assert.assertEquals(ExecutableState.SUCCEED, output.getState());
-    }
-
-    @Test
-    @Ignore("reopen it after #10272")
-    public void testFinishJob_EventStoreDownForever() throws Exception {
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
-        NoErrorStatusExecutableOnModel job = new NoErrorStatusExecutableOnModel();
-        job.setProject("default");
-        job.setParam(NBatchConstants.P_LAYOUT_IDS, "1,2,3,4,5");
-        job.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        val df = dfMgr.getDataflow(job.getTargetSubject());
-        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        val task = new FiveSecondSucceedTestExecutable(2);
-        task.setTargetSubject("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
-        job.addTask(task);
-        executableManager.addJob(job);
-
-        await().atMost(Long.MAX_VALUE, TimeUnit.MILLISECONDS).until(() -> job.getStatus() == ExecutableState.RUNNING);
-
-        val mq = (MockMQ2) MessageQueue.getInstance(getTestConfig());
-        val clazz = mq.getClass();
-        val field = clazz.getDeclaredField("inmemQueue");
-        field.setAccessible(true);
-        field.set(mq, null);
-
-        await().atMost(10000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-            Assert.assertEquals(ExecutableState.RUNNING, job.getStatus());
-        });
     }
 
     @Test
