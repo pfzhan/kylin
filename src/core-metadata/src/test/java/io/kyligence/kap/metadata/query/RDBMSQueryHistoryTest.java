@@ -143,32 +143,59 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoriesByTime() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
 
         // filter from 2020-01-29 23:25:11 to 2020-01-31 23:25:13
-        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(
-                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_HISTORY_BY_TIME_SQL_FORMAT,
-                        url.getIdentifier() + "_query_history"), 1580311511000L, 1580484313000L, PROJECT));
+        List<QueryHistory> queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByTime(1580311511000L,
+                1580484313000L, PROJECT);
         Assert.assertEquals(3, queryHistoryList.size());
 
         // filter from 2020-01-29 23:25:11 to 2020-01-30 23:00:13
-        queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(
-                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_HISTORY_BY_TIME_SQL_FORMAT,
-                        url.getIdentifier() + "_query_history"), 1580311511000L, 1580396413000L, PROJECT));
+        queryHistoryList = rdbmsQueryHistoryDAO.getQueryHistoriesByTime(1580311511000L, 1580396413000L, PROJECT);
         Assert.assertEquals(1, queryHistoryList.size());
         Assert.assertEquals(1580311512000L, queryHistoryList.get(0).getQueryTime());
     }
 
     @Test
+    public void testGetQueryHistoriesByConditions() throws Exception {
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+
+        List<QueryHistory> queryHistoriesList = rdbmsQueryHistoryDAO.getQueryHistoriesByConditions(queryHistoryRequest,
+                2, 0, PROJECT);
+        Assert.assertEquals(2, queryHistoriesList.size());
+    }
+
+    @Test
+    public void testGetQueryHistoriesSize() throws Exception {
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+
+        QueryHistoryRequest queryHistoryRequest = new QueryHistoryRequest();
+        queryHistoryRequest.setAdmin(true);
+        queryHistoryRequest.setUsername(ADMIN);
+
+        long queryHistoriesSize = rdbmsQueryHistoryDAO.getQueryHistoriesSize(queryHistoryRequest, PROJECT);
+        Assert.assertEquals(3, queryHistoriesSize);
+    }
+
+    @Test
     public void testGetQueryCountByTime() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
 
         // filter from 2020-01-26 23:25:11 to 2020-01-31 23:25:13
-        List<QueryStatistics> dayQueryStatistics = JDBCResultMapper
-                .queryStatisticsResultMapper(getJdbcTemplate().queryForList(
-                        String.format(RDBMSQueryHistoryDAO.QUERY_COUNT_BY_TIME_SQL_FORMAT, QueryHistory.QUERY_DAY,
-                                url.getIdentifier() + "_query_history", QueryHistory.QUERY_DAY),
-                        1580052311000L, 1580484313000L, PROJECT));
+        List<QueryStatistics> dayQueryStatistics = rdbmsQueryHistoryDAO.getQueryCountByTime(1580052311000L,
+                1580484313000L, "day", PROJECT);
         Assert.assertEquals(3, dayQueryStatistics.size());
         Assert.assertEquals("2020-01-31T00:00:00Z", dayQueryStatistics.get(0).getTime().toString());
         Assert.assertEquals(1, dayQueryStatistics.get(0).getCount());
@@ -190,10 +217,8 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("2020-01-28T00:00:00Z", dayQueryStatistics.get(5).getTime().toString());
         Assert.assertEquals(0, dayQueryStatistics.get(5).getCount());
 
-        List<QueryStatistics> weekQueryStatistics = JDBCResultMapper.queryStatisticsResultMapper(
-                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_COUNT_BY_TIME_SQL_FORMAT,
-                        QueryHistory.QUERY_FIRST_DAY_OF_WEEK, url.getIdentifier() + "_query_history",
-                        QueryHistory.QUERY_FIRST_DAY_OF_WEEK), 1580052311000L, 1580484313000L, PROJECT));
+        List<QueryStatistics> weekQueryStatistics = rdbmsQueryHistoryDAO.getQueryCountByTime(1580052311000L,
+                1580484313000L, "week", PROJECT);
         Assert.assertEquals(1, weekQueryStatistics.size());
         Assert.assertEquals("2020-01-26T00:00:00Z", weekQueryStatistics.get(0).getTime().toString());
         Assert.assertEquals(3, weekQueryStatistics.get(0).getCount());
@@ -202,10 +227,8 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("2020-01-26T00:00:00Z", weekQueryStatistics.get(0).getTime().toString());
         Assert.assertEquals(3, weekQueryStatistics.get(0).getCount());
 
-        List<QueryStatistics> monthQueryStatistics = JDBCResultMapper.queryStatisticsResultMapper(
-                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_COUNT_BY_TIME_SQL_FORMAT,
-                        QueryHistory.QUERY_FIRST_DAY_OF_MONTH, url.getIdentifier() + "_query_history",
-                        QueryHistory.QUERY_FIRST_DAY_OF_MONTH), 1580052311000L, 1580484313000L, PROJECT));
+        List<QueryStatistics> monthQueryStatistics = rdbmsQueryHistoryDAO.getQueryCountByTime(1580052311000L,
+                1580484313000L, "month", PROJECT);
         Assert.assertEquals(1, monthQueryStatistics.size());
         Assert.assertEquals(3, monthQueryStatistics.get(0).getCount());
         fillZeroForQueryStatistics(monthQueryStatistics, 1580052311000L, 1580484313000L, "month");
@@ -214,14 +237,13 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAvgDurationByTime() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
 
         // filter from 2020-01-26 23:25:11 to 2020-01-31 23:25:13
-        List<QueryStatistics> dayQueryStatistics = JDBCResultMapper
-                .queryStatisticsResultMapper(getJdbcTemplate().queryForList(
-                        String.format(RDBMSQueryHistoryDAO.AVG_DURATION_BY_TIME_SQL_FORMAT, QueryHistory.QUERY_DAY,
-                                url.getIdentifier() + "_query_history", QueryHistory.QUERY_DAY),
-                        1580052311000L, 1580484313000L, PROJECT));
+        List<QueryStatistics> dayQueryStatistics = rdbmsQueryHistoryDAO.getAvgDurationByTime(1580052311000L,
+                1580484313000L, "day", PROJECT);
         Assert.assertEquals(3, dayQueryStatistics.size());
         Assert.assertEquals("2020-01-31T00:00:00Z", dayQueryStatistics.get(0).getTime().toString());
         Assert.assertEquals(3, dayQueryStatistics.get(0).getMeanDuration(), 0.1);
@@ -243,10 +265,8 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("2020-01-28T00:00:00Z", dayQueryStatistics.get(5).getTime().toString());
         Assert.assertEquals(0, dayQueryStatistics.get(5).getMeanDuration(), 0.1);
 
-        List<QueryStatistics> weekQueryStatistics = JDBCResultMapper.queryStatisticsResultMapper(
-                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.AVG_DURATION_BY_TIME_SQL_FORMAT,
-                        QueryHistory.QUERY_FIRST_DAY_OF_WEEK, url.getIdentifier() + "_query_history",
-                        QueryHistory.QUERY_FIRST_DAY_OF_WEEK), 1580052311000L, 1580484313000L, PROJECT));
+        List<QueryStatistics> weekQueryStatistics = rdbmsQueryHistoryDAO.getAvgDurationByTime(1580052311000L,
+                1580484313000L, "week", PROJECT);
         Assert.assertEquals(1, weekQueryStatistics.size());
         Assert.assertEquals("2020-01-26T00:00:00Z", weekQueryStatistics.get(0).getTime().toString());
         Assert.assertEquals(2, weekQueryStatistics.get(0).getMeanDuration(), 0.1);
@@ -255,10 +275,8 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("2020-01-26T00:00:00Z", weekQueryStatistics.get(0).getTime().toString());
         Assert.assertEquals(2, weekQueryStatistics.get(0).getMeanDuration(), 0.1);
 
-        List<QueryStatistics> monthQueryStatistics = JDBCResultMapper.queryStatisticsResultMapper(
-                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.AVG_DURATION_BY_TIME_SQL_FORMAT,
-                        QueryHistory.QUERY_FIRST_DAY_OF_MONTH, url.getIdentifier() + "_query_history",
-                        QueryHistory.QUERY_FIRST_DAY_OF_MONTH), 1580052311000L, 1580484313000L, PROJECT));
+        List<QueryStatistics> monthQueryStatistics = rdbmsQueryHistoryDAO.getAvgDurationByTime(1580052311000L,
+                1580484313000L, "month", PROJECT);
         Assert.assertEquals(1, monthQueryStatistics.size());
         Assert.assertEquals(2, monthQueryStatistics.get(0).getMeanDuration(), 0.1);
         fillZeroForQueryStatistics(monthQueryStatistics, 1580052311000L, 1580484313000L, "month");
@@ -266,27 +284,19 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testDropProjectMeasurement() throws Exception {
-        val url = getTestConfig().getMetadataUrl();
+    public void testGetFirstFQ() throws Exception {
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
 
-        // before delete
-        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
-                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
-        Assert.assertEquals(4, queryHistoryList.size());
-
-        String deleteQueryHistoryForProjectSql = "delete from %s where project_name = ?";
-        getJdbcTemplate().update(String.format(deleteQueryHistoryForProjectSql, url.getIdentifier() + "_query_history"),
-                PROJECT);
-
-        // after delete
-        queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
-                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
-        Assert.assertEquals(1, queryHistoryList.size());
-        Assert.assertEquals("other_project", queryHistoryList.get(0).getProjectName());
+        // filter from 2020-01-26 23:25:11 to 2020-01-31 23:25:13
+        List<QueryStatistics> list = rdbmsQueryHistoryDAO.getFirstQH(1580052311000L, 1580484313000L, PROJECT);
+        Assert.assertEquals(1, list.size());
+        Assert.assertEquals("2020-01-29T15:25:12Z", list.get(0).getTime().toString());
     }
 
     @Test
-    public void testDeleteQueryHistoriesIfMaxSizeReached() throws Exception {
+    public void testDeleteQueryHistories() throws Exception {
         val url = getTestConfig().getMetadataUrl();
 
         // before delete
@@ -307,7 +317,7 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testDeleteQueryHistoriesIfProjectMaxSizeReached() throws Exception {
+    public void testDeleteQueryHistoriesForProject() throws Exception {
         val url = getTestConfig().getMetadataUrl();
 
         // before delete
@@ -330,14 +340,13 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
     @Test
     public void testQueryTimeInMaxSize() throws Exception {
         val url = getTestConfig().getMetadataUrl();
-        List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate().queryForList(
-                String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history",
-                        10000000)));
+        List<QueryStatistics> statistics = JDBCResultMapper.queryStatisticsResultMapper(
+                getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE,
+                        url.getIdentifier() + "_query_history", 10000000)));
         Assert.assertEquals(0, statistics.size());
 
-        statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate()
-                .queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history",
-                        1)));
+        statistics = JDBCResultMapper.queryStatisticsResultMapper(getJdbcTemplate().queryForList(
+                String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_MAX_SIZE, url.getIdentifier() + "_query_history", 1)));
         Assert.assertEquals(1, statistics.size());
     }
 
@@ -353,6 +362,54 @@ public class RDBMSQueryHistoryTest extends NLocalFileMetadataTestCase {
                 getJdbcTemplate().queryForList(String.format(RDBMSQueryHistoryDAO.QUERY_TIME_IN_PROJECT_MAX_SIZE,
                         url.getIdentifier() + "_query_history", 1), PROJECT));
         Assert.assertEquals(1, statistics.size());
+    }
+
+    @Test
+    public void testDeleteQueryHistoriesIfMaxSizeReached() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+
+        rdbmsQueryHistoryDAO.deleteQueryHistoriesIfMaxSizeReached();
+
+        // after delete
+        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
+                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(4, queryHistoryList.size());
+    }
+
+    @Test
+    public void testDeleteQueryHistoriesIfProjectMaxSizeReached() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+
+        rdbmsQueryHistoryDAO.deleteQueryHistoriesIfProjectMaxSizeReached(PROJECT);
+
+        // after delete
+        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
+                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(4, queryHistoryList.size());
+    }
+
+    @Test
+    public void testDropProjectMeasurement() throws Exception {
+        val url = getTestConfig().getMetadataUrl();
+
+        RDBMSQueryHistoryDAO rdbmsQueryHistoryDAO = new RDBMSQueryHistoryDAO();
+        rdbmsQueryHistoryDAO.setQueryMetricMeasurement(getQueryHistoryTableName());
+        rdbmsQueryHistoryDAO.setJdbcTemplate(getJdbcTemplate());
+
+        rdbmsQueryHistoryDAO.dropProjectMeasurement(PROJECT);
+
+        // after delete
+        List<QueryHistory> queryHistoryList = JDBCResultMapper.queryHistoryResultMapper(getJdbcTemplate()
+                .queryForList(String.format("select * from %s", url.getIdentifier() + "_query_history")));
+        Assert.assertEquals(4, queryHistoryList.size());
     }
 
     @Test
