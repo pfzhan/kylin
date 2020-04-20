@@ -64,7 +64,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
         overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
 
-        executeTestScenario(
+        executeTestScenario(19, false,
                 /* CompareLevel = SAME */
                 new TestScenario(CompareLevel.SAME, "query/h2"), //
                 new TestScenario(CompareLevel.SAME, "query/sql"), //
@@ -94,10 +94,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_magine_inner"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_magine_left"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_multi_model"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join"),
                 new TestScenario(CompareLevel.SAME, "query/sql_orderby"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_probe"), //
-                new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
                 new TestScenario(CompareLevel.SAME, "query/sql_raw"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_rawtable"), //
                 new TestScenario(CompareLevel.SAME, "query/sql_snowflake"), //
@@ -137,6 +135,30 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 /* CompareLevel = NONE */
                 new TestScenario(CompareLevel.NONE, "query/sql_intersect_count"),
                 new TestScenario(CompareLevel.NONE, "query/sql_limit_offset"));
+    }
+
+    @Test
+    public void testSpecialJoin() throws Exception {
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+        overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+        executeTestScenario(
+                new TestScenario(CompareLevel.SAME, "query/sql_powerbi"),
+                new TestScenario(CompareLevel.SAME, "query/sql_special_join"),
+                new TestScenario(CompareLevel.SAME, "query/sql_special_join_condition")
+        );
+    }
+
+    @Test
+    public void testNonEqualJoin() throws Exception {
+        if ("true".equals(System.getProperty("runDailyUT"))) {
+            overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.filter-key.enabled", "TRUE");
+            overwriteSystemProp("kylin.smart.conf.auto-modeling.non-equi-join.enabled", "TRUE");
+            overwriteSystemProp("kylin.smart.conf.computed-column.suggestion.enabled-if-no-sampling", "TRUE");
+            executeTestScenario(
+                    new TestScenario(CompareLevel.SAME, "query/sql_non_equi_join")
+            );
+        }
     }
 
     @Test

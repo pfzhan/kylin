@@ -9,12 +9,8 @@ query/sql/query86.sql
 query/sql/query14.sql
 query/sql/query16.sql
 query/sql/query19.sql
-query/sql_magine_inner/query01.sql
+query/sql_special_join/query006.sql
 query/sql_magine_inner/query03.sql
-query/sql_magine_inner/query08.sql
+query/sql_special_join/query009.sql
 ---BLOCKED_QUERY(KE#8012)
-query/sql_subquery/query21.sql
-query/sql_subquery/query22.sql
-query/sql_subquery/query23.sql
-query/sql_subquery/query24.sql
 query/sql_verifyCount/query10.sql

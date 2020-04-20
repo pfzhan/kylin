@@ -24,3 +24,13 @@ ON a.SELLER_ID = b.ACCOUNT_ID
 
 INNER JOIN TEST_COUNTRY as c
 ON b.ACCOUNT_COUNTRY = c.COUNTRY
+inner JOIN edw.test_cal_dt as test_cal_dt
+ ON a.cal_dt = test_cal_dt.cal_dt
+ inner JOIN test_category_groupings
+ ON a.leaf_categ_id = test_category_groupings.leaf_categ_id AND a.lstg_site_id = test_category_groupings.site_id
+ inner JOIN edw.test_sites as test_sites
+ ON a.lstg_site_id = test_sites.site_id
+ inner JOIN edw.test_seller_type_dim as test_seller_type_dim
+ ON a.slr_segment_cd = test_seller_type_dim.seller_type_cd
+ INNER JOIN TEST_ORDER as TEST_ORDER
+ ON a.ORDER_ID = TEST_ORDER.ORDER_ID

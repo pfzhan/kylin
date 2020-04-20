@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
@@ -62,7 +63,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
         initAccelerationInfo(sqls);
         List<NDataModel> models = smartContext.isReuseExistedModel() ? getOriginModels() : Lists.newArrayList();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
-                models, DEFAULT_THREAD_NUM)) {
+                models, getDefaultThreadNum())) {
             extractor.execute();
             logFailedQuery(extractor);
 
@@ -110,5 +111,12 @@ class NSQLAnalysisProposer extends NAbstractProposer {
                 }
             }
         });
+    }
+
+    public static int getDefaultThreadNum() {
+        if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            return 6;
+        }
+        return DEFAULT_THREAD_NUM;
     }
 }

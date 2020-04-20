@@ -27,6 +27,7 @@ package io.kyligence.kap.newten.auto;
 import java.util.Map;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import io.kyligence.kap.smart.NSmartMaster;
@@ -51,12 +52,20 @@ public class NAutoTestBase extends NSuggestTestBase {
     @Override
     protected Map<String, CompareEntity> executeTestScenario(boolean recordFQ,
             NSuggestTestBase.TestScenario... testScenarios) throws Exception {
+        return executeTestScenario(null, false, testScenarios);
+    }
+
+    protected Map<String, CompareEntity> executeTestScenario(Integer expectModelNum, boolean recordFQ,
+            NSuggestTestBase.TestScenario... testScenarios) throws Exception {
 
         // 1. execute auto-modeling propose
         long startTime = System.currentTimeMillis();
         final NSmartMaster smartMaster = proposeWithSmartMaster(getProject(), testScenarios);
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
         log.debug("smart proposal cost {} ms", System.currentTimeMillis() - startTime);
+        if (expectModelNum != null) {
+            Assert.assertEquals(expectModelNum.intValue(), smartMaster.getRecommendedModels().size());
+        }
 
         buildAndCompare(compareMap, testScenarios);
 

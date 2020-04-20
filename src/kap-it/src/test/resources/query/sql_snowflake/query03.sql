@@ -10,5 +10,14 @@ ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TES
 INNER JOIN TEST_COUNTRY as SELLER_COUNTRY
 ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY
 
+inner JOIN edw.test_cal_dt as test_cal_dt
+ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt
+inner JOIN edw.test_sites as test_sites
+ON test_kylin_fact.lstg_site_id = test_sites.site_id
+inner JOIN edw.test_seller_type_dim as test_seller_type_dim
+ON test_kylin_fact.slr_segment_cd = test_seller_type_dim.seller_type_cd
+INNER JOIN TEST_ORDER as TEST_ORDER
+ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID
+
 where SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL=1
 group by SELLER_COUNTRY.NAME

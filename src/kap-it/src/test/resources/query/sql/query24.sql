@@ -34,7 +34,13 @@ SELECT
  inner JOIN edw.test_sites as test_sites 
  ON test_kylin_fact.lstg_site_id = test_sites.site_id 
  inner JOIN edw.test_seller_type_dim as test_seller_type_dim 
- ON test_kylin_fact.slr_segment_cd = test_seller_type_dim.seller_type_cd 
+ ON test_kylin_fact.slr_segment_cd = test_seller_type_dim.seller_type_cd
+ INNER JOIN TEST_ORDER as TEST_ORDER
+ ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID
+inner join test_account
+on TEST_KYLIN_FACT.seller_id = test_account.account_id
+inner join test_country
+on test_account.account_country = test_country.country
  group by test_cal_dt.week_beg_dt 
  ,test_category_groupings.meta_categ_name 
  ,test_category_groupings.categ_lvl2_name 

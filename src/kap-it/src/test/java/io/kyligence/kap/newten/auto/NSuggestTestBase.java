@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
@@ -296,15 +297,31 @@ public class NSuggestTestBase extends NLocalWithSparkSessionTest {
 
     List<String> collectQueries(TestScenario... tests) throws IOException {
         List<String> allQueries = Lists.newArrayList();
+        List<Pair<String, String>> tmpQueryList = Lists.newArrayList();
         for (TestScenario test : tests) {
             List<Pair<String, String>> queries = fetchQueries(test.folderName, test.getFromIndex(), test.getToIndex());
             normalizeSql(test.joinType, queries);
+            tmpQueryList.addAll(queries);
             test.queries = test.getExclusionList() == null ? queries
                     : NExecAndComp.doFilter(queries, test.getExclusionList());
             allQueries.addAll(test.queries.stream().map(Pair::getSecond).collect(Collectors.toList()));
         }
+        Map<Integer, List<Pair<String, String>>> classifiedMap = classify(tmpQueryList);
+
         return allQueries;
     }
+
+    private Map<Integer, List<Pair<String, String>>> classify(List<Pair<String, String>> queryList) {
+        Map<Integer, List<Pair<String, String>>> result = Maps.newHashMap();
+        queryList.forEach(pair -> {
+            String sqlContent = pair.getSecond();
+            int times = StringUtils.countMatches(sqlContent.toLowerCase(), " join ");
+            result.putIfAbsent(times, Lists.newArrayList());
+            result.get(times).add(pair);
+        });
+        return result;
+    }
+
 
     List<Pair<String, String>> fetchQueries(String subFolder, int fromIndex, int toIndex) throws IOException {
         List<Pair<String, String>> queries;
