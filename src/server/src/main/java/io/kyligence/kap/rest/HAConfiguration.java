@@ -78,6 +78,9 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
             return;
         }
 
+        String tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
+        String attributesTableName = tableName + "_attributes";
+
         String sessionFile = "script/schema-session-pg.sql";
         String sessionAttributesFile = "script/schema-session-attributes-pg.sql";
         if (dataSource instanceof org.apache.commons.dbcp2.BasicDataSource
@@ -85,14 +88,15 @@ public class HAConfiguration extends AbstractHttpSessionApplicationInitializer {
                         .equals("com.mysql.jdbc.Driver")) {
             sessionFile = "script/schema-session-mysql.sql";
             sessionAttributesFile = "script/schema-session-attributes-mysql.sql";
+
+            // mysql table name is case sensitive, sql file is using capital letters.
+            attributesTableName = tableName + "_ATTRIBUTES";
         }
 
-        val tableName = KylinConfig.getInstanceFromEnv().getMetadataUrlPrefix() + "_session";
         if (!isTableExists(dataSource.getConnection(), tableName)) {
             initSessionTable(tableName, sessionFile);
         }
 
-        val attributesTableName = tableName + "_attributes";
         if (!isTableExists(dataSource.getConnection(), attributesTableName)) {
             initSessionTable(tableName, sessionAttributesFile);
         }
