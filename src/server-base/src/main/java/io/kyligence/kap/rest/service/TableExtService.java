@@ -25,10 +25,12 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -44,6 +46,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.security.KerberosLoginManager;
 import io.kyligence.kap.rest.transaction.Transaction;
 
 @Component("tableExtService")
@@ -69,27 +72,34 @@ public class TableExtService extends BasicService {
     @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadTables(String[] tables, String project) throws Exception {
         aclEvaluate.checkProjectAdminPermission(project);
-        List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
-        LoadTableResponse loadTableResponse = new LoadTableResponse();
-        Set<String> loaded = Sets.newLinkedHashSet();
-        Set<String> failed = Sets.newLinkedHashSet();
-        for (Pair<TableDesc, TableExtDesc> pair : extractTableMeta) {
-            TableDesc tableDesc = pair.getFirst();
-            TableExtDesc extDesc = pair.getSecond();
-            String tableName = tableDesc.getIdentity();
-            boolean ok;
-            try {
-                loadTable(tableDesc, extDesc, project);
-                ok = true;
-            } catch (Exception ex) {
-                logger.error("Failed to load table '" + tableName + "'\"", ex);
-                ok = false;
+        UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
+
+        return ugi.doAs(new PrivilegedExceptionAction<LoadTableResponse>() {
+            @Override
+            public LoadTableResponse run() throws Exception {
+                List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
+                LoadTableResponse tableResponse = new LoadTableResponse();
+                Set<String> loaded = Sets.newLinkedHashSet();
+                Set<String> failed = Sets.newLinkedHashSet();
+                for (Pair<TableDesc, TableExtDesc> pair : extractTableMeta) {
+                    TableDesc tableDesc = pair.getFirst();
+                    TableExtDesc extDesc = pair.getSecond();
+                    String tableName = tableDesc.getIdentity();
+                    boolean ok;
+                    try {
+                        loadTable(tableDesc, extDesc, project);
+                        ok = true;
+                    } catch (Exception ex) {
+                        logger.error("Failed to load table '" + tableName + "'\"", ex);
+                        ok = false;
+                    }
+                    (ok ? loaded : failed).add(tableName);
+                }
+                tableResponse.setLoaded(loaded);
+                tableResponse.setFailed(failed);
+                return tableResponse;
             }
-            (ok ? loaded : failed).add(tableName);
-        }
-        loadTableResponse.setLoaded(loaded);
-        loadTableResponse.setFailed(failed);
-        return loadTableResponse;
+        });
     }
 
     /**

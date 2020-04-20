@@ -53,6 +53,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.DateFormat;
@@ -72,7 +73,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.TableRefresh;
 import org.apache.kylin.rest.response.TableRefreshAll;
@@ -1537,7 +1537,7 @@ public class TableService extends BasicService {
 
     public NHiveTableNameResponse loadProjectHiveTableNameToCacheImmediately(String project, boolean force)
             throws Exception {
-        aclEvaluate.checkIsGlobalAdmin();
+        aclEvaluate.checkProjectAdminPermission(project);
         UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
         return NHiveTableName.getInstance().fetchTablesImmediately(ugi, project, force);
     }
