@@ -40,7 +40,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -86,9 +85,9 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
 
     @Test
     public void testAuthenticate_UserNotFound_EmptyUserName() {
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("",
-                userAdmin.getPassword(), userAdmin.getAuthorities());
-        thrown.expect(UsernameNotFoundException.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("", userAdmin.getPassword(),
+                userAdmin.getAuthorities());
+        thrown.expect(BadCredentialsException.class);
         thrown.expectMessage("Invalid username or password.");
         limitLoginAuthenticationProvider.authenticate(token);
     }
@@ -97,8 +96,8 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
     public void testAuthenticate_UserNotFound_Exception() {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("lalala",
                 userAdmin.getPassword(), userAdmin.getAuthorities());
-        thrown.expect(UsernameNotFoundException.class);
-        thrown.expectMessage("User 'lalala' not found.");
+        thrown.expect(BadCredentialsException.class);
+        thrown.expectMessage("Invalid username or password.");
         limitLoginAuthenticationProvider.authenticate(token);
     }
 

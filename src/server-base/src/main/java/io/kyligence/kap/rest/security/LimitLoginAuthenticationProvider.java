@@ -47,6 +47,7 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -105,6 +106,9 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                 throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
                         new KylinException("KE-1008", e));
             }
+        } catch (UsernameNotFoundException e) {
+            throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
+                    new KylinException("KE-1045", MsgPicker.getMsg().getUSER_AUTH_FAILED()));
         }
     }
 
