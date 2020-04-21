@@ -23,8 +23,11 @@
  */
 package io.kyligence.kap.rest;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -64,8 +67,12 @@ public class ZookeeperClusterManager implements ClusterManager {
         if (CollectionUtils.isEmpty(list)) {
             return Lists.newArrayList();
         }
-        return list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
+        List<String> hosts = list.stream().map(serviceInstance -> serviceInstance.getHost() + ":" + serviceInstance.getPort())
                 .collect(Collectors.toList());
+        if (!Objects.equals(serviceId, ClusterConstant.QUERY)) {
+            mergeJobNodeWithEpoch(hosts);
+        }
+        return hosts;
     }
 
     private void checkServiceId(String serviceId) {
@@ -94,13 +101,27 @@ public class ZookeeperClusterManager implements ClusterManager {
                 servers.add(new ServerInfoResponse(host, nodeType));
             }
         }
+
+        return servers;
+    }
+
+    private void mergeJobNodeWithEpoch(List<String> hosts) {
+        val ips = hosts.stream().map(s -> {
+            val hostAndPort = s.split(":");
+            String host = hostAndPort[0];
+            String port = hostAndPort[1];
+            try {
+                return InetAddress.getByName(host).getHostAddress() + ":" + port;
+            } catch (UnknownHostException e) {
+                return "127.0.0.1:" + port;
+            }
+        }).collect(Collectors.toList());
         EpochManager epochManager = EpochManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (String leader : epochManager.getAllLeaders()) {
-            if (!hosts.contains(leader)) {
-                servers.add(new ServerInfoResponse(leader, ClusterConstant.ALL));
+            if (!ips.contains(leader)) {
+                hosts.add(leader);
             }
         }
-        return servers;
     }
 
 }
