@@ -24,12 +24,15 @@
 package io.kyligence.kap.metadata.project;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore;
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.epoch.EpochNotMatchException;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 
 public class EnhancedUnitOfWork implements IKeep {
 
@@ -43,7 +46,8 @@ public class EnhancedUnitOfWork implements IKeep {
 
     public static <T> T doInTransactionWithCheckAndRetry(UnitOfWorkParams<T> params) {
         val config = KylinConfig.getInstanceFromEnv();
-        if (!config.isUTEnv()) {
+        MetadataStore metadataStore = ResourceStore.getKylinMetaStore(config).getMetadataStore();
+        if (!config.isUTEnv() && metadataStore instanceof JdbcMetadataStore) {
             params.setEpochChecker(() -> {
                 if (!EpochManager.getInstance(config).checkEpochOwner(params.getUnitName())) {
                     throw new EpochNotMatchException("System is trying to recover, please try again later", params.getUnitName());
