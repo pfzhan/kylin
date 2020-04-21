@@ -494,7 +494,7 @@ public class QueryService extends BasicService {
                 logger.debug("Directly return exception as the sql is unsupported, and query pushdown is disabled");
                 throw new KylinException("KE-1005", msg.getNOT_SUPPORTED_SQL());
             }
-
+            sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
                 queryCacheManager.cacheSuccessQuery(sqlRequest, sqlResponse);
             }
