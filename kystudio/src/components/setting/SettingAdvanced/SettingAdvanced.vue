@@ -125,7 +125,7 @@
       @cancel="(scb, ecb) => handleResetForm('kerberos-acc', scb, ecb)">
       <div class="setting-item">
         <el-form ref="kerberos-setting-form" :model="form" :rules="kerberosRules" label-position="left">
-          <el-form-item prop="principal" :label="$t('principleName')" :show-message="false">
+          <el-form-item prop="principal" :label="$t('principalName')" :show-message="false">
             <el-input
               size="small"
               class="yarn-name-input"
