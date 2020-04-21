@@ -20,6 +20,7 @@
 
 <script>
 import { apiUrl } from '../../config'
+import { mapActions } from 'vuex'
 export default {
   name: 'jobDialog',
   props: ['stepDetail', 'stepId', 'jobId', 'targetProject'],
@@ -37,16 +38,59 @@ export default {
       outputTipsKC: '输出日志默认展示首尾各 100 行内容，如需查看所有内容，请进入管理 - 诊断运维页面下载诊断包。'
     }
   },
+  data () {
+    return {
+      hasClickDownloadLogBtn: false
+    }
+  },
   computed: {
     actionUrl () {
       return apiUrl + 'jobs/' + this.jobId + '/steps/' + this.stepId + '/log'
     }
   },
   methods: {
+    ...mapActions({
+      downloadLog: 'DOWNLOAD_LOGS'
+    }),
     downloadLogs () {
-      this.$nextTick(() => {
-        this.$el.querySelectorAll('.downloadLogs')[0].submit()
-      })
+      let params = {
+        jobId: this.jobId,
+        stepId: this.stepId,
+        project: this.targetProject
+      }
+      if (this.hasClickDownloadLogBtn) {
+        return false
+      }
+      if (this.$store.state.config.platform === 'iframe') {
+        try {
+          this.hasClickDownloadLogBtn = true
+          this.downloadLog(params).then(res => {
+            this.hasClickDownloadLogBtn = false
+            if (res && res.status === 200 && res.body) {
+              let fileName = this.targetProject + '_' + this.stepId + '.log'
+              let data = res.body
+              const blob = new Blob([data], {type: 'application/json;charset=utf-8'})
+              if (window.navigator.msSaveOrOpenBlob) {
+                navigator.msSaveBlob(blob, fileName)
+              } else {
+                var link = document.createElement('a')
+                link.href = window.URL.createObjectURL(blob)
+                link.download = fileName
+                link.click()
+                window.URL.revokeObjectURL(link.href)
+              }
+            }
+          })
+        } catch (error) {
+          this.hasClickDownloadLogBtn = false
+          console.log(error)
+        }
+      } else {
+        this.hasClickDownloadLogBtn = false
+        this.$nextTick(() => {
+          this.$el.querySelectorAll('.downloadLogs')[0].submit()
+        })
+      }
     }
   }
 }

@@ -43,7 +43,8 @@ export default {
     showLisenceSuccessDialog: false,
     smartModeEnabled: 'false',
     loadHiveTableNameEnabled: 'true',
-    kerberosEnabled: 'false'
+    kerberosEnabled: 'false',
+    jobLogs: ''
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -210,6 +211,9 @@ export default {
       return api.system.getCanaryReport(para).then((response) => {
         commit(types.SAVE_CANARY_REPORT, { list: response.data.data })
       })
+    },
+    [types.DOWNLOAD_LOGS]: function ({commit}, para) {
+      return api.system.downloadJobLogs(para)
     }
   },
   getters: {

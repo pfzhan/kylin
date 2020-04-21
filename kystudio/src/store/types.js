@@ -359,6 +359,7 @@ export const LOGIN_KYBOT = 'LOGIN_KYBOT'
 export const LOGOUT_KYBOT = 'LOGOUT_KYBOT'
 export const GET_CUR_ACCOUNTNAME = 'GET_CUR_ACCOUNTNAME'
 export const GET_KYBOT_SERVERS = 'GET_KYBOT_SERVERS'
+export const DOWNLOAD_LOGS = 'DOWNLOAD_LOGS'
 // monitor actions mutations
 export const SUGGEST_MODEL = 'SUGGEST_MODEL'
 export const SAVE_SUGGEST_MODELS = 'SAVE_SUGGEST_MODELS'

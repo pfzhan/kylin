@@ -67,5 +67,9 @@ export default {
   stopDumpTask: (para) => {
     const { host, id } = para
     return Vue.resource(apiUrl + `system/diag?host=${host}`).delete({id})
+  },
+  downloadJobLogs: (para) => {
+    const { jobId, stepId, project } = para
+    return Vue.http(apiUrl + `jobs/${jobId}/steps/${stepId}/log?project=${project}`).get()
   }
 }
