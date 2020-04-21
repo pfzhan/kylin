@@ -70,6 +70,6 @@ export default {
   },
   downloadJobLogs: (para) => {
     const { jobId, stepId, project } = para
-    return Vue.http(apiUrl + `jobs/${jobId}/steps/${stepId}/log?project=${project}`).get()
+    return Vue.resource(apiUrl + `jobs/${jobId}/steps/${stepId}/log?project=${project}`).get()
   }
 }
