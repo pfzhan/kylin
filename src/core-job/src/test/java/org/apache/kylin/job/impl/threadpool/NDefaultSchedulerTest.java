@@ -287,6 +287,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         });
     }
 
+    @Repeat(3)
     @Test
     public void testSucceedAndFailed() {
         logger.info("testSucceedAndFailed");
@@ -339,6 +340,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 executableManager.getOutputFromHDFSByJobId(task2.getId()).getVerboseMsg());
     }
 
+    @Repeat(3)
     @Test
     public void testSucceedAndError() {
         logger.info("testSucceedAndError");
@@ -554,7 +556,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
                 pendingDurations[i] = pendingDurations[i] + 1000;
             }
         }
-        Assert.assertArrayEquals(pendingDurations, pendingDurations2, 10);
+        Assert.assertArrayEquals(pendingDurations, pendingDurations2, 50);
     }
 
     private long[] getDurations(String jobId) {
