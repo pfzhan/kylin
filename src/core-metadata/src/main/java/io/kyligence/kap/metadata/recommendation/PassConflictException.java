@@ -23,8 +23,15 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import lombok.Getter;
+
 public class PassConflictException extends RuntimeException {
-    public PassConflictException(String msg) {
+
+    @Getter
+    private final String responseMsg;
+
+    public PassConflictException(String msg, String responseMsg) {
         super(msg);
+        this.responseMsg = responseMsg;
     }
 }

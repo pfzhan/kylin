@@ -1103,4 +1103,20 @@ public class CnMessage extends Message {
     public String getDIMENSION_LOST_CC() {
         return "维度缺少依赖：缺少可计算列，您需要先通过对应可计算列的优化建议。";
     }
+
+    public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
+        return String.format("可计算列%s的表达式%s与可计算列%s相同。", newCCName, newCCExpression, existedCCName);
+    }
+
+    public String getCC_NAME_CONFLICT(String ccName) {
+        return String.format("计算列%s已存在。", ccName);
+    }
+
+    public String getDIMENSION_CONFLICT(String dimensionName) {
+        return String.format("维度%s已存在。", dimensionName);
+    }
+
+    public String getMEASURE_CONFLICT(String measureName) {
+        return String.format("度量%s已存在。", measureName);
+    }
 }

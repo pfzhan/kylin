@@ -37,6 +37,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -454,7 +455,8 @@ public class OptimizeRecommendationManager {
         public void handleOnSameNameDiffExpr(NDataModel existingModel, NDataModel newModel,
                 ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
             if (!recommendation.isAutoChangeName()) {
-                throw new PassConflictException(String.format("pass cc %s name conflict", newCC.getColumnName()));
+                throw new PassConflictException(String.format("pass cc %s name conflict", newCC.getColumnName()),
+                        MsgPicker.getMsg().getCC_NAME_CONFLICT(newCC.getColumnName()));
             }
             val newName = newCCName(lastCCId, context.getAllCCNames());
             val oldName = newCC.getColumnName();
@@ -473,8 +475,11 @@ public class OptimizeRecommendationManager {
         public void handleOnSameExprDiffName(NDataModel existingModel, ComputedColumnDesc existingCC,
                 ComputedColumnDesc newCC) {
             if (!recommendation.isAutoChangeName()) {
-                throw new PassConflictException(String.format("pass cc %s %s expression conflict",
-                        newCC.getColumnName(), newCC.getInnerExpression()));
+                throw new PassConflictException(
+                        String.format("pass cc %s %s expression conflict", newCC.getColumnName(),
+                                newCC.getInnerExpression()),
+                        MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(newCC.getExpression(), newCC.getColumnName(),
+                                existingCC.getColumnName()));
             }
             val oldName = newCC.getColumnName();
             val newName = existingCC.getColumnName();
@@ -540,8 +545,11 @@ public class OptimizeRecommendationManager {
                 if (!StringUtils.equalsIgnoreCase(ccInModel.getColumnName(),
                         recommendationItem.getCc().getColumnName())) {
                     if (!recommendationItem.isAutoChangeName()) {
-                        throw new PassConflictException(String.format("cc %s expression has already defined in model",
-                                recommendationItem.getCc().getColumnName()));
+                        throw new PassConflictException(
+                                String.format("cc %s expression has already defined in model",
+                                        recommendationItem.getCc().getColumnName()),
+                                MsgPicker.getMsg().getCC_EXPRESSION_CONFLICT(recommendationItem.getCc().getExpression(),
+                                        recommendationItem.getCc().getColumnName(), ccInModel.getColumnName()));
                     }
                     context.getNameTranslations()
                             .add(new Pair<>(recommendationItem.getCc().getColumnName(), ccInModel.getColumnName()));
@@ -553,15 +561,17 @@ public class OptimizeRecommendationManager {
             } else if (StringUtils.equalsIgnoreCase(ccInModel.getColumnName(),
                     recommendationItem.getCc().getColumnName())) {
                 if (!recommendationItem.isAutoChangeName()) {
-                    throw new PassConflictException(String.format("cc %s name has already used in model",
-                            recommendationItem.getCc().getColumnName()));
+                    throw new PassConflictException(
+                            String.format("cc %s name has already used in model",
+                                    recommendationItem.getCc().getColumnName()),
+                            MsgPicker.getMsg().getCC_NAME_CONFLICT(recommendationItem.getCc().getColumnName()));
                 }
                 val oldName = recommendationItem.getCc().getColumnName();
                 val newName = newCCName(lastCCId, context.getAllCCNames());
                 context.getNameTranslations().add(new Pair<>(oldName, newName));
 
                 recommendationItem = context.copyCCRecommendationItem(itemId);
-                recommendationItem.getCc().setColumnName(newCCName(lastCCId, context.getAllCCNames()));
+                recommendationItem.getCc().setColumnName(newName);
             }
 
         }
@@ -594,7 +604,8 @@ public class OptimizeRecommendationManager {
                     && !context.getDimensionColumnNameIdMap().get(name.toUpperCase()).equals(r.getColumn().getId())) {
                 if (!r.isAutoChangeName()) {
                     throw new PassConflictException(
-                            String.format("dimension all named column %s has already used in model", name));
+                            String.format("dimension all named column %s has already used in model", name),
+                            MsgPicker.getMsg().getDIMENSION_CONFLICT(name));
                 }
                 val newName = newAllName(r.getColumn().getAliasDotColumn().replace(".", "_"), context);
                 val recommendationItem = context.copyDimensionRecommendationItem(itemId);
@@ -625,7 +636,8 @@ public class OptimizeRecommendationManager {
                 } else if (measureInModel.getName().equalsIgnoreCase(measure.getName())) {
                     if (!r.isAutoChangeName()) {
                         throw new PassConflictException(
-                                String.format("measure name %s has already used in model", measure.getName()));
+                                String.format("measure name %s has already used in model", measure.getName()),
+                                MsgPicker.getMsg().getMEASURE_CONFLICT(measure.getName()));
                     }
                     val copy = context.copyMeasureRecommendationItem(itemId);
                     copy.getMeasure()

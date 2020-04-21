@@ -66,14 +66,6 @@ public class DimensionRecommendationItem extends RecommendationItem<DimensionRec
         Preconditions.checkNotNull(column);
 
         val modelColumn = context.getVirtualIdColumnMap().get(column.getId());
-        if (modelColumn == null || !modelColumn.isExist()) {
-            if (!real) {
-                context.deleteDimensionRecommendationItem(itemId);
-                return;
-            } else {
-                throw new PassConflictException("cc item id " + itemId + "column not exists in model");
-            }
-        }
         if (modelColumn.isDimension()) {
             //dimension is already in model
             context.deleteDimensionRecommendationItem(itemId);
@@ -96,11 +88,12 @@ public class DimensionRecommendationItem extends RecommendationItem<DimensionRec
         val recommendation = context.getDimensionRecommendationItem(itemId);
         val columns = context.getVirtualIdColumnMap();
         val id = recommendation.getColumn().getId();
-        if (!columns.containsKey(id) && !real) {
+        if ((!columns.containsKey(id) || !recommendation.getColumn().isExist()) && !real) {
             context.deleteDimensionRecommendationItem(itemId);
             return;
         }
-        if (!columns.containsKey(id) || (real && OptimizeRecommendationManager.isVirtualColumnId(id))) {
+        if ((!columns.containsKey(id) || !recommendation.getColumn().isExist())
+                || (real && OptimizeRecommendationManager.isVirtualColumnId(id))) {
             throw new DependencyLostException(String.format(
                     "dimension lost dependency: column %s not exists in all columns, you may need pass it first",
                     context.getDimensionRecommendationItem(itemId).getColumn().getName()),

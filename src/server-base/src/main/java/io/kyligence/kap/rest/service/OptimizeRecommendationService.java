@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.recommendation.PassConflictException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
@@ -119,6 +120,8 @@ public class OptimizeRecommendationService extends BasicService {
             verifier.verify();
         } catch (DependencyLostException e) {
             throw new KylinException("KE-1044", getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
+        } catch (PassConflictException e) {
+            throw new KylinException("KE-1044", e.getResponseMsg());
         }
     }
 
@@ -319,6 +322,8 @@ public class OptimizeRecommendationService extends BasicService {
             });
         } catch (DependencyLostException e) {
             throw new KylinException("KE-1044", getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
+        } catch (PassConflictException e) {
+            throw new KylinException("KE-1044", e.getResponseMsg());
         }
     }
 

@@ -36,6 +36,8 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -72,7 +74,6 @@ import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
-import io.kyligence.kap.metadata.recommendation.PassConflictException;
 import io.kyligence.kap.metadata.recommendation.RecommendationItem;
 import io.kyligence.kap.metadata.recommendation.RecommendationType;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
@@ -608,8 +609,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         request.setDimensionRecommendations(recommendation.getDimensionRecommendations());
         request.setMeasureRecommendations(recommendation.getMeasureRecommendations());
 
-        thrown.expect(PassConflictException.class);
-        thrown.expectMessage("cc cc_AUTO_1 name has already used in model");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getCC_NAME_CONFLICT("cc_AUTO_1"));
         service.applyRecommendations(request, "default");
     }
 
@@ -625,8 +626,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         request.getDimensionRecommendations().get(0).getColumn().setName("cc_AUTO_1");
         request.setMeasureRecommendations(recommendation.getMeasureRecommendations());
 
-        thrown.expect(PassConflictException.class);
-        thrown.expectMessage("dimension all named column cc_AUTO_1 has already used in model");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getDIMENSION_CONFLICT("cc_AUTO_1"));
         service.applyRecommendations(request, "default");
     }
 
@@ -642,8 +643,8 @@ public class OptimizeRecommendationServiceTest extends NLocalFileMetadataTestCas
         request.setMeasureRecommendations(recommendation.getMeasureRecommendations());
         request.getMeasureRecommendations().get(0).getMeasure().setName("max_ITEM");
 
-        thrown.expect(PassConflictException.class);
-        thrown.expectMessage("measure name max_ITEM has already used in model");
+        thrown.expect(KylinException.class);
+        thrown.expectMessage(MsgPicker.getMsg().getMEASURE_CONFLICT("max_ITEM"));
         service.applyRecommendations(request, "default");
     }
 }

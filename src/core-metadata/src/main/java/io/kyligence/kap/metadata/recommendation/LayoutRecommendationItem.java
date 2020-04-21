@@ -151,7 +151,7 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             return;
         }
         if (real) {
-            throw new PassConflictException("cannot add or modify index because index has already added or modified");
+            logger.warn("cannot add or modify index because index has already added or modified");
         }
         context.deleteLayoutRecommendationItem(itemId);
     }

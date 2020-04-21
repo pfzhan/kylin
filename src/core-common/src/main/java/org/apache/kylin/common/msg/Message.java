@@ -1123,4 +1123,21 @@ public class Message {
     public String getDIMENSION_LOST_CC() {
         return "Dimension lacks dependency: missing computed columns, you need to pass the optimization suggestion corresponding to computed columns first.";
     }
+
+    public String getCC_EXPRESSION_CONFLICT(String newCCExpression, String newCCName, String existedCCName) {
+        return String.format("The expression %s of the computed column %s is the same as the computed column %s.",
+                newCCExpression, newCCName, existedCCName);
+    }
+
+    public String getCC_NAME_CONFLICT(String ccName) {
+        return String.format("Computed column %s already exists.", ccName);
+    }
+
+    public String getDIMENSION_CONFLICT(String dimensionName) {
+        return String.format("Dimension %s already exists.", dimensionName);
+    }
+
+    public String getMEASURE_CONFLICT(String measureName) {
+        return String.format("Measure %s already exists.", measureName);
+    }
 }
