@@ -171,9 +171,12 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         Assert.assertEquals(newSparkJobJarPath, overrideSparkJobJarPath);
 
         if (StringUtils.isBlank(oldSparkJobJarPath)) {
-            oldSparkJobJarPath = "";
+            // remove property, otherwise org.apache.kylin.common.KylinConfigBase.getOptional(java.lang.String, java.lang.String)
+            // will return empty str
+            System.clearProperty("kylin.engine.spark.job-jar");
+        } else {
+            conf.overrideSparkJobJarPath(oldSparkJobJarPath);
         }
-        conf.overrideSparkJobJarPath(oldSparkJobJarPath);
     }
 
     @Test
