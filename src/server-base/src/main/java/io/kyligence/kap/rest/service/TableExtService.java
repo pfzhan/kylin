@@ -34,8 +34,11 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.source.ISourceMetadataExplorer;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,6 +80,8 @@ public class TableExtService extends BasicService {
         return ugi.doAs(new PrivilegedExceptionAction<LoadTableResponse>() {
             @Override
             public LoadTableResponse run() throws Exception {
+                ProjectInstance projectInstance = getProjectManager().getProject(project);
+
                 List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project);
                 LoadTableResponse tableResponse = new LoadTableResponse();
                 Set<String> loaded = Sets.newLinkedHashSet();
@@ -86,6 +91,14 @@ public class TableExtService extends BasicService {
                     TableExtDesc extDesc = pair.getSecond();
                     String tableName = tableDesc.getIdentity();
                     boolean ok;
+                    if (projectInstance.isProjectKerberosEnabled()) {
+                        ISourceMetadataExplorer explr = SourceFactory.getSource(projectInstance)
+                                .getSourceMetadataExplorer();
+                        if (!explr.checkTablesAccess(Sets.newHashSet(pair.getFirst().getIdentity()))) {
+                            failed.add(tableName);
+                            continue;
+                        }
+                    }
                     try {
                         loadTable(tableDesc, extDesc, project);
                         ok = true;

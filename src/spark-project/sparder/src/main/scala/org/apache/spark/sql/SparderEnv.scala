@@ -25,9 +25,11 @@
 package org.apache.spark.sql
 
 import java.lang.{Boolean => JBoolean, String => JString}
+import java.security.PrivilegedAction
 import java.util.concurrent.atomic.AtomicReference
 
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MonitorEnv
 import org.apache.spark.scheduler.{SparkListener, SparkListenerEvent}
@@ -56,12 +58,6 @@ object SparderEnv extends Logging {
     if (spark == null || spark.sparkContext.isStopped) {
       logInfo("Init spark.")
       initSpark()
-      try {
-        spark.catalog.listDatabases().show()
-      } catch {
-        case throwable: Throwable =>
-          logError("Error for initializing connection with hive.", throwable)
-      }
     }
     spark
   }
@@ -185,6 +181,15 @@ object SparderEnv extends Logging {
       if (initializingThread != null) {
         logInfo("Initializing Spark, waiting for done.")
         initializingThread.join()
+      }
+
+      try {
+        UserGroupInformation.getLoginUser.doAs(new PrivilegedAction[Unit] {
+          override def run(): Unit = spark.catalog.listDatabases().show()
+        })
+      } catch {
+        case throwable: Throwable =>
+          logError("Error for initializing connection with hive.", throwable)
       }
     }
   }
