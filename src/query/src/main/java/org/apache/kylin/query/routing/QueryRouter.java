@@ -133,7 +133,7 @@ public class QueryRouter {
         preserved.setGroupByColumns(Sets.newLinkedHashSet(oriOLAPContext.getGroupByColumns()));
         preserved.setInnerFilterColumns(Sets.newHashSet(oriOLAPContext.getInnerFilterColumns()));
         for (FunctionDesc agg : oriOLAPContext.aggregations) {
-            preserved.reservedMap.put(agg,
+            preserved.getReservedMap().put(agg,
                     FunctionDesc.newInstance(agg.getExpression(), agg.getParameters(), agg.getReturnType()));
         }
 
@@ -144,8 +144,8 @@ public class QueryRouter {
         oriOLAPContext.allColumns = preservedOLAPContext.allColumns;
         oriOLAPContext.setSortColumns(preservedOLAPContext.getSortColumns());
         oriOLAPContext.aggregations.forEach(agg -> {
-            if (preservedOLAPContext.reservedMap.containsKey(agg)) {
-                final FunctionDesc functionDesc = preservedOLAPContext.reservedMap.get(agg);
+            if (preservedOLAPContext.getReservedMap().containsKey(agg)) {
+                final FunctionDesc functionDesc = preservedOLAPContext.getReservedMap().get(agg);
                 agg.setExpression(functionDesc.getExpression());
                 agg.setParameters(functionDesc.getParameters());
                 agg.setReturnType(functionDesc.getReturnType());

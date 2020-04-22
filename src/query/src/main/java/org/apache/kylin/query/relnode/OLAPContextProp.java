@@ -26,6 +26,7 @@ package org.apache.kylin.query.relnode;
 
 import java.util.Map;
 
+import lombok.Getter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 
 import com.google.common.collect.Maps;
@@ -35,5 +36,6 @@ public class OLAPContextProp extends OLAPContext {
         super(seq);
     }
 
-    public Map<FunctionDesc, FunctionDesc> reservedMap = Maps.newLinkedHashMap();
+    @Getter
+    private Map<FunctionDesc, FunctionDesc> reservedMap = Maps.newLinkedHashMap();
 }
