@@ -223,14 +223,17 @@ public class RexUtils {
      * @return
      */
     public static RexNode stripOffCastInColumnEqualPredicate(RexNode predicateNode) {
-        if (predicateNode == null || !(predicateNode instanceof RexCall)) {
+        if (!(predicateNode instanceof RexCall)) {
             return predicateNode;
         }
         RexCall predicate = (RexCall) predicateNode;
         // search and replace rex node with exact pattern of cast(col1 as ...) = col2
         if (predicate.getKind() == SqlKind.EQUALS) {
             boolean colEqualPredWithCast = false;
-            for (RexNode predicateChild : predicate.getOperands()) {
+            List<RexNode> predicateOperands = Lists.newArrayList(predicate.getOperands());
+            for (int predicateOpIdx = 0; predicateOpIdx < predicateOperands.size(); predicateOpIdx++) {
+                RexNode predicateChild = predicateOperands.get(predicateOpIdx);
+
                 // input ref
                 if (predicateChild instanceof RexInputRef) {
                     continue;
@@ -239,22 +242,12 @@ public class RexUtils {
                 if (predicateChild instanceof RexCall &&
                         predicateChild.getKind() == SqlKind.CAST
                         && ((RexCall) predicateChild).getOperands().get(0) instanceof RexInputRef) {
+                    predicateOperands.set(predicateOpIdx, ((RexCall) predicateOperands.get(predicateOpIdx)).getOperands().get(0));
                     colEqualPredWithCast = true;
-                    continue;
                 }
-                colEqualPredWithCast = false;
-                break;
             }
 
             if (colEqualPredWithCast) {
-                List<RexNode> predicateOperands = Lists.newArrayList(predicate.getOperands());
-                for (int predicateOpIdx = 0; predicateOpIdx < predicateOperands.size(); predicateOpIdx++) {
-                    // replace cast expr with the operand to be casted
-                    if (predicateOperands.get(predicateOpIdx).getKind() == SqlKind.CAST) {
-                        predicateOperands.set(predicateOpIdx, ((RexCall) predicateOperands.get(predicateOpIdx)).getOperands().get(0));
-                    }
-                }
-
                 return predicate.clone(predicate.getType(), predicateOperands);
             }
         }
