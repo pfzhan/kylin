@@ -383,12 +383,18 @@ public class NExecutableManager {
         val jobs = executableDao.getJobs();
         CliCommandExecutor exe = getCliCommandExecutor();
         for (ExecutablePO executablePO : jobs) {
-            executableDao.updateJob(executablePO.getUuid(), this::resumeRunningJob);
+            try {
+                executableDao.updateJob(executablePO.getUuid(), this::resumeRunningJob);
+            } catch (Exception e) {
+                logger.warn("Failed to resume running job {}", executablePO.getUuid(), e);
+            }
             killRemoteProcess(executablePO, exe);
         }
     }
 
     private void killRemoteProcess(ExecutablePO executablePO, CliCommandExecutor exe) {
+        if (!executablePO.getOutput().getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString()))
+            return;
         val info = executablePO.getOutput().getInfo();
         val pid = info.get("process_id");
         if (StringUtils.isNotEmpty(pid)) {
