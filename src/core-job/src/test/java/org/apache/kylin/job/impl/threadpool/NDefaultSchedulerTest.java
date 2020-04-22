@@ -30,7 +30,6 @@ import java.io.FileNotFoundException;
 import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,7 +63,6 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.assertj.core.api.Assertions;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1678,48 +1676,37 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         System.clearProperty("kylin.scheduler.schedule-job-timeout-minute");
     }
 
-    @Ignore("KE-13368")
     @Test
     public void testKillProcess() {
-        val cmd = "nohup sleep 5 & sleep 5";
-        getTestConfig().setProperty("kylin.env", "DEV");
-        final String kylinHome = System.getProperty("KYLIN_HOME");
-        if (StringUtils.isEmpty(kylinHome)) {
-            System.setProperty("KYLIN_HOME", Paths.get(this.getClass().getResource("/").getPath()).getParent()
-                    .getParent().getParent().getParent() + "/build");
-        }
+        final String jobId = "job000000001";
+        final String execCmd = "nohup sleep 30 & sleep 30";
+        System.setProperty("KYLIN_HOME",
+                Paths.get(this.getClass().getResource("/").getPath()).getParent().getParent().getParent().getParent()
+                        + "/build");
         try {
-            val jobId = UUID.randomUUID().toString();
-            Thread executorThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    CliCommandExecutor exec = new CliCommandExecutor();
-                    try {
-                        exec.execute(cmd, null, jobId);
-                    } catch (ShellException e) {
-                        // do nothing
-                        e.printStackTrace();
-                    }
+            Thread execThread = new Thread(() -> {
+                CliCommandExecutor exec = new CliCommandExecutor();
+                try {
+                    exec.execute(execCmd, null, jobId);
+                } catch (ShellException e) {
+                    // do nothing
+                    e.printStackTrace();
                 }
             });
-            executorThread.start();
-            await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-                Process process = JobProcessContext.getProcess(jobId);
+            execThread.start();
 
+            await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
+                Process process = JobProcessContext.getProcess(jobId);
                 Assert.assertNotNull(process);
-                Assert.assertEquals(true, process.isAlive());
+                Assert.assertTrue(process.isAlive());
             });
 
             executableManager.destroyProcess(jobId);
 
-            await().atMost(1000, TimeUnit.MILLISECONDS).untilAsserted(() -> {
-                Assert.assertNull(JobProcessContext.getProcess(jobId));
-            });
+            await().atMost(3, TimeUnit.SECONDS)
+                    .untilAsserted(() -> Assert.assertNull(JobProcessContext.getProcess(jobId)));
         } finally {
-            getTestConfig().setProperty("kylin.env", "UT");
-            if (StringUtils.isEmpty(kylinHome)) {
-                System.clearProperty("KYLIN_HOME");
-            }
+            System.clearProperty("KYLIN_HOME");
         }
     }
 

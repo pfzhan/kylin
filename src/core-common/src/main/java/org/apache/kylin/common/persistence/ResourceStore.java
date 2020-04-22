@@ -123,7 +123,7 @@ public abstract class ResourceStore implements AutoCloseable {
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
     public static final String COMPRESSED_FILE = "/metadata.zip";
 
-    public static final String KYLIN_PROPS = "kylin.properties";
+    private static final String KYLIN_PROPS = "kylin.properties";
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
     @Getter
@@ -461,7 +461,7 @@ public abstract class ResourceStore implements AutoCloseable {
             }
         }
         if (properties != null) {
-            File kylinPropsFile = new File(metaDir, "kylin.properties");
+            File kylinPropsFile = new File(metaDir, KYLIN_PROPS);
             try (FileOutputStream os = new FileOutputStream(kylinPropsFile)) {
                 properties.store(os, kylinPropsFile.getAbsolutePath());
             } catch (Exception e) {
@@ -503,7 +503,7 @@ public abstract class ResourceStore implements AutoCloseable {
         }
 
         if (properties != null) {
-            File kylinPropsFile = new File(metaDir, "kylin.properties");
+            File kylinPropsFile = new File(metaDir, KYLIN_PROPS);
             try (FileOutputStream os = new FileOutputStream(kylinPropsFile)) {
                 properties.store(os, kylinPropsFile.getAbsolutePath());
             } catch (Exception e) {
