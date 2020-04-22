@@ -63,6 +63,7 @@ import java.util.zip.ZipInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -85,6 +86,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.common.util.MetadataChecker;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.ModelMetadataCheckResponse;
@@ -220,5 +223,39 @@ public class MetaStoreServiceTest extends CSVSourceTestCase {
         thrown.expect(KylinException.class);
         thrown.expectMessage("Model 'cc_expression_existed' import failed: Computed column 'TEST_KYLIN_FACT.DEAL_AMOUNT_DUPLICATED' of this model has the same expression as model 'nmodel_basic_inner' computed column 'DEAL_AMOUNT'.");
         metaStoreService.importModelMetadata("default", multipartFile, Lists.newArrayList(duplicatedCcExpressionModelUuid));
+    }
+
+    @Test
+    public void testMetadataChecker() throws IOException {
+        File file = new File("src/test/resources/ut_model_metadata/ut_model_matadata.zip");
+        MultipartFile multipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
+        KylinConfig modelConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
+        MetadataChecker metadataChecker = new MetadataChecker(MetadataStore.createMetadataStore(modelConfig));
+        Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(multipartFile);
+        MetadataChecker.VerifyResult verifyResult = metadataChecker.verifyModelMetadata(Lists.newArrayList(rawResourceMap.keySet()));
+        Assert.assertTrue(verifyResult.isModelMetadataQualified());
+        String messageResult = "the uuid file exists : true\n" +
+                "the image file exists : false\n" +
+                "the user_group file exists : false\n" +
+                "the user dir exist : false\n" +
+                "the acl dir exist : false\n";
+        Assert.assertEquals(messageResult, verifyResult.getResultMessage());
+    }
+
+    private Map<String, RawResource> getRawResourceFromUploadFile(MultipartFile uploadFile) throws IOException {
+        Map<String, RawResource> rawResourceMap = Maps.newHashMap();
+        try(ZipInputStream zipInputStream = new ZipInputStream(uploadFile.getInputStream())) {
+            ZipEntry zipEntry;
+            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
+                long t = zipEntry.getTime();
+                String resPath = StringUtils.prependIfMissing(zipEntry.getName(), "/");
+                if (!resPath.startsWith(ResourceStore.METASTORE_UUID_TAG) && !resPath.endsWith(".json")) {
+                    continue;
+                }
+                rawResourceMap.put(resPath, new RawResource(resPath, bs, t, 0));
+            }
+            return rawResourceMap;
+        }
     }
 }
