@@ -27,6 +27,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 
@@ -102,7 +106,7 @@ public class NCubeDescResponse implements Serializable, IKeep {
         @JsonProperty("expression")
         private String expression;
         @JsonProperty("parameter")
-        private List<ParameterDesc> parameter;
+        private ParameterDesc3X parameter;
         @JsonProperty("returntype")
         private String returnType;
 
@@ -110,9 +114,55 @@ public class NCubeDescResponse implements Serializable, IKeep {
         }
 
         public FunctionDesc3X(FunctionDesc functionDesc) {
-            this.setParameter(functionDesc.getParameters());
+            this.setParameter(ParameterDesc3X.convert(functionDesc.getParameters()));
             this.setExpression(functionDesc.getExpression());
             this.setReturnType(functionDesc.getReturnType());
+        }
+    }
+
+    @Data
+    public static class ParameterDesc3X implements Serializable, IKeep {
+        @Getter
+        @Setter
+        @JsonProperty("type")
+        private String type;
+        @Getter
+        @Setter
+        @JsonProperty("value")
+        private String value;
+
+        @JsonProperty("next_parameter")
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        private ParameterDesc3X nextParameter;
+
+        public ParameterDesc3X() {
+        }
+
+        public static ParameterDesc3X convert(ParameterDesc parameterDesc) {
+            ParameterDesc3X parameterDesc3X = new ParameterDesc3X();
+            parameterDesc3X.setType(parameterDesc.getType());
+            parameterDesc3X.setValue(parameterDesc.getValue());
+            return parameterDesc3X;
+        }
+
+        public static ParameterDesc3X convert(List<ParameterDesc> parameterDescs) {
+            if (CollectionUtils.isEmpty(parameterDescs)) {
+                return new ParameterDesc3X();
+            }
+
+            ParameterDesc3X head = null;
+            ParameterDesc3X tail = null;
+            for (ParameterDesc parameterDesc : parameterDescs) {
+                if (null == head) {
+                    head = convert(parameterDesc);
+                    tail = head;
+                    continue;
+                }
+
+                tail.nextParameter = convert(parameterDesc);
+            }
+
+            return head;
         }
     }
 

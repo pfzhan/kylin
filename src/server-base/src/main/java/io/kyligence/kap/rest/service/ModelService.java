@@ -1074,9 +1074,8 @@ public class ModelService extends BasicService {
                         table);
                 throw new KylinException("KE-1024", error);
             } else {
-                String errorMsg = String.format("model [%s], %s", dataModel.getAlias(),
-                        String.format(MsgPicker.getMsg().getDEFAULT_REASON(),
-                                null != e.getMessage() ? e.getMessage() : "null"));
+                String errorMsg = String.format("model [%s], %s", dataModel.getAlias(), String.format(
+                        MsgPicker.getMsg().getDEFAULT_REASON(), null != e.getMessage() ? e.getMessage() : "null"));
                 throw new KylinException("KE-1024", errorMsg);
             }
         }
@@ -1998,7 +1997,7 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void mergeSegmentsManually(String modelId, String project, String[] ids) {
+    public JobInfoResponse.JobInfo mergeSegmentsManually(String modelId, String project, String[] ids) {
         aclEvaluate.checkProjectOperationPermission(project);
 
         val dfManager = getDataflowManager(project);
@@ -2045,6 +2044,8 @@ public class ModelService extends BasicService {
         mergeEvent.setJobId(UUID.randomUUID().toString());
         mergeEvent.setOwner(getUsername());
         eventManager.post(mergeEvent);
+
+        return new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), mergeEvent.getJobId());
     }
 
     @Transaction(project = 1)

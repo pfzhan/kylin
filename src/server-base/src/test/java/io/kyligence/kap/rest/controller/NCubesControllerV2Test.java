@@ -30,7 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -119,7 +121,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         NDataModel model1 = new NDataModel();
         model.setUuid("model2");
         NDataModelResponse model2Response = new NDataModelResponse(model1);
-        model2Response.setSegments(Lists.newArrayList());
+        model2Response.setSegments(Lists.newArrayList(segmentResponse1));
         models.add(model2Response);
         NDataModel model2 = new NDataModel();
         model.setUuid("model3");
@@ -158,7 +160,8 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
         String startTime = String.valueOf(0L);
         String endTime = String.valueOf(Long.MAX_VALUE - 1);
-        Mockito.doAnswer(x -> null).when(modelService).buildSegmentsManually("default", "model1", startTime, endTime);
+        Mockito.doReturn(new JobInfoResponse()).when(modelService).buildSegmentsManually("default", "model1", startTime,
+                endTime);
 
         CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
         rebuildRequest.setBuildType("BUILD");
@@ -173,13 +176,70 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testManageSegments() throws Exception {
+    public void testRebuildRefresh() throws Exception {
+        Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(1));
+        Mockito.doReturn(Lists.newArrayList(new JobInfoResponse.JobInfo())).when(modelService)
+                .refreshSegmentById("default", "model1", new String[] { "seg1", "seg2" });
+
+        CubeRebuildRequest rebuildRequest = new CubeRebuildRequest();
+        rebuildRequest.setBuildType("REFRESH");
+        rebuildRequest.setStartTime(0L);
+        rebuildRequest.setEndTime(Long.MAX_VALUE - 1);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/rebuild", "model1")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(rebuildRequest))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nCubesControllerV2).rebuild(eq("model1"), eq(null), Mockito.any(CubeRebuildRequest.class));
+    }
+
+    @Test
+    public void testManageSegmentsMerge() throws Exception {
+        JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
         Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
-        Mockito.doNothing().when(modelService).mergeSegmentsManually("model1", "default",
+        Mockito.doReturn(jobInfo).when(modelService).mergeSegmentsManually("model1", "default",
                 new String[] { "seg1", "seg2" });
 
         SegmentMgmtRequest request = new SegmentMgmtRequest();
         request.setBuildType("MERGE");
+        request.setSegments(Lists.newArrayList("test_seg1", "test_seg2"));
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null),
+                Mockito.any(SegmentMgmtRequest.class));
+    }
+
+    @Test
+    public void testManageSegmentsFresh() throws Exception {
+        JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
+        Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
+        Mockito.doReturn(Lists.newArrayList(jobInfo)).when(modelService).refreshSegmentById("model1", "default",
+                new String[] { "seg1", "seg2" });
+
+        SegmentMgmtRequest request = new SegmentMgmtRequest();
+        request.setBuildType("REFRESH");
+        request.setSegments(Lists.newArrayList("test_seg1", "test_seg2"));
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_V2_JSON)))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nCubesControllerV2).manageSegments(eq("model1"), eq(null),
+                Mockito.any(SegmentMgmtRequest.class));
+    }
+
+    @Test
+    public void testManageSegmentsDelete() throws Exception {
+        JobInfoResponse.JobInfo jobInfo = new JobInfoResponse.JobInfo(JobTypeEnum.INDEX_MERGE.toString(), "");
+        Mockito.when(modelService.getCube("model1", null)).thenReturn(mockModels().get(0));
+        Mockito.doNothing().when(modelService).deleteSegmentById("model1", "default", new String[] { "seg1", "seg2" },
+                true);
+
+        SegmentMgmtRequest request = new SegmentMgmtRequest();
+        request.setBuildType("DROP");
         request.setSegments(Lists.newArrayList("test_seg1", "test_seg2"));
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")

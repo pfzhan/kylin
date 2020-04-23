@@ -34,8 +34,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.JobInfoResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse3X;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -54,7 +58,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.request.CubeRebuildRequest;
 import io.kyligence.kap.rest.request.SegmentMgmtRequest;
@@ -68,6 +71,7 @@ import io.kyligence.kap.rest.service.ModelService;
 public class NCubesControllerV2 extends NBasicController {
 
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";
+    private static final String FAILED_CUBE_MSG_CODE = "KE-1010";
 
     @Autowired
     @Qualifier("modelService")
@@ -83,9 +87,18 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        List<NDataModel> models = new ArrayList<>(modelService.getCubes(modelAlias, project));
+        List<NDataModelResponse> modelsResponse = new ArrayList<>(modelService.getCubes(modelAlias, project));
 
-        HashMap<String, Object> modelResponse = getDataResponse("cubes", models, offset, limit);
+        List<NDataModelResponse3X> result = Lists.newArrayList();
+        try {
+            for (NDataModelResponse response : modelsResponse) {
+                result.add(NDataModelResponse3X.convert(response));
+            }
+        } catch (Exception e) {
+            throw new KylinException("KE-4019", e);
+        }
+
+        HashMap<String, Object> modelResponse = getDataResponse("cubes", result, offset, limit);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
 
@@ -95,10 +108,17 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
+            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, dataModelResponse, "");
+        NDataModelResponse3X result;
+        try {
+            result = NDataModelResponse3X.convert(dataModelResponse);
+        } catch (Exception e) {
+            throw new KylinException("KE-4019", e);
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @PutMapping(value = "/{cubeName}/rebuild")
@@ -112,13 +132,18 @@ public class NCubesControllerV2 extends NBasicController {
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
+            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
+        JobInfoResponse.JobInfo result = null;
         switch (request.getBuildType()) {
         case "BUILD":
-            modelService.buildSegmentsManually(dataModelResponse.getProject(), dataModelResponse.getId(), startTime,
-                    endTime);
+            val buildResponse = modelService.buildSegmentsManually(dataModelResponse.getProject(),
+                    dataModelResponse.getId(), startTime, endTime);
+            if (CollectionUtils.isNotEmpty(buildResponse.getJobs())) {
+                result = buildResponse.getJobs().stream()
+                        .filter(job -> JobTypeEnum.INC_BUILD.name().equals(job.getJobType())).findFirst().get();
+            }
             break;
         case "REFRESH":
             List<String> idList = dataModelResponse.getSegments().stream()
@@ -126,16 +151,23 @@ public class NCubesControllerV2 extends NBasicController {
                             && segment.getEndTime() <= request.getEndTime())
                     .map(NDataSegmentResponse::getId).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException("KE-1010", "You should choose at least one segment to refresh!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment to refresh!");
             }
-            modelService.refreshSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
-                    idList.toArray(new String[0]));
+            if (idList.size() > 1) {
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose most one segment to refresh!");
+            }
+            val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
+                    dataModelResponse.getProject(), idList.toArray(new String[0]));
+            if (CollectionUtils.isNotEmpty(refreshResponse)) {
+                result = refreshResponse.stream()
+                        .filter(job -> JobTypeEnum.INDEX_REFRESH.name().equals(job.getJobType())).findFirst().get();
+            }
             break;
         default:
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, null, "Invalid build type.");
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
     }
 
     @PutMapping(value = "/{cubeName}/segments")
@@ -144,12 +176,12 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project,
             @RequestBody SegmentMgmtRequest request) {
         if (CollectionUtils.isEmpty(request.getSegments())) {
-            throw new KylinException("KE-1010", "You should choose at least one segment!");
+            throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment!");
         }
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
+            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
         Set<String> idList = dataModelResponse.getSegments().stream()
@@ -159,24 +191,28 @@ public class NCubesControllerV2 extends NBasicController {
         switch (request.getBuildType()) {
         case "MERGE":
             if (idList.size() < 2) {
-                throw new KylinException("KE-1010", "You should choose at least two segments to merge!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least two segments to merge!");
             }
-
-            modelService.mergeSegmentsManually(dataModelResponse.getId(), dataModelResponse.getProject(),
-                    idList.toArray(new String[0]));
-            break;
+            val mergeResponse = modelService.mergeSegmentsManually(dataModelResponse.getId(),
+                    dataModelResponse.getProject(), idList.toArray(new String[0]));
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, mergeResponse, "");
         case "REFRESH":
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException("KE-1010", "You should choose at least one segment to refresh!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment to refresh!");
             }
-            modelService.refreshSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
-                    idList.toArray(new String[0]));
-            break;
+            val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
+                    dataModelResponse.getProject(), idList.toArray(new String[0]));
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, refreshResponse, "");
+        case "DROP":
+            if (CollectionUtils.isEmpty(idList)) {
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment to drop!");
+            }
+            modelService.deleteSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
+                    idList.toArray(new String[0]), true);
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Drop segments successfully");
         default:
-            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Invalid build type.");
         }
-
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @GetMapping(value = "/{cubeName}/holes")
@@ -185,7 +221,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
+            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
         List<NDataSegment> holes = Lists.newArrayList();
@@ -217,7 +253,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException("KE-1010", FAILED_CUBE_MSG);
+            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
         String sql = modelService.getModelSql(dataModelResponse.getId(), dataModelResponse.getProject());
