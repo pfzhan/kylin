@@ -1099,4 +1099,27 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(queryContext.getScannedBytes() == 5L);
 
     }
+
+    @Test
+    public void testGetMetadataV2WithBrokenModels() {
+        String modelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        List<TableMetaWithType> metaWithTypeList = queryService.getMetadataV2("default");
+        boolean noFactTableType = metaWithTypeList.stream()
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
+                .findFirst().get().getTYPE().isEmpty();
+        Assert.assertFalse(noFactTableType);
+
+        // fact table is broken
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(modelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+
+        metaWithTypeList = queryService.getMetadataV2("default");
+        noFactTableType = metaWithTypeList.stream()
+                .filter(tableMetaWithType -> "TEST_MEASURE".equals(tableMetaWithType.getTABLE_NAME()))
+                .findFirst().get().getTYPE().isEmpty();
+        Assert.assertTrue(noFactTableType);
+    }
 }
