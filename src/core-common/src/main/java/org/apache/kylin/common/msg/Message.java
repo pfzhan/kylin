@@ -1140,4 +1140,24 @@ public class Message {
     public String getMEASURE_CONFLICT(String measureName) {
         return String.format("Measure %s already exists.", measureName);
     }
+
+    public String getINVALID_TIME_FORMAT() {
+        return "Fail to set the time partition column. The time partition column selected does not conform to the time format. Please select anothor time partition column again.";
+    }
+
+    public String getSEGMENT_CONTAINS_GAPS() {
+        return "Merging segments must not have gaps between %s and %s.";
+    }
+
+    public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
+        return "The incremental build failed. The fact table of this model has been set as a dimension table by another model. Please reset the fact table or adjust other models that refer to this table.";
+    }
+
+    public String getDIMENSION_TABLE_USED_IN_OTHER_MODEL() {
+        return "The incremental build failed. The dimension table of this model has been set as a fact table by another model. Please reset the fact table or adjust other models that refer to this table.";
+    }
+
+    public String getNO_DATA_IN_TABLE() {
+        return "There are no data in table %s.";
+    }
 }

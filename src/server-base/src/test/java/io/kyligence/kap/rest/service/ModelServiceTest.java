@@ -1466,7 +1466,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setUuid(null);
         modelRequest.setLastModified(0L);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("model look up tables used by other model as fact table in increment build type");
+        thrown.expectMessage("The dimension table of this model has been set as a fact table by another model");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1485,7 +1485,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("increment build type model's fact table used by other model as look up table");
+        thrown.expectMessage("The fact table of this model has been set as a dimension table by another model");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1507,7 +1507,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("increment build type model's fact table used by other model as look up table");
+        thrown.expectMessage("The fact table of this model has been set as a dimension table by another model");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1526,7 +1526,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
                 ModelRequest.class);
         addModelInfo(modelRequest);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("model look up tables used by other model as fact table in increment build type");
+        thrown.expectMessage("The dimension table of this model has been set as a fact table by another model");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 
@@ -1548,7 +1548,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setPartitionDesc(null);
         thrown.expect(LookupTableException.class);
-        thrown.expectMessage("model look up tables used by other model as fact table in increment build type");
+        thrown.expectMessage("The dimension table of this model has been set as a fact table by another model");
         modelService.createModel(modelRequest.getProject(), modelRequest);
     }
 

@@ -62,6 +62,7 @@ import javax.annotation.Nullable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.MissingRootPersistentEntity;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -927,7 +928,8 @@ public class NDataModel extends RootPersistentEntity {
         setDependencies(calcDependencies());
 
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(getProject());
-        if (Objects.nonNull(projectInstance) && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+        if (Objects.nonNull(projectInstance)
+                && projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             if (isIncrementBuildOnExpertMode()) {
                 val incrementLookupTables = otherModels.stream().filter(m -> !m.getId().equals(getId()))
                         .flatMap(model -> model.getJoinTables().stream()
@@ -936,8 +938,7 @@ public class NDataModel extends RootPersistentEntity {
                         .collect(Collectors.toSet());
 
                 if (incrementLookupTables.contains(getRootFactTableName())) {
-                    throw new LookupTableException(
-                            "increment build type model's fact table used by other model as look up table");
+                    throw new LookupTableException(MsgPicker.getMsg().getFACT_TABLE_USED_IN_OTHER_MODEL());
                 }
             }
 
@@ -949,8 +950,7 @@ public class NDataModel extends RootPersistentEntity {
                     .map(JoinTableDesc::getTable).collect(Collectors.toSet());
 
             if (!Collections.disjoint(incrementRootFactTables, lookups)) {
-                throw new LookupTableException(
-                        "model look up tables used by other model as fact table in increment build type");
+                throw new LookupTableException(MsgPicker.getMsg().getDIMENSION_TABLE_USED_IN_OTHER_MODEL());
             }
         }
     }

@@ -43,6 +43,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -362,8 +363,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (!force) {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
-                    throw new IllegalStateException("Merging segments must not have gaps between "
-                            + mergingSegments.get(i) + " and " + mergingSegments.get(i + 1));
+                    throw new IllegalStateException(String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(),
+                            mergingSegments.get(i), mergingSegments.get(i + 1)));
             }
 
             List<String> emptySegment = Lists.newArrayList();

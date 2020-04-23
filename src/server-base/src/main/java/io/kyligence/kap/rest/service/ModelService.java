@@ -1990,8 +1990,8 @@ public class ModelService extends BasicService {
 
         for (int i = 0; i < segmentList.size() - 1; i++) {
             if (!segmentList.get(i).getSegRange().connects(segmentList.get(i + 1).getSegRange())) {
-                throw new IllegalStateException("Merging segments must not have gaps between "
-                        + segmentList.get(i).getId() + " and " + segmentList.get(i + 1).getId());
+                throw new IllegalStateException(String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(),
+                        segmentList.get(i).getId(), segmentList.get(i + 1).getId()));
             }
         }
     }
@@ -2440,14 +2440,14 @@ public class ModelService extends BasicService {
 
     public void checkFilterCondition(ModelRequest modelRequest) {
         aclEvaluate.checkProjectWritePermission(modelRequest.getProject());
+        NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
+        NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
+        if (oldDataModel != null && !oldDataModel.isBroken()) {
+            model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
+            semanticUpdater.updateModelColumns(model, modelRequest, false);
+        }
+        String originFilterCondition = model.getFilterCondition();
         try {
-            NDataModel model = semanticUpdater.convertToDataModel(modelRequest);
-            NDataModel oldDataModel = getDataModelManager(model.getProject()).getDataModelDesc(model.getUuid());
-            if (oldDataModel != null && !oldDataModel.isBroken()) {
-                model = getDataModelManager(model.getProject()).copyForWrite(oldDataModel);
-                semanticUpdater.updateModelColumns(model, modelRequest, false);
-            }
-            String originFilterCondition = model.getFilterCondition();
             if (StringUtils.isNotEmpty(originFilterCondition)) {
                 String filterConditionAddTableName = addTableNameIfNotExist(originFilterCondition, model);
                 model.setFilterCondition(filterConditionAddTableName);

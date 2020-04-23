@@ -78,6 +78,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -220,7 +221,7 @@ public class PushDownUtil {
         List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
 
         if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
-            throw new BadRequestException(String.format("There are no data in table %s", table));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         result.setFirst(returnRows.get(0).get(0));
         result.setSecond(returnRows.get(0).get(1));
@@ -242,7 +243,8 @@ public class PushDownUtil {
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
 
         // pushdown
-        IPushDownRunner runner = (IPushDownRunner) ClassUtil.newInstance(kylinConfig.getPushDownRunnerClassNameWithDefaultValue());
+        IPushDownRunner runner = (IPushDownRunner) ClassUtil
+                .newInstance(kylinConfig.getPushDownRunnerClassNameWithDefaultValue());
         runner.init(kylinConfig);
         runner.executeQuery(sql, returnRows, returnColumnMeta, project);
 
@@ -263,7 +265,7 @@ public class PushDownUtil {
         // push down
         List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
         if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
-            throw new BadRequestException(String.format("There are no data in table %s", table));
+            throw new BadRequestException(String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         return returnRows.get(0).get(0);
     }
@@ -297,10 +299,8 @@ public class PushDownUtil {
             }
 
             if (QueryContext.current().isWithoutSyntaxError()) {
-                logger.warn(
-                        "route to push down for met error when running the query: {}",
-                        QueryContext.current().getCorrectedSql(),
-                        sqlException);
+                logger.warn("route to push down for met error when running the query: {}",
+                        QueryContext.current().getCorrectedSql(), sqlException);
                 return true;
             }
         }

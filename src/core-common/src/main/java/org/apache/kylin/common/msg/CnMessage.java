@@ -1119,4 +1119,24 @@ public class CnMessage extends Message {
     public String getMEASURE_CONFLICT(String measureName) {
         return String.format("度量%s已存在。", measureName);
     }
+
+    public String getINVALID_TIME_FORMAT() {
+        return "时间分区列设置失败，您选取的时间分区列不符合时间格式，请重新选择其他时间分区列。";
+    }
+
+    public String getSEGMENT_CONTAINS_GAPS() {
+        return "segment %s 和 %s 之间有空洞，无法合并。";
+    }
+
+    public String getFACT_TABLE_USED_IN_OTHER_MODEL() {
+        return "增量构建失败，此模型事实表已被其他模型设置为维度表，请重新设置事实表或调整引用此表的其他模型。";
+    }
+
+    public String getDIMENSION_TABLE_USED_IN_OTHER_MODEL() {
+        return "增量构建失败，此模型维度表已被其他模型设置为事实表，请重新设置事实表或调整引用此表的其他模型。";
+    }
+
+    public String getNO_DATA_IN_TABLE() {
+        return "表[%s]中无数据。";
+    }
 }
