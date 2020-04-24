@@ -79,7 +79,7 @@ public class UnitOfWork {
             val unitOfWork = UnitOfWork.get();
             unitOfWork.checkReentrant(params);
             try {
-                checkEpoch(params.getEpochChecker());
+                checkEpoch(params);
                 return f.process();
             } catch (Throwable throwable) {
                 f.onProcessError(throwable);
@@ -185,9 +185,7 @@ public class UnitOfWork {
     static <T> UnitOfWorkContext startTransaction(UnitOfWorkParams<T> params) throws Exception {
         val project = params.getUnitName();
         val readonly = params.isReadonly();
-        Callback<T> checker = params.getEpochChecker();
-        checkEpoch(checker);
-
+        checkEpoch(params);
         val lock = TransactionLock.getLock(project, readonly);
 
         log.trace("get lock for project {}, lock is held by current thread: {}", project, lock.isHeldByCurrentThread());
@@ -219,8 +217,9 @@ public class UnitOfWork {
         return unitOfWork;
     }
 
-    private static <T> void checkEpoch(Callback<T> checker) throws Exception {
-        if (checker != null) {
+    private static <T> void checkEpoch(UnitOfWorkParams<T> params) throws Exception {
+        val checker = params.getEpochChecker();
+        if (checker != null && !params.isReadonly()) {
             checker.process();
         }
     }
@@ -247,7 +246,7 @@ public class UnitOfWork {
             } else {
                 return new ResourceCreateOrUpdateEvent(x);
             }
-        }).collect(Collectors.<Event> toList());
+        }).collect(Collectors.<Event>toList());
 
         //clean rs and config
         work.cleanResource();
@@ -259,8 +258,8 @@ public class UnitOfWork {
         long entitiesSize = unitMessages.getMessages().stream().filter(event -> event instanceof ResourceRelatedEvent)
                 .count();
         log.debug("transaction {} updates {} metadata items", traceId, entitiesSize);
+        checkEpoch(params);
         val checker = params.getEpochChecker();
-        checkEpoch(checker);
         val unitName = params.getUnitName();
         long oriMvcc = -1;
         String unitPath = null;
