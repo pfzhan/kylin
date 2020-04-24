@@ -33,16 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -66,12 +64,14 @@ import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
 import io.kyligence.kap.metadata.favorite.CreateFavoriteQueryResult;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.rate.EnableRateLimit;
@@ -320,27 +320,6 @@ public class FavoriteQueryService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
         Map<String, Object> data = Maps.newHashMap();
-        List<String> waitingAcceleratedSqls = getWaitingAcceleratingSqlPattern(project);
-        int optimizedModelNum = 0;
-
-        data.put("size", waitingAcceleratedSqls.size());
-        data.put("reach_threshold", false);
-
-        ProjectInstance projectInstance = getProjectManager().getProject(project);
-        int ignoreCount = 1;
-        if (ignoreCountMap.containsKey(project))
-            ignoreCount = ignoreCountMap.get(project);
-
-        if (waitingAcceleratedSqls.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold()
-                * ignoreCount) {
-            data.put("reach_threshold", true);
-            if (!waitingAcceleratedSqls.isEmpty()) {
-                optimizedModelNum = getOptimizedModelNum(project, waitingAcceleratedSqls.toArray(new String[0]));
-            }
-        }
-
-        data.put("optimized_model_num", optimizedModelNum);
-
         return data;
     }
 
@@ -425,8 +404,7 @@ public class FavoriteQueryService extends BasicService {
         try {
             Thread.currentThread().setName("AutoRecommendation");
             getProjectManager().listAllProjects().stream() //
-                    .filter(ProjectInstance::isSemiAutoMode)
-                    .filter(p -> epochManager.checkEpochOwner(p.getName()))
+                    .filter(ProjectInstance::isSemiAutoMode).filter(p -> epochManager.checkEpochOwner(p.getName()))
                     .forEach(projectInstance -> {
                         try {
                             String projectName = projectInstance.getName();
@@ -652,7 +630,8 @@ public class FavoriteQueryService extends BasicService {
                     .filter(projectInstance -> !projectInstance.isExpertMode()) //
                     .collect(Collectors.toList());
             for (ProjectInstance project : nonExpertProjects) {
-                if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
+                if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager
+                        .getInstance(KylinConfig.getInstanceFromEnv()).checkEpochOwner(project.getName()))
                     continue;
                 try {
                     adjustFQForProject(project.getName());
