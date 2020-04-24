@@ -58,6 +58,160 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### Kyligence Enterprise 4.1.0 release note
+
+**Product behavior changes**
+
+- Remove Avatica JDBC dependency from query engine to optimize query execution process, which will lighten the query architecture
+- As the product is in the early iteration state, many module changes are involved in the user guide, which causes additional maintenance costs, so the user guide will be offline for the time being
+
+**Feature**
+
+- Support multiple All nodes for simultaneous service, forming a highly available architecture and improving system stability
+- Provide rollback tool
+  - Support metadata and data rollback tool at system and project level which improves system fault tolerance
+- Provide API for monitoring node availability of querying and building, which helps users obtain the status of clusters' core functions, and complete daily operation and maintenance more efficiently
+- Support integration with Sentry on Cloudera CDH platform to improve enterprise level security
+- Support for configuring different Kerberos accounts at project level, and provide more flexible and secure data access control at all granularities
+- Improve segment lifecycle management
+  - Support for discarding jobs
+  - Support for discontinuous segment
+    - Note: With discontinuous segments, queries can still hit models, but the data in the interval will not be returned when queried.
+- Support model metadata import and export, so that users can easily migrate models in different environments
+- Support max dimension combination when editing aggregate groups to improve index pruning capabilities
+- Support for generating system and job diagnostic packages via the Web UI
+
+**Enhancement**
+
+- The metadata migration tool supports the migration of ACL information, which guarantees the integrity of privilege information when upgrading from Kyligence Enterprise 3 to Kyligence Enterprise 4
+- Support for continuing to build indexes from where building fails, reducing the resource strain from retry
+- Query history is migrated from InfluxDB to RDBMS metadata to avoid InfluxDB single point bottleneck.
+  - Provide an environment checker `Checking Query History` to check whether the query history can be correctly written into the RDBMS metastore
+- Disable refresh and delete operations for locked segment
+- Optimize parameters in configuration files, including removing useless configuration items, improving readability, etc.
+- Updating metadata at the end of a building job to avoid possible build failure
+- Separate the query pushdown engine from other functional engines, to avoid the inability to automatically obtain the time partition column format and range when query pushdown is turned off
+- Fix security vulnerabilities detected by the Snyk tool, reducing the number of vulnerabilities from 71 to 42. Specific reports are available in the issue link.
+- Optimize Spark CBO information accuracy to avoid possible building failure caused by broadcast join
+- Optimize suggestion generation behavior on opening partial match parameters `kylin.query.match-partial-inner-join-model`
+  - When turned on the parameter, accelerating engine allows the query to match a partial match model to generate recommendations
+- Optimize index building process and enhance corresponding authority management
+  - When a segment has been loaded, the unbuilt index can be filled by building index
+  - When the user permission is operation, he is not allowed to modify the build method
+- Rest API
+  - Provides an API for refreshing table cache
+- Improve system management capacity
+  - Supports monthly aggregated retention of historical indicator data in InfluxDB, reducing storage and making it easier to analyze and forecast
+  - Support monthly statistics of model growth and resource expenditures in Grafana to facilitate resource management
+- Improve log and diagnostic bag
+  - Improve user data security
+    - Strip user's real information in diagnostic package to ensure information security
+  - Improve operational efficiency
+    - Add query annotation information into the query log
+    - Optimize that when generating diagnostic packages via the Web UI, the generating process may stack in the background
+      - When the user closes the pop-up window,  the corresponding process will be interrupted and the half-finishedfile will be deleted
+    - Optimize that when generating diagnostic packages via the Web UI, diagnostic package tasks may be indistinguishable
+      - Add task trigger time to the progress bar when generating diagnostic packages
+    - Optimize for unfriendly warning messages that may be generated in logs when users change passwords
+    - The system will timely generate  `jstack.timed.log` log files in the `logs` directory to record and locate some threads condition
+    - Add time information to `kylin.out` to facilitate analyzing by time period when error occurs
+    - Add Spark event log which records Sparder query events to the diagnostic package, guaranteeing sufficient log information for problem diagnosis
+    - Speculate error messages to display the name of the error model when the model was saved
+- Improve product usability
+  - Open upload licenses access to ensure a smooth login process
+  - Provide project level configuration whether to expose the computed columns
+    - When this configuration is enabled, the BI tool connected to Kyligence Enterprise can get the computed columns defined in the current project
+  - Supports more flexible username, allowing alphanumeric, alphabetic and partial English characters in the username
+  - Support case insensitive in username, project name and model name
+  - Trim and refine error codes. Optimize logs and front-end tips when reporting errors, improving user operation and maintenance efficiency.
+- Improve user experience
+  - Optimize the display of model lists and enhance the structure of model information
+  - Add bootstrap in acceleration page to help users understand the meaning of acceleration
+  - Optimize pagination defaults and pagination spans
+  - Optimize the query result area for spatial display and guide users to query
+  - Provide user-friendly navigation when directly entering pages with no access rights
+  - Remove table index name that needs to be filled in when adding the table index
+  - Optimize some of the text to make it more standardized and condensed
+
+**Bugfix**
+
+- When upgrading from Kyligence Enterprise 3 to Kyligence Enterprise 4, query may fail if the return type of a computed column is different from its customized type
+- Fix a possible compatibility problem with the v2 API for Kyligence Enterprise 4 and Kyligence Enterprise 3 to ensure that the v2 API behaves the same on both versions
+- When there are multiple projects with different name suffixes in the metadata, backuping and restoring the metadata of one of the projects may cause the lost of metadata of other projects with that name prefix
+  - For example, projects named `test`, `test_1`, `test_2`, backuping `test` project metadata and restoring,  `test_1`, `test_2` project may be lost
+- In a read-write separation environment, useless parameters may cause the failure of getting `work_dir` during environment detection, so the startup may fail
+- If `hive-site.xml` file is missing in`$KYLIN_HOME/spark/conf`, the system may fail to read Hive data source correctly when loading database
+- On the FI C70 platform, there is a possibility that the missing `hive.metastore.warehouse.dir` may result in an environmental check error
+- When MySQL is configured as a metastore, the metastore cannot be accessed after opening session sharing
+- When a user is not logged in or does not have a license, an error may occur when accessing pages within Kyligence Enterprise via URL
+- After creating a new project, jobs under the project may always be pending because the database connection pool is full
+- Users who are not system administrators or project administrators cannot access the table structure through the JDBC interface
+- If there is a Broken model under the project, the table and column information in the project cannot be obtained through the JDBC interface
+- Querying TRIM() function may get incorrect results
+- Scan count and scan bytes may return error in constant query
+- Query history interface query ID cannot be fuzzy search
+- When using Mysql as a metastore, filtering queries whose query object is model in the query history returns queries whose query object is pushdown
+- When the row number of query result exceeds the threshold, an error may be reported on the interface, but it still shows success in query history
+- The query timeout threshold may lose efficacy
+- In cluster deployment mode, the query node starts without sparder-sql-context, which may cause the initial query to be slow
+- In a read-write separation environment, setting the data source immediately after creating the project may fail, and you can set it successfully after waiting for ten seconds
+- When there are both computed columns and measures in the query, recommendations related to computed columns will still appear after acceleration failure
+
+- It may fail to operate jobs when they are fully selected
+- Indexes with the same ID in different models are displayed as building state at the same time
+- The diagnostic package contains `access.log` that is outside the selected time frame which may not influence problem diagnosis
+- Columns with timestamp type have no milliseconds in the source table, and the sampled data will show milliseconds
+- Fail to batch process segment on the query node
+- Fail to restart the index building task after deleting one of multiple segments during the building process
+- No error message when failing to reset password when there is no ADMIN user
+- Fix security problems
+  - Permission validation is not performed when using API
+  - Query history is not validated, and ordinary users can see the query history of ADMIN users
+  - When a system administrator adds a user, the request password is explicit
+  - The SMTP protocol password for mail and the password for accessing mail in `kylin.properties` are explicit
+  - Users with query permissions can view Spark task details via the analysis page
+  - When the project administrator does not have table-level access, error occurs when entering the data source page
+
+- Fix problems with computed columns
+  - When configuration of whether to expose computed columns is opened, the computed columns cannot be displayed in the Tableau
+  - Possible errors in the flat table in the case of nested computed columns
+  - When multiple models under the same project use the same fact table and different computed columns are defined on those fact tables, SELECT * query may fail to be accelerated
+  - If the types of referenced columns in the computed columns in the source table is modified, query cannot hit the corresponding index after the source table is reloaded
+- Fix failed queries
+  - If the query is like: with ? as (subquery) and if the subquery contains union all, pushdown may fail
+  - When querying COUNT DISTINCT for a derived dimension, the query may fail
+  - The query may fail if the Chinese identifier is used in pushdown
+  - Constant query with TIMESTAMPDIFF function may fail
+  - If a user does not have access to a column ending in D in a table and uses select * to query other columns ending in D in that table, the query may fail
+  - When the time partition column type is `varchar` and the selected partition column format does not contain hours, minutes and seconds, while the partition column time setting contains hours, minutes and seconds, the query may not hit the model.
+  - A query may not hit the index when the types of key columns in the model are inconsistent
+
+- Fix inconsistent query results
+  - Results of the query hitting model and  pushdown are inconsistent when querying for columns with the same name
+  - Results of the query hitting model and  pushdown are inconsistent when querying a column of the decimal type
+  - Some of the date function's query results in Kyligence Enterprise are not consistent with those in Hive
+  - If aliases are not contained in double quotation, case sensitive aliases in the results of the query hitting model and  pushdown
+  - After some data types hit the model, the accuracy returned is not consistent with the query pushdown
+- Fix problems with diagnostic packages
+  - Query node-generated diagnostic package missing `audit_log` and `metadata` folders
+  - Diagnostic package generated via Web UI missing `diag.log` file
+  - Diagnostic package may not be downloaded when Yarn cluster is abnormal
+- Fix interface UI
+  - When the task is in error, pause, run status, the diagnosis option is put away, which may cause the generation of the task diagnostic package to fail
+  - Fail to filter date in dashboard page
+  - When editing table row-level permissions, check the table, and the columns in the table are still in uncheck status
+  - When the user switches the number of paging in the job list, it may not be possible to trigger the full selection operation.
+  - The filter condition is not updated when switch to the user page after filtering users in user group
+  - User list disappears when setting users within a user group and save
+  - Fail to save the dimension description
+  - When you add a new item to the model editing page, a repeated prompt pop-up will appear
+  - The language of text and error message do not match with Chinese and English version
+  - When the browser window is reduced, the description information of the data source page overlaps
+  - Fix browser compatibility problems
+    - Possible misplaced button display in Firefox
+    - Possible page mis-scaling in IE 11 browser
+    - Unable to download diagnostic package manually in IE 10 browser, misplaced page display may occur
+
 #### Kyligence Enterprise 4.0.13 release note
 
 **Product behavior change**
