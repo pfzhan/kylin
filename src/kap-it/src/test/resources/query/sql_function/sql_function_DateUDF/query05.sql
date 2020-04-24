@@ -1,4 +1,5 @@
 select
+       ceil(time2 TO quarter),floor(time2 TO quarter),
        ceil(time2 TO year),floor(time2 TO year),
        ceil(time2 to month),floor(time2 to month),
        ceil(time2 to day),floor(time2 to day),
