@@ -27,10 +27,10 @@ function runTest() {
     echo "start to run compatibility test on ${hadoop_distribution}"
     export PYTHONPATH=${dir}/build/smoke_test:${PYTHONPATH}
     if [[ $PYTEST_MARK == *"ALL"* ]]; then
-        pytest -m "p1" --alluredir ${allure_report} ${root_dir}
-        pytest -m "smoketest" --alluredir ${allure_report} ${root_dir}
-        pytest -m "kitest" --alluredir ${allure_report} ${root_dir}
-        pytest -m "view_sampling" --alluredir ${allure_report} ${root_dir}
+        pytest -m "p1" --alluredir ${allure_report} ${root_dir} --junitxml=report_p1.xml
+        pytest -m "smoketest" --alluredir ${allure_report} ${root_dir} --junitxml=report_smoketest.xml
+        pytest -m "kitest" --alluredir ${allure_report} ${root_dir} --junitxml=report_kitest.xml
+        pytest -m "view_sampling" --alluredir ${allure_report} ${root_dir} --junitxml=report_view_sampling.xml
     else
         echo "Run single test case."
         pytest -m ${PYTEST_MARK} --alluredir ${allure_report} ${root_dir}
