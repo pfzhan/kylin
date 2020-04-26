@@ -42,7 +42,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -56,7 +55,6 @@ import io.kyligence.kap.tool.MetadataTool;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
-@Ignore
 @Slf4j
 public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
@@ -67,7 +65,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         createTestMetadata();
         getTestConfig().setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+                "test" + System.currentTimeMillis() + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         UnitOfWork.doInTransactionWithRetry(() -> {
             val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             resourceStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
@@ -134,7 +132,8 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
         }, "p0");
 
         await().atMost(2, TimeUnit.SECONDS).until(() -> 7 == queryResourceStore.listResourcesRecursively("/").size());
-        val auditCount = getJdbcTemplate().queryForObject("select count(*) from test_audit_log", Long.class);
+        String table = getTestConfig().getMetadataUrl().getIdentifier() + "_audit_log";
+        val auditCount = getJdbcTemplate().queryForObject(String.format("select count(*) from %s", table), Long.class);
         Assert.assertEquals(12L, auditCount.longValue());
     }
 
@@ -164,16 +163,15 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
                     2);
             return 0;
         }, "p0");
-
-        getJdbcTemplate().update("delete from test_audit_log where id=7");
+        String table = getTestConfig().getMetadataUrl().getIdentifier() + "_audit_log";
+        getJdbcTemplate().update(String.format("delete from %s where id=7", table));
         try {
             queryResourceStore.catchup();
             Assert.fail();
         } catch (Exception e) {
             queryResourceStore.close();
-            queryResourceStore.getAuditLogStore().close();
+            ((JdbcAuditLogStore)queryResourceStore.getAuditLogStore()).forceClose();
         }
-
         Thread.sleep(1000);
         String[] args = new String[] { "-backup", "-dir", HadoopUtil.getBackupFolder(getTestConfig()) };
         MetadataTool metadataTool = new MetadataTool(getTestConfig());
@@ -191,13 +189,13 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
 
         queryKylinConfig = KylinConfig.createKylinConfig(getTestConfig());
         val auditLogStore = new JdbcAuditLogStore(queryKylinConfig);
-        queryKylinConfig.setMetadataUrl("test@hdfs");
+        queryKylinConfig.setMetadataUrl(getTestConfig().getMetadataUrl().getIdentifier() + "@hdfs");
         queryResourceStore = ResourceStore.getKylinMetaStore(queryKylinConfig);
         queryResourceStore.getMetadataStore().setAuditLogStore(auditLogStore);
         queryResourceStore.catchup();
 
         Assert.assertEquals(7, queryResourceStore.listResourcesRecursively("/").size());
-        val auditCount = getJdbcTemplate().queryForObject("select count(*) from test_audit_log", Long.class);
+        val auditCount = getJdbcTemplate().queryForObject(String.format("select count(*) from %s", table), Long.class);
         Assert.assertEquals(15, auditCount.longValue());
         val imageDesc = JsonUtil.readValue(queryResourceStore.getResource("/_image").getByteSource().read(),
                 ImageDesc.class);

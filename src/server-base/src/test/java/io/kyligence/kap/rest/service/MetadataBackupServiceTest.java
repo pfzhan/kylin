@@ -140,7 +140,7 @@ public class MetadataBackupServiceTest extends NLocalFileMetadataTestCase {
         val kylinConfig = getTestConfig();
         System.setProperty("kylin.metadata.audit-log.max-size", "20");
         kylinConfig.setMetadataUrl(
-                "test@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
+                "test" + System.currentTimeMillis() + "@jdbc,driverClassName=org.h2.Driver,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1,username=sa,password=");
         kylinConfig.setProperty("kylin.env.hdfs-working-dir", junitFolder.getAbsolutePath());
 
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
