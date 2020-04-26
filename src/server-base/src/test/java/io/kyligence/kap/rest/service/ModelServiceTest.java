@@ -1335,10 +1335,8 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         eventDao.deleteAllEvents();
         //refresh normally
-        val result = modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { dataSegment2.getId() });
-
-        Assert.assertEquals(result.get(0).getJobId(), result.get(0).getUuid());
         thrown.expect(KylinException.class);
         thrown.expectMessage(String.format(MsgPicker.getMsg().getSEGMENT_LOCKED(), dataSegment2.getId()));
         //refresh exception
@@ -2776,7 +2774,6 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         Assert.assertEquals(jobInfo.getJobs().size(), 2);
         Assert.assertEquals(jobInfo.getJobs().get(0).getJobName(), "INC_BUILD");
-        Assert.assertEquals(jobInfo.getJobs().get(0).getJobId(), jobInfo.getJobs().get(0).getUuid());
         Assert.assertEquals(jobInfo.getJobs().get(1).getJobName(), "INDEX_BUILD");
         modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("yyyy-MM-dd", modelDesc.getPartitionDesc().getPartitionDateFormat());
@@ -3868,5 +3865,13 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         thrown.expectMessage(String.format("Model %s does not exist or broken in project %s", brokenModelId, project));
         modelService.updateModelOwner(project, brokenModelId, ownerChangeRequest3);
+    }
+
+    @Test
+    public void testGetCubes0ExistBrokenModel() {
+        tableService.unloadTable(getProject(), "DEFAULT.TEST_KYLIN_FACT", false);
+        val result = modelService.getCubes0(null, getProject());
+        Assert.assertEquals(6, result.size());
+        Assert.assertTrue(result.get(3).isModelBroken());
     }
 }
