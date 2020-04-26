@@ -141,6 +141,8 @@ public class NDataModelResponse3X extends NDataModel {
                 return WARNING;
             case BROKEN:
                 return DESCBROKEN;
+            default:
+                break;
             }
             return null;
         }
