@@ -155,9 +155,5 @@ public class NSparkTableMetaExplorer implements Serializable {
                         + "(There are maybe syntactic differences between HIVE and SparkSQL)", e);
             }
         }
-        if (tableMetadata.properties().contains("skip.header.line.count")) {
-            throw new RuntimeException(
-                    "The current product version does not support such source data tables, which are generally converted from a CSV table with a header. Please change the table to a table without a header.");
-        }
     }
 }

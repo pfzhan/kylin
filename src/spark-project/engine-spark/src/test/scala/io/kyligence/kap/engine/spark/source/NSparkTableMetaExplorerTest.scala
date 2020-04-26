@@ -53,24 +53,6 @@ class NSparkTableMetaExplorerTest extends SparderBaseFunSuite with SharedSparkSe
     }
   }
 
-  test("Test load csv") {
-    SparderEnv.setSparkSession(spark)
-
-    val view = CatalogTable(
-      identifier = TableIdentifier("hive_table"),
-      tableType = CatalogTableType.MANAGED,
-      storage = CatalogStorageFormat.empty,
-      schema = new StructType().add("a", "double").add("b", "int"),
-      properties = Map("skip.header.line.count" -> "1")
-    )
-    spark.sessionState.catalog.createTable(view, ignoreIfExists = false)
-
-    withTable("hive_table") {
-      val message = intercept[RuntimeException](new NSparkTableMetaExplorer().getSparkTableMeta("", "hive_table")).getMessage
-      assert(message.contains("The current product version does not support such source data"))
-    }
-  }
-
   test("Test load hive type") {
     SparderEnv.setSparkSession(spark)
 
