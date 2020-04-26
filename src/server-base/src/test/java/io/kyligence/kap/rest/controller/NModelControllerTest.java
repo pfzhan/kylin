@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -395,8 +396,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
         request.setIds(new String[] { "0", "1" });
-        Mockito.doNothing().when(modelService).mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                request.getIds());
+        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService)
+                .mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", request.getIds());
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
@@ -410,8 +411,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testMergeSegmentsException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setType(SegmentsRequest.SegmentsRequestType.MERGE);
-        Mockito.doNothing().when(modelService).mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
-                request.getIds());
+        Mockito.doReturn(new JobInfoResponse.JobInfo()).when(modelService)
+                .mergeSegmentsManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", request.getIds());
         mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/models/{model}/segments", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
