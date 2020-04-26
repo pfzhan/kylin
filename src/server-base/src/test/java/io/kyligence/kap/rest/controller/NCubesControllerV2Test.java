@@ -240,7 +240,7 @@ public class NCubesControllerV2Test extends NLocalFileMetadataTestCase {
 
         SegmentMgmtRequest request = new SegmentMgmtRequest();
         request.setBuildType("DROP");
-        request.setSegments(Lists.newArrayList("test_seg1", "test_seg2"));
+        request.setSegments(Lists.newArrayList("seg1", "seg2"));
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/cubes/{cubeName}/segments", "model1")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))

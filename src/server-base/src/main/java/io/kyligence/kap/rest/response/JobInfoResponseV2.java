@@ -23,31 +23,39 @@
  */
 package io.kyligence.kap.rest.response;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.collections.CollectionUtils;
 
-import lombok.Data;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Data
-public class JobInfoResponse {
-    @JsonProperty("jobs")
-    private List<JobInfo> jobs;
+@Getter
+@Setter
+@AllArgsConstructor
+public class JobInfoResponseV2 {
 
-    @Data
-    public static class JobInfo {
-        @JsonProperty("job_name")
-        private String jobName;
+    @JsonProperty("uuid")
+    private String uuid;
 
-        @JsonProperty("job_id")
-        private String jobId;
+    @JsonProperty("job_type")
+    private String jobType;
 
-        public JobInfo() {
+    public static JobInfoResponseV2 convert(JobInfoResponse.JobInfo jobInfo) {
+        if (null == jobInfo) {
+            return null;
+        }
+        return new JobInfoResponseV2(jobInfo.getJobId(), jobInfo.getJobName());
+    }
+
+    public static List<JobInfoResponseV2> convert(List<JobInfoResponse.JobInfo> jobInfoList) {
+        if (CollectionUtils.isEmpty(jobInfoList)) {
+            return Lists.newArrayList();
         }
 
-        public JobInfo(String jobName, String jobId) {
-            this.jobName = jobName;
-            this.jobId = jobId;
-        }
+        return jobInfoList.stream().map(JobInfoResponseV2::convert).collect(Collectors.toList());
     }
 }
