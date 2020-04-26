@@ -1,5 +1,5 @@
 <template>
-  <div class="table-index-view">
+  <div class="table-index-view" v-loading="isLoading">
     <div class="title-list">
       <div class="title-header">
         <el-select v-model="indexType" size="small" disabled class="index-types">
@@ -146,6 +146,7 @@ export default class TableIndexView extends Vue {
     status: []
   }
   indexDatas = []
+  isLoading = false
   async editTableIndex (indexDesc) {
     const isSubmit = await this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
@@ -166,6 +167,7 @@ export default class TableIndexView extends Vue {
     }
   }
   async loadTableIndices () {
+    this.isLoading = true
     try {
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
@@ -177,8 +179,10 @@ export default class TableIndexView extends Vue {
         d.detailCurrentCount = 10
         return d
       })
+      this.isLoading = false
     } catch (e) {
       handleError(e)
+      this.isLoading = false
     }
   }
   scrollToMatched (index) {

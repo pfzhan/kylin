@@ -1,5 +1,5 @@
 <template>
-  <div class="model-aggregate-view">
+  <div class="model-aggregate-view" v-loading="isLoading">
     <div class="title-list">
       <div class="title-header">
         <el-select v-model="aggType" size="small" disabled class="agg-types">
@@ -164,6 +164,7 @@ export default class AggregateView extends Vue {
     {name: 'dimensions', key: 'dimension', size: 0, total: 0, target: 'includes'},
     {name: 'measures', key: 'measure', size: 0, total: 0, target: 'measures'}
   ]
+  isLoading = false
   get dimensions () {
     if (this.model) {
       return this.model.simplified_dimensions
@@ -226,6 +227,7 @@ export default class AggregateView extends Vue {
     })
   }
   async loadAggregateGroups () {
+    this.isLoading = true
     try {
       const projectName = this.currentSelectedProject
       const modelId = this.model.uuid
@@ -256,8 +258,10 @@ export default class AggregateView extends Vue {
           return aggregationGroup
         })
       }
+      this.isLoading = false
     } catch (e) {
       handleError(e)
+      this.isLoading = false
     }
   }
   getMapping (data) {
