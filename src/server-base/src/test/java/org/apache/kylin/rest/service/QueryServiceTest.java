@@ -558,15 +558,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             tableSchemas = schemasAndTables.getFirst();
             tableNames = schemasAndTables.getSecond();
 
-            Assert.assertEquals(2, tableSchemas.size());
+            Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(10, tableNames.size());
+            Assert.assertEquals(18, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(11, factColumns.size());
+            Assert.assertEquals(12, factColumns.size());
         }
 
         //disable the one ready cube
@@ -589,10 +589,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             tableSchemas = schemasAndTables.getFirst();
             tableNames = schemasAndTables.getSecond();
 
-            Assert.assertEquals(1, tableSchemas.size());
+            Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(2, tableNames.size());
+            Assert.assertEquals(18, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_MEASURE"));
         }
 
@@ -617,15 +617,15 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             tableSchemas = schemasAndTables.getFirst();
             tableNames = schemasAndTables.getSecond();
 
-            Assert.assertEquals(2, tableSchemas.size());
+            Assert.assertEquals(3, tableSchemas.size());
             //make sure the schema "metadata" is not exposed
             Assert.assertTrue(!tableSchemas.contains("metadata"));
-            Assert.assertEquals(10, tableNames.size());
+            Assert.assertEquals(18, tableNames.size());
             Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(11, factColumns.size());
+            Assert.assertEquals(12, factColumns.size());
         }
     }
 

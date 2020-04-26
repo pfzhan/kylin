@@ -49,8 +49,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import lombok.val;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -71,6 +80,8 @@ import org.apache.calcite.schema.impl.AbstractTableQueryable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.ImmutableBitSet;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -80,6 +91,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.enumerator.OLAPQuery.EnumeratorTypeEnum;
 import org.apache.kylin.query.relnode.OLAPTableScan;
+import org.apache.kylin.rest.constant.Constant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,18 +130,18 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         REGEX_SQLTYPE_MAPPING.put("array\\<.*\\>", SqlTypeName.ARRAY);
     }
 
-    private final boolean exposeMore;
     private final OLAPSchema olapSchema;
     private final TableDesc sourceTable;
     protected RelDataType rowType;
     private List<ColumnDesc> sourceColumns;
+    private Map<String, List<NDataModel>> modelsMap;
 
-    public OLAPTable(OLAPSchema schema, TableDesc tableDesc, boolean exposeMore) {
+    public OLAPTable(OLAPSchema schema, TableDesc tableDesc, Map<String, List<NDataModel>> modelsMap) {
         super(Object[].class);
-        this.exposeMore = exposeMore;
         this.olapSchema = schema;
         this.sourceTable = tableDesc;
         this.rowType = null;
+        this.modelsMap = modelsMap;
     }
 
     public OLAPSchema getSchema() {
@@ -226,7 +238,7 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
     private List<ColumnDesc> listSourceColumns() {
         NProjectManager mgr = NProjectManager.getInstance(olapSchema.getConfig());
 
-        List<ColumnDesc> tableColumns = mgr.listExposedColumns(olapSchema.getProjectName(), sourceTable, exposeMore);
+        List<ColumnDesc> tableColumns = listTableColumnsIncludingCC();
 
         List<ColumnDesc> metricColumns = Lists.newArrayList();
         List<MeasureDesc> countMeasures = mgr.listEffectiveRewriteMeasures(olapSchema.getProjectName(),
@@ -255,6 +267,84 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
             }
         });
         return Lists.newArrayList(Iterables.concat(tableColumns, metricColumns));
+    }
+
+    private List<ColumnDesc> listTableColumnsIncludingCC() {
+        val allColumns = Lists.newArrayList(sourceTable.getColumns());
+
+        if (!modelsMap.containsKey(sourceTable.getIdentity()))
+            return allColumns;
+
+        val authorizedCC = getAuthorizedCC();
+        if (CollectionUtils.isNotEmpty(authorizedCC)) {
+            val ccAsColumnDesc = ComputedColumnUtil.createComputedColumns(authorizedCC, sourceTable);
+            allColumns.addAll(Lists.newArrayList(ccAsColumnDesc));
+        }
+
+        return allColumns;
+    }
+
+    private List<ComputedColumnDesc> getAuthorizedCC() {
+        if (isACLDisabledOrAdmin()) {
+            return modelsMap.get(sourceTable.getIdentity()).stream()
+                    .map(NDataModel::getComputedColumnDescs)
+                    .flatMap(List::stream)
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+
+        val authorizedCC = Lists.<ComputedColumnDesc>newArrayList();
+        val checkedCC = Sets.<ComputedColumnDesc>newHashSet();
+        for (NDataModel model : modelsMap.get(sourceTable.getIdentity())) {
+            val ccUsedColsMap = Maps.<String, Set<String>>newHashMap();
+            for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+                if (checkedCC.contains(cc))
+                    continue;
+                ccUsedColsMap.put(cc.getColumnName(), ComputedColumnUtil.getCCUsedColsWithModel(model, cc));
+            }
+
+            // parse inner expression might cause error, for example timestampdiff
+            // so have to do parsing cc expression recursively
+            for (ComputedColumnDesc cc : model.getComputedColumnDescs()) {
+                if (checkedCC.contains(cc))
+                    continue;
+                val ccUsedSourceCols = Sets.<String>newHashSet();
+                collectCCUsedSourceCols(cc.getColumnName(), ccUsedColsMap, ccUsedSourceCols);
+                if (isColumnAuthorized(ccUsedSourceCols)) {
+                    authorizedCC.add(cc);
+                }
+                checkedCC.add(cc);
+            }
+        }
+
+        return authorizedCC;
+    }
+
+    private void collectCCUsedSourceCols(String ccColName, Map<String, Set<String>> ccUsedColsMap, Set<String> ccUsedSourceCols) {
+        if (!ccUsedColsMap.containsKey(ccColName)) {
+            ccUsedSourceCols.add(ccColName);
+            return;
+        }
+
+        for (String usedColumn : ccUsedColsMap.get(ccColName)) {
+            collectCCUsedSourceCols(usedColumn, ccUsedColsMap, ccUsedSourceCols);
+        }
+    }
+
+    private boolean isACLDisabledOrAdmin() {
+        val groups = QueryContext.current().getGroups();
+        if (!olapSchema.getConfig().isAclTCREnabled()
+                || (CollectionUtils.isNotEmpty(groups) && groups.stream().anyMatch(Constant.ROLE_ADMIN::equals))
+                || QueryContext.current().isHasAdminPermission()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isColumnAuthorized(Set<String> ccSourceCols) {
+        val aclManager = AclTCRManager.getInstance(olapSchema.getConfig(), olapSchema.getProjectName());
+        return aclManager.isColumnsAuthorized(QueryContext.current().getUsername(), QueryContext.current().getGroups(), ccSourceCols);
     }
 
     @Override

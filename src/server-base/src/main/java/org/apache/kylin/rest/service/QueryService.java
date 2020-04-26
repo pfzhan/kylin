@@ -128,7 +128,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -147,7 +146,6 @@ import io.kyligence.kap.common.hystrix.NCircuitBreaker;
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWorkParams;
-import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -567,18 +565,6 @@ public class QueryService extends BasicService {
         QueryExec queryExec = newQueryExec(sqlRequest.getProject());
         try {
             return doTransactionEnabled(() -> {
-                final boolean hasAdminPermission = AclPermissionUtil.isAdminInProject(sqlRequest.getProject());
-                String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
-                QueryContext context = QueryContext.current();
-                context.setUsername(userInfo);
-                context.setGroups(AclPermissionUtil.getCurrentUserGroups());
-                context.setHasAdminPermission(hasAdminPermission);
-                final Collection<? extends GrantedAuthority> grantedAuthorities = SecurityContextHolder.getContext()
-                        .getAuthentication().getAuthorities();
-                for (GrantedAuthority grantedAuthority : grantedAuthorities) {
-                    userInfo += ",";
-                    userInfo += grantedAuthority.getAuthority();
-                }
 
                 SQLResponse fakeResponse = TableauInterceptor.tableauIntercept(sqlRequest.getSql());
                 if (null != fakeResponse) {
@@ -598,10 +584,7 @@ public class QueryService extends BasicService {
 
                 // add extra parameters into olap context, like acceptPartial
                 Map<String, String> parameters = new HashMap<String, String>();
-                parameters.put(OLAPContext.PRM_USER_AUTHEN_INFO, userInfo);
                 parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
-                parameters.put(OLAPContext.PRM_PROJECT_PERMISSION,
-                        hasAdminPermission ? OLAPContext.HAS_ADMIN_PERMISSION : OLAPContext.HAS_EMPTY_PERMISSION);
                 OLAPContext.setParameters(parameters);
                 // force clear the query context before a new query
                 clearThreadLocalContexts();
@@ -642,6 +625,7 @@ public class QueryService extends BasicService {
     }
 
     public QueryExec newQueryExec(String project) {
+        AclPermissionUtil.prepareQueryContextACLInfo(project);
         KylinConfig projectKylinConfig = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project).getConfig();
         return new QueryExec(project, projectKylinConfig);
@@ -664,6 +648,7 @@ public class QueryService extends BasicService {
             return Collections.emptyList();
         }
 
+        AclPermissionUtil.prepareQueryContextACLInfo(project);
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(project);
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
@@ -695,7 +680,7 @@ public class QueryService extends BasicService {
 
         }
 
-        return filterAuthorized(project, tableMetas, TableMeta.class);
+        return tableMetas;
     }
 
     @SuppressWarnings("checkstyle:methodlength")
@@ -704,6 +689,7 @@ public class QueryService extends BasicService {
         if (StringUtils.isBlank(project))
             return Collections.emptyList();
 
+        AclPermissionUtil.prepareQueryContextACLInfo(project);
         SchemaMetaData schemaMetaData = new SchemaMetaData(project, KylinConfig.getInstanceFromEnv());
         Map<String, TableMetaWithType> tableMap = constructTableMeta(schemaMetaData);
         Map<String, ColumnMetaWithType> columnMap = constructTblColMeta(schemaMetaData, project);
@@ -721,31 +707,7 @@ public class QueryService extends BasicService {
         List<TableMetaWithType> tableMetas = Lists.newArrayList();
         tableMap.forEach((name, tableMeta) -> tableMetas.add(tableMeta));
 
-        return filterAuthorized(project, tableMetas, TableMetaWithType.class);
-    }
-
-    private <T extends TableMeta> List<T> filterAuthorized(String project, List<T> result, final Class<T> clazz) {
-        if (AclPermissionUtil.canUseACLGreenChannel(project)) {
-            return result;
-        }
-        final List<AclTCR> aclTCRs = getAclTCRManager(project).getAclTCRs(AclPermissionUtil.getCurrentUsername(),
-                AclPermissionUtil.getCurrentUserGroups());
-        return result.stream().map(t -> {
-            String dbTblName = readTableIdentity(t);
-            if (aclTCRs.stream().noneMatch(tcr -> tcr.isAuthorized(dbTblName))) {
-                return null;
-            }
-            T copied = JsonUtil.deepCopyQuietly(t, clazz);
-            copied.setColumns(copied.getColumns().stream()
-                    .filter(c -> aclTCRs.stream().anyMatch(tcr -> tcr.isAuthorized(dbTblName, c.getCOLUMN_NAME())))
-                    .collect(Collectors.toList()));
-            return copied;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
-    }
-
-    private <T extends TableMeta> String readTableIdentity(T tableMeta) {
-        String database = Objects.isNull(tableMeta.getTABLE_SCHEM()) ? "default" : tableMeta.getTABLE_SCHEM();
-        return String.format("%s.%s", database, tableMeta.getTABLE_NAME()).toUpperCase();
+        return tableMetas;
     }
 
     private LinkedHashMap<String, TableMetaWithType> constructTableMeta(SchemaMetaData schemaMetaData) {

@@ -24,30 +24,25 @@
 
 package io.kyligence.kap.metadata.project;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.hystrix.NCircuitBreaker;
@@ -199,50 +194,8 @@ public class NProjectManager implements IKeepNames {
         return prj;
     }
 
-    public List<TableDesc> listDefinedTables(String project) {
-        return projectLoader.listDefinedTables(project);
-    }
-
-    public Set<String> listDefinedDatabases(String project) {
-        return listDefinedTables(project).stream().map(TableDesc::getDatabase).map(String::toUpperCase)
-                .collect(Collectors.toSet());
-    }
-
     public String getDefaultDatabase(String project) {
         return getProject(project).getDefaultDatabase();
-    }
-
-    private Collection<TableDesc> listExposedTablesByRealizations(String project) {
-        return projectLoader.listExposedTables(project);
-    }
-
-    public Collection<TableDesc> listExposedTables(String project) {
-        return listExposedTables(project, config.isPushDownEnabled());
-    }
-
-    public List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
-        return listExposedColumns(project, tableDesc, config.isPushDownEnabled());
-    }
-
-    public Collection<TableDesc> listExposedTables(String project, boolean exposeMore) {
-        if (exposeMore) {
-            return listDefinedTables(project);
-        } else {
-            return listExposedTablesByRealizations(project);
-        }
-    }
-
-    public List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc, boolean exposeMore) {
-        Set<ColumnDesc> exposedColumns = Sets
-                .newHashSet(projectLoader.listExposedColumns(project, tableDesc.getIdentity()));
-        exposedColumns.addAll(projectLoader.listComputedColumns(project, tableDesc));
-        if (exposeMore) {
-            Set<ColumnDesc> dedup = Sets.newHashSet(tableDesc.getColumns());
-            dedup.addAll(exposedColumns);
-            return Lists.newArrayList(dedup);
-        } else {
-            return Lists.newArrayList(exposedColumns);
-        }
     }
 
     public Set<IRealization> listAllRealizations(String project) {

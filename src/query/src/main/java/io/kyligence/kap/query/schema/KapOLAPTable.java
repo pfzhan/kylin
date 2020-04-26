@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.schema;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelOptTable.ToRelContext;
 import org.apache.calcite.rel.RelNode;
@@ -33,12 +34,15 @@ import org.apache.kylin.query.schema.OLAPTable;
 
 import io.kyligence.kap.query.relnode.KapTableScan;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  */
 public class KapOLAPTable extends OLAPTable {
 
-    public KapOLAPTable(OLAPSchema schema, TableDesc tableDesc, boolean exposeMore) {
-        super(schema, tableDesc, exposeMore);
+    public KapOLAPTable(OLAPSchema schema, TableDesc tableDesc, Map<String, List<NDataModel>> modelsMap) {
+        super(schema, tableDesc, modelsMap);
     }
 
     @Override

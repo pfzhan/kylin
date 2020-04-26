@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.collect.Lists;
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
@@ -54,7 +55,6 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.AclTCR;
 import io.kyligence.kap.metadata.acl.AclTCRManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IPushDownConverter, IKeep {
 
@@ -120,12 +120,11 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
                         "Table " + table.getAlias() + " not found. Please add table " + table.getAlias()
                                 + " to data source. If this table does exist, mention it as DATABASE.TABLE.");
             }
-            List<ColumnDesc> columns = listExposedColumns(project, tableDesc);
+
+            List<ColumnDesc> columns = Lists.newArrayList(tableDesc.getColumns());
+            Collections.sort(columns, Comparator.comparing(ColumnDesc::getZeroBasedIndex));
             String quotingChar = Quoting.valueOf(KylinConfig.getInstanceFromEnv().getCalciteQuoting()).string;
             for (ColumnDesc column : columns) {
-                if (column.isComputedColumn()) {
-                    continue;
-                }
                 if (aclTCRs.stream()
                         .anyMatch(aclTCR -> aclTCR.isAuthorized(tableDesc.getIdentity(), column.getName()))) {
                     StringBuilder sb = new StringBuilder();
@@ -161,14 +160,6 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         } else {
             return (SqlSelect) sqlNode;
         }
-    }
-
-    static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
-        List<ColumnDesc> columns = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listExposedColumns(project, tableDesc);
-
-        Collections.sort(columns, Comparator.comparing(ColumnDesc::getZeroBasedIndex));
-        return columns;
     }
 
     private static boolean hasAdminPermission(QueryContext context) {

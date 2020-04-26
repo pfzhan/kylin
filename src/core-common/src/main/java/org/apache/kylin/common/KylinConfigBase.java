@@ -1254,10 +1254,6 @@ public abstract class KylinConfigBase implements Serializable {
         return false;
     }
 
-    public String getSchemaFactory() {
-        return this.getOptional("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
-    }
-
     public String getPushDownRunnerClassName() {
         return getOptional("kylin.query.pushdown.runner-class-name", "");
     }

@@ -42,10 +42,11 @@
 
 package org.apache.kylin.query.schema;
 
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.kylin.common.KylinConfig;
@@ -54,10 +55,11 @@ import org.apache.kylin.metadata.model.TableDesc;
 import com.google.common.annotations.VisibleForTesting;
 
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
+ * all schema info is in KapOLAPSchema, not used anymore
  */
+@Deprecated
 public class OLAPSchema extends AbstractSchema {
 
     //    private static final Logger logger = LoggerFactory.getLogger(OLAPSchema.class);
@@ -65,7 +67,8 @@ public class OLAPSchema extends AbstractSchema {
     private KylinConfig config;
     private String projectName;
     private String schemaName;
-    private boolean exposeMore;
+    private List<TableDesc> tables;
+    private Map<String, List<NDataModel>> modelsMap;
     private String starSchemaUrl;
     private String starSchemaUser;
     private String starSchemaPassword;
@@ -77,10 +80,10 @@ public class OLAPSchema extends AbstractSchema {
         this.starSchemaPassword = config.getHivePassword();
     }
 
-    public OLAPSchema(String project, String schemaName, boolean exposeMore) {
+    public OLAPSchema(String project, String schemaName, List<TableDesc> tables) {
         this.projectName = project;
         this.schemaName = schemaName;
-        this.exposeMore = exposeMore;
+        this.tables = tables;
         init();
     }
 
@@ -97,13 +100,10 @@ public class OLAPSchema extends AbstractSchema {
     private Map<String, Table> buildTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 
-        Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName,
-                exposeMore);
-
-        for (TableDesc tableDesc : projectTables) {
+        for (TableDesc tableDesc : tables) {
             if (tableDesc.getDatabase().equals(schemaName)) {
                 final String tableName = tableDesc.getName();//safe to use tableDesc.getUuid() here, it is in a DB context now
-                final OLAPTable table = new OLAPTable(this, tableDesc, exposeMore);
+                final OLAPTable table = new OLAPTable(this, tableDesc, modelsMap);
                 olapTables.put(tableName, table);
                 //logger.debug("Project " + projectName + " exposes table " + tableName);
             }

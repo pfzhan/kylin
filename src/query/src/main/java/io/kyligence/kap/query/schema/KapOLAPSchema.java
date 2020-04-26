@@ -25,32 +25,25 @@
 package io.kyligence.kap.query.schema;
 
 
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.schema.Table;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.query.schema.OLAPSchema;
 
 public class KapOLAPSchema extends OLAPSchema {
-    private KylinConfig config;
-    private String projectName;
     private String schemaName;
-    private boolean exposeMore;
+    private List<TableDesc> tables;
+    private Map<String, List<NDataModel>> modelsMap;
 
-    public KapOLAPSchema(String project, String schemaName, boolean exposeMore) {
-        super(project, schemaName, exposeMore);
-        this.projectName = project;
+    public KapOLAPSchema(String project, String schemaName, List<TableDesc> tables, Map<String, List<NDataModel>> modelsMap) {
+        super(project, schemaName, tables);
         this.schemaName = schemaName;
-        this.exposeMore = exposeMore;
-        setup();
-    }
-
-    private void setup() {
-        this.config = KylinConfig.getInstanceFromEnv();
+        this.tables = tables;
+        this.modelsMap = modelsMap;
     }
 
     @Override
@@ -61,15 +54,10 @@ public class KapOLAPSchema extends OLAPSchema {
     private Map<String, Table> createTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 
-        Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName, exposeMore);
-
-        for (TableDesc tableDesc : projectTables) {
-            if (tableDesc.getDatabase().equals(schemaName)) {
-                final String tableName = tableDesc.getName();//safe to use tableDesc.getUuid() here, it is in a DB context now
-                final KapOLAPTable table = new KapOLAPTable(this, tableDesc, exposeMore);
-                olapTables.put(tableName, table);
-                //logger.debug("Project " + projectName + " exposes table " + tableName);
-            }
+        for (TableDesc tableDesc : tables) {
+            final String tableName = tableDesc.getName();//safe to use tableDesc.getUuid() here, it is in a DB context now
+            final KapOLAPTable table = new KapOLAPTable(this, tableDesc, modelsMap);
+            olapTables.put(tableName, table);
         }
 
         return olapTables;

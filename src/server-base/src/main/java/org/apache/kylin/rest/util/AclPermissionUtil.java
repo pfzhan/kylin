@@ -51,6 +51,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -250,5 +251,12 @@ public class AclPermissionUtil {
                 throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN());
             }
         }
+    }
+
+    public static void prepareQueryContextACLInfo(String project) {
+        QueryContext context = QueryContext.current();
+        context.setUsername(getCurrentUsername());
+        context.setGroups(getCurrentUserGroups());
+        context.setHasAdminPermission(isAdminInProject(project));
     }
 }

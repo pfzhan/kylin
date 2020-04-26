@@ -30,7 +30,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -52,6 +54,8 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+
+import static java.util.stream.Collectors.groupingBy;
 
 /**
  */
@@ -116,6 +120,15 @@ public class NTableMetadataManager {
 
     public List<TableDesc> listAllTables() {
         return srcTableCrud.listAll();
+    }
+
+    public Map<String, List<TableDesc>> listTablesGroupBySchema() {
+        return listAllTables().stream().collect(groupingBy(TableDesc::getDatabase));
+    }
+
+    public Set<String> listDatabases() {
+        return listAllTables().stream().map(TableDesc::getDatabase).map(String::toUpperCase)
+                .collect(Collectors.toSet());
     }
 
     public Map<String, TableDesc> getAllTablesMap() {

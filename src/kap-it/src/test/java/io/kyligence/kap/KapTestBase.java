@@ -55,10 +55,8 @@ public class KapTestBase extends KylinTestBase {
     public static void initQueryEngine() {
         if (System.getProperty("sparder.enabled") != null && System.getProperty("sparder.enabled").equals("true")) {
             System.setProperty("kylin.query.engine.sparder-enabled", "true");
-            System.setProperty("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
         } else {
             System.setProperty("kylin.query.engine.sparder-enabled", "false");
-            System.setProperty("kylin.query.schema-factory", "org.apache.kylin.query.schema.OLAPSchemaFactory");
         }
 
         if (System.getProperty("spark.local") != null && System.getProperty("spark.local").equalsIgnoreCase("true")) {

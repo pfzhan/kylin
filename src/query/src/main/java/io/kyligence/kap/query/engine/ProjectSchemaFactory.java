@@ -24,21 +24,28 @@
 
 package io.kyligence.kap.query.engine;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 
+import io.kyligence.kap.metadata.acl.AclTCRManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.model.ModelHandler;
 import org.apache.calcite.schema.Schema;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.schema.KapOLAPSchema;
+import org.apache.kylin.rest.constant.Constant;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * factory that create and construct schemas within a project
@@ -47,7 +54,8 @@ public class ProjectSchemaFactory {
 
     private final String projectName;
     private final KylinConfig kylinConfig;
-    private HashMap<String, Integer> schemaCounts;
+    private Map<String, List<TableDesc>> schemasMap;
+    private Map<String, List<NDataModel>> modelsMap;
     private String defaultSchemaName;
 
     public ProjectSchemaFactory(String projectName, KylinConfig kylinConfig) {
@@ -56,19 +64,28 @@ public class ProjectSchemaFactory {
 
 
         NProjectManager npr = NProjectManager.getInstance(kylinConfig);
-        Collection<TableDesc> tables = npr.listExposedTables(projectName, kylinConfig.isPushDownEnabled());
+        String user = QueryContext.current().getUsername();
+        Set<String> groups = QueryContext.current().getGroups();
+        schemasMap = AclTCRManager.getInstance(kylinConfig, projectName).getAuthorizedTablesAndColumns(user, groups, aclDisabledOrIsAdmin());
+        modelsMap = NDataflowManager.getInstance(kylinConfig, projectName).getModelsGroupbyTable();
 
         // "database" in TableDesc correspond to our schema
         // the logic to decide which schema to be "default" in calcite:
         // if some schema are named "default", use it.
         // other wise use the schema with most tables
-        schemaCounts = DatabaseDesc.extractDatabaseOccurenceCounts(tables);
         String majoritySchemaName = npr.getDefaultDatabase(projectName);
         // UT
         if (Objects.isNull(majoritySchemaName)) {
-            majoritySchemaName = getDatabaseByMaxTables(schemaCounts);
+            majoritySchemaName = DatabaseDesc.getDefaultDatabaseByMaxTables(schemasMap);
         }
         defaultSchemaName = majoritySchemaName;
+    }
+
+    private boolean aclDisabledOrIsAdmin() {
+        val groups = QueryContext.current().getGroups();
+        return !kylinConfig.isAclTCREnabled()
+                || (CollectionUtils.isNotEmpty(groups) && groups.stream().anyMatch(Constant.ROLE_ADMIN::equals))
+                || QueryContext.current().isHasAdminPermission();
     }
 
     public CalciteSchema createProjectRootSchema() {
@@ -83,14 +100,14 @@ public class ProjectSchemaFactory {
 
     public void addProjectSchemas(CalciteSchema parentSchema) {
 
-        for (String schemaName : schemaCounts.keySet()) {
+        for (String schemaName : schemasMap.keySet()) {
             CalciteSchema added = parentSchema.add(schemaName, createSchema(schemaName));
             addUDFs(added);
         }
     }
 
     private Schema createSchema(String schemaName) {
-        return new KapOLAPSchema(projectName, schemaName, kylinConfig.isPushDownEnabled());
+        return new KapOLAPSchema(projectName, schemaName, schemasMap.get(schemaName), modelsMap);
     }
 
     private void addUDFs(CalciteSchema calciteSchema) {
@@ -99,23 +116,4 @@ public class ProjectSchemaFactory {
             ModelHandler.addFunctions(calciteSchema.plus(), udfDef.getName(), udfDef.getPaths(), udfDef.getClassName(), udfDef.getMethodName(), false);
         }
     }
-
-    public static String getDatabaseByMaxTables(Map<String, Integer> schemaCounts) {
-        String majoritySchemaName = ProjectInstance.DEFAULT_DATABASE;
-        int majoritySchemaCount = 0;
-        for (Map.Entry<String, Integer> e : schemaCounts.entrySet()) {
-            if (e.getKey().equalsIgnoreCase(ProjectInstance.DEFAULT_DATABASE)) {
-                majoritySchemaName = e.getKey();
-                break;
-            }
-
-            if (e.getValue() >= majoritySchemaCount) {
-                majoritySchemaCount = e.getValue();
-                majoritySchemaName = e.getKey();
-            }
-        }
-
-        return majoritySchemaName;
-    }
-
 }

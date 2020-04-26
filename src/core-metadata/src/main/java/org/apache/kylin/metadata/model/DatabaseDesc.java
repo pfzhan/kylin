@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +43,11 @@
 
 package org.apache.kylin.metadata.model;
 
+import org.apache.kylin.metadata.project.ProjectInstance;
+
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author xjiang
@@ -64,8 +64,7 @@ public class DatabaseDesc implements Serializable {
     }
 
     /**
-     * @param name
-     *            the name to set
+     * @param name the name to set
      */
     public void setName(String name) {
         this.name = name;
@@ -73,7 +72,7 @@ public class DatabaseDesc implements Serializable {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#toString()
      */
     @Override
@@ -82,24 +81,21 @@ public class DatabaseDesc implements Serializable {
         return "DatabaseDesc [name=" + name + "]";
     }
 
-    public static HashMap<String, Integer> extractDatabaseOccurenceCounts(Collection<TableDesc> tables) {
-        HashMap<String, Integer> databaseCounts = new HashMap<String, Integer>();
-        for (TableDesc tableDesc : tables) {
-            String databaseName = tableDesc.getDatabase();
-            Integer counter = databaseCounts.get(databaseName);
-            if (counter != null)
-                databaseCounts.put(databaseName, counter + 1);
-            else
-                databaseCounts.put(databaseName, 1);
-        }
-        return databaseCounts;
-    }
+    public static String getDefaultDatabaseByMaxTables(Map<String, List<TableDesc>> schemaMap) {
+        String majoritySchemaName = ProjectInstance.DEFAULT_DATABASE;
+        int majoritySchemaCount = 0;
+        for (Map.Entry<String, List<TableDesc>> e : schemaMap.entrySet()) {
+            if (e.getKey().equalsIgnoreCase(ProjectInstance.DEFAULT_DATABASE)) {
+                majoritySchemaName = e.getKey();
+                break;
+            }
 
-    public static HashSet<String> extractDatabaseNames(List<TableDesc> tables) {
-        HashSet<String> databaseNames = new HashSet<String>();
-        for (TableDesc tableDesc : tables) {
-            databaseNames.add(tableDesc.getDatabase());
+            if (e.getValue().size() >= majoritySchemaCount) {
+                majoritySchemaCount = e.getValue().size();
+                majoritySchemaName = e.getKey();
+            }
         }
-        return databaseNames;
+
+        return majoritySchemaName;
     }
 }

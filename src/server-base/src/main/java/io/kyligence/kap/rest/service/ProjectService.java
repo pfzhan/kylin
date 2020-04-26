@@ -533,8 +533,9 @@ public class ProjectService extends BasicService {
         String uppderDB = defaultDatabase.toUpperCase();
 
         val prjManager = getProjectManager();
+        val tableManager = getTableManager(project);
         if (ProjectInstance.DEFAULT_DATABASE.equals(uppderDB)
-                || prjManager.listDefinedDatabases(project).contains(uppderDB)) {
+                || tableManager.listDatabases().contains(uppderDB)) {
             final ProjectInstance projectInstance = prjManager.getProject(project);
             if (uppderDB.equals(projectInstance.getDefaultDatabase())) {
                 return;

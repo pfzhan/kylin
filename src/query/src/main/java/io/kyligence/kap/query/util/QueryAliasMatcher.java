@@ -31,6 +31,9 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.query.schema.KapOLAPSchema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
@@ -230,7 +233,10 @@ public class QueryAliasMatcher {
         private OLAPSchema getSchema(String name) {
             OLAPSchema olapSchema = schemaMap.get(name);
             if (olapSchema == null) {
-                olapSchema = new OLAPSchema(project, name, true);
+                olapSchema = new KapOLAPSchema(project, name,
+                        NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                                .listTablesGroupBySchema().get(name),
+                        NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getModelsGroupbyTable());
                 schemaMap.put(name, olapSchema);
             }
             return olapSchema;

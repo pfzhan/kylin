@@ -328,7 +328,7 @@ public class TableServiceTest extends CSVSourceTestCase {
         table.put("DEFAULT.TEST_COUNTRY", columnRow);
         aclTCR.setTable(table);
         List<AclTCR> aclTCRs = Lists.newArrayList(aclTCR);
-        TableDesc tableDesc = tableService.getAuthorizedTableDesc(false, originTableDesc, aclTCRs);
+        TableDesc tableDesc = tableService.getAuthorizedTableDesc(getProject(), false, originTableDesc, aclTCRs);
         TableDescResponse tableDescResponse = new TableDescResponse(tableDesc);
 
         List<String[]> sampleRows = Lists.newArrayList();
@@ -425,12 +425,13 @@ public class TableServiceTest extends CSVSourceTestCase {
     public void testUnloadTable_RemoveDB() {
         String removeDB = "EDW";
         NProjectManager npr = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         ProjectInstance projectInstance = npr.getProject("default");
         projectInstance.setDefaultDatabase(removeDB);
         npr.updateProject(projectInstance);
         Assert.assertEquals(removeDB, npr.getDefaultDatabase("default"));
 
-        for (TableDesc table : npr.listDefinedTables("default")) {
+        for (TableDesc table : tableManager.listAllTables()) {
             if (removeDB.equalsIgnoreCase(table.getDatabase())) {
                 tableService.unloadTable("default", table.getIdentity(), false);
             }

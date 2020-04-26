@@ -86,11 +86,6 @@ import lombok.Setter;
 public class OLAPContext {
 
     public static final String PRM_ACCEPT_PARTIAL_RESULT = "AcceptPartialResult";
-    public static final String PRM_USER_AUTHEN_INFO = "UserAuthenInfo";
-    public static final String PRM_PROJECT_PERMISSION = "ProjectPermission";
-
-    public static final String HAS_ADMIN_PERMISSION = "HasAdminPermission";
-    public static final String HAS_EMPTY_PERMISSION = "";
 
     static final ThreadLocal<Map<String, String>> _localPrarameters = new ThreadLocal<Map<String, String>>();
 
@@ -143,10 +138,6 @@ public class OLAPContext {
             if (acceptPartialResult != null) {
                 this.storageContext.setAcceptPartialResult(Boolean.parseBoolean(acceptPartialResult));
             }
-            this.hasAdminPermission = HAS_ADMIN_PERMISSION.equals(parameters.get(PRM_PROJECT_PERMISSION));
-            String acceptUserInfo = parameters.get(PRM_USER_AUTHEN_INFO);
-            if (null != acceptUserInfo)
-                this.olapAuthen.parseUserInfo(acceptUserInfo);
         }
     }
 

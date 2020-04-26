@@ -86,10 +86,6 @@ public class NAsyncQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<AsyncQueryResponse> query(@Valid @RequestBody final AsyncQuerySQLRequest sqlRequest)
             throws InterruptedException {
-        if (!KylinConfig.getInstanceFromEnv().getSchemaFactory()
-                .equalsIgnoreCase("io.kyligence.kap.query.schema.KapSchemaFactory")) {
-            throw new IllegalArgumentException("");
-        }
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
         final AtomicReference<Boolean> compileResultRef = new AtomicReference<>();
         final AtomicReference<String> exceptionHandle = new AtomicReference<>();

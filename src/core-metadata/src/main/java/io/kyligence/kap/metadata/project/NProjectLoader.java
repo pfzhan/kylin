@@ -24,18 +24,18 @@
 
 package io.kyligence.kap.metadata.project;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -47,16 +47,12 @@ import org.apache.kylin.metadata.realization.NRealizationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionListenerRegistry;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -96,44 +92,17 @@ public class NProjectLoader {
         this.mgr = mgr;
     }
 
-    public Map<String, ExternalFilterDesc> listExternalFilterDesc(String project) {
-        ProjectBundle prjCache = load(project);
-        return Collections.unmodifiableMap(prjCache.extFilters);
-    }
-
-    public List<TableDesc> listDefinedTables(String project) {
-        ProjectBundle prjCache = load(project);
-        List<TableDesc> result = Lists.newArrayListWithCapacity(prjCache.tables.size());
-        for (TableBundle tableBundle : prjCache.tables.values()) {
-            result.add(tableBundle.tableDesc);
-        }
-        return result;
-    }
-
-    public Set<TableDesc> listExposedTables(String project) {
-        ProjectBundle prjCache = load(project);
-        return Collections.unmodifiableSet(prjCache.exposedTables);
-    }
-
-    public Set<ColumnDesc> listExposedColumns(String project, String table) {
-        TableBundle tableBundle = load(project).tables.get(table);
-        if (tableBundle == null)
-            return Collections.emptySet();
-        else
-            return Collections.unmodifiableSet(tableBundle.exposedColumns);
-    }
-
     public Set<IRealization> listAllRealizations(String project) {
         ProjectBundle prjCache = load(project);
-        return Collections.unmodifiableSet(prjCache.realizations);
+        return Collections.unmodifiableSet(prjCache.realizationsByTable.values().stream().flatMap(Set::stream).collect(Collectors.toSet()));
     }
 
     public Set<IRealization> getRealizationsByTable(String project, String table) {
-        TableBundle tableBundle = load(project).tables.get(table);
-        if (tableBundle == null)
+        Set<IRealization> realizationsByTable = load(project).realizationsByTable.get(table);
+        if (realizationsByTable == null)
             return Collections.emptySet();
         else
-            return Collections.unmodifiableSet(tableBundle.realizations);
+            return Collections.unmodifiableSet(realizationsByTable);
     }
 
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String table, boolean onlyRewriteMeasure) {
@@ -150,19 +119,6 @@ public class NProjectLoader {
                 }
             }
         }
-        return result;
-    }
-
-    public List<ColumnDesc> listComputedColumns(String project, TableDesc tableDesc) {
-        List<ColumnDesc> result = Lists.newArrayList();
-        val dfMgr = NDataflowManager.getInstance(mgr.getConfig(), project);
-        for (NDataModel r : dfMgr.listUnderliningDataModels()) {
-            val computedColumns = ComputedColumnUtil.createComputedColumns(r.getComputedColumnDescs(), tableDesc);
-            if (belongToFactTable(tableDesc.getIdentity(), r)) {
-                result.addAll(Arrays.asList(computedColumns));
-            }
-        }
-
         return result;
     }
 
@@ -186,31 +142,16 @@ public class NProjectLoader {
         if (pi == null)
             throw new IllegalArgumentException("Project '" + project + "' does not exist.");
 
-        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
-
-        pi.getTables().forEach(tableName -> {
-            TableDesc tableDesc = metaMgr.getTableDesc(tableName);
-            if (tableDesc != null) {
-                projectBundle.tables.put(tableDesc.getIdentity(), new TableBundle(tableDesc));
-            } else {
-                logger.warn("Table '{}' defined under project '{}' is not found or it's broken.", tableName, project);
-            }
-        });
-
         NRealizationRegistry registry = NRealizationRegistry.getInstance(mgr.getConfig(), project);
         pi.getRealizationEntries().forEach(entry -> {
             IRealization realization = registry.getRealization(entry.getType(), entry.getRealization());
-            if (realization != null) {
-                projectBundle.realizations.add(realization);
-            } else {
+            if (realization == null) {
                 logger.warn("Realization '{}' defined under project '{}' is not found or it's broken.", entry, project);
+                return;
             }
-        });
 
-        projectBundle.realizations.forEach(realization -> {
-            if (sanityCheck(projectBundle, realization, project)) {
+            if (sanityCheck(realization, project)) {
                 mapTableToRealization(projectBundle, realization);
-                markExposedTablesAndColumns(projectBundle, realization);
             }
         });
 
@@ -218,7 +159,7 @@ public class NProjectLoader {
     }
 
     // check all columns reported by realization does exists
-    private boolean sanityCheck(ProjectBundle prjCache, IRealization realization, String project) {
+    private boolean sanityCheck(IRealization realization, String project) {
         if (realization == null)
             return false;
 
@@ -249,13 +190,6 @@ public class NProjectLoader {
                     return false;
                 }
             }
-
-            // auto-define table required by realization for some legacy test case
-            if (prjCache.tables.get(table.getIdentity()) == null) {
-                prjCache.tables.put(table.getIdentity(), new TableBundle(table));
-                logger.warn("Realization '{}' reports column '{}' whose table is not defined in project '{}'.",
-                        realization.getCanonicalName(), col.getCanonicalName(), prjCache.project);
-            }
         }
 
         return true;
@@ -264,48 +198,17 @@ public class NProjectLoader {
     private void mapTableToRealization(ProjectBundle prjCache, IRealization realization) {
         final Set<TableRef> allTables = realization.getModel().getAllTables();
         for (TableRef tbl : allTables) {
-            TableBundle tableBundle = prjCache.tables.get(tbl.getTableDesc().getIdentity());
-            tableBundle.realizations.add(realization);
-        }
-    }
-
-    private void markExposedTablesAndColumns(ProjectBundle prjCache, IRealization realization) {
-        if (!realization.isReady()) {
-            return;
-        }
-
-        final Set<TableRef> allTables = realization.getModel().getAllTables();
-        for (TableRef tbl : allTables) {
-            TableBundle tableBundle = prjCache.tables.get(tbl.getTableDesc().getIdentity());
-            prjCache.exposedTables.add(tableBundle.tableDesc);
-        }
-
-        for (TblColRef col : realization.getAllColumns()) {
-            TableBundle tableBundle = prjCache.tables.get(col.getTable());
-            Preconditions.checkNotNull(tableBundle);
-            tableBundle.exposedColumns.add(col.getColumnDesc());
+            prjCache.realizationsByTable.computeIfAbsent(tbl.getTableIdentity(), value -> Sets.newHashSet());
+            prjCache.realizationsByTable.get(tbl.getTableIdentity()).add(realization);
         }
     }
 
     private static class ProjectBundle {
         private String project;
-        private Map<String, TableBundle> tables = Maps.newHashMap();
-        private Set<TableDesc> exposedTables = Sets.newHashSet();
-        private Set<IRealization> realizations = Sets.newHashSet();
-        private Map<String, ExternalFilterDesc> extFilters = Maps.newHashMap();
+        private Map<String, Set<IRealization>> realizationsByTable = Maps.newHashMap();
 
         ProjectBundle(String project) {
             this.project = project;
-        }
-    }
-
-    private static class TableBundle {
-        private TableDesc tableDesc;
-        private Set<ColumnDesc> exposedColumns = Sets.newLinkedHashSet();
-        private Set<IRealization> realizations = Sets.newLinkedHashSet();
-
-        TableBundle(TableDesc tableDesc) {
-            this.tableDesc = tableDesc;
         }
     }
 

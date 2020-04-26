@@ -60,7 +60,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.query.routing.RealizationChooser;
-import org.apache.kylin.query.security.AclQueryInterceptor;
 
 import com.google.common.collect.Lists;
 
@@ -102,10 +101,6 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
 
         // identify model & realization
         List<OLAPContext> contexts = listContextsHavingScan();
-        // intercept query
-        if (contexts.size() > 0) {
-            AclQueryInterceptor.intercept(contexts);
-        }
 
         if (System.getProperty("calcite.debug") != null) {
             String dumpPlan = RelOptUtil.dumpPlan("", this, false, SqlExplainLevel.DIGEST_ATTRIBUTES);

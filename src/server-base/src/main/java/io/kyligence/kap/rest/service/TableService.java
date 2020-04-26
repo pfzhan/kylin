@@ -409,7 +409,7 @@ public class TableService extends BasicService {
                 AclPermissionUtil.getCurrentUserGroups());
         final boolean isAclGreen = AclPermissionUtil.canUseACLGreenChannel(project);
         for (val originTable : tables) {
-            TableDesc table = getAuthorizedTableDesc(isAclGreen, originTable, aclTCRS);
+            TableDesc table = getAuthorizedTableDesc(project, isAclGreen, originTable, aclTCRS);
             if (Objects.isNull(table)) {
                 continue;
             }
@@ -493,20 +493,11 @@ public class TableService extends BasicService {
     }
 
     @VisibleForTesting
-    TableDesc getAuthorizedTableDesc(boolean isAclGreen, TableDesc originTable, List<AclTCR> aclTCRS) {
+    TableDesc getAuthorizedTableDesc(String project, boolean isAclGreen, TableDesc originTable, List<AclTCR> aclTCRS) {
         if (isAclGreen) {
             return originTable;
         }
-        if (aclTCRS.stream().noneMatch(aclTCR -> aclTCR.isAuthorized(originTable.getIdentity()))) {
-            return null;
-        }
-        val table = JsonUtil.deepCopyQuietly(originTable, TableDesc.class);
-        // pitfall: project is invalid after deepCopy
-        table.init(originTable.getProject());
-        table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
-                .filter(c -> aclTCRS.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
-                .toArray(ColumnDesc[]::new));
-        return table;
+        return getAclTCRManager(project).getAuthorizedTableDesc(originTable, aclTCRS);
     }
 
     private long getSnapshotSize(String project, List<NDataModel> modelsUsingTable, String table) throws IOException {

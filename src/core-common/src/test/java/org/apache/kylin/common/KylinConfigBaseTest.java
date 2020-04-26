@@ -427,9 +427,6 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
 
         map.put("getQueryVIPRole", new PropertiesEntity("kylin.query.vip-role", "", ""));
 
-        map.put("getSchemaFactory", new PropertiesEntity("kylin.query.schema-factory",
-                "io.kyligence.kap.query.schema.KapSchemaFactory", "io.kyligence.kap.query.schema.KapSchemaFactory"));
-
         map.put("getPushDownRunnerClassName", new PropertiesEntity("kylin.query.pushdown.runner-class-name", "", ""));
 
         map.put("getPushDownRunnerClassNameWithDefaultValue",
@@ -702,7 +699,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(297, methodsCount);
+        Assert.assertEquals(296, methodsCount);
     }
 
     @Test

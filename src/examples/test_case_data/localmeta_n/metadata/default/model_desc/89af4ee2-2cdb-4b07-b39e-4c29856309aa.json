@@ -402,7 +402,8 @@
     {
       "id": 48,
       "name": "IS_EFFECTUAL",
-      "column": "TEST_KYLIN_FACT.IS_EFFECTUAL"
+      "column": "TEST_KYLIN_FACT.IS_EFFECTUAL",
+      "status": "DIMENSION"
     },
     {
       "id": 49,

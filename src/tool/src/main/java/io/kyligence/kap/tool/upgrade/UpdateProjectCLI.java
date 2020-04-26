@@ -23,11 +23,11 @@
  */
 package io.kyligence.kap.tool.upgrade;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -36,13 +36,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.model.DatabaseDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.query.engine.ProjectSchemaFactory;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -93,9 +91,9 @@ public class UpdateProjectCLI extends ExecutableApplication implements IKeep {
 
             // for upgrade, set default database
             if (StringUtils.isEmpty(project.getDefaultDatabase())) {
-                Collection<TableDesc> tables = npr.listDefinedTables(project.getName());
-                HashMap<String, Integer> schemaCounts = DatabaseDesc.extractDatabaseOccurenceCounts(tables);
-                String defaultDatabase = ProjectSchemaFactory.getDatabaseByMaxTables(schemaCounts);
+                val schemaMap = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName())
+                        .listTablesGroupBySchema();
+                String defaultDatabase = DatabaseDesc.getDefaultDatabaseByMaxTables(schemaMap);
                 project.setDefaultDatabase(defaultDatabase.toUpperCase());
             }
             npr.updateProject(project);

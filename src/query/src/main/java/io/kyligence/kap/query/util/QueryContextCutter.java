@@ -31,7 +31,6 @@ import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.routing.RealizationChooser;
-import org.apache.kylin.query.security.AclQueryInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,10 +101,6 @@ public class QueryContextCutter {
             logger.debug("Context for realization matching: {}", olapContext);
         }
 
-        if (!contexts.isEmpty()) {
-            // intercept query
-            AclQueryInterceptor.intercept(contexts);
-        }
         RealizationChooser.selectLayoutCandidate(contexts);
         return contexts;
     }

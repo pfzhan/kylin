@@ -202,8 +202,52 @@ public class AclTCRManager {
         }).flatMap(Set::stream).collect(Collectors.toSet())).flatMap(Set::stream).collect(Collectors.toSet());
     }
 
+    public Map<String, List<TableDesc>> getAuthorizedTablesAndColumns(String userName, Set<String> groups, boolean fullyAuthorized) {
+        if (fullyAuthorized) {
+            return NTableMetadataManager.getInstance(config, project).listTablesGroupBySchema();
+        }
+
+        val allAclTCRs = getAclTCRs(userName, groups);
+        if (isTablesAuthorized(allAclTCRs)) {
+            return NTableMetadataManager.getInstance(config, project).listTablesGroupBySchema();
+        }
+
+        val schemasMap = Maps. <String, List<TableDesc>> newHashMap();
+        allAclTCRs.stream().map(aclTCR -> aclTCR.getTable().keySet()).flatMap(Set::stream).forEach(tableName -> {
+            val originTableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
+            val authorizedTableDesc = getAuthorizedTableDesc(originTableDesc, allAclTCRs);
+            schemasMap.computeIfAbsent(originTableDesc.getDatabase(), value -> Lists.newArrayList());
+            schemasMap.get(originTableDesc.getDatabase()).add(authorizedTableDesc);
+        });
+        return schemasMap;
+    }
+
+    public TableDesc getAuthorizedTableDesc(TableDesc originTable, List<AclTCR> allAclTCRs) {
+        if (allAclTCRs.stream().noneMatch(aclTCR -> aclTCR.isAuthorized(originTable.getIdentity()))) {
+            return null;
+        }
+        val table = new TableDesc(originTable);
+        table.setColumns(Optional.ofNullable(table.getColumns()).map(Arrays::stream).orElseGet(Stream::empty)
+                .filter(c -> allAclTCRs.stream().anyMatch(aclTCR -> aclTCR.isAuthorized(table.getIdentity(), c.getName())))
+                .toArray(ColumnDesc[]::new));
+        return table;
+    }
+
+    public boolean isColumnsAuthorized(String user, Set<String> groups, Set<String> columns) {
+        val allTCRs = getAclTCRs(user, groups);
+        for (String column : columns) {
+            val columnSplit = column.split("\\.");
+            val tableIdentity = columnSplit[0] + "." + columnSplit[1];
+            val columnName = columnSplit[2];
+            if (allTCRs.stream().noneMatch(aclTCR -> aclTCR.isAuthorized(tableIdentity, columnName)))
+                return false;
+        }
+
+        return true;
+    }
+
     public Optional<String> failFastUnauthorizedTableColumn(String username, Set<String> groups,
-            Map<String, Set<String>> tableColumns) {
+                                                            Map<String, Set<String>> tableColumns) {
         if (MapUtils.isEmpty(tableColumns)) {
             return Optional.empty();
         }
@@ -222,7 +266,7 @@ public class AclTCRManager {
             }
             if (CollectionUtils.isEmpty(entry.getValue())
                     || Objects.isNull(authorizedTableColumns.get(entry.getKey()))) {
-                return Optional.<String> empty();
+                return Optional.<String>empty();
             }
             // fail-fast column
             return entry.getValue().stream()

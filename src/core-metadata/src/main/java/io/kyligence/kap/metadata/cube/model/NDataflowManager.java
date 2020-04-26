@@ -72,6 +72,8 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.var;
 
+import static java.util.stream.Collectors.groupingBy;
+
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);
 
@@ -194,6 +196,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     public List<NDataModel> listUnderliningDataModels(boolean includeBroken) {
         val dataflows = listAllDataflows(includeBroken);
         return dataflows.stream().map(NDataflow::getModel).collect(Collectors.toList());
+    }
+
+    public Map<String, List<NDataModel>> getModelsGroupbyTable() {
+        return listUnderliningDataModels().stream().collect(groupingBy(NDataModel::getRootFactTableName));
     }
 
     // within a project, find models that use the specified table
