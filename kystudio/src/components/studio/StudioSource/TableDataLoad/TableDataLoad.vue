@@ -110,7 +110,7 @@ import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { _getPartitionInfo, _getFullLoadInfo, _getRefreshFullLoadInfo } from './handler'
-import { handleSuccessAsync, handleError, handleWaiting } from '../../../../util'
+import { handleSuccessAsync, handleError } from '../../../../util'
 import { getAffectedModelsType } from '../../../../config'
 
 @Component({
@@ -218,7 +218,7 @@ export default class TableDataLoad extends Vue {
       // }
       await this._changePartitionKey(value, this.table.format)
       // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
-      await handleWaiting()
+      // await handleWaiting()
       if (value) {
         this.table.partitionColumn = value
         // await this.handleLoadData(true)

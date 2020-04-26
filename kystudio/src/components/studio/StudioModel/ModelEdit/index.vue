@@ -494,7 +494,7 @@ import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
-import { isIE, groupData, objectClone, filterObjectArray, handleWaiting } from '../../../../util'
+import { isIE, groupData, objectClone, filterObjectArray } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import BatchMeasureModal from '../BatchMeasureModal/index.vue'
@@ -1668,7 +1668,7 @@ export default class ModelEdit extends Vue {
     this[action](para).then((res) => {
       handleSuccess(res, async () => {
         // TODO HA 模式时 post 等接口需要等待同步完去刷新列表
-        await handleWaiting()
+        // await handleWaiting()
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
         if (!(data.simplified_dimensions && data.simplified_dimensions.length)) {
           this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
