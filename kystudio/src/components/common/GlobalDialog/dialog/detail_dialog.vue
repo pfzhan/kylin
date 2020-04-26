@@ -62,6 +62,7 @@
     <el-table class="detail-table ksd-mt-10"
       border
       nested
+      max-height="420"
       ref="detailTable"
       v-if="detailTableData.length"
       @selection-change="handleSelectionChange"

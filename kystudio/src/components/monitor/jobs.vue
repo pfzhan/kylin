@@ -1112,7 +1112,8 @@ export default class JobsList extends Vue {
     this.manualRefreshJobs()
   }
   async resume (jobIds, project, isBatch, row, status) {
-    const targetJobs = row ? [row] : this.multipleSelection
+    // 全选时不显示具体选中的joblist
+    const targetJobs = row ? [row] : (isBatch && isBatch === 'batchAll') ? [] : this.multipleSelection
     const msg = this.$t('resumeJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('resumeJobTitle'), 'tip', this.$t('jobResume'))
     const resumeData = {job_ids: jobIds, project: project, action: 'RESUME'}
@@ -1136,7 +1137,8 @@ export default class JobsList extends Vue {
     })
   }
   async restart (jobIds, project, isBatch, row, status) {
-    const targetJobs = row ? [row] : this.multipleSelection
+    // 全选时不显示具体选中的joblist
+    const targetJobs = row ? [row] : (isBatch && isBatch === 'batchAll') ? [] : this.multipleSelection
     const msg = this.$t('restartJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('restartJobTitle'), 'tip', this.$t('jobRestart'))
     const restartData = {job_ids: jobIds, project: project, action: 'RESTART'}
@@ -1160,7 +1162,8 @@ export default class JobsList extends Vue {
     })
   }
   async pause (jobIds, project, isBatch, row, status) {
-    const targetJobs = row ? [row] : this.multipleSelection
+    // 全选时不显示具体选中的joblist
+    const targetJobs = row ? [row] : (isBatch && isBatch === 'batchAll') ? [] : this.multipleSelection
     const msg = this.$t('pauseJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('pauseJobTitle'), 'tip', this.$t('jobPause'))
     const pauseData = {job_ids: jobIds, project: project, action: 'PAUSE'}
@@ -1185,7 +1188,8 @@ export default class JobsList extends Vue {
   }
   async discard (jobIds, project, isBatch, row, status) {
     let isHaveHoleWarning = false
-    const targetJobs = row ? [row] : this.multipleSelection
+    // 全选时不显示具体选中的joblist
+    const targetJobs = row ? [row] : (isBatch && isBatch === 'batchAll') ? [] : this.multipleSelection
     targetJobs.forEach((job) => {
       if (!job.discard_safety) {
         isHaveHoleWarning = true
@@ -1238,7 +1242,8 @@ export default class JobsList extends Vue {
     })
   }
   async drop (jobIds, project, isBatch, row, status) {
-    const targetJobs = row ? [row] : this.multipleSelection
+    // 全选时不显示具体选中的joblist
+    const targetJobs = row ? [row] : (isBatch && isBatch === 'batchAll') ? [] : this.multipleSelection
     const msg = this.$t('dropJob', {count: (isBatch && isBatch === 'batchAll') ? this.selectedNumber : jobIds.length})
     await this.callGlobalDetail(targetJobs, msg, this.$t('dropJobTitle'), 'warning', this.$t('jobDrop'))
     const dropData = {job_ids: jobIds, project: project}
