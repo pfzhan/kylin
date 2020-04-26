@@ -806,6 +806,7 @@ export default class ModelList extends Vue {
             await this.autoFixSegmentHoles({project: this.currentSelectedProject, model_id: modleId, segment_holes: selectSegmentHoles})
             this.$message({ type: 'success', message: this.$t('kylinLang.common.submitSuccess') })
             this.loadModelsList()
+            this.refreshSegment()
           } catch (e) {
             handleError(e)
           }
