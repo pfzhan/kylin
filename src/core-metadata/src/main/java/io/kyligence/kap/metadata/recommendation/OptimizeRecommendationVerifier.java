@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Preconditions;
@@ -39,6 +38,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.Data;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Data
 @Slf4j
@@ -99,6 +99,7 @@ public class OptimizeRecommendationVerifier {
 
         verify(context, recommendation.getLayoutRecommendations(), passLayoutItems, failLayoutItems,
                 context.getLayoutContextRecommendationItems());
+
         val allNamedColumns = model.getAllNamedColumns().stream()
                 .filter(column -> !OptimizeRecommendationManager.isVirtualColumnId(column.getId()))
                 .sorted(Comparator.comparingInt(NDataModel.NamedColumn::getId)).collect(Collectors.toList());
@@ -117,6 +118,8 @@ public class OptimizeRecommendationVerifier {
                 .collect(Collectors.toList()));
 
         modelManager.updateDataModelDesc(model);
+
+        context.updateIndexes();
 
         indexPlanManager.updateIndexPlan(indexPlan);
 

@@ -23,12 +23,15 @@
  */
 package io.kyligence.kap.metadata.recommendation;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -76,6 +79,17 @@ public class OptimizeContext {
 
     private int originColumnIndex;
     private int originMeasureIndex;
+
+    private AtomicLong nextAggregationIndexId;
+    private AtomicLong nextTableIndexId;
+
+    public long getAndAddNextAggregationIndexId() {
+        return nextAggregationIndexId.getAndAdd(IndexEntity.INDEX_ID_STEP);
+    }
+
+    public long getAndAddNextTableIndexId() {
+        return nextTableIndexId.getAndAdd(IndexEntity.INDEX_ID_STEP);
+    }
 
     public OptimizeContext(NDataModel model, OptimizeRecommendation recommendation) {
         this.factTableName = model.getRootFactTableAlias() != null ? model.getRootFactTableAlias()
@@ -127,12 +141,19 @@ public class OptimizeContext {
     // for add layout
     private Map<IndexEntity.IndexIdentifier, IndexEntity> whiteListIndexesMap;
 
+    public void updateIndexes() {
+        Preconditions.checkNotNull(indexPlan);
+        indexPlan.setIndexes(whiteListIndexesMap.values().stream()
+                .sorted(Comparator.comparingLong(IndexEntity::getId)).collect(Collectors.toList()));
+    }
+
     public OptimizeContext(NDataModel model, IndexPlan indexPlan, OptimizeRecommendation recommendation) {
         this(model, recommendation);
         this.indexPlan = indexPlan;
         this.allIndexesMap = indexPlan.getAllIndexesMap();
         this.whiteListIndexesMap = indexPlan.getWhiteListIndexesMap();
-
+        this.nextAggregationIndexId = new AtomicLong(indexPlan.getNextAggregationIndexId());
+        this.nextTableIndexId = new AtomicLong(indexPlan.getNextTableIndexId());
     }
 
     public Map<Long, CCRecommendationItem> getModifiedCCRecommendations() {

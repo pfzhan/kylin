@@ -424,6 +424,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return getAllIndexes(true);
     }
 
+    /*
+        Get a copy of all IndexEntity List, which is a time cost operation
+     */
     public List<IndexEntity> getAllIndexes(boolean withToBeDeletedIndexes) {
         Map<Long, Integer> retSubscriptMap = Maps.newHashMap();
         List<IndexEntity> mergedIndexes = Lists.newArrayList();
@@ -867,7 +870,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         return overrideProps.containsKey("kylin.query.skip-encode-integer-enabled")
                 && Boolean.parseBoolean(overrideProps.get("kylin.query.skip-encode-integer-enabled"));
     }
+
     public boolean isFastBitmapEnabled() {
-        return overrideProps.containsKey("kylin.query.fast-bitmap-enabled") && Boolean.parseBoolean(overrideProps.get("kylin.query.fast-bitmap-enabled"));
+        return overrideProps.containsKey("kylin.query.fast-bitmap-enabled")
+                && Boolean.parseBoolean(overrideProps.get("kylin.query.fast-bitmap-enabled"));
     }
 }

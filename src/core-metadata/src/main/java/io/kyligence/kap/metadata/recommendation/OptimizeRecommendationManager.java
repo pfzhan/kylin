@@ -736,6 +736,7 @@ public class OptimizeRecommendationManager {
                     item.checkDependencies(context);
                     item.apply(context);
                 });
+        context.updateIndexes();
         logger.info("Semi-Auto-Mode project:{} apply OptimizeContext successfully, [model: {}]", project,
                 model.getId());
         logOptimizeContext(project, context);

@@ -224,7 +224,8 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
                 index.setId(context.getAllIndexesMap().get(identifier).getId());
                 index.setNextLayoutOffset(context.getAllIndexesMap().get(identifier).getNextLayoutOffset() + 1);
             } else {
-                index.setId(item.isAggIndex ? indexPlan.getNextAggregationIndexId() : indexPlan.getNextTableIndexId());
+                index.setId(item.isAggIndex ? context.getAndAddNextAggregationIndexId()
+                        : context.getAndAddNextTableIndexId());
             }
             layout.setIndex(index);
             layout.setId(index.getId() + index.getNextLayoutOffset());
@@ -232,7 +233,6 @@ public class LayoutRecommendationItem extends RecommendationItem<LayoutRecommend
             index.setNextLayoutOffset(index.getNextLayoutOffset() + 1);
             val indexes = indexPlan.getIndexes();
             indexes.add(index);
-            indexPlan.setIndexes(indexes);
             context.getWhiteListIndexesMap().put(identifier, index);
 
         } else {

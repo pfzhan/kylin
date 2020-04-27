@@ -705,11 +705,11 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", updatedModel.getAllNamedColumns().get(17).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, updatedModel.getAllNamedColumns().get(17).getStatus());
         Assert.assertEquals(3, updateIndexPlan.getIndexes().size());
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getDimensions().contains(16));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getDimensions().contains(16));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(16)));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100003));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getMeasures().contains(100003));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(100003)));
         Assert.assertEquals(14, updateIndexPlan.getAllIndexes().size());
         Assert.assertTrue(updateIndexPlan.getIndexes().stream().anyMatch(indexEntity -> indexEntity.getId() == 150000));
@@ -760,12 +760,12 @@ public class OptimizeRecommendationManagerTest extends NLocalFileMetadataTestCas
         Assert.assertEquals("TEST_KYLIN_FACT_CC_AUTO_2", updatedModel.getAllNamedColumns().get(17).getName());
         Assert.assertEquals(NDataModel.ColumnStatus.DIMENSION, updatedModel.getAllNamedColumns().get(17).getStatus());
         Assert.assertEquals(3, updateIndexPlan.getIndexes().size());
-        Assert.assertEquals(nextIndexId, updateIndexPlan.getIndexes().get(2).getId());
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getDimensions().contains(16));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
+        Assert.assertEquals(nextIndexId, updateIndexPlan.getIndexes().get(1).getId());
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getDimensions().contains(16));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(16)));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getMeasures().contains(100003));
-        Assert.assertTrue(updateIndexPlan.getIndexes().get(2).getLayouts().stream()
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getMeasures().contains(100003));
+        Assert.assertTrue(updateIndexPlan.getIndexes().get(1).getLayouts().stream()
                 .allMatch(layout -> layout.getColOrder().contains(100003)));
         Assert.assertTrue(updateIndexPlan.getIndexes().stream().filter(IndexEntity::isTableIndex)
                 .allMatch(indexEntity -> indexEntity.getLayouts().size() == 4
