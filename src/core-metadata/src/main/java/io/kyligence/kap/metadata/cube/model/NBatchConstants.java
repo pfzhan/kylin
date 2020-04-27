@@ -43,4 +43,6 @@ public interface NBatchConstants {
     String P_TARGET_MODEL = "targetModel";
     String P_DATA_RANGE_START = "dataRangeStart";
     String P_DATA_RANGE_END = "dataRangeEnd";
+    // ut only
+    String P_BREAK_POINT_LAYOUTS = "breakPointLayouts";
 }

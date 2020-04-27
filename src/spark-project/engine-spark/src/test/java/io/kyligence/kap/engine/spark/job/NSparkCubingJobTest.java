@@ -24,7 +24,59 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
+import static org.awaitility.Awaitility.await;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.dao.JobStatistics;
+import org.apache.kylin.job.dao.JobStatisticsManager;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.storage.IStorage;
+import org.apache.kylin.storage.IStorageQuery;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.catalyst.plans.logical.Join;
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.spark_project.guava.collect.Sets;
+
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -47,57 +99,11 @@ import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.RandomUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.dao.JobStatistics;
-import org.apache.kylin.job.dao.JobStatisticsManager;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.storage.IStorage;
-import org.apache.kylin.storage.IStorageQuery;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.plans.logical.Join;
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.spark_project.guava.collect.Sets;
 import scala.Option;
 import scala.runtime.AbstractFunction1;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.UUID;
-
-import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
-import static org.awaitility.Awaitility.await;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
@@ -109,6 +115,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         System.setProperty("kylin.engine.persist-flattable-threshold", "0");
+        System.setProperty("kylin.engine.persist-flatview", "true");
 
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
@@ -126,6 +133,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("kylin.engine.persist-flattable-threshold");
+        System.clearProperty("kylin.engine.persist-flatview");
     }
 
     @Test
@@ -214,7 +222,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         long startOfDay = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
 
         JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(config, sparkStep.getProject());
-        Pair<Integer, JobStatistics> overallJobStats = jobStatisticsManager.getOverallJobStats(startOfDay, buildEndTime);
+        Pair<Integer, JobStatistics> overallJobStats = jobStatisticsManager.getOverallJobStats(startOfDay,
+                buildEndTime);
         JobStatistics jobStatistics = overallJobStats.getSecond();
         // assert date is recorded correctly
         Assert.assertEquals(startOfDay, jobStatistics.getDate());
@@ -577,6 +586,146 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertFalse(job2.safetyIfDiscard());
 
         Assert.assertTrue(refreshJob.safetyIfDiscard());
+    }
+
+    @Test
+    public void testResumeBuildCheckPoints() throws Exception {
+        final String project = getProject();
+        final KylinConfig config = getTestConfig();
+        final String dfId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        System.setProperty("kylin.engine.spark.build-class-name",
+                "io.kyligence.kap.engine.spark.job.MockResumeBuildJob");
+        // prepare segment
+        final NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
+        final NExecutableManager execMgr = NExecutableManager.getInstance(config, project);
+
+        // clean segments and jobs
+        cleanupSegments(dfMgr, dfId);
+        NDataflow df = dfMgr.getDataflow(dfId);
+        Assert.assertEquals(0, df.getSegments().size());
+        NDataSegment newSegment = dfMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+
+        // available layouts: 1L, 10_001L, 10_002L, 20_001L, 30_001L, 1_000_001L
+        // 20_000_000_001L, 20_000_010_001L, 20_000_020_001L, 20_000_030_001L
+        List<LayoutEntity> layouts = new ArrayList<>();
+        // this layout contains count_distinct
+        // dict building simulation
+        final long cntDstLayoutId = 1_000_001L;
+        final long normalLayoutId = 20_000_010_001L;
+        layouts.add(df.getIndexPlan().getCuboidLayout(cntDstLayoutId));
+        layouts.add(df.getIndexPlan().getCuboidLayout(normalLayoutId));
+
+        // prepare job
+        final NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(newSegment), Sets.newLinkedHashSet(layouts),
+                "test_submitter");
+        NSparkCubingStep cubeStep = job.getSparkCubingStep();
+        // set break points
+        cubeStep.setParam(NBatchConstants.P_BREAK_POINT_LAYOUTS, String.valueOf(cntDstLayoutId));
+
+        final KylinConfig metaConf = KylinConfig.createKylinConfig(config);
+        metaConf.setMetadataUrl(cubeStep.getParam(NBatchConstants.P_DIST_META_URL));
+
+        final KylinConfig metaOutConf = KylinConfig.createKylinConfig(config);
+        metaOutConf.setMetadataUrl(cubeStep.getParam(NBatchConstants.P_OUTPUT_META_URL));
+
+        TableDesc tableDesc = df.getModel().getRootFactTableRef().getTableDesc();
+        final String originTableType = tableDesc.getTableType();
+        try {
+            // fact-view persisting simulation
+            tableDesc.setTableType("VIEW");
+            NTableMetadataManager.getInstance(config, project).updateTableDesc(tableDesc);
+
+            // job scheduling simulation
+            execMgr.addJob(job);
+            Assert.assertFalse(execMgr.getJobOutput(cubeStep.getId()).isResumable());
+            await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).untilAsserted(() -> {
+                KylinConfig tempConf = KylinConfig.createKylinConfig(metaConf);
+                try {
+                    NDataflow tempDf = NDataflowManager.getInstance(tempConf, project).getDataflow(dfId);
+                    Assert.assertNotNull(tempDf);
+                    Assert.assertEquals(1, tempDf.getSegments().size());
+                    NDataSegment tempSegment = tempDf.getSegments().getFirstSegment();
+                    Assert.assertNotNull(tempSegment.getLayout(normalLayoutId));
+                    Assert.assertTrue(tempSegment.getLayout(normalLayoutId).isReady());
+                } finally {
+                    ResourceStore.clearCache(tempConf);
+                }
+            });
+        } finally {
+            //set back table type
+            tableDesc.setTableType(originTableType);
+            NTableMetadataManager.getInstance(config, project).updateTableDesc(tableDesc);
+        }
+
+        // pause job simulation
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).pauseJob(job.getId());
+            return null;
+        }, project);
+
+        // job would be resumable after pause
+        Assert.assertTrue(execMgr.getJobOutput(cubeStep.getId()).isResumable());
+
+        // checkpoints
+        KylinConfig tempMetaConf = KylinConfig.createKylinConfig(metaConf);
+        NDataflow remoteDf = NDataflowManager.getInstance(tempMetaConf, project).getDataflow(dfId);
+        Assert.assertEquals(1, remoteDf.getSegments().size());
+        NDataSegment remoteSegment = remoteDf.getSegments().getFirstSegment();
+        Assert.assertTrue(remoteSegment.isFlatTableReady());
+        Assert.assertTrue(remoteSegment.isSnapshotReady());
+        Assert.assertTrue(remoteSegment.isDictReady());
+        Assert.assertTrue(remoteSegment.isFactViewReady());
+        Assert.assertTrue(remoteSegment.getLayout(normalLayoutId).isReady());
+        // break points layouts wouldn't be ready
+        Assert.assertNull(remoteSegment.getLayout(cntDstLayoutId));
+
+        ResourceStore.clearCache(tempMetaConf);
+
+        // remove break points, then resume job
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NExecutableManager tempExecMgr = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            tempExecMgr.removeBreakPoints(cubeStep.getId());
+            tempExecMgr.resumeJob(job.getId());
+            return null;
+        }, project);
+
+        // till job finished
+        wait(job);
+
+        // btw, we should also check the "skip xxx" log,
+        // but the /path/to/job_tmp/job_id/01/meta/execute_output.json.xxx.log not exists in ut env.
+        tempMetaConf = KylinConfig.createKylinConfig(metaConf);
+        remoteDf = NDataflowManager.getInstance(tempMetaConf, project).getDataflow(dfId);
+        Assert.assertEquals(1, remoteDf.getSegments().size());
+        remoteSegment = remoteDf.getSegments().getFirstSegment();
+        Assert.assertTrue(remoteSegment.isFlatTableReady());
+        Assert.assertTrue(remoteSegment.isSnapshotReady());
+        Assert.assertTrue(remoteSegment.isDictReady());
+        Assert.assertTrue(remoteSegment.isFactViewReady());
+        Assert.assertTrue(remoteSegment.getLayout(normalLayoutId).isReady());
+        Assert.assertTrue(remoteSegment.getLayout(cntDstLayoutId).isReady());
+        ResourceStore.clearCache(tempMetaConf);
+
+        // restart job simulation
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project).restartJob(job.getId());
+            return null;
+        }, project);
+        // job wouldn't be resumable after restart
+        Assert.assertFalse(execMgr.getJobOutput(cubeStep.getId()).isResumable());
+
+        wait(job);
+
+        // checkpoints should not cross building jobs
+        NDataflow remoteOutDf = NDataflowManager.getInstance(metaOutConf, project).getDataflow(dfId);
+        NDataSegment remoteOutSegment = remoteOutDf.getSegments().getFirstSegment();
+        Assert.assertFalse(remoteOutSegment.isFlatTableReady());
+        Assert.assertFalse(remoteOutSegment.isSnapshotReady());
+        Assert.assertFalse(remoteOutSegment.isDictReady());
+        Assert.assertFalse(remoteOutSegment.isFactViewReady());
+
+        ResourceStore.clearCache(metaConf);
+        ResourceStore.clearCache(metaOutConf);
     }
 
     private void cleanupSegments(NDataflowManager dsMgr, String dfName) {

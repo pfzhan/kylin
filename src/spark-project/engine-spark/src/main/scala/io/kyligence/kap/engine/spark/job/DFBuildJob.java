@@ -91,6 +91,7 @@ public class DFBuildJob extends SparkApplication {
 
     @Override
     protected void doExecute() throws Exception {
+        onInit();
         buildLayoutWithUpdate = new BuildLayoutWithUpdate();
         String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
@@ -168,7 +169,7 @@ public class DFBuildJob extends SparkApplication {
         List<NDataSegment> nDataSegments = Lists.newArrayList();
         for (Map.Entry<String, Object> entry : toUpdateSegmentSourceSize.entrySet()) {
             NDataSegment segment = newDF.getSegment(entry.getKey());
-            if(Objects.isNull(segment)) {
+            if (Objects.isNull(segment)) {
                 logger.info("Skip empty segment {} when updating segment source", entry.getKey());
                 continue;
             }
@@ -344,6 +345,8 @@ public class DFBuildJob extends SparkApplication {
                         .select(NSparkCubingUtil.getColumns(rowKeys, layout.getOrderedMeasures().keySet()))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
                 layouts.add(saveAndUpdateLayout(afterSort, seg, layout));
+
+                onLayoutFinished(layout.getId());
             }
         }
         ss.sparkContext().setJobDescription(null);
@@ -442,4 +445,5 @@ public class DFBuildJob extends SparkApplication {
             NDataflowManager.getInstance(config, project).updateDataflow(dfUpdate);
         });
     }
+
 }

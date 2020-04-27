@@ -346,7 +346,15 @@ public abstract class SparkApplication implements Application, IKeep {
         return !Utils.isLocalMaster(conf) && !config.isUTEnv();
     }
 
+    protected void onInit() {
+        //do nothing
+    }
+
     protected abstract void doExecute() throws Exception;
+
+    protected void onLayoutFinished(long layoutId) {
+        //do nothing
+    }
 
     protected String calculateRequiredCores() throws Exception {
         return SparkJobConstants.DEFAULT_REQUIRED_CORES;

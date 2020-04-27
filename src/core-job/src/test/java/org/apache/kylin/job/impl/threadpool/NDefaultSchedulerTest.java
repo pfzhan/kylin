@@ -1680,34 +1680,34 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void testKillProcess() {
         final String jobId = "job000000001";
         final String execCmd = "nohup sleep 30 & sleep 30";
-        System.setProperty("KYLIN_HOME",
-                Paths.get(this.getClass().getResource("/").getPath()).getParent().getParent().getParent().getParent()
-                        + "/build");
+
+        Thread execThread = new Thread(() -> {
+            CliCommandExecutor exec = new CliCommandExecutor();
+            try {
+                exec.execute(execCmd, null, jobId);
+            } catch (ShellException e) {
+                // do nothing
+                e.printStackTrace();
+            }
+        });
+        execThread.start();
+
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
+            Process process = JobProcessContext.getProcess(jobId);
+            Assert.assertNotNull(process);
+            Assert.assertTrue(process.isAlive());
+        });
+
         try {
-            Thread execThread = new Thread(() -> {
-                CliCommandExecutor exec = new CliCommandExecutor();
-                try {
-                    exec.execute(execCmd, null, jobId);
-                } catch (ShellException e) {
-                    // do nothing
-                    e.printStackTrace();
-                }
-            });
-            execThread.start();
-
-            await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> {
-                Process process = JobProcessContext.getProcess(jobId);
-                Assert.assertNotNull(process);
-                Assert.assertTrue(process.isAlive());
-            });
-
+            System.setProperty("KYLIN_HOME",
+                    Paths.get(System.getProperty("user.dir")).getParent().getParent() + "/build");
             executableManager.destroyProcess(jobId);
-
-            await().atMost(3, TimeUnit.SECONDS)
-                    .untilAsserted(() -> Assert.assertNull(JobProcessContext.getProcess(jobId)));
         } finally {
             System.clearProperty("KYLIN_HOME");
         }
+
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(() -> Assert.assertNull(JobProcessContext.getProcess(jobId)));
+
     }
 
     @Test

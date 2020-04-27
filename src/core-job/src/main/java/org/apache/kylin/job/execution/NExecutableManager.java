@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -69,6 +68,7 @@ import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
@@ -81,6 +81,7 @@ import io.kyligence.kap.common.metrics.NMetricsName;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.scheduler.JobReadyNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
+import io.kyligence.kap.common.util.AddressUtil;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
@@ -418,8 +419,8 @@ public class NExecutableManager {
     public CliCommandExecutor getCliCommandExecutor() {
         CliCommandExecutor exec = new CliCommandExecutor();
         val config = KylinConfig.getInstanceFromEnv();
-        exec.setRunAtRemote(config.getRemoteHadoopCliHostname(), config.getRemoteSSHPort(), config.getRemoteSSHUsername(),
-                config.getRemoteSSHPassword());
+        exec.setRunAtRemote(config.getRemoteHadoopCliHostname(), config.getRemoteSSHPort(),
+                config.getRemoteSSHUsername(), config.getRemoteSSHPassword());
         return exec;
     }
 
@@ -554,11 +555,12 @@ public class NExecutableManager {
         job.onExecuteStopHook();
     }
 
-    ExecutableOutputPO getJobOutput(String taskOrJobId) {
+    @VisibleForTesting
+    public ExecutableOutputPO getJobOutput(String taskOrJobId) {
         val jobId = extractJobId(taskOrJobId);
         val executablePO = executableDao.getJobByUuid(jobId);
         final ExecutableOutputPO jobOutput;
-        if (executablePO == null) {
+        if (Objects.isNull(executablePO)) {
             jobOutput = new ExecutableOutputPO();
         } else if (Objects.equals(taskOrJobId, jobId)) {
             jobOutput = executablePO.getOutput();
@@ -568,6 +570,29 @@ public class NExecutableManager {
         }
         assertOutputNotNull(jobOutput, taskOrJobId);
         return jobOutput;
+    }
+
+    // for ut only
+    @VisibleForTesting
+    public void removeBreakPoints(String taskOrJobId) {
+        val jobId = extractJobId(taskOrJobId);
+        val executablePO = executableDao.getJobByUuid(jobId);
+        if (Objects.isNull(executablePO)) {
+            return;
+        }
+
+        if (Objects.equals(taskOrJobId, jobId)) {
+            executableDao.updateJob(jobId, job -> {
+                job.getParams().remove(NBatchConstants.P_BREAK_POINT_LAYOUTS);
+                return true;
+            });
+        } else {
+            executableDao.updateJob(jobId, job -> {
+                job.getTasks().stream().filter(t -> t.getId().equals(taskOrJobId))
+                        .forEach(t -> t.getParams().remove(NBatchConstants.P_BREAK_POINT_LAYOUTS));
+                return true;
+            });
+        }
     }
 
     public void updateJobOutput(String taskOrJobId, ExecutableState newStatus, Map<String, String> updateInfo,
@@ -658,8 +683,6 @@ public class NExecutableManager {
             }
         }
     }
-
-
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {
         if (executablePO == null) {
