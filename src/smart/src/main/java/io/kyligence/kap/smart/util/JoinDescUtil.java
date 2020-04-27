@@ -61,7 +61,7 @@ public class JoinDescUtil {
 
         JoinDesc.JoinDescBuilder joinDescBuilder = new JoinDesc.JoinDescBuilder();
 
-        joinDescBuilder.setType(join.getType().toLowerCase());
+        joinDescBuilder.setType(join.getType());
         String[] pkCols = new String[join.getPrimaryKey().length];
         TblColRef[] pkColRefs = new TblColRef[pkCols.length];
 

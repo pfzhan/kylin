@@ -50,7 +50,7 @@ public class NAutoBuildOnRightJoinTest extends NAutoTestBase {
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
             Assert.assertTrue(!dataModel.getJoinTables().isEmpty());
-            Assert.assertEquals("left", dataModel.getJoinTables().get(0).getJoin().getType());
+            Assert.assertEquals("LEFT", dataModel.getJoinTables().get(0).getJoin().getType());
             IndexPlan indexPlan = modelContext.getTargetIndexPlan();
             Assert.assertNotNull(indexPlan);
         }

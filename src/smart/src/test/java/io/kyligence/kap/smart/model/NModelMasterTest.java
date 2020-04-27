@@ -82,7 +82,7 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
             Assert.assertNotNull(joins);
             Assert.assertEquals(1, joins.size());
             Assert.assertEquals(NDataModel.TableKind.FACT, joins.get(0).getKind());
-            Assert.assertEquals("left", joins.get(0).getJoin().getType());
+            Assert.assertEquals("LEFT", joins.get(0).getJoin().getType());
             Assert.assertEquals("DEFAULT.KYLIN_CAL_DT", joins.get(0).getTable());
             Assert.assertEquals("KYLIN_CAL_DT", joins.get(0).getAlias());
             Assert.assertArrayEquals(new String[] { "KYLIN_CAL_DT.CAL_DT" }, joins.get(0).getJoin().getPrimaryKey());
@@ -266,5 +266,19 @@ public class NModelMasterTest extends NAutoTestOnLearnKylinData {
 
         NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), proj);
         dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+    }
+
+    @Test
+    public void testProposerJoinTypeCapital() {
+        String[] sqls = new String[] { "select part_dt from kylin_sales inner join kylin_cal_dt on cal_dt = part_dt " +
+                "left JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID "};
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
+        smartMaster.analyzeSQLs();
+        NModelMaster modelMaster = new NModelMaster(smartMaster.getContext().getModelContexts().get(0));
+        NDataModel dataModel = modelMaster.proposeInitialModel();
+
+        dataModel = modelMaster.proposeJoins(dataModel);
+        Assert.assertEquals("LEFT", dataModel.getJoinTables().get(0).getJoin().getType());
+        Assert.assertEquals("INNER", dataModel.getJoinTables().get(1).getJoin().getType());
     }
 }
