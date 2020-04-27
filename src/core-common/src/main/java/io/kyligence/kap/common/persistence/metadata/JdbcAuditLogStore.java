@@ -41,8 +41,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.common.util.AddressUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
@@ -51,8 +49,10 @@ import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.TransactionException;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.AuditLog;
 import io.kyligence.kap.common.persistence.UnitMessages;
@@ -61,6 +61,7 @@ import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.metadata.jdbc.AuditLogRowMapper;
 import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
+import io.kyligence.kap.common.util.AddressUtil;
 import lombok.Getter;
 import lombok.val;
 import lombok.var;
@@ -264,6 +265,13 @@ public class JdbcAuditLogStore implements AuditLogStore {
                     });
                     if (startId == finalStartId) {
                         Thread.sleep(1000);
+                    }
+                } catch (TransactionException e) {
+                    log.warn("cannot create transaction, ignore it", e);
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
