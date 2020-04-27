@@ -1,0 +1,10 @@
+name: 设置数据源类型
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    source_type: '9'
+  method: PUT
+  url: projects/$project/source_type

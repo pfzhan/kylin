@@ -1,0 +1,11 @@
+name: 暴露可计算列
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    expose_computed_column: false
+    project: $project_name
+  method: PUT
+  url: projects/$project_name/computed_column_config

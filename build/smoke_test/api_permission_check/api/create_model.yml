@@ -1,0 +1,38 @@
+name: 创建模型
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  json:
+    uuid:
+    name: $model_name
+    owner: ''
+    project: $project_name
+    description: ''
+    alias: $model_name
+    fact_table: SSB.P_LINEORDER
+    join_tables: []
+    simplified_dimensions:
+      - name: P_LINEORDER_LO_ORDERKEY
+        column: P_LINEORDER.LO_ORDERKEY
+        status: DIMENSION
+        datatype: bigint
+    simplified_measures: []
+    computed_columns: []
+    last_modified: 0
+    filter_condition: ''
+    partition_desc:
+    management_type: MODEL_BASED
+    canvas:
+      coordinate:
+        P_LINEORDER:
+          x: 525.4444376627605
+          y: 161.27777099609375
+          width: 220
+          height: 200
+      zoom: 9
+  method: POST
+  url: models
+
+

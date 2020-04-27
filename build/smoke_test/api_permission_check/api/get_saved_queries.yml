@@ -1,0 +1,8 @@
+name: 获取 保存的查询
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: query/saved_queries?project=$project_name&limit=10&offset=0

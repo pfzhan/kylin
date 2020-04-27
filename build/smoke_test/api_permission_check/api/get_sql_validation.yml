@@ -1,0 +1,11 @@
+name: 返回格式化的sql语句
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  json:
+    project: $project_name
+    sql: select * from SSB.LINEORDER
+  method: PUT
+  url: query/favorite_queries/sql_validation

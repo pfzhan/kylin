@@ -1,0 +1,8 @@
+name: 删除用户的项目级权限
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: DELETE
+  url: access/ProjectInstance/${get_project_uuid($project_name)}?access_entry_id=$access_entry_id&sid=$resident_user&principal=true

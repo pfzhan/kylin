@@ -1,0 +1,8 @@
+name: 判断hive database里的表是否已经加载到KE
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: tables/names?project=$project_name&data_source_type=9&database=SSB&table=&page_offset=1&page_size=10

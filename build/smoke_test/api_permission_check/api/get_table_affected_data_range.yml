@@ -1,0 +1,8 @@
+name: 获取table的影响范围
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: tables/affected_data_range?project=$project_name&table=SSB.LINEORDER&start=0&end=9223372036854775807

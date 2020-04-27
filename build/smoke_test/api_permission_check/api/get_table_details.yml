@@ -1,0 +1,8 @@
+name: 获取table详细信息（数据源页面）
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: tables?project=$project_name&database=DEFAULT&table=LINEORDER&is_fuzzy=false&ext=true

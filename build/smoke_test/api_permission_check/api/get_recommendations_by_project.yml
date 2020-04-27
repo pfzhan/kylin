@@ -1,0 +1,8 @@
+name: 获取特定项目里的所有推荐信息
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: models/recommendations?project=$project_name

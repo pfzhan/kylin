@@ -1,0 +1,14 @@
+name: 重载table
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    max_rows: 20000000
+    need_build: false
+    need_sample: true
+    project: $project_name
+    table: SSB.LINEORDER
+  method: POST
+  url: tables/reload

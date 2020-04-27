@@ -1,0 +1,13 @@
+name: 设置分区列
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    column: LO_ORDERDATE
+    partition_column_format: yyyy-MM-dd
+    project: $project_name
+    table: SSB.LINEORDER
+  method: POST
+  url: tables/partition_key

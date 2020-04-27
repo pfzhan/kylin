@@ -1,0 +1,13 @@
+name: 留存阈值
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    frequency_time_window: MONTH
+    low_frequency_threshold: 3
+    project: $project_name
+    storage_quota_size: 10995116277760
+  method: PUT
+  url: projects/$project_name/garbage_cleanup_config

@@ -1,0 +1,14 @@
+name: 更新任务邮件提醒
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    data_load_empty_notification_enabled: true
+    job_error_notification_enabled: false
+    job_notification_emails:
+    - he.jin@kyligence.io
+    project: $project_name
+  method: PUT
+  url: projects/$project_name/job_notification_config

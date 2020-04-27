@@ -1,0 +1,13 @@
+name: 重启，暂停job
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  json:
+    action: PAUSE
+    job_ids:
+    - $random_uuid
+    project: $project_name
+  method: PUT
+  url: jobs/status

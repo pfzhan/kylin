@@ -1,0 +1,13 @@
+name: model建议
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    project: $project_name
+    reuse_existed_model: false
+    sqls:
+    - select LO_PARTKEY from SSB.P_LINEORDER
+  method: POST
+  url: models/suggest_model

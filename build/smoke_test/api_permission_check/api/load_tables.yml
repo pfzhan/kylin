@@ -1,0 +1,21 @@
+name: 加载table
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    data_source_type: 9
+    databases: []
+    need_sampling: false
+    project: $project_name
+    sampling_rows: 20000000
+    tables:
+    - SSB.CUSTOMER
+    - SSB.DATES
+    - SSB.LINEORDER
+    - SSB.P_LINEORDER
+    - SSB.PART
+    - SSB.SUPPLIER
+  method: POST
+  url: tables

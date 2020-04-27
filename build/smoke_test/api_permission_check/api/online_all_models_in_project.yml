@@ -1,0 +1,10 @@
+name: 上线所有model
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: PUT
+  url: models/enable_all_models?project=$project_name
+
+

@@ -1,0 +1,12 @@
+name: check sql语句能否击中model
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    project: $project_name
+    sqls:
+    - select LO_ORDERKEY from LINEORDER
+  method: POST
+  url: models/can_answered_by_existed_model

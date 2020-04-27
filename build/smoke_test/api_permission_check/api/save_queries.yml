@@ -1,0 +1,13 @@
+name: 保存查询
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    description: ''
+    name: ${get_save_query_name()}
+    project: $project_name
+    sql: SELECT * FROM LINEORDER
+  method: POST
+  url: query/saved_queries

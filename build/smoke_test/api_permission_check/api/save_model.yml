@@ -1,0 +1,46 @@
+name: 保存model
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    uuid: ${get_model_uuid($model_name,$project_name)}
+    name: $model_name
+    owner: ADMIN
+    project: $project_name
+    description: ''
+    alias: model_dump12
+    fact_table: SSB.P_LINEORDER
+    join_tables: []
+    simplified_dimensions:
+      - id: 7
+        name: P_LINEORDER_LO_ORDERKEY
+        column: P_LINEORDER.LO_ORDERKEY
+        status: DIMENSION
+        datatype: bigint
+    simplified_measures:
+      - id: 100000
+        expression: COUNT
+        name: COUNT_ALL
+        return_type: bigint
+        parameter_value:
+          - type: constant
+            value: '1'
+        converted_columns: []
+    computed_columns: []
+    last_modified: 1585304095256
+    filter_condition: ''
+    partition_desc:
+    management_type: MODEL_BASED
+    canvas:
+      coordinate:
+        P_LINEORDER:
+          x: 525.4444376627605
+          y: 161.27777099609375
+          width: 220
+          height: 200
+      zoom: 9
+    available_indexes_count: 0
+  method: PUT
+  url: models/semantic

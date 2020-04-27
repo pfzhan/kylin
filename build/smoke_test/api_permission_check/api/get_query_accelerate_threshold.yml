@@ -1,0 +1,12 @@
+name: 获取加速偏好
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    project: $project_name
+    threshold: 20
+    tips_enabled: false
+  method: PUT
+  url: projects/$project_name/query_accelerate_threshold

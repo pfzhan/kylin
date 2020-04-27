@@ -1,0 +1,10 @@
+name: 默认数据库
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  json:
+    default_database: DEFAULT
+  method: PUT
+  url: projects/$project_name/default_database

@@ -1,0 +1,13 @@
+name: 批量添加用户和用户组项目级权限
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+  - permission: $permission
+    principal: true
+    sids:
+    - $user
+  method: POST
+  url: access/batch/ProjectInstance/${get_project_uuid($project_name)}

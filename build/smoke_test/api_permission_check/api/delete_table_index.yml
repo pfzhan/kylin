@@ -1,0 +1,8 @@
+name: 删除table index
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  method: DELETE
+  url: index_plans/index/20000000001?project=$project_name&model=${get_model_uuid($model_name,$project_name)}

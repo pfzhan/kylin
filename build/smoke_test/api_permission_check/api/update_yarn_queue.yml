@@ -1,0 +1,11 @@
+name: YARN默认队列
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    project: $project_name
+    queue_name: test_queue
+  method: PUT
+  url: projects/$project_name/yarn_queue

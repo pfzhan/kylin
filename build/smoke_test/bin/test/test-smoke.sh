@@ -38,6 +38,14 @@ function runTest() {
     echo "test done"
 }
 
+function runApiPermissionCheck() {
+    export PYTHONIOENCODING=utf-8
+    echo "start run api permission check"
+    apiCheckPath=${dir}/build/smoke_test/api_permission_check/compare_result.py
+    python ${apiCheckPath}
+    echo "end api permission check"
+}
+
 getHadoopDistribution
 
 metadataName=smoke_newten_${hadoop_distribution}
@@ -144,6 +152,8 @@ cd -
 export PYTHON_VENV_HOME=$dir/build/smoke_test/venv
 allure_report=$dir/Report
 runTest
+
+runApiPermissionCheck
 
 # unset postgres password
 unset PGPASSWORD

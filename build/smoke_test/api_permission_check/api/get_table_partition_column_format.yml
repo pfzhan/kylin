@@ -1,0 +1,8 @@
+name: 获取分区列format
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: tables/partition_column_format?project=$project_name&table=SSB.LINEORDER&partition_column=LO_ORDERDATE

@@ -1,0 +1,8 @@
+name: 获取加速规则
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  method: GET
+  url: query/favorite_queries/rules?project=$project_name

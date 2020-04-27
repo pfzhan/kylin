@@ -1,0 +1,8 @@
+name: 查看sql历史
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: query/history_queries?realization=&query_status=&project=$project_name&limit=10&offset=0&start_time_from=&start_time_to=&latency_from=&latency_to=&sql=

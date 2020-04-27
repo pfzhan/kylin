@@ -1,0 +1,66 @@
+config:
+  name: setup project and datasource
+
+teststeps:
+  - api: api/project_delete.yml
+    name: (44)删除 project
+    variables:
+      project: $project_name
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    variables:
+      username: ${get_user_name_by_role(PROJECT_ADMIN)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    variables:
+      username: ${get_user_name_by_role(MANAGEMENT)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    variables:
+      username: ${get_user_name_by_role(OPERATION)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    variables:
+      username: ${get_user_name_by_role(QUERY)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    variables:
+      username: ${get_user_name_by_role(ALL)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    variables:
+      username: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200

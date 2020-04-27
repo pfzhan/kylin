@@ -1,0 +1,8 @@
+name: 获取用户在特定项目中的权限
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  method: GET
+  url: access/permission/project_permission?project=$project_name

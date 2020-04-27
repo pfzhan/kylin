@@ -1,0 +1,24 @@
+name: segment合并
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    auto_merge_enabled: false
+    auto_merge_time_ranges:
+    - WEEK
+    - MONTH
+    - QUARTER
+    - YEAR
+    project: $project_name
+    retention_range:
+      retention_range_enabled: true
+      retention_range_number: 1
+      retention_range_type: YEAR
+    volatile_range:
+      volatile_range_enabled: false
+      volatile_range_number: 0
+      volatile_range_type: DAY
+  method: PUT
+  url: projects/$project_name/segment_config

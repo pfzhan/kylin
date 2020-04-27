@@ -1,0 +1,8 @@
+name: 删除 project
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: DELETE
+  url: projects/$project

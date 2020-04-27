@@ -1,0 +1,10 @@
+name: 更新用户acl权限信息
+request:
+  headers:
+    accept: 'application/vnd.apache.kylin-v4+json'
+    Content-Type: 'application/json;charset=utf-8'
+    authorization: 'Basic $role'
+  method: PUT
+  json:
+  - database_name: ssb
+  url: acl/sid/User/$resident_user?project=$project_name

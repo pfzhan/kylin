@@ -1,0 +1,8 @@
+name: 仪表盘的加速比例
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  method: GET
+  url: query/favorite_queries/accelerate_ratio?project=$project_name

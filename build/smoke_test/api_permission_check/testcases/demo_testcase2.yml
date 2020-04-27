@@ -1,0 +1,1002 @@
+config:
+  name: testcase description
+  variables:
+    project_uuid: ${get_project_uuid($project_name)}
+    role: 'QURNSU46S1lMSU4='
+    model_name: 'model_test_auto'
+    model_name_rename: 'model_name_rename'
+    new_model_clone: 'new_model_clone'
+    random_uuid: ${get_random_uuid()}
+    username: test_user
+    password: Kylin@123
+
+teststeps:
+  - api: api/get_project_metadata.yml
+    name: 获取特定project下的元数据信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_query_history_table_names.yml
+    name: 获取project对应的数据库的表名
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/update_data_source_type.yml
+    name: (56)设置数据源类型
+    variables:
+      project: $project_name
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/offline_all_models_in_project.yml
+    name: 下线所有model
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/online_all_models_in_project.yml
+    name: 上线所有model
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/could_answered_by_existed_model.yml
+    name: check sql语句能否击中model
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_optimize_recommendations.yml
+    name: 获取model 的推荐信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/create_favorite_query.yml
+    name: (0)批量加速sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/list_favorite_query.yml
+    name: (1)列出待加速的sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+    extract:
+      favsql_id: content.data.value.0.uuid
+
+  - api: api/batch_delete_fqs.yml
+    name: (batch_delete_fqs)批量删除未加速的sql
+    variables:
+      sql_id: $favsql_id
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_favorite_queries_in_diff_status.yml
+    name: (2)获取未加速sql，已加速sql的数量
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_accelerate_tips.yml
+    name: (3)提示用户去加速sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/accept_accelerate.yml
+    name: (4)acceptAccelerate
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/ignore_accelerate.yml
+    name: (5)ignoreAccelerate
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_favorite_rules.yml
+    name: (6)获取加速规则
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_black_list.yml
+    name: (7)获取黑名单sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/remove_blacklist_sql.yml
+    name: (8)移除黑名单sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_sql_validation.yml
+    name: (9)返回格式化的sql语句
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_accelerate_ratio.yml
+    name: (10)仪表盘的加速比例
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_user_permission_in_project.yml
+    name: (11)获取用户在特定项目中的权限
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/create_model.yml
+    name: (create_model)创建模型
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/check_model_duplicated_name.yml
+    name: (second13)判断model别名是否重复
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/build_indices.yml
+    name: (second9)手动构建索引
+    variables:
+      model: $resident_model
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/save_model.yml
+    name: (second10)保存model
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/create_table_index.yml
+    name: (15)添加table index
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_table_index.yml
+    name: (16)更新table index
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_table_index.yml
+    name: 获取table index
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_model_table_index.yml
+    name: 获取model的table index
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_model_agg_indices.yml
+    name: 获取model里的index信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_model_purge_effect.yml
+    name: 获取model占用的内存和job的数量
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_auto_merge_config.yml
+    name: 获取segment自动合并配置
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_agg_rule.yml
+    name: (12)获取agg
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_calculate_diff_rule_based_index.yml
+    name: (13)获取此次agg更新的索引变化
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/calculate_agg_index_combination.yml
+    name: (14)计算agg数量
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/delete_table_index.yml
+    name: (17)删除table index
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_tables_list.yml
+    name: (80)获取table详细信息(数据源页面)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/load_tables.yml
+    name: (85)加载表
+    variables:
+      project: project1
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/delete_table.yml
+    name: (81)删除table
+    variables:
+      database: SSB
+      table: DATES
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/prepare_unload_table.yml
+    name: (82)check 删除表会产生的影响
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/set_partition_key.yml
+    name: (83)设置table的partition key
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/restart_or_stop_job.yml
+    name: 暂停job
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/load_data.yml
+    name: 加载数据
+    validate:
+      - eq:
+          - status_code
+          - 200
+    extract:
+        job_id: content.data.jobs.0.job_id
+
+  - api: api/get_segments.yml
+    name: (34)获取segment
+    variables:
+      model: $model_name
+    extract:
+      delete_segment_id: content.data.value.0.id
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+#  - api: api/refresh_segment.yml
+#    name: (86)刷新segment
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+
+  - api: api/get_segments.yml
+    name: (34)获取segment
+    variables:
+      model: $resident_model
+    setup_hooks:
+      - ${prepare_segment($resident_model, $project_name)}
+    extract:
+      delete_segment_id: content.data.value.0.id
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_segment.yml
+    name: (40)删除segment
+    variables:
+      model: $resident_model
+      segment_id: $delete_segment_id
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_model_sql.yml
+    name: (36)获取model的sql语句
+    variables:
+      model: $resident_model
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/model_offline_online.yml
+    name: (39)model 下线、上线
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/suggest_model.yml
+    name: (33)model建议
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/model_clone.yml
+    name: (41)克隆 model
+    teardown_hooks:
+      - ${delete_model_by_model_name($new_model_clone,$project_name)}
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_all_indices.yml
+    name: (18)获取所有的index(索引列表)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_all_indices_graph.yml
+    name: (19)获取所有的index(索引展示图)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/delete_index_by_layout_id.yml
+    name: (20)通过layoutid删除索引
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/model_rename.yml
+    name: (38)model重命名
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_job_list.yml
+    name: (21)获取job信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_waiting_jobs.yml
+    name: (22)获取与特定project相关的等待中的任务
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_waiting_jobs_group_model.yml
+    name: (23)获取与特定model相关的等待中的任务
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/restart_or_stop_job.yml
+    name: (25)重启，暂停job
+    validate:
+      - eq:
+          - status_code
+          - 200
+#  - api: api/get_job_details.yml
+#    name: (26)获取job的详细信息
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+  - api: api/get_job_step_output.yml
+    name: (27)获取job的特定step的日志信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/download_job_logs.yml
+    name: (28)下载job的日志文件
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_job_count.yml
+    name: (29)获取job的统计信息 (job数量)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_job_duration_per_byte.yml
+    name: (30)获取job的统计信息 (构建 1MB 数据的平均时间)
+    validate:
+      - eq:
+          - status_code
+          - 200
+#  - api: api/delete_job_by_job_id.yml
+#    name: (24)删除job
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+  - api: api/get_models.yml
+    name: (31)获取model信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_model_json.yml
+    name: (35)获取model的json数据
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_affected_models.yml
+    name: (37)获取源表改动导致model受影响的列表
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/project_create.yml
+    name: (43)创建 project
+    variables:
+      project: test_create_project
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/project_delete.yml
+    name: (44)删除 project
+    variables:
+      project: test_create_project
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/project_backup.yml
+    name: (45)备份 project
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_default_database.yml
+    name: (46)默认数据库
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_query_accelerate_threshold.yml
+    name: (47)获取加速偏好
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_storage_volume_info.yml
+    name: (48)获取存储配额
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_garbage_cleanup_config.yml
+    name: (49)留存阈值
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_job_notification_config.yml
+    name: (50)更新任务邮件提醒
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_pushdown_config.yml
+    name: (51)查询下压引擎
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_computed_column_config.yml
+    name: (52)暴露可计算列
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/segments_merge.yml
+    name: (53)segment合并
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_project_general_infol.yml
+    name: (54)开关半自动挡
+    variables:
+      semi_automatic_mode: false
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_project_general_infol.yml
+    name: (54)开关半自动挡
+    variables:
+      semi_automatic_mode: true
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/reset_project_config.yml
+    name: (55)重置项目级配置参数
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_yarn_queue.yml
+    name: (57)YARN默认队列
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/run_sql.yml
+    name: (58)运行sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/save_queries.yml
+    name: (59)保存查询
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/delete_saved_queries.yml
+    name: (60)删除 保存的查询
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_saved_queries.yml
+    name: (61)获取 保存的查询
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_history_queries.yml
+    name: (62)查看sql历史
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_query_servers.yml
+    name: (63)获取KE集群节点IP
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_query_statistics.yml
+    name: (64)查询的统计信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_query_count.yml
+    name: (65)查询的统计信息 count
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_license_info.yml
+    name: (66)获取license信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/create_user.yml
+    name: (67)创建用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_user_info.yml
+    name: (68)更新用户信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/update_password.yml
+    name: (69)更新用户密码
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_user_list.yml
+    name: (71)获取用户列表
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/user_login.yml
+    name: (72)用户登录
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_logged_user_info.yml
+    name: (73)查看用户登录
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_user_group.yml
+    name: (74)获取用户所在的组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_all_groups.yml
+    name: (75)获取所有用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_users_in_group.yml
+    name: (76)获取用户组里的用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/add_user_group.yml
+    name: (77)添加用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/delete_user_group.yml
+    name: (78)删除用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/group_users.yml
+    name: (79)用户分组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/reset_table.yml
+    name: (84)置顶table
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+
+  - api: api/get_latest_range.yml
+    name: (87)获取latest range
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_table_partition_column_format.yml
+    name: (88)获取分区列format
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/show_tables.yml
+    name: (90)判断hive database里的表是否已经加载到KE
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_table_list.yml
+    name: (91)获取 table列表 (加载表页面)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_table_affected_data_range.yml
+    name: (92)获取table的影响范围
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/submit_sampling_jobs.yml
+    name: (93)跑抽样任务
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/has_sampling_job.yml
+    name: (94)判断table是否有已存在的抽样任务
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/prepare_reload_table.yml
+    name: (95)获取重载table的影响
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/reload_table.yml
+    name: (96)重载table
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/reload_hive_table.yml
+    name: (97)缓存hive里面的所有table
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/import_ssb_data.yml
+    name: (98)导入ssb数据集
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/check_ssb_data.yml
+    name: (99)检测ssb数据集
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_kylin_properties.yml
+    name: (100)获取部分kylin properties的配置信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_instance_info.yml
+    name: (101)获取主机的时区信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/check_is_cloud.yml
+    name: (102)返回主机是否是云端
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/create_partation.yml
+    name: (create_partation)设置分区列
+    validate:
+      - eq:
+          - status_code
+          - 200
+#  - api: api/set_table_data_range.yml
+#    name: (second0)设置table的数据范围
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+  - api: api/get_table_details.yml
+    name: (second1)获取table详细信息(数据源页面)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_all_users_and_groups.yml
+    name: (second2)获取所有用户和用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_access_users_and_groups.yml
+    name: (second3)获取已经授权的项目用户和用户组
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_job_statistics.yml
+    name: (second5)获取job的统计信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/format_sql.yml
+    name: (second7)格式化sql
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_project_config.yml
+    name: (second8)获取项目级配置参数
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/clean_project_storage.yml
+    name: (second11)清理项目垃圾
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/get_query_statistics_duration.yml
+    name: (second12)查询的统计信息 duration
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_recommendation_index.yml
+    name: (second14)获取推荐的索引信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_recommendations_by_project.yml
+    name: 获取特定项目里的所有推荐信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_project_table.yml
+    name: (second15)获取table列表  (数据源页面)
+    validate:
+      - eq:
+          - status_code
+          - 200
+  - api: api/create_user.yml
+    name: (67)创建用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user.yml
+    name: (70)删除用户
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/batch_create_user_permission_in_project.yml
+    name: (second16)批量添加用户和用户组项目级权限
+    variables:
+      permission: READ
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/update_project_permission_to_single_user.yml
+    name: 更新项目用户的项目级权限
+    variables:
+      access_entry_id: 0
+      permission: OPERATION
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_user_permission_in_project.yml
+    name: (second4)删除用户的项目级权限
+    variables:
+      access_entry_id: 0
+    validate:
+        - eq:
+            - status_code
+            - 200
+
+  - api: api/grant_project_permission_to_single_user.yml
+    name: 添加单个项目用户的项目级权限
+    variables:
+      permission: READ
+      user: $resident_user
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/delete_model.yml
+    name: (delete_model)删除模型
+    variables:
+      model: $model_name_rename
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+#  - api: api/update_user_acl.yml
+#    name: 更新用户acl权限信息
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200
+
+  - api: api/batch_create_model.yml
+    name: 批量创建模型
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_model_latest_date.yml
+    name: model 的 latest_data
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_model_config.yml
+    name: 获取 model config
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_batch_load_tables.yml
+    name: 获取与table相关的索引数量
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_loaded_databases.yml
+    name: 获取project下面的所有数据库 （元数据）
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+  - api: api/get_table_and_columns.yml
+    name: 获取project下table行列的简略信息
+    validate:
+      - eq:
+          - status_code
+          - 200
+
+#  - api: api/get_table_pushdown_mode.yml
+#    name: 获取table的下压开关
+#    validate:
+#      - eq:
+#          - status_code
+#          - 200

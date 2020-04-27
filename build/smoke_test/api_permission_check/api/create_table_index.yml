@@ -1,0 +1,22 @@
+name: 添加table index
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  json:
+    col_order:
+    - P_LINEORDER.LO_LINENUMBER
+    - P_LINEORDER.LO_PARTKEY
+    id: ''
+    load_data: false
+    model_id: "${get_model_uuid($model_name,$project_name)}"
+    project: $project_name
+    shard_by_columns: []
+    sort_by_columns: []
+  method: POST
+  url: index_plans/table_index
+
+
+
+

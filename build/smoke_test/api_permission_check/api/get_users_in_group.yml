@@ -1,0 +1,8 @@
+name: 获取用户组里的用户
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: user_group/users_with_group?page_size=10&page_offset=0

@@ -1,0 +1,14 @@
+name: model 下线、上线
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    model: ${get_model_uuid($model_name,$project_name)}
+    project: $project_name
+    status: OFFLINE
+  method: PUT
+  url: models/${get_model_uuid($model_name,$project_name)}/status
+
+

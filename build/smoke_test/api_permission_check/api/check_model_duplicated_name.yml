@@ -1,0 +1,12 @@
+name: 判断model别名是否重复
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    alias: $model_name
+    project: $project_name
+    uuid: ${get_random_uuid()}
+  method: POST
+  url: models/validate_model

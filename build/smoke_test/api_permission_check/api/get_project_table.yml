@@ -1,0 +1,8 @@
+name: 获取table列表  （数据源页面）
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: tables/project_tables?project=$project_name&page_offset=0&page_size=10&table=&datasource_type=9

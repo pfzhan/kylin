@@ -1,0 +1,13 @@
+name: 创建 project
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  json:
+    description: ''
+    maintain_model_type: MANUAL_MAINTAIN
+    name: $project
+    override_kylin_properties: {}
+  method: POST
+  url: projects

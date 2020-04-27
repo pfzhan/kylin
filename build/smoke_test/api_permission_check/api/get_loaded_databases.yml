@@ -1,0 +1,8 @@
+name: 获取project下面的所有数据库 （元数据）
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: tables/loaded_databases?project=$project_name

@@ -1,0 +1,8 @@
+name: 获取job的统计信息 （job数量）
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  method: GET
+  url: jobs/statistics/count?project=$project_name&start_time=1584522236872&end_time=1585127036872&dimension=model

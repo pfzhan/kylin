@@ -1,0 +1,13 @@
+name: 设置table的数据范围
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    end: $end_time
+    project: $project_name
+    start: $start_time
+    table: SSB.LINEORDER
+  method: POST
+  url: tables/data_range

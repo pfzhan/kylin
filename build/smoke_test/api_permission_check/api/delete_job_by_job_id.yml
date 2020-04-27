@@ -1,0 +1,8 @@
+name: 删除job
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4-public+json
+    authorization: Basic $role
+  method: DELETE
+  url: jobs?job_ids=$job_id&project=$project_name

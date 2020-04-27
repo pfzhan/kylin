@@ -1,0 +1,16 @@
+name: 运行sql
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    acceptPartial: true
+    backdoorToggles:
+      DEBUG_TOGGLE_HTRACE_ENABLED: false
+    limit: 500
+    offset: 0
+    project: $project_name
+    sql: SELECT * FROM kylin_sales
+  method: POST
+  url: query

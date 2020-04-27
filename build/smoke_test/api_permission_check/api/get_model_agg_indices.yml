@@ -1,0 +1,8 @@
+name: 获取model里的index信息
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: models/${get_model_uuid($model_name,$project_name)}/agg_indices?project=$project_name

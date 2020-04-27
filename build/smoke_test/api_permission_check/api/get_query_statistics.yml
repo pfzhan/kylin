@@ -1,0 +1,8 @@
+name: 查询的统计信息
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: GET
+  url: query/statistics?project=$project_name&start_time=1584609940579&end_time=1585214740579

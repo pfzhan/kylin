@@ -1,0 +1,8 @@
+name: 通过layoutid删除索引
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  method: DELETE
+  url: index_plans/index/20000020001?project=$project_name&model=${get_model_uuid($model_name,$project_name)}

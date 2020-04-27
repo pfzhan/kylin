@@ -1,0 +1,10 @@
+name: 重置项目级配置参数
+request:
+  headers:
+    Content-Type: application/json;charset=utf-8
+    accept: application/vnd.apache.kylin-v4+json
+    authorization: Basic $role
+  json:
+    reset_item: query_accelerate_threshold
+  method: PUT
+  url: projects/$project_name/project_config
