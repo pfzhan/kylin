@@ -571,20 +571,30 @@ public class ProjectService extends BasicService {
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     @Transaction(project = 0)
     public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
-        if ("job_notification_config".equals(resetItem)) {
-            resetJobNotificationConfig(project);
-        } else if ("query_accelerate_threshold".equals(resetItem)) {
-            resetQueryAccelerateThreshold(project);
-        } else if ("garbage_cleanup_config".equals(resetItem)) {
-            resetGarbageCleanupConfig(project);
-        } else if ("segment_config".equals(resetItem)) {
-            resetSegmentConfig(project);
-        } else if ("kerberos_project_level_config".equals(resetItem)) {
-            resetProjectKerberosConfig(project);
-        } else {
-            throw new KylinException("KE-1010", "No valid value for 'reset_item'. Please enter a project setting "
-                    + "type which needs to be reset {'job_notification_config'，"
-                    + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config'} to 'reset_item'.");
+        Preconditions.checkNotNull(resetItem);
+        switch (resetItem) {
+            case "job_notification_config":
+                resetJobNotificationConfig(project);
+                break;
+            case "query_accelerate_threshold":
+                resetQueryAccelerateThreshold(project);
+                break;
+            case "garbage_cleanup_config":
+                resetGarbageCleanupConfig(project);
+                break;
+            case "segment_config":
+                resetSegmentConfig(project);
+                break;
+            case "kerberos_project_level_config":
+                resetProjectKerberosConfig(project);
+                break;
+            case "storage_quota_config":
+                resetProjectStorageQuotaConfig(project);
+                break;
+            default:
+                throw new KylinException("KE-1010", "No valid value for 'reset_item'. Please enter a project setting "
+                        + "type which needs to be reset {'job_notification_config'，"
+                        + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config', 'storage_quota_config'} to 'reset_item'.");
         }
         return getProjectConfig(project);
     }
@@ -648,6 +658,12 @@ public class ProjectService extends BasicService {
             copyForWrite.setKeytab(null);
             copyForWrite.setPrincipal(null);
         });
+    }
+
+    private void resetProjectStorageQuotaConfig(String project) {
+        Set<String> toBeRemovedProps = Sets.newHashSet();
+        toBeRemovedProps.add("kylin.storage.quota-in-giga-bytes");
+        removeProjectOveridedProps(project, toBeRemovedProps);
     }
 
     private List<ProjectInstance> getProjectsWithFilter(Predicate<ProjectInstance> filter) {

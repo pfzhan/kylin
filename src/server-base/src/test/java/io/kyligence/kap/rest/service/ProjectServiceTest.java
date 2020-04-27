@@ -651,6 +651,9 @@ public class ProjectServiceTest extends ServiceTestBase {
         response = projectService.resetProjectConfig(PROJECT, "segment_config");
         Assert.assertTrue(response.isAutoMergeEnabled());
         Assert.assertEquals(4, response.getAutoMergeTimeRanges().size());
+
+        response = projectService.resetProjectConfig(PROJECT, "storage_quota_config");
+        Assert.assertEquals(10995116277760L, response.getStorageQuotaSize());
     }
 
     @Test
