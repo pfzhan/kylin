@@ -184,8 +184,8 @@ export default {
         { "key": "systemUser-manualMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition,changeBuildType" },
         { "key": "systemUser-autoMaintain-admin", "value": "sourceManagement,loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,acceRuleSettingActions,acceBlackList,acceDelSql" },
 
-        { "key": "systemUser-manualMaintain-management", "value": "loadData,accelerationActions,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition,changeBuildType" },
-        { "key": "systemUser-autoMaintain-management", "value": "loadData,accelerationActions" },
+        { "key": "systemUser-manualMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions,modelActions,segmentActions,editAggGroup,delAggIdx,bulidIndex,tableIndexActions,changePartition,changeBuildType" },
+        { "key": "systemUser-autoMaintain-management", "value": "loadSource,delSourceTable,sampleSourceTable,reloadSourceTable,loadData,accelerationActions" },
 
         { "key": "systemUser-manualMaintain-operation", "value": "loadData,segmentActions,bulidIndex" },
         { "key": "systemUser-autoMaintain-operation", "value": "loadData" },
