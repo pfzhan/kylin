@@ -16,7 +16,7 @@
     "gnetId": null,
     "graphTooltip": 0,
     "id": 1,
-    "iteration": 1585365198322,
+    "iteration": 1588248308755,
     "links": [],
     "panels": [
         {
@@ -43,11 +43,14 @@
                         "y": 1
                     },
                     "id": 207,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -101,14 +104,20 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "build unavailable duration",
+                    "title": "build_unavailable_duration",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -124,7 +133,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -132,7 +141,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -159,11 +168,14 @@
                         "y": 1
                     },
                     "id": 209,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -217,14 +229,20 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "query unavailable duration",
+                    "title": "query_unavailable_duration",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -240,7 +258,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -248,7 +266,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -560,7 +578,7 @@
             ],
             "timeFrom": null,
             "timeShift": null,
-            "title": "num of projects",
+            "title": "num_of_projects",
             "type": "gauge"
         },
         {
@@ -711,7 +729,7 @@
             ],
             "timeFrom": null,
             "timeShift": null,
-            "title": "num of users",
+            "title": "num_of_users",
             "type": "gauge"
         },
         {
@@ -791,14 +809,20 @@
                             }
                         ]
                     ],
-                    "tags": []
+                    "tags": [
+                        {
+                            "key": "entity",
+                            "operator": "=~",
+                            "value": "/^$project$/"
+                        }
+                    ]
                 }
             ],
             "thresholds": [],
             "timeFrom": null,
             "timeRegions": [],
             "timeShift": null,
-            "title": "num of hive tables",
+            "title": "num_of_hive_tables",
             "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -912,14 +936,20 @@
                             }
                         ]
                     ],
-                    "tags": []
+                    "tags": [
+                        {
+                            "key": "entity",
+                            "operator": "=~",
+                            "value": "/^$project$/"
+                        }
+                    ]
                 }
             ],
             "thresholds": [],
             "timeFrom": null,
             "timeRegions": [],
             "timeShift": null,
-            "title": "num of hive databases",
+            "title": "num_of_hive_databases",
             "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -970,6 +1000,7 @@
                 "y": 25
             },
             "id": 155,
+            "interval": "$granularity",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -1012,6 +1043,8 @@
                     "measurement": "system_metric",
                     "orderByTime": "ASC",
                     "policy": "KE_METRICS_RP",
+                    "query": "SELECT last(\"jvm_memory_heap_max\") FROM \"KE_METRICS_RP\".\"system_metric\" WHERE  $timeFilter GROUP BY time($__interval), \"entity\"",
+                    "rawQuery": false,
                     "refId": "A",
                     "resultFormat": "time_series",
                     "select": [
@@ -1072,7 +1105,7 @@
             "timeFrom": null,
             "timeRegions": [],
             "timeShift": null,
-            "title": "summary of heap",
+            "title": "summary_of_heap",
             "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1088,7 +1121,7 @@
             },
             "yaxes": [
                 {
-                    "format": "short",
+                    "format": "bytes",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -1096,7 +1129,7 @@
                     "show": true
                 },
                 {
-                    "format": "short",
+                    "format": "bytes",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -1123,6 +1156,7 @@
                 "y": 25
             },
             "id": 157,
+            "interval": "$granularity",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -1188,7 +1222,7 @@
             "timeFrom": null,
             "timeRegions": [],
             "timeShift": null,
-            "title": "usage of heap",
+            "title": "usage_of_heap",
             "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1204,7 +1238,7 @@
             },
             "yaxes": [
                 {
-                    "format": "short",
+                    "format": "percentunit",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -1212,7 +1246,7 @@
                     "show": true
                 },
                 {
-                    "format": "short",
+                    "format": "percentunit",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -1239,6 +1273,7 @@
                 "y": 33
             },
             "id": 159,
+            "interval": "$granularity",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -1341,7 +1376,7 @@
             "timeFrom": null,
             "timeRegions": [],
             "timeShift": null,
-            "title": "count of garbage collection",
+            "title": "count_of_garbage_collection",
             "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1392,6 +1427,7 @@
                 "y": 33
             },
             "id": 161,
+            "interval": "$granularity",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -1494,7 +1530,7 @@
             "timeFrom": null,
             "timeRegions": [],
             "timeShift": null,
-            "title": "time of garbage collection",
+            "title": "time_of_garbage_collection",
             "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1602,7 +1638,13 @@
                             }
                         ]
                     ],
-                    "tags": []
+                    "tags": [
+                        {
+                            "key": "entity",
+                            "operator": "=~",
+                            "value": "/^$project$/"
+                        }
+                    ]
                 }
             ],
             "timeFrom": null,
@@ -1625,6 +1667,7 @@
                 "y": 41
             },
             "id": 127,
+            "interval": "$granularity",
             "legend": {
                 "avg": false,
                 "current": false,
@@ -1749,7 +1792,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 3
+                        "y": 50
                     },
                     "id": 12,
                     "interval": "$granularity",
@@ -1830,7 +1873,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of models",
+                    "title": "model_num_gauge",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -1880,7 +1923,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 3
+                        "y": 50
                     },
                     "id": 111,
                     "interval": "$granularity",
@@ -1957,7 +2000,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of unbroken models",
+                    "title": "non_broken_model_num_gauge",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2001,7 +2044,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 11
+                        "y": 58
                     },
                     "id": 185,
                     "links": [],
@@ -2096,14 +2139,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 11
+                        "y": 58
                     },
                     "id": 187,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2170,7 +2216,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "hit count of models",
+                    "title": "hit_count_of_models",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2218,14 +2264,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 19
+                        "y": 66
                     },
                     "id": 189,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2292,7 +2341,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "storage of models",
+                    "title": "storage_of_models",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2308,7 +2357,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2316,7 +2365,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2340,14 +2389,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 19
+                        "y": 66
                     },
                     "id": 191,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2414,7 +2466,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "segments num of models",
+                    "title": "segments_num_of_models",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2462,14 +2514,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 27
+                        "y": 74
                     },
                     "id": 201,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2536,7 +2591,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "model build duration",
+                    "title": "model_build_duration",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2552,7 +2607,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2560,7 +2615,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2584,14 +2639,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 27
+                        "y": 74
                     },
                     "id": 203,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2658,7 +2716,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "model wait duration",
+                    "title": "model_wait_duration",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2674,7 +2732,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2682,7 +2740,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -2706,17 +2764,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 35
+                        "y": 82
                     },
                     "id": 212,
                     "interval": "$granularity",
                     "legend": {
-                        "alignAsTable": false,
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
-                        "rightSide": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2786,7 +2844,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "number of indexes",
+                    "title": "number_of_indexes",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2834,15 +2892,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 35
+                        "y": 82
                     },
                     "id": 213,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -2909,7 +2969,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "expansion rate of models",
+                    "title": "expansion_rate_of_models",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -2958,15 +3018,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 43
+                        "y": 90
                     },
                     "id": 215,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -3033,7 +3095,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "model build duration (avg)",
+                    "title": "model_build_duration (avg)",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3095,7 +3157,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 4
+                        "y": 51
                     },
                     "id": 2,
                     "interval": "$granularity",
@@ -3176,7 +3238,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries",
+                    "title": "count_of_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3224,9 +3286,10 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 4
+                        "y": 51
                     },
                     "id": 165,
+                    "interval": "$granularity",
                     "legend": {
                         "avg": false,
                         "current": false,
@@ -3294,7 +3357,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of query per host",
+                    "title": "num_of_query_per_host",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3342,15 +3405,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 12
+                        "y": 59
                     },
                     "id": 137,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -3417,7 +3482,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries hitting agg index",
+                    "title": "count_of_queries_hitting_agg_index",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3465,14 +3530,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 12
+                        "y": 59
                     },
                     "id": 167,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -3539,7 +3607,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries hitting agg index",
+                    "title": "ratio_of_queries_hitting_agg_index",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3555,7 +3623,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -3563,7 +3631,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -3587,15 +3655,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 20
+                        "y": 67
                     },
                     "id": 139,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -3662,7 +3732,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries hitting table index",
+                    "title": "count_of_queries_hitting_table_index",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3710,14 +3780,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 20
+                        "y": 67
                     },
                     "id": 169,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -3785,7 +3858,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries hitting table index",
+                    "title": "ratio_of_queries_hitting_table_index",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3801,7 +3874,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -3809,7 +3882,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -3833,7 +3906,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 28
+                        "y": 75
                     },
                     "id": 8,
                     "interval": "$granularity",
@@ -3910,7 +3983,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of pushdown queries",
+                    "title": "count_of_pushdown_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -3958,14 +4031,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 28
+                        "y": 75
                     },
                     "id": 171,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4032,7 +4108,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of pushdown queries",
+                    "title": "ratio_of_pushdown_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4048,7 +4124,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4056,7 +4132,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4080,15 +4156,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 36
+                        "y": 83
                     },
                     "id": 141,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4155,7 +4233,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries hitting cache",
+                    "title": "count_of_queries_hitting_cache",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4203,14 +4281,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 36
+                        "y": 83
                     },
                     "id": 173,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4277,7 +4358,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries hitting cache",
+                    "title": "ratio_of_queries_hitting_cache",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4293,7 +4374,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4301,7 +4382,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4325,15 +4406,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 44
+                        "y": 91
                     },
                     "id": 143,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4400,7 +4483,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries less than 1s",
+                    "title": "count_of_queries_less_than_1s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4448,14 +4531,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 44
+                        "y": 91
                     },
                     "id": 175,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4522,7 +4608,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries less than 1s",
+                    "title": "ratio_of_queries_less_than_1s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4538,7 +4624,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4546,7 +4632,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4570,15 +4656,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 52
+                        "y": 99
                     },
                     "id": 145,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4645,7 +4733,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries between 1s and 3s",
+                    "title": "count_of_queries_between_1s_and_3s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4693,14 +4781,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 52
+                        "y": 99
                     },
                     "id": 177,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4767,7 +4858,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries between 1s and 3s",
+                    "title": "ratio_of_queries_between_1s_and_3s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4783,7 +4874,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4791,7 +4882,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -4815,14 +4906,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 60
+                        "y": 107
                     },
                     "id": 147,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -4889,7 +4983,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries between 3s and 5s",
+                    "title": "count_of_queries_between_3s_and_5s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -4937,14 +5031,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 60
+                        "y": 107
                     },
                     "id": 179,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -5011,7 +5108,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries between 3s and 5s",
+                    "title": "ratio_of_queries_between_3s_and_5s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5027,7 +5124,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5035,7 +5132,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5059,15 +5156,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 68
+                        "y": 115
                     },
                     "id": 149,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -5134,7 +5233,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries between 5s and 10s",
+                    "title": "count_of_queries_between_5s_and_10s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5182,14 +5281,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 68
+                        "y": 115
                     },
                     "id": 181,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -5256,7 +5358,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries between 5s and 10s",
+                    "title": "ratio_of_queries_between_5s_and_10s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5272,7 +5374,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5280,7 +5382,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5304,7 +5406,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 76
+                        "y": 123
                     },
                     "id": 6,
                     "interval": "$granularity",
@@ -5381,7 +5483,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of queries greater than 10s",
+                    "title": "count_of_queries_greater_than_10s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5429,14 +5531,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 76
+                        "y": 123
                     },
                     "id": 183,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -5503,7 +5608,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "ratio of queries greater than 10s",
+                    "title": "ratio_of_queries_greater_than_10s",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5519,7 +5624,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5527,7 +5632,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "percentunit",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5551,7 +5656,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 84
+                        "y": 131
                     },
                     "id": 78,
                     "interval": "$granularity",
@@ -5628,7 +5733,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of timeout queries",
+                    "title": "count_of_timeout_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5676,7 +5781,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 84
+                        "y": 131
                     },
                     "id": 4,
                     "interval": "$granularity",
@@ -5753,7 +5858,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of failed queries",
+                    "title": "count_of_failed_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5801,9 +5906,10 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 92
+                        "y": 139
                     },
                     "id": 163,
+                    "interval": "$granularity",
                     "legend": {
                         "avg": false,
                         "current": false,
@@ -5852,7 +5958,7 @@
                                 [
                                     {
                                         "params": [
-                                            "query_time_per_host_min"
+                                            "query_time_per_host_mean"
                                         ],
                                         "type": "field"
                                     },
@@ -5869,7 +5975,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "mean time of query per host",
+                    "title": "mean_time_of_query_per_host",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -5885,7 +5991,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5893,7 +5999,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -5917,7 +6023,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 92
+                        "y": 139
                     },
                     "id": 66,
                     "interval": "$granularity",
@@ -5996,7 +6102,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "99% of query latency",
+                    "title": "99%_of_query_latency",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -6045,7 +6151,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 100
+                        "y": 147
                     },
                     "id": 72,
                     "interval": "$granularity",
@@ -6172,7 +6278,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 100
+                        "y": 147
                     },
                     "id": 70,
                     "interval": "$granularity",
@@ -6298,7 +6404,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 108
+                        "y": 155
                     },
                     "id": 92,
                     "interval": "$granularity",
@@ -6425,14 +6531,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 108
+                        "y": 155
                     },
                     "id": 151,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -6501,7 +6610,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "scan bytes of 99% queries",
+                    "title": "scan_bytes_of_99%_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -6517,7 +6626,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -6525,7 +6634,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -6549,9 +6658,10 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 116
+                        "y": 163
                     },
                     "id": 193,
+                    "interval": "$granularity",
                     "legend": {
                         "avg": false,
                         "current": false,
@@ -6617,7 +6727,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "query scan bytes of host",
+                    "title": "query_scan_bytes_of_host",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -6633,7 +6743,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -6641,7 +6751,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -6665,14 +6775,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 116
+                        "y": 163
                     },
                     "id": 195,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -6739,7 +6852,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "mean scan bytes of queries",
+                    "title": "mean_scan_bytes_of_queries",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -6755,7 +6868,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -6763,7 +6876,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "bytes",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -6801,7 +6914,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 5
+                        "y": 52
                     },
                     "id": 34,
                     "interval": "$granularity",
@@ -6926,7 +7039,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 5
+                        "y": 52
                     },
                     "id": 32,
                     "interval": "$granularity",
@@ -7051,7 +7164,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 13
+                        "y": 60
                     },
                     "id": 118,
                     "interval": "$granularity",
@@ -7176,7 +7289,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 13
+                        "y": 60
                     },
                     "id": 119,
                     "interval": "$granularity",
@@ -7302,7 +7415,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 21
+                        "y": 68
                     },
                     "id": 101,
                     "interval": "$granularity",
@@ -7428,7 +7541,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 21
+                        "y": 68
                     },
                     "id": 120,
                     "interval": "$granularity",
@@ -7554,7 +7667,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 29
+                        "y": 76
                     },
                     "id": 121,
                     "interval": "$granularity",
@@ -7680,7 +7793,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 29
+                        "y": 76
                     },
                     "id": 122,
                     "interval": "$granularity",
@@ -7806,7 +7919,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 37
+                        "y": 84
                     },
                     "id": 123,
                     "interval": "$granularity",
@@ -7931,7 +8044,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 37
+                        "y": 84
                     },
                     "id": 103,
                     "interval": "$granularity",
@@ -8056,7 +8169,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 45
+                        "y": 92
                     },
                     "id": 102,
                     "interval": "$granularity",
@@ -8182,7 +8295,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 45
+                        "y": 92
                     },
                     "id": 105,
                     "interval": "$granularity",
@@ -8307,7 +8420,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 53
+                        "y": 100
                     },
                     "id": 104,
                     "interval": "$granularity",
@@ -8432,7 +8545,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 53
+                        "y": 100
                     },
                     "id": 107,
                     "interval": "$granularity",
@@ -8557,7 +8670,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 61
+                        "y": 108
                     },
                     "id": 106,
                     "interval": "$granularity",
@@ -8696,7 +8809,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 6
+                        "y": 53
                     },
                     "id": 18,
                     "interval": "$granularity",
@@ -8773,7 +8886,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of jobs created",
+                    "title": "num_of_jobs_created",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -8821,7 +8934,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 6
+                        "y": 53
                     },
                     "id": 80,
                     "interval": "$granularity",
@@ -8898,7 +9011,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of jobs finished",
+                    "title": "num_of_jobs_finished",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -8946,15 +9059,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 14
+                        "y": 61
                     },
                     "id": 133,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -9021,7 +9136,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of running jobs",
+                    "title": "num_of_running_jobs",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -9069,15 +9184,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 14
+                        "y": 61
                     },
                     "id": 135,
                     "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -9144,7 +9261,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of pending jobs",
+                    "title": "num_of_pending_jobs",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -9192,7 +9309,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 22
+                        "y": 69
                     },
                     "id": 58,
                     "interval": "$granularity",
@@ -9269,7 +9386,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "num of error jobs",
+                    "title": "num_of_error_jobs",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -9317,7 +9434,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 22
+                        "y": 69
                     },
                     "id": 131,
                     "interval": "$granularity",
@@ -9394,7 +9511,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "count of error jobs",
+                    "title": "count_of_error_jobs",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -9442,7 +9559,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 30
+                        "y": 77
                     },
                     "id": 20,
                     "interval": "$granularity",
@@ -9567,7 +9684,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 30
+                        "y": 77
                     },
                     "id": 112,
                     "interval": "$granularity",
@@ -9692,7 +9809,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 38
+                        "y": 85
                     },
                     "id": 22,
                     "interval": "$granularity",
@@ -9817,7 +9934,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 38
+                        "y": 85
                     },
                     "id": 113,
                     "interval": "$granularity",
@@ -9942,7 +10059,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 46
+                        "y": 93
                     },
                     "id": 38,
                     "interval": "$granularity",
@@ -10067,7 +10184,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 46
+                        "y": 93
                     },
                     "id": 40,
                     "interval": "$granularity",
@@ -10192,14 +10309,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 54
+                        "y": 101
                     },
                     "id": 197,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -10266,7 +10386,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "job durations",
+                    "title": "job_durations",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -10282,7 +10402,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -10290,7 +10410,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -10314,14 +10434,17 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 54
+                        "y": 101
                     },
                     "id": 199,
+                    "interval": "$granularity",
                     "legend": {
+                        "alignAsTable": true,
                         "avg": false,
                         "current": false,
                         "max": false,
                         "min": false,
+                        "rightSide": true,
                         "show": true,
                         "total": false,
                         "values": false
@@ -10388,7 +10511,7 @@
                     "timeFrom": null,
                     "timeRegions": [],
                     "timeShift": null,
-                    "title": "job wait duration",
+                    "title": "job_wait_duration",
                     "tooltip": {
                         "shared": true,
                         "sort": 0,
@@ -10404,7 +10527,7 @@
                     },
                     "yaxes": [
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -10412,7 +10535,7 @@
                             "show": true
                         },
                         {
-                            "format": "short",
+                            "format": "ms",
                             "label": null,
                             "logBase": 1,
                             "max": null,
@@ -10462,7 +10585,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 7
+                        "y": 54
                     },
                     "id": 26,
                     "interval": "$granularity",
@@ -10577,7 +10700,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 7
+                        "y": 54
                     },
                     "id": 114,
                     "interval": "$granularity",
@@ -10692,7 +10815,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 15
+                        "y": 62
                     },
                     "id": 115,
                     "interval": "$granularity",
@@ -10810,7 +10933,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 8
+                        "y": 55
                     },
                     "id": 95,
                     "interval": "$granularity",
@@ -10874,7 +10997,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -10930,7 +11059,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 8
+                        "y": 55
                     },
                     "id": 28,
                     "interval": "$granularity",
@@ -10994,7 +11123,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11050,7 +11185,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 16
+                        "y": 63
                     },
                     "id": 116,
                     "interval": "$granularity",
@@ -11114,7 +11249,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11170,7 +11311,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 16
+                        "y": 63
                     },
                     "id": 117,
                     "interval": "$granularity",
@@ -11234,7 +11375,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11289,7 +11436,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 24
+                        "y": 71
                     },
                     "id": 30,
                     "interval": "$granularity",
@@ -11425,7 +11572,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 24
+                        "y": 71
                     },
                     "id": 98,
                     "interval": "$granularity",
@@ -11542,7 +11689,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 9
+                        "y": 56
                     },
                     "id": 46,
                     "interval": "$granularity",
@@ -11606,7 +11753,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11661,7 +11814,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 9
+                        "y": 56
                     },
                     "id": 76,
                     "interval": "$granularity",
@@ -11725,7 +11878,13 @@
                                     }
                                 ]
                             ],
-                            "tags": []
+                            "tags": [
+                                {
+                                    "key": "entity",
+                                    "operator": "=~",
+                                    "value": "/^$project$/"
+                                }
+                            ]
                         }
                     ],
                     "thresholds": [],
@@ -11794,7 +11953,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 10
+                        "y": 57
                     },
                     "id": 44,
                     "interval": "$granularity",
@@ -11919,7 +12078,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 10
+                        "y": 57
                     },
                     "id": 42,
                     "interval": "$granularity",
@@ -12049,6 +12208,7 @@
                 "auto_count": 5,
                 "auto_min": "1m",
                 "current": {
+                    "selected": true,
                     "text": "5m",
                     "value": "5m"
                 },
@@ -12125,6 +12285,8 @@
             {
                 "allValue": null,
                 "current": {
+                    "selected": false,
+                    "tags": [],
                     "text": "All",
                     "value": "$__all"
                 },
@@ -12150,7 +12312,7 @@
         ]
     },
     "time": {
-        "from": "now/d",
+        "from": "now-7d",
         "to": "now"
     },
     "timepicker": {
@@ -12181,5 +12343,5 @@
     "timezone": "",
     "title": "Kyligence Enterprise",
     "uid": "rUE4Q44Zk",
-    "version": 1
+    "version": 2
 }
