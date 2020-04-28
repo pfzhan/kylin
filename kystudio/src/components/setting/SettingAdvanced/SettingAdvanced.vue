@@ -1,7 +1,7 @@
 <template>
   <div class="accelerate-setting">
     <!-- 加速设置 -->
-    <EditableBlock
+    <!-- <EditableBlock
       :header-content="$t('accePreference')"
       :is-keep-editing="true"
       v-if="$store.state.project.isSemiAutomatic||isAutoProject"
@@ -35,7 +35,7 @@
           </div>
         </div>
       </el-form>
-    </EditableBlock>
+    </EditableBlock> -->
     <!-- 默认数据库设置 -->
     <EditableBlock
       :header-content="$t('defaultDBTitle')"
@@ -210,7 +210,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { handleError, handleSuccessAsync } from '../../../util'
 import { kapConfirm } from 'util/business'
 import { apiUrl } from '../../../config'
-import { validate, _getAccelerationSettings, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getKerberosSettings } from './handler'
+import { validate, _getJobAlertSettings, _getDefaultDBSettings, _getYarnNameSetting, _getExposeCCSetting, _getKerberosSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   props: {
@@ -253,8 +253,8 @@ export default class SettingAdvanced extends Vue {
   dbList = []
   form = {
     project: '',
-    tips_enabled: true,
-    threshold: 20,
+    // tips_enabled: true,
+    // threshold: 20,
     job_error_notification_enabled: true,
     data_load_empty_notification_enabled: true,
     job_notification_emails: [],
@@ -329,7 +329,7 @@ export default class SettingAdvanced extends Vue {
     this.initForm()
   }
   initForm () {
-    this.handleInit('accelerate-settings')
+    // this.handleInit('accelerate-settings')
     this.handleInit('job-alert')
     this.handleInit('defaultDB-settings')
     this.handleInit('yarn-name')
@@ -338,11 +338,11 @@ export default class SettingAdvanced extends Vue {
   }
   handleInit (type) {
     switch (type) {
-      case 'accelerate-settings': {
-        this.form = { ...this.form, ..._getAccelerationSettings(this.project) }
-        this.$refs['accelerate-setting-form'] && this.$refs['accelerate-setting-form'].clearValidate()
-        break
-      }
+      // case 'accelerate-settings': {
+      //   this.form = { ...this.form, ..._getAccelerationSettings(this.project) }
+      //   this.$refs['accelerate-setting-form'] && this.$refs['accelerate-setting-form'].clearValidate()
+      //   break
+      // }
       case 'job-alert': {
         this.form = { ...this.form, ..._getJobAlertSettings(this.project, true) }; break
       }
@@ -394,14 +394,14 @@ export default class SettingAdvanced extends Vue {
   async handleSubmit (type, successCallback, errorCallback) {
     try {
       switch (type) {
-        case 'accelerate-settings': {
-          if (await this.$refs['accelerate-setting-form'].validate()) {
-            const submitData = _getAccelerationSettings(this.form)
-            await this.updateAccelerationSettings(submitData); break
-          } else {
-            return errorCallback()
-          }
-        }
+        // case 'accelerate-settings': {
+        //   if (await this.$refs['accelerate-setting-form'].validate()) {
+        //     const submitData = _getAccelerationSettings(this.form)
+        //     await this.updateAccelerationSettings(submitData); break
+        //   } else {
+        //     return errorCallback()
+        //   }
+        // }
         case 'defaultDB-settings': {
           // 需要二次确认
           this.$confirm(this.$t('confirmDefaultDBContent', {dbName: this.form.default_database}), this.$t('confirmDefaultDBTitle'), {
@@ -495,13 +495,13 @@ export default class SettingAdvanced extends Vue {
   async handleResetForm (type, successCallback, errorCallback) {
     try {
       switch (type) {
-        case 'accelerate-settings': {
-          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'query_accelerate_threshold'})
-          const data = await handleSuccessAsync(res)
-          this.form = { ...this.form, ..._getAccelerationSettings(data) }
-          this.$refs['accelerate-setting-form'].clearValidate()
-          break
-        }
+        // case 'accelerate-settings': {
+        //   const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'query_accelerate_threshold'})
+        //   const data = await handleSuccessAsync(res)
+        //   this.form = { ...this.form, ..._getAccelerationSettings(data) }
+        //   this.$refs['accelerate-setting-form'].clearValidate()
+        //   break
+        // }
         case 'job-alert': {
           const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'job_notification_config'})
           const data = await handleSuccessAsync(res)
@@ -590,8 +590,8 @@ export default class SettingAdvanced extends Vue {
   isFormEdited (form, type) {
     const project = { ...this.project, alias: this.project.alias || this.project.project }
     switch (type) {
-      case 'accelerate-settings':
-        return JSON.stringify(_getAccelerationSettings(form)) !== JSON.stringify(_getAccelerationSettings(project))
+      // case 'accelerate-settings':
+        // return JSON.stringify(_getAccelerationSettings(form)) !== JSON.stringify(_getAccelerationSettings(project))
       case 'defaultDB-settings':
         return JSON.stringify(_getDefaultDBSettings(form)) !== JSON.stringify(_getDefaultDBSettings(project))
       case 'job-alert':

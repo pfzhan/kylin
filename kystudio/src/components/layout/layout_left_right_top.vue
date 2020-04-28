@@ -855,11 +855,11 @@ export default class LayoutLeftRightTop extends Vue {
       $('#fullBox').addClass('cloud-frame-page')
     } */
     // 有加速引擎页面包括智能模式，AI增强模式开启智能推荐设置（且有ACL权限的用户）
-    if (this.isStartCircleLoadSpeedInfo) {
+    // if (this.isStartCircleLoadSpeedInfo) {
       // 获取加速信息
-      this.loadSpeedInfo()
-      this.circleLoadSpeedInfo()
-    }
+      // this.loadSpeedInfo()
+      // this.circleLoadSpeedInfo()
+    // }
   }
   destroyed () {
     clearTimeout(this.ST)

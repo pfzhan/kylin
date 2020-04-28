@@ -24,13 +24,13 @@ export const validate = {
   }
 }
 
-export function _getAccelerationSettings (data) {
-  return {
-    project: data.project,
-    threshold: data.threshold,
-    tips_enabled: data.tips_enabled
-  }
-}
+// export function _getAccelerationSettings (data) {
+//   return {
+//     project: data.project,
+//     threshold: data.threshold,
+//     tips_enabled: data.tips_enabled
+//   }
+// }
 
 export function _getJobAlertSettings (data, isArrayDefaultValue, isSort) {
   let jobEmails = [...data.job_notification_emails]

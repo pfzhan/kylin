@@ -172,7 +172,7 @@ export default {
     },
     [types.FETCH_PROJECT_SETTINGS]: function ({ commit }, para) {
       return api.project.fetchProjectSettings(para.projectName).then((response) => {
-        commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
+        // commit(types.CACHE_PROJECT_TIPS_CONFIG, {projectAutoApplyConfig: response.data.data.tips_enabled})
         commit(types.CACHE_PROJECT_DEFAULT_DB, {projectDefaultDB: response.data.data.default_database})
         commit(types.CACHE_PROJECT_PUSHDOWN_CONFIG, {projectPushdownConfig: response.data.data.push_down_enabled})
         // 更新是否是半自动档标志
