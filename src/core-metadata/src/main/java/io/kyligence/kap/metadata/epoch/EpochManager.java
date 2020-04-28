@@ -100,7 +100,8 @@ public class EpochManager implements IKeep {
         schedulerEventBusFactory = SchedulerEventBusFactory.getInstance(config);
     }
 
-    private Epoch getGlobalEpoch() {
+    //for test
+    public Epoch getGlobalEpoch() {
         return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getResource(GLOBAL_EPOCH, EPOCH_SERIALIZER);
     }
 
@@ -140,7 +141,7 @@ public class EpochManager implements IKeep {
                     newEpochs.add(entry.getKey());
                 }
             } catch (Exception e) {
-                logger.error("failed to update {}", entry.getKey());
+                logger.error("failed to update {}", entry.getKey(), e);
             }
         }
     }

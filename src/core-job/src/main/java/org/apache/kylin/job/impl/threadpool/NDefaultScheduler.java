@@ -231,6 +231,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
             try {
                 if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
                     forceShutdown();
+                    return;
                 }
                 val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 Map<String, Executable> runningJobs = context.getRunningJobs();
@@ -347,6 +348,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable> {
         public void run() {
             if (!KylinConfig.getInstanceFromEnv().isUTEnv() && !EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).checkEpochId(epochId, project)) {
                 forceShutdown();
+                return;
             }
             //only the first 8 chars of the job uuid
             try (SetThreadName ignored = new SetThreadName("JobWorker(prj:%s,jobid:%s)", project,

@@ -31,7 +31,12 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.scheduler.ProjectControlledNotifier;
+import io.kyligence.kap.common.scheduler.ProjectEscapedNotifier;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.config.initialize.EpochChangedListener;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -303,5 +308,18 @@ public class SchedulerEventBusTest extends NLocalFileMetadataTestCase {
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .untilAsserted(() -> Assert.assertTrue(jobSchedulerListener.isJobReadyNotified()));
         System.clearProperty("kylin.scheduler.schedule-limit-per-minute");
+    }
+
+    @Test
+    public void testEpochChangedListener() throws Exception {
+        val prj = "test_epoch";
+        val listener = new EpochChangedListener();
+        val prjMgr = NProjectManager.getInstance(getTestConfig());
+        prjMgr.createProject("test_epoch", "ADMIN", "", null, MaintainModelType.MANUAL_MAINTAIN);
+        int oriCount = NDefaultScheduler.listAllSchedulers().size();
+        listener.onProjectControlled(new ProjectControlledNotifier(prj));
+        Assert.assertTrue(NDefaultScheduler.listAllSchedulers().size() == oriCount + 1);
+        listener.onProjectEscaped(new ProjectEscapedNotifier(prj));
+        Assert.assertTrue(NDefaultScheduler.listAllSchedulers().size() == oriCount);
     }
 }

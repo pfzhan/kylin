@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.JobProcessContext;
 import org.apache.kylin.common.KylinConfig;
@@ -99,6 +100,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Override
     public void setup() throws Exception {
         System.setProperty("kylin.job.auto-set-concurrent-jobs", "true");
+        System.setProperty("kylin.env", "UT");
         super.setup();
     }
 
@@ -108,6 +110,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         System.clearProperty("kylin.job.auto-set-concurrent-jobs");
         System.clearProperty("kylin.job.retry");
         System.clearProperty("kylin.job.retry-exception-classes");
+        System.clearProperty("kylin.env");
     }
 
     public ExpectedException thrown = ExpectedException.none();
@@ -1797,6 +1800,17 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
             job.addTask(task1);
             executableManager.addJob(job);
         }
+    }
+
+    @Test
+    public void testSchedulerShutdown() throws InterruptedException {
+        System.setProperty("kylin.env", "dev");
+        Assert.assertTrue(NDefaultScheduler.getInstance(project).hasStarted());
+        EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).forceUpdateEpoch(project);
+        NDefaultScheduler.getInstance(project).fetchJobsImmediately();
+        Thread.sleep(2000);
+        Assert.assertFalse(NDefaultScheduler.getInstance(project).hasStarted());
+        System.clearProperty("kylin.env");
     }
 
 }

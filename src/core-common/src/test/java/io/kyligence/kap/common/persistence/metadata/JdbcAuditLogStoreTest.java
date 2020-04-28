@@ -155,6 +155,30 @@ public class JdbcAuditLogStoreTest extends NLocalFileMetadataTestCase {
         ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
     }
 
+
+    @Test
+    public void testRestoreWithoutOrder() throws Exception {
+        val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());
+        workerStore.checkAndPutResource("/UUID", new StringEntity(UUID.randomUUID().toString()),
+                StringEntity.serializer);
+        Assert.assertEquals(1, workerStore.listResourcesRecursively("/").size());
+        val url = getTestConfig().getMetadataUrl();
+        val jdbcTemplate = getJdbcTemplate();
+        String unitId1 = UUID.randomUUID().toString();
+        String unitId2 = UUID.randomUUID().toString();
+        jdbcTemplate.batchUpdate(String.format(JdbcAuditLogStore.INSERT_SQL, url.getIdentifier() + "_audit_log"), Arrays.asList(
+                new Object[]{"/p1/abc", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc2", "abc".getBytes(), System.currentTimeMillis(), 0, unitId2, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 0, unitId1, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc3", "abc".getBytes(), System.currentTimeMillis(), 1, unitId2, null, LOCAL_INSTANCE},
+                new Object[]{"/p1/abc", null, null, null, unitId1, null, LOCAL_INSTANCE}
+        ));
+        workerStore.catchup();
+        Assert.assertEquals(3, workerStore.listResourcesRecursively("/").size());
+        ((JdbcAuditLogStore) workerStore.getAuditLogStore()).forceClose();
+    }
+
+
     @Test
     public void testRestore_WhenOtherAppend() throws Exception {
         val workerStore = ResourceStore.getKylinMetaStore(getTestConfig());

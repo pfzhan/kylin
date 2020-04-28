@@ -96,7 +96,11 @@ public class EpochChangedListener implements IKeep {
                 return 0;
             }, project, 1);
             logger.info("Register project metrics for {}", project);
-            NMetricsRegistry.registerProjectMetrics(kylinConfig, project);
+            try {
+                NMetricsRegistry.registerProjectMetrics(kylinConfig, project);
+            } catch (Exception e) {
+                logger.error("Failed to register project metrics:{}", project, e);
+            }
         } else {
             if (eventMgr.hasProjectEventCheckerStarted(GLOBAL))
                 return;
