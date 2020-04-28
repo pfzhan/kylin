@@ -99,7 +99,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
             resourceStore.checkAndPutResource("/p0/path4", ByteStreams.asByteSource("path4".getBytes()), -1);
             return 0;
         }, "p0");
-        await().atMost(2, TimeUnit.SECONDS).until(() -> 5 == queryResourceStore.listResourcesRecursively("/").size());
+        await().atMost(3, TimeUnit.SECONDS).until(() -> 5 == queryResourceStore.listResourcesRecursively("/").size());
     }
 
     @Test
@@ -131,7 +131,7 @@ public class HAMetadataTest extends NLocalFileMetadataTestCase {
             return 0;
         }, "p0");
 
-        await().atMost(2, TimeUnit.SECONDS).until(() -> 7 == queryResourceStore.listResourcesRecursively("/").size());
+        await().atMost(3, TimeUnit.SECONDS).until(() -> 7 == queryResourceStore.listResourcesRecursively("/").size());
         String table = getTestConfig().getMetadataUrl().getIdentifier() + "_audit_log";
         val auditCount = getJdbcTemplate().queryForObject(String.format("select count(*) from %s", table), Long.class);
         Assert.assertEquals(12L, auditCount.longValue());
