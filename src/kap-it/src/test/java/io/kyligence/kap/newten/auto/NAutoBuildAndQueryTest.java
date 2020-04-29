@@ -113,6 +113,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/string"),
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/misc"),
                 new TestScenario(CompareLevel.SAME, "query/sql_spark_func/math"),
+                new TestScenario(CompareLevel.SAME, "query/sql_spark_func/constant_query"),
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "query/sql_distinct_precisely"), //
@@ -123,6 +124,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                         "query/sql_computedcolumn/sql_computedcolumn_ifnull_timestamp"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_distinct/sql_distinct_hllc"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_function/sql_function_ifnull_timestamp"),
+                new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_function/sql_function_constant_func"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_h2_uncapable"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_limit"),
                 new TestScenario(CompareLevel.SAME_ROWCOUNT, "query/sql_percentile"),

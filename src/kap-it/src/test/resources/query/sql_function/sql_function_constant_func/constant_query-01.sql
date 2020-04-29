@@ -1,0 +1,1 @@
+select now(),uuid(),MONOTONICALLY_INCREASING_ID(),UNIX_TIMESTAMP();
