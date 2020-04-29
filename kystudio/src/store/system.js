@@ -22,6 +22,7 @@ export default {
     engine: 2,
     allowAdminExport: 'true',
     allowNotAdminExport: 'true',
+    enableStackTrace: 'true',
     filterUserName: '', // group页面 选择用户组件使用
     canaryReloadTimer: 15,
     sourceDefault: 0,
@@ -133,6 +134,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.storage.default', key: 'storage'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.export-allow-admin', key: 'allowAdminExport'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.export-allow-other', key: 'allowNotAdminExport'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.stack-trace.enabled', key: 'enableStackTrace'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.canary.default-canaries-period-min', key: 'canaryReloadTimer'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.source.default', key: 'sourceDefault'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.env.smart-mode-enabled', key: 'smartModeEnabled'})

@@ -19,7 +19,7 @@
         :closable="false"
         show-icon>
         <span class="error-title" v-html="filterInjectScript($store.state.config.errorMsgBox.msg).replace(/\r\n/g, '<br/><br/>')"></span>
-        <a href="javascript:;" @click="toggleDetail">{{$t('kylinLang.common.seeDetail')}}  
+        <a href="javascript:;" @click="toggleDetail" v-if="enableStackTrace === 'true'">{{$t('kylinLang.common.seeDetail')}}  
           <i class="el-icon-arrow-down" v-show="!showDetail"></i>
           <i class="el-icon-arrow-up" v-show="showDetail"></i>
         </a>
@@ -99,7 +99,8 @@ import { filterInjectScript } from 'util'
   },
   computed: {
     ...mapState({
-      showErrorMsgBox: state => state.config.errorMsgBox.isShow
+      showErrorMsgBox: state => state.config.errorMsgBox.isShow,
+      enableStackTrace: state => state.system.enableStackTrace
     }),
     licenseDialogShow () {
       return this.$store.state.system.showLisenceSuccessDialog
