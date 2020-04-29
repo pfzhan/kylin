@@ -93,7 +93,8 @@ public class QueryExec {
 
             RelRoot optimizedRelRoot = queryOptimizer.optimize(relRoot);
 
-            return executeQueryPlan(optimizedRelRoot.rel);
+            return new QueryResult(executeQueryPlan(optimizedRelRoot.rel),
+                    RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType));
         } catch (SqlParseException e) {
             // some special message for parsing error... to be compatible with avatica's error msg
             throw newSqlException(sql, "parse failed: " + e.getMessage(), e);
@@ -116,7 +117,7 @@ public class QueryExec {
 
             RelRoot relRoot = sqlConverter.convertSqlToRelNode(sql);
 
-            return RelColumnMetaDataExtractor.getColumnMetadata(relRoot.rel);
+            return RelColumnMetaDataExtractor.getColumnMetadata(relRoot.validatedRowType);
         } catch (Exception e) {
             throw new SQLException(e);
         } finally {
@@ -160,7 +161,7 @@ public class QueryExec {
      * @param rel
      * @return
      */
-    private QueryResult executeQueryPlan(RelNode rel) {
+    private List<List<String>> executeQueryPlan(RelNode rel) {
         QueryPlanExec planExec;
 
         if (!KapConfig.wrap(kylinConfig).isSparderEnabled()
@@ -169,7 +170,7 @@ public class QueryExec {
         } else {
             planExec = new SparderQueryPlanExec();
         }
-        return new QueryResult(planExec.execute(rel, dataContext), RelColumnMetaDataExtractor.getColumnMetadata(rel));
+        return planExec.execute(rel, dataContext);
     }
 
     private Prepare.CatalogReader createCatalogReader(CalciteConnectionConfig connectionConfig,
