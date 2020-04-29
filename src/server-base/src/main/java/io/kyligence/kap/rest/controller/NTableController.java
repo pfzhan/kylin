@@ -334,7 +334,6 @@ public class NTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<List<String>> showDatabases(@RequestParam(value = "project") String project)
             throws Exception {
-
         checkProjectName(project);
         List<String> databases = tableService.getSourceDbNames(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");

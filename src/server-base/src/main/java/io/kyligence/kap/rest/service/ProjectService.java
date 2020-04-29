@@ -545,7 +545,6 @@ public class ProjectService extends BasicService {
 
     @Transaction(project = 0)
     public void setDataSourceType(String project, String sourceType) {
-        aclEvaluate.checkProjectAdminPermission(project);
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().put("kylin.source.default", sourceType);
         });

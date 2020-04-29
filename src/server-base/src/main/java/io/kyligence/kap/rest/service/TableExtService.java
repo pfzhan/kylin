@@ -74,7 +74,7 @@ public class TableExtService extends BasicService {
      */
     @Transaction(project = 1, retry = 1)
     public LoadTableResponse loadTables(String[] tables, String project) throws Exception {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
 
         return ugi.doAs(new PrivilegedExceptionAction<LoadTableResponse>() {
@@ -150,7 +150,7 @@ public class TableExtService extends BasicService {
 
     @Transaction(project = 0, retry = 1)
     public LoadTableResponse loadTablesByDatabase(String project, final String[] databases) throws Exception {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, "");

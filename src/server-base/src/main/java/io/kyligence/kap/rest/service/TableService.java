@@ -848,7 +848,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void unloadTable(String project, String table, Boolean cascade) {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
@@ -887,7 +887,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0, readonly = true)
     public PreUnloadTableResponse preUnloadTable(String project, String tableIdentity) throws IOException {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         val response = new PreUnloadTableResponse();
         val dataflowManager = getDataflowManager(project);
         val tableMetadataManager = getTableManager(project);
@@ -1069,7 +1069,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0, readonly = true)
     public PreReloadTableResponse preProcessBeforeReload(String project, String tableIdentity) throws Exception {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         val context = calcReloadContext(project, tableIdentity);
         val result = new PreReloadTableResponse();
         result.setAddColumnCount(context.getAddColumns().size());
@@ -1097,7 +1097,7 @@ public class TableService extends BasicService {
 
     public void reloadTable(String projectName, String tableIdentity, boolean needSample, int maxRows,
             boolean needBuild) {
-        aclEvaluate.checkProjectAdminPermission(projectName);
+        aclEvaluate.checkProjectWritePermission(projectName);
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
             innerReloadTable(projectName, tableIdentity, needBuild);
             if (needSample && maxRows > 0) {
@@ -1537,7 +1537,7 @@ public class TableService extends BasicService {
 
     public NHiveTableNameResponse loadProjectHiveTableNameToCacheImmediately(String project, boolean force)
             throws Exception {
-        aclEvaluate.checkProjectAdminPermission(project);
+        aclEvaluate.checkProjectWritePermission(project);
         UserGroupInformation ugi = KerberosLoginManager.getInstance().getProjectUGI(project);
         return NHiveTableName.getInstance().fetchTablesImmediately(ugi, project, force);
     }

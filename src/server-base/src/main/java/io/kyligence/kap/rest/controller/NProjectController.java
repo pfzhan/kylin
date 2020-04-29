@@ -35,16 +35,13 @@ import java.util.Random;
 
 import javax.validation.Valid;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.security.AclPermissionFactory;
@@ -66,7 +63,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -157,7 +158,8 @@ public class NProjectController extends NBasicController {
             String leader = list.get(new Random().nextInt(list.size()));
             String[] hostAndPort = leader.split(":");
             try {
-                EpochRestClientTool.transferUpdateEpochRequest(hostAndPort[0], Integer.parseInt(hostAndPort[1]), projectDesc.getName());
+                EpochRestClientTool.transferUpdateEpochRequest(hostAndPort[0], Integer.parseInt(hostAndPort[1]),
+                        projectDesc.getName());
             } catch (IOException e) {
                 logger.info("Transfer update epoch request failed, wait for schedule worker to update epoch.");
             }
@@ -332,6 +334,7 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse<String> setDataSourceType(@PathVariable("project") String project,
             @RequestBody DataSourceTypeRequest request) {
+        aclEvaluate.checkProjectWritePermission(project);
         projectService.setDataSourceType(project, request.getSourceType());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
