@@ -279,7 +279,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public boolean isReady() {
-        return getStatus() == RealizationStatusEnum.ONLINE || RealizationStatusEnum.WARNING == getStatus();
+        return getStatus() == RealizationStatusEnum.ONLINE;
     }
 
     @Override

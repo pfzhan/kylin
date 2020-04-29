@@ -40,11 +40,25 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.metadata.realization;
+package io.kyligence.kap.rest.constant;
 
-import java.io.Serializable;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
-public enum RealizationStatusEnum implements Serializable {
+public enum ModelStatusToDisplayEnum {
+    OFFLINE, ONLINE, BROKEN, LAG_BEHIND, WARNING;
 
-    OFFLINE, ONLINE, BROKEN, LAG_BEHIND
+    public static ModelStatusToDisplayEnum convert(RealizationStatusEnum modelStatus) {
+        switch (modelStatus) {
+            case ONLINE:
+                return ONLINE;
+            case OFFLINE:
+                return OFFLINE;
+            case BROKEN:
+                return BROKEN;
+            case LAG_BEHIND:
+                return LAG_BEHIND;
+            default:
+                throw new IllegalStateException("error model status");
+        }
+    }
 }

@@ -32,7 +32,6 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
@@ -40,6 +39,7 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.kyligence.kap.metadata.acl.NDataModelAclParams;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -48,7 +48,7 @@ import lombok.Setter;
 public class NDataModelResponse extends NDataModel {
 
     @JsonProperty("status")
-    private RealizationStatusEnum status;
+    private ModelStatusToDisplayEnum status;
     @JsonProperty("last_build_end")
     private String lastBuildEnd;
 

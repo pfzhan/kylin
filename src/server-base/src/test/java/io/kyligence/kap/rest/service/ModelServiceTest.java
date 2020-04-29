@@ -179,6 +179,7 @@ import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.config.initialize.ModelBrokenListener;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -306,7 +307,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         val models = modelService.getModels(df.getModelAlias(), getProject(), true, "", null, "last_modify", true);
         Assert.assertEquals(1, models.size());
-        Assert.assertEquals(RealizationStatusEnum.WARNING, models.get(0).getStatus());
+        Assert.assertEquals(ModelStatusToDisplayEnum.WARNING, models.get(0).getStatus());
     }
 
     @Test
@@ -832,7 +833,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", true, "", null,
                 "last_modify", true);
         Assert.assertTrue(models.get(0).getUuid().equals("cb596712-3a09-46f8-aea1-988b43fe9b6c")
-                && models.get(0).getStatus().equals(RealizationStatusEnum.OFFLINE));
+                && models.get(0).getStatus().equals(ModelStatusToDisplayEnum.OFFLINE));
     }
 
     @Test

@@ -139,6 +139,7 @@ import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.config.initialize.ModelDropAddListener;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -420,7 +421,7 @@ public class ModelService extends BasicService {
         return modelResponseList;
     }
 
-    private boolean isListContains(List<String> status, RealizationStatusEnum modelStatus) {
+    private boolean isListContains(List<String> status, ModelStatusToDisplayEnum modelStatus) {
         return status == null || status.isEmpty() || (modelStatus != null && status.contains(modelStatus.name()));
     }
 
@@ -449,31 +450,25 @@ public class ModelService extends BasicService {
         pairs.forEach(p -> {
             val dataflow = p.getKey();
             val modelDesc = p.getValue();
-            RealizationStatusEnum modelStatus = modelDesc.isBroken() ? RealizationStatusEnum.BROKEN
-                    : getModelStatus(modelDesc.getUuid(), projectName);
-            long emptyIndexCount = modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
-                    : getEmptyIndexesCount(projectName, modelDesc.getId());
-            val segmentHoles = dfManager.calculateSegHoles(modelDesc.getUuid());
-            if (modelStatus == RealizationStatusEnum.ONLINE && (emptyIndexCount > 0 || !segmentHoles.isEmpty())) {
-                modelStatus = RealizationStatusEnum.WARNING;
-            }
-            boolean isModelStatusMatch = isListContains(status, modelStatus);
+            ModelStatusToDisplayEnum modelResponseStatus = convertModelStatusToDisplay(modelDesc, projectName);
+            boolean isModelStatusMatch = isListContains(status, modelResponseStatus);
             if (isModelStatusMatch) {
                 NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                 nDataModelResponse.setModelBroken(modelDesc.isBroken());
-                nDataModelResponse.setStatus(modelStatus);
+                nDataModelResponse.setStatus(modelResponseStatus);
                 nDataModelResponse.setStorage(dfManager.getDataflowStorageSize(modelDesc.getUuid()));
                 nDataModelResponse.setSource(dfManager.getDataflowSourceSize(modelDesc.getUuid()));
-                nDataModelResponse.setSegmentHoles(segmentHoles);
+                nDataModelResponse.setSegmentHoles(dfManager.calculateSegHoles(modelDesc.getUuid()));
                 nDataModelResponse.setExpansionrate(ModelUtils.computeExpansionRate(nDataModelResponse.getStorage(),
                         nDataModelResponse.getSource()));
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                 nDataModelResponse.setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
-                nDataModelResponse.setAvailableIndexesCount(modelStatus.equals(RealizationStatusEnum.BROKEN) ? 0
+                nDataModelResponse.setAvailableIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
                         : getAvailableIndexesCount(projectName, modelDesc.getId()));
                 nDataModelResponse.setTotalIndexes(modelDesc.isBroken() ? 0
                         : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
-                nDataModelResponse.setEmptyIndexesCount(emptyIndexCount);
+                nDataModelResponse.setEmptyIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
+                        : getEmptyIndexesCount(projectName, modelDesc.getId()));
                 filterModels.add(nDataModelResponse);
             }
         });
@@ -485,6 +480,18 @@ public class ModelService extends BasicService {
             filterModels.sort(comparator);
             return filterModels;
         }
+    }
+
+    private ModelStatusToDisplayEnum convertModelStatusToDisplay(NDataModel modelDesc, final String projectName) {
+        RealizationStatusEnum modelStatus = modelDesc.isBroken() ? RealizationStatusEnum.BROKEN
+                : getModelStatus(modelDesc.getUuid(), projectName);
+        ModelStatusToDisplayEnum modelResponseStatus = ModelStatusToDisplayEnum.convert(modelStatus);
+        val segmentHoles = getDataflowManager(projectName).calculateSegHoles(modelDesc.getUuid());
+        if (modelResponseStatus == ModelStatusToDisplayEnum.ONLINE
+                && (getEmptyIndexesCount(projectName, modelDesc.getId()) > 0 || CollectionUtils.isNotEmpty(segmentHoles))) {
+            modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
+        }
+        return modelResponseStatus;
     }
 
     private long getAvailableIndexesCount(String project, String id) {
