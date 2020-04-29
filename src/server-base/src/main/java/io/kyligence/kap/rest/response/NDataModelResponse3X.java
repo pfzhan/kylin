@@ -26,12 +26,12 @@ package io.kyligence.kap.rest.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import java.util.List;
 import java.util.Set;
@@ -84,13 +84,13 @@ public class NDataModelResponse3X extends NDataModel {
     private long lastModify;
 
     @JsonProperty("simplified_dimensions")
-    public List<NDataModel.NamedColumn> namedColumns;
+    private List<NDataModel.NamedColumn> namedColumns;
 
     @JsonProperty("all_measures")
-    public List<NDataModel.Measure> measures;
+    private List<NDataModel.Measure> measures;
 
     @JsonProperty("simplified_measures")
-    public List<SimplifiedMeasure> simplifiedMeasures;
+    private List<SimplifiedMeasure> simplifiedMeasures;
 
     @JsonProperty("name")
     private String name;
@@ -127,12 +127,12 @@ public class NDataModelResponse3X extends NDataModel {
     public enum ModelStatus3XEnum {
         READY, DISABLED, WARNING, DESCBROKEN;
 
-        public static ModelStatus3XEnum convert(RealizationStatusEnum realizationStatusEnum) {
-            if (null == realizationStatusEnum) {
+        public static ModelStatus3XEnum convert(ModelStatusToDisplayEnum modelStatusToDisplayEnum) {
+            if (null == modelStatusToDisplayEnum) {
                 return null;
             }
 
-            switch (realizationStatusEnum) {
+            switch (modelStatusToDisplayEnum) {
             case ONLINE:
                 return READY;
             case OFFLINE:
