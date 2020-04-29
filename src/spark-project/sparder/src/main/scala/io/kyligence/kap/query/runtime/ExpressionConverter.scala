@@ -386,6 +386,10 @@ object ExpressionConverter {
         }
       case ARRAY_VALUE_CONSTRUCTOR =>
         array(children.map(child => k_lit(child.toString)): _*)
+      case (IS_FALSE | IS_NOT_TRUE) =>
+        not(k_lit(children.head))
+      case (IS_TRUE | IS_NOT_FALSE) =>
+        k_lit(children.head)
       case unsupportedFunc =>
         throw new UnsupportedOperationException(unsupportedFunc.toString)
     }
