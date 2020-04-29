@@ -33,8 +33,6 @@ import java.util.stream.Collectors;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
@@ -46,7 +44,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
-import io.kyligence.kap.engine.spark.utils.SparkUtils;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
@@ -54,8 +51,6 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import scala.collection.JavaConversions;
 
@@ -80,7 +75,7 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
                 ResourceDetectUtils.findCountDistinctMeasure(cuboids));
         for (String segId : segmentIds) {
             NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
-            if(Objects.isNull(seg)) {
+            if (Objects.isNull(seg)) {
                 logger.info("Skip empty segment {}", segId);
                 continue;
             }
@@ -98,22 +93,20 @@ public class ResourceDetectBeforeCubingJob extends SparkApplication {
             infos.clearSparkPlans();
             for (NBuildSourceInfo source : sources) {
                 Dataset<Row> dataset = source.getParentDS();
-                val actionRdd = dataset.queryExecution().toRdd();
-                logger.info("leaf nodes is: {} ", SparkUtils.leafNodes(actionRdd));
+                val leafNodeNum = ResourceDetectUtils.getPartitions(dataset.queryExecution().executedPlan());
+                logger.info("leaf nodes is: {} ", leafNodeNum);
                 infos.recordSparkPlan(dataset.queryExecution().sparkPlan());
                 List<Path> paths = JavaConversions
                         .seqAsJavaList(ResourceDetectUtils.getPaths(dataset.queryExecution().sparkPlan()));
                 List<String> pathList = paths.stream().map(Path::toString).collect(Collectors.toList());
                 resourcePaths.put(String.valueOf(source.getLayoutId()), pathList);
-                layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()),
-                        SparkUtils.leafNodePartitionNums(actionRdd));
+                layoutLeafTaskNums.put(String.valueOf(source.getLayoutId()), Integer.valueOf(leafNodeNum));
             }
             ResourceDetectUtils.write(
                     new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()),
                     resourcePaths);
             ResourceDetectUtils.write(new Path(config.getJobTmpShareDir(project, jobId),
                     segId + "_" + ResourceDetectUtils.cubingDetectItemFileSuffix()), layoutLeafTaskNums);
-
         }
     }
 

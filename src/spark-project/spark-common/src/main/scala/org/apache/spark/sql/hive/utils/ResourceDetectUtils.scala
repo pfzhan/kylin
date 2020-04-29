@@ -33,7 +33,7 @@ import org.apache.hadoop.fs._
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.columnar.InMemoryTableScanExec
-import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
+import org.apache.spark.sql.execution.{FileSourceScanExec, LeafExecNode, SparkPlan}
 import org.apache.spark.sql.hive.execution.HiveTableScanExec
 
 import scala.collection.JavaConverters._
@@ -62,10 +62,22 @@ object ResourceDetectUtils extends Logging {
     paths
   }
 
+  def getPartitions(plan: SparkPlan): String = {
+    var pNum = 0
+    plan.foreach {
+      case plan: LeafExecNode =>
+        pNum = pNum + plan.execute().partitions.size
+        logInfo(s"${plan.nodeName} partition size ${plan.execute().partitions.size}")
+      case _ =>
+    }
+    logInfo(s"Partition num $pNum")
+    pNum.toString
+  }
+
   @throws[IOException]
   protected def listSourcePath(shareDir: Path): java.util.Map[String, java.util.Map[String, java.util.List[String]]] = {
     val fs = HadoopUtil.getWorkingFileSystem
-    val fileStatuses = fs.listStatus(shareDir, new PathFilter{
+    val fileStatuses = fs.listStatus(shareDir, new PathFilter {
       override def accept(path: Path): Boolean = {
         path.toString.endsWith(ResourceDetectUtils.fileName())
       }
@@ -76,10 +88,10 @@ object ResourceDetectUtils extends Logging {
       val fileName = file.getPath.getName
       val segmentId = fileName.substring(0, fileName.indexOf(ResourceDetectUtils.fileName) - 1)
       val map = ResourceDetectUtils.readResourcePathsAs[java.util.Map[String, java.util.List[String]]](file.getPath)
-        resourcePaths.put(segmentId, map)
+      resourcePaths.put(segmentId, map)
     }
     // return size with unit
-     resourcePaths
+    resourcePaths
   }
 
   def findCountDistinctMeasure(layouts: java.util.Collection[LayoutEntity]): Boolean = {

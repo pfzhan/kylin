@@ -99,7 +99,7 @@ class StorageStoreV1 extends StorageStore {
   }
 
   private def repartitionWriter(layout: LayoutEntity, outputPath: Path, kapConfig: KapConfig, dataFrame: DataFrame) = {
-    val tempPath = outputPath.toString + "_temp1"
+    val tempPath = outputPath.toString + "_temp_" + System.currentTimeMillis()
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
     val hadoopConf = dataFrame.sparkSession.sparkContext.hadoopConfiguration
@@ -185,7 +185,7 @@ class StorageStoreV2 extends StorageStore with Logging {
     val hadoopConf = sparkSession.sparkContext.hadoopConfiguration
     val fs = outputPath.getFileSystem(hadoopConf)
     StorageUtils.cleanTempPath(fs, outputPath, cleanSelf = true)
-    val tempPath1 = outputPathStr + "_temp1"
+    val tempPath1 = outputPathStr + "_temp_" + System.currentTimeMillis()
     val metrics = StorageUtils.writeWithMetrics(dataFrame, tempPath1)
     val rowCount = metrics.getMetrics(Metrics.CUBOID_ROWS_CNT)
     val bucket = StorageUtils.calculateBucketNum(tempPath1, layout, rowCount, kapConfig)

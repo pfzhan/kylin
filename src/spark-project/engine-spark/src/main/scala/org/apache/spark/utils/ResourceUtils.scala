@@ -29,7 +29,6 @@ import io.kyligence.kap.engine.spark.job.SparkJobConstants
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.hive.utils.DetectItem
 import org.apache.spark.util.Utils
 
 import scala.util.{Failure, Success, Try}
@@ -38,36 +37,24 @@ import scala.util.{Failure, Success, Try}
 object ResourceUtils extends Logging {
 
   @throws[Exception]
-  def caculateRequiredCores(sampSplitThreshold: String, detectItems: JMap[String, String], rowCount: Long): String = {
-
+  def caculateRequiredCores(detectItems: JMap[String, String]): String = {
     Try {
-      val lineCount = detectItems.get(DetectItem.ESTIMATED_LINE_COUNT)
-      if (lineCount == "0") {
-        logInfo(s"the lineCount is $lineCount")
-        return SparkJobConstants.DEFAULT_REQUIRED_CORES
+      val it = detectItems.entrySet().iterator()
+      var pNum = SparkJobConstants.DEFAULT_REQUIRED_CORES
+      if (it.hasNext) {
+        val item = it.next()
+        pNum = item.getValue
+        logInfo(s"Require core num is $pNum")
       }
-      val estimatedSize = detectItems.get(DetectItem.ESTIMATED_SIZE)
-      val splitThreshold = Utils.byteStringAsBytes(sampSplitThreshold)
-      val aveBytesSingleLine = estimatedSize.toDouble / lineCount.toDouble
-      assert(splitThreshold > aveBytesSingleLine)
-      val linesPerPartition = splitThreshold / aveBytesSingleLine
-      val partitions = if (linesPerPartition >= rowCount) {
-        SparkJobConstants.DEFAULT_REQUIRED_CORES
-      } else {
-        math.ceil(rowCount / linesPerPartition).toInt
-      }
-      logInfo(s"linecount is $lineCount, estimatedSize is $estimatedSize, splitThreshold is $splitThreshold")
-      logInfo(s"aveBytesSingleLine is $aveBytesSingleLine, linesPerPartition is $linesPerPartition, partitions is $partitions")
-      partitions.toString
+      pNum
     } match {
       case Success(partitionNum) =>
         partitionNum
       case Failure(throwable) =>
         logWarning(s"caculate required cores failed ${this.getClass.getName}", throwable)
-        return SparkJobConstants.DEFAULT_REQUIRED_CORES
+        SparkJobConstants.DEFAULT_REQUIRED_CORES
     }
   }
-
 
   def checkResource(sparkConf: SparkConf, clusterManager: IClusterManager): Boolean = {
     val queue = sparkConf.get("spark.yarn.queue", "default")

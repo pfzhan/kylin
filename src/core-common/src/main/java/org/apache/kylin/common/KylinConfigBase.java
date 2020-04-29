@@ -1066,10 +1066,6 @@ public abstract class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.engine.spark.task-impact-instance-enabled", TRUE));
     }
 
-    public Boolean getSparkEngineDataImpactInstanceEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.engine.spark.data-impact-instance-enabled", TRUE));
-    }
-
     public int getSparkEngineBaseExuctorInstances() {
         return Integer.parseInt(getOptional("kylin.engine.base-executor-instance", "5"));
     }
@@ -1709,7 +1705,7 @@ public abstract class KylinConfigBase implements Serializable {
 
     //Kerberos
     public boolean getKerberosProjectLevelEnable() {
-        return Boolean.parseBoolean(getOptional("kylin.kerberos.project-level-enabled", "false"));
+        return Boolean.parseBoolean(getOptional("kylin.kerberos.project-level-enabled", FALSE));
     }
 
     private double safeParseDouble(String value, double defaultValue) {

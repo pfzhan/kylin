@@ -34,6 +34,7 @@ import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, _}
 import org.apache.spark.sql.DataFrameEnhancement._
+
 class TableAnalysisJob(tableDesc: TableDesc,
                        project: String,
                        rowCount: Long,

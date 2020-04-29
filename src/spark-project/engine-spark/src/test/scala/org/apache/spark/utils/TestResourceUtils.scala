@@ -22,12 +22,10 @@
 
 package org.apache.spark.utils
 
-import com.google.common.collect.Maps
 import io.kyligence.kap.cluster.{AvailableResource, ResourceInfo, YarnClusterManager}
 import io.kyligence.kap.engine.spark.utils.SparkConfHelper._
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.common.SparderBaseFunSuite
-import org.apache.spark.sql.hive.utils.DetectItem
 import org.mockito.Mockito
 
 class TestResourceUtils extends SparderBaseFunSuite {
@@ -119,18 +117,6 @@ class TestResourceUtils extends SparderBaseFunSuite {
     } catch {
       case e: Exception => assert(e.getMessage == "Total queue resource does not meet requirement")
     }
-  }
-
-
-  test("test caculateRequiredCores") {
-    val detectedItems: java.util.Map[String, String] = Maps.newLinkedHashMap()
-    detectedItems.put(DetectItem.ESTIMATED_LINE_COUNT, "10000")
-    detectedItems.put(DetectItem.ESTIMATED_SIZE, "23120216")
-    assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 20000000) == "147")
-    assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 136055) == "1")
-    detectedItems.put(DetectItem.ESTIMATED_LINE_COUNT, "0")
-    assert(ResourceUtils.caculateRequiredCores("300m", detectedItems, 136055) == "1")
-
   }
 
 }
