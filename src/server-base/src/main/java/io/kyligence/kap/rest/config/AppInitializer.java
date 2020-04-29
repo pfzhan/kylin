@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.config;
 
+import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import io.kyligence.kap.rest.service.NQueryHistoryScheduler;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -104,7 +105,11 @@ public class AppInitializer {
             resourceStore.catchup();
         }
         event.getApplicationContext().publishEvent(new AfterMetadataReadyEvent(event.getApplicationContext()));
-
+        if(kylinConfig.isSparderAsync()){
+            event.getApplicationContext().publishEvent(new SparderStartEvent.AsyncEvent(event.getApplicationContext()));
+        } else {
+            event.getApplicationContext().publishEvent(new SparderStartEvent.SyncEvent(event.getApplicationContext()));
+        }
         // register acl update listener
         EventListenerRegistry.getInstance(kylinConfig).register(new AclTCRListener(queryCacheManager), "acl");
 

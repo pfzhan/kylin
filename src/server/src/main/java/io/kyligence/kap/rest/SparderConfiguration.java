@@ -26,6 +26,7 @@ package io.kyligence.kap.rest;
 import java.io.File;
 import java.nio.file.Paths;
 
+import io.kyligence.kap.rest.config.initialize.SparderStartEvent;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -35,17 +36,27 @@ import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
-import io.kyligence.kap.rest.config.initialize.AfterMetadataReadyEvent;
 import io.kyligence.kap.rest.monitor.SparkContextCanary;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 
 @Slf4j
 @Configuration
 @AutoConfigureOrder
 public class SparderConfiguration {
 
-    @EventListener(AfterMetadataReadyEvent.class)
-    public void init(AfterMetadataReadyEvent event) {
+    @Async
+    @EventListener(SparderStartEvent.AsyncEvent.class)
+    public void initAsync(SparderStartEvent.AsyncEvent event) {
+        init();
+    }
+
+    @EventListener(SparderStartEvent.SyncEvent.class)
+    public void initSync(SparderStartEvent.SyncEvent event) {
+        init();
+    }
+
+    public void init() {
         SparderEnv.init();
         SparkInfoCollector.collectSparkInfo();
         if (System.getProperty("spark.local", "false").equals("true")) {

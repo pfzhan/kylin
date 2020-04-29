@@ -1797,4 +1797,8 @@ public abstract class KylinConfigBase implements Serializable {
     public int getQueryHistoryBufferSize() {
         return Integer.parseInt(getOptional("kylin.query.queryhistory.buffer-size", "1000"));
     }
+
+    public Boolean isSparderAsync() {
+        return Boolean.valueOf(this.getOptional("kylin.query.init-sparder-async", TRUE));
+    }
 }
