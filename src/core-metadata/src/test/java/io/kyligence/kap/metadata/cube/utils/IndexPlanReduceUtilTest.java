@@ -303,7 +303,7 @@ public class IndexPlanReduceUtilTest {
         // for auto-modeling proposition
 
         List<LayoutEntity> inputLayouts = collectLayouts(entity1, entity2);
-        inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID); // consist with NCuboidReducer
+        inputLayouts.removeIf(layout -> IndexEntity.isTableIndex(layout.getId())); // consist with NCuboidReducer
         Map<LayoutEntity, LayoutEntity> map1 = IndexPlanReduceUtil.collectIncludedLayouts(inputLayouts, false);
         Assert.assertEquals(0, map1.size());
 

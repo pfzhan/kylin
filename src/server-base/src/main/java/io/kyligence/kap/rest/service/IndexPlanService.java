@@ -462,7 +462,7 @@ public class IndexPlanService extends BasicService {
         Preconditions.checkState(indexPlan != null);
         List<TableIndexResponse> result = Lists.newArrayList();
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
-            if (cuboidLayout.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
+            if (IndexEntity.isTableIndex(cuboidLayout.getId())) {
                 result.add(convertToTableIndexResponse(cuboidLayout, indexPlan.getModel()));
             }
         }

@@ -59,7 +59,7 @@ class NCuboidReducer extends NAbstractCubeProposer {
         // collect redundant layouts
         List<LayoutEntity> layoutsToHandle = indexPlan.getAllLayouts();
         if (!KylinConfig.getInstanceFromEnv().isIncludedStrategyConsiderTableIndex()) {
-            layoutsToHandle.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
+            layoutsToHandle.removeIf(layout -> IndexEntity.isTableIndex(layout.getId()));
         }
         Map<LayoutEntity, LayoutEntity> redundantToReservedMap = Maps.newHashMap();
         redundantToReservedMap.putAll(IndexPlanReduceUtil.collectIncludedLayouts(layoutsToHandle, false));

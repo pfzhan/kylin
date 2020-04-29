@@ -76,7 +76,7 @@ public class SimilarLayoutOptStrategy extends AbstractOptStrategy {
 
     @Override
     protected void skipOptimizeTableIndex(List<LayoutEntity> inputLayouts) {
-        inputLayouts.removeIf(layout -> layout.getId() > IndexEntity.TABLE_INDEX_START_ID);
+        inputLayouts.removeIf(layout -> IndexEntity.isTableIndex(layout.getId()));
     }
 
     private void shiftLayoutHitCount(List<Pair<LayoutEntity, LayoutEntity>> pairs, NDataflow dataflow) {
@@ -130,7 +130,7 @@ public class SimilarLayoutOptStrategy extends AbstractOptStrategy {
             NDataLayout fatherData = dataLayoutMap.get(father.getId());
 
             // for TableIndex, ignore similarity.
-            if (son.getId() > IndexEntity.TABLE_INDEX_START_ID) {
+            if (IndexEntity.isTableIndex(son.getId())) {
                 retainedMap.add(new Pair<>(son, father));
                 return;
             }
@@ -153,7 +153,7 @@ public class SimilarLayoutOptStrategy extends AbstractOptStrategy {
         Set<Pair<LayoutEntity, LayoutEntity>> lineageSet = Sets.newHashSet();
         Map<Set<Integer>, Set<LayoutEntity>> layoutsGroupByMeasures = Maps.newHashMap();
         inputLayouts.forEach(layout -> {
-            Set<Integer> dimGroup = layout.getId() > IndexEntity.TABLE_INDEX_START_ID //
+            Set<Integer> dimGroup = IndexEntity.isTableIndex(layout.getId()) //
                     ? Sets.newHashSet() // all table index add to one group
                     : layout.getColOrder().stream().filter(idx -> idx >= NDataModel.MEASURE_ID_BASE)
                             .collect(Collectors.toSet());

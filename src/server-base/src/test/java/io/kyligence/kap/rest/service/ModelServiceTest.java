@@ -551,7 +551,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         IndicesResponse indices = modelService.getTableIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertEquals(4, indices.getIndices().size());
-        Assert.assertTrue(indices.getIndices().get(0).getId() >= IndexEntity.TABLE_INDEX_START_ID);
+        Assert.assertTrue(IndexEntity.isTableIndex(indices.getIndices().get(0).getId()));
 
     }
 

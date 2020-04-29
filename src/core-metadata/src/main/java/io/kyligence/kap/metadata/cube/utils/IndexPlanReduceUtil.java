@@ -50,7 +50,7 @@ public class IndexPlanReduceUtil {
         Map<List<Integer>, Set<LayoutEntity>> aggIndexDimGroup = Maps.newHashMap();
         inputLayouts.forEach(layout -> {
             // layout.getOrderedDimensions() maybe more better, but difficult to cover with simple UT
-            if (layout.getId() > IndexEntity.TABLE_INDEX_START_ID) {
+            if (IndexEntity.isTableIndex(layout.getId())) {
                 tableIndexGroup.add(layout);
             } else {
                 List<Integer> aggIndexDims = layout.getColOrder().stream().filter(idx -> idx < NDataModel.MEASURE_ID_BASE)
@@ -112,7 +112,7 @@ public class IndexPlanReduceUtil {
      * For AggIndex, only need to judge measures included; for TableIndex, compare colOrder.
      */
     private static boolean isContained(LayoutEntity current, LayoutEntity target) {
-        boolean isTableIndex = target.getId() > IndexEntity.TABLE_INDEX_START_ID;
+        boolean isTableIndex = IndexEntity.isTableIndex(target.getId());
         if (isTableIndex) {
             return isSubPartColOrder(current.getColOrder(), target.getColOrder());
         }

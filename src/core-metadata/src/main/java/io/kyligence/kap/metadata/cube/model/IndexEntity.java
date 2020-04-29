@@ -263,6 +263,10 @@ public class IndexEntity implements Serializable, IKeep {
     }
 
     public boolean isTableIndex() {
+        return isTableIndex(id);
+    }
+
+    public static boolean isTableIndex(long id) {
         return id >= TABLE_INDEX_START_ID;
     }
 

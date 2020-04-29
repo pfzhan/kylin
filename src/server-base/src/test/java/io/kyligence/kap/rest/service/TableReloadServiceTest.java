@@ -907,7 +907,7 @@ public class TableReloadServiceTest extends CSVSourceTestCase {
                 indexPlan2.getNextAggregationIndexId());
         Assert.assertEquals(
                 nextTableIndexId + IndexEntity.INDEX_ID_STEP
-                        * diff.stream().filter(l -> l >= IndexEntity.TABLE_INDEX_START_ID).count(),
+                        * diff.stream().filter(IndexEntity::isTableIndex).count(),
                 indexPlan2.getNextTableIndexId());
 
         val eventDao = EventDao.getInstance(getTestConfig(), PROJECT);

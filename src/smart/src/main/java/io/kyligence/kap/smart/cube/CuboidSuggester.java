@@ -362,7 +362,7 @@ class CuboidSuggester {
         List<Long> cuboidIds = Lists.newArrayList();
         for (IndexEntity indexEntity : indexEntities) {
             long indexEntityId = indexEntity.getId();
-            if ((isTableIndex && indexEntityId >= IndexEntity.TABLE_INDEX_START_ID)
+            if ((isTableIndex && IndexEntity.isTableIndex(indexEntityId))
                     || (!isTableIndex && indexEntityId < IndexEntity.TABLE_INDEX_START_ID)) {
                 cuboidIds.add(indexEntityId);
             }

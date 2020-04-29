@@ -313,7 +313,7 @@ public class DFBuildJob extends SparkApplication {
         logger.info("Build index:{}, in segment:{}", cuboid.getId(), seg.getId());
         LinkedList<NDataLayout> layouts = Lists.newLinkedList();
         Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
-        if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
+        if (IndexEntity.isTableIndex(cuboid.getId())) {
             Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid

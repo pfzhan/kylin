@@ -667,7 +667,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectReadPermission(project);
         IndexPlan indexPlan = getIndexPlan(modelId, project);
         IndicesResponse result = new IndicesResponse(indexPlan);
-        indexPlan.getAllIndexes().stream().filter(e -> e.getId() >= IndexEntity.TABLE_INDEX_START_ID)
+        indexPlan.getAllIndexes().stream().filter(e -> IndexEntity.isTableIndex(e.getId()))
                 .forEach(result::addIndexEntity);
         return result;
     }
