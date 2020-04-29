@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,8 +37,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -52,11 +51,13 @@ import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionType;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -72,13 +73,16 @@ import io.kyligence.kap.common.persistence.transaction.TransactionLock;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.config.initialize.ProjectDropListener;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
@@ -105,6 +109,9 @@ public class ProjectService extends BasicService {
 
     @Autowired
     private AsyncTaskService asyncTaskService;
+
+    @Autowired
+    private AccessService accessService;
 
     private static final String DEFAULT_VAL = "default";
 
@@ -522,7 +529,6 @@ public class ProjectService extends BasicService {
             if (uppderDB.equals(projectInstance.getDefaultDatabase())) {
                 return;
             }
-
             projectInstance.setDefaultDatabase(uppderDB);
             prjManager.updateProject(projectInstance);
         } else {
@@ -597,6 +603,29 @@ public class ProjectService extends BasicService {
                         + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config', 'storage_quota_config'} to 'reset_item'.");
         }
         return getProjectConfig(project);
+    }
+
+    @Transaction(project = 0)
+    public void updateProjectOwner(String project, OwnerChangeRequest ownerChangeRequest) {
+        try {
+            aclEvaluate.checkIsGlobalAdmin();
+            checkTargetOwnerPermission(project, ownerChangeRequest.getOwner());
+        } catch (AccessDeniedException e) {
+            throw new KylinException("KE-1046", MsgPicker.getMsg().getPROJECT_CHANGE_PERMISSION());
+        } catch (IOException e) {
+            throw new KylinException("KE-1046", MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
+        }
+
+        getProjectManager().updateProject(project, copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
+    }
+
+    private void checkTargetOwnerPermission(String project, String owner) throws IOException {
+        Set<String> projectAdminUsers = accessService.getProjectAdminUsers(project);
+        projectAdminUsers.remove(getProjectManager().getProject(project).getOwner());
+        if (CollectionUtils.isEmpty(projectAdminUsers) || !projectAdminUsers.contains(owner)) {
+            Message msg = MsgPicker.getMsg();
+            throw new KylinException("KE-1046", msg.getPROJECT_OWNER_CHANGE_INVALID_USER());
+        }
     }
 
     public boolean isProjectWriteLocked(String project) {

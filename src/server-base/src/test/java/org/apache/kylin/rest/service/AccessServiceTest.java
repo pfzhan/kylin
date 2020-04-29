@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
@@ -220,4 +221,17 @@ public class AccessServiceTest extends ServiceTestBase {
         Assert.assertEquals("ANALYST", ((GrantedAuthoritySid) result.get(0).getSid()).getGrantedAuthority());
     }
 
+    @Test
+    public void testGetProjectAdminUsers() throws IOException {
+        String project = "default";
+        Set<String> result = accessService.getProjectAdminUsers(project);
+        Assert.assertEquals(1, result.size());
+    }
+
+    @Test
+    public void testGetProjectManagementUsers() throws IOException {
+        String project = "default";
+        Set<String> result = accessService.getProjectManagementUsers(project);
+        Assert.assertEquals(1, result.size());
+    }
 }

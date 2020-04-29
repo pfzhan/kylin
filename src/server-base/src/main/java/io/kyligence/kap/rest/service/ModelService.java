@@ -79,6 +79,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -90,6 +91,7 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -143,6 +145,7 @@ import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelParatitionDescRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.AggGroupResponse;
@@ -201,6 +204,9 @@ public class ModelService extends BasicService {
 
     @Autowired
     private ProjectService projectService;
+
+    @Autowired
+    private AccessService accessService;
 
     private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
@@ -1249,6 +1255,7 @@ public class ModelService extends BasicService {
             // new model
             checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
         }
+        modelRequest.setOwner(AclPermissionUtil.getCurrentUsername());
         checkModelRequest(modelRequest);
 
         //remove some attributes in modelResponse to fit NDataModel
@@ -1341,9 +1348,8 @@ public class ModelService extends BasicService {
     }
 
     private void checkModelOwner(ModelRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            request.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
+        if (StringUtils.isBlank(request.getOwner())) {
+            throw new KylinException("KE-1010", "Invalid parameter, model owner is empty.");
         }
     }
 
@@ -2559,6 +2565,34 @@ public class ModelService extends BasicService {
         });
         semanticUpdater.handleSemanticUpdate(project, oldDataModel.getUuid(), oldDataModel,
                 modelParatitionDescRequest.getStart(), modelParatitionDescRequest.getEnd());
+    }
+
+    @Transaction(project = 0)
+    public void updateModelOwner(String project, String modelId, OwnerChangeRequest ownerChangeRequest) {
+        try {
+            aclEvaluate.checkProjectAdminPermission(project);
+            checkTargetOwnerPermission(project, modelId, ownerChangeRequest.getOwner());
+        } catch (AccessDeniedException e) {
+            throw new KylinException("KE-1046", MsgPicker.getMsg().getMODEL_CHANGE_PERMISSION());
+        } catch (IOException e) {
+            throw new KylinException("KE-1046", MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
+        }
+
+        getDataModelManager(project).updateDataModel(modelId, copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
+    }
+
+    private void checkTargetOwnerPermission(String project, String modelId, String owner) throws IOException {
+        Set<String> projectManagementUsers = accessService.getProjectManagementUsers(project);
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
+        if (Objects.isNull(model) || model.isBroken()) {
+            throw new KylinException("KE-1037", "Model " + modelId + " does not exist or broken in project " + project);
+        }
+        projectManagementUsers.remove(model.getOwner());
+
+        if (CollectionUtils.isEmpty(projectManagementUsers) || !projectManagementUsers.contains(owner)) {
+            Message msg = MsgPicker.getMsg();
+            throw new KylinException("KE-1046", msg.getMODEL_OWNER_CHANGE_INVALID_USER());
+        }
     }
 
     private void changeModelOwner(NDataModel model) {

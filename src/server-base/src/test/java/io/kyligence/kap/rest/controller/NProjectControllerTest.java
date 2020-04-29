@@ -51,10 +51,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.rest.security.AclPermissionType;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
@@ -86,6 +86,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
@@ -389,5 +390,18 @@ public class NProjectControllerTest extends NLocalFileMetadataTestCase {
                 .accept(MediaType.parseMediaType(HTTP_VND_APACHE_KYLIN_JSON)))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nProjectController).updateYarnQueue("project", request);
+    }
+
+    @Test
+    public void testUpdateProjectOwner() {
+        String project = "default";
+        String owner = "test";
+
+        OwnerChangeRequest ownerChangeRequest = new OwnerChangeRequest();
+        ownerChangeRequest.setOwner(owner);
+
+        Mockito.doNothing().when(projectService).updateProjectOwner(project, ownerChangeRequest);
+        nProjectController.updateProjectOwner(project, ownerChangeRequest);
+        Mockito.verify(nProjectController).updateProjectOwner(project, ownerChangeRequest);
     }
 }

@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
@@ -141,6 +142,38 @@ public class NAccessController extends NBasicController {
         List<String> matchedSids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, whole);
         List<String> subList = PagingUtil.cutPage(matchedSids, pageOffset, pageSize);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedSids), "");
+    }
+
+    @GetMapping(value = "/available/{entity_type:.+}")
+    @ResponseBody
+    public EnvelopeResponse<DataResult<List<String>>> getAvailableUsers(
+            @PathVariable("entity_type") String entityType,
+            @RequestParam(value = "project") String project,
+            @RequestParam(value = "model", required = false) String modelId,
+            @RequestParam(value = "name", required = false) String nameSeg,
+            @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) throws IOException {
+        checkProjectName(project);
+
+        List<String> whole = Lists.newArrayList();
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
+            whole.addAll(accessService.getProjectAdminUsers(project));
+            whole.remove(getProject(project).getOwner());
+        } else {
+            checkRequiredArg("model", modelId);
+            whole.addAll(accessService.getProjectManagementUsers(project));
+
+            NDataModel model = projectService.getDataModelManager(project).getDataModelDesc(modelId);
+            if (Objects.isNull(model) || model.isBroken()) {
+                throw new KylinException("KE-1037", "Model " + modelId + "does not exist or broken in project " + project);
+            }
+            whole.remove(model.getOwner());
+        }
+
+        List<String> matchedUsers = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, whole);
+        List<String> subList = PagingUtil.cutPage(matchedUsers, pageOffset, pageSize);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, DataResult.get(subList, matchedUsers), "");
     }
 
     @ApiOperation(value = "getAccessEntities (update)", notes = "Update Param: is_case_sensitive, page_offset, page_size; Update Response: total_size")

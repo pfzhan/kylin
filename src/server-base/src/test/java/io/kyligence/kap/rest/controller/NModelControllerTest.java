@@ -53,16 +53,16 @@ import java.util.UUID;
 import io.kyligence.kap.rest.response.JobInfoResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.SqlAccerelateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,6 +100,7 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.request.SegmentFixRequest;
 import io.kyligence.kap.rest.request.SegmentTimeRequest;
@@ -1038,6 +1039,21 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(modelService).checkFilterCondition(Mockito.any());
         nModelController.checkFilterCondition(modelRequest);
         Mockito.verify(nModelController).checkFilterCondition(modelRequest);
+    }
+
+    @Test
+    public void testUpdateModelOwner() {
+        String project = "default";
+        String owner = "test";
+        String modelId = UUID.randomUUID().toString();
+
+        OwnerChangeRequest ownerChangeRequest = new OwnerChangeRequest();
+        ownerChangeRequest.setProject(project);
+        ownerChangeRequest.setOwner(owner);
+
+        Mockito.doNothing().when(modelService).updateModelOwner(project, modelId, ownerChangeRequest);
+        nModelController.updateModelOwner(modelId, ownerChangeRequest);
+        Mockito.verify(nModelController).updateModelOwner(modelId, ownerChangeRequest);
     }
 
 }

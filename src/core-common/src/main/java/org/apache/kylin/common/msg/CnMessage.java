@@ -303,6 +303,14 @@ public class CnMessage extends Message {
         return "模型 '%s' 导入失败：模型中的事实表在其他模型中已经作为维度表存在。";
     }
 
+    public String getMODEL_CHANGE_PERMISSION() {
+        return "仅系统管理员和项目管理员可以更改模型的所有者。";
+    }
+
+    public String getMODEL_OWNER_CHANGE_INVALID_USER() {
+        return "非法用户！仅系统管理员、项目的管理员角色和 Management 角色可以被设置成模型的所有者。";
+    }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "非法时间条件: %s";
@@ -340,6 +348,14 @@ public class CnMessage extends Message {
 
     public String getRENAME_PROJECT_NOT_EMPTY() {
         return "不能重命名该项目，如果要重命名请先清空其中的Cube和Model";
+    }
+
+    public String getPROJECT_CHANGE_PERMISSION() {
+        return "仅系统管理员可以更改项目的所有者。";
+    }
+
+    public String getPROJECT_OWNER_CHANGE_INVALID_USER() {
+        return "非法用户！仅系统管理员和该项目的管理员可以被设置成项目的所有者。";
     }
 
     // Table
@@ -571,6 +587,10 @@ public class CnMessage extends Message {
 
     public String getUSER_EDIT_NOT_ALLOWED_FOR_CUSTOM() {
         return "暂不支持客户认证接入机制下的用户编辑操作, 方法 '%s' 未被实现";
+    }
+
+    public String getOWNER_CHANGE_ERROR() {
+        return "更改失败，请重试。";
     }
 
     // Diagnosis

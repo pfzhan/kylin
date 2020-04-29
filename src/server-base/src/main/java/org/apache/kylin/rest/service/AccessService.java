@@ -43,6 +43,7 @@
 package org.apache.kylin.rest.service;
 
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -70,6 +71,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
+import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.MutableAclRecord;
@@ -98,6 +100,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
@@ -511,6 +514,27 @@ public class AccessService extends BasicService {
         }
 
         return grantedProjects;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    public Set<String> getProjectAdminUsers(String project) throws IOException {
+        List<ManagedUser> allUsers = userService.listUsers();
+        return allUsers.stream()
+                .filter(user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
+                        || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION))
+                .map(ManagedUser::getUsername)
+                .collect(Collectors.toSet());
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public Set<String> getProjectManagementUsers(String project) throws IOException {
+        List<ManagedUser> allUsers = userService.listUsers();
+        return allUsers.stream()
+                .filter(user -> user.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(ROLE_ADMIN::equals)
+                        || AclPermissionUtil.isSpecificPermissionInProject(user, project, ADMINISTRATION)
+                        || AclPermissionUtil.isSpecificPermissionInProject(user, project, AclPermission.MANAGEMENT))
+                .map(ManagedUser::getUsername)
+                .collect(Collectors.toSet());
     }
 
     private List<String> getGroupsFromCurrentUser() {

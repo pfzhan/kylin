@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.util;
 
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -57,22 +59,24 @@ import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclManager;
-import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.GrantedAuthoritySid;
 import org.springframework.security.acls.domain.PrincipalSid;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.ObjectIdentity;
+import org.springframework.security.acls.model.Permission;
 import org.springframework.security.acls.model.Sid;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.user.ManagedUser;
 
 public class AclPermissionUtil {
 
@@ -115,8 +119,15 @@ public class AclPermissionUtil {
     }
 
     public static Set<String> getCurrentUserGroupsInProject(String project) {
-        Set<String> groups = getCurrentUserGroups();
+        return filterGroupsInProject(getCurrentUserGroups(), project);
+    }
 
+    public static Set<String> getUserGroupsInProject(ManagedUser user, String project) {
+        Set<String> groups = user.getAuthorities().stream().map(SimpleGrantedAuthority::toString).collect(Collectors.toSet());
+        return filterGroupsInProject(groups, project);
+    }
+
+    private static Set<String> filterGroupsInProject(Set<String> groups, String project) {
         MutableAclRecord acl = getProjectAcl(project);
         if (Objects.isNull(acl)) {
             return groups;
@@ -166,29 +177,34 @@ public class AclPermissionUtil {
         if (Objects.isNull(auth)) {
             return false;
         }
-        String username = auth.getName();
+
         Set<String> groups = getCurrentUserGroupsInProject(project);
+        return isSpecificPermissionInProject(auth.getName(), groups, project, ADMINISTRATION);
+    }
+
+    public static boolean isSpecificPermissionInProject(ManagedUser user, String project, Permission aclPermission) {
+        Set<String> groups = getUserGroupsInProject(user, project);
+        return isSpecificPermissionInProject(user.getUsername(), groups, project, aclPermission);
+    }
+
+    public static boolean isSpecificPermissionInProject(String username, Set<String> userGroupsInProject, String project, Permission aclPermission) {
         MutableAclRecord acl = getProjectAcl(project);
         if (Objects.isNull(acl)) {
             return false;
         }
         Sid sid;
         for (AccessControlEntry ace : acl.getEntries()) {
-            if (isProjectAdmin(ace)) {
+            if (ace.getPermission().getMask() == aclPermission.getMask()) {
                 sid = ace.getSid();
                 if (isCurrentUser(sid, username)) {
                     return true;
                 }
-                if (isCurrentGroup(sid, groups)) {
+                if (isCurrentGroup(sid, userGroupsInProject)) {
                     return true;
                 }
             }
         }
         return false;
-    }
-
-    private static boolean isProjectAdmin(AccessControlEntry ace) {
-        return ace.getPermission().getMask() == AclPermission.ADMINISTRATION.getMask();
     }
 
     private static boolean isCurrentUser(Sid sid, String username) {

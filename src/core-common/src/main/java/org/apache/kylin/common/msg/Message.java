@@ -295,6 +295,14 @@ public class Message {
         return "Model '%s' import failed: the fact table in the model already exists as a dimension table in other models.";
     }
 
+    public String getMODEL_CHANGE_PERMISSION() {
+        return "Only the system administrator or the project administrator can change the owner of the model.";
+    }
+
+    public String getMODEL_OWNER_CHANGE_INVALID_USER() {
+        return "Illegal users! Only the system administrator, project administrator role, and management role can be set as the model owner.";
+    }
+
     // Job
     public String getILLEGAL_TIME_FILTER() {
         return "Illegal timeFilter: %s.";
@@ -403,6 +411,10 @@ public class Message {
         return "Only ADMIN user is allowed to login in as another user.";
     }
 
+    public String getOWNER_CHANGE_ERROR() {
+        return "The change failed. Please try again.";
+    }
+
     // Project
     public String getINVALID_PROJECT_NAME() {
         return "Please use number, letter, and underline to name your project, and start with a number or a letter.";
@@ -438,6 +450,14 @@ public class Message {
 
     public String getPROJECT_FAILED() {
         return "Cannot find project.";
+    }
+
+    public String getPROJECT_CHANGE_PERMISSION() {
+        return "Only the system administrator can change the owner of the project.";
+    }
+
+    public String getPROJECT_OWNER_CHANGE_INVALID_USER() {
+        return "Illegal users! Only the system administrator and the project administrator role of this project can be set as the project owner.";
     }
 
     // Table

@@ -67,6 +67,7 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
@@ -108,6 +109,7 @@ import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.rest.config.initialize.BootstrapCommand;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.PushDownConfigRequest;
 import io.kyligence.kap.rest.request.SegmentConfigRequest;
@@ -132,6 +134,9 @@ public class ProjectServiceTest extends ServiceTestBase {
     @Mock
     private AsyncTaskService asyncTaskService = Mockito.spy(AsyncTaskService.class);
 
+    @Mock
+    private AccessService accessService = Mockito.spy(AccessService.class);
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -146,6 +151,7 @@ public class ProjectServiceTest extends ServiceTestBase {
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", Mockito.spy(AclUtil.class));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         ReflectionTestUtils.setField(projectService, "asyncTaskService", asyncTaskService);
+        ReflectionTestUtils.setField(projectService, "accessService", accessService);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
@@ -699,5 +705,40 @@ public class ProjectServiceTest extends ServiceTestBase {
             Assert.assertTrue(projectInstance2.getConfig().exposeComputedColumn());
             projectManager.dropProject("project11");
         }
+    }
+
+    @Test
+    public void testUpdateProjectOwner() throws IOException {
+        String project = "default";
+        String owner = "test";
+
+        // normal case
+        Set<String> projectAdminUsers1 = Sets.newHashSet();
+        projectAdminUsers1.add("test");
+        Mockito.doReturn(projectAdminUsers1).when(accessService).getProjectAdminUsers(project);
+
+        OwnerChangeRequest ownerChangeRequest1 = new OwnerChangeRequest();
+        ownerChangeRequest1.setOwner(owner);
+
+        projectService.updateProjectOwner(project, ownerChangeRequest1);
+        ProjectInstance projectInstance = projectManager.getProject(project);
+        Assert.assertEquals(owner, projectInstance.getOwner());
+
+        // user not exists
+        ownerChangeRequest1.setOwner("nonUser");
+        thrown.expectMessage("Illegal users!" +
+                " Only the system administrator and the project administrator role of this project can be set as the project owner.");
+        projectService.updateProjectOwner(project, ownerChangeRequest1);
+
+        // empty admin users, throw exception
+        Set<String> projectAdminUsers = Sets.newHashSet();
+        Mockito.doReturn(projectAdminUsers).when(accessService).getProjectAdminUsers(project);
+
+        OwnerChangeRequest ownerChangeRequest2 = new OwnerChangeRequest();
+        ownerChangeRequest2.setOwner(owner);
+
+        thrown.expectMessage("Illegal users!" +
+                " Only the system administrator and the project administrator role of this project can be set as the project owner.");
+        projectService.updateProjectOwner(project, ownerChangeRequest2);
     }
 }

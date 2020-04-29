@@ -35,6 +35,10 @@ import java.util.Random;
 
 import javax.validation.Valid;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -63,11 +67,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.FileUtils;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
@@ -359,6 +360,15 @@ public class NProjectController extends NBasicController {
         File file = projectService.generateTempKeytab(projectKerberosInfoRequest.getPrincipal(), keytabFile);
         projectKerberosInfoRequest.setKeytab(FileUtils.encodeBase64File(file.getAbsolutePath()));
         projectService.updateProjectKerberosInfo(project, projectKerberosInfoRequest);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @PutMapping(value = "/{project:.+}/owner")
+    @ResponseBody
+    public EnvelopeResponse<String> updateProjectOwner(@PathVariable("project") String project, @RequestBody OwnerChangeRequest request) {
+        checkProjectName(project);
+        checkRequiredArg("owner", request.getOwner());
+        projectService.updateProjectOwner(project, request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 }

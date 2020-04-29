@@ -104,6 +104,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclUtil;
 import org.hamcrest.BaseMatcher;
@@ -183,6 +184,7 @@ import io.kyligence.kap.rest.constant.ModelStatusToDisplayEnum;
 import io.kyligence.kap.rest.execution.SucceedChainedTestExecutable;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.response.BuildIndexResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
@@ -221,6 +223,9 @@ public class ModelServiceTest extends CSVSourceTestCase {
     @Mock
     private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
+    @Mock
+    private AccessService accessService = Mockito.spy(AccessService.class);
+
     @Rule
     public TransactionExceptedException thrown = TransactionExceptedException.none();
 
@@ -235,6 +240,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
 
         ReflectionTestUtils.setField(aclEvaluate, "aclUtil", aclUtil);
         ReflectionTestUtils.setField(modelService, "aclEvaluate", aclEvaluate);
+        ReflectionTestUtils.setField(modelService, "accessService", accessService);
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
         val result1 = new QueryTimesResponse();
@@ -3800,5 +3806,72 @@ public class ModelServiceTest extends CSVSourceTestCase {
         val result = modelService.getCubes0(null, getProject());
         Assert.assertEquals(6, result.size());
         Assert.assertTrue(result.get(3).isModelBroken());
+    }
+
+    @Test
+    public void testUpdateModelOwner() throws IOException {
+        String project = "default";
+        String owner = "test";
+        val modelId = "741ca86a-1f13-46da-a59f-95fb68615e3a";
+
+        // normal case
+        Set<String> projectManagementUsers1 = Sets.newHashSet();
+        projectManagementUsers1.add("test");
+        Mockito.doReturn(projectManagementUsers1).when(accessService).getProjectManagementUsers(project);
+
+        OwnerChangeRequest ownerChangeRequest1 = new OwnerChangeRequest();
+        ownerChangeRequest1.setProject(project);
+        ownerChangeRequest1.setOwner(owner);
+
+        modelService.updateModelOwner(project, modelId, ownerChangeRequest1);
+        var modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        Assert.assertEquals(modelManager.getDataModelDesc(modelId).getOwner(), owner);
+
+        // user not exists
+        ownerChangeRequest1.setOwner("nonUser");
+        thrown.expectMessage("Illegal users!" +
+                " Only the system administrator, project administrator role, and management role can be set as the model owner.");
+        modelService.updateModelOwner(project, modelId, ownerChangeRequest1);
+
+        // empty admin users, throw exception
+        Set<String> projectManagementUsers2 = Sets.newHashSet();
+        Mockito.doReturn(projectManagementUsers2).when(accessService).getProjectManagementUsers(project);
+
+        OwnerChangeRequest ownerChangeRequest = new OwnerChangeRequest();
+        ownerChangeRequest.setProject(project);
+        ownerChangeRequest.setOwner(owner);
+
+        thrown.expectMessage("Illegal users!" +
+                " Only the system administrator, project administrator role, and management role can be set as the model owner.");
+        modelService.updateModelOwner(project, modelId, ownerChangeRequest);
+    }
+
+    @Test
+    public void testUpdateModelOwnerException() throws IOException {
+        String project = "default";
+        String owner = "test";
+
+        // can not found model, throw exception
+        Set<String> projectManagementUsers3 = Sets.newHashSet();
+        Mockito.doReturn(projectManagementUsers3).when(accessService).getProjectManagementUsers(project);
+
+        OwnerChangeRequest ownerChangeRequest3 = new OwnerChangeRequest();
+        ownerChangeRequest3.setProject(project);
+        ownerChangeRequest3.setOwner(owner);
+
+        String modelId = UUID.randomUUID().toString();
+        thrown.expectMessage(String.format("Model %s does not exist or broken in project %s", modelId, project));
+        modelService.updateModelOwner(project, modelId, ownerChangeRequest3);
+
+        // test broken model, throw exception
+        String brokenModelId = "cb596712-3a09-46f8-aea1-988b43fe9b6c";
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel brokenModel = modelManager.getDataModelDesc(brokenModelId);
+        brokenModel.setBroken(true);
+        brokenModel.setBrokenReason(NDataModel.BrokenReason.SCHEMA);
+        modelManager.updateDataBrokenModelDesc(brokenModel);
+
+        thrown.expectMessage(String.format("Model %s does not exist or broken in project %s", brokenModelId, project));
+        modelService.updateModelOwner(project, brokenModelId, ownerChangeRequest3);
     }
 }
