@@ -280,20 +280,20 @@ elif [ "$1" == "start" ]; then
     startKE
 # stop command
 elif [ "$1" == "stop" ]; then
-    echo `date '+%Y-%m-%d %H:%M:%S '`"Stopping Kylingence Enterprise..."
+    echo `date '+%Y-%m-%d %H:%M:%S '`"Stopping Kyligence Enterprise..."
     stopKE
     if [[ $? == 0 ]]; then
         exit 0
     else
-        quit "Kylingence Enterprise is not running"
+        quit "Kyligence Enterprise is not running"
     fi
 # restart command
 elif [ "$1" == "restart" ]; then
     echo "Restarting Kyligence Enterprise..."
-    echo "--> Stopping Kylingence Enterprise first if it's running..."
+    echo "--> Stopping Kyligence Enterprise first if it's running..."
     stopKE
     if [[ $? != 0 ]]; then
-        echo "    Kylingence Enterprise is not running, now start it"
+        echo "    Kyligence Enterprise is not running, now start it"
     fi
     echo "--> Starting Kyligence Enterprise..."
     startKE
