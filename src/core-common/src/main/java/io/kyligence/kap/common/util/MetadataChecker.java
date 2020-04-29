@@ -41,6 +41,8 @@ public class MetadataChecker {
 
     private MetadataStore metadataStore;
 
+    private static final String JSON_SUFFIX = ".json";
+
     public MetadataChecker(MetadataStore metadataStore) {
         this.metadataStore = metadataStore;
     }
@@ -151,7 +153,7 @@ public class MetadataChecker {
             if (Paths.get(ResourceStore.GLOBAL_PROJECT).getName(0).toString().equals(project)) {
                 continue;
             }
-            if (!allFiles.contains(Paths.get(File.separator + "_global", "project", project + ".json").toString())) {
+            if (!allFiles.contains(Paths.get(File.separator + "_global", "project", project + JSON_SUFFIX).toString())) {
                 verifyResult.illegalProjects.add(project);
                 verifyResult.illegalFiles.add(file);
             }
@@ -175,24 +177,24 @@ public class MetadataChecker {
             if (resoucePath.startsWith(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
                     || resoucePath.startsWith(ResourceStore.INDEX_PLAN_RESOURCE_ROOT)
                     || resoucePath.startsWith(ResourceStore.TABLE_RESOURCE_ROOT)
-                    || !resoucePath.endsWith(".json")) {
+                    || !resoucePath.endsWith(JSON_SUFFIX)) {
                 verifyResult.illegalFiles.add(resoucePath);
             }
 
             // check model desc
-            if (resoucePath.contains(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT) && resoucePath.endsWith(".json")) {
+            if (resoucePath.contains(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT) && resoucePath.endsWith(JSON_SUFFIX)) {
                 verifyResult.existModelDescFile = true;
                 continue;
             }
 
             // check index plan
-            if (resoucePath.contains(ResourceStore.INDEX_PLAN_RESOURCE_ROOT) && resoucePath.endsWith(".json")) {
+            if (resoucePath.contains(ResourceStore.INDEX_PLAN_RESOURCE_ROOT) && resoucePath.endsWith(JSON_SUFFIX)) {
                 verifyResult.existIndexPlanFile = true;
                 continue;
             }
 
             // check table
-            if (resoucePath.contains(ResourceStore.TABLE_RESOURCE_ROOT)  && resoucePath.endsWith(".json")) {
+            if (resoucePath.contains(ResourceStore.TABLE_RESOURCE_ROOT)  && resoucePath.endsWith(JSON_SUFFIX)) {
                 verifyResult.existTable = true;
                 continue;
             }
