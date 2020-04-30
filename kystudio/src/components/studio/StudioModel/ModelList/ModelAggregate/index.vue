@@ -46,12 +46,13 @@
               </div>
             </div>
             <div class="detail-content" v-loading="indexLoading">
-              <div class="ksd-mb-5 ksd-fs-12" v-if="isFullLoaded">
+              <div class="ksd-mb-10 ksd-fs-12" v-if="isFullLoaded">
                 {{$t('dataRange')}}: {{$t('kylinLang.dataSource.full')}}
               </div>
-              <div class="ksd-mb-5 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
+              <div class="ksd-mb-10 ksd-fs-12" v-if="dataRange&&!isFullLoaded">
                 {{$t('dataRange')}}: {{getDataRange}}
               </div>
+              <el-button icon="el-icon-ksd-table_delete" :disabled="!checkedList.length" v-if="datasourceActions.includes('delAggIdx')" class="ksd-mb-10" size="small" :loading="removeLoading" @click="removeIndexes()">{{$t('kylinLang.common.delete')}}</el-button>
               <div class="filter-tags-agg" v-show="filterTags.length">
                 <div class="filter-tags-layout"><el-tag size="mini" closable v-for="(item, index) in filterTags" :key="index" @close="handleClose(item)">{{`${$t(item.source)}：${$t(item.label)}`}}</el-tag></div>
                 <span class="clear-all-filters" @click="clearAllTags">{{$t('clearAll')}}</span>
@@ -64,7 +65,9 @@
                 size="medium"
                 :empty-text="emptyText"
                 @sort-change="onSortChange"
+                @selection-change="handleSelectionChange"
                 :row-class-name="tableRowClassName">
+                <el-table-column type="selection" width="44"></el-table-column>
                 <el-table-column prop="id" show-overflow-tooltip :label="$t('id')" width="100"></el-table-column>
                 <el-table-column prop="data_size" width="100" sortable="custom" show-overflow-tooltip align="right" :label="$t('storage')">
                   <template slot-scope="scope">
@@ -96,7 +99,7 @@
                   </template>
                 </el-table-column>
               </el-table>
-              <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" layout="total, prev, pager, next, jumper" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+              <kap-pager class="ksd-center ksd-mtb-10" ref="indexPager" :totalSize="totalSize" :curPage="filterArgs.page_offset+1" v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
             </div>
           </el-card>
         </el-col>
@@ -245,6 +248,7 @@ import NModel from '../../ModelEdit/model.js'
       buildIndex: 'BUILD_INDEX',
       loadAllIndex: 'LOAD_ALL_INDEX',
       deleteIndex: 'DELETE_INDEX',
+      deleteIndexes: 'DELETE_INDEXES',
       autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES'
     }),
     ...mapActions('DetailDialogModal', {
@@ -293,6 +297,8 @@ export default class ModelAggregate extends Vue {
   isFullLoaded = false
   indexDetailTitle = ''
   filterTags = []
+  checkedList = []
+  removeLoading = false
   // 打开高级设置
   // openAggAdvancedModal () {
   //   this.callAggAdvancedModal({
@@ -300,6 +306,29 @@ export default class ModelAggregate extends Vue {
   //     aggIndexAdvancedDesc: null
   //   })
   // }
+
+  handleSelectionChange (val) {
+    this.checkedList = val
+  }
+
+  async removeIndexes () {
+    if (!this.checkedList.length) return
+    const layout_ids = this.checkedList.map((index) => {
+      return index.id
+    }).join(',')
+    try {
+      await kapConfirm(this.$t('delIndexesTips', {indexNum: this.checkedList.length}), null, this.$t('delIndex'))
+      this.removeLoading = true
+      await this.deleteIndexes({project: this.projectName, model: this.model.uuid, layout_ids: layout_ids})
+      this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
+      this.removeLoading = false
+      this.refreshIndexGraphAfterSubmitSetting()
+      this.$emit('loadModels')
+    } catch (e) {
+      handleError(e)
+      this.removeLoading = false
+    }
+  }
 
   tableRowClassName ({row, rowIndex}) {
     if (row.status === 'EMPTY' || row.status === 'BUILDING') {

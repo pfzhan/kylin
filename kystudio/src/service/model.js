@@ -235,6 +235,9 @@ export default {
   deleteIndex: (para) => {
     return Vue.resource(apiUrl + `index_plans/index/${para.id}?project=${para.project}&model=${para.model}`).delete()
   },
+  deleteIndexes: (para) => {
+    return Vue.resource(apiUrl + 'index_plans/index').delete(para)
+  },
   fetchIndexGraph: (para) => {
     return Vue.resource(apiUrl + 'index_plans/index_graph').get(para)
   },

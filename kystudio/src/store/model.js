@@ -299,6 +299,9 @@ export default {
     [types.DELETE_INDEX] ({ commit }, paras) {
       return api.model.deleteIndex(paras)
     },
+    [types.DELETE_INDEXES] ({ commit }, paras) {
+      return api.model.deleteIndexes(paras)
+    },
     [types.FETCH_INDEX_GRAPH] ({ commit }, paras) {
       return api.model.fetchIndexGraph(paras)
     },
