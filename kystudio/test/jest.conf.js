@@ -41,7 +41,7 @@ module.exports = {
     'src/util/index.js',
     'src/util/validate.js',
     'src/util/object.js',
-    'src/components/common/(change_lang|pager).vue',
+    'src/components/common/(change_lang|pager|pager_filter_select).vue',
     'src/components/common/EmptyData/EmptyData.vue',
     'src/components/user/login.vue',
     '!**/node_modules/**',
