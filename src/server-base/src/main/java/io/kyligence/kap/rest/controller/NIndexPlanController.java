@@ -27,15 +27,18 @@ import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JS
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.validation.Valid;
 
-import io.kyligence.kap.rest.service.ModelService;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -56,6 +59,7 @@ import io.kyligence.kap.rest.response.IndexGraphResponse;
 import io.kyligence.kap.rest.response.IndexResponse;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kyligence.kap.rest.service.IndexPlanService;
+import io.kyligence.kap.rest.service.ModelService;
 import io.swagger.annotations.ApiOperation;
 import lombok.val;
 
@@ -197,6 +201,19 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         indexPlanService.removeIndex(project, modelId, layoutId);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @ApiOperation(value = "batch deleteIndex")
+    @DeleteMapping(value = "/index")
+    public EnvelopeResponse<String> batchDeleteIndex(@RequestParam(value = "layout_ids") Set<Long> layoutIds,
+            @RequestParam(value = "project") String project, @RequestParam(value = "model") String modelId) {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_ID, modelId);
+        if (CollectionUtils.isEmpty(layoutIds)) {
+            throw new KylinException("KE-1010", MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+        }
+        indexPlanService.removeIndexes(project, modelId, layoutIds);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
     }
 

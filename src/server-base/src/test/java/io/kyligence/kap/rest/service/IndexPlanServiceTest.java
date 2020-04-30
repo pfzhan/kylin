@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -801,6 +802,46 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
     }
 
     @Test
+    public void testRemoveIndexes() throws NoSuchFieldException, IllegalAccessException {
+        testUpdateSingleRuleBasedCuboid();
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        var indexPlan = indexPlanManager.getIndexPlan(modelId);
+        var manualAgg = indexPlan.getCuboidLayout(1010001L);
+        Assert.assertNotNull(manualAgg);
+        var autoTable = indexPlan.getCuboidLayout(20000000001L);
+        Assert.assertNotNull(autoTable);
+
+        autoTable = indexPlan.getCuboidLayout(20000010001L);
+        Assert.assertNotNull(autoTable);
+
+        // delete layoutIds
+        indexPlanService.removeIndexes(getProject(), modelId,
+                new HashSet<>(Arrays.asList(1010001L, 20000000001L, 20000010001L)));
+
+        indexPlan = indexPlanManager.getIndexPlan(modelId);
+
+        manualAgg = indexPlan.getCuboidLayout(1010001L);
+        Assert.assertNull(manualAgg);
+        autoTable = indexPlan.getCuboidLayout(20000000001L);
+        Assert.assertNull(autoTable);
+
+        autoTable = indexPlan.getCuboidLayout(20000010001L);
+        Assert.assertNull(autoTable);
+
+        // delete not exists layoutIds
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Layouts [1010001,20000000001,20000010001] not exist!");
+        indexPlanService.removeIndexes(getProject(), modelId,
+                new HashSet<>(Arrays.asList(1010001L, 20000000001L, 20000010001L)));
+
+        // empty layoutIds
+        thrown.expect(KylinException.class);
+        thrown.expectMessage("Layouts id list can not empty!");
+        indexPlanService.removeIndexes(getProject(), modelId, new HashSet<>());
+    }
+
+    @Test
     public void testGetIndexes() throws NoSuchFieldException, IllegalAccessException {
         testUpdateSingleRuleBasedCuboid();
         val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
@@ -897,7 +938,8 @@ public class IndexPlanServiceTest extends CSVSourceTestCase {
         Assert.assertEquals(1, response.size());
         Assert.assertTrue(ids.contains(20000010001L));
 
-        Mockito.doReturn(Sets.newHashSet(20000020001L)).when(indexPlanService).getLayoutsByRunningJobs(getProject(), modelId);
+        Mockito.doReturn(Sets.newHashSet(20000020001L)).when(indexPlanService).getLayoutsByRunningJobs(getProject(),
+                modelId);
         response = indexPlanService.getIndexes(getProject(), modelId, "", Lists.newArrayList("BUILDING"), "data_size",
                 false, null);
         ids = response.stream().map(IndexResponse::getId).collect(Collectors.toSet());

@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.service;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -47,7 +49,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.AggIndexCombResult;
 import org.apache.kylin.rest.response.AggIndexResponse;
 import org.apache.kylin.rest.response.DiffRuleBasedIndexResponse;
@@ -285,27 +286,43 @@ public class IndexPlanService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void removeIndex(String project, String model, final long id) {
+    public void removeIndexes(String project, String model, final Set<Long> ids) {
         aclEvaluate.checkProjectWritePermission(project);
+        if (CollectionUtils.isEmpty(ids)) {
+            throw new KylinException("KE-1010", MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+        }
+
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, project);
 
         val indexPlan = getIndexPlan(project, model);
         Preconditions.checkNotNull(indexPlan);
-        val layout = indexPlan.getCuboidLayout(id);
-        if (layout == null) {
-            throw new RuntimeException(MsgPicker.getMsg().getINDEX_ALREADY_DELETED());
+
+        String notExistsLayoutIds = ids.stream().filter(id -> Objects.isNull(indexPlan.getCuboidLayout(id))).sorted()
+                .map(String::valueOf).collect(Collectors.joining(","));
+
+        if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
+            throw new KylinException("KE-1010",
+                    String.format(MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
         }
 
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
-            if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
-                copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+            for (Long id : ids) {
+                val layout = indexPlan.getCuboidLayout(id);
+                if (id < IndexEntity.TABLE_INDEX_START_ID && layout.isManual()) {
+                    copyForWrite.addRuleBasedBlackList(Lists.newArrayList(layout.getId()));
+                }
             }
-            copyForWrite.removeLayouts(Sets.newHashSet(id), true, true);
-            copyForWrite.removeLayouts(Sets.newHashSet(id), true, true);
+
+            copyForWrite.removeLayouts(ids, true, true);
         });
         val recommendationManager = OptimizeRecommendationManager.getInstance(kylinConfig, project);
         recommendationManager.cleanInEffective(model);
+    }
+
+    @Transaction(project = 0)
+    public void removeIndex(String project, String model, final long id) {
+        removeIndexes(project, model, Collections.singleton(id));
     }
 
     private boolean addTableIndexToBeDeleted(String project, String modelId, Collection<Long> layoutIds) {

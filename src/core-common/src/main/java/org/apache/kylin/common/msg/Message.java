@@ -938,6 +938,14 @@ public class Message {
         return "Segments id list can not empty!";
     }
 
+    public String getLAYOUT_LIST_IS_EMPTY() {
+        return "Layouts id list can not empty!";
+    }
+
+    public String getLAYOUT_NOT_EXISTS() {
+        return "Layouts [%s] not exist!";
+    }
+
     public String getINVALID_REFRESH_SEGMENT() {
         return "You should choose at least one segment to refresh!";
     }

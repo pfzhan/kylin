@@ -912,6 +912,14 @@ public class CnMessage extends Message {
         return "Segments 列表为空";
     }
 
+    public String getLAYOUT_LIST_IS_EMPTY() {
+        return "Layouts 列表为空";
+    }
+
+    public String getLAYOUT_NOT_EXISTS() {
+        return "Layouts [%s] 不存在!";
+    }
+
     public String getINVALID_REFRESH_SEGMENT() {
         return "您应该至少选择一个Segment来刷新。";
     }
