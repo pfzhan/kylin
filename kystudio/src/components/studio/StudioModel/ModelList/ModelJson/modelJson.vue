@@ -1,5 +1,5 @@
 <template>
-  <div class="ksd-mb-15">
+  <div class="ksd-mb-15" v-loading="isLoading">
     <el-input
       class="model-json"
       :value="JSON.stringify(jsonInfo, '', 4)"
@@ -28,16 +28,20 @@ import { mapActions, mapGetters } from 'vuex'
 })
 export default class modelJSON extends Vue {
   jsonInfo = ''
+  isLoading = false
   mounted () {
+    this.isLoading = true
     this.getModelJson({
       model: this.model,
       project: this.currentSelectedProject
     }).then((res) => {
       handleSuccess(res, (data) => {
         this.jsonInfo = JSON.parse(data)
+        this.isLoading = false
       })
     }, (res) => {
       handleError(res)
+      this.isLoading = false
     })
   }
 }

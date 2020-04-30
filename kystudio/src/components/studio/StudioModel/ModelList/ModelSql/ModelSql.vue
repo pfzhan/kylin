@@ -1,5 +1,5 @@
 <template>
-  <div class="model-sql ksd-mb-15">
+  <div class="model-sql ksd-mb-15" v-loading="isLoading">
     <kap-editor ref="modelSql" :value="convertHiveSql"  height="390" lang="sql" theme="chrome" :readOnly="true" :dragable="false" :isAbridge="true">
     </kap-editor>
   </div>
@@ -25,16 +25,20 @@ import { mapActions, mapGetters } from 'vuex'
 })
 export default class modelSql extends Vue {
   convertHiveSql = ''
+  isLoading = false
   mounted () {
+    this.isLoading = true
     this.getModelSql({
       model: this.model,
       project: this.currentSelectedProject
     }).then((res) => {
       handleSuccess(res, (data) => {
         this.convertHiveSql = data.replace(/`/g, '')
+        this.isLoading = false
       })
     }, (res) => {
       handleError(res)
+      this.isLoading = false
     })
   }
 }

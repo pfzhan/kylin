@@ -1,5 +1,5 @@
 <template>
-  <div class="model-aggregate ksd-mb-15" v-if="model">
+  <div class="model-aggregate ksd-mb-15" v-if="model" v-loading="isLoading">
     <div class="aggregate-view">
       <el-row :gutter="10">
         <el-col :span="12">
@@ -269,6 +269,7 @@ export default class ModelAggregate extends Vue {
   searchCuboidId = ''
   buildIndexLoading = false
   indexLoading = false
+  isLoading = false
   indexDatas = []
   dataRange = null
   totalSize = 0
@@ -469,18 +470,24 @@ export default class ModelAggregate extends Vue {
     this.filterArgs.reverse = !(order === 'ascending')
     this.pageCurrentChange(0, this.filterArgs.page_size)
   }
-  pageCurrentChange (size, count) {
+  async pageCurrentChange (size, count) {
     this.filterArgs.page_offset = size
     this.filterArgs.page_size = count
-    this.loadAggIndices()
+    this.indexLoading = true
+    await this.loadAggIndices()
+    this.indexLoading = false
   }
-  filterSouces () {
+  async filterSouces () {
     this.filterArgs.page_offset = 0
-    this.loadAggIndices()
+    this.indexLoading = true
+    await this.loadAggIndices()
+    this.indexLoading = false
   }
-  searchAggs () {
+  async searchAggs () {
     this.filterArgs.page_offset = 0
-    this.loadAggIndices()
+    this.indexLoading = true
+    await this.loadAggIndices()
+    this.indexLoading = false
   }
   get showTableIndexDetail () {
     if (!this.cuboidData || !this.cuboidData.col_order || this.detailType === 'aggDetail') {
@@ -513,7 +520,9 @@ export default class ModelAggregate extends Vue {
   }
   async handleClickNode (id) {
     this.filterArgs.key = id
-    this.loadAggIndices()
+    this.indexLoading = true
+    await this.loadAggIndices()
+    this.indexLoading = false
   }
   async freshIndexGraph () {
     try {
@@ -543,7 +552,7 @@ export default class ModelAggregate extends Vue {
   }
   async loadAggIndices () {
     try {
-      this.indexLoading = true
+      // this.indexLoading = true
       const res = await this.loadAllIndex(Object.assign({
         project: this.projectName,
         model: this.model.uuid
@@ -551,19 +560,23 @@ export default class ModelAggregate extends Vue {
       const data = await handleSuccessAsync(res)
       this.indexDatas = data.value
       this.totalSize = data.total_size
-      this.indexLoading = false
+      // this.indexLoading = false
     } catch (e) {
       handleError(e)
-      this.indexLoading = false
+      // this.indexLoading = false
     }
   }
   async mounted () {
+    this.isLoading = true
     await this.freshIndexGraph()
     await this.loadAggIndices()
+    this.isLoading = false
   }
   async refreshIndexGraphAfterSubmitSetting () {
+    this.isLoading = true
     await this.freshIndexGraph()
     await this.loadAggIndices()
+    this.isLoading = false
   }
   async handleAggregateGroup () {
     const { projectName, model } = this

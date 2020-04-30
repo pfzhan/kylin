@@ -1,5 +1,5 @@
 <template>
-  <div class="model-segment">
+  <div class="model-segment" v-loading="isLoading">
     <div class="segment-actions clearfix">
       <div class="left ky-no-br-space" v-if="isShowSegmentActions">
         <el-button-group class="ksd-mr-10">
@@ -183,6 +183,7 @@ export default class ModelSegment extends Vue {
   selectedSegmentIds = []
   isShowDetail = false
   isSegmentLoading = false
+  isLoading = false
   get selectedSegments () {
     return this.selectedSegmentIds.map(
       segmentId => this.segments.find(segment => segment.id === segmentId)
@@ -253,6 +254,7 @@ export default class ModelSegment extends Vue {
     this.loadSegments()
   }
   async loadSegments () {
+    this.isLoading = true
     try {
       const { startDate, endDate, sortBy, reverse } = this.filter
       const projectName = this.currentSelectedProject
@@ -266,8 +268,10 @@ export default class ModelSegment extends Vue {
       this.segments = formatedSegments
       this.totalSegmentCount = total_size
       this.isSegmentLoading = false
+      this.isLoading = false
     } catch (e) {
       handleError(e)
+      this.isLoading = false
     }
   }
   async handleRefreshSegment () {
