@@ -191,7 +191,9 @@ exports.default = {
     sqlLimitTip: 'Only the first 100 rows of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
     sqlPartLimitTip: 'Only parts of SQL statements are displayed. Please click the copy button to obtain the complete queries.',
     overLengthTip: 'No more than 50 characters',
-    dataDirectory: 'Datasource'
+    dataDirectory: 'Datasource',
+    searchDimensionName: 'Search Dimension Name',
+    searchMeasureName: 'Search Measure Name'
   },
   model: {
     generateModel: 'Custom SQL',
@@ -265,7 +267,13 @@ exports.default = {
     aloneTableTip: '{aloneCount} tables haven\'t been joined with the fact table directly or via other dimension tables. The model may lose them if you continue to save the model anyway.',
     aloneTableTipTitle: 'Incomplete Table Join',
     authorityDetail: 'Permission denied details',
-    authorityMsg: 'You cannot access the model {modelName}. Because you lack data access to the following tables and columns.'
+    authorityMsg: 'You cannot access the model {modelName}. Because you lack data access to the following tables and columns.',
+    parameters: 'Parameters',
+    type_c: 'Type:',
+    value_c: 'Value:',
+    orderBy_c: 'Order/SUM by:',
+    groupBy_c: 'Group By:',
+    returnType: 'Return Type'
   },
   cube: {
     tableIndex: 'Table Index',
@@ -404,6 +412,7 @@ exports.default = {
     expression: 'Expression',
     returnType: 'Data Type',
     tableName: 'Table Name:',
+    dimensionName: 'Dimension Name',
     lastModified: 'Last Modified:',
     totalRow: 'Total Rows:',
     collectStatice: 'The higher the sampling percentage, the more accurate the stats information, the more resources engaging.',

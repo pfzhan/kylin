@@ -7,6 +7,7 @@
     <SourceTableModal :project-name="currentSelectedProject" />
     <ModelsExportModal />
     <ModelsImportModal />
+    <ModelERDiagramModal />
   </div>
 </template>
 
@@ -21,6 +22,7 @@ import DataSourceModal from '../DataSourceModal/index.vue'
 import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
 import ModelsExportModal from '../ModelsExportModal/ModelsExportModal.vue'
 import ModelsImportModal from '../ModelsImportModal/ModelsImportModal.vue'
+import ModelERDiagramModal from '../ModelERDiagramModal/ModelERDiagramModal'
 
 @Component({
   computed: {
@@ -35,7 +37,8 @@ import ModelsImportModal from '../ModelsImportModal/ModelsImportModal.vue'
     SourceTableModal,
     ProjectEditModal,
     ModelsExportModal,
-    ModelsImportModal
+    ModelsImportModal,
+    ModelERDiagramModal
   }
 })
 export default class Modal extends Vue {

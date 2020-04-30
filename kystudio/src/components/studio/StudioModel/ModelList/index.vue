@@ -112,6 +112,9 @@
                 <!-- <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('fullScreen')}}</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div> -->
                 <!-- <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">{{$t('exitFullScreen')}}</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div> -->
                 <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                  <el-tab-pane :label="$t('overview')" name="overview">
+                    <ModelOverview :data="props.row" />
+                  </el-tab-pane>
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment
                      ref="segmentComp"
@@ -410,6 +413,7 @@ import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 import UploadSqlModel from '../../../common/UploadSql/UploadSql.vue'
 import DropdownFilter from '../../../common/DropdownFilter/DropdownFilter.vue'
+import ModelOverview from './ModelOverview/ModelOverview.vue'
 
 function getDefaultFilters () {
   return {
@@ -533,7 +537,8 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
     UploadSqlModel,
     DropdownFilter,
     AggregateModal,
-    TableIndexEdit
+    TableIndexEdit,
+    ModelOverview
   },
   locales
 })
@@ -952,7 +957,7 @@ export default class ModelList extends Vue {
       this.$set(item, 'showModelDetail', false)
       this.modelArray.push({
         ...item,
-        tabTypes: this.currentEditModel === item.alias ? 'third' : 'first'
+        tabTypes: this.currentEditModel === item.alias ? 'third' : 'overview'
       })
     })
   }

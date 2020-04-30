@@ -31,6 +31,7 @@ import kapEditor from 'components/common/kap_editor'
 import kapLoading from 'components/common/kap_loading'
 import editor from 'vue2-ace-editor'
 import VueClipboard from 'vue-clipboard2'
+import VueKonva from 'vue-konva'
 // import draggable from 'vuedraggable'
 import nprogress from 'nprogress'
 import 'brace/mode/json'
@@ -98,6 +99,7 @@ if (projectName) {
 // Vue.prototype.introJs = introJs
 Vue.use(ElementUI)
 Vue.use(VueClipboard)
+Vue.use(VueKonva)
 Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn'
 Vue.http.options.xhr = { withCredentials: true }
 Vue.http.interceptors.push(function (request, next) {

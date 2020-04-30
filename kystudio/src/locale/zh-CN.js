@@ -190,7 +190,9 @@ exports.default = {
     sqlLimitTip: '当前默认仅展示前100行 SQL 语句，请点击复制按钮获取完整的查询语句',
     sqlPartLimitTip: '当前默认仅展示部分 SQL 语句，请点击复制按钮获取完整的查询语句',
     overLengthTip: '不得超过50字符',
-    dataDirectory: '数据源'
+    dataDirectory: '数据源',
+    searchDimensionName: '搜索维度名称',
+    searchMeasureName: '搜索度量名称'
   },
   model: {
     generateModel: 'SQL 建模',
@@ -262,7 +264,13 @@ exports.default = {
     aloneTableTip: '有 {aloneCount} 张表未与事实表直接或间接关联(A join B)，继续保存模型会丢失这些表。',
     aloneTableTipTitle: '表关联不完整',
     authorityDetail: '权限详情',
-    authorityMsg: '您无法访问模型 {modelName}，因为缺少访问以下表和列的数据权限。'
+    authorityMsg: '您无法访问模型 {modelName}，因为缺少访问以下表和列的数据权限。',
+    parameters: '参数',
+    type_c: 'Type:',
+    value_c: 'Value:',
+    orderBy_c: 'Order/SUM by:',
+    groupBy_c: 'Group By:',
+    returnType: '返回类型'
   },
   cube: {
     tableIndex: '索引',
@@ -401,6 +409,7 @@ exports.default = {
     expression: '表达式',
     returnType: '数据类型',
     tableName: '表名：',
+    dimensionName: '维度名称',
     lastModified: '修改时间：',
     totalRow: '总行数：',
     collectStatice: '采样比例越高时，收集的统计信息较准确，同时会需要较多资源。',

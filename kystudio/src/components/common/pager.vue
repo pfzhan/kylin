@@ -3,7 +3,7 @@
     <span class="total_size" v-show="totalSum">{{$t('kylinLang.common.totalSize')}} {{totalSum}}</span>
 	  <el-pagination
       :background="hasBackground"
-	    layout="total, prev, pager, next, jumper"
+	    :layout="layout || 'total, prev, pager, next, jumper'"
 	    :page-size="pageSize"
 	    :total="totalSize"
 	    :current-page="currentPage"
@@ -15,7 +15,7 @@
 import { pageCount } from '../../config'
 export default {
   name: 'pager',
-  props: ['perPageSize', 'totalSize', 'curPage', 'totalSum', 'noBackground'],
+  props: ['perPageSize', 'totalSize', 'curPage', 'totalSum', 'noBackground', 'layout'],
   data () {
     return {
       pageSize: this.perPageSize || pageCount,

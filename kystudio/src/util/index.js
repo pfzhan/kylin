@@ -1,4 +1,7 @@
 import validate, * as validateTypes from './validate'
+import * as dataGenerator from './dataGenerator'
+import * as dataHelper from './dataHelper'
+import autoLayout from './autoLayout'
 import { handleSuccess } from './business'
 // 是否是空对象
 export function isEmptyObject (obj) {
@@ -613,3 +616,4 @@ export function CamelToUnderlineForRequestParams (json) {
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, transToServerGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }
+export { dataGenerator, autoLayout, dataHelper }
