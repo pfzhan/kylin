@@ -150,6 +150,9 @@ public class YarnApplicationTool extends ExecutableApplication {
             String cmd = "yarn logs -applicationId %s";
             for (String applicationId : applicationIdList) {
                 try {
+                    if(!applicationId.startsWith("application")){
+                        continue;
+                    }
                    val result = cmdExecutor.execute(String.format(cmd, applicationId),
                             null);
 

@@ -308,7 +308,7 @@ public abstract class SparkApplication implements Application, IKeep {
             }).enableHiveSupport().config(sparkConf).config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
                 .getOrCreate();
 
-            if (isJobOnCluster(sparkConf)) {
+            if (!config.isUTEnv()) {
                 updateSparkJobExtraInfo("/kylin/api/jobs/spark", project, jobId,
                         getTrackingInfo(buildEnv.clusterManager(), config.isTrackingUrlIpAddressEnabled()));
             }

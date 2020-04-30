@@ -47,6 +47,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.constant.ExecutableConstants;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -458,6 +460,45 @@ public class KylinLogTool {
             }
         }
 
+    }
+
+    public static void extractJobEventLogs(File exportDir, List<AbstractExecutable> tasks, Map<String, String> sparkConf) {
+        try {
+            String logDir = sparkConf.get("spark.eventLog.dir").trim();
+            boolean eventEnabled = Boolean.parseBoolean(sparkConf.get("spark.eventLog.enabled").trim());
+            if(!eventEnabled || StringUtils.isBlank(logDir)){
+                return;
+            }
+
+            File jobLogsDir = new File(exportDir, "job_history");
+            FileUtils.forceMkdir(jobLogsDir);
+            FileSystem fs = HadoopUtil.getWorkingFileSystem();
+            for(AbstractExecutable task : tasks){
+                Map<String, String> info = task.getOutput().getExtra();
+                if(info != null){
+                    String appId = info.get(ExecutableConstants.YARN_APP_ID);
+                    copyJobEventLog(fs, appId, logDir, jobLogsDir);
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Failed to extract job eventLog.", e);
+        }
+    }
+
+    private static void copyJobEventLog(FileSystem fs, String appId, String logDir, File exportDir) throws Exception {
+        if(StringUtils.isBlank(appId)){
+            logger.warn("Failed to extract step eventLog due to the appId is empty.");
+            return;
+        }
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("Job eventLog task is interrupt");
+        }
+        String eventPath = logDir + "/" + appId;
+        FileStatus fileStatus = fs.getFileStatus(new Path(eventPath));
+        if(fileStatus != null){
+            fs.copyToLocalFile(false, fileStatus.getPath(), new Path(exportDir.getAbsolutePath()), true);
+        }
     }
 
     /**
