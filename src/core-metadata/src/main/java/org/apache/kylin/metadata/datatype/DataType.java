@@ -181,6 +181,9 @@ public class DataType implements Serializable {
 
     public static final DataType ANY = DataType.getType(ANY_STR);
 
+    public static final int DECIMAL_MAX_PRECISION = 38;
+    public static final int DECIMAL_MAX_SCALE = 38;
+
     static {
         //to ensure the MeasureTypeFactory class has initialized
         MeasureTypeFactory.getUDAFs();
@@ -447,4 +450,22 @@ public class DataType implements Serializable {
             return new DataType(name, precision, scale);
         }
     };
+
+    /**
+     * The precision can be up to 38
+     * @param precision
+     * @return
+     */
+    public static int decimalBoundedPrecision(int precision) {
+        return Math.min(precision, DECIMAL_MAX_PRECISION);
+    }
+
+    /**
+     * scale can  be up to 38
+     * @param scale
+     * @return
+     */
+    public static int decimalBoundedScale(int scale) {
+        return Math.min(scale, DECIMAL_MAX_SCALE);
+    }
 }

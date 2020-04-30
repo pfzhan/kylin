@@ -59,8 +59,13 @@ public class FunctionDescTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("topn(100, 4)", FunctionDesc.proposeReturnType("TOP_N", "int"));
         Assert.assertEquals("bigint", FunctionDesc.proposeReturnType("SUM", "tinyint"));
         Assert.assertEquals("decimal(19,4)", FunctionDesc.proposeReturnType("SUM", null));
-        Assert.assertEquals("decimal(19,4)", FunctionDesc.proposeReturnType("SUM", "decimal"));
-        Assert.assertEquals("decimal(19,2)", FunctionDesc.proposeReturnType("SUM", "decimal(19,2)"));
+        //by default in KylinConfig,decimal is decimal(19,4)
+        Assert.assertEquals("decimal(29,4)", FunctionDesc.proposeReturnType("SUM", "decimal"));
+        Assert.assertEquals("decimal(29,2)", FunctionDesc.proposeReturnType("SUM", "decimal(19,2)"));
+        //in sum(),scale and precision is up to 38
+        Assert.assertEquals("decimal(38,2)", FunctionDesc.proposeReturnType("SUM", "decimal(29,2)"));
+        Assert.assertEquals("decimal(38,6)", FunctionDesc.proposeReturnType("SUM", "decimal(39,6)"));
+        Assert.assertEquals("decimal(38,38)", FunctionDesc.proposeReturnType("SUM", "decimal(40,39)"));
         Assert.assertEquals("hllc(10)",
                 FunctionDesc.proposeReturnType("COUNT_DISTINCT", "int", new HashMap<String, String>() {
                     {

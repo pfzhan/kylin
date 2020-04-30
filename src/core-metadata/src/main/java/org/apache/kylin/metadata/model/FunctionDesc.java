@@ -103,7 +103,10 @@ public class  FunctionDesc implements Serializable {
                 if (type.isIntegerFamily()) {
                     returnType = TYPE_BIGINT;
                 } else if (type.isDecimal()) {
-                    returnType = String.format("decimal(19,%d)", type.getScale());
+                    //same with org.apache.spark.sql.catalyst.expressions.aggregate.Sum
+                    returnType = String.format("decimal(%d,%d)",
+                            DataType.decimalBoundedPrecision(type.getPrecision() + 10),
+                            DataType.decimalBoundedScale(type.getScale()));
                 }
             } else {
                 returnType = "decimal(19,4)";

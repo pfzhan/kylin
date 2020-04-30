@@ -319,7 +319,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateMeasure_DuplicateParams_EmptyReturnType() throws Exception {
+    public void testUpdateMeasure_DuplicateParams() throws Exception {
         thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "The measure definition is the same as the measure 'TRANS_SUM2'. So this measure cannot be created.");
@@ -332,7 +332,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         param.setValue("TEST_KYLIN_FACT.PRICE");
         newMeasure1.setParameterValue(Lists.newArrayList(param));
         request.getSimplifiedMeasures().add(newMeasure1);
-        // add new measure without set return_type
+        newMeasure1.setReturnType("decimal");
         modelService.updateDataModelSemantic("default", request);
     }
 
