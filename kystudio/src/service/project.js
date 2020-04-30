@@ -78,7 +78,7 @@ export default {
     return Vue.resource(apiUrl + 'projects/' + body.project + '/push_down_config').update(body)
   },
   updateStorageQuota (body) {
-    return Vue.resource(apiUrl + 'projects/' + body.project + '/garbage_cleanup_config').update(body)
+    return Vue.resource(apiUrl + 'projects/' + body.project + '/storage_quota').update(body)
   },
   updateAccelerationSettings (body) {
     return Vue.resource(apiUrl + 'projects/' + body.project + '/query_accelerate_threshold').update(body)
@@ -112,5 +112,8 @@ export default {
   },
   updateProjectOwner (data) {
     return Vue.resource(apiUrl + `projects/${data.project}/owner`).update({owner: data.owner})
+  },
+  updateIndexOptimization (data) {
+    return Vue.resource(apiUrl + 'projects/' + data.project + '/garbage_cleanup_config').update(data)
   }
 }

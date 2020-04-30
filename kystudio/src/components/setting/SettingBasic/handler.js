@@ -33,6 +33,7 @@ export const initialFormValue = {
   auto_merge_time_ranges: [ 'WEEK', 'MONTH' ],
   storage_garbage: true,
   storage_quota_size: 0,
+  storage_quota_tb_size: 0,
   volatile_range: {
     volatile_range_number: 0,
     volatile_range_enabled: false,
@@ -50,6 +51,14 @@ export const initialFormValue = {
 }
 export const validate = {
   'positiveNumber' (rule, value, callback) {
+    const regex = /^\d+(\.\d{1,2})?$/
+    if (value === '' || value === undefined || value < 0 || isNaN(value) || !regex.test(value)) {
+      callback(new Error(null))
+    } else {
+      callback()
+    }
+  },
+  'storageQuotaSize' (rule, value, callback) {
     if (value === '' || value === undefined || value < 0 || isNaN(value)) {
       callback(new Error(null))
     } else {
@@ -103,9 +112,15 @@ export function _getPushdownConfig (data) {
 export function _getStorageQuota (data) {
   return {
     project: data.project,
+    storage_quota_size: data.storage_quota_size,
+    storage_quota_tb_size: (data.storage_quota_size / 1024 / 1024 / 1024 / 1024).toFixed(2)
+  }
+}
+export function _getIndexOptimization (data) {
+  return {
+    project: data.project,
     low_frequency_threshold: data.low_frequency_threshold,
-    frequency_time_window: data.frequency_time_window,
-    storage_quota_size: data.storage_quota_size
+    frequency_time_window: data.frequency_time_window
   }
 }
 

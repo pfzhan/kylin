@@ -61,6 +61,23 @@ Vue.directive('number2', {
     }
   }
 })
+Vue.directive('number3', {
+  update: function (el, binding, vnode) {
+    if (binding.value !== binding.oldValue) {
+      setTimeout(() => {
+        const regexp = /^\d+(\.\d{1,2})?/g
+        const regexp2 = /^\d+\.$/g
+        if (binding.value) {
+          const val = '' + binding.value
+          const matchVal = val.match(regexp) && val.match(regexp)[0]
+          const matchVal2 = val.match(regexp2) && val.match(regexp2)[0]
+          const newVal = matchVal2 || matchVal
+          el.__vue__.$emit('input', newVal || '')
+        }
+      }, 0)
+    }
+  }
+})
 Vue.directive('clickoutside', {
   bind (el, binding, vnode) {
     nodeList.push(el)

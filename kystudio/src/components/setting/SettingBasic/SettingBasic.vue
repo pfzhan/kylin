@@ -44,9 +44,22 @@
       <el-form ref="setting-storage-quota" :model="form" :rules="storageQuota">
         <div class="setting-item">
           <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
-          <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span>
+          <el-form-item class="setting-input" :show-message="false" prop="storage_quota_tb_size">
+            <el-input size="small" style="width: 100px;" v-number3="form.storage_quota_tb_size" v-model="form.storage_quota_tb_size"></el-input> TB
+          </el-form-item>
+          <!-- <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span> -->
           <div class="setting-desc">{{$t('storageQuotaDesc')}}</div>
         </div>
+      </el-form>
+    </EditableBlock>
+    <!-- 低效存储设置 -->
+    <EditableBlock
+      :header-content="$t('indexOptimizationSettings')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'index-optimization')"
+      @submit="(scb, ecb) => handleSubmit('index-optimization', scb, ecb)"
+      @cancel="(scb, ecb) => handleResetForm('index-optimization', scb, ecb)">
+      <el-form ref="setting-index-optimization" :model="form" :rules="indexOptimization">
         <div class="setting-item">
           <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
           <div class="setting-desc large">
@@ -191,7 +204,7 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError, handleSuccessAsync, kapConfirm } from '../../../util'
-import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
+import { projectTypeIcons, lowUsageStorageTypes, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getIndexOptimization, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
 @Component({
@@ -215,6 +228,7 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
       updateSegmentConfig: 'UPDATE_SEGMENT_CONFIG',
       updatePushdownConfig: 'UPDATE_PUSHDOWN_CONFIG',
       updateStorageQuota: 'UPDATE_STORAGE_QUOTA',
+      updateIndexOptimization: 'UPDATE_INDEX_OPTIMIZATION',
       resetConfig: 'RESET_PROJECT_CONFIG'
     })
   },
@@ -241,6 +255,11 @@ export default class SettingBasic extends Vue {
   }
   get storageQuota () {
     return {
+      'storage_quota_tb_size': [{ validator: validate['storageQuotaSize'], trigger: 'change' }]
+    }
+  }
+  get indexOptimization () {
+    return {
       'low_frequency_threshold': [{ validator: validate['storageQuotaNum'], trigger: 'change' }]
     }
   }
@@ -255,6 +274,7 @@ export default class SettingBasic extends Vue {
     this.handleInit('segment-settings')
     this.handleInit('pushdown-settings')
     this.handleInit('storage-quota')
+    this.handleInit('index-optimization')
   }
   async mounted () {
     this.initForm()
@@ -317,7 +337,17 @@ export default class SettingBasic extends Vue {
         case 'storage-quota': {
           if (await this.$refs['setting-storage-quota'].validate()) {
             const submitData = _getStorageQuota(this.form, this.project)
+            // TB转byte
+            submitData.storage_quota_size = +(submitData.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
             await this.updateStorageQuota(submitData); break
+          } else {
+            return errorCallback()
+          }
+        }
+        case 'index-optimization': {
+          if (await this.$refs['setting-index-optimization'].validate()) {
+            const submitData = _getIndexOptimization(this.form, this.project)
+            await this.updateIndexOptimization(submitData); break
           } else {
             return errorCallback()
           }
@@ -347,6 +377,9 @@ export default class SettingBasic extends Vue {
       case 'storage-quota': {
         this.form = { ...this.form, ..._getStorageQuota(this.project) }; break
       }
+      case 'index-optimization': {
+        this.form = { ...this.form, ..._getIndexOptimization(this.project) }; break
+      }
     }
   }
   async handleResetForm (type, successCallback, errorCallback) {
@@ -360,11 +393,17 @@ export default class SettingBasic extends Vue {
           break
         }
         case 'storage-quota': {
-          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'garbage_cleanup_config'})
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'storage_quota_config'})
           const data = await handleSuccessAsync(res)
           this.form = { ...this.form, ..._getStorageQuota(data) }
           this.$refs['setting-storage-quota'].clearValidate()
           break
+        }
+        case 'index-optimization': {
+          const res = await this.resetConfig({project: this.currentSelectedProject, reset_item: 'garbage_cleanup_config'})
+          const data = await handleSuccessAsync(res)
+          this.form = { ...this.form, ..._getIndexOptimization(data) }
+          this.$refs['setting-index-optimization'].clearValidate()
         }
       }
       successCallback()
@@ -383,7 +422,10 @@ export default class SettingBasic extends Vue {
       case 'segment-settings':
         return JSON.stringify(_getSegmentSettings(form)) !== JSON.stringify(_getSegmentSettings(project))
       case 'storage-quota':
+        form.storage_quota_size = +(form.storage_quota_tb_size * 1024 * 1024 * 1024 * 1024).toFixed(0)
         return JSON.stringify(_getStorageQuota(form)) !== JSON.stringify(_getStorageQuota(project))
+      case 'index-optimization':
+        return JSON.stringify(_getIndexOptimization(form)) !== JSON.stringify(_getIndexOptimization(project))
     }
   }
 }

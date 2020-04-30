@@ -231,6 +231,9 @@ export default {
     },
     [types.UPDATE_PROJECT_OWNER]: function ({ commit }, para) {
       return api.project.updateProjectOwner(para)
+    },
+    [types.UPDATE_INDEX_OPTIMIZATION]: function ({ commit }, para) {
+      return api.project.updateIndexOptimization(para)
     }
   },
   getters: {
