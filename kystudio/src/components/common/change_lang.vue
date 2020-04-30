@@ -11,7 +11,7 @@
   import zhLocale from 'kyligence-ui/lib/locale/lang/zh-CN'
   import enKylinLocale from '../../locale/en'
   import zhKylinLocale from '../../locale/zh-CN'
-  import { getQueryString } from 'util'
+  import { getQueryString } from '../../util/index'
   Vue.use(VueI18n)
   enLocale.kylinLang = enKylinLocale.default
   zhLocale.kylinLang = zhKylinLocale.default

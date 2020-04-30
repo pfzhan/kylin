@@ -41,7 +41,7 @@
                 </p>
               </div>
               <el-form-item class="ksd-pt-40">
-                <kap-icon-button type="primary" class="ksd-mt-10"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
+                <kap-icon-button type="primary" class="login-btn ksd-mt-10"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
               </el-form-item>
             </el-form>
           </div>
@@ -164,16 +164,16 @@ export default {
       this.hasLicense = false
       this.loadCheck = false
     },
-    apply: function () {
+    apply () {
       this.hasLicense = false
       this.applyLicense = true
       this.changeDialog = true
     },
     licenseForm: function () {
       this.loadCheck = true
-      this.$refs['licenseEnter'].$emit('licenseFormValid')
+      this.$refs['licenseEnter'] && this.$refs['licenseEnter'].$emit('licenseFormValid')
     },
-    licenseValidSuccess: function (license) {
+    licenseValidSuccess (license) {
       if (license === true) {
         this.hasLicenseMsg = true
         if (this.$store.state.system.serverAboutKap['code'] === '001' || this.$store.state.system.serverAboutKap['code'] === '002') {
@@ -188,13 +188,13 @@ export default {
       this.loadCheck = false
     },
     closeApplyLicense: function () {
-      this.$refs.applyLicenseForm.resetFields()
+      this.$refs.applyLicenseForm && this.$refs.applyLicenseForm.resetFields()
       if (this.changeDialog) {
         this.updateLicenseVisible = true
         this.applyLicense = false
       }
     },
-    submitApply: function () {
+    submitApply () {
       this.$refs['applyLicenseForm'].validate((valid) => {
         if (valid) {
           this.applyLoading = true
@@ -249,7 +249,7 @@ export default {
     },
     validateName: function (rule, value, callback) {
       const regex = /^\S[a-zA-Z\s\d\u4e00-\u9fa5]+\S$/
-      if (value.length > 50 && !regex.test(regex)) {
+      if (value.length > 50 && !regex.test(value)) {
         callback(new Error(this.$t('enterpriseName')))
       } else {
         callback()
