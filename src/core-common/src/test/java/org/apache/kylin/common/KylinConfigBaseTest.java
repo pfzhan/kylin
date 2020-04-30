@@ -358,8 +358,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getSparkEngineTaskImpactInstanceEnabled",
                 new PropertiesEntity("kylin.engine.spark.task-impact-instance-enabled", "true", true));
 
-        map.put("getSparkEngineDataImpactInstanceEnabled",
-                new PropertiesEntity("kylin.engine.spark.data-impact-instance-enabled", "true", true));
+        map.put("isSparderAsync",
+                new PropertiesEntity("kylin.query.init-sparder-async", "true", true));
 
         map.put("getSparkEngineBaseExuctorInstances",
                 new PropertiesEntity("kylin.engine.base-executor-instance", "5", 5));
