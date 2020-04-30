@@ -222,10 +222,9 @@ then
             quit "ERROR:Test of spark-sql failed,$kylin_hadoop_conf_dir is not valid hadoop dir conf because hive-site.xml is missing!"
         fi
     fi
-    HIVE_TEST_DB=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.database-for-flat-table`
-    if [[ -z "${HIVE_TEST_DB}" ]]; then
-        HIVE_TEST_DB=default
-    fi
+
+    HIVE_TEST_DB=default
+
     CHECK_TMP_DIR=${WORKING_DIR}/tmp
     CHECK_TABLE_NAME="kylin_table_for_sparktest"
     HIVE_TEST_TABLE=${HIVE_TEST_DB}.${CHECK_TABLE_NAME}
@@ -237,35 +236,8 @@ then
     eval $spark_sql_command
     [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Test of spark-sql failed"; }
 
-    echo "drop table if exists ${HIVE_TEST_TABLE};" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
-    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"; }
-
-    echo "create table ${HIVE_TEST_TABLE} (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '${HIVE_TEST_TABLE_LOCATION}';" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
-    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create table in working directory: ${WORKING_DIR}"; }
-
-    echo "drop table if exists ${HIVE_TEST_TABLE}2;" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
-    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create/drop table in Hive database '${HIVE_TEST_DB}'"; }
-
-    echo "kylin,1" | hadoop fs -put - ${HIVE_TEST_TABLE_LOCATION}/data.txt
-    echo "create table ${HIVE_TEST_TABLE}2 (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '${HIVE_TEST_TABLE_LOCATION}2';" > ${SPARK_HQL_TMP_FILE}
-    if [[ $(isHDP_3_1) == 0 ]]; then
-        echo "insert overwrite table ${HIVE_TEST_TABLE}2 select * from ${HIVE_TEST_TABLE};" >> ${SPARK_HQL_TMP_FILE}
-    fi
-    eval $spark_sql_command
-    [[ $? == 0 ]] || { rm -f ${SPARK_HQL_TMP_FILE}; quit "ERROR: Current user has no permission to write table in working directory: ${WORKING_DIR}"; }
-
     # safeguard cleanup
     verbose "Safeguard cleanup..."
-
-    #drop test table
-    echo "drop table if exists ${HIVE_TEST_TABLE}" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
-
-    echo "drop table if exists ${HIVE_TEST_TABLE}2" > ${SPARK_HQL_TMP_FILE}
-    eval $spark_sql_command
 
     rm -f ${SPARK_HQL_TMP_FILE}
     hadoop fs -rm -R -skipTrash "${WORKING_DIR}/_check_env_tmp/"
