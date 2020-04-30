@@ -42,12 +42,22 @@ public class JobInfoResponse {
         @JsonProperty("job_id")
         private String jobId;
 
+        // for v2 api
+        @JsonProperty("uuid")
+        private String uuid;
+
+        // for v2 api
+        @JsonProperty("job_type")
+        private String jobType;
+
         public JobInfo() {
         }
 
         public JobInfo(String jobName, String jobId) {
             this.jobName = jobName;
             this.jobId = jobId;
+            this.uuid = jobId;
+            this.jobType = jobName;
         }
     }
 }

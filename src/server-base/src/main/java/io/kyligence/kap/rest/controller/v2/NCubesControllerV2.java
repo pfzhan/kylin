@@ -34,11 +34,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.JobInfoResponseV2;
+import io.kyligence.kap.rest.response.JobInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse3X;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.exceptions.KylinException;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -73,7 +72,6 @@ public class NCubesControllerV2 extends NBasicController {
 
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";
     private static final String FAILED_CUBE_MSG_CODE = "KE-1010";
-    private static final String INVALID_PARAMETER_CODE = "KE-5001";
 
     @Autowired
     @Qualifier("modelService")
@@ -137,17 +135,14 @@ public class NCubesControllerV2 extends NBasicController {
             throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
-        JobInfoResponseV2 result = null;
+        JobInfoResponse.JobInfo result = null;
         switch (request.getBuildType()) {
         case "BUILD":
             val buildResponse = modelService.buildSegmentsManually(dataModelResponse.getProject(),
                     dataModelResponse.getId(), startTime, endTime);
             if (CollectionUtils.isNotEmpty(buildResponse.getJobs())) {
-                result = JobInfoResponseV2
-                        .convert(buildResponse.getJobs().stream()
-                                .filter(job -> JobTypeEnum.INC_BUILD.name().equals(job.getJobName())
-                                        || JobTypeEnum.INDEX_REFRESH.name().equals(job.getJobName()))
-                                .findFirst().orElse(null));
+                result = buildResponse.getJobs().stream()
+                        .filter(job -> JobTypeEnum.INC_BUILD.name().equals(job.getJobType())).findFirst().get();
             }
             break;
         case "REFRESH":
@@ -156,17 +151,16 @@ public class NCubesControllerV2 extends NBasicController {
                             && segment.getEndTime() <= request.getEndTime())
                     .map(NDataSegmentResponse::getId).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least one segment to refresh!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment to refresh!");
             }
             if (idList.size() > 1) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose most one segment to refresh!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose most one segment to refresh!");
             }
             val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));
             if (CollectionUtils.isNotEmpty(refreshResponse)) {
-                result = JobInfoResponseV2.convert(refreshResponse.stream()
-                        .filter(job -> JobTypeEnum.INDEX_REFRESH.name().equals(job.getJobName())).findFirst()
-                        .orElse(null));
+                result = refreshResponse.stream()
+                        .filter(job -> JobTypeEnum.INDEX_REFRESH.name().equals(job.getJobType())).findFirst().get();
             }
             break;
         default:
@@ -174,32 +168,6 @@ public class NCubesControllerV2 extends NBasicController {
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
-    }
-
-    private void checkSegmentNamesExist(NDataModelResponse response, List<String> segmentNameList) {
-        Set<String> segNameSet = response.getSegments().stream()
-                .filter(segment -> segmentNameList.contains(segment.getName())).map(NDataSegmentResponse::getName)
-                .collect(Collectors.toSet());
-        Set<String> notExistSegList = segmentNameList.stream().filter(name -> !segNameSet.contains(name))
-                .collect(Collectors.toSet());
-
-        if (CollectionUtils.isNotEmpty(notExistSegList)) {
-            throw new KylinException("KE-1026", String.format("Can not find those segment names: [%s]",
-                    StringUtils.join(notExistSegList.iterator(), ",")));
-        }
-    }
-
-    private void checkSegmentIdsExist(NDataModelResponse response, List<String> segmentIdList) {
-        Set<String> segIdSet = response.getSegments().stream()
-                .filter(segment -> segmentIdList.contains(segment.getId())).map(NDataSegmentResponse::getId)
-                .collect(Collectors.toSet());
-        Set<String> notExistSegList = segmentIdList.stream().filter(id -> !segIdSet.contains(id))
-                .collect(Collectors.toSet());
-
-        if (CollectionUtils.isNotEmpty(notExistSegList)) {
-            throw new KylinException("KE-1026", String.format("Can not find those segment ids: [%s]",
-                    StringUtils.join(notExistSegList.iterator(), ",")));
-        }
     }
 
     @PutMapping(value = "/{cubeName}/segments")
@@ -216,43 +184,32 @@ public class NCubesControllerV2 extends NBasicController {
             throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
         }
 
-        Set<String> idList;
+        Set<String> idList = dataModelResponse.getSegments().stream()
+                .filter(segment -> request.getSegments().contains(segment.getName())).map(NDataSegmentResponse::getId)
+                .collect(Collectors.toSet());
+
         switch (request.getBuildType()) {
         case "MERGE":
-            checkSegmentNamesExist(dataModelResponse, request.getSegments());
-            idList = dataModelResponse.getSegments().stream()
-                    .filter(segment -> request.getSegments().contains(segment.getName()))
-                    .map(NDataSegmentResponse::getId).collect(Collectors.toSet());
             if (idList.size() < 2) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least two segments to merge!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least two segments to merge!");
             }
             val mergeResponse = modelService.mergeSegmentsManually(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(mergeResponse), "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, mergeResponse, "");
         case "REFRESH":
-            checkSegmentNamesExist(dataModelResponse, request.getSegments());
-            idList = dataModelResponse.getSegments().stream()
-                    .filter(segment -> request.getSegments().contains(segment.getName()))
-                    .map(NDataSegmentResponse::getId).collect(Collectors.toSet());
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least one segment to refresh!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment to refresh!");
             }
             val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(refreshResponse), "");
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, refreshResponse, "");
         case "DROP":
-            // if type == DROP, then request segments is id list.
-            checkSegmentIdsExist(dataModelResponse, request.getSegments());
-            idList = dataModelResponse.getSegments().stream()
-                    .filter(segment -> request.getSegments().contains(segment.getId())).map(NDataSegmentResponse::getId)
-                    .collect(Collectors.toSet());
-
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least one segment to drop!");
+                throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment to drop!");
             }
             modelService.deleteSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
-                    request.getSegments().toArray(new String[0]), true);
-            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "Drop segments successfully");
+                    idList.toArray(new String[0]), true);
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Drop segments successfully");
         default:
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "", "Invalid build type.");
         }

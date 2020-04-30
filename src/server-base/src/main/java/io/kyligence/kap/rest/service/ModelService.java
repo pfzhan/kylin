@@ -369,7 +369,7 @@ public class ModelService extends BasicService {
                 cube.getMeasures().stream().map(x -> new NCubeDescResponse.Measure3X(x)).collect(Collectors.toList()));
 
         IndexPlan indexPlan = getIndexPlan(result.getUuid(), projectName);
-        if (!dataModel.isBroken() && indexPlan.getRuleBasedIndex() != null) {
+        if (indexPlan.getRuleBasedIndex() != null) {
             List<AggGroupResponse> aggGroupResponses = indexPlan.getRuleBasedIndex().getAggregationGroups().stream()
                     .map(x -> new AggGroupResponse(indexPlan, x)).collect(Collectors.toList());
             result.setAggregationGroups(aggGroupResponses);
@@ -399,22 +399,18 @@ public class ModelService extends BasicService {
 
             long inputRecordCnt = 0L;
             long inputRecordSizeBytes = 0L;
-            if (!modelResponse.isModelBroken()) {
-                List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
-                        "" + (Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
-                for (NDataSegmentResponse segment : segments) {
-                    Long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
-                            .max(Long::compareTo).orElse(0L);
-                    inputRecordCnt += sourceRows;
-                    inputRecordSizeBytes += segment.getSourceBytesSize();
+            List<NDataSegmentResponse> segments = getSegmentsResponse(modelResponse.getId(), project, "1",
+                    "" + (Long.MAX_VALUE - 1), LAST_MODIFY, true, null);
+            for (NDataSegmentResponse segment : segments) {
+                Long sourceRows = segment.getSegDetails().getLayouts().stream().map(NDataLayout::getSourceRows)
+                        .max(Long::compareTo).orElse(0L);
+                inputRecordCnt += sourceRows;
+                inputRecordSizeBytes += segment.getSourceBytesSize();
 
-                    NDataSegmentResponse.OldParams segmentOldParams = new NDataSegmentResponse.OldParams();
-                    segmentOldParams.setSizeKB(segment.getBytesSize() / 1024);
-                    segmentOldParams.setInputRecords(sourceRows);
-                    segment.setOldParams(segmentOldParams);
-                }
-
-                modelResponse.setSegments(segments);
+                NDataSegmentResponse.OldParams segmentOldParams = new NDataSegmentResponse.OldParams();
+                segmentOldParams.setSizeKB(segment.getBytesSize() / 1024);
+                segmentOldParams.setInputRecords(sourceRows);
+                segment.setOldParams(segmentOldParams);
             }
 
             oldParams.setName(modelResponse.getAlias());
@@ -423,6 +419,8 @@ public class ModelService extends BasicService {
             oldParams.setSizeKB(modelResponse.getStorage() / 1024);
             oldParams.setInputRecordSizeBytes(inputRecordSizeBytes);
             oldParams.setInputRecordCnt(inputRecordCnt);
+
+            modelResponse.setSegments(segments);
             modelResponse.setOldParams(oldParams);
         });
 
