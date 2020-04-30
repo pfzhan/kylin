@@ -23,14 +23,15 @@
  */
 package io.kyligence.kap.tool.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.zip.ZipFile;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
-import java.io.IOException;
 
 public class ZipFileUtilTest {
 
@@ -53,4 +54,21 @@ public class ZipFileUtilTest {
         Assert.assertTrue(new File(zipFilename).exists() && new File(zipFilename).length() > 200);
     }
 
+    @Test
+    public void testCompressEmptyDirZipFile() throws IOException {
+        String mainDir = temporaryFolder.getRoot() + "/testCompressZipFile";
+
+        File compressDir = new File(mainDir, "compress_dir");
+        FileUtils.forceMkdir(compressDir);
+
+        FileUtils.writeStringToFile(new File(compressDir, "a.txt"), "111111111111");
+        FileUtils.writeStringToFile(new File(compressDir, "b.txt"), "222222222222");
+        File emptyDirectory = new File(compressDir, "empty_directory");
+        emptyDirectory.mkdir();
+        String zipFilename = compressDir.getAbsolutePath() + ".zip";
+        ZipFileUtil.compressZipFile(compressDir.getAbsolutePath(), zipFilename);
+
+        long fileCount = new ZipFile(zipFilename).stream().count();
+        Assert.assertEquals(3, fileCount);
+    }
 }

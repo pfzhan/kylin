@@ -25,20 +25,20 @@ package io.kyligence.kap.tool;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
+import java.util.zip.ZipFile;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.joda.time.DateTime;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
-
-import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
@@ -50,6 +50,9 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
 
     @Rule
     public TestName testName = new TestName();
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setup() throws Exception {
@@ -74,14 +77,8 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
         File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
         FileUtils.forceMkdir(mainDir);
 
-        ResourceStore resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-        resourceStore.putResourceWithoutCheck("/expert_01/execute/9462fee8-e6cd-4d18-a5fc-b598a3c5edb5",
-                ByteStreams.asByteSource("{1:1}".getBytes()), DateTime.now().getMillis(), 0);
-
         new JobDiagInfoTool().execute(
-                new String[] { "-job", "9462fee8-e6cd-4d18-a5fc-b598a3c5edb5", "-destDir", mainDir.getAbsolutePath() });
-
-        resourceStore.deleteResource("/expert_01/execute/9462fee8-e6cd-4d18-a5fc-b598a3c5edb5");
+                new String[] { "-job", "dd5a6451-0743-4b32-b84d-2ddc8052429f", "-destDir", mainDir.getAbsolutePath() });
 
         for (File file1 : mainDir.listFiles()) {
             for (File file2 : file1.listFiles()) {
@@ -90,6 +87,71 @@ public class JobDiagInfoToolTest extends NLocalFileMetadataTestCase {
                 }
             }
         }
+    }
+
+    @Test
+    public void testExecuteWithFalseIncludeMeta() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        // includeMeta false
+        new JobDiagInfoTool().execute(new String[] { "-job", "dd5a6451-0743-4b32-b84d-2ddc8052429f", "-destDir",
+                mainDir.getAbsolutePath(), "-includeMeta", "false" });
+
+        boolean hasMetadataFile = new ZipFile(
+                Objects.requireNonNull(Objects.requireNonNull(mainDir.listFiles())[0].listFiles())[0]).stream()
+                        .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
+
+        Assert.assertFalse(hasMetadataFile);
+    }
+
+    @Test
+    public void testExecuteWithDefaultIncludeMeta() throws IOException {
+        // default includeMeta(true)
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        new JobDiagInfoTool().execute(
+                new String[] { "-job", "dd5a6451-0743-4b32-b84d-2ddc8052429f", "-destDir", mainDir.getAbsolutePath() });
+
+        boolean hasMetadataFile = new ZipFile(
+                Objects.requireNonNull(Objects.requireNonNull(mainDir.listFiles())[0].listFiles())[0]).stream()
+                        .anyMatch(zipEntry -> zipEntry.getName().contains("metadata"));
+        Assert.assertTrue(hasMetadataFile);
+    }
+
+    @Test
+    public void testWithNotExistsJobId() throws IOException {
+        File mainDir = new File(temporaryFolder.getRoot(), testName.getMethodName());
+        FileUtils.forceMkdir(mainDir);
+
+        thrown.expect(new BaseMatcher<Object>() {
+            @Override
+            public boolean matches(Object o) {
+                if (!(o instanceof Exception)) {
+                    return false;
+                }
+
+                Throwable e = ((Exception) o).getCause();
+
+                if (!e.getClass().equals(RuntimeException.class)) {
+                    return false;
+                }
+
+                if (!e.getMessage().equals("Can not find the jobId: 9462fee8-e6cd-4d18-a5fc-b598a3c5edb5")) {
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public void describeTo(Description description) {
+
+            }
+        });
+        new JobDiagInfoTool().execute(
+                new String[] { "-job", "9462fee8-e6cd-4d18-a5fc-b598a3c5edb5", "-destDir", mainDir.getAbsolutePath() });
+
     }
 
 }

@@ -23,15 +23,15 @@
  */
 package io.kyligence.kap.tool.util;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 
 public class ZipFileUtil {
     private ZipFileUtil() {
@@ -51,6 +51,12 @@ public class ZipFileUtil {
         File[] sourceFiles = new File(sourceDir).listFiles();
         if (null == sourceFiles) {
             return;
+        }
+
+        // should put empty directory to zip file
+        if (sourceFiles.length == 0) {
+            out.putNextEntry(
+                    new ZipEntry(normDir(StringUtils.isEmpty(rootDir) ? sourceDir : sourceDir.replace(rootDir, ""))));
         }
 
         for (File sourceFile : sourceFiles) {

@@ -73,6 +73,10 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
     private static final Option OPTION_THREADS = OptionBuilder.withArgName("threads").hasArg().isRequired(false)
             .withDescription("Specify number of threads for parallel extraction.").create("threads");
 
+    @SuppressWarnings("static-access")
+    private static final Option OPTION_META = OptionBuilder.withArgName("includeMeta").hasArg().isRequired(false)
+            .withDescription("Specify whether to include metadata to extract. Default true.").create("includeMeta");
+
     private static final String OPT_JOB = "-job";
 
     private static final int DEFAULT_PARALLEL_SIZE = 4;
@@ -89,6 +93,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
 
         options.addOption(OPTION_START_TIME);
         options.addOption(OPTION_END_TIME);
+        options.addOption(OPTION_META);
     }
 
     @Override
@@ -98,6 +103,7 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         final boolean includeClient = getBooleanOption(optionsHelper, OPTION_INCLUDE_CLIENT, true);
         final boolean includeConf = getBooleanOption(optionsHelper, OPTION_INCLUDE_CONF, true);
         final int threadsNum = getIntOption(optionsHelper, OPTION_THREADS, DEFAULT_PARALLEL_SIZE);
+        final boolean includeMeta = getBooleanOption(optionsHelper, OPTION_META, true);
 
         logger.info("Start diagnosis job info extraction in {} threads.", threadsNum);
         executorService = Executors.newScheduledThreadPool(threadsNum);
@@ -108,13 +114,29 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
         val job = getJobByJobId(jobId);
         if (null == job) {
             logger.error("Can not find the jobId: {}", jobId);
-            return;
+            throw new RuntimeException(String.format("Can not find the jobId: %s", jobId));
         }
         String project = job.getProject();
         long startTime = job.getCreateTime();
         long endTime = job.getEndTime() != 0 ? job.getEndTime() : System.currentTimeMillis();
         logger.info("job project : {} , startTime : {} , endTime : {}", project, startTime, endTime);
 
+        if (includeMeta) {
+            // dump job metadata
+            executorService.execute(() -> {
+                logger.info("Start to dump metadata.");
+                try {
+                    File metaDir = new File(exportDir, "metadata");
+                    FileUtils.forceMkdir(metaDir);
+                    String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
+                            "-excludeTableExd" };
+                    new MetadataTool().execute(metaToolArgs);
+                } catch (Exception e) {
+                    logger.warn("Failed to extract job metadata.", e);
+                }
+                DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
+            });
+        }
         // dump audit log
         executorService.execute(() -> {
             logger.info("Start to dump audit log.");
@@ -190,21 +212,6 @@ public class JobDiagInfoTool extends AbstractInfoExtractorTool {
             logger.info("Start to dump influxdb sla monitor metrics.");
             InfluxDBTool.dumpInfluxDBMonitorMetrics(exportDir);
             DiagnosticFilesChecker.writeMsgToFile("MONITOR_METRICS", System.currentTimeMillis() - start, recordTime);
-        });
-
-        // dump job metadata
-        executorService.execute(() -> {
-            logger.info("Start to dump metadata.");
-            try {
-                File metaDir = new File(exportDir, "metadata");
-                FileUtils.forceMkdir(metaDir);
-                String[] metaToolArgs = { "-backup", OPT_DIR, metaDir.getAbsolutePath(), OPT_PROJECT, project,
-                        "-excludeTableExd" };
-                new MetadataTool().execute(metaToolArgs);
-            } catch (Exception e) {
-                logger.warn("Failed to extract job metadata.", e);
-            }
-            DiagnosticFilesChecker.writeMsgToFile("METADATA", System.currentTimeMillis() - start, recordTime);
         });
     }
 
