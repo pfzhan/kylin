@@ -626,6 +626,7 @@ public class NExecutableManager {
             info.put("node_info", AddressUtil.getLocalInstance());
             jobOutput.setInfo(info);
             Optional.ofNullable(output).ifPresent(jobOutput::setContent);
+            jobOutput.setLastModified(System.currentTimeMillis());
 
             if (needDestroyProcess(oldStatus, newStatus)) {
                 logger.debug("need kill {}, from {} to {}", taskOrJobId, oldStatus, newStatus);
