@@ -538,7 +538,8 @@ public class NExecAndComp {
     static Dataset<Row> queryCubeAndSkipCompute(String prj, String sql, List<String> parameters) throws Exception {
         try {
             SparderEnv.skipCompute();
-            Dataset<Row> df = queryCube(prj, sql, parameters);
+            List<Object> parametersNotNull = parameters==null ? new ArrayList<>():new ArrayList<>(parameters);
+            Dataset<Row> df = queryCube(prj, sql, parametersNotNull);
             return df;
         } finally {
             SparderEnv.cleanCompute();
@@ -559,7 +560,7 @@ public class NExecAndComp {
         return queryCube(prj, sql, null);
     }
 
-    public static Dataset<Row> queryCube(String prj, String sql, List<String> parameters) throws SQLException {
+    public static Dataset<Row> queryCube(String prj, String sql, List<Object> parameters) throws SQLException {
         SparderEnv.setDF(null); // clear last df
         // if this config is on
         // SQLS like "where 1<>1" will be optimized and run locally and no dataset will be returned
