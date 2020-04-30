@@ -106,5 +106,11 @@ export default {
   },
   updateKerberosConfig (data) {
     return Vue.resource(apiUrl + 'projects/' + data.project + '/project_kerberos_info').update(data.body)
+  },
+  getAvailableProjectOwners (data) {
+    return Vue.resource(apiUrl + 'access/available/ProjectInstance').get(data)
+  },
+  updateProjectOwner (data) {
+    return Vue.resource(apiUrl + `projects/${data.project}/owner`).update({owner: data.owner})
   }
 }

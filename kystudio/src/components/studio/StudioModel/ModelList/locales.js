@@ -85,7 +85,14 @@ export default {
     importModels: 'Import Models',
     emptyIndexTips: 'This model has unbuilt indexes. Please click the build index button to build the indexes.',
     noIndexTips: 'You should add indexes first before building.',
-    guideToAcceptRecom: 'You can click the icon beside the model name to optimize model by accepting recommendations based on your query history.'
+    guideToAcceptRecom: 'You can click the icon beside the model name to optimize model by accepting recommendations based on your query history.',
+    changeModelOwner: 'Change Owner',
+    change: 'Change',
+    modelName: 'Model',
+    changeTo: 'Change Owner To',
+    pleaseChangeOwner: 'Please change model owner',
+    changeDesc: 'You can change the owner of the model to a system administrator, a user in the project ADMIN role, or a user in the project management role.',
+    changeModelSuccess: 'The owner of model {modelName} has been successfully changed to {owner}.'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -170,6 +177,13 @@ export default {
     exportMetadataSuccess: '正在生成模型元数据包。生成后将开始下载，请稍后。',
     exportMetadataFailed: '导出失败，请重试。',
     importModels: '导入模型',
-    guideToAcceptRecom: '您可以点击模型左侧的提示符来接受系统根据查询历史生成的模型优化建议。'
+    guideToAcceptRecom: '您可以点击模型左侧的提示符来接受系统根据查询历史生成的模型优化建议。',
+    changeModelOwner: '变更所有者',
+    change: '变更',
+    modelName: '模型',
+    changeTo: '变更所有者为',
+    pleaseChangeOwner: '请选择模型所有者',
+    changeDesc: '您可以将该模型的所有者变更为系统管理员，项目 ADMIN 角色的用户或者项目 Management 角色的用户。',
+    changeModelSuccess: '模型 {modelName} 的所有者已成功变更为 {owner}。'
   }
 }

@@ -261,5 +261,11 @@ export default {
   },
   importModelsMetadata (para) {
     return Vue.resource(apiUrl + `metastore/models?project=${para.project}`).save(para.form)
+  },
+  getAvailableModelOwners (para) {
+    return Vue.resource(apiUrl + 'access/available/NDataModel').get(para)
+  },
+  updateModelOwner (para) {
+    return Vue.resource(apiUrl + `models/${para.model}/owner`).update({project: para.project, owner: para.owner})
   }
 }

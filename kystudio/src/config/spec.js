@@ -88,7 +88,8 @@ export default {
       { "id": "delete" },
       { "id": "purge" },
       { "id": "offline" },
-      { "id": "online" }
+      { "id": "online" },
+      { "id": "changeModelOwner" }
     ],
     "metadataActions": [
       { "id": "executeModelMetadata" }
@@ -114,7 +115,8 @@ export default {
       { "id": "editProject" },
       { "id": "backUpProject" },
       { "id": "accessActions" },
-      { "id": "executeModelsMetadata" }
+      { "id": "executeModelsMetadata" },
+      { "id": "changeProjectOwner" }
     ],
     "groupActions": [
       { "id": "addGroup" },
@@ -197,8 +199,8 @@ export default {
     "modelActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
-        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
+        { "key": "systemAdmin-*", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner" },
+        { "key": "systemUser-admin", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex,changeModelOwner" },
         { "key": "systemUser-management", "value": "dataLoad,importMDX,exportTDS,exportMDX,rename,clone,delete,purge,offline,online,deleteIndex" },
         { "key": "systemUser-operation", "value": "purge" },
         { "key": "systemUser-read", "value": "none" }
@@ -244,7 +246,7 @@ export default {
     "projectActions": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions,executeModelsMetadata" },
+        { "key": "systemAdmin-*", "value": "addProject,deleteProject,editProject,backUpProject,accessActions,executeModelsMetadata,changeProjectOwner" },
         { "key": "systemUser-admin", "value": "editProject,backUpProject,accessActions,executeModelsMetadata" },
         { "key": "systemUser-[management,operation,read]", "value": "none" }
       ]

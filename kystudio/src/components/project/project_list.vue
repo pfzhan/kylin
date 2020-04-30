@@ -96,19 +96,20 @@
               <i class="el-icon-ksd-security ksd-mr-10 ksd-fs-14" v-if="projectActions.includes('accessActions')"></i>
             </router-link>
           </el-tooltip><!--
-          --><common-tip :content="$t('kylinLang.common.moreActions')" v-if="canExecuteModelMetadata(scope.row)">
+          --><common-tip :content="$t('kylinLang.common.moreActions')">
             <el-dropdown trigger="click">
               <i class="el-icon-ksd-table_others"></i>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item v-if="canExecuteModelMetadata(scope.row)" @click.native="handleExportModels(scope.row)">{{$t('exportModelsMetadata')}}</el-dropdown-item>
                 <el-dropdown-item v-if="canExecuteModelMetadata(scope.row)" @click.native="handleImportModels(scope.row)">{{$t('importModelsMetadata')}}</el-dropdown-item>
+                <el-dropdown-item v-if="projectActions.includes('changeProjectOwner')" @click.native="openChangeProjectOwner(scope.row.name)">{{$t('changeProjectOwner')}}</el-dropdown-item>
                 <el-dropdown-item v-if="projectActions.includes('deleteProject')" @click.native="removeProject(scope.row)">{{$t('delete')}}</el-dropdown-item>
               </el-dropdown-menu>
             </el-dropdown>
           </common-tip><!--
-          --><el-tooltip :content="$t('delete')" effect="dark" placement="top" v-if="projectActions.includes('deleteProject') && !canExecuteModelMetadata(scope.row)">
+          <el-tooltip :content="$t('delete')" effect="dark" placement="top" v-if="projectActions.includes('deleteProject') && !canExecuteModelMetadata(scope.row)">
             <i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)"></i>
-          </el-tooltip>
+          </el-tooltip>-->
         </template>
       </el-table-column>
       </el-table>
@@ -120,6 +121,39 @@
         @handleCurrentChange="handleCurrentChange">
       </kap-pager>
     </div>
+    <el-dialog width="480px" :title="$t('changeProjectOwner')" class="change_owner_dialog" :visible.sync="changeOwnerVisible" @close="resetProjectOwner" :close-on-click-modal="false">
+      <el-alert
+        :title="$t('changeDesc')"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        class="ksd-pt-0"
+        show-icon>
+      </el-alert>
+      <el-form :model="projectOwner" @submit.native.prevent ref="projectOwnerForm" label-width="130px" label-position="top">
+        <el-form-item :label="$t('project')" prop="project">
+          <el-input disabled name="project" v-model="projectOwner.project" size="medium"></el-input>
+        </el-form-item>
+        <el-form-item :label="$t('changeTo')" prop="owner">
+         <el-select
+          :placeholder="$t('pleaseChangeOwner')"
+          filterable
+          remote
+          :remote-method="loadAvailableProjectOwners"
+          @blur="(e) => loadAvailableProjectOwners(e.target.value)"
+          v-model="projectOwner.owner"
+          size="medium"
+          class="owner-select"
+          style="width:100%">
+          <el-option :label="user" :value="user" v-for="user in userOptions" :key="user"></el-option>
+        </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" :disabled="!(projectOwner.project&&projectOwner.owner)" @click="changeProjectOwner" :loading="changeLoading">{{$t('change')}}</el-button>
+      </div>
+    </el-dialog>
  </div>
 </template>
 <script>
@@ -130,6 +164,7 @@ import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectConfig from './project_config'
 import { permissions, pageCount, projectCfgs } from '../../config/index'
+import { handleSuccessAsync } from '../../util'
 import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'projectlist',
@@ -141,7 +176,9 @@ export default {
       deleteProject: 'DELETE_PROJECT',
       updateProject: 'UPDATE_PROJECT',
       saveProject: 'SAVE_PROJECT',
-      backupProject: 'BACKUP_PROJECT'
+      backupProject: 'BACKUP_PROJECT',
+      getAvailableProjectOwners: 'GET_AVAILABLE_PROJECT_OWNERS',
+      updateProjectOwner: 'UPDATE_PROJECT_OWNER'
     }),
     ...mapActions('ProjectEditModal', {
       callProjectEditModal: 'CALL_MODAL'
@@ -232,6 +269,48 @@ export default {
     },
     hasAdminProjectPermission () {
       return hasPermission(this, permissions.ADMINISTRATION.mask)
+    },
+    async loadAvailableProjectOwners (filterName) {
+      this.ownerFilter.name = filterName || ''
+      clearTimeout(this.timer)
+      this.timer = setTimeout(async () => {
+        try {
+          const res = await this.getAvailableProjectOwners(this.ownerFilter)
+          const data = await handleSuccessAsync(res)
+          this.userOptions = data.value
+        } catch (e) {
+          this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
+        }
+      }, 500)
+    },
+    async openChangeProjectOwner (projectName) {
+      this.projectOwner.project = projectName
+      this.ownerFilter.project = projectName
+      await this.loadAvailableProjectOwners()
+      this.changeOwnerVisible = true
+    },
+    async changeProjectOwner () {
+      if (!(this.projectOwner.project && this.projectOwner.owner)) {
+        return
+      }
+      this.changeLoading = true
+      try {
+        await this.updateProjectOwner(this.projectOwner)
+        this.changeLoading = false
+        this.changeOwnerVisible = false
+        this.$message.success(this.$t('changeProSuccess', this.projectOwner))
+        this.loadProjects(this.filterData)
+      } catch (e) {
+        this.$message({ showClose: true, duration: 0, message: e.body.msg, type: 'error' })
+        this.changeLoading = false
+        this.changeOwnerVisible = false
+      }
+    },
+    resetProjectOwner () {
+      this.projectOwner = {
+        project: '',
+        owner: ''
+      }
     }
   },
   data () {
@@ -257,7 +336,21 @@ export default {
       },
       selected_project: localStorage.getItem('selected_project'),
       projectWidth: '440px',
-      filterData: {page_offset: 0, page_size: pageCount, exact: false, project: '', permission: 'ADMINISTRATION'}
+      filterData: {page_offset: 0, page_size: pageCount, exact: false, project: '', permission: 'ADMINISTRATION'},
+      changeOwnerVisible: false,
+      changeLoading: false,
+      projectOwner: {
+        project: '',
+        owner: ''
+      },
+      userOptions: [],
+      ownerFilter: {
+        page_size: 100,
+        page_offset: 0,
+        project: '',
+        name: ''
+      },
+      timer: null
     }
   },
   components: {
@@ -318,7 +411,13 @@ export default {
       backupPro: 'Backup Project',
       author: 'Authorization',
       exportModelsMetadata: 'Export Model Metadata',
-      importModelsMetadata: 'Import Model Metadata'
+      importModelsMetadata: 'Import Model Metadata',
+      changeProjectOwner: 'Change Owner',
+      change: 'Change',
+      changeDesc: 'You can change the owner of the project to a system administrator or a user in the ADMIN role of the project.',
+      changeTo: 'Change Owner To',
+      pleaseChangeOwner: 'Please choose project owner',
+      changeProSuccess: 'The owner of project {project} has been successfully changed to {owner}.'
     },
     'zh-cn': {
       autoType: '智能模式',
@@ -350,7 +449,13 @@ export default {
       backupPro: '备份项目',
       author: '授权',
       exportModelsMetadata: '导出模型元数据',
-      importModelsMetadata: '导入模型元数据'
+      importModelsMetadata: '导入模型元数据',
+      changeProjectOwner: '变更所有者',
+      change: '变更',
+      changeDesc: '您可以将该项目的所有者变更为系统管理员，或者项目 ADMIN 角色的用户。',
+      changeTo: '变更所有者为',
+      pleaseChangeOwner: '请选择项目所有者',
+      changeProSuccess: '项目 {project} 的所有者已成功变更为 {owner}。'
     }
   }
 }

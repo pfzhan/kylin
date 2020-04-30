@@ -225,6 +225,12 @@ export default {
     },
     [types.UPDATE_KERBEROS_CONFIG]: function ({ commit }, para) {
       return api.project.updateKerberosConfig(para)
+    },
+    [types.GET_AVAILABLE_PROJECT_OWNERS]: function ({ commit }, para) {
+      return api.project.getAvailableProjectOwners(para)
+    },
+    [types.UPDATE_PROJECT_OWNER]: function ({ commit }, para) {
+      return api.project.updateProjectOwner(para)
     }
   },
   getters: {

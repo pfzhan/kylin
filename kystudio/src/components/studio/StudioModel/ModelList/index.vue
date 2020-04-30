@@ -174,7 +174,7 @@
                 <span v-html="$t('modelStatus_c')" />
                 <span>{{scope.row.status}}</span>
                 <div v-if="scope.row.empty_indexes_count">{{$t('emptyIndexTips')}}</div>
-                <div v-if="scope.row.segment_holes.length">
+                <div v-if="scope.row.segment_holes && scope.row.segment_holes.length">
                   <span>{{$t('modelSegmentHoleTips')}}</span><span
                     style="color:#0988DE;cursor: pointer;"
                     @click="autoFix(scope.row.alias, scope.row.uuid, scope.row.segment_holes)">{{$t('autoFix')}}</span>
@@ -306,12 +306,13 @@
                     <el-dropdown-item command="recommendations" v-if="scope.row.status !== 'BROKEN' && $store.state.project.isSemiAutomatic && datasourceActions.includes('accelerationActions')">{{$t('recommendations')}}</el-dropdown-item>
                     <el-dropdown-item command="dataLoad" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('dataLoad')">{{$t('modelPartitionSet')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item>
+                    <!-- <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('importMDX')">{{$t('importMdx')}}</el-dropdown-item>
                     <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportTDS')">{{$t('exportTds')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('exportMdx')}}</el-dropdown-item> -->
                     <el-dropdown-item command="exportMetadata" v-if="scope.row.status !== 'BROKEN' && metadataActions.includes('executeModelMetadata')">{{$t('exportMetadata')}}</el-dropdown-item>
                     <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN' && modelActions.includes('exportMDX')">{{$t('rename')}}</el-dropdown-item>
                     <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('clone')">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                    <el-dropdown-item v-if="scope.row.status !== 'BROKEN' && modelActions.includes('changeModelOwner')" @click.native="openChangeModelOwner(scope.row.alias, scope.row.uuid)">{{$t('changeModelOwner')}}</el-dropdown-item>
                     <el-dropdown-item command="delete" v-if="modelActions.includes('delete')">{{$t('delete')}}</el-dropdown-item>
                     <el-dropdown-item command="purge" v-if="scope.row.status !== 'BROKEN' && modelActions.includes('purge')">{{$t('purge')}}</el-dropdown-item>
                     <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN' && modelActions.includes('offline')">{{$t('offLine')}}</el-dropdown-item>
@@ -326,6 +327,39 @@
       <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mtb-10" ref="pager" :curPage="filterArgs.page_offset+1" :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     </div>
+    <el-dialog width="480px" :title="$t('changeModelOwner')" class="change_owner_dialog" :visible.sync="changeOwnerVisible" @close="resetModelOwner" :close-on-click-modal="false">
+      <el-alert
+        :title="$t('changeDesc')"
+        type="info"
+        :show-background="false"
+        :closable="false"
+        class="ksd-pt-0"
+        show-icon>
+      </el-alert>
+      <el-form :model="modelOwner" @submit.native.prevent ref="projectOwnerForm" label-width="130px" label-position="top">
+        <el-form-item :label="$t('modelName')" prop="model">
+          <el-input disabled name="project" v-model="modelOwner.modelName" size="medium"></el-input>
+        </el-form-item>
+        <el-form-item :label="$t('changeTo')" prop="owner">
+         <el-select
+          :placeholder="$t('pleaseChangeOwner')"
+          filterable
+          remote
+          :remote-method="loadAvailableModelOwners"
+          @blur="(e) => loadAvailableModelOwners(e.target.value)"
+          v-model="modelOwner.owner"
+          size="medium"
+          class="owner-select"
+          style="width:100%">
+          <el-option :label="user" :value="user" v-for="user in userOptions" :key="user"></el-option>
+        </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer ky-no-br-space">
+        <el-button plain size="medium" @click="changeOwnerVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" size="medium" :disabled="!(modelOwner.model&&modelOwner.owner)" @click="changeModelOwner" :loading="changeLoading">{{$t('change')}}</el-button>
+      </div>
+    </el-dialog>
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
@@ -443,7 +477,9 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       getModelByModelName: 'LOAD_MODEL_INFO',
       autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
       fetchSegments: 'FETCH_SEGMENTS',
-      downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA'
+      downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA',
+      getAvailableModelOwners: 'GET_AVAILABLE_MODEL_OWNERS',
+      updateModelOwner: 'UPDATE_MODEL_OWNER'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -515,6 +551,68 @@ export default class ModelList extends Vue {
   filterTags = []
   prevExpendContent = []
   buildVisible = {}
+  changeOwnerVisible = false
+  changeLoading = false
+  userOptions = []
+  modelOwner = {
+    modelName: '',
+    model: '',
+    owner: ''
+  }
+  ownerFilter = {
+    page_size: 100,
+    page_offset: 0,
+    project: '',
+    model: '',
+    name: ''
+  }
+  timer = null
+  async loadAvailableModelOwners (filterName) {
+    this.ownerFilter.name = filterName || ''
+    clearTimeout(this.timer)
+    this.timer = setTimeout(async () => {
+      try {
+        const res = await this.getAvailableModelOwners(this.ownerFilter)
+        const data = await handleSuccessAsync(res)
+        this.userOptions = data.value
+      } catch (e) {
+        this.$message({ showClose: true, duration: 0, closeOtherMessages: true, message: e.body.msg, type: 'error' })
+      }
+    }, 500)
+  }
+  async openChangeModelOwner (modelName, modelId) {
+    this.modelOwner.modelName = modelName
+    this.modelOwner.model = modelId
+    this.ownerFilter.project = this.currentSelectedProject
+    this.ownerFilter.model = modelId
+    await this.loadAvailableModelOwners()
+    this.changeOwnerVisible = true
+  }
+  async changeModelOwner () {
+    if (!(this.modelOwner.model && this.modelOwner.owner)) {
+      return
+    }
+    this.modelOwner.project = this.currentSelectedProject
+    this.changeLoading = true
+    try {
+      await this.updateModelOwner(this.modelOwner)
+      this.changeLoading = false
+      this.changeOwnerVisible = false
+      this.$message.success(this.$t('changeModelSuccess', this.modelOwner))
+      this.loadModelsList()
+    } catch (e) {
+      this.$message({ showClose: true, duration: 0, message: e.body.msg, type: 'error' })
+      this.changeLoading = false
+      this.changeOwnerVisible = false
+    }
+  }
+  resetModelOwner () {
+    this.modelOwner = {
+      modelName: '',
+      model: '',
+      owner: ''
+    }
+  }
   showGenerateModelDialog () {
     this.showUploadSqlDialog({
       isGenerateModel: true

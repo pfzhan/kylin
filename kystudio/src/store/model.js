@@ -322,6 +322,12 @@ export default {
     },
     async [types.DOWNLOAD_MODELS_METADATA] ({ commit }, payload) {
       await api.model.downloadModelsMetadata(payload)
+    },
+    [types.GET_AVAILABLE_MODEL_OWNERS] ({ commit }, params) {
+      return api.model.getAvailableModelOwners(params)
+    },
+    [types.UPDATE_MODEL_OWNER] ({ commit }, params) {
+      return api.model.updateModelOwner(params)
     }
   },
   getters: {
