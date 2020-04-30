@@ -75,7 +75,15 @@ public class DoubleQuotePushDownConverterTest {
                 //test for unchanged for  all expressions
                 Arrays.asList("select (a + b) * c", "select (\"A\" + \"B\") * \"C\""),
                 Arrays.asList("select a + b * c", "select \"A\" + \"B\" * \"C\""),
-                Arrays.asList("select 1 + b * c", "select 1 + \"B\" * \"C\""));
+                Arrays.asList("select 1 + b * c", "select 1 + \"B\" * \"C\""),
+
+                //for filter the function without parentheses,ref KE-13407
+                Arrays.asList(
+                        "select CURRENT_CATALOG, CURRENT_DATE, CURRENT_PATH,CURRENT_ROLE, CURRENT_SCHEMA, CURRENT_TIME, CURRENT_TIMESTAMP, CURRENT_USER,LOCALTIME, LOCALTIMESTAMP, SESSION_USER, SYSTEM_USER, USER",
+                        "select CURRENT_CATALOG, CURRENT_DATE, CURRENT_PATH,CURRENT_ROLE, CURRENT_SCHEMA, CURRENT_TIME, CURRENT_TIMESTAMP, CURRENT_USER,LOCALTIME, LOCALTIMESTAMP, SESSION_USER, SYSTEM_USER, USER"),
+                //filter the function without parentheses, test for lowercase or uppercase
+                Arrays.asList("select CUrrENT_DATE     ,     current_role     , a,1+1",
+                        "select CUrrENT_DATE     ,     current_role     , \"A\",1+1"));
         convertSuccessUTs.forEach(this::testConvertSuccess);
 
     }

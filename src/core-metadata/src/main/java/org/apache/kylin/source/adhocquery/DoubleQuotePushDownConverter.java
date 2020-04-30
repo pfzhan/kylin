@@ -25,12 +25,16 @@ package org.apache.kylin.source.adhocquery;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.calcite.avatica.util.Quoting;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperatorTable;
+import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -81,11 +85,12 @@ public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
             SqlVisitor<Void> sqlVisitor = new SqlBasicVisitor<Void>() {
                 @Override
                 public Void visit(SqlIdentifier id) {
-                    allSqlIdentifier.add(id);
+                    if (!isFunctionWithoutParentheses(id)) {
+                        allSqlIdentifier.add(id);
+                    }
                     return null;
                 }
             };
-
             parse().accept(sqlVisitor);
 
             return allSqlIdentifier;
@@ -113,6 +118,17 @@ public class DoubleQuotePushDownConverter implements IPushDownConverter, IKeep {
                 return Quoting.DOUBLE_QUOTE.string + identifierStr + Quoting.DOUBLE_QUOTE.string;
             }
 
+        }
+
+        /**
+         * filter the function without parentheses
+         * {@link org.apache.calcite.sql.SqlUtil#makeCall(SqlOperatorTable, SqlIdentifier)}
+         * @param id
+         * @return
+         */
+        private boolean isFunctionWithoutParentheses(SqlIdentifier id) {
+            SqlOperatorTable opTab = SqlStdOperatorTable.instance();
+            return Objects.nonNull(SqlUtil.makeCall(opTab, id));
         }
 
     }
