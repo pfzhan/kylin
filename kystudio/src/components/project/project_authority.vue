@@ -599,6 +599,23 @@ export default class ProjectAuthority extends Vue {
         font-size: 14px;
       }
     }
+    .el-dialog {
+      position: absolute;
+      left: 0;
+      right: 0;
+      margin: auto;
+      max-height: 70%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      .el-dialog__header {
+        min-height: initial;
+      }
+      .el-dialog__body {
+        // height: calc(~'100% - 200px');
+        overflow: auto;
+      }
+    }
     .author-tips {
       position: relative;
       padding: 0 10px;

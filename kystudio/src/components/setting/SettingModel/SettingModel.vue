@@ -93,7 +93,7 @@
       </el-table-column>
     </el-table>
     <kap-pager :totalSize="modelListSize" :curPage="filter.page_offset+1" v-on:handleCurrentChange='currentChange' ref="modleConfigPager" class="ksd-mtb-10 ksd-center" ></kap-pager>
-    <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" limited-area width="480px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
+    <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="480px" class="model-setting-dialog" @closed="handleClosed" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form ref="form" label-position="top" size="medium" label-width="80px" :model="modelSettingForm" :rules="rules">
         <el-form-item :label="modelTableTitle">
           <el-input v-model.trim="modelSettingForm.name" disabled></el-input>
@@ -529,7 +529,8 @@ export default class SettingStorage extends Vue {
 }
 .model-setting-dialog {
   .el-dialog__body {
-    max-height: 550px !important;
+    max-height: 500px;
+    overflow: auto;
   }
   .el-form-item__content p {
     font-size: 12px;
