@@ -1,4 +1,4 @@
-import Tree from './tree'
+import Tree from './TreeLayout'
 
 export default {
   Tree
