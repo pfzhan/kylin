@@ -342,10 +342,8 @@ class SparderRexVisitor(val inputFieldNames: Array[String],
     val rType = dynamicParam.getType
 
     if (rType.getSqlTypeName.getName.equals("TIMESTAMP")) {
-      if (s.isInstanceOf[Timestamp]) {
-        return s
-      }
-      return new Timestamp(DateFormat.stringToMillis(s.toString))
+      // s is a string like "2010-01-01 15:43:38", need to be java.sql.Timestamp
+      s = new Timestamp(DateFormat.stringToMillis(s.toString))
     }
     SparderTypeUtil.convertStringToValue(s, rType, toCalcite = false)
   }

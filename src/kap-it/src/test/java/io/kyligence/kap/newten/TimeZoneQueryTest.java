@@ -32,7 +32,6 @@ import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.query.pushdown.SparkSqlClient;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -43,8 +42,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.rest.request.PrepareSqlRequest;
-import org.apache.kylin.rest.util.PrepareSQLUtils;
 import org.apache.parquet.Strings;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Row;
@@ -138,70 +135,6 @@ public class TimeZoneQueryTest extends NLocalWithSparkSessionTest {
         System.out.println();
 
 
-    }
-
-    @Test
-    public void testTimestampWithDynamicParam() throws Exception {
-        String sqlOrign =
-                "select TEST_ORDER.TEST_TIME_ENC as ts1, " +
-                        "CAL_DT as dt1, " +
-                        "cast (TEST_ORDER_STRING.TEST_TIME_ENC as timestamp) as ts2, " +
-                        "cast(TEST_ORDER_STRING.TEST_DATE_ENC  as date) as dt2," +
-                        "TEST_ORDER.ORDER_ID, " +
-                        "count(*) " +
-                        "FROM TEST_ORDER LEFT JOIN TEST_KYLIN_FACT " +
-                        "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID " +
-                        "LEFT JOIN TEST_ORDER_STRING " +
-                        "ON TEST_ORDER.ORDER_ID = TEST_ORDER_STRING.ORDER_ID " +
-                        "where TEST_ORDER.TEST_TIME_ENC='2013-01-01 12:02:11' " +
-                        "group by TEST_ORDER.ORDER_ID ,TEST_ORDER_STRING.TEST_TIME_ENC , " +
-                        "TEST_ORDER_STRING.TEST_DATE_ENC ,CAL_DT, TEST_ORDER.TEST_TIME_ENC " +
-                        "order by TEST_ORDER.ORDER_ID ";
-        String paramString = "2013-01-01 12:02:11";
-        buildSegs("8c670664-8d05-466a-802f-83c023b56c77", 10001L);
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-        // benchmark
-        List<List<String>> benchmark = NExecAndComp.queryCubeWithJDBC(getProject(), sqlOrign);
-        // setTimestamp
-        String sqlWithPlaceholder = sqlOrign.replace("where TEST_ORDER.TEST_TIME_ENC='2013-01-01 12:02:11' ",
-                "where TEST_ORDER.TEST_TIME_ENC=? ");
-        List<Row> rows = NExecAndComp.queryCube(getProject(), sqlWithPlaceholder,
-                Arrays.asList(new Timestamp[] {Timestamp.valueOf(paramString)})).collectAsList();
-        List<List<String>> setTimestampResults = transformToString(rows);
-        // setTimestamp pushdown
-        PrepareSqlRequest.StateParam[] params = new PrepareSqlRequest.StateParam[]{
-                new PrepareSqlRequest.StateParam(Timestamp.class.getCanonicalName(), paramString)};
-        String sqlPushDown = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params);
-        List<List<String>> setTimestampPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown, UUID.randomUUID()).getFirst();
-        // setString
-        List<Row> rows2 = NExecAndComp.queryCube(getProject(), sqlWithPlaceholder,
-                Arrays.asList(new String[] {paramString})).collectAsList();
-        List<List<String>> setStringResults = transformToString(rows2);
-        // setString pushdown
-        PrepareSqlRequest.StateParam[] params2 = new PrepareSqlRequest.StateParam[]{
-                new PrepareSqlRequest.StateParam(String.class.getCanonicalName(), paramString)};
-        String sqlPushDown2 = PrepareSQLUtils.fillInParams(sqlWithPlaceholder, params2);
-        List<List<String>> setStringPushdownResults = SparkSqlClient.executeSql(ss, sqlPushDown2, UUID.randomUUID()).getFirst();
-
-        Assert.assertTrue(benchmark.size() == setTimestampResults.size());
-        Assert.assertTrue(benchmark.size() == setTimestampPushdownResults.size());
-        Assert.assertTrue(benchmark.size() == setStringResults.size());
-        Assert.assertTrue(benchmark.size() == setStringPushdownResults.size());
-
-        for (int i = 0; i < benchmark.size(); i++) {
-            if (!ListUtils.isEqualList(benchmark.get(i), setTimestampResults.get(i))
-                    && !ListUtils.isEqualList(benchmark.get(i), setTimestampPushdownResults.get(i))
-                    && !ListUtils.isEqualList(benchmark.get(i), setStringResults.get(i))
-                    && !ListUtils.isEqualList(benchmark.get(i), setStringPushdownResults.get(i))) {
-                String expected = Strings.join(benchmark.get(i), ",");
-                String actual1 = Strings.join(setTimestampResults.get(i), ",");
-                String actual2 = Strings.join(setTimestampPushdownResults.get(i), ",");
-                String actual3 = Strings.join(setStringResults.get(i), ",");
-                String actual4 = Strings.join(setStringPushdownResults.get(i), ",");
-                fail("expected: " + expected + ", setTimestampResults: " + actual1 + ", setTimestampPushdownResults: "
-                    + actual2 + ", setStringResults: " + actual3 + ", setStringPushdownResults: " + actual4);
-            }
-        }
     }
 
     @Test

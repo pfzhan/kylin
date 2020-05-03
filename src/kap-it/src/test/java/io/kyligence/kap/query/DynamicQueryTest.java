@@ -32,8 +32,6 @@ import io.kyligence.kap.newten.auto.NSuggestTestBase;
 import io.kyligence.kap.query.engine.QueryExec;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class DynamicQueryTest extends NSuggestTestBase {
     private static final String PROJECT = "newten";
@@ -74,20 +72,5 @@ public class DynamicQueryTest extends NSuggestTestBase {
         val smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), PROJECT, sqls);
         smartMaster.runAll();
         buildAllCubes(KylinConfig.getInstanceFromEnv(), PROJECT);
-    }
-
-    @Test
-    public void testDynamicParamOnMilliSecTimestamp() throws Exception {
-        proposeAndBuildIndex(new String[]{"select time2 from test_measure"});
-        String sql = "select time2 from test_measure where time2=?";
-        QueryExec queryExec = new QueryExec(PROJECT, KylinConfig.getInstanceFromEnv());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
-        String ts = "2012-03-21 10:10:10.789";
-        Date parsedDate = dateFormat.parse(ts);
-        queryExec.setPrepareParam(0, new java.sql.Timestamp(parsedDate.getTime()));
-        val resultSet = queryExec.executeQuery(sql);
-        Assert.assertEquals(resultSet.getRows().size(), 1);
-        val timestamp = resultSet.getRows().get(0).get(0);
-        Assert.assertEquals("2012-03-21 10:10:10.789", timestamp);
     }
 }
