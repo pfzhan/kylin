@@ -39,14 +39,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.common.exceptions;
+package org.apache.kylin.common.exception;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.kylin.common.response.ResponseCode;
-import org.codehaus.commons.nullanalysis.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,20 +52,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import io.kyligence.kap.common.util.FileUtils;
-import lombok.Getter;
 
-@Getter
-public class KylinException extends RuntimeException {
-    public static final Logger logger = LoggerFactory.getLogger(KylinException.class);
+public class ErrorCode {
+    public static final Logger logger = LoggerFactory.getLogger(ErrorCode.class);
     private static final String enErrorCodeFile = "kylin_errorcode_conf_en.properties";
     private static final String zhErrorCodeFile = "kylin_errorcode_conf_zh.properties";
-    private static ImmutableMap<String, String> enMap;
-    private static ImmutableMap<String, String> zhMap;
-    private static ThreadLocal<ImmutableMap<String, String>> frontMap = new ThreadLocal<>();
-
-    private final String keCode;// for example KE-1001
-    private final String code; //for example 999
-    private boolean throwTrace = true;
+    private static final ImmutableMap<String, String> enMap;
+    private static final ImmutableMap<String, String> zhMap;
+    private static final ThreadLocal<ImmutableMap<String, String>> frontMap = new ThreadLocal<>();
     static {
         try {
             URL resource = Thread.currentThread().getContextClassLoader().getResource(enErrorCodeFile);
@@ -88,6 +80,12 @@ public class KylinException extends RuntimeException {
         }
     }
 
+    private final String keCode;
+
+    public ErrorCode(String keCode) {
+        this.keCode = keCode;
+    }
+
     public static void setMsg(String lang) {
         if ("cn".equals(lang)) {
             frontMap.set(zhMap);
@@ -96,59 +94,19 @@ public class KylinException extends RuntimeException {
         }
     }
 
-    public KylinException(@NotNull String keCode, String msg) {
-        super(msg);
-        this.keCode = keCode;
-        this.code = ResponseCode.CODE_UNDEFINED;
-    }
-
-    public KylinException(@NotNull String keCode, String msg, boolean throwTrace) {
-        super(msg);
-        this.keCode = keCode;
-        this.code = ResponseCode.CODE_UNDEFINED;
-        this.throwTrace = throwTrace;
-    }
-
-    public KylinException(@NotNull String keCode, Throwable cause) {
-        super(cause);
-        this.keCode = keCode;
-        this.code = ResponseCode.CODE_UNDEFINED;
-    }
-
-    public KylinException(@NotNull String keCode, String msg, Throwable cause) {
-        super(msg, cause);
-        this.keCode = keCode;
-        this.code = ResponseCode.CODE_UNDEFINED;
-    }
-
-    public KylinException(@NotNull String keCode, String msg, String code) {
-        super(msg);
-        this.keCode = keCode;
-        this.code = code;
-    }
-
-    public KylinException(@NotNull String keCode, String msg, String code, Throwable cause) {
-        super(msg, cause);
-        this.keCode = keCode;
-        this.code = code;
-    }
-
-    private static ImmutableMap<String, String> getFrontMap() {
+    private static ImmutableMap<String, String> getMap() {
         ImmutableMap<String, String> res = frontMap.get();
         return res == null ? enMap : res;
     }
 
-    @Override
-    public String toString() {//for log
-        String description = enMap.getOrDefault(keCode, "unknown");
-        String detail = String.format("%s(%s)", keCode, description);
-        return detail + " \n" + super.toString();
+    public String getLocalizedString() {
+        String description = getMap().getOrDefault(keCode, "unknown");
+        return String.format("%s(%s)", keCode, description);
     }
 
-    @Override
-    public String getLocalizedMessage() {//for front
-        String description = getFrontMap().getOrDefault(keCode, "unknown");
-        return String.format("%s(%s):%s", keCode, description, super.getLocalizedMessage());
+    public String getString() {
+        String description = enMap.getOrDefault(keCode, "unknown");
+        return String.format("%s(%s)", keCode, description);
     }
 
 }

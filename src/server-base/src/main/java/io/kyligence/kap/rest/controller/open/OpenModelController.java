@@ -24,6 +24,8 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
 
 import java.util.List;
 import java.util.Map;
@@ -31,10 +33,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.OpenSqlAccerelateRequest;
 import org.apache.kylin.rest.response.DataResult;
@@ -124,7 +126,8 @@ public class OpenModelController extends NBasicController {
         List<NDataModelResponse> responses = modelService.getModels(modelAlias, project, true, null, null,
                 "last_modify", true);
         if (CollectionUtils.isEmpty(responses)) {
-            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         return responses.get(0);
     }
@@ -386,7 +389,7 @@ public class OpenModelController extends NBasicController {
         boolean filterByModels = request.isFilterByModelNames() && request.isFilterByModes();
         if (filterByModels) {
             if (CollectionUtils.isEmpty(request.getModelNames())) {
-                throw new KylinException("KE-1010", MsgPicker.getMsg().getEMPTY_MODEL_NAME());
+                throw new KylinException(INVALID_MODEL_NAME, MsgPicker.getMsg().getEMPTY_MODEL_NAME());
             }
             for (String modelName : request.getModelNames()) {
                 getModel(modelName, request.getProject());

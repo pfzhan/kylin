@@ -23,6 +23,11 @@
  */
 package io.kyligence.kap.rest;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.NO_ACTIVE_ALL_NODE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.TRANSFER_FAILED;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
@@ -36,18 +41,17 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
@@ -64,12 +68,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.cluster.ClusterManager;
 import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 @Component
@@ -79,13 +84,11 @@ public class QueryNodeFilter implements Filter {
     private static final String API_PREFIX = "/kylin/api";
     private static final String ROUTED = "routed";
 
-
     private static Set<String> routeGetApiSet = Sets.newHashSet();
     private static Set<String> notRoutePostApiSet = Sets.newHashSet();
     private static Set<String> notRouteDeleteApiSet = Sets.newHashSet();
     private static Set<String> notRoutePutApiSet = Sets.newHashSet();
     private static String ERROR_REQUEST_URL = "/kylin/api/error";
-
 
     static {
         // data source
@@ -167,12 +170,14 @@ public class QueryNodeFilter implements Filter {
             // no leaders
             if (CollectionUtils.isEmpty(clusterManager.getJobServers())) {
                 Message msg = MsgPicker.getMsg();
-                servletRequest.setAttribute("error", new KylinException("KE-4017", msg.getNO_ACTIVE_LEADERS()));
+                servletRequest.setAttribute("error",
+                        new KylinException(NO_ACTIVE_ALL_NODE, msg.getNO_ACTIVE_LEADERS()));
                 servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
                 return;
             }
 
-            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED)) || KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            if ("true".equalsIgnoreCase(servletRequest.getHeader(ROUTED))
+                    || KylinConfig.getInstanceFromEnv().isUTEnv()) {
                 log.info("process local caused by routed once.");
                 chain.doFilter(request, response);
                 return;
@@ -183,7 +188,8 @@ public class QueryNodeFilter implements Filter {
             if (!UnitOfWork.GLOBAL_UNIT.equals(project)) {
                 val prj = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
                 if (prj == null) {
-                    servletRequest.setAttribute("error", new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
+                    servletRequest.setAttribute("error", new KylinException(PROJECT_NOT_EXIST,
+                            String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project)));
                     servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
                     return;
                 }
@@ -202,7 +208,6 @@ public class QueryNodeFilter implements Filter {
                 }
             }
 
-
             ServletRequestAttributes attributes = new ServletRequestAttributes((HttpServletRequest) request);
             RequestContextHolder.setRequestAttributes(attributes);
 
@@ -216,7 +221,7 @@ public class QueryNodeFilter implements Filter {
             int responseStatus;
             HttpHeaders responseHeaders;
             MsgPicker.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
-            KylinException.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
+            ErrorCode.setMsg(servletRequest.getHeader(HttpHeaders.ACCEPT_LANGUAGE));
             try {
                 val exchange = restTemplate.exchange(
                         "http://all" + servletRequest.getRequestURI() + "?" + servletRequest.getQueryString(),
@@ -228,7 +233,7 @@ public class QueryNodeFilter implements Filter {
                 responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
                 Message msg = MsgPicker.getMsg();
                 ErrorResponse errorResponse = new ErrorResponse(servletRequest.getRequestURL().toString(),
-                        new KylinException("KE-4016", msg.getLEADERS_HANDLE_OVER()));
+                        new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER()));
                 responseBody = JsonUtil.writeValueAsBytes(errorResponse);
                 responseHeaders = new HttpHeaders();
                 responseHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
@@ -240,7 +245,8 @@ public class QueryNodeFilter implements Filter {
                 log.warn("code {}, error {}", e.getStatusCode(), e.getMessage());
             } catch (Exception e) {
                 log.error("transfer failed", e);
-                servletRequest.setAttribute("error", new KylinException("KE-5005", MsgPicker.getMsg().getTRANSFER_FAILED()));
+                servletRequest.setAttribute("error",
+                        new KylinException(TRANSFER_FAILED, MsgPicker.getMsg().getTRANSFER_FAILED()));
                 servletRequest.getRequestDispatcher("/api/error").forward(servletRequest, response);
                 return;
             }

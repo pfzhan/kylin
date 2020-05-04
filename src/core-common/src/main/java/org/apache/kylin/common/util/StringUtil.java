@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,7 +51,7 @@ import org.apache.commons.lang.StringUtils;
 /**
  */
 public class StringUtil {
-    
+
     public static String[] EMPTY_ARRAY = new String[0];
 
     public static String[] filterSystemArgs(String[] args) {

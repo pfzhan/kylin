@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -46,7 +48,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -317,7 +319,7 @@ public class JobService extends BasicService {
         case ALL:
             return 0;
         default:
-            throw new KylinException("KE-1010", String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
+            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
         }
     }
 
@@ -340,7 +342,7 @@ public class JobService extends BasicService {
         case STOPPED:
             return ExecutableState.PAUSED;
         default:
-            throw new KylinException("KE-1010", String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
+            throw new KylinException(INVALID_PARAMETER, String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
     }
 
@@ -528,7 +530,7 @@ public class JobService extends BasicService {
         batchUpdateJobStatus0(jobIds, project, action, filterStatuses);
     }
 
-    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action,  List<String> filterStatuses) {
+    public void batchUpdateGlobalJobStatus(List<String> jobIds, String action, List<String> filterStatuses) {
         UnitOfAllWorks.doInTransaction(() -> {
             for (ProjectInstance project : getReadableProjects()) {
                 aclEvaluate.checkProjectOperationPermission(project.getName());

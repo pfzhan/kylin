@@ -44,6 +44,16 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.ACCEPT_ENCODING;
 import static io.kyligence.kap.guava20.shaded.common.net.HttpHeaders.CONTENT_DISPOSITION;
+import static org.apache.kylin.rest.exception.ServerErrorCode.ACCESS_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_ID;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_DOWNLOAD_FILE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.ILLEGAL_JOB_STATUS;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_RANGE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -64,20 +74,20 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.apache.kylin.rest.util.PagingUtil;
@@ -91,6 +101,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -104,6 +115,7 @@ import org.springframework.web.client.RequestCallback;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.client.RestTemplate;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.Validation;
@@ -128,13 +140,13 @@ public class NBasicController {
             }
         }
 
-        throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+        throw new KylinException(PROJECT_NOT_EXIST, String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
     }
 
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ExceptionHandler(Exception.class)
     @ResponseBody
-    ErrorResponse handleError(HttpServletRequest req, Exception ex) {
+    ErrorResponse handleError(HttpServletRequest req, Throwable ex) {
         logger.error("", ex);
         Message msg = MsgPicker.getMsg();
         Throwable cause = ex;
@@ -167,18 +179,34 @@ public class NBasicController {
         return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(BadRequestException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(TransactionException.class)
     @ResponseBody
-    ErrorResponse handleBadRequest(HttpServletRequest req, Exception ex) {
+    ErrorResponse handleTransaction(HttpServletRequest req, Throwable ex) {
         logger.error("", ex);
-        return new ErrorResponse(req.getRequestURL().toString(), ex);
+        Throwable root = ExceptionUtils.getRootCause(ex) == null ? ex : ExceptionUtils.getRootCause(ex);
+        if (root instanceof AccessDeniedException) {
+            return handleAccessDenied(req, root);
+        } else if (root instanceof KylinException) {
+            return handleErrorCode(req, root);
+        } else {
+            return handleError(req, ex);//use ex , not root
+        }
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseBody
+    ErrorResponse handleAccessDenied(HttpServletRequest req, Throwable ex) {
+        KylinException e = new KylinException(ACCESS_DENIED, ex);
+        logger.error("", e);
+        return new ErrorResponse(req.getRequestURL().toString(), e);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(KylinException.class)
     @ResponseBody
-    ErrorResponse handleErrorCode(HttpServletRequest req, Exception ex) {
+    ErrorResponse handleErrorCode(HttpServletRequest req, Throwable ex) {
         logger.error("", ex);
         KylinException cause = (KylinException) ex;
         while (cause != null && cause.getCause() != null && cause.getCause() instanceof KylinException) {
@@ -206,13 +234,15 @@ public class NBasicController {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseBody
-    ErrorResponse handleUnauthorized(HttpServletRequest req, Exception ex) {
+    ErrorResponse handleUnauthorized(HttpServletRequest req, Throwable ex) {
+        KylinException e = new KylinException(USER_UNAUTHORIZED, ex);
+        logger.error("", e);
         return new ErrorResponse(req.getRequestURL().toString(), ex);
     }
 
     protected void checkRequiredArg(String fieldName, Object fieldValue) {
         if (fieldValue == null || StringUtils.isEmpty(String.valueOf(fieldValue))) {
-            throw new KylinException("KE-1010", fieldName + " is required");
+            throw new KylinException(INVALID_PARAMETER, fieldName + " is required");
         }
     }
 
@@ -222,7 +252,7 @@ public class NBasicController {
             setDownloadResponse(fileInputStream, fileName, contentType, response);
             response.setContentLength((int) file.length());
         } catch (IOException e) {
-            throw new KylinException("KE-1011", e);
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e);
         }
     }
 
@@ -235,7 +265,7 @@ public class NBasicController {
             IOUtils.copyLarge(inputStream, output);
             output.flush();
         } catch (IOException e) {
-            throw new KylinException("KE-1011", e);
+            throw new KylinException(FAILED_DOWNLOAD_FILE, e);
         }
     }
 
@@ -268,38 +298,35 @@ public class NBasicController {
     public void checkProjectName(String project) {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
-            throw new KylinException("KE-1015", msg.getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
         }
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        if (projectManager == null) {
-            throw new RuntimeException("Cannot get ProjectManager for project: " + project);
-        }
-
         ProjectInstance prjInstance = projectManager.getProject(project);
         if (prjInstance == null) {
-            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectNotSemiAuto(String project) {
         if (!NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isSemiAutoMode()) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 
     // Invoke this method after checkProjectName(), otherwise NPE will happen
     public void checkProjectUnmodifiable(String project) {
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project).isExpertMode()) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_UNMODIFIABLE_REASON());
         }
     }
 
     public void checkJobStatus(String jobStatus) {
         Message msg = MsgPicker.getMsg();
         if (!StringUtils.isBlank(jobStatus) && Objects.isNull(JobStatusEnum.getByName(jobStatus))) {
-            throw new KylinException("KE-1032", String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
+            throw new KylinException(ILLEGAL_JOB_STATUS, String.format(msg.getILLEGAL_JOB_STATE(), jobStatus));
         }
     }
 
@@ -312,7 +339,7 @@ public class NBasicController {
 
     public void checkId(String uuid) {
         if (StringUtils.isEmpty(uuid)) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getID_CANNOT_EMPTY());
+            throw new KylinException(EMPTY_ID, MsgPicker.getMsg().getID_CANNOT_EMPTY());
         }
     }
 
@@ -322,10 +349,10 @@ public class NBasicController {
 
     private void validateRange(long start, long end) {
         if (start < 0 || end < 0) {
-            throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
         }
         if (start >= end) {
-            throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
         }
     }
 
@@ -341,17 +368,17 @@ public class NBasicController {
                 startLong = Long.parseLong(start);
                 endLong = Long.parseLong(end);
             } catch (Exception e) {
-                throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_FORMAT());
             }
 
             if (startLong < 0 || endLong < 0)
-                throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_LESS_THAN_ZERO());
 
             if (startLong >= endLong)
-                throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
+                throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_END_LESSTHAN_START());
 
         } else {
-            throw new KylinException("KE-1017", MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
+            throw new KylinException(INVALID_RANGE, MsgPicker.getMsg().getINVALID_RANGE_NOT_CONSISTENT());
         }
     }
 

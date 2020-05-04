@@ -26,6 +26,12 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_REFRESH_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.RELOAD_TABLE_FAILED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,13 +46,13 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.SamplingRequest;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -215,11 +221,11 @@ public class NTableController extends NBasicController {
         checkProjectName(tableLoadRequest.getProject());
         if (NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject(tableLoadRequest.getProject()) == null) {
-            throw new KylinException("KE-1015",
+            throw new KylinException(PROJECT_NOT_EXIST,
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), tableLoadRequest.getProject()));
         }
         if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
-            throw new KylinException("KE-1010", "You should select at least one table or database to load!!");
+            throw new KylinException(EMPTY_PARAMETER, "You should select at least one table or database to load!!");
         }
 
         LoadTableResponse loadTableResponse = new LoadTableResponse();
@@ -442,7 +448,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "project") String project) {
         checkProjectName(project);
         if (StringUtils.isEmpty(modelId) && StringUtils.isEmpty(tableName)) {
-            throw new KylinException("KE-1010", "model name or table name must be specified!");
+            throw new KylinException(EMPTY_PARAMETER, "model name or table name must be specified!");
         }
         AutoMergeConfigResponse response;
         if (StringUtils.isNotEmpty(modelId)) {
@@ -460,10 +466,10 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse<String> updateAutoMergeConfig(@RequestBody AutoMergeRequest autoMergeRequest) {
         checkProjectName(autoMergeRequest.getProject());
         if (ArrayUtils.isEmpty(autoMergeRequest.getAutoMergeTimeRanges())) {
-            throw new KylinException("KE-1010", "You should specify at least one autoMerge range!");
+            throw new KylinException(EMPTY_PARAMETER, "You should specify at least one autoMerge range!");
         }
         if (StringUtils.isEmpty(autoMergeRequest.getModel()) && StringUtils.isEmpty(autoMergeRequest.getTable())) {
-            throw new KylinException("KE-1010", "model name or table name must be specified!");
+            throw new KylinException(EMPTY_PARAMETER, "model name or table name must be specified!");
         }
         if (StringUtils.isNotEmpty(autoMergeRequest.getModel())) {
             tableService.setAutoMergeConfigByModel(autoMergeRequest.getProject(), autoMergeRequest);
@@ -500,12 +506,12 @@ public class NTableController extends NBasicController {
     private void checkSamplingRows(int rows) {
         Message msg = MsgPicker.getMsg();
         if (rows > MAX_SAMPLING_ROWS) {
-            throw new KylinException("KE-1028",
+            throw new KylinException(INVALID_SAMPLING_RANGE,
                     String.format(msg.getBEYOND_MAX_SAMPLING_ROWS_HINT(), MAX_SAMPLING_ROWS));
         }
 
         if (rows < MIN_SAMPLING_ROWS) {
-            throw new KylinException("KE-1028",
+            throw new KylinException(INVALID_SAMPLING_RANGE,
                     String.format(msg.getBEYOND_MIX_SAMPLING_ROWSHINT(), MIN_SAMPLING_ROWS));
         }
     }
@@ -513,11 +519,11 @@ public class NTableController extends NBasicController {
     private void checkSamplingTable(String tableName) {
         Message msg = MsgPicker.getMsg();
         if (tableName == null || StringUtils.isEmpty(tableName.trim())) {
-            throw new KylinException("KE-1029", msg.getFAILED_FOR_NO_SAMPLING_TABLE());
+            throw new KylinException(INVALID_TABLE_NAME, msg.getFAILED_FOR_NO_SAMPLING_TABLE());
         }
 
         if (tableName.contains(" ") || !tableName.contains(".") || tableName.split("\\.").length != 2) {
-            throw new KylinException("KE-1029",
+            throw new KylinException(INVALID_TABLE_NAME,
                     String.format(msg.getSAMPLING_FAILED_FOR_ILLEGAL_TABLE_NAME(), tableName));
         }
     }
@@ -532,7 +538,7 @@ public class NTableController extends NBasicController {
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            throw new KylinException("KE-1030", root.getMessage());
+            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
     }
 
@@ -542,14 +548,14 @@ public class NTableController extends NBasicController {
         try {
             checkProjectName(request.getProject());
             if (StringUtils.isEmpty(request.getTable())) {
-                throw new KylinException("KE-1029", MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
+                throw new KylinException(INVALID_TABLE_NAME, MsgPicker.getMsg().getTABLE_NAME_CANNOT_EMPTY());
             }
             tableService.reloadTable(request.getProject(), request.getTable(), request.isNeedSample(),
                     request.getMaxRows(), request.isNeedBuild());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (Exception e) {
             Throwable root = ExceptionUtils.getRootCause(e) == null ? e : ExceptionUtils.getRootCause(e);
-            throw new KylinException("KE-1030", root.getMessage());
+            throw new KylinException(RELOAD_TABLE_FAILED, root.getMessage());
         }
     }
 
@@ -595,11 +601,11 @@ public class NTableController extends NBasicController {
         val message = MsgPicker.getMsg();
         Object tables = refreshRequest.get("tables");
         if (tables == null) {
-            throw new KylinException("KE-1010", message.getTABLE_REFRESH_PARAM_INVALID(), false);
+            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_INVALID(), false);
         } else if (refreshRequest.keySet().size() > 1) {
-            throw new KylinException("KE-1010", message.getTABLE_REFRESH_PARAM_MORE(), false);
+            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_MORE(), false);
         } else if (!(tables instanceof List)) {
-            throw new KylinException("KE-1010", message.getTABLE_REFRESH_PARAM_INVALID(), false);
+            throw new KylinException(INVALID_TABLE_REFRESH_PARAMETER, message.getTABLE_REFRESH_PARAM_INVALID(), false);
         }
     }
 

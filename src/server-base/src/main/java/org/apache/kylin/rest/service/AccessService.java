@@ -42,6 +42,9 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USER_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
 import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION;
 
@@ -60,7 +63,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
@@ -165,9 +168,9 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException("KE-1010", msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
         if (sidToPerm == null)
-            throw new KylinException("KE-1005", msg.getACL_PERMISSION_REQUIRED());
+            throw new KylinException(PERMISSION_DENIED, msg.getACL_PERMISSION_REQUIRED());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         if (Objects.isNull(acl)) {
@@ -185,11 +188,11 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
         checkAuthorized(ae);
         if (ae == null)
-            throw new KylinException("KE-1010", msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
         if (permission == null)
-            throw new KylinException("KE-1005", msg.getACL_PERMISSION_REQUIRED());
+            throw new KylinException(PERMISSION_DENIED, msg.getACL_PERMISSION_REQUIRED());
         if (sid == null)
-            throw new KylinException("KE-1010", msg.getSID_REQUIRED());
+            throw new KylinException(EMPTY_USER_NAME, msg.getSID_REQUIRED());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         if (Objects.isNull(acl)) {
@@ -215,9 +218,9 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException("KE-1010", msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
         if (newPermission == null)
-            throw new KylinException("KE-1005", msg.getACL_PERMISSION_REQUIRED());
+            throw new KylinException(PERMISSION_DENIED, msg.getACL_PERMISSION_REQUIRED());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         Sid sid = acl.getAclRecord().getAccessControlEntryAt(accessEntryIndex).getSid();
@@ -233,7 +236,7 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException("KE-1010", msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         Sid sid = acl.getAclRecord().getAccessControlEntryAt(accessEntryIndex).getSid();
@@ -250,9 +253,9 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null)
-            throw new KylinException("KE-1010", msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
         if (parentAe == null)
-            throw new KylinException("KE-1010", msg.getPARENT_ACL_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getPARENT_ACL_NOT_FOUND());
 
         MutableAclRecord acl = aclService.readAcl(new ObjectIdentityImpl(ae));
         if (Objects.isNull(acl)) {
@@ -307,7 +310,7 @@ public class AccessService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (ae == null) {
-            throw new KylinException("KE-1010", msg.getACL_DOMAIN_NOT_FOUND());
+            throw new KylinException(INVALID_PARAMETER, msg.getACL_DOMAIN_NOT_FOUND());
         }
 
         // For those may have null uuid, like DataModel, won't delete Acl.
@@ -439,7 +442,7 @@ public class AccessService extends BasicService {
 
         // prevent changing owner's admin permission
         if (BasePermission.ADMINISTRATION.equals(record.getPermission(sid)))
-            throw new KylinException("KE-1005", msg.getREVOKE_ADMIN_PERMISSION());
+            throw new KylinException(PERMISSION_DENIED, msg.getREVOKE_ADMIN_PERMISSION());
     }
 
     public String getUserPermissionInPrj(String project) {
@@ -475,7 +478,7 @@ public class AccessService extends BasicService {
             grantedPermission = "EMPTY";
             break;
         default:
-            throw new KylinException("KE-1010", "invalid permission state:" + greaterPermission);
+            throw new KylinException(PERMISSION_DENIED, "invalid permission state:" + greaterPermission);
         }
         return grantedPermission;
     }
@@ -583,7 +586,7 @@ public class AccessService extends BasicService {
         Set<String> adminUsers = userService.getGlobalAdmin();
         for (String name : usernames) {
             if (adminUsers.contains(name)) {
-                throw new KylinException("KE-1005", MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_GLOBALADMIN());
             }
         }
     }
@@ -592,7 +595,7 @@ public class AccessService extends BasicService {
         if (StringUtils.equalsIgnoreCase(username, KylinUserService.SUPER_ADMIN)) {
             String currentUser = AclPermissionUtil.getCurrentUsername();
             if (!isDefaultAdminHasRight || !StringUtils.equalsIgnoreCase(KylinUserService.SUPER_ADMIN, currentUser)) {
-                throw new KylinException("KE-1005", MsgPicker.getMsg().getCHANGE_DEGAULTADMIN());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCHANGE_DEGAULTADMIN());
             }
         }
     }

@@ -42,6 +42,10 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PROJECT_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SQL_EXPRESSION;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 import static org.apache.kylin.common.util.CheckUtil.checkCondition;
 
 import java.io.DataInputStream;
@@ -76,10 +80,12 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
-import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.exception.ResourceLimitExceededException;
 import org.apache.kylin.common.htrace.HtraceInit;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
@@ -105,8 +111,6 @@ import org.apache.kylin.query.util.TempStatementUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -372,19 +376,20 @@ public class QueryService extends BasicService {
         String serverMode = kylinConfig.getServerMode();
         if (!(Constant.SERVER_MODE_QUERY.equalsIgnoreCase(serverMode)
                 || Constant.SERVER_MODE_ALL.equalsIgnoreCase(serverMode))) {
-            throw new KylinException("KE-1005", String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
+            throw new KylinException(PERMISSION_DENIED, String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
         }
         if (StringUtils.isBlank(sqlRequest.getProject())) {
-            throw new KylinException("KE-1010", msg.getEMPTY_PROJECT_NAME());
+            throw new KylinException(EMPTY_PROJECT_NAME, msg.getEMPTY_PROJECT_NAME());
         }
 
         final NProjectManager projectMgr = NProjectManager.getInstance(kylinConfig);
         if (projectMgr.getProject(sqlRequest.getProject()) == null) {
-            throw new KylinException("KE-1015", String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(msg.getPROJECT_NOT_FOUND(), sqlRequest.getProject()));
         }
 
         if (StringUtils.isBlank(sqlRequest.getSql())) {
-            throw new KylinException("KE-1010", msg.getNULL_EMPTY_SQL());
+            throw new KylinException(EMPTY_SQL_EXPRESSION, msg.getNULL_EMPTY_SQL());
         }
 
         if (sqlRequest.getBackdoorToggles() != null)
@@ -492,7 +497,7 @@ public class QueryService extends BasicService {
                 Trace.addTimelineAnnotation("update query almost done");
             } else {
                 logger.debug("Directly return exception as the sql is unsupported, and query pushdown is disabled");
-                throw new KylinException("KE-1005", msg.getNOT_SUPPORTED_SQL());
+                throw new KylinException(PERMISSION_DENIED, msg.getNOT_SUPPORTED_SQL());
             }
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             if (checkCondition(queryCacheEnabled, "query cache is disabled")) {
@@ -927,10 +932,10 @@ public class QueryService extends BasicService {
             // fill in selected column meta
             for (int i = 0; i < columnCount; ++i) {
                 int nullable = fieldList.get(i).isNullable() ? 1 : 0;
-                columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, fieldList.get(i).getPrecision(),
-                        fieldList.get(i).getName(), fieldList.get(i).getName(), null, null, null,
-                        fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
-                        fieldList.get(i).getDataTypeName(), false, false, false));
+                columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true,
+                        fieldList.get(i).getPrecision(), fieldList.get(i).getName(), fieldList.get(i).getName(), null,
+                        null, null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(),
+                        fieldList.get(i).getDataType(), fieldList.get(i).getDataTypeName(), false, false, false));
             }
 
         } finally {

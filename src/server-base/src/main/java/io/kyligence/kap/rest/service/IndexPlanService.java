@@ -23,6 +23,11 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_AGG_INDEX;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_TABLE_INDEX;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,8 +44,8 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -131,7 +136,7 @@ public class IndexPlanService extends BasicService {
             cleanInEffectiveRecommendation(project, request.getModelId());
             return new Pair<>(indexPlanManager.getIndexPlan(originIndexPlan.getUuid()), response);
         } catch (Exception e) {
-            throw new KylinException("KE-1031", e);
+            throw new KylinException(FAILED_UPDATE_AGG_INDEX, e);
         }
     }
 
@@ -175,7 +180,7 @@ public class IndexPlanService extends BasicService {
 
             return createTableIndex(project, request);
         } catch (Exception e) {
-            throw new KylinException("KE-1031", e);
+            throw new KylinException(FAILED_UPDATE_TABLE_INDEX, e);
         }
     }
 
@@ -289,7 +294,7 @@ public class IndexPlanService extends BasicService {
     public void removeIndexes(String project, String model, final Set<Long> ids) {
         aclEvaluate.checkProjectWritePermission(project);
         if (CollectionUtils.isEmpty(ids)) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
 
         val kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -302,7 +307,7 @@ public class IndexPlanService extends BasicService {
                 .map(String::valueOf).collect(Collectors.joining(","));
 
         if (StringUtils.isNotEmpty(notExistsLayoutIds)) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(INVALID_PARAMETER,
                     String.format(MsgPicker.getMsg().getLAYOUT_NOT_EXISTS(), notExistsLayoutIds));
         }
 
@@ -445,7 +450,7 @@ public class IndexPlanService extends BasicService {
         val dimensions = model.getDimensionNameIdMap();
         for (String shardByColumn : request.getShardByColumns()) {
             if (!dimensions.containsKey(shardByColumn)) {
-                throw new KylinException("KE-1005",
+                throw new KylinException(PERMISSION_DENIED,
                         String.format(MsgPicker.getMsg().getCOLUMU_IS_NOT_DIMENSION(), shardByColumn));
             }
         }

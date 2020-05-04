@@ -26,6 +26,10 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_FILE_CONTENT;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_EMAIL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.REMOTE_SERVER_ERROR;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,10 +41,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.model.LicenseInfo;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.LicenseInfoService;
 import org.apache.parquet.Strings;
@@ -133,7 +137,7 @@ public class NSystemController extends NBasicController {
         }
 
         if (ArrayUtils.isEmpty(bytes))
-            throw new KylinException("KE-1012", MsgPicker.getMsg().getCONTENT_IS_EMPTY());
+            throw new KylinException(EMPTY_FILE_CONTENT, MsgPicker.getMsg().getCONTENT_IS_EMPTY());
 
         licenseInfoService.updateLicense(bytes);
 
@@ -147,19 +151,19 @@ public class NSystemController extends NBasicController {
         if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
                 || Strings.isNullOrEmpty(licenseRequest.getUsername())
                 || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY());
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_CAN_NOT_EMPTY());
         }
         if (licenseRequest.getEmail().length() > 50 || licenseRequest.getUsername().length() > 50
                 || licenseRequest.getCompany().length() > 50) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_IS_ILLEGAL());
+            throw new KylinException(EMPTY_PARAMETER, MsgPicker.getMsg().getEMAIL_USERNAME_COMPANY_IS_ILLEGAL());
         }
         if (!licenseInfoService.filterEmail(licenseRequest.getEmail())) {
-            throw new KylinException("KE-1014", MsgPicker.getMsg().getINLEGAL_EMAIL());
+            throw new KylinException(INVALID_EMAIL, MsgPicker.getMsg().getINLEGAL_EMAIL());
         }
 
         RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
         if (trialLicense == null || !trialLicense.isSuccess()) {
-            throw new KylinException("KE-1040", MsgPicker.getMsg().getLICENSE_ERROR());
+            throw new KylinException(REMOTE_SERVER_ERROR, MsgPicker.getMsg().getLICENSE_ERROR());
         }
         licenseInfoService.updateLicense(trialLicense.getData());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");

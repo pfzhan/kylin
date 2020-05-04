@@ -51,7 +51,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;

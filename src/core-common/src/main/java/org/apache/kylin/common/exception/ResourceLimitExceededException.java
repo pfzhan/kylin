@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,17 +41,15 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.common.exceptions;
+package org.apache.kylin.common.exception;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+public class ResourceLimitExceededException extends RuntimeException {
 
-public class KylinTimeoutException extends KylinException {
-
-    public KylinTimeoutException(String message) {
-        super("KE-5003", message);
+    public ResourceLimitExceededException(String message) {
+        super(message);
     }
 
-    public static boolean causedByTimeout(Throwable e) {
-        return e instanceof KylinTimeoutException || ExceptionUtils.getRootCause(e) instanceof KylinTimeoutException;
+    public ResourceLimitExceededException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

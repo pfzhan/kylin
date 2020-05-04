@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.ListUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.model.SegmentRange;

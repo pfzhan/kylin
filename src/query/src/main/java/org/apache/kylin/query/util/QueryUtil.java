@@ -51,7 +51,7 @@ import java.util.regex.Pattern;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.security.AccessDeniedException;

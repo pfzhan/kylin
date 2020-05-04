@@ -26,6 +26,8 @@ package io.kyligence.kap.tool;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.tool.util.ServiceDiscoveryUtil.runWithCurator;
+import static org.apache.kylin.tool.ToolErrorCode.FILE_ALREADY_EXIST;
+import static org.apache.kylin.tool.ToolErrorCode.INVALID_SHELL_PARAMETER;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +50,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ExecutableApplication;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -232,7 +234,7 @@ public class MetadataTool extends ExecutableApplication {
         } else if (optionsHelper.hasOption(OPERATE_RESTORE)) {
             restore(optionsHelper);
         } else {
-            throw new KylinException("KE-5001", "The input parameters are wrong");
+            throw new KylinException(INVALID_SHELL_PARAMETER, "The input parameters are wrong");
         }
     }
 
@@ -243,14 +245,14 @@ public class MetadataTool extends ExecutableApplication {
             File localFile = new File(path);
             if (localFile.exists()) {
                 logger.error("[UNEXPECTED_THINGS_HAPPENED] local file {} already exists ", path);
-                throw new KylinException("KE-5002", path);
+                throw new KylinException(FILE_ALREADY_EXIST, path);
             }
             return;
         }
         val fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(path))) {
             logger.error("[UNEXPECTED_THINGS_HAPPENED] specified file {} already exists ", path);
-            throw new KylinException("KE-5002", path);
+            throw new KylinException(FILE_ALREADY_EXIST, path);
         }
     }
 

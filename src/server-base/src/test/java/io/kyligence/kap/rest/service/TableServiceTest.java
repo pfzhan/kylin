@@ -63,7 +63,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
@@ -792,7 +792,7 @@ public class TableServiceTest extends CSVSourceTestCase {
     @Test
     public void testGetAutoMergeConfigException() {
         thrown.expect(KylinException.class);
-        thrown.expectMessage("Model default does not exist in project default");
+        thrown.expectMessage("Data Model with name 'default' not found.");
         tableService.getAutoMergeConfigByModel("default", "default");
     }
 

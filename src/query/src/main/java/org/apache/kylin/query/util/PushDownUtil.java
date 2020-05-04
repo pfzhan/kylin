@@ -42,6 +42,8 @@
 
 package org.apache.kylin.query.util;
 
+import static org.apache.kylin.query.exception.QueryErrorCode.EMPTY_TABLE;
+
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,7 +79,8 @@ import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
@@ -265,7 +268,7 @@ public class PushDownUtil {
         // push down
         List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql, project).getFirst();
         if (CollectionUtils.isEmpty(returnRows) || CollectionUtils.isEmpty(returnRows.get(0)))
-            throw new BadRequestException(String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
+            throw new KylinException(EMPTY_TABLE, String.format(MsgPicker.getMsg().getNO_DATA_IN_TABLE(), table));
 
         return returnRows.get(0).get(0);
     }

@@ -24,15 +24,16 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_APPROVE_RECOMMENDATION;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.recommendation.PassConflictException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.Pair;
@@ -58,6 +59,7 @@ import io.kyligence.kap.metadata.recommendation.MeasureRecommendationItem;
 import io.kyligence.kap.metadata.recommendation.OptimizeContext;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
 import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationVerifier;
+import io.kyligence.kap.metadata.recommendation.PassConflictException;
 import io.kyligence.kap.rest.request.ApplyRecommendationsRequest;
 import io.kyligence.kap.rest.request.RemoveRecommendationsRequest;
 import io.kyligence.kap.rest.response.LayoutRecommendationDetailResponse;
@@ -119,9 +121,10 @@ public class OptimizeRecommendationService extends BasicService {
 
             verifier.verify();
         } catch (DependencyLostException e) {
-            throw new KylinException("KE-1044", getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
+            throw new KylinException(FAILED_APPROVE_RECOMMENDATION,
+                    getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
         } catch (PassConflictException e) {
-            throw new KylinException("KE-1044", e.getResponseMsg());
+            throw new KylinException(FAILED_APPROVE_RECOMMENDATION, e.getResponseMsg());
         }
     }
 
@@ -321,9 +324,10 @@ public class OptimizeRecommendationService extends BasicService {
                 }
             });
         } catch (DependencyLostException e) {
-            throw new KylinException("KE-1044", getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
+            throw new KylinException(FAILED_APPROVE_RECOMMENDATION,
+                    getDependencyLostMessage(MsgPicker.getMsg(), e.getType()));
         } catch (PassConflictException e) {
-            throw new KylinException("KE-1044", e.getResponseMsg());
+            throw new KylinException(FAILED_APPROVE_RECOMMENDATION, e.getResponseMsg());
         }
     }
 

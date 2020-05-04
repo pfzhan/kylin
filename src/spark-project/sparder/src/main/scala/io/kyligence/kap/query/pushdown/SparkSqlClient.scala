@@ -29,7 +29,7 @@ import java.util.{UUID, List => JList}
 
 import io.kyligence.kap.metadata.query.StructField
 import io.kyligence.kap.query.runtime.plan.QueryToExecutionIDCache
-import org.apache.kylin.common.exceptions.KylinTimeoutException
+import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.{DateFormat, HadoopUtil, Pair}
 import org.apache.kylin.common.{KylinConfig, QueryContext}
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace

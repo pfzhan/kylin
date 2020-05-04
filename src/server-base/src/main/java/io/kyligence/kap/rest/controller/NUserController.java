@@ -27,6 +27,13 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USER_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_PASSWORD;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_USER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PASSWORD;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.SHORT_PASSWORD;
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,12 +43,12 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.UnauthorizedException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.AccessService;
@@ -172,7 +179,7 @@ public class NUserController extends NBasicController {
         checkProfile();
 
         if (StringUtils.equals(getPrincipal(), user.getUsername()) && user.isDisabled()) {
-            throw new KylinException("KE-1006", msg.getSELF_DISABLE_FORBIDDEN());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DISABLE_FORBIDDEN());
         }
         val username = user.getUsername();
         checkUsername(username);
@@ -180,7 +187,7 @@ public class NUserController extends NBasicController {
         // merge with existing user
         val existing = getManagedUser(username);
         if (existing == null) {
-            throw new KylinException("KE-1002", String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
         }
         if (StringUtils.isEmpty(user.getPassword()))
             user.setPassword(existing.getPassword());
@@ -214,7 +221,7 @@ public class NUserController extends NBasicController {
         checkProfile();
         checkUsername(username);
         if (StringUtils.equals(getPrincipal(), username)) {
-            throw new KylinException("KE-1006", msg.getSELF_DELETE_FORBIDDEN());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getSELF_DELETE_FORBIDDEN());
         }
         accessService.checkDefaultAdmin(username, false);
         //delete user's project ACL
@@ -258,7 +265,7 @@ public class NUserController extends NBasicController {
         val username = user.getUsername();
 
         if (!isAdmin() && !StringUtils.equals(getPrincipal(), username)) {
-            throw new KylinException("KE-1005", msg.getPERMISSION_DENIED());
+            throw new KylinException(PERMISSION_DENIED, msg.getPERMISSION_DENIED());
         }
         accessService.checkDefaultAdmin(username, true);
         val oldPassword = pwdBase64Decode(user.getPassword());
@@ -272,16 +279,16 @@ public class NUserController extends NBasicController {
 
         ManagedUser existingUser = getManagedUser(username);
         if (existingUser == null) {
-            throw new KylinException("KE-1002", String.format(msg.getUSER_NOT_FOUND(), username));
+            throw new KylinException(USER_NOT_EXIST, String.format(msg.getUSER_NOT_FOUND(), username));
         }
         val actualOldPassword = existingUser.getPassword();
 
         if (!pwdEncoder.matches(oldPassword, actualOldPassword)) {
-            throw new KylinException("KE-1007", msg.getOLD_PASSWORD_WRONG());
+            throw new KylinException(FAILED_UPDATE_PASSWORD, msg.getOLD_PASSWORD_WRONG());
         }
 
         if (newPassword.equals(oldPassword)) {
-            throw new KylinException("KE-1007", msg.getNEW_PASSWORD_SAME_AS_OLD());
+            throw new KylinException(FAILED_UPDATE_PASSWORD, msg.getNEW_PASSWORD_SAME_AS_OLD());
         }
 
         existingUser.setPassword(pwdEncode(newPassword));
@@ -344,39 +351,39 @@ public class NUserController extends NBasicController {
     private void checkPasswordCharacter(String password) {
         val msg = MsgPicker.getMsg();
         if (!passwordPattern.matcher(password).matches()) {
-            throw new KylinException("KE-1007", msg.getINVALID_PASSWORD());
+            throw new KylinException(INVALID_PASSWORD, msg.getINVALID_PASSWORD());
         }
     }
 
     private void checkProfile() {
         val msg = MsgPicker.getMsg();
         if (!env.acceptsProfiles(PROFILE_DEFAULT, PROFILE_CUSTOM)) {
-            throw new KylinException("KE-1006", msg.getUSER_EDIT_NOT_ALLOWED());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }
 
     private void checkPasswordLength(String password) {
         val msg = MsgPicker.getMsg();
         if (password == null || password.length() < 8)
-            throw new KylinException("KE-1007", msg.getSHORT_PASSWORD());
+            throw new KylinException(SHORT_PASSWORD, msg.getSHORT_PASSWORD());
     }
 
     private void checkUsername(String username) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(username)) {
-            throw new KylinException("KE-1001", msg.getEMPTY_USER_NAME());
+            throw new KylinException(EMPTY_USER_NAME, msg.getEMPTY_USER_NAME());
         }
         if (username.startsWith(".")) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_START_WITH_DOT());
+            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_START_WITH_DOT());
         }
         if (!username.equals(username.trim())) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
         }
         if (Pattern.compile("[^\\x00-\\xff]").matcher(username).find()) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(username).find()) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
+            throw new KylinException(EMPTY_USER_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
         }
     }
 

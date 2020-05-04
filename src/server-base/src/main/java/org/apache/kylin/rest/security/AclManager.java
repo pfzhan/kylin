@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.common.msg.Message;
@@ -57,6 +57,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import lombok.val;
+
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 /**
  */
@@ -184,7 +186,7 @@ public class AclManager {
         List<ObjectIdentity> children = findChildren(objectIdentity);
         if (!deleteChildren && !children.isEmpty()) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException("KE-1005", String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
+            throw new KylinException(PERMISSION_DENIED, String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
         }
         for (ObjectIdentity oid : children) {
             deleteAcl(oid, deleteChildren);

@@ -24,6 +24,8 @@
 package io.kyligence.kap.rest.source;
 
 import static io.kyligence.kap.rest.security.KerberosLoginManager.KEYTAB_SUFFIX;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_CHECK_KERBEROS;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.File;
 import java.security.PrivilegedAction;
@@ -40,10 +42,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
@@ -113,7 +115,7 @@ public class NHiveTableName implements Runnable {
             throw new RuntimeException("Only all node can load hive table name");
         }
         if (!KylinConfig.getInstanceFromEnv().getLoadHiveTablenameEnabled()) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_LOAD_HIVE_TABLE_NAME());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_LOAD_HIVE_TABLE_NAME());
         }
     }
 
@@ -135,7 +137,8 @@ public class NHiveTableName implements Runnable {
                 UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytabPath);
             }
         } catch (Exception e) {
-            throw new KylinException("KE-1042", "The project " + project + " kerberos information has expired.");
+            throw new KylinException(FAILED_CHECK_KERBEROS,
+                    "The project " + project + " kerberos information has expired.");
         }
     }
 

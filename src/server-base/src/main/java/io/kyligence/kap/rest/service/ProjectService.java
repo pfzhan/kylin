@@ -24,6 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.DATABASE_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_PROJECT_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_EMAIL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
@@ -42,13 +49,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclManager;
 import org.apache.kylin.rest.security.AclPermissionType;
 import org.apache.kylin.rest.service.AccessService;
@@ -134,7 +141,8 @@ public class ProjectService extends BasicService {
         }
         ProjectInstance currentProject = getProjectManager().getProject(projectName);
         if (currentProject != null) {
-            throw new KylinException("KE-1035", String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
+            throw new KylinException(DUPLICATE_PROJECT_NAME,
+                    String.format(msg.getPROJECT_ALREADY_EXIST(), projectName));
         }
         final String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
@@ -172,7 +180,7 @@ public class ProjectService extends BasicService {
             filter = projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance);
             break;
         default:
-            throw new KylinException("KE-1010", "Operation failed, unknown permission:" + permission);
+            throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
         if (StringUtils.isNotBlank(projectName)) {
             Predicate<ProjectInstance> exactMatchFilter = projectInstance -> (exactMatch
@@ -189,7 +197,7 @@ public class ProjectService extends BasicService {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         if (threshold != null) {
             if (threshold <= 0) {
-                throw new KylinException("KE-1010",
+                throw new KylinException(INVALID_PARAMETER,
                         "No valid value for 'threshold'. Please set an integer 'x' "
                                 + "greater than 0 to 'threshold'. The system will notify you whenever there "
                                 + "are more then 'x' queries waiting to accelerate.");
@@ -233,7 +241,8 @@ public class ProjectService extends BasicService {
             val projectManager = NProjectManager.getInstance(config);
             val epochMgr = EpochManager.getInstance(config);
             for (ProjectInstance project : projectManager.listAllProjects()) {
-                if (!config.isUTEnv() && !epochMgr.checkEpochOwner(project.getName())) continue;
+                if (!config.isUTEnv() && !epochMgr.checkEpochOwner(project.getName()))
+                    continue;
                 logger.info("Start to cleanup garbage  for project<{}>", project.getName());
                 try {
                     updateProjectRegularRule(project.getName());
@@ -290,7 +299,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
         if (storageQuotaSize < 0) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(INVALID_PARAMETER,
                     "No valid storage quota size, Please set an integer greater than or equal to 0 "
                             + "to 'storage_quota_size', unit byte.");
         }
@@ -304,7 +313,8 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
@@ -344,7 +354,7 @@ public class ProjectService extends BasicService {
 
     private String convertToString(List<String> stringList) {
         if (CollectionUtils.isEmpty(stringList)) {
-            throw new KylinException("KE-1010", "Please enter at least one email address.");
+            throw new KylinException(EMPTY_EMAIL, "Please enter at least one email address.");
         }
         Set<String> notEmails = Sets.newHashSet();
         for (String email : Sets.newHashSet(stringList)) {
@@ -355,7 +365,7 @@ public class ProjectService extends BasicService {
             }
         }
         if (!notEmails.isEmpty()) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(INVALID_PARAMETER,
                     "No valid value " + notEmails + " for 'job_notification_email'. Please enter valid email address.");
         }
         return String.join(",", Sets.newHashSet(stringList));
@@ -456,18 +466,18 @@ public class ProjectService extends BasicService {
         //api send volatileRangeEnabled = false but finally it is reset to true
         segmentConfigRequest.getVolatileRange().setVolatileRangeEnabled(true);
         if (segmentConfigRequest.getVolatileRange().getVolatileRangeNumber() < 0) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(INVALID_PARAMETER,
                     "No valid value. Please set an integer 'x' to "
                             + "'volatile_range_number'. The 'Auto-Merge' will not merge latest 'x' "
                             + "period(day/week/month/etc..) segments.");
         }
         if (segmentConfigRequest.getRetentionRange().getRetentionRangeNumber() < 0) {
-            throw new KylinException("KE-1010", "No valid value for 'retention_range_number'."
+            throw new KylinException(INVALID_PARAMETER, "No valid value for 'retention_range_number'."
                     + " Please set an integer 'x' to specify the retention threshold. The system will "
                     + "only retain the segments in the retention threshold (x years before the last data time). ");
         }
         if (segmentConfigRequest.getAutoMergeTimeRanges().isEmpty()) {
-            throw new KylinException("KE-1010", "No valid value for 'auto_merge_time_ranges'. Please set "
+            throw new KylinException(INVALID_PARAMETER, "No valid value for 'auto_merge_time_ranges'. Please set "
                     + "{'DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR'} to specify the period of auto-merge. ");
         }
         segmentConfigRequest.getRetentionRange().setRetentionRangeType(segmentConfigRequest.getAutoMergeTimeRanges()
@@ -532,7 +542,7 @@ public class ProjectService extends BasicService {
             projectInstance.setDefaultDatabase(uppderDB);
             prjManager.updateProject(projectInstance);
         } else {
-            throw new KylinException("KE-1036",
+            throw new KylinException(DATABASE_NOT_EXIST,
                     String.format(MsgPicker.getMsg().getDATABASE_NOT_EXIST(), defaultDatabase));
         }
     }
@@ -560,7 +570,7 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateGarbageCleanupConfig(String project, GarbageCleanUpConfigRequest garbageCleanUpConfigRequest) {
         if (garbageCleanUpConfigRequest.getLowFrequencyThreshold() < 0L) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(INVALID_PARAMETER,
                     "No valid value for 'low_frequency_threshold'. Please "
                             + "set an integer 'x' greater than or equal to 0 to specify the low usage storage "
                             + "calculation time. When index usage is lower than 'x' times, it would be regarded "
@@ -579,28 +589,29 @@ public class ProjectService extends BasicService {
     public ProjectConfigResponse resetProjectConfig(String project, String resetItem) {
         Preconditions.checkNotNull(resetItem);
         switch (resetItem) {
-            case "job_notification_config":
-                resetJobNotificationConfig(project);
-                break;
-            case "query_accelerate_threshold":
-                resetQueryAccelerateThreshold(project);
-                break;
-            case "garbage_cleanup_config":
-                resetGarbageCleanupConfig(project);
-                break;
-            case "segment_config":
-                resetSegmentConfig(project);
-                break;
-            case "kerberos_project_level_config":
-                resetProjectKerberosConfig(project);
-                break;
-            case "storage_quota_config":
-                resetProjectStorageQuotaConfig(project);
-                break;
-            default:
-                throw new KylinException("KE-1010", "No valid value for 'reset_item'. Please enter a project setting "
-                        + "type which needs to be reset {'job_notification_config'，"
-                        + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config', 'storage_quota_config'} to 'reset_item'.");
+        case "job_notification_config":
+            resetJobNotificationConfig(project);
+            break;
+        case "query_accelerate_threshold":
+            resetQueryAccelerateThreshold(project);
+            break;
+        case "garbage_cleanup_config":
+            resetGarbageCleanupConfig(project);
+            break;
+        case "segment_config":
+            resetSegmentConfig(project);
+            break;
+        case "kerberos_project_level_config":
+            resetProjectKerberosConfig(project);
+            break;
+        case "storage_quota_config":
+            resetProjectStorageQuotaConfig(project);
+            break;
+        default:
+            throw new KylinException(INVALID_PARAMETER,
+                    "No valid value for 'reset_item'. Please enter a project setting "
+                            + "type which needs to be reset {'job_notification_config'，"
+                            + "'query_accelerate_threshold'，'garbage_cleanup_config'，'segment_config', 'storage_quota_config'} to 'reset_item'.");
         }
         return getProjectConfig(project);
     }
@@ -611,12 +622,13 @@ public class ProjectService extends BasicService {
             aclEvaluate.checkIsGlobalAdmin();
             checkTargetOwnerPermission(project, ownerChangeRequest.getOwner());
         } catch (AccessDeniedException e) {
-            throw new KylinException("KE-1046", MsgPicker.getMsg().getPROJECT_CHANGE_PERMISSION());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_CHANGE_PERMISSION());
         } catch (IOException e) {
-            throw new KylinException("KE-1046", MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
         }
 
-        getProjectManager().updateProject(project, copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
+        getProjectManager().updateProject(project,
+                copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
     }
 
     private void checkTargetOwnerPermission(String project, String owner) throws IOException {
@@ -624,7 +636,7 @@ public class ProjectService extends BasicService {
         projectAdminUsers.remove(getProjectManager().getProject(project).getOwner());
         if (CollectionUtils.isEmpty(projectAdminUsers) || !projectAdminUsers.contains(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException("KE-1046", msg.getPROJECT_OWNER_CHANGE_INVALID_USER());
+            throw new KylinException(PERMISSION_DENIED, msg.getPROJECT_OWNER_CHANGE_INVALID_USER());
         }
     }
 
@@ -670,7 +682,8 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectManager.updateProject(project, copyForWrite -> {
             toBeRemovedProps.forEach(copyForWrite.getOverrideKylinProps()::remove);
@@ -681,7 +694,7 @@ public class ProjectService extends BasicService {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {
-            throw new KylinException("KE-1015", String.format("Project '%s' does not exist!", project));
+            throw new KylinException(PROJECT_NOT_EXIST, String.format("Project '%s' does not exist!", project));
         }
         getProjectManager().updateProject(project, copyForWrite -> {
             copyForWrite.setKeytab(null);

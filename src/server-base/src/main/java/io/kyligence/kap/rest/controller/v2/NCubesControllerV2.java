@@ -24,6 +24,11 @@
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_PARSE_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SEGMENT_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,17 +39,14 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.JobInfoResponseV2;
-import io.kyligence.kap.rest.response.NDataModelResponse3X;
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.common.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,18 +64,19 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.rest.controller.NBasicController;
 import io.kyligence.kap.rest.request.CubeRebuildRequest;
 import io.kyligence.kap.rest.request.SegmentMgmtRequest;
+import io.kyligence.kap.rest.response.JobInfoResponseV2;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse3X;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
+import lombok.val;
 
 @RestController
 @RequestMapping(value = "/api/cubes", produces = { HTTP_VND_APACHE_KYLIN_V2_JSON })
 public class NCubesControllerV2 extends NBasicController {
 
     private static final String FAILED_CUBE_MSG = "Can not find the cube.";
-    private static final String FAILED_CUBE_MSG_CODE = "KE-1010";
-    private static final String INVALID_PARAMETER_CODE = "KE-5001";
 
     @Autowired
     @Qualifier("modelService")
@@ -97,7 +100,7 @@ public class NCubesControllerV2 extends NBasicController {
                 result.add(NDataModelResponse3X.convert(response));
             }
         } catch (Exception e) {
-            throw new KylinException("KE-4019", e);
+            throw new KylinException(FAILED_PARSE_JSON, e);
         }
 
         HashMap<String, Object> modelResponse = getDataResponse("cubes", result, offset, limit);
@@ -110,14 +113,14 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
+            throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
 
         NDataModelResponse3X result;
         try {
             result = NDataModelResponse3X.convert(dataModelResponse);
         } catch (Exception e) {
-            throw new KylinException("KE-4019", e);
+            throw new KylinException(FAILED_PARSE_JSON, e);
         }
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
@@ -134,7 +137,7 @@ public class NCubesControllerV2 extends NBasicController {
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
+            throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
 
         JobInfoResponseV2 result = null;
@@ -156,10 +159,12 @@ public class NCubesControllerV2 extends NBasicController {
                             && segment.getEndTime() <= request.getEndTime())
                     .map(NDataSegmentResponse::getId).collect(Collectors.toList());
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least one segment to refresh!");
+                throw new KylinException(INVALID_SEGMENT_PARAMETER,
+                        "You should choose at least one segment to refresh!");
             }
             if (idList.size() > 1) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose most one segment to refresh!");
+                throw new KylinException(INVALID_SEGMENT_PARAMETER,
+                        "You should choose at least one segment to refresh!");
             }
             val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));
@@ -182,12 +187,12 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project,
             @RequestBody SegmentMgmtRequest request) {
         if (CollectionUtils.isEmpty(request.getSegments())) {
-            throw new KylinException(FAILED_CUBE_MSG_CODE, "You should choose at least one segment!");
+            throw new KylinException(EMPTY_SEGMENT_ID, "You should choose at least one segment!");
         }
 
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
+            throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
 
         List<NDataSegmentResponse> segList = dataModelResponse.getSegments().stream()
@@ -197,7 +202,7 @@ public class NCubesControllerV2 extends NBasicController {
                 .collect(Collectors.toSet());
 
         if (CollectionUtils.isNotEmpty(notExistSegList)) {
-            throw new KylinException("KE-1026", String.format("Can not find those segment names: [%s]",
+            throw new KylinException(SEGMENT_NOT_EXIST, String.format("Can not find those segment names: [%s]",
                     StringUtils.join(notExistSegList.iterator(), ",")));
         }
 
@@ -205,21 +210,23 @@ public class NCubesControllerV2 extends NBasicController {
         switch (request.getBuildType()) {
         case "MERGE":
             if (idList.size() < 2) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least two segments to merge!");
+                throw new KylinException(INVALID_SEGMENT_PARAMETER,
+                        "You should choose at least two segments to merge!");
             }
             val mergeResponse = modelService.mergeSegmentsManually(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(mergeResponse), "");
         case "REFRESH":
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least one segment to refresh!");
+                throw new KylinException(INVALID_SEGMENT_PARAMETER,
+                        "You should choose at least one segment to refresh!");
             }
             val refreshResponse = modelService.refreshSegmentById(dataModelResponse.getId(),
                     dataModelResponse.getProject(), idList.toArray(new String[0]));
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, JobInfoResponseV2.convert(refreshResponse), "");
         case "DROP":
             if (CollectionUtils.isEmpty(idList)) {
-                throw new KylinException(INVALID_PARAMETER_CODE, "You should choose at least one segment to drop!");
+                throw new KylinException(INVALID_SEGMENT_PARAMETER, "You should choose at least one segment to drop!");
             }
             modelService.deleteSegmentById(dataModelResponse.getId(), dataModelResponse.getProject(),
                     idList.toArray(new String[0]), true);
@@ -235,7 +242,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
+            throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
 
         List<NDataSegment> holes = Lists.newArrayList();
@@ -267,7 +274,7 @@ public class NCubesControllerV2 extends NBasicController {
             @RequestParam(value = "project", required = false) String project) {
         NDataModelResponse dataModelResponse = modelService.getCube(modelAlias, project);
         if (Objects.isNull(dataModelResponse)) {
-            throw new KylinException(FAILED_CUBE_MSG_CODE, FAILED_CUBE_MSG);
+            throw new KylinException(MODEL_NOT_EXIST, FAILED_CUBE_MSG);
         }
 
         String sql = modelService.getModelSql(dataModelResponse.getId(), dataModelResponse.getProject());

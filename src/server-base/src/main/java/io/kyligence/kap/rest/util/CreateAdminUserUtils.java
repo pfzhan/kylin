@@ -23,14 +23,18 @@
  */
 package io.kyligence.kap.rest.util;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.user.ManagedUser;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.apache.kylin.common.exceptions.KylinException;
+import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_USER;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.core.env.Environment;
@@ -39,12 +43,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.RequestBody;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
-import java.util.regex.Pattern;
+import com.google.common.collect.Lists;
 
-import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+import io.kyligence.kap.metadata.user.ManagedUser;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CreateAdminUserUtils {
@@ -61,7 +64,8 @@ public class CreateAdminUserUtils {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     //do not use aclEvaluate, if there's no users and will come into init() and will call save.
-    public static EnvelopeResponse<String> createAdminUser(@RequestBody ManagedUser user, UserService userService, Environment env) {
+    public static EnvelopeResponse<String> createAdminUser(@RequestBody ManagedUser user, UserService userService,
+            Environment env) {
         checkProfile(env);
         user.setUuid(UUID.randomUUID().toString());
         user.setPassword(pwdEncode(user.getPassword()));
@@ -81,7 +85,7 @@ public class CreateAdminUserUtils {
     public static void checkProfile(Environment env) {
         val msg = MsgPicker.getMsg();
         if (!env.acceptsProfiles(PROFILE_DEFAULT, PROFILE_CUSTOM)) {
-            throw new KylinException("KE-1006", msg.getUSER_EDIT_NOT_ALLOWED());
+            throw new KylinException(FAILED_UPDATE_USER, msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }
 
@@ -97,7 +101,8 @@ public class CreateAdminUserUtils {
         List<ManagedUser> all = userService.listUsers();
         log.info("All {} users", all.size());
         if (all.isEmpty() && env.acceptsProfiles(PROFILE_DEFAULT)) {
-            createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, ROLE_ADMIN, Constant.GROUP_ALL_USERS), userService, env);
+            createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, ROLE_ADMIN, Constant.GROUP_ALL_USERS), userService,
+                    env);
         }
     }
 }

@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.common.exceptions.KylinException;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+
+import org.apache.kylin.common.exception.KylinException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -43,7 +45,7 @@ public class GarbageCleanUpConfigRequest {
 
     public int getFrequencyTimeWindow() {
         if (frequencyTimeWindow == null) {
-            throw new KylinException("KE-1010", "parameter 'frequency_time_window' is not set");
+            throw new KylinException(INVALID_PARAMETER, "parameter 'frequency_time_window' is not set");
         }
         switch (frequencyTimeWindow) {
         case DAY:
@@ -53,7 +55,7 @@ public class GarbageCleanUpConfigRequest {
         case MONTH:
             return 30;
         default:
-            throw new KylinException("KE-1010", "Illegal parameter 'frequency_time_window'!");
+            throw new KylinException(INVALID_PARAMETER, "Illegal parameter 'frequency_time_window'!");
         }
     }
 

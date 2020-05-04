@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_USERGROUP_NAME;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,11 +39,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.IUserGroupService;
@@ -186,19 +188,19 @@ public class NUserGroupController extends NBasicController {
     private void checkGroupName(String groupName) {
         val msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(groupName)) {
-            throw new KylinException("KE-1003", msg.getEMPTY_GROUP_NAME());
+            throw new KylinException(EMPTY_USERGROUP_NAME, msg.getEMPTY_GROUP_NAME());
         }
         if (groupName.startsWith(".")) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_START_WITH_DOT());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_START_WITH_DOT());
         }
         if (!groupName.equals(groupName.trim())) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_START_OR_END_WITH_BLANK());
         }
         if (Pattern.compile("[^\\x00-\\xff]").matcher(groupName).find()) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_CONTAINS_OTHER_CHARACTER());
         }
         if (Pattern.compile("[\\\\/:*?\"<>|]").matcher(groupName).find()) {
-            throw new KylinException("KE-1016", msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
+            throw new KylinException(INVALID_USERGROUP_NAME, msg.getINVALID_NAME_CONTAINS_INLEGAL_CHARACTER());
         }
     }
 }

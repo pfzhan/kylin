@@ -24,15 +24,18 @@
 package io.kyligence.kap.rest.controller.open;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SAMPLING_RANGE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.UNSUPPORTED_DATA_SOURCE_TYPE;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -80,7 +83,7 @@ public class OpenTableController extends NBasicController {
     public TableDesc getTable(String project, String tableName) {
         TableDesc table = tableService.getTableManager(project).getTableDesc(tableName);
         if (null == table) {
-            throw new KylinException("KE-1029", String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
+            throw new KylinException(INVALID_TABLE_NAME, String.format(MsgPicker.getMsg().getTABLE_NOT_FOUND(), tableName));
         }
         return table;
     }
@@ -113,13 +116,13 @@ public class OpenTableController extends NBasicController {
         if (Boolean.TRUE.equals(tableLoadRequest.getNeedSampling())
                 && (null == tableLoadRequest.getSamplingRows() || tableLoadRequest.getSamplingRows() > MAX_SAMPLING_ROWS
                         || tableLoadRequest.getSamplingRows() < MIN_SAMPLING_ROWS)) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(INVALID_SAMPLING_RANGE,
                     "Invalid parameters, please check whether the number of sampling rows is between 10000 and 20000000.");
         }
 
         // default set data_source_type = 9
         if (ISourceAware.ID_SPARK != tableLoadRequest.getDataSourceType()) {
-            throw new KylinException("KE-1010", "Only support Hive as the data source. (data_source_type = 9)");
+            throw new KylinException(UNSUPPORTED_DATA_SOURCE_TYPE, "Only support Hive as the data source. (data_source_type = 9)");
         }
         updateDataSourceType(tableLoadRequest.getProject(), tableLoadRequest.getDataSourceType());
 

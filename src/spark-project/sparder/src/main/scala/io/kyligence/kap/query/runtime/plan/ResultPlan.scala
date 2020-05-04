@@ -26,7 +26,7 @@ import java.util
 import com.google.common.cache.{Cache, CacheBuilder}
 import io.kyligence.kap.engine.spark.utils.LogEx
 import org.apache.calcite.rel.`type`.RelDataType
-import org.apache.kylin.common.exceptions.KylinTimeoutException
+import org.apache.kylin.common.exception.KylinTimeoutException
 import org.apache.kylin.common.util.HadoopUtil
 import org.apache.kylin.common.{KapConfig, KylinConfig, QueryContext}
 import org.apache.spark.sql.execution.datasources.FilePrunerListFileTriggerRule

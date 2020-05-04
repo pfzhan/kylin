@@ -39,12 +39,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.kylin.common.exceptions;
+package org.apache.kylin.common.exception;
 
-public class OutOfMaxCombinationException extends RuntimeException {
+public enum CommonErrorCode implements ErrorCodeSupplier {
+    // 00000XXX general
+    UNKNOWN_ERROR_CODE("KE-00000001"), //
 
-    public OutOfMaxCombinationException(String message) {
-        super(message);
+    // 00006XXX column
+    INVALID_TIME_PARTITION_COLUMN("KE-00006001"), //
+
+    // 00023XXX diag
+    DIAG_TIMEOUT("KE-00023003"), //
+
+    // 00025XXX shell
+    FAILED_EXECUTE_SHELL("KE-00025001"), //
+    FAILED_PARSE_SHELL("KE-00025002"), //
+
+    // 00027XXX metadata
+    FAILED_UPDATE_METADATA("KE-00027001"); //
+
+    private final ErrorCode errorCode;
+
+    CommonErrorCode(String code) {
+        errorCode = new ErrorCode(code);
     }
 
+    @Override
+    public ErrorCode toErrorCode() {
+        return errorCode;
+    }
 }

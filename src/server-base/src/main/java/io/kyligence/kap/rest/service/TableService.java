@@ -24,6 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.COLUMN_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_IMPORT_SSB_DATA;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_REFRESH_CATALOG_CACHE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_TABLE_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -52,7 +60,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -710,8 +718,8 @@ public class TableService extends BasicService {
         Set<String> columnSet = Stream.of(tableDesc.getColumns()).map(ColumnDesc::getName).map(String::toUpperCase)
                 .collect(Collectors.toSet());
         if (!columnSet.contains(partitionColumn.toUpperCase())) {
-            throw new KylinException("KE-1010", String.format("Can not find the column:%s in table:%s, project:%s",
-                    partitionColumn, table, project));
+            throw new KylinException(COLUMN_NOT_EXIST, String
+                    .format("Can not find the column:%s in table:%s, project:%s", partitionColumn, table, project));
         }
 
         String cell = PushDownUtil.getFormatIfNotExist(table, partitionColumn, project);
@@ -853,7 +861,7 @@ public class TableService extends BasicService {
         val tableDesc = tableMetadataManager.getTableDesc(table);
         if (tableDesc == null) {
             val msg = MsgPicker.getMsg();
-            throw new KylinException("KE-1029", String.format(msg.getTABLE_NOT_FOUND(), table));
+            throw new KylinException(INVALID_TABLE_NAME, String.format(msg.getTABLE_NOT_FOUND(), table));
         }
 
         val dataflowManager = getDataflowManager(project);
@@ -948,12 +956,12 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         SegmentRange readySegmentRange = dataLoadingRange.getCoveredRange();
         if (readySegmentRange == null) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NO_SEGMENT());
         }
         SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
         if (!readySegmentRange.contains(segmentRangeRefresh)) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NOT_READY());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT_BY_NOT_READY());
         }
     }
 
@@ -984,7 +992,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException("KE-1037", "Model " + modelId + " does not exist in project " + project);
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
         val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
@@ -1021,7 +1029,7 @@ public class TableService extends BasicService {
 
         NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new KylinException("KE-1037", "Model " + modelId + "does not exist in project " + project);
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
         if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
@@ -1560,10 +1568,10 @@ public class TableService extends BasicService {
                 exec.execute(sampleSh, patternedLogger);
             } catch (ShellException e) {
                 logger.error(SSB_ERROR_MSG, e);
-                throw new KylinException("KE-1041", SSB_ERROR_MSG, e);
+                throw new KylinException(FAILED_IMPORT_SSB_DATA, SSB_ERROR_MSG, e);
             }
             if (!checkSSBDataBase()) {
-                throw new KylinException("KE-1041", SSB_ERROR_MSG);
+                throw new KylinException(FAILED_IMPORT_SSB_DATA, SSB_ERROR_MSG);
             }
         }
     }
@@ -1593,7 +1601,7 @@ public class TableService extends BasicService {
     private void checkFile(String fileName) {
         File file = new File(fileName);
         if (!file.exists() || !file.isFile()) {
-            throw new KylinException("KE-1034", String.format(MsgPicker.getMsg().getFILE_NOT_EXIST(), fileName));
+            throw new KylinException(FILE_NOT_EXIST, String.format(MsgPicker.getMsg().getFILE_NOT_EXIST(), fileName));
         }
     }
 
@@ -1668,7 +1676,7 @@ public class TableService extends BasicService {
                     nodes.add(data);
                 }
             } catch (Exception e) {
-                throw new KylinException("KE-1043", message.getTABLE_REFRESH_ERROR(), e);
+                throw new KylinException(FAILED_REFRESH_CATALOG_CACHE, message.getTABLE_REFRESH_ERROR(), e);
             }
         });
         if (!nodes.isEmpty()) {

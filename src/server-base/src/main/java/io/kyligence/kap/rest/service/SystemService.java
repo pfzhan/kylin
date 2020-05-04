@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.DIAG_UUID_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_NOT_EXIST;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -36,11 +39,11 @@ import javax.validation.constraints.NotNull;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfigBase;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.spark.sql.SparderEnv;
@@ -176,11 +179,11 @@ public class SystemService extends BasicService {
         }
         File exportFile = diagInfo == null ? null : diagInfo.getExportFile();
         if (exportFile == null) {
-            throw new KylinException("KE-1010", String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
+            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         String zipFilePath = findZipFile(exportFile);
         if (zipFilePath == null) {
-            throw new KylinException("KE-1034",
+            throw new KylinException(FILE_NOT_EXIST,
                     String.format(MsgPicker.getMsg().getDIAG_PACKAGE_NOT_AVAILABLE(), exportFile.getAbsoluteFile()));
         }
         return zipFilePath;
@@ -216,7 +219,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         AbstractInfoExtractorTool extractor = diagInfo == null ? null : diagInfo.getExtractor();
         if (extractor == null) {
-            throw new KylinException("KE-1010", String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
+            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         DiagStatusResponse response = new DiagStatusResponse();
         response.setUuid(uuid);
@@ -232,7 +235,7 @@ public class SystemService extends BasicService {
         DiagInfo diagInfo = diagMap.getIfPresent(uuid);
         Future task = diagInfo == null ? null : diagInfo.getTask();
         if (task == null) {
-            throw new KylinException("KE-1010", String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
+            throw new KylinException(DIAG_UUID_NOT_EXIST, String.format(MsgPicker.getMsg().getINVALID_ID(), uuid));
         }
         return task.cancel(true);
     }

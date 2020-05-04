@@ -35,6 +35,7 @@ import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -82,8 +83,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testInvalidMerge() {
-        thrown.expectMessage(
-                "Range TimePartitionedSegmentRange[" + SegmentRange.dateToLong("2010-01-01") + "," + SegmentRange.dateToLong("2013-01-01") + ") must contain at least 2 segments, but there is 0");
+        thrown.expectMessage("Range TimePartitionedSegmentRange[" + SegmentRange.dateToLong("2010-01-01") + ","
+                + SegmentRange.dateToLong("2013-01-01") + ") must contain at least 2 segments, but there is 0");
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow df = dfMgr.getDataflowByModelAlias("nmodel_basic");
@@ -212,7 +213,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             copyForWrite.setSegments(new Segments<>());
         });
 
-        for(NDataSegment segment: segsSet) {
+        for (NDataSegment segment : segsSet) {
             Assert.assertNull(dsdMgr.getForSegment(segment));
         }
     }
@@ -316,7 +317,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 6L), false);
             fail("No exception thrown.");
         } catch (Exception e) {
-            Assert.assertTrue(e instanceof IllegalStateException);
+            Assert.assertTrue(e instanceof KylinException);
             Assert.assertTrue(e.getMessage().contains("Merging segments must not have gaps between"));
         }
 
@@ -426,7 +427,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
         NProjectManager projMgr = NProjectManager.getInstance(testConfig);
 
-        final String[] dataflowIds = {"df1", "df2", "df3", "df4"};
+        final String[] dataflowIds = { "df1", "df2", "df3", "df4" };
         final String owner = "test_owner";
         final int n = dataflowIds.length;
         final int updatesPerCube = 100;

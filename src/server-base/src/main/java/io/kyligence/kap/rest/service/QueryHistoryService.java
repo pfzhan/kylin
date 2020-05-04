@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.metadata.query.RDBMSQueryHistoryDAO.fillZeroForQueryStatistics;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -272,7 +273,7 @@ public class QueryHistoryService extends BasicService {
             Preconditions.checkArgument(StringUtils.isNotEmpty(project));
             ProjectInstance projectInstance = getProjectManager().getProject(project);
             if (projectInstance == null)
-                throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+                throw new KylinException(PROJECT_NOT_EXIST, String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
             result.put(project, getQueryHistoryDao().getQueryMetricMeasurement());
         }
 

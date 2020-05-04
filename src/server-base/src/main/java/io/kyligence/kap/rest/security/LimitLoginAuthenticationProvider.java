@@ -24,11 +24,14 @@
 
 package io.kyligence.kap.rest.security;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_LOCKED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
@@ -42,12 +45,12 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -98,17 +101,16 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
         } catch (BadCredentialsException e) {
             authenticateFail(managedUser, userName);
             if (managedUser != null && managedUser.isLocked()) {
-                limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), new KylinException("KE-1009", e));
+                limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), new KylinException(USER_LOCKED, e));
                 throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(),
-                        new KylinException("KE-1009", e));
+                        new KylinException(USER_LOCKED, e));
             } else {
-                limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), new KylinException("KE-1008", e));
-                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
-                        new KylinException("KE-1008", e));
+                limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED());
+                throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED());
             }
         } catch (UsernameNotFoundException e) {
             throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(),
-                    new KylinException("KE-1045", MsgPicker.getMsg().getUSER_AUTH_FAILED()));
+                    new KylinException(USER_UNAUTHORIZED, MsgPicker.getMsg().getUSER_AUTH_FAILED()));
         }
     }
 
@@ -130,7 +132,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             } else {
                 int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
                 String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(), userName, leftSeconds);
-                throw new LockedException(msg, new KylinException("KE-1008", userName));
+                throw new LockedException(msg);
             }
         }
     }

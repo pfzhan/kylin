@@ -42,6 +42,9 @@
 
 package io.kyligence.kap.rest.security;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_LOCKED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_UNAUTHORIZED;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -49,6 +52,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.response.ErrorResponse;
 import org.springframework.http.MediaType;
@@ -63,11 +67,12 @@ public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
             throws IOException, ServletException {
         if (exception instanceof LockedException) {
-            setErrorResponse(request, response, HttpServletResponse.SC_BAD_REQUEST, exception);
+            setErrorResponse(request, response, HttpServletResponse.SC_BAD_REQUEST,
+                    new KylinException(USER_LOCKED, exception.getMessage()));
             return;
         }
-
-        setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, exception);
+        setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED,
+                new KylinException(USER_UNAUTHORIZED, exception.getMessage()));
     }
 
     public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex)

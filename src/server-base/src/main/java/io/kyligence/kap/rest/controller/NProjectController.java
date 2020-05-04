@@ -26,6 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PROJECT_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,14 +38,10 @@ import java.util.Random;
 
 import javax.validation.Valid;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
-import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -67,14 +66,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.FileUtils;
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.metadata.epoch.EpochRestClientTool;
 import io.kyligence.kap.rest.request.ComputedColumnConfigRequest;
 import io.kyligence.kap.rest.request.DataSourceTypeRequest;
 import io.kyligence.kap.rest.request.DefaultDatabaseRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.GarbageCleanUpConfigRequest;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.OwnerChangeRequest;
 import io.kyligence.kap.rest.request.ProjectConfigResetRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectKerberosInfoRequest;
@@ -116,7 +119,7 @@ public class NProjectController extends NBasicController {
             @RequestParam(value = "exact", required = false, defaultValue = "false") boolean exactMatch,
             @RequestParam(value = "permission", required = false, defaultValue = "READ") String permission) {
         if (Objects.isNull(AclPermissionFactory.getPermission(permission))) {
-            throw new KylinException("KE-1039", "Operation failed, unknown permission:" + permission);
+            throw new KylinException(PERMISSION_DENIED, "Operation failed, unknown permission:" + permission);
         }
         List<ProjectInstance> projects = projectService.getProjectsFilterByExactMatchAndPermission(project, exactMatch,
                 permission);
@@ -149,7 +152,7 @@ public class NProjectController extends NBasicController {
         checkRequiredArg("name", projectRequest.getName());
         if (StringUtils.isEmpty(projectRequest.getName())
                 || !StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
-            throw new KylinException("KE-1016", MsgPicker.getMsg().getINVALID_PROJECT_NAME());
+            throw new KylinException(INVALID_PROJECT_NAME, MsgPicker.getMsg().getINVALID_PROJECT_NAME());
         }
 
         ProjectInstance createdProj = projectService.createProject(projectDesc.getName(), projectDesc);
@@ -219,7 +222,8 @@ public class NProjectController extends NBasicController {
             throws Exception {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
         if (projectInstance == null) {
-            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         projectService.cleanupGarbage(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, true, "");
@@ -365,7 +369,8 @@ public class NProjectController extends NBasicController {
 
     @PutMapping(value = "/{project:.+}/owner")
     @ResponseBody
-    public EnvelopeResponse<String> updateProjectOwner(@PathVariable("project") String project, @RequestBody OwnerChangeRequest request) {
+    public EnvelopeResponse<String> updateProjectOwner(@PathVariable("project") String project,
+            @RequestBody OwnerChangeRequest request) {
         checkProjectName(project);
         checkRequiredArg("owner", request.getOwner());
         projectService.updateProjectOwner(project, request);

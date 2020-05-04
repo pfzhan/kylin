@@ -26,12 +26,16 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.ACCESS_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USER_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
@@ -137,7 +141,7 @@ public class AclTCRController extends NBasicController {
 
         if (!hasProjectPermission) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException("KE-1039",
+            throw new KylinException(ACCESS_DENIED,
                     String.format(msg.getGRANT_TABLE_WITH_SID_HAS_NOT_PROJECT_PERMISSION(), sid, project));
         }
         aclTCRService.updateAclTCR(project, sid, principal, requests);
@@ -146,15 +150,19 @@ public class AclTCRController extends NBasicController {
     @VisibleForTesting
     void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
-            throw new KylinException("KE-1001", MsgPicker.getMsg().getEMPTY_SID());
+            if (principal) {
+                throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEMPTY_SID());
+            } else {
+                throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEMPTY_SID());
+            }
         }
 
         if (principal && !userService.userExists(sid)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
         }
         if (!principal && !userGroupService.exists(sid)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
         }
     }

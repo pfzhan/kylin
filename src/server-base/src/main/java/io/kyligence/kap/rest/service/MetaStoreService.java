@@ -26,6 +26,10 @@ package io.kyligence.kap.rest.service;
 
 import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ConflictItem;
 import static io.kyligence.kap.rest.response.ModelMetadataCheckResponse.ModelMetadataConflict;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_EXPRESSION;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -46,7 +50,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -58,7 +63,6 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.rest.util.AclPermissionUtil;
@@ -103,10 +107,8 @@ public class MetaStoreService extends BasicService {
 
     public List<ModelPreviewResponse> getPreviewModels(String project) {
         aclEvaluate.checkProjectWritePermission(project);
-        return modelService.getDataflowManager(project).listUnderliningDataModels(false)
-                .stream()
-                .map(this::getSimplifiedModelResponse)
-                .collect(Collectors.toList());
+        return modelService.getDataflowManager(project).listUnderliningDataModels(false).stream()
+                .map(this::getSimplifiedModelResponse).collect(Collectors.toList());
     }
 
     private ModelPreviewResponse getSimplifiedModelResponse(NDataModel modelDesc) {
@@ -129,13 +131,14 @@ public class MetaStoreService extends BasicService {
         return modelPreviewResponse;
     }
 
-    public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList) throws IOException, RuntimeException {
+    public ByteArrayOutputStream getCompressedModelMetadata(String project, List<String> modelList)
+            throws IOException, RuntimeException {
         aclEvaluate.checkProjectWritePermission(project);
         NDataModelManager modelManager = modelService.getDataModelManager(project);
         NIndexPlanManager indexPlanManager = modelService.getIndexPlanManager(project);
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try(ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream)) {
             Set<String> resourcePathSet = Sets.newHashSet();
             for (String modelId : modelList) {
                 NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
@@ -150,13 +153,11 @@ public class MetaStoreService extends BasicService {
                 resourcePathSet.add(modelDesc.getResourcePath());
                 resourcePathSet.add(indexPlanManager.getIndexPlan(modelId).getResourcePath());
                 // Broken model can't use getAllTables method, will be intercepted in BrokenEntityProxy
-                resourcePathSet.addAll(modelDesc.getAllTables().stream()
-                        .map(TableRef::getTableDesc)
-                        .map(TableDesc::getResourcePath)
-                        .collect(Collectors.toSet()));
+                resourcePathSet.addAll(modelDesc.getAllTables().stream().map(TableRef::getTableDesc)
+                        .map(TableDesc::getResourcePath).collect(Collectors.toSet()));
             }
             if (CollectionUtils.isEmpty(resourcePathSet)) {
-                throw new KylinException("KE-1005", "Can not export broken model.");
+                throw new KylinException(PERMISSION_DENIED, "Can not export broken model.");
             }
             resourcePathSet.add(ResourceStore.METASTORE_UUID_TAG);
             writeMetadataToZipOutputStream(zipOutputStream, modelManager.getStore(), resourcePathSet);
@@ -164,8 +165,8 @@ public class MetaStoreService extends BasicService {
         return byteArrayOutputStream;
     }
 
-    private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore, Set<String> resourcePathSet)
-            throws IOException {
+    private void writeMetadataToZipOutputStream(ZipOutputStream zipOutputStream, ResourceStore resourceStore,
+            Set<String> resourcePathSet) throws IOException {
         for (val resourcePath : resourcePathSet) {
             zipOutputStream.putNextEntry(new ZipEntry(resourcePath));
             zipOutputStream.write(resourceStore.getResource(resourcePath).getByteSource().read());
@@ -174,7 +175,7 @@ public class MetaStoreService extends BasicService {
 
     private Map<String, RawResource> getRawResourceFromUploadFile(MultipartFile uploadFile) throws IOException {
         Map<String, RawResource> rawResourceMap = Maps.newHashMap();
-        try(ZipInputStream zipInputStream = new ZipInputStream(uploadFile.getInputStream())) {
+        try (ZipInputStream zipInputStream = new ZipInputStream(uploadFile.getInputStream())) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                 val bs = ByteStreams.asByteSource(IOUtils.toByteArray(zipInputStream));
@@ -189,14 +190,15 @@ public class MetaStoreService extends BasicService {
         }
     }
 
-    public ModelMetadataCheckResponse checkModelMetadata(String targetProject, MultipartFile uploadFile) throws Exception {
+    public ModelMetadataCheckResponse checkModelMetadata(String targetProject, MultipartFile uploadFile)
+            throws Exception {
         aclEvaluate.checkProjectWritePermission(targetProject);
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(uploadFile);
         KylinConfig modelConfig = KylinConfig.createKylinConfig(KylinConfig.getInstanceFromEnv());
         ResourceStore modelResourceStore = new InMemResourceStore(modelConfig);
         ResourceStore.setRS(modelConfig, modelResourceStore);
-        rawResourceMap.forEach((resPath, raw) -> modelResourceStore.putResourceWithoutCheck(resPath, raw.getByteSource(),
-                raw.getTimestamp(), raw.getMvcc()));
+        rawResourceMap.forEach((resPath, raw) -> modelResourceStore.putResourceWithoutCheck(resPath,
+                raw.getByteSource(), raw.getTimestamp(), raw.getMvcc()));
 
         Set<String> resourcePathList = rawResourceMap.keySet();
         checkModelMetadataFile(MetadataStore.createMetadataStore(modelConfig), resourcePathList);
@@ -207,13 +209,15 @@ public class MetaStoreService extends BasicService {
 
     private void checkModelMetadataFile(MetadataStore srcModelMetaStore, Set<String> rawResourceList) {
         MetadataChecker metadataChecker = new MetadataChecker(srcModelMetaStore);
-        MetadataChecker.VerifyResult verifyResult = metadataChecker.verifyModelMetadata(Lists.newArrayList(rawResourceList));
+        MetadataChecker.VerifyResult verifyResult = metadataChecker
+                .verifyModelMetadata(Lists.newArrayList(rawResourceList));
         if (!verifyResult.isModelMetadataQualified()) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
         }
     }
 
-    private ModelMetadataCheckResponse getModelMetadataCheckResponse(NDataModelManager srcModelManager, String targetProject) {
+    private ModelMetadataCheckResponse getModelMetadataCheckResponse(NDataModelManager srcModelManager,
+            String targetProject) {
         ModelMetadataCheckResponse modelMetadataCheckResponse = new ModelMetadataCheckResponse();
         List<ModelMetadataConflict> conflictList = new ArrayList<>();
         List<ModelPreviewResponse> modelPreviewResponseList = new ArrayList<>();
@@ -268,8 +272,8 @@ public class MetaStoreService extends BasicService {
             TableDesc targetTableDesc = tableMetadataManager.getTableDesc(srcTableDesc.getIdentity());
 
             // check COLUMN_NOT_EXISTED
-            List<ModelMetadataConflict> extraColumnsInOneTable = getColumnsNotExistConflicts(srcModelDesc,
-                    srcTableDesc, targetTableDesc);
+            List<ModelMetadataConflict> extraColumnsInOneTable = getColumnsNotExistConflicts(srcModelDesc, srcTableDesc,
+                    targetTableDesc);
             if (CollectionUtils.isNotEmpty(extraColumnsInOneTable)) {
                 columnNotExistedConflictList.addAll(extraColumnsInOneTable);
                 continue;
@@ -287,20 +291,19 @@ public class MetaStoreService extends BasicService {
     }
 
     private List<ModelMetadataConflict> getColumnsNotExistConflicts(NDataModel srcModelDesc, TableDesc srcTableDesc,
-                                                                    TableDesc targetTableDesc) {
+            TableDesc targetTableDesc) {
         val srcColumnNames = Stream.of(srcTableDesc.getColumns()).map(ColumnDesc::getName).collect(Collectors.toSet());
-        val targetColumnNames = Stream.of(targetTableDesc.getColumns()).map(ColumnDesc::getName).collect(Collectors.toSet());
+        val targetColumnNames = Stream.of(targetTableDesc.getColumns()).map(ColumnDesc::getName)
+                .collect(Collectors.toSet());
         String element = srcModelDesc.getAlias() + "-" + srcTableDesc.getIdentity();
-        return Sets.difference(srcColumnNames, targetColumnNames).stream()
-                .map(columnNotExist -> {
-                    List<ConflictItem> conflictItem = Lists.newArrayList(new ConflictItem(element, columnNotExist));
-                    return new ModelMetadataConflict(ModelMetadataConflictType.COLUMN_NOT_EXISTED, conflictItem);
-                })
-                .collect(Collectors.toList());
+        return Sets.difference(srcColumnNames, targetColumnNames).stream().map(columnNotExist -> {
+            List<ConflictItem> conflictItem = Lists.newArrayList(new ConflictItem(element, columnNotExist));
+            return new ModelMetadataConflict(ModelMetadataConflictType.COLUMN_NOT_EXISTED, conflictItem);
+        }).collect(Collectors.toList());
     }
 
     private List<ModelMetadataConflict> getInvalidColumnDataTypeConflicts(NDataModel srcModelDesc,
-                                                                          TableDesc srcTableDesc, TableDesc targetTableDesc) {
+            TableDesc srcTableDesc, TableDesc targetTableDesc) {
         List<ModelMetadataConflict> modelMetadataConflictList = new ArrayList<>();
         // get conflicts column data type in one table
         List<ColumnDesc> srcColumnDescList = Lists.newArrayList(srcTableDesc.getColumns());
@@ -313,7 +316,8 @@ public class MetaStoreService extends BasicService {
             }
             String srcElement = String.format("%s-%s-%s", srcModelDesc.getAlias(), srcTableDesc.getIdentity(),
                     srcColumnDesc.getName());
-            List<ConflictItem> conflictItems = Lists.newArrayList(new ConflictItem(srcElement, srcColumnDesc.getDatatype()));
+            List<ConflictItem> conflictItems = Lists
+                    .newArrayList(new ConflictItem(srcElement, srcColumnDesc.getDatatype()));
             ModelMetadataConflict conflict = new ModelMetadataConflict(
                     ModelMetadataConflictType.INVALID_COLUMN_DATATYPE, conflictItems);
             modelMetadataConflictList.add(conflict);
@@ -322,10 +326,12 @@ public class MetaStoreService extends BasicService {
     }
 
     private ModelMetadataConflict getDuplicateModelNameConflict(NDataModel srcModelDesc, String targetProject) {
-        if (Objects.isNull(modelService.getDataModelManager(targetProject).getDataModelDescByAlias(srcModelDesc.getAlias()))) {
+        if (Objects.isNull(
+                modelService.getDataModelManager(targetProject).getDataModelDescByAlias(srcModelDesc.getAlias()))) {
             return null;
         }
-        List<ConflictItem> conflictItems = Lists.newArrayList(new ConflictItem(srcModelDesc.getAlias(), srcModelDesc.getAlias()));
+        List<ConflictItem> conflictItems = Lists
+                .newArrayList(new ConflictItem(srcModelDesc.getAlias(), srcModelDesc.getAlias()));
         return new ModelMetadataConflict(ModelMetadataConflictType.DUPLICATE_MODEL_NAME, conflictItems);
     }
 
@@ -334,7 +340,8 @@ public class MetaStoreService extends BasicService {
         List<String> conflictTables = getTablesNotExistTargetProject(targetProject, srcModelPreviewResponse);
 
         return conflictTables.stream().map(tableNotExist -> {
-            List<ConflictItem> conflictItem = Lists.newArrayList(new ConflictItem(srcModelDesc.getAlias(), tableNotExist));
+            List<ConflictItem> conflictItem = Lists
+                    .newArrayList(new ConflictItem(srcModelDesc.getAlias(), tableNotExist));
             return new ModelMetadataConflict(ModelMetadataConflictType.TABLE_NOT_EXISTED, conflictItem);
         }).collect(Collectors.toList());
     }
@@ -344,8 +351,9 @@ public class MetaStoreService extends BasicService {
         List<String> targetTableNameList = modelService.getTableManager(targetProject).listAllTables().stream()
                 .map(TableDesc::getIdentity).collect(Collectors.toList());
 
-        return srcModelPreviewResponse.getTables().stream().filter(
-                simplifiedTablePreviewResponse -> !targetTableNameList.contains(simplifiedTablePreviewResponse.getName().toUpperCase()))
+        return srcModelPreviewResponse.getTables().stream()
+                .filter(simplifiedTablePreviewResponse -> !targetTableNameList
+                        .contains(simplifiedTablePreviewResponse.getName().toUpperCase()))
                 .map(SimplifiedTablePreviewResponse::getName).collect(Collectors.toList());
     }
 
@@ -354,13 +362,14 @@ public class MetaStoreService extends BasicService {
                 .filter(resourcePath -> !resourcePath.startsWith(ResourceStore.METASTORE_UUID_TAG)).findAny()
                 .orElse(null);
         if (StringUtils.isBlank(anyPath)) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
+            throw new KylinException(MODEL_METADATA_FILE_ERROR, MsgPicker.getMsg().getMODEL_METADATA_PACKAGE_INVALID());
         }
         return anyPath.split(File.separator)[1];
     }
 
     @Transaction(project = 0, retry = 1)
-    public void importModelMetadata(String project, MultipartFile metadataFile, List<String> importModelIds) throws IOException, RuntimeException {
+    public void importModelMetadata(String project, MultipartFile metadataFile, List<String> importModelIds)
+            throws IOException, RuntimeException {
         aclEvaluate.checkProjectWritePermission(project);
         Map<String, RawResource> rawResourceMap = getRawResourceFromUploadFile(metadataFile);
         String srcProjectName = getModelMetadataProjectName(rawResourceMap.keySet());
@@ -391,8 +400,10 @@ public class MetaStoreService extends BasicService {
             srcIndexPlan.setMvcc(-1);
             targetIndexPlanManager.createIndexPlan(srcIndexPlan);
 
-            NDataflow dataFlow = targetDataFlowManager.createDataflow(srcIndexPlan, AclPermissionUtil.getCurrentUsername());
-            targetDataFlowManager.updateDataflow(dataFlow.getId(), copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
+            NDataflow dataFlow = targetDataFlowManager.createDataflow(srcIndexPlan,
+                    AclPermissionUtil.getCurrentUsername());
+            targetDataFlowManager.updateDataflow(dataFlow.getId(),
+                    copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.ONLINE));
         }
     }
 
@@ -400,24 +411,26 @@ public class MetaStoreService extends BasicService {
         String message = exception.getMessage();
         if (exception instanceof LookupTableException) {
             message = String.format(MsgPicker.getMsg().getFACT_TABLE_USED_AS_LOOK_UP_TABLE(), srcModelName);
-            throw new KylinException("KE-1005", message, ResponseCode.CODE_UNDEFINED);
+            throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED);
         }
         if (exception instanceof BadModelException) {
             BadModelException badModelException = (BadModelException) exception;
             switch (badModelException.getCauseType()) {
-                case SAME_EXPR_DIFF_NAME:
-                    message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED(),
-                        srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(), badModelException.getAdvise());
-                    break;
-                case SAME_NAME_DIFF_EXPR:
-                    message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED(),
-                            srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(), badModelException.getAdvise());
-                    break;
-                default:
-                    throw new KylinException("KE-1005", message, ResponseCode.CODE_UNDEFINED, exception);
+            case SAME_EXPR_DIFF_NAME:
+                message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_EXPRESSION_ALREADY_DEFINED(),
+                        srcModelName, badModelException.getBadCC(), badModelException.getConflictingModel(),
+                        badModelException.getAdvise());
+                throw new KylinException(DUPLICATE_COMPUTER_COLUMN_EXPRESSION, message);
+            case SAME_NAME_DIFF_EXPR:
+                message = String.format(MsgPicker.getMsg().getCOMPUTED_COLUMN_NAME_ALREADY_DEFINED(), srcModelName,
+                        badModelException.getBadCC(), badModelException.getConflictingModel(),
+                        badModelException.getAdvise());
+                throw new KylinException(DUPLICATE_COMPUTER_COLUMN_NAME, message);
+            default:
+                throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED, exception);
             }
-            throw new KylinException("KE-1021", message, ResponseCode.CODE_UNDEFINED);
+
         }
-        throw new KylinException("KE-1005", message, ResponseCode.CODE_UNDEFINED, exception);
+        throw new KylinException(PERMISSION_DENIED, message, ResponseCode.CODE_UNDEFINED, exception);
     }
 }

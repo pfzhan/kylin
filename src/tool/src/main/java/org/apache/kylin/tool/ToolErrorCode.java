@@ -1,0 +1,80 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.kylin.tool;
+
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ErrorCodeSupplier;
+
+public enum ToolErrorCode implements ErrorCodeSupplier {
+    // 50001XXX project
+    EMPTY_PROJECT_PARAMETER("KE-50001001"), //
+    PROJECT_PARAMETER_NOT_EXIST("KE-50001002"), //
+
+    // 50007XXX table
+    EMPTY_TABLE_PARAMETER("KE-50007001"), //
+    TABLE_PARAMETER_NOT_EXIST("KE-50007002"), //
+
+    // 50013XXX job
+    EMPTY_JOB_PARAMETER("KE-50013001"), //
+
+    // 50017XXX file
+    DIRECTORY_NOT_EXIST("KE-50017001"), //
+    FILE_ALREADY_EXIST("KE-50017002"), //
+
+    // 50023XXX diag
+    DIAG_STARTTIME_PARAMETER_NOT_EXIST("KE-50023001"), //
+    DIAG_ENDTIME_PARAMETER_NOT_EXIST("KE-50023002"), //
+
+    // 50025XXX shell
+    INVALID_SHELL_PARAMETER("KE-50025001");//
+
+    private final ErrorCode errorCode;
+
+    ToolErrorCode(String code) {
+        errorCode = new ErrorCode(code);
+    }
+
+    @Override
+    public ErrorCode toErrorCode() {
+        return errorCode;
+    }
+}

@@ -24,10 +24,11 @@
 
 package io.kyligence.kap.rest.controller;
 
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.After;
@@ -37,6 +38,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -63,8 +65,8 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
                 .build();
 
         Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
-                new NotFoundException(StringUtils.EMPTY), new BadRequestException(StringUtils.EMPTY),
-                new UnauthorizedException());
+                new NotFoundException(StringUtils.EMPTY), new AccessDeniedException(StringUtils.EMPTY),
+                new UnauthorizedException(), new KylinException(UNKNOWN_ERROR_CODE, StringUtils.EMPTY));
         createTestMetadata();
     }
 
@@ -87,13 +89,17 @@ public class NBasicControllerTest extends NLocalFileMetadataTestCase {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
                 .andExpect(MockMvcResultMatchers.status().isNotFound());
 
-        // assert handleBadRequest
+        // assert handleAccessDenied
         mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
         // assert handleUnauthorized
         mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
+
+        // assert handleErrorCode
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
     }
 
     @Test

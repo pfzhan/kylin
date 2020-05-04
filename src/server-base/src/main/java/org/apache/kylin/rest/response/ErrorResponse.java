@@ -42,7 +42,9 @@
 
 package org.apache.kylin.rest.response;
 
-import org.apache.kylin.common.exceptions.KylinException;
+import static org.apache.kylin.common.exception.CommonErrorCode.UNKNOWN_ERROR_CODE;
+
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 
 import com.google.common.base.Throwables;
@@ -65,16 +67,17 @@ public class ErrorResponse extends EnvelopeResponse {
         super();
         this.url = url;
         this.exception = exception.getLocalizedMessage();
-        this.msg = exception.getLocalizedMessage();
         this.data = null;
 
         if (exception instanceof KylinException) {
+            this.msg = exception.getLocalizedMessage();
             KylinException kylinException = (KylinException) exception;
             this.code = kylinException.getCode();
-            if(kylinException.isThrowTrace()){
+            if (kylinException.isThrowTrace()) {
                 this.stacktrace = Throwables.getStackTraceAsString(exception);
             }
         } else {
+            this.msg = UNKNOWN_ERROR_CODE.toErrorCode().getLocalizedString() + " " + exception.getLocalizedMessage();
             this.code = ResponseCode.CODE_UNDEFINED;
             this.stacktrace = Throwables.getStackTraceAsString(exception);
         }

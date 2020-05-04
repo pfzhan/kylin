@@ -42,18 +42,21 @@
 
 package org.apache.kylin.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_USER_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -81,7 +84,8 @@ public class KylinUserService implements UserService {
     //@PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN) --- DON'T DO THIS, CAUSES CIRCULAR DEPENDENCY BETWEEN UserService & AclService
     public void createUser(UserDetails user) {
         if (getKylinUserManager().exists(user.getUsername())) {
-            throw new KylinException("KE-1004", String.format(MsgPicker.getMsg().getUSER_EXISTS(), user.getUsername()));
+            throw new KylinException(DUPLICATE_USER_NAME,
+                    String.format(MsgPicker.getMsg().getUSER_EXISTS(), user.getUsername()));
         }
         updateUser(user);
     }
@@ -94,7 +98,7 @@ public class KylinUserService implements UserService {
         ManagedUser managedUser = (ManagedUser) user;
 
         if (!managedUser.getAuthorities().contains(new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS))) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REMOVE_USER_FROM_ALL_USER());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REMOVE_USER_FROM_ALL_USER());
         }
         getKylinUserManager().update(managedUser);
         logger.trace("update user : {}", user.getUsername());

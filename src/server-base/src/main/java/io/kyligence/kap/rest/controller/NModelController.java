@@ -26,14 +26,21 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SEGMENT_ID;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_CREATE_MODEL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -186,7 +193,7 @@ public class NModelController extends NBasicController {
             modelService.createModel(modelRequest.getProject(), modelRequest);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new KylinException("KE-1018", e);
+            throw new KylinException(FAILED_CREATE_MODEL, e);
         }
     }
 
@@ -201,7 +208,7 @@ public class NModelController extends NBasicController {
             modelService.batchCreateModel(project, modelRequests);
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new KylinException("KE-1018", e.getMessage(), e);
+            throw new KylinException(FAILED_CREATE_MODEL, e.getMessage(), e);
         }
     }
 
@@ -484,7 +491,7 @@ public class NModelController extends NBasicController {
             }
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new KylinException("KE-1025", e);
+            throw new KylinException(FAILED_UPDATE_MODEL, e);
         }
     }
 
@@ -499,7 +506,7 @@ public class NModelController extends NBasicController {
             modelService.updatePartitionColumn(request.getProject(), modelId, request.getPartitionDesc());
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
         } catch (LookupTableException e) {
-            throw new KylinException("KE-1025", e);
+            throw new KylinException(FAILED_UPDATE_MODEL, e);
         }
     }
 
@@ -512,7 +519,8 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         String newAlias = modelRenameRequest.getNewModelName();
         if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new KylinException("KE-1023", String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
+            throw new KylinException(INVALID_MODEL_NAME,
+                    String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newAlias));
         }
 
         modelService.renameDataModel(modelRenameRequest.getProject(), modelId, newAlias);
@@ -564,7 +572,7 @@ public class NModelController extends NBasicController {
         if (purge) {
             modelService.purgeModelManually(model, project);
         } else if (ArrayUtils.isEmpty(ids)) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
+            throw new KylinException(EMPTY_SEGMENT_ID, MsgPicker.getMsg().getSEGMENT_LIST_IS_EMPTY());
         } else {
             modelService.deleteSegmentById(model, project, ids, force);
         }
@@ -593,7 +601,7 @@ public class NModelController extends NBasicController {
         checkRequiredArg(MODEL_ID, modelId);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
         if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new KylinException("KE-1016",
+            throw new KylinException(INVALID_MODEL_NAME,
                     String.format(MsgPicker.getMsg().getINVALID_MODEL_NAME(), newModelName));
         }
         modelService.cloneModel(modelId, request.getNewModelName(), request.getProject());
@@ -608,12 +616,13 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         if (request.getType().equals(SegmentsRequest.SegmentsRequestType.REFRESH)) {
             if (ArrayUtils.isEmpty(request.getIds())) {
-                throw new KylinException("KE-1010", MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
+                throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getINVALID_REFRESH_SEGMENT());
             }
             modelService.refreshSegmentById(modelId, request.getProject(), request.getIds());
         } else {
             if (ArrayUtils.isEmpty(request.getIds()) || request.getIds().length < 2) {
-                throw new KylinException("KE-1010", MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
+                throw new KylinException(FAILED_MERGE_SEGMENT,
+                        MsgPicker.getMsg().getINVALID_MERGE_SEGMENT_BY_TOO_LESS());
             }
             modelService.mergeSegmentsManually(modelId, request.getProject(), request.getIds());
         }
@@ -797,7 +806,7 @@ public class NModelController extends NBasicController {
 
     public void validatePartitionDesc(PartitionDesc partitionDesc) {
         if (partitionDesc != null && StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
-            throw new KylinException("KE-1027", MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
+            throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getPARTITION_COLUMN_NOT_EXIST());
         }
     }
 
@@ -812,7 +821,8 @@ public class NModelController extends NBasicController {
 
     @PutMapping(value = "/{model:.+}/owner")
     @ResponseBody
-    public EnvelopeResponse<String> updateModelOwner(@PathVariable("model") String modelId, @RequestBody OwnerChangeRequest request) {
+    public EnvelopeResponse<String> updateModelOwner(@PathVariable("model") String modelId,
+            @RequestBody OwnerChangeRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg("owner", request.getOwner());
         modelService.updateModelOwner(request.getProject(), modelId, request);

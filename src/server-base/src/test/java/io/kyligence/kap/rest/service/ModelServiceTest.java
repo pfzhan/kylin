@@ -82,7 +82,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.DateFormat;
@@ -1231,7 +1231,7 @@ public class ModelServiceTest extends CSVSourceTestCase {
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         eventDao.deleteAllEvents();
 
-        thrown.expect(IllegalStateException.class);
+        thrown.expect(KylinException.class);
         thrown.expectMessage(
                 "Merging segments must not have gaps between " + dataSegment1.getId() + " and " + dataSegment3.getId());
         modelService.mergeSegmentsManually(dfId, "default",

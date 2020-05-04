@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,16 +39,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.kylin.metadata.exception;
 
-package org.apache.kylin.common.exceptions;
+import org.apache.kylin.common.exception.ErrorCode;
+import org.apache.kylin.common.exception.ErrorCodeSupplier;
 
-public class ResourceLimitExceededException extends RuntimeException {
+public enum SystemErrorCode implements ErrorCodeSupplier {
+    // 40021XXX server
+    EPOCH_DOES_NOT_BELONG_TO_CURRENT_NODE("KE-40021001"), //
 
-    public ResourceLimitExceededException(String message) {
-        super(message);
+    // 40022XXX segment
+    FAILED_MERGE_SEGMENT("KE-40022001"); //
+
+    private final ErrorCode errorCode;
+
+    SystemErrorCode(String code) {
+        errorCode = new ErrorCode(code);
     }
 
-    public ResourceLimitExceededException(String message, Throwable cause) {
-        super(message, cause);
+    @Override
+    public ErrorCode toErrorCode() {
+        return errorCode;
     }
 }

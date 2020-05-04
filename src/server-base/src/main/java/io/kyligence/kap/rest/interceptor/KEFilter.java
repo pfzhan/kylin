@@ -34,7 +34,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.ErrorCode;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -56,7 +56,7 @@ public class KEFilter implements Filter {
             lang = httpServletRequest.getHeader("Accept-Language");
         }
         MsgPicker.setMsg(lang);
-        KylinException.setMsg(lang);
+        ErrorCode.setMsg(lang);
         chain.doFilter(request, response);
     }
 

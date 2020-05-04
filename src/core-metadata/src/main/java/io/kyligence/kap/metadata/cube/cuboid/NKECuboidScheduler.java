@@ -39,7 +39,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.OutOfMaxCombinationException;
+import org.apache.kylin.common.exception.OutOfMaxCombinationException;
 import org.apache.kylin.cube.model.TooManyCuboidException;
 
 import com.google.common.base.Predicate;

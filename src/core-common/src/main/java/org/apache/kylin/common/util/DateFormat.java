@@ -24,6 +24,8 @@
 
 package org.apache.kylin.common.util;
 
+import static org.apache.kylin.common.exception.CommonErrorCode.INVALID_TIME_PARTITION_COLUMN;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -39,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,7 +193,7 @@ public class DateFormat {
             return daysToEpoch * 24 * 60 * 60 * 1000;
         } catch (NumberFormatException e) {
         }
-        throw new IllegalArgumentException(MsgPicker.getMsg().getINVALID_TIME_FORMAT());
+        throw new KylinException(INVALID_TIME_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_TIME_FORMAT());
     }
 
     public static boolean isSupportedDateFormat(String dateStr) {
@@ -214,8 +217,7 @@ public class DateFormat {
             if (sampleData.matches(patternMap.getKey()))
                 return patternMap.getValue();
         }
-
-        throw new IllegalArgumentException(MsgPicker.getMsg().getINVALID_TIME_FORMAT());
+        throw new KylinException(INVALID_TIME_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_TIME_FORMAT());
     }
 
     /**

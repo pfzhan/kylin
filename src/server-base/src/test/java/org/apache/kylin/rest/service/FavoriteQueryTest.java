@@ -49,7 +49,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.calcite.sql.validate.SqlValidatorException;
-import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.common.exception.KylinTimeoutException;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.request.SQLRequest;

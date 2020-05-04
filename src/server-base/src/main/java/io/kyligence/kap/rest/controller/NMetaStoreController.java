@@ -25,6 +25,10 @@
 package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_MODEL_ID;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_FORMAT_ERROR;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FILE_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_METADATA_FILE_ERROR;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -40,7 +44,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,7 +87,7 @@ public class NMetaStoreController extends NBasicController {
             HttpServletResponse response) throws Exception {
         checkProjectName(project);
         if (CollectionUtils.isEmpty(request.getIds())) {
-            throw new KylinException("KE-1010", "At least one model should be selected to export!");
+            throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to export!");
         }
         String filename = String.format("%s_model_metadata_%s.zip", project.toLowerCase(),
                 new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date()));
@@ -118,12 +122,12 @@ public class NMetaStoreController extends NBasicController {
         checkProjectName(project);
         checkUploadFile(metadataFile);
         if (CollectionUtils.isEmpty(request.getIds())) {
-            throw new KylinException("KE-1010", "At least one model should be selected to import!");
+            throw new KylinException(EMPTY_MODEL_ID, "At least one model should be selected to import!");
         }
         try(InputStream inputStream = metadataFile.getInputStream()) {
             byte[] md5 = HashFunction.MD5.checksum(inputStream);
             if (!StringUtils.equals(signature, DatatypeConverter.printHexBinary(md5))) {
-                throw new KylinException("KE-1010", "Please verify the metadata file first");
+                throw new KylinException(MODEL_METADATA_FILE_ERROR, "Please verify the metadata file first");
             }
         }
 
@@ -139,10 +143,10 @@ public class NMetaStoreController extends NBasicController {
 
     private void checkUploadFile(MultipartFile uploadFile) {
         if (Objects.isNull(uploadFile) || uploadFile.isEmpty()) {
-            throw new KylinException("KE-1012", "please select a file");
+            throw new KylinException(FILE_NOT_EXIST, "please select a file");
         }
         if (!ZipFileUtil.validateZipFilename(uploadFile.getOriginalFilename())) {
-            throw new KylinException("KE-1010", "upload file must end with .zip");
+            throw new KylinException(FILE_FORMAT_ERROR, "upload file must end with .zip");
         }
 
     }

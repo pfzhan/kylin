@@ -25,6 +25,7 @@ package io.kyligence.kap.common.persistence.metadata;
 
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.isTableExists;
 import static io.kyligence.kap.common.persistence.metadata.jdbc.JdbcUtil.withTransaction;
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_UPDATE_METADATA;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,13 +41,14 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -59,7 +61,6 @@ import lombok.Getter;
 import lombok.val;
 import lombok.var;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.TransactionDefinition;
 
 @Slf4j
 public class JdbcMetadataStore extends MetadataStore {
@@ -116,7 +117,8 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc) throws Exception {
+    protected void save(String path, @Nullable ByteSource bs, long ts, long mvcc, String unitPath, long oriMvcc)
+            throws Exception {
         withTransaction(transactionManager, new JdbcUtil.Callback<Object>() {
             @Override
             public Object handle() throws Exception {
@@ -145,7 +147,8 @@ public class JdbcMetadataStore extends MetadataStore {
                     affectedRow = jdbcTemplate.update(String.format(DELETE_SQL, table), path);
                 }
                 if (affectedRow == 0) {
-                    throw new KylinException("KE-4018", String.format("Failed to update or insert path: " + path + " ,mvcc:" + mvcc));
+                    throw new KylinException(FAILED_UPDATE_METADATA,
+                            String.format("Failed to update or insert path: " + path + " ,mvcc:" + mvcc));
                 }
                 return null;
             }
@@ -220,7 +223,8 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc) throws Exception {
+    public void batchUpdate(UnitMessages unitMessages, boolean skipAuditLog, String unitPath, long oriMvcc)
+            throws Exception {
         if (CollectionUtils.isEmpty(unitMessages.getMessages())) {
             return;
         }
@@ -243,12 +247,14 @@ public class JdbcMetadataStore extends MetadataStore {
                 restoreProject(store, project);
             });
             try {
-                val uuidRaw = jdbcTemplate
-                        .queryForObject(String.format(SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG), RAW_RESOURCE_ROW_MAPPER);
+                val uuidRaw = jdbcTemplate.queryForObject(
+                        String.format(SELECT_BY_KEY_SQL, table, ResourceStore.METASTORE_UUID_TAG),
+                        RAW_RESOURCE_ROW_MAPPER);
                 store.putResourceWithoutCheck(uuidRaw.getResPath(), uuidRaw.getByteSource(), uuidRaw.getTimestamp(),
                         uuidRaw.getMvcc());
             } catch (PersistException | EmptyResultDataAccessException e) {
-                if (e instanceof EmptyResultDataAccessException || e.getCause() instanceof EmptyResultDataAccessException) {
+                if (e instanceof EmptyResultDataAccessException
+                        || e.getCause() instanceof EmptyResultDataAccessException) {
                     log.info("Cannot find /UUID in metastore");
                 } else {
                     throw e;

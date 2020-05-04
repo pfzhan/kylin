@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.rest.service;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -34,10 +36,10 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -200,7 +202,7 @@ public class FavoriteRuleService extends BasicService {
         uuids.forEach(uuid -> {
             val favoriteQuery = getFavoriteQueryManager(project).getByUuid(uuid);
             if (favoriteQuery == null)
-                throw new KylinException("KE-1010",
+                throw new KylinException(INVALID_PARAMETER,
                         String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_EXIST(), uuid));
 
             if (block) {

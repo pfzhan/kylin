@@ -27,6 +27,11 @@ package io.kyligence.kap.rest.controller;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
 import static org.apache.kylin.rest.constant.Constant.ROLE_ADMIN;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_USER_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USERGROUP_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_USER_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,14 +41,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.DataResult;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -71,6 +75,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.rest.request.AccessRequest;
 import io.kyligence.kap.rest.request.BatchAccessRequest;
@@ -146,14 +151,14 @@ public class NAccessController extends NBasicController {
 
     @GetMapping(value = "/available/{entity_type:.+}")
     @ResponseBody
-    public EnvelopeResponse<DataResult<List<String>>> getAvailableUsers(
-            @PathVariable("entity_type") String entityType,
+    public EnvelopeResponse<DataResult<List<String>>> getAvailableUsers(@PathVariable("entity_type") String entityType,
             @RequestParam(value = "project") String project,
             @RequestParam(value = "model", required = false) String modelId,
             @RequestParam(value = "name", required = false) String nameSeg,
             @RequestParam(value = "is_case_sensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "page_offset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize) throws IOException {
+            @RequestParam(value = "page_size", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
         checkProjectName(project);
 
         List<String> whole = Lists.newArrayList();
@@ -166,7 +171,8 @@ public class NAccessController extends NBasicController {
 
             NDataModel model = projectService.getDataModelManager(project).getDataModelDesc(modelId);
             if (Objects.isNull(model) || model.isBroken()) {
-                throw new KylinException("KE-1037", "Model " + modelId + "does not exist or broken in project " + project);
+                throw new KylinException(MODEL_NOT_EXIST,
+                        "Model " + modelId + "does not exist or broken in project " + project);
             }
             whole.remove(model.getOwner());
         }
@@ -247,7 +253,7 @@ public class NAccessController extends NBasicController {
         AclEntity ae = accessService.getAclEntity(type, uuid);
         Permission permission = AclPermissionFactory.getPermission(accessRequest.getPermission());
         if (Objects.isNull(permission)) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(PERMISSION_DENIED,
                     "Operation failed, unknown permission:" + accessRequest.getPermission());
         }
         if (accessRequest.isPrincipal()) {
@@ -302,15 +308,19 @@ public class NAccessController extends NBasicController {
 
     private void checkSid(String sid, boolean principal) throws IOException {
         if (StringUtils.isEmpty(sid)) {
-            throw new KylinException("KE-1001", MsgPicker.getMsg().getEMPTY_SID());
+            if (principal) {
+                throw new KylinException(EMPTY_USER_NAME, MsgPicker.getMsg().getEMPTY_SID());
+            } else {
+                throw new KylinException(EMPTY_USERGROUP_NAME, MsgPicker.getMsg().getEMPTY_SID());
+            }
         }
 
         if (principal && !userService.userExists(sid)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_USER_NOT_EXIST(), sid));
         }
         if (!principal && !userGroupService.exists(sid)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getOPERATION_FAILED_BY_GROUP_NOT_EXIST(), sid));
         }
     }
@@ -327,7 +337,7 @@ public class NAccessController extends NBasicController {
                 }).collect(Collectors.toList())).flatMap(List::stream).collect(Collectors.toList());
         Set<String> sids = Sets.newHashSet();
         result.stream().filter(r -> !sids.add(r.getSid())).findAny().ifPresent(r -> {
-            throw new KylinException("KE-1010", "Operation failed, duplicated sid: " + r.getSid());
+            throw new KylinException(DUPLICATE_USER_NAME, "Operation failed, duplicated sid: " + r.getSid());
         });
         return result;
     }

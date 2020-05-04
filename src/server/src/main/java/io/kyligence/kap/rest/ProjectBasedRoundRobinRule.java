@@ -23,29 +23,35 @@
  */
 package io.kyligence.kap.rest;
 
-import com.netflix.client.config.IClientConfig;
-import com.netflix.loadbalancer.AbstractLoadBalancerRule;
-import com.netflix.loadbalancer.ILoadBalancer;
-import com.netflix.loadbalancer.Server;
-import io.kyligence.kap.metadata.epoch.EpochManager;
-import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.msg.Message;
-import org.apache.kylin.common.msg.MsgPicker;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+
+import static org.apache.kylin.rest.exception.ServerErrorCode.SYSTEM_IS_RECOVER;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.exception.KylinException;
+import org.apache.kylin.common.msg.Message;
+import org.apache.kylin.common.msg.MsgPicker;
+import org.apache.kylin.common.util.Pair;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.netflix.client.config.IClientConfig;
+import com.netflix.loadbalancer.AbstractLoadBalancerRule;
+import com.netflix.loadbalancer.ILoadBalancer;
+import com.netflix.loadbalancer.Server;
+
+import io.kyligence.kap.metadata.epoch.EpochManager;
+import io.kyligence.kap.rest.interceptor.ProjectInfoParser;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
 
-    public ProjectBasedRoundRobinRule() {}
+    public ProjectBasedRoundRobinRule() {
+    }
 
     public ProjectBasedRoundRobinRule(ILoadBalancer lb) {
         this();
@@ -54,7 +60,8 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
 
     @Override
     public Server choose(Object key) {
-        HttpServletRequest request =((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest();
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                .getRequest();
         return choose(request);
     }
 
@@ -64,7 +71,7 @@ public class ProjectBasedRoundRobinRule extends AbstractLoadBalancerRule {
         String owner = EpochManager.getInstance(KylinConfig.getInstanceFromEnv()).getEpochOwner(project);
         if (StringUtils.isBlank(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException("KE-4016", msg.getLEADERS_HANDLE_OVER());
+            throw new KylinException(SYSTEM_IS_RECOVER, msg.getLEADERS_HANDLE_OVER());
         }
         String[] host = owner.split(":");
         Server server = new Server(host[0], Integer.valueOf(host[1]));

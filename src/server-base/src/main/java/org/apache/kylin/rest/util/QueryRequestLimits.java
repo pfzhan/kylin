@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
@@ -61,6 +61,8 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 public class QueryRequestLimits implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(QueryRequestLimits.class);
@@ -135,7 +137,7 @@ public class QueryRequestLimits implements AutoCloseable {
         if (!ok) {
             Message msg = MsgPicker.getMsg();
             logger.warn("Directly return exception as too many concurrent query requests for project:" + project);
-            throw new KylinException("KE-1005", msg.getQUERY_TOO_MANY_RUNNING());
+            throw new KylinException(PERMISSION_DENIED, msg.getQUERY_TOO_MANY_RUNNING());
         }
     }
 

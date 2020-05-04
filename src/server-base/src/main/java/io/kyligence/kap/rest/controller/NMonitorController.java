@@ -25,13 +25,14 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_RANGE;
 
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.exceptions.KylinException;
-import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.response.ResponseCode;
+import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.spark.memory.MetricsCollectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -116,7 +117,7 @@ public class NMonitorController extends NBasicController {
         long now = System.currentTimeMillis();
         end = end > now ? now : end;
         if (start > end) {
-            throw new KylinException("KE-1010", String.format("start: %s > end: %s", start, end));
+            throw new KylinException(INVALID_RANGE, String.format("start: %s > end: %s", start, end));
         }
 
         ClusterStatisticStatusResponse result;

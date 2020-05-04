@@ -23,9 +23,12 @@
  */
 package org.apache.kylin.common.util;
 
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_EXECUTE_SHELL;
+import static org.apache.kylin.common.exception.CommonErrorCode.FAILED_PARSE_SHELL;
+
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,9 +46,9 @@ public abstract class ExecutableApplication implements Application {
             execute(optionsHelper);
         } catch (ParseException e) {
             optionsHelper.printUsage("error parsing args ", getOptions());
-            throw new KylinException("KE-5001", "error parsing args", e);
+            throw new KylinException(FAILED_PARSE_SHELL, "error parsing args", e);
         } catch (Exception e) {
-            throw new KylinException("KE-5004", "error execute " + this.getClass().getName(), e);
+            throw new KylinException(FAILED_EXECUTE_SHELL, "error execute " + this.getClass().getName(), e);
         }
     }
 }

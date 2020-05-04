@@ -51,7 +51,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -77,6 +77,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.user.ManagedUser;
+
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
 
 public class AclPermissionUtil {
 
@@ -243,9 +245,9 @@ public class AclPermissionUtil {
     public static void checkAclUpdatable(String project) {
         if (!AclPermissionUtil.isAclUpdatable(project)) {
             if (KylinConfig.getInstanceFromEnv().isAllowedProjectAdminGrantAcl()) {
-                throw new KylinException("KE-1005", MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN_AND_PROJECT_ADMIN());
             } else {
-                throw new KylinException("KE-1005", MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getACCESS_DENY_ONLY_ADMIN());
             }
         }
     }

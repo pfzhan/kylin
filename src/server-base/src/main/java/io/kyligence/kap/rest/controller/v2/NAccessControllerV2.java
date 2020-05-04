@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.controller.v2;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V2_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.USER_NOT_EXIST;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -76,7 +77,7 @@ public class NAccessControllerV2 extends NBasicController {
 
     private void checkUserName(String userName) {
         if (!userService.userExists(userName)) {
-            throw new KylinException("KE-1002", String.format("User '%s' does not exists.", userName));
+            throw new KylinException(USER_NOT_EXIST, String.format("User '%s' does not exists.", userName));
         }
     }
 

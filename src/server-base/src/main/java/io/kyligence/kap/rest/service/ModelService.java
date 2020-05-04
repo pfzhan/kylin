@@ -25,6 +25,32 @@
 package io.kyligence.kap.rest.service;
 
 import static java.util.stream.Collectors.groupingBy;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_COMPUTER_COLUMN_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_DIMENSION_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_JOIN_CONDITION;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_MEASURE_EXPRESSION;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_MEASURE_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.DUPLICATE_MODEL_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_MODEL_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_PARTITION_COLUMN;
+import static org.apache.kylin.rest.exception.ServerErrorCode.EMPTY_SEGMENT_RANGE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_CREATE_MODEL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_EXECUTE_MODEL_SQL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_MERGE_SEGMENT;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_REFRESH_SEGMENT;
+import static org.apache.kylin.rest.exception.ServerErrorCode.FAILED_UPDATE_MODEL;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_FILTER_CONDITION;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_MODEL_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_NAME;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARTITION_COLUMN;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_SEGMENT_RANGE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.MODEL_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PROJECT_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.SEGMENT_NOT_EXIST;
+import static org.apache.kylin.rest.exception.ServerErrorCode.SEGMENT_RANGE_OVERLAP;
+import static org.apache.kylin.rest.exception.ServerErrorCode.TABLE_NOT_EXIST;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -53,7 +79,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.Message;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -212,7 +238,7 @@ public class ModelService extends BasicService {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
         if (null == nDataModel) {
-            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
         return nDataModel;
     }
@@ -358,7 +384,8 @@ public class ModelService extends BasicService {
     public NCubeDescResponse getCubeWithExactModelName(String modelAlias, String projectName) {
         NDataModel dataModel = getDataModelManager(projectName).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
-            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         NDataModelResponse cube = new NDataModelResponse(dataModel);
         NCubeDescResponse result = new NCubeDescResponse();
@@ -471,8 +498,9 @@ public class ModelService extends BasicService {
                         nDataModelResponse.getSource()));
                 nDataModelResponse.setUsage(dataflow.getQueryHitCount());
                 nDataModelResponse.setRecommendationsCount(optRecomManager.getRecommendationCount(modelDesc.getId()));
-                nDataModelResponse.setAvailableIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
-                        : getAvailableIndexesCount(projectName, modelDesc.getId()));
+                nDataModelResponse
+                        .setAvailableIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
+                                : getAvailableIndexesCount(projectName, modelDesc.getId()));
                 nDataModelResponse.setTotalIndexes(modelDesc.isBroken() ? 0
                         : getIndexPlan(modelDesc.getUuid(), modelDesc.getProject()).getAllLayouts().size());
                 nDataModelResponse.setEmptyIndexesCount(modelResponseStatus.equals(ModelStatusToDisplayEnum.BROKEN) ? 0
@@ -496,7 +524,8 @@ public class ModelService extends BasicService {
         ModelStatusToDisplayEnum modelResponseStatus = ModelStatusToDisplayEnum.convert(modelStatus);
         val segmentHoles = getDataflowManager(projectName).calculateSegHoles(modelDesc.getUuid());
         if (modelResponseStatus == ModelStatusToDisplayEnum.ONLINE
-                && (getEmptyIndexesCount(projectName, modelDesc.getId()) > 0 || CollectionUtils.isNotEmpty(segmentHoles))) {
+                && (getEmptyIndexesCount(projectName, modelDesc.getId()) > 0
+                        || CollectionUtils.isNotEmpty(segmentHoles))) {
             modelResponseStatus = ModelStatusToDisplayEnum.WARNING;
         }
         return modelResponseStatus;
@@ -761,7 +790,7 @@ public class ModelService extends BasicService {
 
     private void checkAliasExist(String modelId, String newAlias, String project) {
         if (!checkModelAliasUniqueness(modelId, newAlias, project)) {
-            throw new KylinException("KE-1023",
+            throw new KylinException(INVALID_MODEL_NAME,
                     String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(), newAlias));
         }
     }
@@ -831,7 +860,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModelDesc = getModelById(modelId, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getMODEL_CAN_NOT_PURGE(), dataModelDesc.getAlias()));
         }
         purgeModel(modelId, project);
@@ -958,7 +987,7 @@ public class ModelService extends BasicService {
 
     private void checkDataflowStatus(NDataflow dataflow, String modelId) {
         if (dataflow.getStatus().equals(RealizationStatusEnum.BROKEN)) {
-            throw new KylinException("KE-1038",
+            throw new KylinException(DUPLICATE_JOIN_CONDITION,
                     String.format(MsgPicker.getMsg().getBROKEN_MODEL_CANNOT_ONOFFLINE(), modelId));
         }
     }
@@ -1014,13 +1043,13 @@ public class ModelService extends BasicService {
                         logger.info("No segment to refresh, full build.");
                         return new RefreshAffectedSegmentsResponse(0, start, end);
                     } else {
-                        throw new KylinException("KE-1010",
+                        throw new KylinException(EMPTY_SEGMENT_RANGE,
                                 "No segments to refresh, please select new range and try again!");
                     }
                 }
 
                 if (CollectionUtils.isNotEmpty(segments.getBuildingSegments())) {
-                    throw new KylinException("KE-1005", MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
+                    throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
                 }
             } else {
                 checkSegRefreshingInLagBehindModel(segments);
@@ -1041,7 +1070,7 @@ public class ModelService extends BasicService {
     private void checkSegRefreshingInLagBehindModel(Segments<NDataSegment> segments) {
         for (val seg : segments) {
             if (segments.getSegmentStatusToDisplay(seg).equals(SegmentStatusEnumToDisplay.REFRESHING)) {
-                throw new KylinException("KE-1026", MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
+                throw new KylinException(FAILED_REFRESH_SEGMENT, MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH());
             }
         }
     }
@@ -1050,7 +1079,7 @@ public class ModelService extends BasicService {
             SegmentRange toBeRefreshSegmentRange) {
         SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
         if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
-            throw new KylinException("KE-1026", String.format(MsgPicker.getMsg().getSEGMENT_INVALID_RANGE(),
+            throw new KylinException(INVALID_SEGMENT_RANGE, String.format(MsgPicker.getMsg().getSEGMENT_INVALID_RANGE(),
                     toBeRefreshSegmentRange, coveredReadySegmentRange));
         }
     }
@@ -1062,7 +1091,8 @@ public class ModelService extends BasicService {
         RefreshAffectedSegmentsResponse response = getRefreshAffectedSegmentsResponse(project, table, refreshStart,
                 refreshEnd);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE());
+            throw new KylinException(PERMISSION_DENIED,
+                    MsgPicker.getMsg().getSEGMENT_CAN_NOT_REFRESH_BY_SEGMENT_CHANGE());
         }
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
@@ -1087,11 +1117,11 @@ public class ModelService extends BasicService {
                 String table = column.contains(".") ? column.split("\\.")[0] : dataModel.getRootFactTableName();
                 String error = String.format(MsgPicker.getMsg().getTABLENOTFOUND(), dataModel.getAlias(), column,
                         table);
-                throw new KylinException("KE-1024", error);
+                throw new KylinException(TABLE_NOT_EXIST, error);
             } else {
                 String errorMsg = String.format("model [%s], %s", dataModel.getAlias(), String.format(
                         MsgPicker.getMsg().getDEFAULT_REASON(), null != e.getMessage() ? e.getMessage() : "null"));
-                throw new KylinException("KE-1024", errorMsg);
+                throw new KylinException(FAILED_EXECUTE_MODEL_SQL, errorMsg);
             }
         }
     }
@@ -1169,7 +1199,8 @@ public class ModelService extends BasicService {
         }
 
         if (isProjectNotExist(project)) {
-            throw new KylinException("KE-1015", String.format("Can not find the project: %s !", project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
 
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
@@ -1264,7 +1295,7 @@ public class ModelService extends BasicService {
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
                 || dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException("KE-1018", MsgPicker.getMsg().getINVALID_CREATE_MODEL());
+            throw new KylinException(FAILED_CREATE_MODEL, MsgPicker.getMsg().getINVALID_CREATE_MODEL());
         }
 
         preProcessBeforeModelSave(dataModel, project);
@@ -1349,7 +1380,7 @@ public class ModelService extends BasicService {
 
     private void checkModelOwner(ModelRequest request) {
         if (StringUtils.isBlank(request.getOwner())) {
-            throw new KylinException("KE-1010", "Invalid parameter, model owner is empty.");
+            throw new KylinException(INVALID_PARAMETER, "Invalid parameter, model owner is empty.");
         }
     }
 
@@ -1359,12 +1390,12 @@ public class ModelService extends BasicService {
         for (NDataModel.NamedColumn dimension : request.getSimplifiedDimensions()) {
             // check if the dimension name is valid
             if (!StringUtils.containsOnly(dimension.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
-                throw new KylinException("KE-1016",
+                throw new KylinException(INVALID_NAME,
                         String.format(MsgPicker.getMsg().getINVALID_DIMENSION_NAME(), dimension.getName()));
 
             // check duplicate dimension names
             if (dimensionNames.contains(dimension.getName()))
-                throw new KylinException("KE-1020",
+                throw new KylinException(DUPLICATE_DIMENSION_NAME,
                         String.format(MsgPicker.getMsg().getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
 
             dimensionNames.add(dimension.getName());
@@ -1378,17 +1409,17 @@ public class ModelService extends BasicService {
         for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
             // check if the measure name is valid
             if (!StringUtils.containsOnly(measure.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
-                throw new KylinException("KE-1016",
+                throw new KylinException(INVALID_NAME,
                         String.format(MsgPicker.getMsg().getINVALID_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure names
             if (measureNames.contains(measure.getName()))
-                throw new KylinException("KE-1019",
+                throw new KylinException(DUPLICATE_MEASURE_NAME,
                         String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_NAME(), measure.getName()));
 
             // check duplicate measure definitions
             if (measures.contains(measure))
-                throw new KylinException("KE-1019",
+                throw new KylinException(DUPLICATE_MEASURE_EXPRESSION,
                         String.format(MsgPicker.getMsg().getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
 
             measureNames.add(measure.getName());
@@ -1406,8 +1437,8 @@ public class ModelService extends BasicService {
 
             for (int i = 0; i < size; i++) {
                 if (joinKeys.contains(Pair.newPair(primaryKeys[i], foreignKey[i])))
-                    throw new KylinException("KE-1038", String.format(MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(),
-                            primaryKeys[i], foreignKey[i]));
+                    throw new KylinException(DUPLICATE_JOIN_CONDITION, String
+                            .format(MsgPicker.getMsg().getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
 
                 joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
             }
@@ -1507,7 +1538,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -1620,7 +1651,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         val modelManager = getDataModelManager(project);
         if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())) {
-            throw new KylinException("KE-1010", "Partition column is null.'");
+            throw new KylinException(EMPTY_PARTITION_COLUMN, "Partition column is null.'");
         }
 
         String startFormat = DateFormat.getFormatTimeStamp(start, partitionDesc.getPartitionDateFormat()).toString();
@@ -1698,13 +1729,13 @@ public class ModelService extends BasicService {
     private void checkModelAndIndexManually(String project, String modelId) {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT_MANUALLY(), modelDesc.getAlias()));
         }
 
         val indexPlan = getIndexPlan(modelId, project);
         if (indexPlan == null || indexPlan.getAllLayouts().isEmpty()) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getCAN_NOT_BUILD_SEGMENT());
         }
     }
 
@@ -1736,7 +1767,7 @@ public class ModelService extends BasicService {
         } else {
             for (NDataSegment existedSegment : segments) {
                 if (existedSegment.getSegRange().overlaps(segmentRangeToBuild)) {
-                    throw new KylinException("KE-1026",
+                    throw new KylinException(SEGMENT_RANGE_OVERLAP,
                             String.format(MsgPicker.getMsg().getSEGMENT_RANGE_OVERLAP(),
                                     existedSegment.getSegRange().getStart().toString(),
                                     existedSegment.getSegRange().getEnd().toString()));
@@ -1749,16 +1780,16 @@ public class ModelService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         if (modelDesc == null) {
-            throw new KylinException("KE-1037", msg.getINVALID_MODEL_DEFINITION());
+            throw new KylinException(MODEL_NOT_EXIST, msg.getINVALID_MODEL_DEFINITION());
         }
 
         String modelAlias = modelDesc.getAlias();
 
         if (StringUtils.isEmpty(modelAlias)) {
-            throw new KylinException("KE-1016", msg.getEMPTY_MODEL_NAME());
+            throw new KylinException(EMPTY_MODEL_NAME, msg.getEMPTY_MODEL_NAME());
         }
         if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
-            throw new KylinException("KE-1016", String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
+            throw new KylinException(INVALID_MODEL_NAME, String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
         }
     }
 
@@ -1818,7 +1849,7 @@ public class ModelService extends BasicService {
     static void checkCCName(String name) {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
                 || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase())) {
-            throw new KylinException("KE-1016",
+            throw new KylinException(INVALID_NAME,
                     String.format(MsgPicker.getMsg().getINVALID_COMPUTER_COLUMN_NAME(), name));
         }
     }
@@ -1854,7 +1885,7 @@ public class ModelService extends BasicService {
                 error.append(String.format(MsgPicker.getMsg().getCHECK_CC_AMBIGUITY(), name));
                 error.append("\r\n");
             });
-            throw new KylinException("KE-1021", error.toString());
+            throw new KylinException(DUPLICATE_COMPUTER_COLUMN_NAME, error.toString());
         }
     }
 
@@ -1887,7 +1918,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectWritePermission(project);
         final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelId);
         if (dataModel == null) {
-            throw new KylinException("KE-1021", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelId));
         }
 
         dataModel.setDataCheckDesc(DataCheckDesc.valueOf(checkOptions, faultThreshold, faultActions));
@@ -1909,7 +1940,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getMODEL_SEGMENT_CAN_NOT_REMOVE(), dataModel.getAlias()));
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -1943,7 +1974,7 @@ public class ModelService extends BasicService {
         List<String> notExistIds = Stream.of(ids).filter(segmentId -> null == dataflow.getSegment(segmentId))
                 .filter(Objects::nonNull).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(notExistIds)) {
-            throw new KylinException("KE-1010",
+            throw new KylinException(SEGMENT_NOT_EXIST,
                     String.format("Can not find the Segments by ids [%s]", StringUtils.join(notExistIds, ",")));
         }
     }
@@ -1964,7 +1995,7 @@ public class ModelService extends BasicService {
                 : MsgPicker.getMsg().getSEGMENT_STATUS(status.name());
         for (String id : ids) {
             if (segments.getSegmentStatusToDisplay(dataflow.getSegment(id)).equals(status)) {
-                throw new KylinException("KE-1005", String.format(message, id));
+                throw new KylinException(PERMISSION_DENIED, String.format(message, id));
             }
         }
     }
@@ -1992,7 +2023,7 @@ public class ModelService extends BasicService {
     private void checkNeighbouringSegmentsDeleted(List<String> idsToDelete, int i, Segments<NDataSegment> allSegments) {
         if (!idsToDelete.contains(allSegments.get(i - 1).getId())
                 || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
-            throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_REMOVE_SEGMENT());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_REMOVE_SEGMENT());
         }
     }
 
@@ -2005,8 +2036,9 @@ public class ModelService extends BasicService {
 
         for (int i = 0; i < segmentList.size() - 1; i++) {
             if (!segmentList.get(i).getSegRange().connects(segmentList.get(i + 1).getSegRange())) {
-                throw new IllegalStateException(String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(),
-                        segmentList.get(i).getId(), segmentList.get(i + 1).getId()));
+                throw new KylinException(FAILED_MERGE_SEGMENT,
+                        String.format(MsgPicker.getMsg().getSEGMENT_CONTAINS_GAPS(), segmentList.get(i).getId(),
+                                segmentList.get(i + 1).getId()));
             }
         }
     }
@@ -2037,7 +2069,7 @@ public class ModelService extends BasicService {
             }
 
             if (!segment.getStatus().equals(SegmentStatusEnum.READY)) {
-                throw new KylinException("KE-1005", MsgPicker.getMsg().getINVALID_MERGE_SEGMENT());
+                throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getINVALID_MERGE_SEGMENT());
             }
 
             val segmentStart = segment.getTSRange().getStart();
@@ -2220,7 +2252,7 @@ public class ModelService extends BasicService {
 
         if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
                 || broken.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new KylinException("KE-1025", "Can not repair model manually smart mode!");
+            throw new KylinException(FAILED_UPDATE_MODEL, "Can not repair model manually smart mode!");
         }
         broken.setPartitionDesc(modelRequest.getPartitionDesc());
         broken.setFilterCondition(modelRequest.getFilterCondition());
@@ -2284,15 +2316,16 @@ public class ModelService extends BasicService {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
                 Preconditions.checkState(getDataLoadingRangeManager(project).getDataLoadingRange(tableName) == null);
-                throw new KylinException("KE-1005", String.format(MsgPicker.getMsg().getINVALID_SET_TABLE_INC_LOADING(),
-                        tableName, modelDesc.getAlias()));
+                throw new KylinException(PERMISSION_DENIED, String.format(
+                        MsgPicker.getMsg().getINVALID_SET_TABLE_INC_LOADING(), tableName, modelDesc.getAlias()));
             }
         }
     }
 
     private void checkProjectWhenModelSelected(String model, List<String> projects) {
         if (!isSelectAll(model) && (CollectionUtils.isEmpty(projects) || projects.size() != 1)) {
-            throw new KylinException("KE-1021", "Only one project name should be specified while model is specified!");
+            throw new KylinException(DUPLICATE_MODEL_NAME,
+                    "Only one project name should be specified while model is specified!");
         }
     }
 
@@ -2314,7 +2347,7 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val modelDesc = modelManager.getDataModelDesc(model);
         if (modelDesc == null) {
-            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), model));
+            throw new KylinException(MODEL_NOT_EXIST, String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), model));
         }
         val modelInfoResponse = new ModelInfoResponse();
         modelInfoResponse.setProject(project);
@@ -2411,7 +2444,7 @@ public class ModelService extends BasicService {
         aclEvaluate.checkProjectOperationPermission(project);
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new KylinException("KE-1005",
+            throw new KylinException(PERMISSION_DENIED,
                     String.format(MsgPicker.getMsg().getCAN_NOT_BUILD_INDICES_MANUALLY(), modelDesc.getAlias()));
         }
 
@@ -2468,7 +2501,7 @@ public class ModelService extends BasicService {
                 model.setFilterCondition(filterConditionAddTableName);
             }
         } catch (Exception e) {
-            throw new KylinException("KE-1022", e);
+            throw new KylinException(INVALID_FILTER_CONDITION, e);
         }
     }
 
@@ -2504,11 +2537,13 @@ public class ModelService extends BasicService {
 
     public NModelDescResponse getModelDesc(String modelAlias, String project) {
         if (getProjectManager().getProject(project) == null) {
-            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         NDataModel dataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (dataModel == null) {
-            throw new KylinException("KE-1037", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(MODEL_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
         NDataModelResponse model = new NDataModelResponse(dataModel);
         NModelDescResponse response = new NModelDescResponse();
@@ -2545,18 +2580,20 @@ public class ModelService extends BasicService {
             ModelParatitionDescRequest modelParatitionDescRequest) {
         aclEvaluate.checkProjectWritePermission(project);
         if (getProjectManager().getProject(project) == null) {
-            throw new KylinException("KE-1015", String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
+            throw new KylinException(PROJECT_NOT_EXIST,
+                    String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
         NDataModel oldDataModel = getDataModelManager(project).getDataModelDescByAlias(modelAlias);
         if (oldDataModel == null) {
-            throw new KylinException("KE-1023", String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
+            throw new KylinException(INVALID_MODEL_NAME,
+                    String.format(MsgPicker.getMsg().getMODEL_NOT_FOUND(), modelAlias));
         }
 
         PartitionDesc partitionDesc = modelParatitionDescRequest.getPartitionDesc();
         if (partitionDesc != null) {
             String rootFactTable = oldDataModel.getRootFactTableName().split("\\.")[1];
             if (!partitionDesc.getPartitionDateColumn().toUpperCase().startsWith(rootFactTable + ".")) {
-                throw new KylinException("KE-1027", MsgPicker.getMsg().getINVALID_PARTITION_COLUMN());
+                throw new KylinException(INVALID_PARTITION_COLUMN, MsgPicker.getMsg().getINVALID_PARTITION_COLUMN());
             }
         }
 
@@ -2573,25 +2610,27 @@ public class ModelService extends BasicService {
             aclEvaluate.checkProjectAdminPermission(project);
             checkTargetOwnerPermission(project, modelId, ownerChangeRequest.getOwner());
         } catch (AccessDeniedException e) {
-            throw new KylinException("KE-1046", MsgPicker.getMsg().getMODEL_CHANGE_PERMISSION());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getMODEL_CHANGE_PERMISSION());
         } catch (IOException e) {
-            throw new KylinException("KE-1046", MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getOWNER_CHANGE_ERROR());
         }
 
-        getDataModelManager(project).updateDataModel(modelId, copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
+        getDataModelManager(project).updateDataModel(modelId,
+                copyForWrite -> copyForWrite.setOwner(ownerChangeRequest.getOwner()));
     }
 
     private void checkTargetOwnerPermission(String project, String modelId, String owner) throws IOException {
         Set<String> projectManagementUsers = accessService.getProjectManagementUsers(project);
         val model = getDataModelManager(project).getDataModelDesc(modelId);
         if (Objects.isNull(model) || model.isBroken()) {
-            throw new KylinException("KE-1037", "Model " + modelId + " does not exist or broken in project " + project);
+            throw new KylinException(MODEL_NOT_EXIST,
+                    "Model " + modelId + " does not exist or broken in project " + project);
         }
         projectManagementUsers.remove(model.getOwner());
 
         if (CollectionUtils.isEmpty(projectManagementUsers) || !projectManagementUsers.contains(owner)) {
             Message msg = MsgPicker.getMsg();
-            throw new KylinException("KE-1046", msg.getMODEL_OWNER_CHANGE_INVALID_USER());
+            throw new KylinException(PERMISSION_DENIED, msg.getMODEL_OWNER_CHANGE_INVALID_USER());
         }
     }
 
@@ -2674,7 +2713,7 @@ public class ModelService extends BasicService {
                 .collect(groupingBy(modelRequest -> modelRequest.getAlias().toLowerCase(), Collectors.toList()));
         aliasModelRequestMap.forEach((alias, requests) -> {
             if (requests.size() > 1) {
-                throw new KylinException("KE-1016", String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(),
+                throw new KylinException(INVALID_NAME, String.format(MsgPicker.getMsg().getMODEL_ALIAS_DUPLICATED(),
                         requests.stream().map(ModelRequest::getAlias).collect(Collectors.joining(", "))));
             }
         });

@@ -25,6 +25,7 @@ package io.kyligence.kap.rest.controller;
 
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_JSON;
 import static io.kyligence.kap.common.http.HttpConstant.HTTP_VND_APACHE_KYLIN_V4_PUBLIC_JSON;
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_PARAMETER;
 
 import java.util.List;
 import java.util.Set;
@@ -32,7 +33,7 @@ import java.util.Set;
 import javax.validation.Valid;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.apache.kylin.common.response.ResponseCode;
 import org.apache.kylin.rest.response.AggIndexResponse;
@@ -211,7 +212,7 @@ public class NIndexPlanController extends NBasicController {
         checkProjectName(project);
         checkRequiredArg(MODEL_ID, modelId);
         if (CollectionUtils.isEmpty(layoutIds)) {
-            throw new KylinException("KE-1010", MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
+            throw new KylinException(INVALID_PARAMETER, MsgPicker.getMsg().getLAYOUT_LIST_IS_EMPTY());
         }
         indexPlanService.removeIndexes(project, modelId, layoutIds);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");

@@ -23,13 +23,16 @@
  */
 package io.kyligence.kap.rest.security;
 
+import static org.apache.kylin.rest.exception.ServerErrorCode.INVALID_KERBEROS_FILE;
+import static org.apache.kylin.rest.exception.ServerErrorCode.PERMISSION_DENIED;
+
 import java.io.File;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.exceptions.KylinException;
+import org.apache.kylin.common.exception.KylinException;
 import org.apache.kylin.common.msg.MsgPicker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +77,7 @@ public class KerberosLoginManager implements IKeep {
             } catch (Exception ex) {
                 logger.error("Fetch login user error.", projectName, principal, ex);
             }
-            throw new KylinException("KE-1042", MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
+            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
         }
 
         return ugi;
@@ -102,7 +105,7 @@ public class KerberosLoginManager implements IKeep {
         try {
             UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
         } catch (Exception e) {
-            throw new KylinException("KE-1042", MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
+            throw new KylinException(INVALID_KERBEROS_FILE, MsgPicker.getMsg().getKERBEROS_INFO_ERROR(), e);
         }
     }
 
@@ -113,7 +116,7 @@ public class KerberosLoginManager implements IKeep {
 
         UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab);
         if (!NHiveTableName.getInstance().checkExistsTablesAccess(ugi, project)) {
-            throw new KylinException("KE-1042", MsgPicker.getMsg().getPROJECT_HIVE_PERMISSION_ERROR());
+            throw new KylinException(PERMISSION_DENIED, MsgPicker.getMsg().getPROJECT_HIVE_PERMISSION_ERROR());
         }
     }
 }
