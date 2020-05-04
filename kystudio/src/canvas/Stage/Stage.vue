@@ -1,21 +1,3 @@
-<template>
-  <div ref="$container" class="stage">
-    <v-stage ref="$stage" :config="stageStyle" @wheel="handleMouseWheel" @dragmove="handleDragStage">
-      <!-- 插槽：背景层canvas，此处适合放入v-layer -->
-      <slot name="background"></slot>
-      <!-- 渲染：主体层canvas -->
-      <v-layer ref="$content" :config="contentStyle">
-        <!-- 组件：手形拖拽底层 -->
-        <v-rect ref="$drag-layer" :config="dragLayerStyle" />
-        <!-- 插槽：canvas图形渲染组件 -->
-        <slot></slot>
-        <!-- 组件：tooltip -->
-        <CanvasTooltip />
-      </v-layer>
-    </v-stage>
-  </div>
-</template>
-
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
@@ -157,6 +139,7 @@ export default class Stage extends Vue {
   }
 
   setPointGrabbing () {
+    this.$refs.$stage.getNode().container().style.cursor = 'move'
     this.$refs.$stage.getNode().container().style.cursor = 'grabbing'
   }
 
@@ -165,7 +148,29 @@ export default class Stage extends Vue {
   }
 
   setPointGrab () {
+    this.$refs.$stage.getNode().container().style.cursor = 'move'
     this.$refs.$stage.getNode().container().style.cursor = 'grab'
+  }
+
+  render (h) {
+    const { stageStyle, contentStyle, dragLayerStyle } = this
+    return (
+      <div ref="$container" class="stage">
+        <v-stage ref="$stage" config={stageStyle} onWheel={this.handleMouseWheel} onDragmove={this.handleDragStage}>
+          {/* 插槽：背景层canvas，此处适合放入v-layer */}
+          {this.$slots.background}
+          {/* 渲染：主体层canvas */}
+          <v-layer ref="$content" config={contentStyle}>
+            {/* 组件：手形拖拽底层 */}
+            <v-rect ref="$drag-layer" config={dragLayerStyle} />
+            {/* 插槽：canvas图形渲染组件 */}
+            {this.$slots.default}
+            {/* 组件：tooltip */}
+            <CanvasTooltip />
+          </v-layer>
+        </v-stage>
+      </div>
+    )
   }
 }
 </script>
