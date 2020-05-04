@@ -276,7 +276,7 @@ public class NUserController extends NBasicController {
         }
         val actualOldPassword = existingUser.getPassword();
 
-        if (!isAdmin() && !pwdEncoder.matches(oldPassword, actualOldPassword)) {
+        if (!pwdEncoder.matches(oldPassword, actualOldPassword)) {
             throw new KylinException("KE-1007", msg.getOLD_PASSWORD_WRONG());
         }
 

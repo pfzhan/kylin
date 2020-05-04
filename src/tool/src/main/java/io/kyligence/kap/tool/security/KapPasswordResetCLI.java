@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.tool.security;
 
+import io.kyligence.kap.tool.MetadataTool;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -36,7 +37,7 @@ import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.user.NKylinUserManager;
 import io.kyligence.kap.tool.CuratorOperator;
-import io.kyligence.kap.tool.MetadataTool;
+import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
 
 public class KapPasswordResetCLI {
@@ -70,7 +71,10 @@ public class KapPasswordResetCLI {
             logger.warn("The password cannot be reset because there is no ADMIN user.");
             System.exit(1);
         }
-        user.setPassword(pwdEncoder.encode("KYLIN"));
+        boolean randomPasswordEnabled = KylinConfig.getInstanceFromEnv().getRandomAdminPasswordEnabled();
+        String password = randomPasswordEnabled ? AdminUserInitCLI.generateRandomPassword() : "KYLIN";
+        user.setPassword(pwdEncoder.encode(password));
+        user.setDefaultPassword(true);
 
         val res = aclStore.getResource(id);
 
@@ -83,9 +87,18 @@ public class KapPasswordResetCLI {
                 aclStore.getResource(id).getTimestamp(), aclStore.getResource(id).getMvcc() + 1), null, 0L);
 
         logger.trace("update user : {}", user.getUsername());
-        logger.info("User " + user.getUsername() + "'s password is set to default password.");
+        logger.info("User {}'s password is set to default password.", user.getUsername());
 
         MetadataTool.backup(config);
 
+        if (randomPasswordEnabled) {
+            String blackColorUsernameForPrint = StorageCleaner.ANSI_RESET + AdminUserInitCLI.ADMIN_USER_NAME + StorageCleaner.ANSI_RED;
+            String blackColorPasswordForPrint = StorageCleaner.ANSI_RESET + password + StorageCleaner.ANSI_RED;
+            String info = String.format("Reset password of [%s] succeed. The password is [%s].\n" +
+                    "Please keep the password properly.", blackColorUsernameForPrint, blackColorPasswordForPrint);
+            System.out.println(StorageCleaner.ANSI_RED + info + StorageCleaner.ANSI_RESET);
+        } else {
+            System.out.println(StorageCleaner.ANSI_YELLOW + "Reset the ADMIN password successfully." + StorageCleaner.ANSI_RESET);
+        }
     }
 }

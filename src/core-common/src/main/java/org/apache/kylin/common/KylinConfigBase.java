@@ -1801,4 +1801,8 @@ public abstract class KylinConfigBase implements Serializable {
     public Boolean isSparderAsync() {
         return Boolean.valueOf(this.getOptional("kylin.query.init-sparder-async", TRUE));
     }
+
+    public boolean getRandomAdminPasswordEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.random-admin-password.enabled", TRUE));
+    }
 }

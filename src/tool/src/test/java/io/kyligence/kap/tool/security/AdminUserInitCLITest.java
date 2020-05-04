@@ -24,28 +24,24 @@
 
 package io.kyligence.kap.tool.security;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-
+import io.kyligence.kap.tool.garbage.StorageCleaner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.user.ManagedUser;
 import io.kyligence.kap.metadata.user.NKylinUserManager;
-import io.kyligence.kap.tool.garbage.StorageCleaner;
 import lombok.val;
 
-public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 
+public class AdminUserInitCLITest extends NLocalFileMetadataTestCase {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -60,37 +56,43 @@ public class KapPasswordResetCLITest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testResetAdminPassword() throws Exception {
-        val pwdEncoder = new BCryptPasswordEncoder();
-        val user = new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS);
-        user.setPassword(pwdEncoder.encode(user.getPassword()));
+    public void testInitAdminUser() throws Exception {
+        // before create admin user
         val config = KylinConfig.getInstanceFromEnv();
-        val manger = NKylinUserManager.getInstance(config);
-        manger.update(user);
-
-        Assert.assertEquals(user.getPassword(), manger.get(user.getUsername()).getPassword());
-
-        val modifyUser = manger.get(user.getUsername());
-        modifyUser.setPassword(pwdEncoder.encode("KYLIN2"));
-        manger.update(modifyUser);
-        Assert.assertEquals(modifyUser.getPassword(), manger.get(user.getUsername()).getPassword());
-        Assert.assertTrue(pwdEncoder.matches("KYLIN2", manger.get(user.getUsername()).getPassword()));
-
+        NKylinUserManager beforeCreateAdminManager = NKylinUserManager.getInstance(config);
+        Assert.assertEquals(0, beforeCreateAdminManager.list().size());
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         System.setOut(new PrintStream(output));
 
-        KapPasswordResetCLI.reset();
-
+        // metadata without user, create admin user
+        AdminUserInitCLI.initAdminUser();
+        // clear cache, reload metadata
         ResourceStore.clearCache(config);
         config.clearManagers();
-        val afterManager =  NKylinUserManager.getInstance(config);
+        NKylinUserManager afterCreateAdminManager = NKylinUserManager.getInstance(config);
+        Assert.assertTrue(afterCreateAdminManager.exists("ADMIN"));
 
-        Assert.assertTrue(!pwdEncoder.matches("KYLIN", afterManager.get(user.getUsername()).getPassword()));
-        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "Reset password of [" +
-                StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "] succeed. The password is "));
-        Assert.assertTrue(output.toString().endsWith("Please keep the password properly." + StorageCleaner.ANSI_RESET + "\n"));
+        // assert output on console
+        Assert.assertTrue(output.toString().startsWith(StorageCleaner.ANSI_RED + "The username of initialized user is [" +
+                StorageCleaner.ANSI_RESET + "ADMIN" + StorageCleaner.ANSI_RED + "], which password is "));
+        Assert.assertTrue(output.toString().endsWith("Please keep the password properly. " +
+                "And if you forget the password, you can reset it according to user manual." + StorageCleaner.ANSI_RESET + "\n"));
 
         System.setOut(System.out);
+
+        // already have admin user
+        AdminUserInitCLI.initAdminUser();
+        // clear cache, reload metadata
+        ResourceStore.clearCache(config);
+        config.clearManagers();
+        NKylinUserManager afterCreateAdminManager2 = NKylinUserManager.getInstance(config);
+        Assert.assertEquals(1, afterCreateAdminManager2.list().size());
+    }
+
+    @Test
+    public void testGenerateRandomPassword() {
+        String password = AdminUserInitCLI.generateRandomPassword();
+        Assert.assertTrue(AdminUserInitCLI.PASSWORD_PATTERN.matcher(password).matches());
     }
 }

@@ -681,6 +681,8 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         map.put("getQueryHistoryBufferSize",
                 new PropertiesEntity("kylin.query.queryhistory.buffer-size", "1000", 1000));
 
+        map.put("getRandomAdminPasswordEnabled",
+                new PropertiesEntity("kylin.metadata.random-admin-password.enabled", "true", true));
     }
 
     @Before
@@ -700,7 +702,7 @@ public class KylinConfigBaseTest extends NLocalFileMetadataTestCase {
         // remove $jacoco method
         long methodsCount = Stream.of(configClass.getSuperclass().getDeclaredMethods())
                 .filter(method -> method.getName().matches("[a-zA-Z]([0-9a-zA-Z])*")).count();
-        Assert.assertEquals(296, methodsCount);
+        Assert.assertEquals(297, methodsCount);
     }
 
     @Test

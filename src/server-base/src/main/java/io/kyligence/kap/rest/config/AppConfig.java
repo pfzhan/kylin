@@ -132,7 +132,7 @@ public class AppConfig extends WebMvcConfigurerAdapter {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         FilterProvider filterProvider = new SimpleFilterProvider().addFilter("passwordFilter",
-                SimpleBeanPropertyFilter.serializeAllExcept("password", "defaultPassword"));
+                SimpleBeanPropertyFilter.serializeAllExcept("password"));
 
         return objectMapper.setFilterProvider(filterProvider);
     }

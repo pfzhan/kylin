@@ -98,9 +98,6 @@ public class CreateAdminUserUtils {
         log.info("All {} users", all.size());
         if (all.isEmpty() && env.acceptsProfiles(PROFILE_DEFAULT)) {
             createAdminUser(new ManagedUser("ADMIN", "KYLIN", true, ROLE_ADMIN, Constant.GROUP_ALL_USERS), userService, env);
-            createAdminUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS), userService, env);
-            createAdminUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS), userService, env);
         }
-
     }
 }

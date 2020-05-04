@@ -16,15 +16,19 @@ function help {
 function printAdminPasswordResetResult() {
     error=$1
 
-    if [[ $error == 0 ]]; then
-        echo -e "${YELLOW}Reset the ADMIN password successfully.${RESTORE}"
-    else
+    if [[ $error != 0 ]]; then
         echo -e "${YELLOW}Reset the ADMIN password failed, for more details please refer to \"\$KYLIN_HOME/logs/shell.stderr\".${RESTORE}"
     fi
 }
 
 ret=0
 if [[ "$1" == "admin-password-reset" ]]; then
+    read -p "You are resetting the password of [ADMIN], please enter [Y/N] to continue.: " input
+    if [[ ${input} != [Yy] ]]; then
+        echo "Reset password of [ADMIN] failed."
+        exit 1
+    fi
+
     ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.security.KapPasswordResetCLI
     ret=$?
     printAdminPasswordResetResult ${ret}
