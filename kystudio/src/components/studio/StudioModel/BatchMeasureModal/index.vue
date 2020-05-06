@@ -439,7 +439,7 @@ export default class BatchMeasureModal extends Vue {
           nums[d.expression.toLowerCase() + 'Num']++
         }
       }
-      if (measureSumAndTopNDataType.indexOf(returnValue[1]) === -1) {
+      if (measureSumAndTopNDataType.indexOf(returnValue[1].toLocaleLowerCase()) === -1) {
         col.SUM.isShouldDisable = true
       }
       if (col.isMeasureCol) {
