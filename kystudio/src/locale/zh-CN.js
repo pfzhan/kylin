@@ -191,6 +191,7 @@ exports.default = {
     sqlPartLimitTip: '当前默认仅展示部分 SQL 语句，请点击复制按钮获取完整的查询语句',
     overLengthTip: '不得超过50字符',
     dataDirectory: '数据源',
+    useOldPasswordTip: '您正在使用系统自动生成的密码登录，请修改密码。',
     searchDimensionName: '搜索维度名称',
     searchMeasureName: '搜索度量名称'
   },

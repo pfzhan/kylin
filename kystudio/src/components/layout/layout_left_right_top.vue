@@ -553,11 +553,18 @@ export default class LayoutLeftRightTop extends Vue {
   }
   created () {
     // this.reloadRouter()
+    let showChangePassword = false
     this.defaultActive = this.$route.path || '/dashboard'
+    if ('defaultPassword' in this.currentUser && this.currentUser.defaultPassword) {
+      showChangePassword = true
+      this.callUserEditModal({ editType: 'password', showCloseBtn: false, showCancelBtn: false, userDetail: this.$store.state.user.currentUser }).then(() => {
+        this.noProjectTips()
+      })
+    }
     // 获取许可证接口成功之后再弹无项目弹窗
     this.getAboutKap().then(() => {
       // 新手引导模式不用反复弹提示
-      if (!this.isGuideMode) {
+      if (!this.isGuideMode && !showChangePassword) {
         this.noProjectTips()
       }
     }).catch((res) => {

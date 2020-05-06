@@ -31,6 +31,12 @@ export default {
     },
     [types.RESET_CURRENT_USER]: function (state) {
       state.currentUser = null
+    },
+    // 首次修改密码之后，更新默认密码状态
+    [types.UPDATE_CURRENT_USER]: function (state) {
+      if (state.currentUser) {
+        state.currentUser = {...state.currentUser, defaultPassword: false}
+      }
     }
   },
   actions: {
@@ -54,7 +60,9 @@ export default {
       return api.user.editRole(user)
     },
     [types.RESET_PASSWORD]: function ({ commit }, user) {
-      return api.user.resetPassword(user)
+      return api.user.resetPassword(user).then(() => {
+        commit(types.UPDATE_CURRENT_USER)
+      })
     },
     [types.REMOVE_USER]: function ({ commit }, userName) {
       return api.user.removeUser(userName)

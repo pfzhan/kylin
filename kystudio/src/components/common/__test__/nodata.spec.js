@@ -1,6 +1,6 @@
 import { createLocalVue, shallow } from 'vue-test-utils'
 import VueI18n from 'vue-i18n'
-import noData from '../noData.vue'
+import noData from '../nodata.vue'
 import enLocale from 'kyligence-ui/lib/locale/lang/en'
 import zhLocale from 'kyligence-ui/lib/locale/lang/zh-CN'
 import enKylinLocale from '../../../locale/en'

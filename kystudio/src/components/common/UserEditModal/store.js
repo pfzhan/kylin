@@ -24,7 +24,9 @@ const initialState = JSON.stringify({
     analyst: true,
     confirmPassword: '',
     authorities: ['ALL_USERS']
-  }
+  },
+  showCloseBtn: true,
+  showCancelBtn: true
 })
 
 export default {
@@ -72,7 +74,7 @@ export default {
             break
           // 设置modal的数据
           default: {
-            payload[key] && (state[key] = payload[key])
+            key in payload && (state[key] = payload[key])
             break
           }
         }
@@ -80,9 +82,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, userDetail }) {
+    [types.CALL_MODAL] ({ commit }, { editType, userDetail, showCloseBtn = true, showCancelBtn = true }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { editType, userDetail, callback: resolve })
+        commit(types.SET_MODAL, { editType, userDetail, showCloseBtn, showCancelBtn, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

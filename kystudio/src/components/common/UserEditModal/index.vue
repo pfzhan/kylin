@@ -5,8 +5,9 @@
     limited-area
     :close-on-press-escape="false"
     :close-on-click-modal="false"
+    :show-close="showCloseBtn"
     @close="isShow && closeHandler(false)">
-
+    <p class="change-system-password-tip" v-if="currentUser && 'defaultPassword' in currentUser && currentUser.defaultPassword">{{$t('kylinLang.common.useOldPasswordTip')}}</p>
     <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow">
        <!-- 避免浏览器自动填充 -->
       <input name="username" type="text" style="display:none"/>
@@ -30,7 +31,7 @@
           </el-input>
       </el-form-item>
       <!-- 表单：旧密码（ 面向非管理员 -->
-      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="!isAdminRole && isFieldShow('confirmPassword')">
+      <el-form-item :label="$t('oldPassword')" prop="oldPassword" v-if="isFieldShow('oldPassword')">
         <el-input
           size="medium"
           type="password"
@@ -76,7 +77,7 @@
       </el-form-item>
     </el-form>
     <div slot="footer" class="dialog-footer ky-no-br-space">
-      <el-button plain size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
+      <el-button plain size="medium" v-if="showCancelBtn" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
       <el-button type="primary" size="medium" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
     </div>
   </el-dialog>
@@ -111,7 +112,12 @@ vuex.registerModule(['modals', 'UserEditModal'], store)
       isShow: state => state.isShow,
       editType: state => state.editType,
       callback: state => state.callback,
-      totalGroups: state => state.totalGroups
+      totalGroups: state => state.totalGroups,
+      showCloseBtn: state => state.showCloseBtn,
+      showCancelBtn: state => state.showCancelBtn
+    }),
+    ...mapState({
+      currentUser: state => state.user.currentUser
     })
   },
   methods: {
@@ -260,9 +266,15 @@ export default class UserEditModal extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../assets/styles/variables.less';
 .user-edit-modal {
   .el-transfer-panel {
     width: 250px;
+  }
+  .change-system-password-tip {
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: @text-title-color;
   }
 }
 </style>
