@@ -160,63 +160,6 @@ public class NTopNTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testPreferSumMeasure() throws Exception {
-        TopNCounter.EXTRA_SPACE_RATE = 1;
-
-        fullBuildCube("79547ec2-350e-4ba4-88f9-099048962ceb", getProject());
-        fullBuildCube("fb6ce800-43ee-4ef9-b100-39d523f36304", getProject());
-
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-
-        List<Pair<String, String>> query = new ArrayList<>();
-
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-
-        // let Sum measure answer TOP_N query, it is accurate.
-        dfMgr.updateDataflow("79547ec2-350e-4ba4-88f9-099048962ceb", copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
-        });
-
-        query.add(Pair.newPair("top_n_answer",
-                "select sum(PRICE) from TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
-        NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
-
-        // let TopN measure answer TOP_N query, it is inaccurate. So the compare will fail
-        dfMgr.updateDataflow("79547ec2-350e-4ba4-88f9-099048962ceb", copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.ONLINE);
-        });
-        dfMgr.updateDataflow("fb6ce800-43ee-4ef9-b100-39d523f36304", copyForWrite -> {
-            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
-        });
-
-        try {
-            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("result not match"));
-        }
-    }
-
-    @Test
-    public void testNonDefaultDatabase() throws Exception {
-        String dfName = "ab547ec2-350e-4ba4-88f9-099048962ceq";
-        TopNCounter.EXTRA_SPACE_RATE = 1;
-
-        fullBuildCube(dfName, getProject());
-        populateSSWithCSVData(getTestConfig(), getProject(), SparderEnv.getSparkSession());
-
-        List<Pair<String, String>> query = new ArrayList<>();
-        query.add(Pair.newPair("top_n_answer",
-                "select sum(PRICE) from ISSUES.TEST_TOP_N group by SELLER_ID order by sum(PRICE) desc limit 1"));
-        try {
-            NExecAndComp.execAndCompare(query, getProject(), CompareLevel.SAME, "left");
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e.getMessage().contains("result not match"));
-        }
-    }
-
-    @Test
     public void testSameTableNameInDifferentDatabase() throws Exception {
         TopNCounter.EXTRA_SPACE_RATE = 1;
 
