@@ -77,7 +77,8 @@ vuex.registerModule(['modals', 'ModelsExportModal'], store)
       getModelsMetadataStructure: actionTypes.GET_MODELS_METADATA_STRUCTURE
     }),
     ...mapActions({
-      downloadModelsMetadata: actionTypes.DOWNLOAD_MODELS_METADATA
+      downloadModelsMetadata: actionTypes.DOWNLOAD_MODELS_METADATA,
+      downloadModelsMetadataBlob: actionTypes.DOWNLOAD_MODELS_METADATA_BLOB
     })
   },
   locales
@@ -142,15 +143,58 @@ export default class ModelsExportModal extends Vue {
   async handleSubmit () {
     const { project, form } = this
     this.isSubmiting = true
-
+    if (this.$store.state.config.platform === 'iframe') {
+      this.downloadResouceData(project, form)
+    } else {
+      try {
+        await this.downloadModelsMetadata({ project, form })
+        this.handleClose(true)
+        this.$message.success(this.$t('exportSuccess'))
+      } catch (e) {
+        this.$message.error(this.$t('exportFailed'))
+      }
+      this.isSubmiting = false
+    }
+  }
+  downloadResouceData (project, form) {
+    const params = {}
+    for (const [key, value] of Object.entries(form)) {
+      if (value instanceof Array) {
+        value.forEach((item, index) => {
+          params[`${key}[${index}]`] = item
+        })
+      } else if (typeof value === 'object') {
+        params[key] = JSON.stringify(value)
+      } else {
+        params[key] = value
+      }
+    }
     try {
-      await this.downloadModelsMetadata({ project, form })
-      this.handleClose(true)
-      this.$message.success(this.$t('exportSuccess'))
+      this.downloadModelsMetadataBlob({project, params}).then(res => {
+        this.isSubmiting = false
+        this.handleClose(true)
+        let str = res && res.headers.map['content-disposition'][0]
+        let fileName = str.split('filename=')[1]
+        if (res && res.body) {
+          let data = res.body
+          const blob = new Blob([data], {type: 'application/json;charset=utf-8'})
+          if (window.navigator.msSaveOrOpenBlob) {
+            navigator.msSaveBlob(data, fileName)
+          } else {
+            let link = document.createElement('a')
+            link.href = window.URL.createObjectURL(blob)
+            link.download = fileName
+            link.click()
+            window.URL.revokeObjectURL(link.href)
+          }
+        }
+        this.$message.success(this.$t('exportSuccess'))
+      })
     } catch (e) {
+      this.isSubmiting = false
+      this.handleClose(true)
       this.$message.error(this.$t('exportFailed'))
     }
-    this.isSubmiting = false
   }
 
   renderNodeIcon (h, { node, data }) {

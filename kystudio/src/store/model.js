@@ -326,6 +326,9 @@ export default {
     async [types.DOWNLOAD_MODELS_METADATA] ({ commit }, payload) {
       await api.model.downloadModelsMetadata(payload)
     },
+    async [types.DOWNLOAD_MODELS_METADATA_BLOB] ({ commit }, payload) {
+      return api.model.downloadModelsMetadataBlob(payload)
+    },
     [types.GET_AVAILABLE_MODEL_OWNERS] ({ commit }, params) {
       return api.model.getAvailableModelOwners(params)
     },

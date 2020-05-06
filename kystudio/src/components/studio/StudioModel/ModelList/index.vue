@@ -482,6 +482,7 @@ import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
       autoFixSegmentHoles: 'AUTO_FIX_SEGMENT_HOLES',
       fetchSegments: 'FETCH_SEGMENTS',
       downloadModelsMetadata: 'DOWNLOAD_MODELS_METADATA',
+      downloadModelsMetadataBlob: 'DOWNLOAD_MODELS_METADATA_BLOB',
       getAvailableModelOwners: 'GET_AVAILABLE_MODEL_OWNERS',
       updateModelOwner: 'UPDATE_MODEL_OWNER'
     }),
@@ -850,12 +851,52 @@ export default class ModelList extends Vue {
     } else if (command === 'exportMetadata') {
       const project = this.currentSelectedProject
       const form = { ids: [modelDesc.uuid] }
-      try {
-        await this.downloadModelsMetadata({ project, form })
-        this.$message.success(this.$t('exportMetadataSuccess'))
-      } catch (e) {
-        this.$message.error(this.$t('exportMetadataFailed'))
+      if (this.$store.state.config.platform === 'iframe') {
+        this.downloadResouceData(project, form)
+      } else {
+        try {
+          await this.downloadModelsMetadata({ project, form })
+          this.$message.success(this.$t('exportMetadataSuccess'))
+        } catch (e) {
+          this.$message.error(this.$t('exportMetadataFailed'))
+        }
       }
+    }
+  }
+  downloadResouceData (project, form) {
+    const params = {}
+    for (const [key, value] of Object.entries(form)) {
+      if (value instanceof Array) {
+        value.forEach((item, index) => {
+          params[`${key}[${index}]`] = item
+        })
+      } else if (typeof value === 'object') {
+        params[key] = JSON.stringify(value)
+      } else {
+        params[key] = value
+      }
+    }
+    try {
+      this.downloadModelsMetadataBlob({project, params}).then(res => {
+        let str = res && res.headers.map['content-disposition'][0]
+        let fileName = str.split('filename=')[1]
+        if (res && res.body) {
+          let data = res.body
+          const blob = new Blob([data], {type: 'application/json;charset=utf-8'})
+          if (window.navigator.msSaveOrOpenBlob) {
+            navigator.msSaveBlob(data, fileName)
+          } else {
+            let link = document.createElement('a')
+            link.href = window.URL.createObjectURL(blob)
+            link.download = fileName
+            link.click()
+            window.URL.revokeObjectURL(link.href)
+          }
+        }
+        this.$message.success(this.$t('exportMetadataSuccess'))
+      })
+    } catch (e) {
+      this.$message.error(this.$t('exportMetadataFailed'))
     }
   }
   handleSaveModel (modelDesc) {

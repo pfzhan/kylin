@@ -270,5 +270,11 @@ export default {
   },
   updateModelOwner (para) {
     return Vue.resource(apiUrl + `models/${para.model}/owner`).update({project: para.project, owner: para.owner})
+  },
+  downloadModelsMetadataBlob (para) {
+    const body = para.params
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const responseType = 'blob' || 'arraybuffer'
+    return window.kapVm.$http.post(`/kylin/api/metastore/backup/models?project=${para.project}`, body, { emulateJSON: true }, { headers }, { responseType })
   }
 }
