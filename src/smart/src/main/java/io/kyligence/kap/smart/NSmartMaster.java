@@ -24,39 +24,26 @@
 
 package io.kyligence.kap.smart;
 
-import static io.kyligence.kap.metadata.favorite.FavoriteQuery.CHANNEL_FROM_IMPORTED;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import org.apache.calcite.sql.parser.impl.ParseException;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.recommendation.LayoutRecommendationItem;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import io.kyligence.kap.metadata.project.EnhancedUnitOfWork;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -64,45 +51,24 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NSmartMaster {
 
-    private static final String MODEL_ALIAS_PREFIX = "AUTO_MODEL_";
-
-    private NSmartContext context;
+    private AbstractContext context;
     private NProposerProvider proposerProvider;
     private String project;
 
-    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
-        this.project = project;
-        this.context = new NSmartContext(kylinConfig, project, sqls);
+    public NSmartMaster(AbstractContext proposeContext) {
+        this.context = proposeContext;
+        this.project = proposeContext.getProject();
         this.proposerProvider = NProposerProvider.create(context);
     }
 
-    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
-        this.project = project;
-        this.context = new NSmartContext(kylinConfig, project, sqls, draftVersion);
-        this.proposerProvider = NProposerProvider.create(context);
-    }
-
-    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, boolean reuseExistedModel) {
-        this.project = project;
-        this.context = new NSmartContext(kylinConfig, project, sqls, reuseExistedModel, false);
-        this.proposerProvider = NProposerProvider.create(context);
-    }
-
-    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, boolean reuseExistedModel,
-            boolean couldCreateNewModel) {
-        this.project = project;
-        this.context = new NSmartContext(kylinConfig, project, sqls, reuseExistedModel, couldCreateNewModel);
-        this.proposerProvider = NProposerProvider.create(context);
-    }
-
-    public NSmartContext getContext() {
+    public AbstractContext getContext() {
         return context;
     }
 
     public void analyzeSQLs() {
         long start = System.currentTimeMillis();
         log.info("Start sql analysis.");
-        proposerProvider.getSQLAnalysisProposer().propose();
+        proposerProvider.getSQLAnalysisProposer().execute();
         val nums = getAccelerationNumMap();
         log.info("SQL analysis completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                 System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
@@ -112,7 +78,7 @@ public class NSmartMaster {
     public void selectModel() {
         long start = System.currentTimeMillis();
         log.info("Start model selection.");
-        proposerProvider.getModelSelectProposer().propose();
+        proposerProvider.getModelSelectProposer().execute();
         val nums = getAccelerationNumMap();
         log.info("Model selection completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                 System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
@@ -122,7 +88,7 @@ public class NSmartMaster {
     public void optimizeModel() {
         long start = System.currentTimeMillis();
         log.info("Start model optimization.");
-        proposerProvider.getModelOptProposer().propose();
+        proposerProvider.getModelOptProposer().execute();
         val nums = getAccelerationNumMap();
         log.info("Model optimization completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                 System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
@@ -131,8 +97,8 @@ public class NSmartMaster {
 
     private void adjustModelInfoByPrjMode() {
         long start = System.currentTimeMillis();
-        log.info("Start adjust model atrribute.");
-        proposerProvider.getAutoOrSemiModeInfoAdjustProposer().propose();
+        log.info("Start adjust model attribute.");
+        proposerProvider.getModelInfoAdjustProposer().execute();
         val nums = getAccelerationNumMap();
         log.info("Model adjust completed, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                 System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
@@ -142,7 +108,7 @@ public class NSmartMaster {
     public void selectIndexPlan() {
         long start = System.currentTimeMillis();
         log.info("Start indexPlan selection.");
-        proposerProvider.getIndexPlanSelectProposer().propose();
+        proposerProvider.getIndexPlanSelectProposer().execute();
         val nums = getAccelerationNumMap();
         log.info("IndexPlan selection completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                 System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
@@ -152,7 +118,7 @@ public class NSmartMaster {
     public void optimizeIndexPlan() {
         long start = System.currentTimeMillis();
         log.info("Start indexPlan optimization.");
-        proposerProvider.getIndexPlanOptProposer().propose();
+        proposerProvider.getIndexPlanOptProposer().execute();
         val nums = getAccelerationNumMap();
         log.info("IndexPlan optimization completed successfully, takes {}ms. SUCCESS {}, PENDING {}, FAILED {}.",
                 System.currentTimeMillis() - start, nums.get(AccStatusType.SUCCESS), nums.get(AccStatusType.PENDING),
@@ -160,71 +126,37 @@ public class NSmartMaster {
     }
 
     public void shrinkIndexPlan() {
-        proposerProvider.getIndexPlanShrinkProposer().propose();
+        proposerProvider.getIndexPlanShrinkProposer().execute();
     }
 
     public void shrinkModel() {
-        proposerProvider.getModelShrinkProposer().propose();
+        proposerProvider.getModelShrinkProposer().execute();
     }
 
     public void renameModel() {
         long start = System.currentTimeMillis();
         log.info("Start renaming alias of all proposed model.");
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        Set<String> usedNames = dataModelManager.listAllModelAlias();
-        List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
-        for (NSmartContext.NModelContext modelCtx : modelContexts) {
-            if (modelCtx.withoutTargetModel()) {
-                continue;
-            }
-
-            NDataModel targetModel = modelCtx.getTargetModel();
-            String alias = modelCtx.getOriginModel() == null //
-                    ? proposeModelAlias(targetModel, usedNames) //
-                    : modelCtx.getOriginModel().getAlias();
-            targetModel.setAlias(alias);
-        }
+        proposerProvider.getModelRenameProposer().execute();
         log.info("Model renaming completed successfully, takes {}ms", System.currentTimeMillis() - start);
     }
 
-    public void selectExistedModel() {
-        analyzeSQLs();
-        selectModel();
+    /**
+     * This method will invoke when there is no need transaction.
+     */
+    public void executePropose() {
+        getContext().getChainedProposer().execute();
     }
 
-    public void selectAndOptimize() {
-        analyzeSQLs();
-        selectModel();
-        optimizeModel();
-        adjustModelInfoByPrjMode();
-        renameModel();
-        selectIndexPlan();
-        optimizeIndexPlan();
-        shrinkIndexPlan();
-    }
+    public void runSuggestModel() {
+        executePropose();
 
-    public Map<NDataModel, OptimizeRecommendation> selectAndGenRecommendation() {
-        selectAndOptimize();
-        val recommendationMap = genOptRecommendations();
-        return recommendationMap.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getFirst()));
-    }
-
-    private void createNewModelAndIndex() {
-        analyzeSQLs();
-        optimizeModel();
-        adjustModelInfoByPrjMode();
-        renameModel();
-        selectIndexPlan();
-        optimizeIndexPlan();
-        shrinkIndexPlan();
-    }
-
-    public Map<NDataModel, OptimizeRecommendation> recommendNewModelAndIndex() {
-        Preconditions.checkArgument(!this.context.isReuseExistedModel(),
-                "If need to create new model, the flag ReuseExistedModel MUST be FALSE !");
-        createNewModelAndIndex();
-        return Maps.newHashMap();
+        if (getContext() instanceof ModelReuseContextOfSemiMode) {
+            val recommendationMap = ((ModelReuseContextOfSemiMode) getContext()).genOptRecommendations();
+            recommendationMap.forEach((model, recommendationPair) -> {
+                AbstractSemiAutoContext semiContext = (AbstractSemiAutoContext) getContext();
+                semiContext.getRecommendationMap().putIfAbsent(model, recommendationPair.getFirst());
+            });
+        }
     }
 
     public List<NDataModel> getRecommendedModels() {
@@ -233,7 +165,7 @@ public class NSmartMaster {
         }
 
         List<NDataModel> models = Lists.newArrayList();
-        for (NSmartContext.NModelContext modelContext : getContext().getModelContexts()) {
+        for (AbstractContext.NModelContext modelContext : getContext().getModelContexts()) {
             NDataModel model = modelContext.getTargetModel();
             if (model == null)
                 continue;
@@ -244,40 +176,21 @@ public class NSmartMaster {
         return models;
     }
 
-    private void save() {
-        saveModel();
-        saveIndexPlan();
+    /**
+     * This method now only used for testing.
+     */
+    public void runWithContext() {
+        runWithContext(null);
     }
 
-    // this method now only used for testing
-    public void runAll() {
-        runAllAndForContext(null);
-    }
-
-    @VisibleForTesting
-    public void saveModelOnlyForTest() {
-        EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
-            @Override
-            public Object process() {
-                save();
-                return null;
-            }
-        }, project);
-    }
-
-    public void runOptRecommendation() {
-        runOptRecommendation(null);
-    }
-
-    // optimize recommendation
-    public void runOptRecommendation(Consumer<NSmartContext> hook) {
+    public void runWithContext(Consumer<AbstractContext> hook) {
         long start = System.currentTimeMillis();
         try {
             EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
                 @Override
                 public Object process() {
-                    selectAndOptimize();
-                    genOptRecommendations();
+                    executePropose();
+                    getContext().saveMetadata();
                     if (hook != null) {
                         hook.accept(getContext());
                     }
@@ -290,32 +203,7 @@ public class NSmartMaster {
                 }
             }, project);
         } finally {
-            log.info("The whole process of auto-recommendation takes {}ms", System.currentTimeMillis() - start);
-            saveAccelerationInfoInTransaction();
-        }
-    }
-
-    public void runAllAndForContext(Consumer<NSmartContext> hook) {
-        long start = System.currentTimeMillis();
-        try {
-            EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(new UnitOfWork.Callback<Object>() {
-                @Override
-                public Object process() {
-                    selectAndOptimize();
-                    save();
-                    if (hook != null) {
-                        hook.accept(getContext());
-                    }
-                    return null;
-                }
-
-                @Override
-                public void onProcessError(Throwable throwable) {
-                    recordError(throwable);
-                }
-            }, project);
-        } finally {
-            log.info("The whole process of auto-modeling takes {}ms", System.currentTimeMillis() - start);
+            log.info("The whole process of {} takes {}ms", context.getIdentifier(), System.currentTimeMillis() - start);
             saveAccelerationInfoInTransaction();
         }
     }
@@ -339,27 +227,6 @@ public class NSmartMaster {
         });
     }
 
-    void saveIndexPlan() {
-        log.info("Start saving optimized indexPlan to metadata.");
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                context.getProject());
-        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                context.getProject());
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelCtx.noNeedToSave()) {
-                continue;
-            }
-            IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
-            if (indexPlanManager.getIndexPlan(indexPlan.getUuid()) == null) {
-                indexPlanManager.createIndexPlan(indexPlan);
-                dataflowManager.createDataflow(indexPlan, indexPlan.getModel().getOwner());
-            } else {
-                indexPlanManager.updateIndexPlan(indexPlan);
-            }
-        }
-        log.info("Saving optimized indexPlan to metadata completed successfully.");
-    }
-
     void saveAccelerateInfo() {
         val favoriteQueryMgr = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         val accelerateInfoMap = context.getAccelerateInfoMap();
@@ -377,98 +244,6 @@ public class NSmartMaster {
             }
             favoriteQueryMgr.resetRealizations(sqlPattern, favoriteQueryRealizations);
         });
-    }
-
-    // it must be wrapped by a transaction for OptManager.getOrCrate will write metadata !!!
-    private Map<NDataModel, Pair<OptimizeRecommendation, Long>> genOptRecommendations() {
-        log.info("Semi-Auto-Mode project:{} start to generate optimized recommendations.", project);
-
-        return EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            Map<NDataModel, Pair<OptimizeRecommendation, Long>> recommendationMap = Maps.newHashMap();
-            OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), project);
-            for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-                if (modelCtx.withoutTargetModel() || modelCtx.withoutAnyIndexes()) {
-                    log.info(
-                            "Semi-Auto-Mode project:{} skip model optimize, withoutTargetModel: {}, withoutAnyIndexes: {}",
-                            project, modelCtx.withoutTargetModel(), modelCtx.withoutAnyIndexes());
-                    continue;
-                }
-
-                NDataModel model = modelCtx.getTargetModel();
-                IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
-                if (modelCtx.getOriginModel() != null) {
-                    long beforeLayoutItemId = 0;
-                    OptimizeRecommendation before = optRecMgr.getOptimizeRecommendation(model.getId());
-                    if (before != null) {
-                        beforeLayoutItemId = before.getNextLayoutRecommendationItemId();
-                    }
-                    OptimizeRecommendation recommendations = optRecMgr.optimize(model, indexPlan);
-                    optRecMgr.logOptimizeRecommendation(model.getId(), recommendations);
-                    recommendationMap.putIfAbsent(model, new Pair<>(recommendations, beforeLayoutItemId));
-                    saveRecommendation(model, recommendationMap.get(model));
-                }
-                log.info("Semi-Auto-Mode project:{} successfully generate optimized recommendations.", project);
-            }
-            return recommendationMap;
-        }, project);
-    }
-
-    private void saveRecommendation(NDataModel model, Pair<OptimizeRecommendation, Long> pair) {
-        log.info("Semi-Auto-Mode project:{} optimized recommendations are successfully saved to metadata.", project);
-        OptimizeRecommendationManager optRecMgr = OptimizeRecommendationManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
-        try {
-            long layoutItemId = pair.getSecond();
-            boolean isQueryHistory = getContext().getAccelerateInfoMap().entrySet().stream().noneMatch(entry -> {
-                String sql = entry.getKey();
-                FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager
-                        .getInstance(getContext().getKylinConfig(), project);
-                return favoriteQueryManager.get(sql) == null
-                        || favoriteQueryManager.get(sql).getChannel().equals(CHANNEL_FROM_IMPORTED);
-            });
-            optRecMgr.updateOptimizeRecommendation(model.getId(), recommendation -> {
-                recommendation.getLayoutRecommendations().stream().filter(item -> item.getItemId() >= layoutItemId)
-                        .forEach(item -> item.setSource(isQueryHistory ? LayoutRecommendationItem.QUERY_HISTORY
-                                : LayoutRecommendationItem.IMPORTED));
-            });
-            optRecMgr.logOptimizeRecommendation(model.getId(), pair.getFirst());
-        } catch (Exception e) {
-            log.error("Semi-Auto-Mode project:{} model({}) failed to generate recommendations", project,
-                    model.getUuid(), e);
-        }
-    }
-
-    public void saveModel() {
-        log.info("Start saving optimized model to metadata.");
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelCtx.noNeedToSave()) {
-                continue;
-            }
-            NDataModel model = modelCtx.getTargetModel();
-            if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
-                dataModelManager.updateDataModelDesc(model);
-            } else {
-                dataModelManager.createDataModelDesc(model, model.getOwner());
-            }
-        }
-        log.info("Saving optimized model to metadata completed successfully.");
-    }
-
-    private String proposeModelAlias(NDataModel model, Set<String> usedNames) {
-        String rootTableAlias = model.getRootFactTable().getAlias();
-        int suffix = 0;
-        String targetName;
-        do {
-            if (suffix++ < 0) {
-                throw new IllegalStateException("Potential infinite loop in getModelName().");
-            }
-            targetName = MODEL_ALIAS_PREFIX + rootTableAlias + "_" + suffix;
-        } while (usedNames.contains(targetName));
-        log.info("The alias of the model({}) was rename to {}.", model.getId(), targetName);
-        usedNames.add(targetName);
-        return targetName;
     }
 
     private Map<AccStatusType, Integer> getAccelerationNumMap() {

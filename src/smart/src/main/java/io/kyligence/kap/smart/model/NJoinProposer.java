@@ -35,18 +35,18 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
 import lombok.val;
 
 public class NJoinProposer extends NAbstractModelProposer {
 
-    public NJoinProposer(NSmartContext.NModelContext modelContext) {
+    public NJoinProposer(AbstractContext.NModelContext modelContext) {
         super(modelContext);
     }
 
     @Override
-    public void doPropose(NDataModel modelDesc) {
+    public void execute(NDataModel modelDesc) {
 
         ModelTree modelTree = modelContext.getModelTree();
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
@@ -87,7 +87,7 @@ public class NJoinProposer extends NAbstractModelProposer {
                 GreedyModelTreesBuilder.TreeBuilder.mergeContext(ctx, tmpJoinTablesMap, tableAliasMap, aliasRefMap);
                 joinTables.putAll(tmpJoinTablesMap);
             } catch (Exception e) {
-                val accelerateInfoMap = modelContext.getSmartContext().getAccelerateInfoMap();
+                val accelerateInfoMap = modelContext.getProposeContext().getAccelerateInfoMap();
                 accelerateInfoMap.get(ctx.sql).setFailedCause(e);
             }
         }

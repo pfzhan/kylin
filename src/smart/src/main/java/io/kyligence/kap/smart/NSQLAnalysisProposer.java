@@ -33,10 +33,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
@@ -45,37 +43,41 @@ import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.advisor.ISqlAdvisor;
 import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-class NSQLAnalysisProposer extends NAbstractProposer {
+@Slf4j
+public class NSQLAnalysisProposer extends NAbstractProposer {
 
     private static final int DEFAULT_THREAD_NUM = 1;
 
     private final String[] sqls;
 
-    NSQLAnalysisProposer(NSmartContext smartContext) {
-        super(smartContext);
-
-        this.sqls = smartContext.getSqls();
+    public NSQLAnalysisProposer(AbstractContext proposeContext) {
+        super(proposeContext);
+        this.sqls = proposeContext.getSqlArray();
     }
 
     @Override
-    void propose() {
+    public void execute() {
         initAccelerationInfo(sqls);
-        List<NDataModel> models = smartContext.isReuseExistedModel() ? getOriginModels() : Lists.newArrayList();
+        List<NDataModel> models = proposeContext.getOriginModels();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
                 models, getDefaultThreadNum())) {
             extractor.execute();
             logFailedQuery(extractor);
 
             //TODO refactor this logic to somewhere like initialOrMergeModel
-            final List<NModelContext> modelContexts = new GreedyModelTreesBuilder(kylinConfig, project, smartContext)
-                    .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null).stream()
-                    .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()).map(smartContext::createModelContext)
+            val modelContexts = new GreedyModelTreesBuilder(kylinConfig, project, proposeContext) //
+                    .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null) //
+                    .stream() //
+                    .filter(modelTree -> !modelTree.getOlapContexts().isEmpty()) //
+                    .map(proposeContext::createModelContext) //
                     .collect(Collectors.toList());
 
-            smartContext.setModelContexts(modelContexts);
+            proposeContext.setModelContexts(modelContexts);
         } catch (Exception e) {
-            logger.error("Failed to get query stats. ", e);
+            log.error("Failed to get query stats. ", e);
         }
     }
 
@@ -85,8 +87,8 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     private void initAccelerationInfo(String[] sqls) {
         Arrays.stream(sqls).forEach(sql -> {
             AccelerateInfo accelerateInfo = new AccelerateInfo();
-            if (!smartContext.getAccelerateInfoMap().containsKey(sql)) {
-                smartContext.getAccelerateInfoMap().put(sql, accelerateInfo);
+            if (!proposeContext.getAccelerateInfoMap().containsKey(sql)) {
+                proposeContext.getAccelerateInfoMap().put(sql, accelerateInfo);
             }
         });
     }
@@ -97,7 +99,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
 
         queryResultMap.forEach((index, sqlResult) -> {
             if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
-                AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(sqls[index]);
+                AccelerateInfo accelerateInfo = proposeContext.getAccelerateInfoMap().get(sqls[index]);
                 Preconditions.checkNotNull(accelerateInfo);
                 Throwable throwable = sqlResult.getException();
                 if (!(throwable instanceof NoRealizationFoundException
@@ -113,10 +115,15 @@ class NSQLAnalysisProposer extends NAbstractProposer {
         });
     }
 
+    @Override
+    public String getIdentifierName() {
+        return "SQLAnalysisProposer";
+    }
+
     public static int getDefaultThreadNum() {
         if (KylinConfig.getInstanceFromEnv().isUTEnv()) {
             return 6;
         }
-        return DEFAULT_THREAD_NUM;
+        return NSQLAnalysisProposer.DEFAULT_THREAD_NUM;
     }
 }

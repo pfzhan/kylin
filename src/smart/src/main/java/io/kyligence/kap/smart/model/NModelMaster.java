@@ -35,6 +35,7 @@ import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
@@ -44,8 +45,10 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.ComputedColumnRewriter;
 import io.kyligence.kap.query.util.QueryAliasMatchInfo;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.NModelOptProposer;
 import io.kyligence.kap.smart.NModelSelectProposer;
-import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -54,19 +57,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NModelMaster {
 
-    private final NSmartContext.NModelContext modelContext;
+    private final AbstractContext.NModelContext modelContext;
     private final NProposerProvider proposerProvider;
     private final KylinConfig kylinConfig;
     private final String project;
 
-    public NModelMaster(NSmartContext.NModelContext modelContext) {
+    public NModelMaster(AbstractContext.NModelContext modelContext) {
         this.modelContext = modelContext;
         this.proposerProvider = NProposerProvider.create(modelContext);
-        this.kylinConfig = modelContext.getSmartContext().getKylinConfig();
-        this.project = modelContext.getSmartContext().getProject();
+        this.kylinConfig = modelContext.getProposeContext().getKylinConfig();
+        this.project = modelContext.getProposeContext().getProject();
     }
 
-    public NDataModel proposeInitialModel() {
+    NDataModel proposeInitialModel() {
         NDataModel dataModel = new NDataModel();
         dataModel.setRootFactTableName(modelContext.getModelTree().getRootFactTable().getIdentity());
         dataModel.setDescription(StringUtils.EMPTY);
@@ -77,11 +80,20 @@ public class NModelMaster {
         FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(dataModel);
         NDataModel.Measure countStarMeasure = CubeUtils.newMeasure(countStar, "COUNT_ALL", NDataModel.MEASURE_ID_BASE);
         dataModel.setAllMeasures(Lists.newArrayList(countStarMeasure));
+        log.info("Initialized a new model({}) for no compatible one to use.", dataModel.getId());
         return dataModel;
     }
 
     public NDataModel proposeJoins(NDataModel dataModel) {
+        if (modelContext.getProposeContext() instanceof ModelReuseContextOfSemiMode) {
+            Preconditions.checkState(dataModel != null, NModelOptProposer.NO_COMPATIBLE_MODEL_MSG);
+            return dataModel;
+        }
+
         log.info("Start proposing join relations.");
+        if (dataModel == null) {
+            dataModel = proposeInitialModel();
+        }
         dataModel = proposerProvider.getJoinProposer().propose(dataModel);
         log.info("Proposing join relations completed successfully.");
         return dataModel;
@@ -127,7 +139,7 @@ public class NModelMaster {
     }
 
     public NDataModel shrinkComputedColumn(NDataModel dataModel) {
-      return  proposerProvider.getShrinkComputedColumnProposer().propose(dataModel);
+        return proposerProvider.getShrinkComputedColumnProposer().propose(dataModel);
     }
 
     private void updateContextWithCC(NDataModel dataModel) {
@@ -149,7 +161,7 @@ public class NModelMaster {
             log.info("Start to rebuild modelTrees after replace cc expression with cc name.");
             extractor.execute();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project,
-                    modelContext.getSmartContext()) //
+                    modelContext.getProposeContext()) //
                             .build(originQueryList, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())

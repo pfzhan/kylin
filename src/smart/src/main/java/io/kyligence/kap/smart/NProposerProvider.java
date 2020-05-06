@@ -25,49 +25,53 @@
 package io.kyligence.kap.smart;
 
 public class NProposerProvider {
-    private NSmartContext smartContext;
+    private AbstractContext proposeContext;
 
-    private NProposerProvider(NSmartContext smartContext) {
-        this.smartContext = smartContext;
+    private NProposerProvider(AbstractContext smartContext) {
+        this.proposeContext = smartContext;
     }
 
-    public static NProposerProvider create(NSmartContext smartContext) {
+    public static NProposerProvider create(AbstractContext smartContext) {
         return new NProposerProvider(smartContext);
     }
 
     public NAbstractProposer getSQLAnalysisProposer() {
-        return new NSQLAnalysisProposer(smartContext);
+        return new NSQLAnalysisProposer(proposeContext);
     }
 
     public NAbstractProposer getModelSelectProposer() {
-        return new NModelSelectProposer(smartContext);
+        return new NModelSelectProposer(proposeContext);
     }
 
     public NAbstractProposer getModelOptProposer() {
-        return new NModelOptProposer(smartContext);
+        return new NModelOptProposer(proposeContext);
     }
 
-    public NAbstractProposer getAutoOrSemiModeInfoAdjustProposer() {
-        return new NAutoOrSemiModelInfoAdjustProposer(smartContext);
+    public NAbstractProposer getModelInfoAdjustProposer() {
+        return new NModelInfoAdjustProposer(proposeContext);
     }
 
     public NAbstractProposer getIndexPlanSelectProposer() {
-        return new NIndexPlanSelectProposer(smartContext);
+        return new NIndexPlanSelectProposer(proposeContext);
     }
 
     public NAbstractProposer getIndexPlanOptProposer() {
-        return new NIndexPlanOptProposer(smartContext);
+        return new NIndexPlanOptProposer(proposeContext);
     }
 
     public NAbstractProposer getIndexPlanShrinkProposer() {
-        return new NIndexPlanShrinkProposer(smartContext);
+        return new NIndexPlanShrinkProposer(proposeContext);
     }
 
     public NAbstractProposer getModelShrinkProposer() {
-        return new NModelShrinkProposer(smartContext);
+        return new NModelShrinkProposer(proposeContext);
     }
 
     public NAbstractProposer getIndexPlanRefreshProposer() {
-        return new NIndexPlanRefreshProposer(smartContext);
+        return new NIndexPlanRefreshProposer(proposeContext);
+    }
+
+    public NAbstractProposer getModelRenameProposer() {
+        return new NModelRenameProposer(proposeContext);
     }
 }

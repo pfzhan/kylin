@@ -25,30 +25,35 @@
 package io.kyligence.kap.smart;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.smart.cube.NCubeMaster;
+import io.kyligence.kap.smart.index.NIndexMaster;
 
 class NIndexPlanRefreshProposer extends NAbstractProposer {
 
-    NIndexPlanRefreshProposer(NSmartContext smartContext) {
-        super(smartContext);
+    NIndexPlanRefreshProposer(AbstractContext proposeContext) {
+        super(proposeContext);
     }
 
     @Override
-    void propose() {
-        if (smartContext.getModelContexts() == null) {
+    public void execute() {
+        if (proposeContext.getModelContexts() == null) {
             return;
         }
 
-        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelCtx : proposeContext.getModelContexts()) {
             if (modelCtx.getOriginModel() == null || modelCtx.getOriginIndexPlan() == null
                     || modelCtx.getTargetIndexPlan() == null) {
                 continue;
             }
 
-            NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
+            NIndexMaster indexMaster = new NIndexMaster(modelCtx);
             IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
-            indexPlan = cubeMaster.refreshCuboids(indexPlan);
+            indexPlan = indexMaster.refreshCuboids(indexPlan);
             modelCtx.setTargetIndexPlan(indexPlan);
         }
+    }
+
+    @Override
+    public String getIdentifierName() {
+        return "IndexPlanRefreshProposer";
     }
 }

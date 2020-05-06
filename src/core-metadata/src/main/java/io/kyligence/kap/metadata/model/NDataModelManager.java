@@ -305,6 +305,13 @@ public class NDataModelManager {
         return crud.copyForWrite(nDataModel);
     }
 
+    /**
+     * copyBySerialization will not use cache
+     */
+    public NDataModel copyBySerialization(NDataModel dataModel) {
+        return crud.copyBySerialization(dataModel);
+    }
+
     public String getModelDisplayName(String modelId) {
         NDataModel dataModelDesc = getDataModelDesc(modelId);
         return dataModelDesc == null ? "NotFoundModel(" + modelId + ")" : dataModelDesc.toString();

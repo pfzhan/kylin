@@ -22,31 +22,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
-import io.kyligence.kap.smart.NSmartContext;
+import java.util.Map;
 
-public class NProposerProvider {
+import com.google.common.collect.Lists;
 
-    private NProposerProvider(NSmartContext.NModelContext context) {
-        this.context = context;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.smart.AbstractContext;
+
+class NIndexProposer extends NAbstractIndexProposer {
+
+    NIndexProposer(AbstractContext.NModelContext context) {
+        super(context);
     }
 
-    private NSmartContext.NModelContext context;
+    @Override
+    public IndexPlan execute(IndexPlan indexPlan) {
 
-    public static NProposerProvider create(NSmartContext.NModelContext context) {
-        return new NProposerProvider(context);
-    }
+        Map<IndexEntity.IndexIdentifier, IndexEntity> indexEntityMap = indexPlan.getAllIndexesMap();
 
-    NAbstractCubeProposer getCuboidProposer() {
-        return new NCuboidProposer(context);
-    }
+        IndexSuggester suggester = new IndexSuggester(context, indexPlan, indexEntityMap);
+        suggester.suggestIndexes(context.getModelTree());
 
-    NAbstractCubeProposer getCuboidReducer() {
-        return new NCuboidReducer(context);
-    }
+        indexPlan.setIndexes(Lists.newArrayList(indexEntityMap.values()));
 
-    NAbstractCubeProposer getCuboidRefresher() {
-        return new NCuboidRefresher(context);
+        return indexPlan;
     }
 }

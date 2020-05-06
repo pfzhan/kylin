@@ -53,64 +53,57 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.ModelTree;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NModelSelectProposer extends NAbstractProposer {
 
     public static final String NO_MODEL_MATCH_PENDING_MSG = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
     public static final String CC_ACROSS_MODELS_PENDING_MSG = "No model matches the SQL. Please add a model that contains all the computed columns used in the query.";
     private final NDataModelManager dataModelManager;
 
-    NModelSelectProposer(NSmartContext smartContext) {
-        super(smartContext);
+    public NModelSelectProposer(AbstractContext proposeContext) {
+        super(proposeContext);
         dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
     @Override
-    void propose() {
-        List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+    public void execute() {
+        List<AbstractContext.NModelContext> modelContexts = proposeContext.getModelContexts();
         if (CollectionUtils.isEmpty(modelContexts)) {
-            logger.warn("Something wrong happened in the preceding step of sql analysis. "
+            log.warn("Something wrong happened in the preceding step of sql analysis. "
                     + "Cannot continue auto-modeling without modelTrees.");
             return;
         }
 
         Set<String> selectedModel = Sets.newHashSet();
-        for (NSmartContext.NModelContext modelContext : modelContexts) {
+        for (AbstractContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
             NDataModel model = selectExistedModel(modelTree, modelContext);
             if (model == null || (selectedModel.contains(model.getUuid()) && !modelContext.isSnapshotSelected())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
                 if (model != null) {
-                    logger.info("An existing model({}) compatible to more than one modelTree, "
+                    log.info("An existing model({}) compatible to more than one modelTree, "
                             + "in order to avoid modification conflict, ignore this match.", model.getId());
                 }
                 continue;
             }
             // found matched, then use it
             modelContext.setOriginModel(model);
-            NDataModel targetModel = dataModelManager.copyForWrite(model);
+            NDataModel targetModel = dataModelManager.copyBySerialization(model);
             initModel(targetModel);
             targetModel.getComputedColumnDescs().forEach(cc -> {
                 modelContext.getUsedCC().put(cc.getExpression(), cc);
             });
             modelContext.setTargetModel(targetModel);
 
-            if (!modelContext.isSnapshotSelected())
+            if (!modelContext.isSnapshotSelected()) {
                 selectedModel.add(model.getUuid());
+            }
         }
 
-        //if cannot create new model, record pending message
-        if (!smartContext.isCouldCreateNewModel()) {
-            smartContext.getModelContexts().forEach(modelCtx -> {
-                if (modelCtx.withoutTargetModel()) {
-                    modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
-                        AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(olapContext.sql);
-                        accelerateInfo.setPendingMsg(NO_MODEL_MATCH_PENDING_MSG);
-                    });
-                }
-            });
-        }
+        proposeContext.handleExceptionAfterModelSelect();
     }
 
     private void initModel(NDataModel modelDesc) {
@@ -118,10 +111,10 @@ public class NModelSelectProposer extends NAbstractProposer {
         modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
-    private NDataModel selectExistedModel(ModelTree modelTree, NSmartContext.NModelContext modelContext) {
+    private NDataModel selectExistedModel(ModelTree modelTree, AbstractContext.NModelContext modelContext) {
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject(this.smartContext.getProject());
-        List<NDataModel> originModels = getOriginModels();
+                .getProject(proposeContext.getProject());
+        List<NDataModel> originModels = proposeContext.getOriginModels();
         for (NDataModel model : originModels) {
             List<OLAPContext> retainedOLAPContexts = retainCapableOLAPContexts(model,
                     Lists.newArrayList(modelTree.getOlapContexts()));
@@ -135,7 +128,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 disabledList.forEach(context -> {
                     AccelerateInfo accelerateInfo = new AccelerateInfo();
                     accelerateInfo.setPendingMsg(CC_ACROSS_MODELS_PENDING_MSG);
-                    smartContext.getAccelerateInfoMap().put(context.sql, accelerateInfo);
+                    proposeContext.getAccelerateInfoMap().put(context.sql, accelerateInfo);
                 });
                 modelTree.getOlapContexts().clear();
                 modelTree.getOlapContexts().addAll(retainedOLAPContexts);
@@ -219,5 +212,10 @@ public class NModelSelectProposer extends NAbstractProposer {
             return false;
 
         return dataflow.getLatestReadySegment().getSnapshots().containsKey(modelTreeRootTable);
+    }
+
+    @Override
+    public String getIdentifierName() {
+        return "ModelSelectProposer";
     }
 }

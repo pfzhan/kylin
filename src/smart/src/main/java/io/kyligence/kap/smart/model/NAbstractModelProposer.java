@@ -26,45 +26,41 @@ package io.kyligence.kap.smart.model;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class NAbstractModelProposer {
 
-    static final Logger logger = LoggerFactory.getLogger(NAbstractModelProposer.class);
-
-    protected NSmartContext.NModelContext modelContext;
+    protected AbstractContext.NModelContext modelContext;
     final KylinConfig kylinConfig;
     final String project;
     final NDataModelManager dataModelManager;
 
-    NAbstractModelProposer(NSmartContext.NModelContext modelCtx) {
+    NAbstractModelProposer(AbstractContext.NModelContext modelCtx) {
         this.modelContext = modelCtx;
 
-        kylinConfig = modelCtx.getSmartContext().getKylinConfig();
-        project = modelCtx.getSmartContext().getProject();
+        kylinConfig = modelCtx.getProposeContext().getKylinConfig();
+        project = modelCtx.getProposeContext().getProject();
 
         dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
-    public NSmartContext.NModelContext getModelContext() {
+    public AbstractContext.NModelContext getModelContext() {
         return modelContext;
     }
 
     public NDataModel propose(NDataModel origModel) {
         NDataModel modelDesc = dataModelManager.copyForWrite(origModel);
         initModel(modelDesc);
-        doPropose(modelDesc);
+        execute(modelDesc);
         initModel(modelDesc);
         return modelDesc;
     }
@@ -74,10 +70,10 @@ public abstract class NAbstractModelProposer {
         modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
-    protected abstract void doPropose(NDataModel modelDesc);
-
     boolean isValidOlapContext(OLAPContext context) {
-        val accelerateInfo = modelContext.getSmartContext().getAccelerateInfoMap().get(context.sql);
+        val accelerateInfo = modelContext.getProposeContext().getAccelerateInfoMap().get(context.sql);
         return accelerateInfo != null && !accelerateInfo.isNotSucceed();
     }
+
+    protected abstract void execute(NDataModel modelDesc);
 }

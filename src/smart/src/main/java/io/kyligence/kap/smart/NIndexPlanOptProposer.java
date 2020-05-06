@@ -25,38 +25,45 @@
 package io.kyligence.kap.smart;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.smart.cube.NCubeMaster;
+import io.kyligence.kap.smart.index.NIndexMaster;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NIndexPlanOptProposer extends NAbstractProposer {
 
-    public NIndexPlanOptProposer(NSmartContext smartContext) {
-        super(smartContext);
+    public NIndexPlanOptProposer(AbstractContext proposeContext) {
+        super(proposeContext);
     }
 
     @Override
-    void propose() {
-        if (smartContext.getModelContexts() == null)
+    public void execute() {
+        if (proposeContext.getModelContexts() == null)
             return;
 
-        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
-            NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
-            if (modelCtx.withoutTargetModel() || modelCtx.isSnapshotSelected()) {
+        for (AbstractContext.NModelContext modelCtx : proposeContext.getModelContexts()) {
+            NIndexMaster indexMaster = new NIndexMaster(modelCtx);
+            if (modelCtx.isTargetModelMissing() || modelCtx.isSnapshotSelected()) {
                 continue;
             }
 
             try {
                 IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
                 if (indexPlan == null) {
-                    indexPlan = cubeMaster.proposeInitialCube();
+                    indexPlan = indexMaster.proposeInitialIndexPlan();
                 }
 
-                indexPlan = cubeMaster.proposeCuboids(indexPlan);
+                indexPlan = indexMaster.proposeCuboids(indexPlan);
                 modelCtx.setTargetIndexPlan(indexPlan);
             } catch (Exception e) {
-                logger.error("[UNLIKELY_THINGS_HAPPENED] Something wrong occurs in initialize target indexPlan.", e);
+                log.error("[UNLIKELY_THINGS_HAPPENED] Something wrong occurs in initialize target indexPlan.", e);
                 modelCtx.setTargetIndexPlan(null);
-                recordException(modelCtx, e);
+                proposeContext.recordException(modelCtx, e);
             }
         }
+    }
+
+    @Override
+    public String getIdentifierName() {
+        return "IndexPlanOptProposer";
     }
 }

@@ -88,7 +88,8 @@ public class ComputedColumnEvalUtil {
         evalDataTypeOfCCInManual(Collections.singletonList(computedColumn), nDataModel, 0, 1);
     }
 
-    public static void evaluateExprAndTypeBatchInManual(NDataModel nDataModel, List<ComputedColumnDesc> computedColumns) {
+    public static void evaluateExprAndTypeBatchInManual(NDataModel nDataModel,
+            List<ComputedColumnDesc> computedColumns) {
         evalDataTypeOfCCInManual(computedColumns, nDataModel, 0, computedColumns.size());
     }
 
@@ -165,8 +166,7 @@ public class ComputedColumnEvalUtil {
         return CreateFlatTable.changeSchemaToAliasDotName(dataset, alias);
     }
 
-    public static boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel dataModel, List<NDataModel> otherModels,
-            KylinConfig config, String project) {
+    public static boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel dataModel, List<NDataModel> otherModels) {
         // Resolve CC name, Limit 99 retries to avoid infinite loop
         // TODO: what if the dataModel has more than 99 computed columns?
         int retryCount = 0;
@@ -212,18 +212,21 @@ public class ComputedColumnEvalUtil {
         }
 
         String idxStr = oldAlias.substring(CC_NAME_PREFIX.length());
-        Integer idx;
+        int idx;
         try {
-            idx = Integer.valueOf(idxStr);
+            idx = Integer.parseInt(idxStr);
         } catch (NumberFormatException e) {
             return DEFAULT_CC_NAME;
         }
 
         idx++;
-        return CC_NAME_PREFIX + idx.toString();
+        return CC_NAME_PREFIX + idx;
     }
 
-    public static String generateCCName(String ccExpression, List<NDataModel> allModels) {
+    public static String generateCCName(String ccExpression, NDataModel dataModel, List<NDataModel> otherModels) {
+        List<NDataModel> allModels = Lists.newArrayList(otherModels);
+        allModels.add(dataModel);
+
         for (String originCCexp : getAllCCNameAndExp(allModels).values()) {
             if (ComputedColumnUtil.isLiteralSameCCExprString(originCCexp, ccExpression)) {
                 BiMap<String, String> inversedAllCCNameAndExp = getAllCCNameAndExp(allModels).inverse();
@@ -233,14 +236,16 @@ public class ComputedColumnEvalUtil {
         return null;
     }
 
-    public static int getBiggestCCIndex(List<NDataModel> allModels) {
-        Integer biggest = 0;
+    public static int getBiggestCCIndex(NDataModel dataModel, List<NDataModel> otherModels) {
+        List<NDataModel> allModels = Lists.newArrayList(otherModels);
+        allModels.add(dataModel);
+        int biggest = 0;
         for (String ccName : getAllCCNameAndExp(allModels).keySet()) {
             if (ccName.startsWith(CC_NAME_PREFIX)) {
                 String idxStr = ccName.substring(CC_NAME_PREFIX.length());
-                Integer idx;
+                int idx;
                 try {
-                    idx = Integer.valueOf(idxStr);
+                    idx = Integer.parseInt(idxStr);
                 } catch (NumberFormatException e) {
                     break;
                 }

@@ -197,7 +197,11 @@ import io.kyligence.kap.rest.response.SegmentRangeResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.rest.util.ModelUtils;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractSemiAutoContext;
+import io.kyligence.kap.smart.ModelCreateContextOfSemiMode;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import io.kyligence.kap.smart.ModelSelectContextOfSemiMode;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
@@ -1203,9 +1207,10 @@ public class ModelService extends BasicService {
                     String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
 
-        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
+        AbstractContext proposeContext = new ModelSelectContextOfSemiMode(KylinConfig.getInstanceFromEnv(), project,
                 sqls.toArray(new String[0]));
-        smartMaster.selectExistedModel();
+        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.executePropose();
         return smartMaster.getRecommendedModels();
     }
 
@@ -1224,20 +1229,22 @@ public class ModelService extends BasicService {
             return null;
         }
 
-        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project,
-                sqls.toArray(new String[0]), reuseExistedModel, true);
-        val recommendationsMap = reuseExistedModel ? smartMaster.selectAndGenRecommendation()
-                : smartMaster.recommendNewModelAndIndex();
-        return constructModelRecommendListResponse(recommendationsMap, smartMaster.getContext());
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        AbstractSemiAutoContext proposeContext = reuseExistedModel
+                ? new ModelReuseContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]))
+                : new ModelCreateContextOfSemiMode(kylinConfig, project, sqls.toArray(new String[0]));
+        NSmartMaster smartMaster = new NSmartMaster(proposeContext);
+        smartMaster.runSuggestModel();
+        return constructModelRecommendListResponse(proposeContext.getRecommendationMap(), smartMaster.getContext());
     }
 
     private NRecomendationListResponse constructModelRecommendListResponse(
-            Map<NDataModel, OptimizeRecommendation> recommendationsMap, NSmartContext context) {
+            Map<NDataModel, OptimizeRecommendation> recommendationsMap, AbstractContext context) {
         List<NRecomendationListResponse.NRecomendedDataModelResponse> newDataModelResponseList = Lists.newArrayList();
         List<NRecomendationListResponse.NRecomendedDataModelResponse> originDataModelResponseList = Lists
                 .newArrayList();
 
-        context.getModelContexts().stream().filter(modelContext -> !modelContext.withoutTargetModel())
+        context.getModelContexts().stream().filter(modelContext -> !modelContext.isTargetModelMissing())
                 .collect(groupingBy(modelContext -> modelContext.getTargetModel().getUuid()))
                 .forEach((modelId, modelContextList) -> {
 
@@ -1248,7 +1255,7 @@ public class ModelService extends BasicService {
         return new NRecomendationListResponse(originDataModelResponseList, newDataModelResponseList);
     }
 
-    private void constructModelRecommendResponse(List<NSmartContext.NModelContext> modelContextList,
+    private void constructModelRecommendResponse(List<AbstractContext.NModelContext> modelContextList,
             Map<NDataModel, OptimizeRecommendation> recommendationsMap,
             List<NRecomendationListResponse.NRecomendedDataModelResponse> originModelList,
             List<NRecomendationListResponse.NRecomendedDataModelResponse> newModelList) {

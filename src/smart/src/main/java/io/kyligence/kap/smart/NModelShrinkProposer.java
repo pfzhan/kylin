@@ -45,16 +45,16 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NModelShrinkProposer extends NAbstractProposer {
 
-    public NModelShrinkProposer(NSmartContext smartContext) {
-        super(smartContext);
+    public NModelShrinkProposer(AbstractContext proposeContext) {
+        super(proposeContext);
     }
 
     @Override
-    void propose() {
-        if (smartContext.getModelContexts() == null)
+    public void execute() {
+        if (proposeContext.getModelContexts() == null)
             return;
 
-        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelCtx : proposeContext.getModelContexts()) {
             if (modelCtx.getOriginModel() == null || modelCtx.getOriginIndexPlan() == null
                     || modelCtx.getTargetIndexPlan() == null) {
                 continue;
@@ -139,5 +139,10 @@ public class NModelShrinkProposer extends NAbstractProposer {
     private void initModel(NDataModel modelDesc) {
         final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
         modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
+    }
+
+    @Override
+    public String getIdentifierName() {
+        return "ModelShrinkProposer";
     }
 }

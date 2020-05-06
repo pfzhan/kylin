@@ -30,18 +30,18 @@ import org.apache.kylin.metadata.model.TblColRef;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NPartitionProposer extends NAbstractModelProposer {
 
-    NPartitionProposer(NSmartContext.NModelContext modelContext) {
+    NPartitionProposer(AbstractContext.NModelContext modelContext) {
         super(modelContext);
     }
 
     @Override
-    protected void doPropose(NDataModel dataModel) {
+    protected void execute(NDataModel dataModel) {
         NDataLoadingRangeManager dataRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, project);
 
         String rootFactTable = dataModel.getRootFactTableName();

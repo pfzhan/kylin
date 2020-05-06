@@ -44,6 +44,10 @@ public class SmartConfig {
         return new SmartConfig(KapConfig.wrap(kylinConfig));
     }
 
+    public KylinConfig getKylinConfig() {
+        return kapConfig.getKylinConfig();
+    }
+
     private String getOptional(String name, String defaultValue) {
         String val = kapConfig.getSmartModelingConf(name);
         if (val == null) {

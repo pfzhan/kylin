@@ -24,75 +24,28 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.List;
-
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
-import io.kyligence.kap.smart.common.AccelerateInfo;
+import lombok.Getter;
 
 public abstract class NAbstractProposer {
 
-    protected static Logger logger = LoggerFactory.getLogger(NAbstractProposer.class);
-
-    final NSmartContext smartContext;
+    @Getter
+    final AbstractContext proposeContext;
     final KylinConfig kylinConfig;
-
     final String project;
 
-    public NAbstractProposer(NSmartContext smartContext) {
-        this.smartContext = smartContext;
-        this.kylinConfig = smartContext.getKylinConfig();
-        this.project = smartContext.getProject();
+    public NAbstractProposer(AbstractContext proposeContext) {
+        this.proposeContext = proposeContext;
+        this.kylinConfig = proposeContext.getKylinConfig();
+        this.project = proposeContext.getProject();
     }
 
-    List<NDataModel> getOriginModels() {
-        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        List<NDataModel> onlineModels = NDataflowManager.getInstance(kylinConfig, project)
-                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
-        if (projectInstance.isSemiAutoMode()) {
-            return genRecommendationEnhancedModels(onlineModels);
-        } else {
-            return onlineModels;
-        }
-    }
+    public abstract void execute();
 
-    IndexPlan getOriginIndexPlan(String modelId) {
-        return NProjectManager.getInstance(kylinConfig).getProject(project).isSemiAutoMode()
-                ? OptimizeRecommendationManager.getInstance(kylinConfig, project).applyIndexPlan(modelId)
-                : NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
-
-    }
-
-    private List<NDataModel> genRecommendationEnhancedModels(List<NDataModel> models) {
-        List<NDataModel> enhancedDataModel = Lists.newArrayListWithCapacity(models.size());
-        OptimizeRecommendationManager recommendMgr = OptimizeRecommendationManager.getInstance(kylinConfig, project);
-        for (NDataModel model : models) {
-            enhancedDataModel.add(recommendMgr.applyModel(model.getId()));
-        }
-        return enhancedDataModel;
-    }
-
-    void recordException(NSmartContext.NModelContext modelCtx, Exception e) {
-        modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
-            String sql = olapCtx.sql;
-            final AccelerateInfo accelerateInfo = smartContext.getAccelerateInfoMap().get(sql);
-            Preconditions.checkNotNull(accelerateInfo);
-            accelerateInfo.setFailedCause(e);
-        });
-    }
-
-    abstract void propose();
+    /**
+    * package.sh cannot get ClassName, so preserve a method to record the name of step.
+    * @return The name of proposer step
+    */
+    public abstract String getIdentifierName();
 }

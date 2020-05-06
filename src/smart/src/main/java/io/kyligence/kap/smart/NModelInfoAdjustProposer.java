@@ -25,40 +25,24 @@ package io.kyligence.kap.smart;
 
 import org.apache.kylin.metadata.model.JoinTableDesc;
 
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
 
-public class NAutoOrSemiModelInfoAdjustProposer extends NAbstractProposer {
+public class NModelInfoAdjustProposer extends NAbstractProposer {
 
-    NAutoOrSemiModelInfoAdjustProposer(NSmartContext smartContext) {
-        super(smartContext);
+    public NModelInfoAdjustProposer(AbstractContext proposeContext) {
+        super(proposeContext);
     }
 
     @Override
-    void propose() {
-        val prjInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        if (prjInstance.isExpertMode()) {
-            return;
-        }
-
-        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
-            if (modelCtx.withoutTargetModel()) {
+    public void execute() {
+        for (AbstractContext.NModelContext modelCtx : proposeContext.getModelContexts()) {
+            if (modelCtx.isTargetModelMissing()) {
                 continue;
             }
 
             NDataModel model = modelCtx.getTargetModel();
-            setModelManagementType(model);
+            modelCtx.getProposeContext().changeModelMainType(model);
             setJoinTableType(model);
-        }
-    }
-
-    private void setModelManagementType(NDataModel model) {
-        if (model.getProjectInstance().isSemiAutoMode()) {
-            model.setManagementType(ManagementType.MODEL_BASED);
-        } else {
-            model.setManagementType(ManagementType.TABLE_ORIENTED);
         }
     }
 
@@ -69,5 +53,10 @@ public class NAutoOrSemiModelInfoAdjustProposer extends NAbstractProposer {
                         : NDataModel.TableKind.FACT);
             }
         }
+    }
+
+    @Override
+    public String getIdentifierName() {
+        return "ModelInfoAdjustProposer";
     }
 }

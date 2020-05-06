@@ -24,62 +24,50 @@
 
 package io.kyligence.kap.smart;
 
-import org.apache.kylin.metadata.project.ProjectInstance;
-
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.model.NModelMaster;
+import lombok.extern.slf4j.Slf4j;
 
-class NModelOptProposer extends NAbstractProposer {
-    private static final String NO_COMPATIBLE_MODEL_MSG = "There is no compatible model to accelerate this sql.";
+@Slf4j
+public class NModelOptProposer extends NAbstractProposer {
 
-    NModelOptProposer(NSmartContext smartContext) {
-        super(smartContext);
+    public static final String NO_COMPATIBLE_MODEL_MSG = "There is no compatible model to accelerate this sql.";
+
+    public NModelOptProposer(AbstractContext proposeContext) {
+        super(proposeContext);
     }
 
     @Override
-    void propose() {
-        if (smartContext.getModelContexts() == null)
-            return;
-
-        final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
-        if (projectInstance.isExpertMode()) {
-            logger.info("Expert mode doesn't support modify an existing model.");
+    public void execute() {
+        if (proposeContext.getModelContexts() == null) {
             return;
         }
 
-        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
+        for (AbstractContext.NModelContext modelCtx : proposeContext.getModelContexts()) {
             NModelMaster modelMaster = new NModelMaster(modelCtx);
-            NDataModel model = modelCtx.getTargetModel();
 
             if (modelCtx.isSnapshotSelected()) {
                 continue;
             }
 
             try {
-                if (model == null && modelCtx.getSmartContext().isCouldCreateNewModel()) {
-                    model = modelMaster.proposeInitialModel();
-                    logger.info("Initialized a new model({}) for no compatible one to use.", model.getId());
-                    model = modelMaster.proposeJoins(model);
-                } else if (model != null && modelCtx.getSmartContext().isCanModifyOriginModel()) {
-                    model = modelMaster.proposeJoins(model);
-                }
-
-                if (model == null) {
-                    throw new IllegalStateException(NO_COMPATIBLE_MODEL_MSG);
-                }
+                NDataModel model = modelCtx.getTargetModel();
+                model = modelMaster.proposeJoins(model);
                 model = modelMaster.proposePartition(model);
                 model = modelMaster.proposeComputedColumn(model);
                 model = modelMaster.proposeScope(model);
                 model = modelMaster.shrinkComputedColumn(model);
-
                 modelCtx.setTargetModel(model);
             } catch (Exception e) {
-                logger.error("Unexpected exception occurs in initialize target model.", e);
+                log.error("Unexpected exception occurs in initialize target model.", e);
                 modelCtx.setTargetModel(null);
-                recordException(modelCtx, e);
+                proposeContext.recordException(modelCtx, e);
             }
         }
     }
 
+    @Override
+    public String getIdentifierName() {
+        return "ModelOptProposer";
+    }
 }

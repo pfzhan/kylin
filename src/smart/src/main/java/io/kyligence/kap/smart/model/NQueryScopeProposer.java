@@ -52,7 +52,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
@@ -64,12 +64,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NQueryScopeProposer extends NAbstractModelProposer {
 
-    NQueryScopeProposer(NSmartContext.NModelContext modelContext) {
+    NQueryScopeProposer(AbstractContext.NModelContext modelContext) {
         super(modelContext);
     }
 
     @Override
-    protected void doPropose(NDataModel dataModel) {
+    protected void execute(NDataModel dataModel) {
         log.trace("Propose scope for model [{}]", dataModel.getId());
         ScopeBuilder scopeBuilder = new ScopeBuilder(dataModel);
 
@@ -89,7 +89,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 scopeBuilder.injectAllTableColumns(ctx);
                 scopeBuilder.injectCandidateColumns(ctx);
             } catch (Exception e) {
-                val accelerateInfoMap = modelContext.getSmartContext().getAccelerateInfoMap();
+                val accelerateInfoMap = modelContext.getProposeContext().getAccelerateInfoMap();
                 AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
                 Preconditions.checkNotNull(accelerateInfo);
                 accelerateInfo.setFailedCause(e);
@@ -101,7 +101,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         scopeBuilder.build();
     }
 
-    protected class ScopeBuilder {
+    protected static class ScopeBuilder {
 
         // column_identity <====> NamedColumn
         Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newLinkedHashMap();

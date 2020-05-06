@@ -24,38 +24,40 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.List;
+import java.util.Map;
+
+import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendation;
+import io.kyligence.kap.metadata.recommendation.OptimizeRecommendationManager;
+import lombok.Getter;
 
-public class NIndexPlanSelectProposer extends NAbstractProposer {
+public abstract class AbstractSemiAutoContext extends AbstractContext {
 
-    public NIndexPlanSelectProposer(AbstractContext smartContext) {
-        super(smartContext);
+    @Getter
+    private Map<NDataModel, OptimizeRecommendation> recommendationMap = Maps.newHashMap();
+
+    protected AbstractSemiAutoContext(KylinConfig kylinConfig, String project, String[] sqlArray) {
+        super(kylinConfig, project, sqlArray);
     }
 
     @Override
-    public void execute() {
-        List<AbstractContext.NModelContext> modelContexts = proposeContext.getModelContexts();
-        if (modelContexts == null || modelContexts.isEmpty())
-            return;
-
-        for (AbstractContext.NModelContext modelContext : modelContexts) {
-            IndexPlan indexPlan = findExisting(modelContext.getTargetModel());
-            if (indexPlan != null) {
-                modelContext.setOriginIndexPlan(indexPlan);
-                modelContext.setTargetIndexPlan(indexPlan.copy());
-            }
-        }
-    }
-
-    private IndexPlan findExisting(NDataModel model) {
-        return model == null ? null : proposeContext.getOriginIndexPlan(model.getUuid());
+    public IndexPlan getOriginIndexPlan(String modelId) {
+        return OptimizeRecommendationManager.getInstance(getKylinConfig(), getProject()).applyIndexPlan(modelId);
     }
 
     @Override
-    public String getIdentifierName() {
-        return "IndexPlanSelectProposer";
+    public void changeModelMainType(NDataModel model) {
+        model.setManagementType(ManagementType.MODEL_BASED);
+    }
+
+    @Override
+    public String getIdentifier() {
+        return "Auto-Recommendation";
     }
 }

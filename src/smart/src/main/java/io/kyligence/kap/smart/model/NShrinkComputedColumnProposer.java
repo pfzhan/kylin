@@ -32,16 +32,16 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 
 public class NShrinkComputedColumnProposer extends NAbstractModelProposer {
 
-    public NShrinkComputedColumnProposer(NSmartContext.NModelContext modelCtx) {
+    public NShrinkComputedColumnProposer(AbstractContext.NModelContext modelCtx) {
         super(modelCtx);
     }
 
     @Override
-    protected void doPropose(NDataModel modelDesc) {
+    protected void execute(NDataModel modelDesc) {
         discardCCFieldIfNotApply(modelDesc);
     }
 

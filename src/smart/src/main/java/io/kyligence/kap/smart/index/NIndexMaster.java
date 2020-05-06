@@ -22,32 +22,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
-import java.util.Map;
+import org.apache.commons.lang.StringUtils;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 
-class NCuboidProposer extends NAbstractCubeProposer {
+public class NIndexMaster {
 
-    NCuboidProposer(NSmartContext.NModelContext context) {
-        super(context);
+    private final AbstractContext.NModelContext context;
+    private final NProposerProvider proposerProvider;
+
+    public NIndexMaster(AbstractContext.NModelContext context) {
+        this.context = context;
+        this.proposerProvider = NProposerProvider.create(this.context);
     }
 
-    @Override
-    public IndexPlan doPropose(IndexPlan indexPlan) {
+    public AbstractContext.NModelContext getContext() {
+        return this.context;
+    }
 
-        Map<IndexEntity.IndexIdentifier, IndexEntity> indexEntityMap = indexPlan.getAllIndexesMap();
-
-        CuboidSuggester suggester = new CuboidSuggester(context, indexPlan, indexEntityMap);
-        suggester.suggestIndexes(context.getModelTree());
-
-        indexPlan.setIndexes(Lists.newArrayList(indexEntityMap.values()));
-
+    public IndexPlan proposeInitialIndexPlan() {
+        IndexPlan indexPlan = new IndexPlan();
+        indexPlan.setUuid(context.getTargetModel().getUuid());
+        indexPlan.setDescription(StringUtils.EMPTY);
         return indexPlan;
+    }
+
+    public IndexPlan proposeCuboids(final IndexPlan indexPlan) {
+        return proposerProvider.getCuboidProposer().execute(indexPlan);
+    }
+
+    public IndexPlan reduceCuboids(final IndexPlan indexPlan) {
+        return proposerProvider.getCuboidReducer().execute(indexPlan);
+    }
+
+    public IndexPlan refreshCuboids(final IndexPlan indexPlan) {
+        return proposerProvider.getCuboidRefresher().execute(indexPlan);
     }
 }

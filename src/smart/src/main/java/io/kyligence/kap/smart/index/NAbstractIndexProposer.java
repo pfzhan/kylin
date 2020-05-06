@@ -22,27 +22,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
 import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.smart.AbstractContext;
 
-abstract class NAbstractCubeProposer {
+abstract class NAbstractIndexProposer {
 
-    final NSmartContext.NModelContext context;
+    final AbstractContext.NModelContext context;
 
-    NAbstractCubeProposer(NSmartContext.NModelContext context) {
+    NAbstractIndexProposer(AbstractContext.NModelContext context) {
         this.context = context;
     }
 
-    abstract IndexPlan doPropose(IndexPlan indexPlan);
+    abstract IndexPlan execute(IndexPlan indexPlan);
 
     List<LayoutEntity> collectAllLayouts(Collection<IndexEntity> indexEntities) {
         List<LayoutEntity> layouts = Lists.newArrayList();

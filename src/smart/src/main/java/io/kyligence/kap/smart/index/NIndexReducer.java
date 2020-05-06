@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
 import java.util.List;
 import java.util.Map;
@@ -38,20 +38,20 @@ import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.utils.IndexPlanReduceUtil;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.AbstractContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class NCuboidReducer extends NAbstractCubeProposer {
+class NIndexReducer extends NAbstractIndexProposer {
 
-    NCuboidReducer(NModelContext context) {
+    NIndexReducer(NModelContext context) {
         super(context);
     }
 
     @Override
-    public IndexPlan doPropose(IndexPlan indexPlan) {
+    public IndexPlan execute(IndexPlan indexPlan) {
 
         log.debug("Start to reduce redundant layouts...");
         List<IndexEntity> allProposedIndexes = indexPlan.getIndexes();
@@ -92,7 +92,7 @@ class NCuboidReducer extends NAbstractCubeProposer {
     }
 
     private void adjustAccelerationInfo(Map<LayoutEntity, LayoutEntity> redundantToReservedMap) {
-        Map<String, AccelerateInfo> accelerateInfoMap = context.getSmartContext().getAccelerateInfoMap();
+        Map<String, AccelerateInfo> accelerateInfoMap = context.getProposeContext().getAccelerateInfoMap();
         Map<Long, LayoutEntity> redundantMap = Maps.newHashMap();
         redundantToReservedMap.forEach((redundant, reserved) -> redundantMap.putIfAbsent(redundant.getId(), redundant));
         accelerateInfoMap.forEach((key, value) -> {

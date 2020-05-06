@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -30,39 +30,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.collections.CollectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractContext.NModelContext;
 import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import lombok.extern.slf4j.Slf4j;
 
-class NCuboidRefresher extends NAbstractCubeProposer {
-
-    private static final Logger logger = LoggerFactory.getLogger(NCuboidRefresher.class);
+@Slf4j
+class NIndexRefresher extends NAbstractIndexProposer {
 
     private String draftVersion;
-    private final NSmartContext smartContext;
+    private final AbstractContext smartContext;
     private FavoriteQueryManager favoriteQueryManager;
 
-    NCuboidRefresher(NModelContext context) {
+    NIndexRefresher(NModelContext context) {
         super(context);
-        smartContext = context.getSmartContext();
-        draftVersion = smartContext.getDraftVersion();
-        favoriteQueryManager = FavoriteQueryManager.getInstance(smartContext.getKylinConfig(), smartContext.getProject());
+        smartContext = context.getProposeContext();
+        // draftVersion = smartContext.getDraftVersion();
+        favoriteQueryManager = FavoriteQueryManager.getInstance(smartContext.getKylinConfig(),
+                smartContext.getProject());
     }
 
     @Override
-    public IndexPlan doPropose(IndexPlan indexPlan) {
+    public IndexPlan execute(IndexPlan indexPlan) {
 
         Preconditions.checkNotNull(draftVersion);
         final int semanticVersion = indexPlan.getModel().getSemanticVersion();
@@ -75,7 +75,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         List<LayoutEntity> layouts = Lists.newArrayList();
         collectAllLayouts(originalCuboidsMap.values());
         layouts.forEach(layout -> beforeRefreshLogBuilder.append(layout.getId()).append(" ")); // debug log
-        logger.debug("layouts before refresh: [{}]", beforeRefreshLogBuilder);
+        log.debug("layouts before refresh: [{}]", beforeRefreshLogBuilder);
         Set<FavoriteQueryRealization> allFavoriteQueryRealizations = loadFavoriteQueryRealizations(layouts);
 
         // 3. validate semantic version
@@ -89,7 +89,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         }
 
         // 4. rebuild accelerationInfoMap
-        smartContext.reBuildAccelerationInfoMap(allFavoriteQueryRealizations);
+        ((NSmartContext) smartContext).reBuildAccelerationInfoMap(allFavoriteQueryRealizations);
 
         // 5. delete unmodified cuboids in originalCuboidMap, collect favoriteQueryRealizations and delete them
         originalCuboidsMap.forEach((cuboidIdentifier, indexEntity) -> {
@@ -97,7 +97,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
             while (iterator.hasNext()) {
                 final LayoutEntity layout = iterator.next();
                 if (layout.matchDraftVersion(draftVersion)) {
-                    final Set<String> sqlPattern = smartContext.eraseLayoutInAccelerateInfo(layout);
+                    final Set<String> sqlPattern = ((NSmartContext) smartContext).eraseLayoutInAccelerateInfo(layout);
                     sqlPattern.forEach(sql -> favoriteQueryManager.removeRealizations(sql));
                     iterator.remove();
                 }
@@ -105,8 +105,8 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         });
 
         // 6. propose cuboid again
-        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, indexPlan, originalCuboidsMap);
-        cuboidSuggester.suggestIndexes(context.getModelTree());
+        final IndexSuggester indexSuggester = new IndexSuggester(context, indexPlan, originalCuboidsMap);
+        indexSuggester.suggestIndexes(context.getModelTree());
 
         // 7. publish all layouts
         StringBuilder afterRefreshLogBuilder = new StringBuilder();
@@ -118,7 +118,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         }));
         indexPlan.setIndexes(Lists.newArrayList(cuboids));
         collectAllLayouts(cuboids).forEach(layout -> afterRefreshLogBuilder.append(layout.getId()).append(" ")); // debug log
-        logger.debug("layouts after refresh: [{}]", afterRefreshLogBuilder);
+        log.debug("layouts after refresh: [{}]", afterRefreshLogBuilder);
 
         return indexPlan;
     }
@@ -135,7 +135,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
             final long layoutId = layout.getId();
             final String modelId = layout.getModel().getId();
 
-            final List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getFQRByConditions(modelId, layoutId);
+            List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getFQRByConditions(modelId, layoutId);
             favoriteQueryRealizations.addAll(byConditions);
         });
 

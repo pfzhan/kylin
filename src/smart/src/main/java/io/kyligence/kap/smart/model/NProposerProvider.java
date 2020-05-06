@@ -24,16 +24,20 @@
 
 package io.kyligence.kap.smart.model;
 
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NProposerProvider {
-    private NProposerProvider(NSmartContext.NModelContext modelContext) {
+
+    private NProposerProvider(AbstractContext.NModelContext modelContext) {
         this.modelContext = modelContext;
     }
 
-    private NSmartContext.NModelContext modelContext;
+    private AbstractContext.NModelContext modelContext;
 
-    public static NProposerProvider create(NSmartContext.NModelContext modelContext) {
+    public static NProposerProvider create(AbstractContext.NModelContext modelContext) {
         return new NProposerProvider(modelContext);
     }
 
@@ -50,11 +54,12 @@ public class NProposerProvider {
     }
 
     public NAbstractModelProposer getComputedColumnProposer() {
-        return new NComputedColumnProposer(modelContext);
+        return modelContext.getProposeContext() instanceof ModelReuseContextOfSemiMode
+                ? new NComputedColumnProposer.NComputedColumnProposerOfModelReuseContext(modelContext)
+                : new NComputedColumnProposer(modelContext);
     }
 
     public NAbstractModelProposer getShrinkComputedColumnProposer() {
         return new NShrinkComputedColumnProposer(modelContext);
     }
-
-    }
+}

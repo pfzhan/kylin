@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -57,10 +58,10 @@ import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.exception.PendingException;
@@ -68,13 +69,13 @@ import io.kyligence.kap.smart.model.ModelTree;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-class CuboidSuggester {
+class IndexSuggester {
 
     private static final String COLUMN_NOT_FOUND_PTN = "The model [%s] matches this query, but the dimension [%s] is missing. ";
     private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
     private static final String JOIN_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
 
-    private NSmartContext smartContext;
+    private AbstractContext proposeContext;
     private IndexPlan indexPlan;
     private NDataModel model;
     private final ProjectInstance projectInstance;
@@ -83,14 +84,15 @@ class CuboidSuggester {
     private Map<IndexIdentifier, IndexEntity> collector;
     private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
-    CuboidSuggester(NModelContext modelContext, IndexPlan indexPlan, Map<IndexIdentifier, IndexEntity> collector) {
+    IndexSuggester(AbstractContext.NModelContext modelContext, IndexPlan indexPlan,
+            Map<IndexIdentifier, IndexEntity> collector) {
 
-        this.smartContext = modelContext.getSmartContext();
+        this.proposeContext = modelContext.getProposeContext();
         this.model = modelContext.getTargetModel();
         this.indexPlan = indexPlan;
         this.collector = collector;
-        this.projectInstance = NProjectManager.getInstance(this.smartContext.getKylinConfig())
-                .getProject(this.smartContext.getProject());
+        this.projectInstance = NProjectManager.getInstance(this.proposeContext.getKylinConfig())
+                .getProject(this.proposeContext.getProject());
 
         aggFuncIdMap = Maps.newHashMap();
         model.getEffectiveMeasures()
@@ -101,7 +103,7 @@ class CuboidSuggester {
     }
 
     void suggestIndexes(ModelTree modelTree) {
-        final Map<String, AccelerateInfo> sql2AccelerateInfo = smartContext.getAccelerateInfoMap();
+        final Map<String, AccelerateInfo> sql2AccelerateInfo = proposeContext.getAccelerateInfoMap();
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
 
             // check keySet of sql2AccelerateInfo contains ctx.sql
@@ -148,10 +150,11 @@ class CuboidSuggester {
             return shardBy;
 
         TblColRef colRef = model.getEffectiveCols().get(sortedDimIds.get(0));
-        TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats
-                .getColumnStats(smartContext.getTableMetadataManager(), colRef);
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                proposeContext.getProject());
+        TableExtDesc.ColumnStats colStats = TableExtDesc.ColumnStats.getColumnStats(tableMgr, colRef);
         if (colStats != null
-                && colStats.getCardinality() > smartContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
+                && colStats.getCardinality() > proposeContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
             shardBy.add(sortedDimIds.get(0));
         }
         return shardBy;
@@ -185,7 +188,7 @@ class CuboidSuggester {
         layout.setIndex(indexEntity);
         layout.setAuto(true);
         layout.setUpdateTime(System.currentTimeMillis());
-        layout.setDraftVersion(smartContext.getDraftVersion());
+        // layout.setDraftVersion(smartContext.getDraftVersion());
         layout.setInProposing(true);
         if (model.getStorageType() == 2 && dimIds.containsAll(indexPlan.getExtendPartitionColumns())) {
             layout.setPartitionByColumns(indexPlan.getExtendPartitionColumns());
@@ -259,7 +262,7 @@ class CuboidSuggester {
         List<TblColRef> filterColumns = new ArrayList<>(filterColumnsCollection);
         List<TblColRef> nonFilterColumns = new ArrayList<>(nonFilterColumnsCollection);
         final Comparator<TblColRef> filterColComparator = ComparatorUtils
-                .filterColComparator(smartContext.getKylinConfig(), smartContext.getProject());
+                .filterColComparator(proposeContext.getKylinConfig(), proposeContext.getProject());
         filterColumns.sort(filterColComparator);
         nonFilterColumns.sort(ComparatorUtils.nonFilterColComparator());
 

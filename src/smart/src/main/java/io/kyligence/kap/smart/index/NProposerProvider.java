@@ -22,43 +22,31 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.index;
 
-import org.apache.commons.lang.StringUtils;
+import io.kyligence.kap.smart.AbstractContext;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.smart.NSmartContext;
+public class NProposerProvider {
 
-public class NCubeMaster {
-
-    private final NSmartContext.NModelContext context;
-    private final NProposerProvider proposerProvider;
-
-    public NCubeMaster(NSmartContext.NModelContext context) {
+    private NProposerProvider(AbstractContext.NModelContext context) {
         this.context = context;
-        this.proposerProvider = NProposerProvider.create(this.context);
     }
 
-    public NSmartContext.NModelContext getContext() {
-        return this.context;
+    private AbstractContext.NModelContext context;
+
+    public static NProposerProvider create(AbstractContext.NModelContext context) {
+        return new NProposerProvider(context);
     }
 
-    public IndexPlan proposeInitialCube() {
-        IndexPlan indexPlan = new IndexPlan();
-        indexPlan.setUuid(context.getTargetModel().getUuid());
-        indexPlan.setDescription(StringUtils.EMPTY);
-        return indexPlan;
+    NAbstractIndexProposer getCuboidProposer() {
+        return new NIndexProposer(context);
     }
 
-    public IndexPlan proposeCuboids(final IndexPlan indexPlan) {
-        return proposerProvider.getCuboidProposer().doPropose(indexPlan);
+    NAbstractIndexProposer getCuboidReducer() {
+        return new NIndexReducer(context);
     }
 
-    public IndexPlan reduceCuboids(final IndexPlan indexPlan) {
-        return proposerProvider.getCuboidReducer().doPropose(indexPlan);
-    }
-
-    public IndexPlan refreshCuboids(final IndexPlan indexPlan) {
-        return proposerProvider.getCuboidRefresher().doPropose(indexPlan);
+    NAbstractIndexProposer getCuboidRefresher() {
+        return new NIndexRefresher(context);
     }
 }

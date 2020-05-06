@@ -34,8 +34,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.TableColRefWithRel;
@@ -49,47 +49,66 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.AbstractContext.NModelContext;
 import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NComputedColumnProposer extends NAbstractModelProposer {
 
-    NComputedColumnProposer(NModelContext modelCtx) {
-        super(modelCtx);
+    NComputedColumnProposer(NModelContext modelContext) {
+        super(modelContext);
     }
 
     @Override
-    protected void doPropose(NDataModel nDataModel) {
-        logger.trace("Propose computed column for model [{}]", nDataModel.getId());
-
+    protected void execute(NDataModel dataModel) {
+        log.trace("Propose computed column for model({})", dataModel.getId());
         long startTime = System.currentTimeMillis();
-        List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project) //
-                .listUnderliningDataModels().stream() //
-                .filter(m -> !m.getUuid().equals(nDataModel.getUuid())) //
-                .collect(Collectors.toList());
-        otherModels.addAll(getModelContext().getSmartContext() //
-                .getModelContexts().stream() //
-                .filter(ctx -> ctx != getModelContext()) //
-                .map(NModelContext::getTargetModel) //
-                .filter(Objects::nonNull) //
-                .collect(Collectors.toList()) //
-        );
 
         // pre-init to construct join-tree
-        initModel(nDataModel);
-        Set<String> ccSuggestions = collectComputedColumnSuggestion(modelContext, nDataModel);
-        logger.info("Proposed computed column candidates {} for model [{}] successfully", ccSuggestions,
-                nDataModel.getId());
-        if (ccSuggestions.isEmpty()) {
-            return;
-        }
-        modelContext.setNeedUpdateCC(true);
+        initModel(dataModel);
+        Set<String> ccSuggestions = collectLatentCCSuggestions(modelContext, dataModel);
+        transferStatusOfNeedUpdateCC(ccSuggestions);
+        List<ComputedColumnDesc> newValidCCList = transferToComputedColumn(dataModel, ccSuggestions);
+        evaluateTypeOfComputedColumns(dataModel, newValidCCList);
+        cleanInvalidComputedColumnsInModel(dataModel);
 
-        TableRef rootTable = nDataModel.getRootFactTable();
+        log.info("Propose ComputedColumns successfully completed in {} s. Valid ComputedColumns on model({}) are: {}.",
+                (System.currentTimeMillis() - startTime) / 1000, dataModel.getId(), dataModel.getComputedColumnNames());
+    }
+
+    private Set<String> collectLatentCCSuggestions(AbstractContext.NModelContext modelContext, NDataModel dataModel) {
+        Set<String> ccSuggestions = Sets.newHashSet();
+        ModelTree modelTree = modelContext.getModelTree();
+        for (OLAPContext ctx : modelTree.getOlapContexts()) {
+            // fix models to update alias
+            Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
+            ctx.fixModel(dataModel, matchingAlias);
+            Set<TblColRef> innerColumns = collectInnerColumns(ctx);
+            ccSuggestions.addAll(translateToSuggestions(innerColumns, matchingAlias));
+            ctx.unfixModel();
+        }
+
+        log.info("Proposed computed column candidates {} for model [{}] successfully", ccSuggestions,
+                dataModel.getId());
+        return ccSuggestions;
+    }
+
+    private void transferStatusOfNeedUpdateCC(Set<String> latentCCSuggestions) {
+        if (!latentCCSuggestions.isEmpty()) {
+            modelContext.setNeedUpdateCC(true);
+        }
+    }
+
+    private List<ComputedColumnDesc> transferToComputedColumn(NDataModel dataModel, Set<String> ccSuggestions) {
         List<ComputedColumnDesc> validCCs = Lists.newArrayList();
-        List<NDataModel> allModels = Lists.newArrayList(otherModels);
-        allModels.add(nDataModel);
-        int biggestCCIndex = ComputedColumnEvalUtil.getBiggestCCIndex(allModels);
+        if (ccSuggestions.isEmpty()) {
+            return validCCs;
+        }
+
+        List<NDataModel> otherModels = getOtherModels(dataModel);
+        int maxUsedComputedColumnIndex = ComputedColumnEvalUtil.getBiggestCCIndex(dataModel, otherModels);
         for (String ccSuggestion : ccSuggestions) {
             ComputedColumnDesc ccDesc = modelContext.getUsedCC().get(ccSuggestion);
             // In general, cc expressions in the SQL statements should have been replaced in transformers,
@@ -99,21 +118,21 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 continue;
             }
             ccDesc = new ComputedColumnDesc();
-            ccDesc.setTableIdentity(rootTable.getTableIdentity());
-            ccDesc.setTableAlias(nDataModel.getRootFactTableAlias());
+            ccDesc.setTableIdentity(dataModel.getRootFactTable().getTableIdentity());
+            ccDesc.setTableAlias(dataModel.getRootFactTableAlias());
             ccDesc.setComment("Auto suggested from: " + ccSuggestion);
             ccDesc.setDatatype("ANY"); // resolve data type later
             ccDesc.setExpression(ccSuggestion);
-            String newCCName = ComputedColumnEvalUtil.generateCCName(ccSuggestion, allModels);
+            String newCCName = ComputedColumnEvalUtil.generateCCName(ccSuggestion, dataModel, otherModels);
             if (newCCName != null) {
                 ccDesc.setColumnName(newCCName);
             } else {
-                ccDesc.setColumnName(ComputedColumnEvalUtil.CC_NAME_PREFIX + (++biggestCCIndex));
+                ccDesc.setColumnName(ComputedColumnEvalUtil.CC_NAME_PREFIX + (++maxUsedComputedColumnIndex));
             }
-            ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(nDataModel, project, ccDesc));
-            nDataModel.getComputedColumnDescs().add(ccDesc);
+            ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(dataModel, project, ccDesc));
+            dataModel.getComputedColumnDescs().add(ccDesc);
 
-            if (ComputedColumnEvalUtil.resolveCCName(ccDesc, nDataModel, otherModels, kylinConfig, project)) {
+            if (ComputedColumnEvalUtil.resolveCCName(ccDesc, dataModel, otherModels)) {
                 validCCs.add(ccDesc);
                 modelContext.getUsedCC().put(ccDesc.getExpression(), ccDesc);
             } else {
@@ -121,46 +140,26 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 // `CASE(IN($3, 'Auction', 'FP-GTC'), 'Auction', $3)`
                 // has been added to the model, we should discard it, otherwise, all suggestions after this round
                 // cannot resolve ccName for model initialization failed.
-                nDataModel.getComputedColumnDescs().remove(ccDesc);
-                logger.debug("Malformed computed column {} has been removed from the model {}.", //
-                        ccDesc, nDataModel.getUuid());
+                dataModel.getComputedColumnDescs().remove(ccDesc);
+                log.debug("Malformed computed column {} has been removed from the model {}.", //
+                        ccDesc, dataModel.getUuid());
             }
         }
-
-        if (!modelContext.getSmartContext().isSkipEvaluateCC() && !validCCs.isEmpty()) {
-            ComputedColumnEvalUtil.evaluateExprAndTypeBatch(nDataModel, validCCs);
-        }
-
-        // there are three kind of CC need remove:
-        // 1. invalid CC: something wrong happened in resolving name
-        // 2. unsupported CC: something wrong happened in inferring type
-        // 3. the type of CC is ANY: something unlikely thing happened in inferring type
-        nDataModel.getComputedColumnDescs().removeIf(cc -> cc.getDatatype().equals("ANY"));
-        long duration = System.currentTimeMillis() - startTime;
-        logger.info("There are valid computed columns {} for model [{}] after validation, cost {} s",
-                nDataModel.getComputedColumnNames(), nDataModel.getId(), duration / 1000);
+        return validCCs;
     }
 
-    private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {
-        Set<String> ccSuggestions = Sets.newHashSet();
-
-        ModelTree modelTree = modelContext.getModelTree();
-
-        // Load from context
-        for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            // fix models to update alias
-            Map<String, String> matchingAlias = RealizationChooser.matchJoins(nDataModel, ctx);
-            ctx.fixModel(nDataModel, matchingAlias);
-            ccSuggestions.addAll(collectInnerColumnCandidate(ctx, matchingAlias));
-            ctx.unfixModel();
-        }
-
-        return ccSuggestions;
+    /**
+     * There are three kind of CC need remove:
+     * 1. invalid CC: something wrong happened in resolving name
+     * 2. unsupported CC: something wrong happened in inferring type
+     * 3. the type of CC is ANY: something unlikely thing happened in inferring type
+     */
+    private void cleanInvalidComputedColumnsInModel(NDataModel dataModel) {
+        dataModel.getComputedColumnDescs().removeIf(cc -> cc.getDatatype().equals("ANY"));
     }
 
-    private Set<String> collectInnerColumnCandidate(OLAPContext context, Map<String, String> matchingAlias) {
+    private Set<TblColRef> collectInnerColumns(OLAPContext context) {
         Set<TblColRef> usedCols = Sets.newHashSet();
-        Set<String> candidates = Sets.newHashSet();
         usedCols.addAll(context.allColumns);
 
         context.aggregations.stream() // collect inner columns from agg metrics
@@ -169,24 +168,22 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // collect inner columns from group keys
         usedCols.addAll(getGroupByInnerColumns(context));
         // collect inner columns from filter keys
-        if (modelContext.getSmartContext().getSmartConfig().enableComputedColumnOnFilterKeySuggestion()) {
+        if (modelContext.getProposeContext().getSmartConfig().enableComputedColumnOnFilterKeySuggestion()) {
             usedCols.addAll(getFilterInnerColumns(context));
         }
+        return usedCols;
+    }
 
-        for (TblColRef col : usedCols) {
+    protected Set<String> translateToSuggestions(Set<TblColRef> innerColumns, Map<String, String> matchingAlias) {
+        Set<String> candidates = Sets.newHashSet();
+        for (TblColRef col : innerColumns) {
             if (col.isInnerColumn()) {
                 String parserDesc = col.getParserDescription();
                 parserDesc = matchingAlias.entrySet().stream()
                         .map(entry -> (Function<String, String>) s -> s.replaceAll(entry.getKey(), entry.getValue()))
                         .reduce(Function.identity(), Function::andThen).apply(parserDesc);
-                logger.trace(parserDesc);
+                log.trace(parserDesc);
                 candidates.add(parserDesc);
-            }
-
-            // if create totally new model, it won't reuse CC. So it need to be create its own new ComputedCols.
-            if (col.getColumnDesc().isComputedColumn()
-                    && !this.getModelContext().getSmartContext().isReuseExistedModel()) {
-                candidates.add(col.getExpressionInSourceDB());
             }
         }
         return candidates;
@@ -197,7 +194,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         for (TblColRef innerColRef : context.getInnerFilterColumns()) {
             Set<TblColRef> filterSourceColumns = innerColRef.getSourceColumns();
             if (!innerColRef.getSourceColumns().isEmpty()
-                    && checkColumnsMinCardinality(filterSourceColumns, modelContext.getSmartContext().getSmartConfig()
+                    && checkColumnsMinCardinality(filterSourceColumns, modelContext.getProposeContext().getSmartConfig()
                             .getComputedColumnOnFilterKeySuggestionMinCardinality())) {
 
                 // if the inner filter column contains columns from group keys
@@ -225,7 +222,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             TblColRef groupByColRef = groupByColRefWithRel.getTblColRef();
             Set<TblColRef> groupSourceColumns = groupByColRef.getSourceColumns();
             if (!groupByColRef.getSourceColumns().isEmpty()
-                    && checkColumnsMinCardinality(groupSourceColumns, modelContext.getSmartContext().getSmartConfig()
+                    && checkColumnsMinCardinality(groupSourceColumns, modelContext.getProposeContext().getSmartConfig()
                             .getComputedColumnOnGroupKeySuggestionMinCardinality())) {
                 resultSet.add(groupByColRef);
             }
@@ -236,15 +233,15 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     /**
      * check and ensure that the cardinality of input cols is greater than or equal to the minCardinality
      * If the cardinality of a column is missing, return config "computed-column.suggestion.enabled-if-no-sampling"
-     * @param colRefs
-     * @param minCardinality
+     * @param colRefs TblColRef set
+     * @param minCardinality minCardinality
      * @return
      */
     private boolean checkColumnsMinCardinality(Collection<TblColRef> colRefs, long minCardinality) {
         for (TblColRef colRef : colRefs) {
             long colCardinality = getColumnCardinality(colRef);
             if (colCardinality == -1) {
-                return this.getModelContext().getSmartContext().getSmartConfig().needProposeCcIfNoSampling();
+                return this.getModelContext().getProposeContext().getSmartConfig().needProposeCcIfNoSampling();
             }
             if (colCardinality >= minCardinality) {
                 return true;
@@ -255,8 +252,51 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     }
 
     private long getColumnCardinality(TblColRef colRef) {
-        NTableMetadataManager nTableMetadataManager = modelContext.getSmartContext().getTableMetadataManager();
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
         TableExtDesc.ColumnStats columnStats = TableExtDesc.ColumnStats.getColumnStats(nTableMetadataManager, colRef);
         return columnStats == null ? -1 : columnStats.getCardinality();
+    }
+
+    private void evaluateTypeOfComputedColumns(NDataModel dataModel, List<ComputedColumnDesc> validCCs) {
+        if (modelContext.getProposeContext().isSkipEvaluateCC() || validCCs.isEmpty()) {
+            return;
+        }
+        ComputedColumnEvalUtil.evaluateExprAndTypeBatch(dataModel, validCCs);
+    }
+
+    private List<NDataModel> getOtherModels(NDataModel dataModel) {
+        List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project) //
+                .listUnderliningDataModels().stream() //
+                .filter(m -> !m.getUuid().equals(dataModel.getUuid())) //
+                .collect(Collectors.toList());
+        otherModels.addAll(//
+                getModelContext().getProposeContext() //
+                        .getModelContexts().stream() //
+                        .filter(modelContext -> modelContext != getModelContext()) //
+                        .map(AbstractContext.NModelContext::getTargetModel) //
+                        .filter(Objects::nonNull) //
+                        .collect(Collectors.toList()) //
+        );
+        return otherModels;
+    }
+
+    public static class NComputedColumnProposerOfModelReuseContext extends NComputedColumnProposer {
+
+        NComputedColumnProposerOfModelReuseContext(AbstractContext.NModelContext modelContext) {
+            super(modelContext);
+        }
+
+        @Override
+        protected Set<String> translateToSuggestions(Set<TblColRef> usedCols, Map<String, String> matchingAlias) {
+            Set<String> candidates = super.translateToSuggestions(usedCols, matchingAlias);
+            for (TblColRef col : usedCols) {
+                // if create totally new model, it won't reuse CC. So it need to be create its own new ComputedCols.
+                if (col.getColumnDesc().isComputedColumn()) {
+                    candidates.add(col.getExpressionInSourceDB());
+                }
+            }
+            return candidates;
+        }
     }
 }

@@ -26,93 +26,34 @@ package io.kyligence.kap.smart;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.val;
 
 @Getter
-public class NSmartContext {
-
-    private final KylinConfig kylinConfig;
-    private final SmartConfig smartConfig;
-    private final String project;
-    private final String[] sqls;
-    // if false, it will create totally new model and won't reuse CC.
-    private final boolean reuseExistedModel;
-
-    private final boolean couldCreateNewModel;
-
-    private boolean canModifyOriginModel = false;
-
-    @Setter
-    private boolean skipEvaluateCC;
-
-    // only used in auto-modeling
-    private String draftVersion;
-
-    @Setter
-    private List<NModelContext> modelContexts;
-    @Setter
-    private Map<String, AccelerateInfo> accelerateInfoMap;
-
-    private final NTableMetadataManager tableMetadataManager;
-
-    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
-        this(kylinConfig, project, sqls);
-        this.draftVersion = draftVersion;
-    }
-
-    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, boolean reuseExistedModel,
-            boolean couldCreateNewModel) {
-        this.kylinConfig = kylinConfig;
-        this.project = project;
-        this.sqls = sqls;
-        this.smartConfig = SmartConfig.wrap(this.kylinConfig);
-        this.accelerateInfoMap = Maps.newHashMap();
-        this.reuseExistedModel = reuseExistedModel;
-
-        tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
-        val prjInstance = NProjectManager.getInstance(this.kylinConfig).getProject(project);
-        Preconditions.checkArgument(!prjInstance.isExpertMode() || couldCreateNewModel,
-                "In Expert Mode, it CANNOT create new model !!!");
-        this.couldCreateNewModel = couldCreateNewModel;
-        this.canModifyOriginModel = prjInstance.isSmartMode();
-    }
+public class NSmartContext extends AbstractContext {
 
     public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
-        this.kylinConfig = kylinConfig;
-        this.project = project;
-        this.sqls = sqls;
-        this.smartConfig = SmartConfig.wrap(this.kylinConfig);
-        this.accelerateInfoMap = Maps.newHashMap();
-        this.reuseExistedModel = true;
-        val prjInstance = NProjectManager.getInstance(this.kylinConfig).getProject(project);
-        this.couldCreateNewModel = prjInstance.isSmartMode();
-        this.canModifyOriginModel = prjInstance.isSmartMode();
-
-        tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
+        super(kylinConfig, project, sqls);
     }
 
     /**
@@ -124,7 +65,7 @@ public class NSmartContext {
 
         Preconditions.checkNotNull(layout);
         Set<String> sqlPatterns = Sets.newHashSet();
-        for (val entry : accelerateInfoMap.entrySet()) {
+        for (val entry : getAccelerateInfoMap().entrySet()) {
 
             val relatedLayouts = entry.getValue().getRelatedLayouts();
             val iterator = relatedLayouts.iterator();
@@ -147,17 +88,17 @@ public class NSmartContext {
      * @param favoriteQueryRealizations serialized relations between layout and favorite query
      */
     public void reBuildAccelerationInfoMap(Set<FavoriteQueryRealization> favoriteQueryRealizations) {
-        final Set<String> sqlPatternsSet = new HashSet<>(Lists.newArrayList(this.sqls));
+        final Set<String> sqlPatternsSet = new HashSet<>(Lists.newArrayList(getSqlArray()));
         for (FavoriteQueryRealization fqRealization : favoriteQueryRealizations) {
             final String sqlPattern = fqRealization.getSqlPattern();
             if (!sqlPatternsSet.contains(sqlPattern))
                 continue;
-            if (!accelerateInfoMap.containsKey(sqlPattern)) {
-                accelerateInfoMap.put(sqlPattern, new AccelerateInfo());
+            if (!getAccelerateInfoMap().containsKey(sqlPattern)) {
+                getAccelerateInfoMap().put(sqlPattern, new AccelerateInfo());
             }
 
-            if (accelerateInfoMap.containsKey(sqlPattern)) {
-                val queryRelatedLayouts = accelerateInfoMap.get(sqlPattern).getRelatedLayouts();
+            if (getAccelerateInfoMap().containsKey(sqlPattern)) {
+                val queryRelatedLayouts = getAccelerateInfoMap().get(sqlPattern).getRelatedLayouts();
                 String modelId = fqRealization.getModelId();
                 long layoutId = fqRealization.getLayoutId();
                 int semanticVersion = fqRealization.getSemanticVersion();
@@ -168,51 +109,82 @@ public class NSmartContext {
         }
     }
 
-    @Getter
-    public static class NModelContext {
-        @Setter
-        private ModelTree modelTree; // query
-
-        @Setter(AccessLevel.PACKAGE)
-        private NDataModel targetModel; // output model
-        @Setter(AccessLevel.PACKAGE)
-        private NDataModel originModel; // used when update existing models
-
-        @Setter(AccessLevel.PACKAGE)
-        private IndexPlan targetIndexPlan;
-        @Setter(AccessLevel.PACKAGE)
-        private IndexPlan originIndexPlan;
-
-        @Setter(AccessLevel.PACKAGE)
-        private boolean snapshotSelected;
-
-        private NSmartContext smartContext;
-        private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
-        @Getter
-        @Setter
-        private boolean needUpdateCC = false;
-
-        private NModelContext(NSmartContext smartContext, ModelTree modelTree) {
-            this.smartContext = smartContext;
-            this.modelTree = modelTree;
-        }
-
-        public boolean withoutTargetModel() {
-            return this.targetModel == null;
-        }
-
-        public boolean withoutAnyIndexes() {
-            // we can not modify rule_based_indexes
-            return this.targetIndexPlan == null || CollectionUtils.isEmpty(this.targetIndexPlan.getIndexes());
-        }
-
-        public boolean noNeedToSave() {
-            return withoutTargetModel() || withoutAnyIndexes() || this.snapshotSelected;
-        }
-    }
-
     public NModelContext createModelContext(ModelTree modelTree) {
         return new NModelContext(this, modelTree);
     }
 
+    @Override
+    public IndexPlan getOriginIndexPlan(String modelId) {
+        return NIndexPlanManager.getInstance(getKylinConfig(), getProject()).getIndexPlan(modelId);
+    }
+
+    @Override
+    public List<NDataModel> getOriginModels() {
+        return NDataflowManager.getInstance(getKylinConfig(), getProject())
+                .listDataModelsByStatus(RealizationStatusEnum.ONLINE);
+
+    }
+
+    @Override
+    public void changeModelMainType(NDataModel model) {
+        model.setManagementType(ManagementType.TABLE_ORIENTED);
+    }
+
+    @Override
+    public String getIdentifier() {
+        return "Auto-Modeling";
+    }
+
+    @Override
+    public void saveMetadata() {
+        saveModel();
+        saveIndexPlan();
+    }
+
+    void saveModel() {
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getKylinConfig(), getProject());
+        for (AbstractContext.NModelContext modelCtx : getModelContexts()) {
+            if (modelCtx.skipSavingMetadata()) {
+                continue;
+            }
+            NDataModel model = modelCtx.getTargetModel();
+            if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
+                dataModelManager.updateDataModelDesc(model);
+            } else {
+                dataModelManager.createDataModelDesc(model, model.getOwner());
+            }
+        }
+    }
+
+    private void saveIndexPlan() {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getKylinConfig(), getProject());
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(getKylinConfig(), getProject());
+        for (AbstractContext.NModelContext modelContext : getModelContexts()) {
+            if (modelContext.skipSavingMetadata()) {
+                continue;
+            }
+            IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+            if (indexPlanManager.getIndexPlan(indexPlan.getUuid()) == null) {
+                indexPlanManager.createIndexPlan(indexPlan);
+                dataflowManager.createDataflow(indexPlan, indexPlan.getModel().getOwner());
+            } else {
+                indexPlanManager.updateIndexPlan(indexPlan);
+            }
+        }
+    }
+
+    @Override
+    public ChainedProposer createChainedProposer() {
+        ImmutableList<NAbstractProposer> proposers = ImmutableList.of(//
+                new NSQLAnalysisProposer(this), //
+                new NModelSelectProposer(this), //
+                new NModelOptProposer(this), //
+                new NModelInfoAdjustProposer(this), //
+                new NModelRenameProposer(this), //
+                new NIndexPlanSelectProposer(this), //
+                new NIndexPlanOptProposer(this), //
+                new NIndexPlanShrinkProposer(this) //
+        );
+        return new ChainedProposer(this, proposers);
+    }
 }

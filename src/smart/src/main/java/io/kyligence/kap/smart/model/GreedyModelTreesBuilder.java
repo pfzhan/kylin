@@ -53,11 +53,10 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.AbstractContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
-import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -65,12 +64,12 @@ public class GreedyModelTreesBuilder {
 
     private final Map<String, TableDesc> tableMap;
     KylinConfig kylinConfig;
-    NSmartContext smartContext;
+    AbstractContext proposeContext;
 
-    public GreedyModelTreesBuilder(KylinConfig kylinConfig, String project, NSmartContext smartContext) {
+    public GreedyModelTreesBuilder(KylinConfig kylinConfig, String project, AbstractContext proposeContext) {
         this.kylinConfig = kylinConfig;
         this.tableMap = NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap();
-        this.smartContext = smartContext;
+        this.proposeContext = proposeContext;
     }
 
     @SuppressWarnings("unchecked")
@@ -101,7 +100,7 @@ public class GreedyModelTreesBuilder {
                         }).collect(Collectors.toList());
 
                         TreeBuilder builder = builders.computeIfAbsent(actualFactTbl,
-                                tbl -> new TreeBuilder(tbl, tableMap, smartContext));
+                                tbl -> new TreeBuilder(tbl, tableMap, proposeContext));
                         builder.addOLAPContext(sql, ctx);
                     });
         }
@@ -128,14 +127,14 @@ public class GreedyModelTreesBuilder {
     public static class TreeBuilder {
         private TableDesc rootFact;
         private TableAliasGenerator.TableAliasDict dict;
-        private NSmartContext smartContext;
+        private AbstractContext proposeContext;
 
         private Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
 
-        private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, NSmartContext smartContext) {
+        private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap, AbstractContext proposeContext) {
             this.rootFact = rootFact;
             this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
-            this.smartContext = smartContext;
+            this.proposeContext = proposeContext;
         }
 
         /**
@@ -255,7 +254,7 @@ public class GreedyModelTreesBuilder {
 
             // Merge matching contexts' joins
             for (OLAPContext ctx : ctxsNeedMerge) {
-                val accelerateInfoMap = smartContext.getAccelerateInfoMap();
+                Map<String, AccelerateInfo> accelerateInfoMap = proposeContext.getAccelerateInfoMap();
                 AccelerateInfo accelerateInfo = accelerateInfoMap.get(ctx.sql);
                 if (accelerateInfo.isNotSucceed()) {
                     inputCtxs.remove(ctx);
@@ -291,13 +290,10 @@ public class GreedyModelTreesBuilder {
             JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
             JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
 
-            val partialMatch = smartContext.isCanModifyOriginModel() ? false
-                    : KylinConfig.getInstanceFromEnv().isQueryMatchPartialInnerJoinModel();
-
-            return graphA.match(graphB, Maps.newHashMap(), partialMatch) //
-                    || graphB.match(graphA, Maps.newHashMap(), partialMatch)
+            return graphA.match(graphB, Maps.newHashMap(), proposeContext.isPartialMatch()) //
+                    || graphB.match(graphA, Maps.newHashMap(), proposeContext.isPartialMatch())
                     || (graphA.unmatched(graphB).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin())
-                    && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
+                            && graphB.unmatched(graphA).stream().allMatch(e -> e.isLeftJoin() && !e.isNonEquiJoin()));
         }
 
         /**

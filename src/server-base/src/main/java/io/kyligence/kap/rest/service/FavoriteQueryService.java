@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,7 +62,6 @@ import io.kyligence.kap.common.scheduler.FavoriteQueryListNotifier;
 import io.kyligence.kap.common.scheduler.SchedulerEventBusFactory;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.epoch.EpochManager;
 import io.kyligence.kap.metadata.favorite.CheckAccelerateSqlListResult;
 import io.kyligence.kap.metadata.favorite.CreateFavoriteQueryResult;
@@ -76,6 +74,8 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.rest.rate.EnableRateLimit;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.smart.AbstractContext;
+import io.kyligence.kap.smart.ModelReuseContextOfSemiMode;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -254,68 +254,6 @@ public class FavoriteQueryService extends BasicService {
         return result;
     }
 
-    // only used for test
-    public int getOptimizedModelNumForTest(String project, String[] sqls) {
-        return getOptimizedModelNum(project, sqls);
-    }
-
-    private int getOptimizedModelNum(String project, String[] sqls) {
-        int optimizedModelNum = 0;
-        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.getContext().setSkipEvaluateCC(true);
-        smartMaster.optimizeModel();
-        List<NSmartContext.NModelContext> modelContexts = Lists.newArrayList();
-
-        for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
-            // case in manual maintain type project and no model is selected
-            if (modelContext.getOriginModel() == null && modelContext.getTargetModel() == null)
-                continue;
-
-            if ((modelContext.getOriginModel() == null && modelContext.getTargetModel() != null)
-                    || !modelContext.getOriginModel().equals(modelContext.getTargetModel())) {
-                optimizedModelNum++;
-            } else
-                modelContexts.add(modelContext);
-        }
-
-        if (modelContexts.isEmpty())
-            return optimizedModelNum;
-
-        smartMaster.selectIndexPlan();
-        smartMaster.optimizeIndexPlan();
-
-        for (NSmartContext.NModelContext modelContext : modelContexts) {
-            List<LayoutEntity> origCuboidLayouts = Lists.newArrayList();
-            List<LayoutEntity> targetCuboidLayouts = Lists.newArrayList();
-
-            if (modelContext.getOriginIndexPlan() != null)
-                origCuboidLayouts = modelContext.getOriginIndexPlan().getAllLayouts();
-
-            if (modelContext.getTargetIndexPlan() != null)
-                targetCuboidLayouts = modelContext.getTargetIndexPlan().getAllLayouts();
-
-            if (!doTwoCuboidLayoutsEqual(origCuboidLayouts, targetCuboidLayouts))
-                optimizedModelNum++;
-        }
-
-        return optimizedModelNum;
-    }
-
-    private boolean doTwoCuboidLayoutsEqual(List<LayoutEntity> origCuboidLayouts,
-            List<LayoutEntity> targetCuboidLayouts) {
-        if (origCuboidLayouts.size() != targetCuboidLayouts.size())
-            return false;
-
-        for (int i = 0; i < origCuboidLayouts.size(); i++) {
-            if (origCuboidLayouts.get(i).getId() != targetCuboidLayouts.get(i).getId())
-                return false;
-        }
-
-        return true;
-    }
-
     public Map<String, Object> getAccelerateTips(String project) {
         aclEvaluate.checkProjectWritePermission(project);
         Preconditions.checkArgument(StringUtils.isNotEmpty(project));
@@ -325,10 +263,6 @@ public class FavoriteQueryService extends BasicService {
 
     private List<String> getAccelerableSqlPattern(String project) {
         return getFavoriteQueryManager(project).getAccelerableSqlPattern();
-    }
-
-    private List<String> getWaitingAcceleratingSqlPattern(String project) {
-        return getFavoriteQueryManager(project).getToBeAcceleratedSqlPattern();
     }
 
     @VisibleForTesting
@@ -452,8 +386,9 @@ public class FavoriteQueryService extends BasicService {
         logger.info("Semi-Auto-Mode project:{} generate suggestions by sqlList size: {}", project, sqlList.size());
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         Set<String> sqlSet = Sets.newHashSet(sqlList);
-        NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
-        master.runOptRecommendation(smartContext -> {
+        AbstractContext context = new ModelReuseContextOfSemiMode(kylinConfig, project, sqlList.toArray(new String[0]));
+        NSmartMaster master = new NSmartMaster(context);
+        master.runWithContext(smartContext -> {
             Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
             if (!notAccelerated.isEmpty()) {
                 sqlSet.removeAll(notAccelerated.keySet());
@@ -463,7 +398,7 @@ public class FavoriteQueryService extends BasicService {
                 updateFavoriteQueryStatus(sqlSet, project, FavoriteQueryStatusEnum.ACCELERATED);
                 return;
             }
-            for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+            for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
                 val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
                 sqlSet.removeAll(sqls);
                 if (CollectionUtils.isEmpty(sqls)) {
@@ -486,8 +421,9 @@ public class FavoriteQueryService extends BasicService {
         Set<String> sqlSet = Sets.newHashSet(sqlList);
 
         // do auto-modeling
-        NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
-        master.runAllAndForContext(smartContext -> {
+        AbstractContext context = new NSmartContext(kylinConfig, project, sqlList.toArray(new String[0]));
+        NSmartMaster master = new NSmartMaster(context);
+        master.runWithContext(smartContext -> {
             // handle blocked sql patterns
             Map<String, AccelerateInfo> notAccelerated = getNotAcceleratedSqlInfo(master.getContext());
             if (!notAccelerated.isEmpty()) {
@@ -500,7 +436,7 @@ public class FavoriteQueryService extends BasicService {
             }
 
             EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
+            for (AbstractContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
                 val sqls = getRelatedSqlsFromModelContext(modelContext, notAccelerated);
                 sqlSet.removeAll(sqls);
@@ -520,7 +456,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     // including pending and failed fqs
-    private Map<String, AccelerateInfo> getNotAcceleratedSqlInfo(NSmartContext context) {
+    private Map<String, AccelerateInfo> getNotAcceleratedSqlInfo(AbstractContext context) {
         Map<String, AccelerateInfo> notAcceleratedSqlInfo = Maps.newHashMap();
         if (context == null) {
             return notAcceleratedSqlInfo;
@@ -582,7 +518,7 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private Set<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext,
+    private Set<String> getRelatedSqlsFromModelContext(AbstractContext.NModelContext modelContext,
             Map<String, AccelerateInfo> blockedSqlInfo) {
         Set<String> sqls = Sets.newHashSet();
         if (modelContext == null) {
@@ -596,9 +532,8 @@ public class FavoriteQueryService extends BasicService {
         if (CollectionUtils.isEmpty(olapContexts)) {
             return sqls;
         }
-        Iterator<OLAPContext> iterator = olapContexts.iterator();
-        while (iterator.hasNext()) {
-            String sql = iterator.next().sql;
+        for (OLAPContext olapContext : olapContexts) {
+            String sql = olapContext.sql;
             if (!blockedSqlInfo.containsKey(sql)) {
                 sqls.add(sql);
             }
@@ -668,12 +603,21 @@ public class FavoriteQueryService extends BasicService {
         NMetricsGroup.counterInc(NMetricsName.FQ_ADJUST_INVOKED_DURATION, NMetricsCategory.PROJECT, project, duration);
     }
 
+    // expert mode no need this
     private void checkAccelerateStatus(String project, String[] sqls) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ProjectInstance instance = NProjectManager.getInstance(config).getProject(project);
+        if (instance.isExpertMode()) {
+            return;
+        }
+
         EnhancedUnitOfWork.doInTransactionWithCheckAndRetry(() -> {
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
             FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
-            NSmartMaster master = new NSmartMaster(config, project, sqls);
-            master.selectAndOptimize();
+            AbstractContext context = instance.isSemiAutoMode() //
+                    ? new ModelReuseContextOfSemiMode(config, project, sqls)
+                    : new NSmartContext(config, project, sqls);
+            NSmartMaster master = new NSmartMaster(context);
+            master.executePropose();
             String[] toUpdateSqls = Arrays.stream(sqls).filter(sql -> {
                 // only unmatched to handle
                 FavoriteQuery fq = manager.get(sql);
